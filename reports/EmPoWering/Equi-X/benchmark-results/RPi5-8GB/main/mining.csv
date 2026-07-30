@@ -1,0 +1,5 @@
+device,impl,challenge_base,effort,samples,attempts_mean,achieved_mean,token_s_mean,token_s_median,token_s_stddev,tokens_per_sec_1core,workers,ok_workers,tokens_per_sec_machine,scaling_efficiency,failed_searches,solution_bytes_min,solution_bytes_max,nonce_bytes_wire
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-rust,abcd,100,50,34.91,1033.5,0.676300,0.496066,0.570228,1.4786,4,4,4.4709,0.7559,0,16,16,8
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-rust,abcd,300,50,125.21,2198.4,2.567286,1.740932,2.854524,0.3895,4,4,1.4017,0.8996,0,16,16,8
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-rust,abcd,1000,50,494.16,4860.9,10.863669,7.015510,10.633277,0.0920,4,4,0.4255,1.1557,0,16,16,8
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-rust,abcd,3000,50,1287.94,29510.4,28.820402,23.444119,23.375164,0.0347,4,4,0.1717,1.2369,0,16,16,8

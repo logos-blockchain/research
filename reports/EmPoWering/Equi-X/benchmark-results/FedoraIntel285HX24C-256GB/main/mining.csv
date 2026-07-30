@@ -1,0 +1,5 @@
+device,impl,challenge_base,effort,samples,attempts_mean,achieved_mean,token_s_mean,token_s_median,token_s_stddev,tokens_per_sec_1core,workers,ok_workers,tokens_per_sec_machine,scaling_efficiency,failed_searches,solution_bytes_min,solution_bytes_max,nonce_bytes_wire
+intel-r-core-tm-ultra-9-285hx-7-1-5-200-fc44-x86-64,equix-rust,abcd,100,50,45.29,1033.5,0.150591,0.113485,0.119322,6.6405,24,24,85.2338,0.5348,0,16,16,8
+intel-r-core-tm-ultra-9-285hx-7-1-5-200-fc44-x86-64,equix-rust,abcd,300,50,134.63,2198.4,0.543031,0.373677,0.592604,1.8415,24,24,30.4663,0.6893,0,16,16,8
+intel-r-core-tm-ultra-9-285hx-7-1-5-200-fc44-x86-64,equix-rust,abcd,1000,50,473.66,4860.9,2.268614,1.471272,2.212518,0.4408,24,24,9.2844,0.8776,0,16,16,8
+intel-r-core-tm-ultra-9-285hx-7-1-5-200-fc44-x86-64,equix-rust,abcd,3000,50,1534.58,29510.4,6.022115,4.907774,4.877163,0.1661,24,24,2.6745,0.6711,0,16,16,8

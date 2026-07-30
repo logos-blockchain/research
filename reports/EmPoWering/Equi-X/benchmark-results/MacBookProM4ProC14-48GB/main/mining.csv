@@ -1,0 +1,5 @@
+device,impl,challenge_base,effort,samples,attempts_mean,achieved_mean,token_s_mean,token_s_median,token_s_stddev,tokens_per_sec_1core,workers,ok_workers,tokens_per_sec_machine,scaling_efficiency,failed_searches,solution_bytes_min,solution_bytes_max,nonce_bytes_wire
+apple-m4-pro-25-5-0,equix-rust,abcd,100,50,41.57,1033.5,0.152520,0.112062,0.128741,6.5565,14,14,54.0146,0.5885,0,16,16,8
+apple-m4-pro-25-5-0,equix-rust,abcd,300,50,132.81,2198.4,0.574576,0.388426,0.639346,1.7404,14,14,17.8986,0.7346,0,16,16,8
+apple-m4-pro-25-5-0,equix-rust,abcd,1000,50,472.77,4860.9,2.403397,1.550898,2.364248,0.4161,14,14,5.5475,0.9523,0,16,16,8
+apple-m4-pro-25-5-0,equix-rust,abcd,3000,50,1485.73,29510.4,6.335744,5.190595,5.108897,0.1578,14,14,1.6224,0.7342,0,16,16,8

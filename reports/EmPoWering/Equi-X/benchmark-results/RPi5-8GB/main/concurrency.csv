@@ -1,0 +1,13 @@
+device,impl,operation,workers,ok_workers,per_worker_median_s,aggregate_ops_per_sec,per_worker_ops_per_sec,scaling_efficiency,total_peak_rss_kb
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-c,solve,1,1,0.021161670,47.255,47.255,1.0000,70384
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-c,solve,2,2,0.021205007,94.317,47.159,0.9980,140768
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-c,solve,4,4,0.021407551,186.861,46.715,0.9886,281536
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-rust,solve,1,1,0.021086494,47.424,47.424,1.0000,3856
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-rust,solve,2,2,0.021140461,94.605,47.303,0.9974,7712
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-rust,solve,4,4,0.021578105,185.850,46.462,0.9797,15424
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-c,verify,1,1,0.000042537,23508.945,23508.945,1.0000,70896
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-c,verify,2,2,0.000042454,47112.513,23556.257,1.0020,159936
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-c,verify,4,4,0.000042935,92931.114,23232.778,0.9883,351232
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-rust,verify,1,1,0.000054537,18336.175,18336.175,1.0000,2800
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-rust,verify,2,2,0.000055823,35827.640,17913.820,0.9770,5632
+raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712,equix-rust,verify,4,4,0.000057592,69357.396,17339.349,0.9456,11248

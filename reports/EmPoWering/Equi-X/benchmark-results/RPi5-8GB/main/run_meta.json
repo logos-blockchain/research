@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-07-28T11:07:37+00:00",
+  "config": "configs/full.toml",
+  "cpu": "Raspberry Pi 5 Model B Rev 1.1",
+  "nproc": 4,
+  "devices": [
+    "raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712"
+  ],
+  "device_records": {
+    "raspberry-pi-5-model-b-rev-1-1-6-18-34-rpt-rpi-2712": {
+      "type": "cpu",
+      "name": "Raspberry Pi 5 Model B Rev 1.1",
+      "arch": "aarch64"
+    }
+  }
+}

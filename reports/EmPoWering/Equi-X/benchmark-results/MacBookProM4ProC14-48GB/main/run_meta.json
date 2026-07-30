@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-07-28T10:25:17+00:00",
+  "config": "configs/full.toml",
+  "cpu": "Apple M4 Pro",
+  "nproc": 14,
+  "devices": [
+    "apple-m4-pro-25-5-0"
+  ],
+  "device_records": {
+    "apple-m4-pro-25-5-0": {
+      "type": "cpu",
+      "name": "Apple M4 Pro",
+      "arch": "aarch64"
+    }
+  }
+}
