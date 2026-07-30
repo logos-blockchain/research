@@ -5,6 +5,7 @@ runners/rust/target/
 **/*.a
 
 # Benchmark outputs
+/doc/
 /results/
 /combined/
 /run[A-Z]/
