@@ -1,0 +1,16 @@
+# Full scaled-k parameter sweep. Mean accuracy / q_eff / convergence are k-invariant,
+# so k is scaled down for tractability; re-run headline + variance figures at full scale
+# with fullscale.yaml.
+# Sweep axes (cartesian product x replicates); every value is a list.
+n_nodes: [1000, 2000, 4000]                # number of nodes / stake holders
+stake_dist: [uniform, pareto]              # stake distribution (uniform = equal, pareto = heavy-tailed)
+latency: [0, 1, 2, 4, 6, 8, 10, 15, 20, 30] # L: network latency in slots; block visible at t+L
+max_uncles: [0, 1, 2, 3, 4, 8, 10]         # U: max uncle references per block (0 = baseline)
+uncle_strategy: [oldest, random]           # uncle selection: oldest-first fill vs random coin-flip
+replicates: 12                             # independent RNG replicates per grid cell
+base:                                      # per-run settings shared by every cell (not swept)
+  k: 256                                   # security parameter (scaled; T = 6*floor(256/f) = 46080 slots)
+  epochs: 75                               # epochs simulated per trajectory
+  f: 0.03333333333333333                  # slot activation coefficient (default 1/30); configurable
+  genesis_d_factor: 0.5                    # genesis D_est = factor x true total stake
+  pareto_shape: 1.16                       # Pareto (Lomax) tail index for the pareto stake distribution
