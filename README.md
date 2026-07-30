@@ -1,2 +1,2 @@
-# research
-Logos Blockchain Research
+# Logos Blockchain Research
+
