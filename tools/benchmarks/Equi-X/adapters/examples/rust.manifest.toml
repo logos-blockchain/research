@@ -1,0 +1,9 @@
+# Adapter manifest for the Rust implementation (Tor arti equix + hashx crates).
+name = "equix-rust"
+exec = "runners/rust/target/release/equix_runner"
+protocol_version = 1
+capabilities = ["solve", "verify", "effort", "hashx_compile"]
+runtimes = ["interpret", "try-compile", "must-compile"]
+
+[env]
+EQUIX_RUST_VERSION = "0.7.0"

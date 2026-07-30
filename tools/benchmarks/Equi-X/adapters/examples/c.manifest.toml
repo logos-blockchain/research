@@ -1,0 +1,10 @@
+# Adapter manifest for the reference C implementation (tevador/equix + hashx).
+name = "equix-c"
+exec = "build/runners/c/equix_runner"
+protocol_version = 1
+capabilities = ["solve", "verify", "effort", "hashx_compile"]
+runtimes = ["interpret", "try-compile", "must-compile"]
+
+# Optional provenance passed to the runner as environment variables.
+[env]
+EQUIX_C_VERSION = "1.0.0"

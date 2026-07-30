@@ -1,0 +1,35 @@
+# Smoke config: seconds-scale sanity run used by CI and for quick local checks.
+[run]
+warmup = 1
+repetitions = 3
+impls = ["equix-c", "equix-rust"]
+
+[[jobs]]
+operation = "solve"
+runtimes = ["interpret", "try-compile"]
+challenges = ["deadbeef"]
+vary_challenge = true
+
+[[jobs]]
+operation = "verify"
+runtimes = ["interpret"]
+challenges = ["deadbeef"]
+vary_challenge = true
+
+[[jobs]]
+operation = "hashx_compile"
+runtimes = ["interpret", "must-compile"]
+challenges = ["deadbeef"]
+
+[[jobs]]
+operation = "effort"
+runtimes = ["try-compile"]
+bases = ["abcd"]
+targets = [50, 200]
+nonce_bytes = 8
+max_attempts = 200000
+
+[crosscheck]
+enabled = true
+challenges = ["deadbeef", "cafe"]
+pairs = [["equix-c", "equix-rust"], ["equix-rust", "equix-c"]]

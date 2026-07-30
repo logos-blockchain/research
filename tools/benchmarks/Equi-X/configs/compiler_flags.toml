@@ -1,0 +1,35 @@
+# Compare C-runner performance across compiler/optimization flags.
+# First build the variants:  ./scripts/build_variants.sh
+# Impls that were not built (e.g. a missing compiler) are skipped with a warning.
+[run]
+# Flag differences are small and JIT-dominated, so use a generous rep count to
+# keep the per-variant median stable enough to rank them meaningfully.
+warmup = 5
+repetitions = 30
+impls = [
+  "equix-c-gcc-o0",
+  "equix-c-gcc-o2",
+  "equix-c-gcc-o3",
+  "equix-c-gcc-o3-native",
+  "equix-c-gcc-o3-lto",
+  "equix-c-clang-o3",
+  "equix-c-clang-o3-native",
+]
+
+# Solve dominates PoW cost; compare interpreter and JIT across flag sets.
+[[jobs]]
+operation = "solve"
+runtimes = ["interpret", "try-compile"]
+challenges = ["deadbeef", "0102030405060708"]
+
+# Program generation + JIT compile cost can also shift with flags.
+[[jobs]]
+operation = "hashx_compile"
+runtimes = ["must-compile"]
+challenges = ["deadbeef"]
+
+# All variants compute identical solutions -> the interop check still holds.
+[crosscheck]
+enabled = true
+challenges = ["deadbeef"]
+pairs = [["equix-c-gcc-o3", "equix-c-clang-o3"]]

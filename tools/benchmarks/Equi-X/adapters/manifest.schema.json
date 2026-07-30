@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/madxor/equi-x/adapters/manifest.schema.json",
+  "title": "Equi-X benchmark adapter manifest",
+  "type": "object",
+  "required": ["name", "exec"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique implementation name, referenced by configs' run.impls."
+    },
+    "exec": {
+      "description": "Runner argv. A string is a single-element argv. Paths are resolved relative to the repo root.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ]
+    },
+    "protocol_version": {
+      "type": "integer",
+      "default": 1,
+      "description": "Wire protocol version the runner speaks."
+    },
+    "capabilities": {
+      "type": "array",
+      "items": { "enum": ["solve", "verify", "effort", "hashx_compile"] },
+      "description": "Operations this runner supports; unsupported cells are skipped."
+    },
+    "runtimes": {
+      "type": "array",
+      "items": { "enum": ["interpret", "try-compile", "must-compile"] },
+      "description": "HashX runtimes this runner supports."
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Extra environment variables set for the runner process."
+    }
+  }
+}

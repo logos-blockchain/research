@@ -1,0 +1,26 @@
+# Build outputs
+/build/
+runners/rust/target/
+**/*.o
+**/*.a
+
+# Benchmark outputs
+/results/
+/combined/
+/run[A-Z]/
+/runA/
+/runB/
+
+# Auto-generated compiler-flag variant manifests (reference machine-specific build paths)
+/adapters/generated/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Editor/OS
+.DS_Store
+*.swp

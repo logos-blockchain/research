@@ -1,0 +1,77 @@
+# Full sweep: all runtimes x all operations x multiple challenges + an effort
+# sweep, with enough repetitions for stable medians. Minutes-scale.
+[run]
+warmup = 8
+repetitions = 100
+impls = ["equix-c", "equix-rust"]
+
+# --- solve: interpreter vs JIT. vary_challenge = each listed value is a SEED;
+#     every rep solves a fresh challenge from a SHA-256 chain, so the medians and
+#     p95 reflect the spread ACROSS challenges, not one fixed instance. Challenge
+#     generation is excluded from the timing. ---
+[[jobs]]
+operation = "solve"
+runtimes = ["interpret", "try-compile", "must-compile"]
+challenges = ["deadbeef", "0000000000000002", "cafe", "0102030405060708"]
+vary_challenge = true
+
+# --- verify: cheap; in seed mode the runner self-solves each derived challenge
+#     (setup solve excluded from timing), so no harness-resolved solution. ---
+[[jobs]]
+operation = "verify"
+runtimes = ["interpret", "try-compile", "must-compile"]
+challenges = ["deadbeef", "0000000000000002", "cafe"]
+vary_challenge = true
+
+# --- compile isolation: interpreter (program-gen only) vs JIT compile ---
+[[jobs]]
+operation = "hashx_compile"
+runtimes = ["interpret", "must-compile"]
+challenges = ["deadbeef", "0102030405060708"]
+
+# --- effort/difficulty sweep: cost grows ~linearly with target effort ---
+[[jobs]]
+operation = "effort"
+runtimes = ["try-compile"]
+bases = ["abcd"]
+targets = [100, 1000, 10000]
+nonce_bytes = 8
+nonce_start = 0
+max_attempts = 20000000
+repetitions = 10
+
+[crosscheck]
+enabled = true
+challenges = ["deadbeef", "cafe", "0000000000000002"]
+pairs = [["equix-c", "equix-rust"], ["equix-rust", "equix-c"]]
+
+# --- concurrency / saturation: MEASURED sustained solve & verify capacity ---
+# Runs N worker processes at once (N = 1,2,4,... up to the core count) and
+# measures aggregate throughput, so the report can state the machine's real
+# parallel capacity and the saturation knee. Additive to the per-core DoS
+# estimate — it never overwrites it. max_workers = 0 means os.cpu_count().
+[concurrency]
+enabled = true
+operations = ["solve", "verify"]
+challenge = "deadbeef"
+reps = 50
+warmup = 5
+max_workers = 0
+levels = []
+
+# --- mining rate vs difficulty: MEASURED whole-machine token mint rate ---
+# Basis for "control the mint rate by setting difficulty". Uses the fastest
+# solver (open-network case). Each 1-core point pools independent searches from
+# distinct nonce ranges; the machine point streams tokens_per_worker searches
+# per core concurrently and pools tokens over busy time (failed searches
+# charged to the denominator).
+[mining]
+enabled = true
+impls = ["equix-rust"]
+challenge_base = "abcd"
+efforts = [100, 300, 1000, 3000]
+samples = 50
+workers = 0
+tokens_per_worker = 5
+nonce_bytes = 8
+max_attempts = 1500000

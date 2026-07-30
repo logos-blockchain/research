@@ -1,0 +1,66 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-smoke:
+    # ubuntu-24.04 (x86-64) and macos-14 (Apple Silicon / aarch64) validate both
+    # platforms, including the Apple Silicon JIT guard in the C runner.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build runners
+        run: ./scripts/setup.sh
+
+      - name: Install harness
+        run: pip install -e ./harness
+
+      - name: Run reference C unit tests
+        run: |
+          cmake --build build/runners/c --target equix-tests
+          ./build/runners/c/equix_ext/equix-tests
+
+      - name: Harness pytest
+        run: |
+          pip install pytest
+          pytest -q harness/tests
+
+      - name: Smoke benchmark
+        run: python -m equix_bench run --config configs/smoke.toml --out results/
+
+      - name: Cross-implementation correctness gate
+        run: python -m equix_bench run --config configs/smoke.toml --out results/ --crosscheck-only
+
+      - name: Multi-CPU combine (two labelled runs, faceted + cross-CPU figures)
+        run: |
+          python -m equix_bench run --config configs/smoke.toml --out runA/ --device-label ci-cpu-a
+          python -m equix_bench run --config configs/smoke.toml --out runB/ --device-label ci-cpu-b
+          python -m equix_bench combine --inputs runA runB --out combined/
+          test -f combined/plots/xdev_throughput.png
+          test -f combined/plots/solve_time_by_runtime.png
+
+      - name: Upload results (report + plots)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-results-${{ matrix.os }}
+          path: |
+            results/
+            combined/

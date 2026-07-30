@@ -1,0 +1,3 @@
+[submodule "vendored/equix"]
+	path = vendored/equix
+	url = https://github.com/tevador/equix

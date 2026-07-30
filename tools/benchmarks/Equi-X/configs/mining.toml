@@ -1,0 +1,24 @@
+# Mining-rate benchmark: measure the whole-machine token mint rate vs difficulty,
+# using the fastest solver (the open-network case). Isolated so it can be run
+# alone under idle conditions:
+#   python -m equix_bench run --config configs/mining.toml --out results/mining
+[run]
+impls = ["equix-rust"]
+
+[crosscheck]
+enabled = false
+
+[mining]
+enabled = true
+impls = ["equix-rust"]          # everyone in an open network uses the fastest solver
+challenge_base = "abcd"
+# Expected attempts per token grow ~linearly with effort (measured ≈0.3-0.5·E,
+# with several solutions per solve attempt each drawing an effort value), so a
+# token at high E is genuinely expensive to mint AND to average. We measure a
+# 100→3000 curve (30× span, enough to show the ~1/E trend) and extrapolate.
+efforts = [100, 300, 1000, 3000]
+samples = 10                    # independent 1-core mints per difficulty (distinct nonces)
+workers = 0                     # 0 = all cores, for the whole-machine rate
+tokens_per_worker = 5           # tokens each concurrent worker streams (averages nonce variance)
+nonce_bytes = 8
+max_attempts = 1500000

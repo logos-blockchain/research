@@ -1,0 +1,28 @@
+# DoS-protection evaluation: measures the attacker-solve vs defender-verify
+# asymmetry across a range of efforts to answer "is Equi-X an effective DoS
+# defense on THIS system, and at what effort?". A few minutes to run.
+[run]
+warmup = 2
+repetitions = 8
+impls = ["equix-c", "equix-rust"]
+
+# Defender cost: fast verify (both interpreter and JIT so you can compare).
+[[jobs]]
+operation = "verify"
+runtimes = ["interpret", "try-compile"]
+challenges = ["deadbeef"]
+
+# Attacker cost: measured time to craft one accepted token at each effort.
+[[jobs]]
+operation = "effort"
+runtimes = ["try-compile"]
+bases = ["abcd"]
+targets = [200, 1000, 4000]
+nonce_bytes = 8
+max_attempts = 50000000
+repetitions = 1
+
+[crosscheck]
+enabled = true
+challenges = ["deadbeef"]
+pairs = [["equix-c", "equix-rust"], ["equix-rust", "equix-c"]]
