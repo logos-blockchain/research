@@ -1,0 +1,16 @@
+# Full-scale (true k=2160) runs for the final headline + variance figures only.
+# ~100x slower per config than default.yaml, so the grid is deliberately small.
+# Note: T = 6*floor(2160/f) = 388,800 slots per epoch — expect minutes per config.
+# Sweep axes (cartesian product x replicates); every value is a list.
+n_nodes: [1000]                  # number of nodes / stake holders
+stake_dist: [uniform, pareto]    # stake distribution (uniform = equal, pareto = heavy-tailed)
+latency: [0, 2, 8]               # L: network latency in slots; block visible to others at t+L
+max_uncles: [0, 1, 2, 4]         # U: max uncle references per block (0 = baseline, no uncles)
+uncle_strategy: [oldest]         # uncle selection: oldest-first fill
+replicates: 4                    # independent RNG replicates per grid cell
+base:                            # per-run settings shared by every cell (not swept)
+  k: 2160                        # true security parameter
+  epochs: 12                     # epochs simulated per trajectory
+  f: 0.03333333333333333        # slot activation coefficient (default 1/30); configurable
+  genesis_d_factor: 0.5          # genesis D_est = factor x true total stake
+  pareto_shape: 1.16             # Pareto (Lomax) tail index for the pareto stake distribution
