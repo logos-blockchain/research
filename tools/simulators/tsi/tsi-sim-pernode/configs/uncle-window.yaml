@@ -1,0 +1,26 @@
+# When does the uncle window W fail? At a FIXED single uncle (U=1), sweep the reference window W
+# against the block-visibility delay. An uncle can only reference an orphan whose slot is within W
+# of the referencing block; larger delay spreads the orphans over a wider slot range, so a small W
+# can no longer reach them and the stake estimate stays low. This finds the (W, delay) relation.
+# Transport is the natural geographic latency (link_latency_dist: geo), as in the prior runs; the
+# delay that stresses W is the Blend mixnet per-hop mixing (blend_delay_max).
+# Latency is in SLOTS (1 slot = 1 s). Sweep axes (cartesian product x replicates).
+n_nodes: [1000, 2000]                                # network sizes to compare
+stake_dist: [pareto]                                 # heavy-tailed (realistic) stake distribution
+topology: [blend]                                    # Blend mixnet (multi-slot delay stresses W)
+degree: [6]                                          # peering degree of the d-regular graph
+link_latency_mean: [0.5]                             # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                             # real-world geographic band mixture
+blend_hops: [3]                                      # fixed hop count; delay is the swept knob
+blend_delay_max: [2.0, 4.0, 8.0, 16.0, 32.0]         # max per-relay mixing delay (slots) = the delay
+uncle_window: [10, 15, 20, 25, 30, 35, 50, 100, 200, 300]   # W: reference window (slots) to sweep
+max_uncles: [1]                                      # FIXED at one uncle (the question is about W)
+uncle_strategy: [oldest]                             # uncle selection: oldest-first fill
+init_dest: [common]                                  # per-node initial D_est from agreement
+replicates: 10                                       # independent RNG replicates per grid cell
+base:                                                # per-run settings shared by every cell
+  k: 2160                                            # true security parameter
+  epochs: 20                                         # equilibrium reached within ~2 epochs; burn 50%
+  f: 0.03333333333333333                             # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                              # start near true stake (cheap epoch 0)
+  early_stop: true

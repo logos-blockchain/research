@@ -1,0 +1,20 @@
+# 32k tier of the N-scaling ladder, case (a) — boundary delay only (memory-bound: the N x N
+# path matrix is ~8 GB/worker, so this tier runs with few workers).
+n_nodes: [32000]
+stake_dist: [pareto]
+topology: [blend]
+degree: [4, 6, 8]
+link_latency_mean: [0.5]
+link_latency_dist: [geo]
+blend_hops: [3]
+blend_delay_max: [8.0]
+max_uncles: [1, 2]
+uncle_strategy: [oldest]
+init_dest: [common]
+replicates: 3
+base:
+  k: 256
+  epochs: 40
+  f: 0.03333333333333333
+  genesis_d_factor: 0.5
+  early_stop: true

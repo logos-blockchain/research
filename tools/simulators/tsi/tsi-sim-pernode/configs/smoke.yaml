@@ -1,0 +1,21 @@
+# Tiny end-to-end per-node smoke grid (fast; dev + CI-style check).
+# Sweep axes (cartesian product x replicates); every value is a list.
+n_nodes: [200]                 # number of nodes / stake holders in the network
+stake_dist: [uniform, pareto]  # stake distribution across nodes (equal vs heavy-tailed)
+topology: [full_mesh, regular, blend]  # full mesh (uniform L), d-regular graph, or Blend mixnet
+degree: [4, 8]                 # peering degree of the regular / blend graph (ignored by full_mesh)
+link_latency_mean: [0.1, 2.0]  # mean one-way per-link latency in SLOTS (1 slot = 1 s):
+                               #   0.1 = realistic direct gossip (~100 ms); 2.0 = slow transport
+link_latency_dist: [geo]       # per-link latency law: geo = real-world geographic band mixture
+blend_hops: [3]                # blend: number of random relay hops in the mix cascade
+blend_delay_max: [1.0, 6.0]    # blend: max per-relay mixing delay (slots); delay ~ U(0, this)
+latency: [2]                   # full_mesh uniform link latency L (slots); ignored otherwise
+max_uncles: [0, 2]             # U: max uncle references per block (0 = baseline, no uncles)
+uncle_strategy: [oldest]       # uncle selection: oldest-first (deterministic fill) or random
+init_dest: [common]            # per-node initial D_est: common (from agreement) or heterogeneous
+replicates: 3                  # independent RNG replicates per grid cell
+base:                          # per-run settings shared by every cell (not swept)
+  k: 16                        # security parameter (scaled down; true value 2160)
+  epochs: 15                   # number of epochs simulated per trajectory
+  f: 0.03333333333333333       # slot activation coefficient (default 1/30); configurable
+  genesis_d_factor: 0.5        # genesis D_est = factor x true total stake

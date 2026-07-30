@@ -1,0 +1,22 @@
+# Full-scale confirmation at TRUE k=2160, HEAVY tier N=5000/10000 (the N=1000/2000 tier is
+# fullscale-small.yaml). Lean grid: the corrected mechanism shifts the U>=1 plateau to 1.0 and
+# leaves consensus/thresholds unchanged, so this confirms the level + N-scaling, not the full
+# product. degree 4/6 kept for the fig18/fig19 (Appendix C) comparisons.
+n_nodes: [5000, 10000]
+stake_dist: [pareto]
+topology: [regular, blend]
+degree: [4, 6]
+link_latency_mean: [0.5]
+link_latency_dist: [geo]
+blend_hops: [3]
+blend_delay_max: [1.0, 2.0, 3.0]
+max_uncles: [0, 1, 2]
+uncle_strategy: [oldest]
+init_dest: [common]
+replicates: 6
+base:
+  k: 2160
+  epochs: 100
+  f: 0.03333333333333333
+  genesis_d_factor: 0.1
+  early_stop: true

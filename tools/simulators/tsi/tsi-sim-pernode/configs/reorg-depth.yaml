@@ -1,0 +1,25 @@
+# Fork rate and reorg depth vs uncle cap, under a private-chain "deepest-reorg" adversary.
+# adversary_frac {0, 0.1, 0.2, 0.3} x U {0,1,2,3}, Blend, N = 1000, k = 256. The adversary
+# (adversary_strategy: private_chain) builds a hidden chain on its own tip and releases it to
+# maximise the override depth. Metrics: fork_rate (orphaned/total) and max_reorg_depth per epoch.
+# NOTE: run only AFTER the corrected-mechanism engine changes land (needs the new strategy +
+# fork-depth measurement). Placeholder committed with the design; wired by scripts/reorg_depth.py.
+n_nodes: [1000]
+stake_dist: [pareto]
+topology: [blend]
+degree: [6]
+link_latency_mean: [0.5]
+link_latency_dist: [geo]
+blend_hops: [3]
+blend_delay_max: [8.0]
+max_uncles: [0, 1, 2, 3]
+uncle_strategy: [oldest]
+init_dest: [common]
+replicates: 8
+base:
+  k: 256
+  epochs: 30
+  f: 0.03333333333333333
+  genesis_d_factor: 0.5
+  adversary_strategy: private_chain
+  early_stop: false          # reorg-depth statistics need the full epoch sample

@@ -1,0 +1,27 @@
+# Rho-boundary deficit sweep (Phase 2 of the "below the block rate" reframing).
+# Goal: densely resolve the UNDER-COUNT DEFICIT  1 - D̂/D  as a function of the load ρ, and confirm
+# the equilibrium is bounded by 1 (no cell above 1 beyond sampling noise) with tight SEM.
+# hops is fixed at 3 so ρ = f·D_vis ∝ blend_delay_max (a clean ρ axis); δ is sampled densely around
+# the ρ≈1 boundary. High replicate count beats down the per-cell SEM so the ≤1 bound and the
+# U=⌈ρ⌉ recovery boundary are resolved cleanly. k=256 (the robustness/scaling convention, §3.7):
+# the ρ-deficit mechanics are k-invariant (§3.1), and k=256's short epochs make a dense, 20-replicate
+# sweep tractable where k=2160 would not.
+# Latency is in SLOTS (1 slot = 1 s). Sweep axes (cartesian product x replicates).
+n_nodes: [1000]                             # fix N to isolate ρ (N enters only through ℓ_mean, §3.7)
+stake_dist: [pareto]                        # heavy-tailed (realistic) stake distribution
+topology: [blend]                           # Blend mixnet only (the regime where U/W matter)
+degree: [6]                                 # peering degree of the underlying d-regular graph
+link_latency_mean: [0.5]                    # per-link graph latency (secondary to mixing delay)
+link_latency_dist: [geo]                    # real-world geographic band mixture
+blend_hops: [3]                             # fixed → ρ ∝ blend_delay_max
+blend_delay_max: [8.0, 12.0, 15.0, 16.0, 17.0, 18.0, 20.0, 24.0, 28.0, 36.0]   # ρ ≈ 0.56 … 2.0, dense near 1
+max_uncles: [0, 1, 2, 3]                    # U: 0 (raw deficit), 1/2/3 (recovery vs ⌈ρ⌉)
+uncle_strategy: [oldest]                    # uncle selection: oldest-first fill
+init_dest: [common]                         # per-node initial D_est from agreement
+replicates: 20                              # high replicate count → tight SEM on the deficit
+base:                                       # per-run settings shared by every cell (not swept)
+  k: 256                                    # scaled security parameter (ρ mechanics are k-invariant)
+  epochs: 20                                # equilibrium within ~2 epochs; burn 50 %
+  f: 0.03333333333333333                    # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                     # start near true stake; equilibrium is gdf-independent
+  early_stop: true

@@ -1,0 +1,24 @@
+# Generated artifacts
+runs/
+results/
+figures/
+report-figures/
+!results/.gitkeep
+!figures/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.parquet
+*.csv
+
+# Rendered reports — the report of record (markdown + figures) lives in reports/tsi/;
+# anything built or generated in the simulation folder is a local artifact, never committed.
+*.pdf
+*.html

@@ -1,0 +1,20 @@
+# N = 1000/2000 tier of the full-scale confirmation (same grid as fullscale.yaml, which covers
+# 5000/10000) — committed so all four N tiers reproduce without editing configs.
+n_nodes: [1000, 2000]
+stake_dist: [pareto]
+topology: [regular, blend]
+degree: [4, 6]
+link_latency_mean: [0.1, 0.2, 0.5, 1.0]
+link_latency_dist: [geo]
+blend_hops: [3]
+blend_delay_max: [1.0, 2.0, 3.0]
+max_uncles: [0, 1, 2, 3]
+uncle_strategy: [oldest]
+init_dest: [common]
+replicates: 10
+base:
+  k: 2160
+  epochs: 100
+  f: 0.03333333333333333
+  genesis_d_factor: 0.1
+  early_stop: true

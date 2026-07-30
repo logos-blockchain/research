@@ -1,0 +1,23 @@
+# Joint (W, U) safe region: co-sweep the uncle window W and the uncle cap U at the transition
+# delays found earlier (U=1 is W-limited at delay ~8 and U-limited at delay >=16). Shows where
+# "widen the window" stops helping and "add an uncle" takes over. Blend mixnet, geographic
+# transport (geo), hops=3. Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000, 2000]                                # network sizes to compare
+stake_dist: [pareto]                                 # heavy-tailed (realistic) stake distribution
+topology: [blend]                                    # Blend mixnet (multi-slot delay)
+degree: [6]                                          # peering degree of the d-regular graph
+link_latency_mean: [0.5]                             # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                             # real-world geographic band mixture
+blend_hops: [3]                                      # fixed hop count
+blend_delay_max: [8.0, 16.0, 32.0]                   # delays spanning the U=1 W-limited -> U-limited transition
+uncle_window: [10, 20, 30, 50, 100, 200, 300]        # W: reference window (slots)
+max_uncles: [1, 2, 3, 4]                             # U: uncle cap (the co-swept lever)
+uncle_strategy: [oldest]                             # uncle selection: oldest-first fill
+init_dest: [common]                                  # per-node initial D_est from agreement
+replicates: 10                                       # independent RNG replicates per grid cell
+base:                                                # per-run settings shared by every cell
+  k: 2160                                            # true security parameter
+  epochs: 20                                         # equilibrium reached within ~2 epochs; burn 50%
+  f: 0.03333333333333333                             # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                              # start near true stake (cheap epoch 0)
+  early_stop: true

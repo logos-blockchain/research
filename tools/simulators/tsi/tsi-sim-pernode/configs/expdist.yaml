@@ -1,0 +1,20 @@
+# S1: link-latency SHAPE sensitivity — exponential vs geo at the same mean (report §2).
+# The geo baseline at identical cells lives in the nscaling-a run; this config runs the exp arm.
+n_nodes: [1000, 4000]
+stake_dist: [pareto]
+topology: [blend]
+degree: [6]
+link_latency_mean: [0.5]
+link_latency_dist: [exp]
+blend_hops: [3]
+blend_delay_max: [4.0, 8.0]
+max_uncles: [0, 1, 2]
+uncle_strategy: [oldest]
+init_dest: [common]
+replicates: 4
+base:
+  k: 256
+  epochs: 40
+  f: 0.03333333333333333
+  genesis_d_factor: 0.5
+  early_stop: true

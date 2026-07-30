@@ -1,0 +1,26 @@
+# N-scaling of the U=1 boundary, case (b): geo delays + Poisson long-tail jitter (10% of deliveries straggle by Poisson(3) slots). Measures how the
+# one-uncle sufficiency erodes as the network grows (gossip diameter ~ log N raises D_vis and
+# the load rho = f*D_vis). Scaled k=256 (robustness-study convention); ladder to N=16000
+# (the 32k tier is configs/nscaling32-b.yaml; N >= 10^5 is covered by the exact topology
+# probe scripts/topology_probe.py + the validated load law — report §3.8).
+n_nodes: [1000, 2000, 4000, 8000, 16000]
+stake_dist: [pareto]
+topology: [blend]
+degree: [4, 6, 8]
+link_latency_mean: [0.5]
+link_latency_dist: [geo]
+blend_hops: [3]
+blend_delay_max: [4.0, 8.0]
+max_uncles: [0, 1, 2]
+uncle_strategy: [oldest]
+init_dest: [common]
+replicates: 4
+base:
+  k: 256
+  epochs: 40
+  f: 0.03333333333333333
+  genesis_d_factor: 0.5
+  jitter_mean: 3.0
+  jitter_dist: poisson
+  jitter_frac: 0.1
+  early_stop: true

@@ -1,0 +1,28 @@
+# Per-node divergence + topology sweep (scaled k). Headline: per-node D_est spread stays ~0
+# (window agreement ~1) while topology/latency shift the shared mean accuracy, which uncles
+# recover. Two propagation models are swept, each covering a real-world regime:
+#   * regular : direct block gossip over a random d-regular graph. Realistic links are sub-slot
+#               (~0.05-0.2 slot = 50-200 ms), so forks are rare and TSI barely underestimates.
+#   * blend   : the same graph, but each block is relayed through `blend_hops` random nodes
+#               (a mix cascade, per-hop delay ~ U(0, blend_delay_max)) before a final gossip.
+#               This is the multi-slot Blend-mixnet regime where forks and the stake
+#               underestimate appear and uncle references matter.
+# Latency is in SLOTS (1 slot = 1 s). Sweep axes (cartesian product x replicates).
+n_nodes: [400]                              # number of nodes / stake holders
+stake_dist: [uniform]                       # stake distribution (uniform = equal stake)
+topology: [regular, blend]                  # direct gossip vs Blend mixnet (both on the d-regular graph)
+degree: [4, 8, 16]                          # peering degree (higher = better connected)
+link_latency_mean: [0.05, 0.1, 0.2]         # mean one-way per-link latency (slots); regular's main axis
+link_latency_dist: [geo]                    # real-world geographic band mixture (see constants)
+blend_hops: [3]                             # blend: number of random relay hops in the mix cascade
+blend_delay_max: [0.5, 1.0, 2.0, 4.0]       # blend: max per-relay mixing delay (slots); blend's main axis
+max_uncles: [0, 1, 2, 4]                    # U: max uncle references per block (0 = baseline)
+uncle_strategy: [oldest]                    # uncle selection: oldest-first fill
+init_dest: [common, heterogeneous]          # initial per-node D_est: agreement vs disagreement
+replicates: 5                               # independent RNG replicates per grid cell
+base:                                       # per-run settings shared by every cell (not swept)
+  k: 256                                    # security parameter (scaled; T = 6*floor(256/f) slots)
+  epochs: 35                                # epochs simulated per trajectory
+  f: 0.03333333333333333                    # slot activation coefficient (default 1/30); configurable
+  genesis_d_factor: 0.5                     # genesis D_est = factor x true total stake
+  init_spread: 0.5                          # heterogeneous-start relative spread of initial D_est

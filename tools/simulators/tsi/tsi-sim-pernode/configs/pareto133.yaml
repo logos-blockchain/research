@@ -1,0 +1,21 @@
+# S2: stake-concentration sensitivity — Pareto tail 1.33 vs the default 1.16 (report §2).
+# The 1.16 baseline at identical cells lives in the nscaling-a run; this config runs the 1.33 arm.
+n_nodes: [1000, 4000]
+stake_dist: [pareto]
+topology: [blend]
+degree: [6]
+link_latency_mean: [0.5]
+link_latency_dist: [geo]
+blend_hops: [3]
+blend_delay_max: [4.0, 8.0]
+max_uncles: [0, 1, 2]
+uncle_strategy: [oldest]
+init_dest: [common]
+replicates: 4
+base:
+  k: 256
+  epochs: 40
+  f: 0.03333333333333333
+  genesis_d_factor: 0.5
+  pareto_shape: 1.33
+  early_stop: true
