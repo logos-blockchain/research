@@ -13,9 +13,14 @@ import pandas as pd
 
 from . import style
 
-CONFIG_COLS = ["n_nodes", "stake_dist", "topology", "degree", "link_latency_mean",
-               "blend_hops", "blend_delay_max", "latency", "max_uncles",
-               "uncle_strategy", "uncle_window", "init_dest", "k"]
+# A trajectory's identity: every config axis a sweep can vary. Anything swept but ABSENT here is
+# silently averaged into one cell — the block-rate sweep varies `f`, so it must be listed — so keep
+# this exhaustive over the recorded config fields (see metrics._CONFIG_FIELDS).
+CONFIG_COLS = ["n_nodes", "stake_dist", "pareto_shape", "topology", "degree",
+               "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
+               "latency", "max_uncles", "uncle_strategy", "uncle_window",
+               "init_dest", "init_spread", "genesis_d_factor",
+               "f", "beta", "k", "fixed_point", "legacy_block_count"]
 
 # Graph topologies (as opposed to the full_mesh baseline) and the dominant latency knob each
 # is plotted against: regular varies the per-link latency, blend varies the per-hop mix delay.

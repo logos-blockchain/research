@@ -131,7 +131,10 @@ def figs() -> None:
 
     # right: per-epoch sigma (within a trajectory) vs case, U=0 vs U=1
     def per_epoch_sigma(s: pd.DataFrame) -> float:
-        return float(s.groupby(["degree", "replicate"]).mean_ratio.std().mean())
+        # per-trajectory epoch std, then mean over trajectories. Group by n_nodes too: the
+        # fullscale-small run holds N=1000 and N=2000 at the same (degree, replicate), and
+        # pooling them would fold their between-N mean offset into the within-trajectory sigma.
+        return float(s.groupby(["degree", "n_nodes", "replicate"]).mean_ratio.std().mean())
 
     cases: list[tuple[str, pd.DataFrame]] = []
     for lat in (0.1, 0.2, 0.5, 1.0):
@@ -153,7 +156,7 @@ def figs() -> None:
     ax3.set_yscale("log")
     ax3.set_xticks(x3, [c for c, _ in cases], rotation=20, ha="right", fontsize=8)
     ax3.set_ylabel(r"per-epoch $\sigma$ of $\hat D / D$")
-    ax3.set_title("Blend delay amplifies U = 0 noise ~17×;\none uncle restores the floor")
+    ax3.set_title("Blend delay amplifies U = 0 noise ~18×;\none uncle restores the floor")
     ax3.legend(fontsize=8)
     style.save(fig, FIGS / "figB2_fluctuation_stats", provenance="scripts/appendix_fluct.py")
     plt.close(fig)

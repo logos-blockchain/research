@@ -19,13 +19,15 @@ def expected_ratio(f: float, q: ArrayLike) -> ArrayLike:
 
 
 def block_count_ceiling(f: float) -> float:
-    """Equilibrium ratio at *full* uncle recovery for the equal-stake limit.
+    """LEGACY-mode ceiling: the equilibrium ratio under ``legacy_block_count=True``.
 
-    TSI counts blocks (all lottery wins, rate ``-ln(1-f)`` per slot in the small-stake
-    limit), whereas ``f`` is the *active-slot* rate. So even with every orphan recovered the
-    estimate equilibrates at ``-ln(1-f)/f`` (~1.017 for f=1/30), not 1.0. This is a
-    deterministic overshoot floor, not noise; concentrated (Pareto) stake gives a smaller
-    value because of the concavity of ``phi``.
+    Applies only to the superseded per-*block* counting (``tsi.density_m(...,
+    legacy_block_count=True)``), which counted every lottery win (rate ``-ln(1-f)`` per slot
+    in the small-stake limit) while ``f`` is the *active-slot* rate. In that mode, even with
+    every orphan recovered the estimate equilibrated at ``-ln(1-f)/f`` (~1.017 for f=1/30) —
+    a deterministic overshoot, not noise; concentrated (Pareto) stake gave a smaller value
+    from the concavity of ``phi``. The default slot-counting engine has no such ceiling: the
+    equilibrium is bounded by 1 (report §2.1/§2.2).
     """
     return -np.log(1.0 - f) / f
 

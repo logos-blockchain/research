@@ -51,8 +51,12 @@ def fig1(df: pd.DataFrame) -> None:
     gdfs = sorted(d.gdf.unique())
     for i, gdf in enumerate(gdfs):
         for u, ls in ((2, "-"), (0, "--")):
+            # Both panels are indexed by the estimate that DROVE each epoch's production: the
+            # start-of-epoch estimate `mean_ratio_in` (block rate depends on it, and at epoch 0 it
+            # IS the genesis guess, matching the legend). Plotting end-of-epoch `mean_ratio` here
+            # would show the already-updated value at epoch 0 and offset the two panels by one epoch.
             s = (d[(d.gdf == gdf) & (d.u == u)]
-                 .groupby("epoch").agg(rate=("n_blocks", "mean"), ratio=("mean_ratio", "mean")))
+                 .groupby("epoch").agg(rate=("n_blocks", "mean"), ratio=("mean_ratio_in", "mean")))
             rate = s.rate / (10 * int(2160 / F))          # blocks per slot
             ax1.plot(s.index, rate, ls, color=style.OKABE_ITO[i], lw=1.4, ms=3,
                      marker="o" if u == 2 else None,

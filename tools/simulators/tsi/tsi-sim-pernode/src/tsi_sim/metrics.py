@@ -1,4 +1,4 @@
-"""Per-epoch per-node divergence rows and equilibrium summaries."""
+"""Per-epoch per-node divergence rows."""
 
 from __future__ import annotations
 
@@ -60,23 +60,3 @@ def divergence_row(
         p_ref=er.p_ref,
     )
     return row
-
-
-def equilibrium_stats(values: np.ndarray, burn_in: int) -> dict[str, float]:
-    """Mean/variance of ``values`` after ``burn_in`` epochs."""
-    values = np.asarray(values, dtype=float)
-    if values.size == 0:
-        return {"mean": float("nan"), "var": float("nan"), "std": float("nan")}
-    tail = values[burn_in:]
-    if tail.size == 0:
-        tail = values[-1:]
-    return {"mean": float(np.mean(tail)), "var": float(np.var(tail)), "std": float(np.std(tail))}
-
-
-def epochs_to_within(values: np.ndarray, target: float, eps: float) -> int:
-    """First epoch after which ``|values - target| <= eps`` holds for the rest."""
-    within = np.abs(np.asarray(values, dtype=float) - target) <= eps
-    if within.size == 0:
-        return 0
-    false_idx = np.flatnonzero(~within)
-    return int(false_idx[-1] + 1) if false_idx.size else 0

@@ -20,8 +20,11 @@ per-node loop. Two ingredients tie it to the protocol parameters:
   ``+1`` w.p. ``alpha_eff`` (adversary extends privately), ``-1`` w.p. ``1-alpha_eff`` (honest
   extends the public chain). Each excursion above 0 is one attack; the deepest reorg it can force
   is the maximum lead reached (release the private chain at its peak, displacing that many public
-  confirmations). The tail is the Nakamoto/Rosenfeld gambler's-ruin first passage
-  ``P(depth >= d) = (alpha_eff/(1-alpha_eff))**d`` for ``alpha_eff < 1/2``.
+  confirmations). ``P(depth >= d) = (alpha_eff/(1-alpha_eff))**d`` (``alpha_eff < 1/2``) is the
+  Nakamoto/Rosenfeld gambler's-ruin *catch-up* probability — the chance an adversary ``d`` blocks
+  behind ever draws level — an upper bound on that per-attack maximum, not its exact distribution
+  (which is smaller). ``fig27`` plots the occupancy Monte-Carlo; §6.10's 4/8/17 and 8/15/34 are the
+  engine's realised reorg depths.
 """
 
 from __future__ import annotations
