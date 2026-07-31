@@ -13,7 +13,8 @@ The counted density ``m`` is SLOT-based (canonical slots + recovered uncle slots
    recovered orphan slots, window-prefix fingerprint) runs as one cached, C-speed routine over
    flat arrays. A pure-Python fallback keeps the package importable without numba.
 
-Results are identical to the reference loop (``measure_reference``); see test_measure.
+Results are identical to the naive per-node loop (``_reference`` in tests/test_measure.py;
+see ``test_measure_matches_reference``).
 """
 
 from __future__ import annotations
@@ -35,7 +36,8 @@ except ImportError:  # pragma: no cover - numba is an optional accelerator
 
 @dataclass
 class Measurement:
-    m: np.ndarray          # (N,) per-node block count
+    m: np.ndarray          # (N,) per-node counted density: canonical + recovered uncle SLOTS
+                           #      (per-block-id count only under legacy_block_count=True)
     q: np.ndarray          # (N,) honest active-slot fraction
     q_eff: np.ndarray      # (N,) uncle-recovered fraction
     orphan_rate: np.ndarray  # (N,)

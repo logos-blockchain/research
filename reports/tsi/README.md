@@ -7,13 +7,13 @@ This report selects and justifies the TSI parameters for Cryptarchia from a per-
 ## Parts
 
 1. **[Overview and recommendations](tsi-report-1-overview-and-recommendations.md)** — the executive summary, the per-knob parameter reference (§7), and the safest selection with residual risks and the recommendation-vs-spec deltas (§8).
-2. **[Accuracy and design](tsi-report-2-accuracy-and-design.md)** — the model and counting rule (§2), the seven findings and their evidence (§3), and the design equations / selection algorithm (§4–§5).
+2. **[Accuracy and design](tsi-report-2-accuracy-and-design.md)** — the model and counting rule (§2), the seven findings and their evidence (§3), the design equations and selection algorithm (§4), and the caveats and regime of validity (§5).
 3. **[Robustness and incentives](tsi-report-3-robustness-and-incentives.md)** — jitter, grinding, withholding, selfish mining, the reward design, fork/reorg depth, and organic churn (§6).
 4. **[Reproducibility and appendices](tsi-report-4-reproducibility-and-appendices.md)** — how to re-run every study (§9), the residual f-rounding offset (App A), the per-epoch noise floor (App B), and consensus detail (App C).
 
 ## Headline recommendation
 
-Cryptarchia baseline f = 1/30: security `k = 2160`, uncle window `W = 300` slots, uncle cap `U = ⌈ρ⌉ + 1` (2 at the Blend target), learning rate `β = 1`, peering degree ≥ 6 at scale, soft uncle rewards with `w_u + w_n < 1`, and operate at load `ρ = f·D_vis < 1`. The full recommended-configuration table and rationale are in **[Part 1 →](tsi-report-1-overview-and-recommendations.md)**.
+Cryptarchia baseline f = 1/30. Two design choices are foundational: count uncles **per occupied slot**, not per block — the density-bug fix that lands the estimate at exactly `D` ([§2.1](tsi-report-2-accuracy-and-design.md#s2-1), [§8.5](tsi-report-1-overview-and-recommendations.md#s8-5)) — and make genesis `D̂` **a single protocol constant, identical at every node**, never client-configurable, since a per-node divergence is never self-corrected ([§8.1](tsi-report-1-overview-and-recommendations.md#s8-1) row 7). The settings: security `k = 2160`, uncle window `W = 300` slots, uncle cap `U ≥ ⌈ρ⌉ + 1` (2 at the Blend target; the protocol's `MAX_UNCLES = 4` sits safely above it), learning rate `β = 1`, on-chain `f` at 10⁻⁶ precision, peering degree ≥ 6 at scale, soft uncle rewards with `w_u + w_n < 1`, and operate at load `ρ = f·D_vis < 1`. The full recommended-configuration table and rationale are in **[Part 1 →](tsi-report-1-overview-and-recommendations.md)**.
 
 ## Figures
 

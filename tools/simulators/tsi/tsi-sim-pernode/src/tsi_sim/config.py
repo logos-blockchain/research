@@ -115,8 +115,10 @@ class SimConfig:
     k: int = 64                          # scaled by default; full scale = 2160
     genesis_d_factor: float = 0.5        # genesis D = factor * true total stake
     epochs: int = 40
-    # If True, mirror the spec's integer fixed-point f-truncation (f_p = int(f*1000)/1000),
-    # which the on-chain estimator uses; this reproduces its ~1% systematic overestimate.
+    # If True, quantise the target rate the way an on-chain integer estimator does:
+    # f_p = int(f*tsi.PRECISION)/tsi.PRECISION. With tsi.PRECISION = 1_000_000 (the report's
+    # recommended 10^-6 f-precision, §8) this gives f_p = 0.033333 and a negligible residual
+    # f/f_p < 1e-5 — not the ~1% overestimate the old 10^-3 truncation produced.
     # Default False keeps the analysis-faithful exact-f behaviour.
     fixed_point: bool = False
     # If True, count uncle references per BLOCK ID (the pre-fix behaviour, which double-counts
@@ -139,9 +141,10 @@ class SimConfig:
     churn_amp: float = 0.0
     churn_period: int = 4
     churn_mode: ChurnMode = "sine"
-    # Per-node constant slot-clock offset (~Uniform(-clock_skew_max, +clock_skew_max) slots),
-    # applied to each node's measurement-window bounds — tests whether a whole-timeline clock shift
-    # (unlike per-arrival jitter) can split slot-occupancy at the window edges and break consensus.
+    # INERT: nothing reads this. The §6.1 clock-skew study is run stand-alone by
+    # scripts/clock_skew.py, which applies its own per-node offsets — not through this field.
+    # Retained only as a key() seed contributor for run-hash compatibility (like `per_node_dest`);
+    # leave at 0.
     clock_skew_max: int = 0
     # Each node updates its OWN D_est from its OWN view — the point of this simulator, and the ONLY
     # mode implemented here (always True). The global-consensus-D_est baseline (per_node_dest=False)
@@ -155,8 +158,9 @@ class SimConfig:
     init_spread: float = 0.0             # relative spread of heterogeneous initial D_est
 
     # --- performance ---
-    # >1 parallelises the per-slot lottery across slot-chunks (opt-in; must be pinned and
-    # recorded because it changes the RNG stream — see lottery.sample_wins_chunked).
+    # INERT: nothing reads this — `simulate_epoch` never calls `lottery.sample_wins_chunked`,
+    # so it has no modelled effect. Retained as a key() seed contributor for run-hash
+    # compatibility (like `per_node_dest` above); leave at 1.
     lottery_chunks: int = 1
     # Windowed fork choice bounds the per-slot candidate scan to a horizon of the max path
     # latency (plus the fully-propagated best tip), turning O(n_blocks^2) into O(n_blocks*H).
