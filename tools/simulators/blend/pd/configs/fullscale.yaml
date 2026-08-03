@@ -1,0 +1,14 @@
+# Internet-scale: N up to 1e6. Propagation is sampled (n_rounds); adversary metrics are exact.
+# Worst-case placement is capped (worstcase_max_n) so only `random` runs at 1e6.
+n_nodes: [100000, 1000000]
+degree: [4, 6, 8, 12, 16]
+blend_hops: [3]
+max_blend_delay: [3]
+unresponsive_frac: [0.0, 0.1, 0.2, 0.5]
+f_adv: [0.1, 0.2, 0.33]
+adversary_mode: [random]
+seeds: 3
+base:
+  n_rounds: 64
+  n_placements: 3
+  worstcase_max_n: 100000
