@@ -1,0 +1,119 @@
+"""Analytic sanity checks for pd (pd-verify): closed forms + graph invariants.
+
+Random-placement observation/eclipse have exact closed forms on a random d-regular graph:
+    observed_frac ~ 1 - (1 - f_adv)^degree      (an honest node has >=1 adversarial peer)
+    eclipsed_frac ~ f_adv^degree                (all `degree` peers adversarial)
+and the propagation full delay (mixing off) drops as the peering degree rises. Each check prints
+PASS/FAIL; a non-zero exit signals failure.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+
+from .adversary import adversary_metrics, deanon_metrics, place_adversary
+from .config import SimConfig
+from .graph import build_graph
+from .rng import placement_seedseq
+
+
+def _check(name: str, ok: bool, detail: str) -> bool:
+    print(f"[{'PASS' if ok else 'FAIL'}] {name}: {detail}")
+    return ok
+
+
+def main(argv: list[str] | None = None) -> int:
+    ok = True
+
+    # 1. graph exactly d-regular + symmetric
+    cfg = SimConfig(n_nodes=2000, degree=8, f_adv=0.0)
+    g = build_graph(cfg)
+    deg = np.diff(g.indptr)
+    regular = bool(np.all(deg == g.degree))
+    csr = g.weighted_csr(np.ones_like(g.base))
+    symmetric = int((csr != csr.T).nnz) == 0
+    ok &= _check("graph d-regular", regular, f"all degrees == {g.degree}: {regular}")
+    ok &= _check("graph symmetric", symmetric, f"adj == adj.T: {symmetric}")
+
+    # 2. random observation / eclipse vs closed form (avg over placements + a couple of seeds)
+    for degree in (4, 8):
+        for f in (0.1, 0.3):
+            obs, ecl = [], []
+            for seed in range(4):
+                gg = build_graph(SimConfig(n_nodes=4000, degree=degree, graph_seed=seed))
+                pc = SimConfig(n_nodes=4000, degree=degree, graph_seed=seed, f_adv=f)
+                rng = np.random.default_rng(placement_seedseq(pc, f, "random", 0))
+                m = adversary_metrics(gg, place_adversary(gg, f, "random", rng, 100_000))
+                obs.append(m["observed_frac"])
+                ecl.append(m["eclipsed_frac"])
+            obs_m, ecl_m = float(np.mean(obs)), float(np.mean(ecl))
+            obs_th = 1 - (1 - f) ** degree
+            ecl_th = f ** degree
+            ok &= _check(f"observed_frac d={degree} f={f}", abs(obs_m - obs_th) < 0.02,
+                         f"sim {obs_m:.3f} vs theory {obs_th:.3f}")
+            ok &= _check(f"eclipsed_frac d={degree} f={f}",
+                         abs(ecl_m - ecl_th) < max(0.01, 0.2 * ecl_th),
+                         f"sim {ecl_m:.4f} vs theory {ecl_th:.4f}")
+
+    # 3. propagation full delay decreases as degree rises (mixing off, small jitter)
+    from .engine import run_trajectory
+    delays = {}
+    for degree in (4, 16):
+        c = SimConfig(n_nodes=4000, degree=degree, blend_hops=3, max_blend_delay=0,
+                      transport_jitter_mean_ms=0.0, n_rounds=40)
+        delays[degree] = run_trajectory(c)["propagation"]["full_delay_ms_mean"]
+    ok &= _check("delay decreases with degree", delays[16] < delays[4],
+                 f"d=4 {delays[4]:.0f} ms > d=16 {delays[16]:.0f} ms")
+
+    # 4. message delivery-rate ~ (1 - u)^blend_hops (relays drawn blind to responsiveness; a high
+    #    degree keeps legs routable so the only loss is a relay landing on an unresponsive node)
+    for u in (0.1, 0.3):
+        rates = []
+        for seed in range(3):
+            c = SimConfig(n_nodes=5000, degree=16, blend_hops=3, max_blend_delay=0,
+                          transport_jitter_mean_ms=0.0, unresponsive_frac=u,
+                          n_rounds=400, graph_seed=seed)
+            rates.append(run_trajectory(c)["propagation"]["delivery_rate"])
+        rate_m = float(np.mean(rates))
+        rate_th = (1 - u) ** 3
+        ok &= _check(f"delivery_rate u={u}", abs(rate_m - rate_th) < 0.03,
+                     f"sim {rate_m:.3f} vs theory {rate_th:.3f}")
+
+    # 5. deanonymization: the exact closed forms reproduce a direct Monte-Carlo of the SAME draw
+    #    (honest sender + blend_hops relays picked blind to who is adversarial). deanon_rate ~
+    #    f_adv^blend_hops (whole cascade adversarial); full adds the sender-has-an-adversary-peer
+    #    factor. degree lifts the full rate (more peers -> sender more exposed), not deanon_rate.
+    for degree, f, k in [(8, 0.33, 2), (16, 0.33, 2), (8, 0.33, 3), (16, 0.2, 3)]:
+        cfg = SimConfig(n_nodes=3000, degree=degree, graph_seed=2, f_adv=f, blend_hops=k)
+        g = build_graph(cfg)
+        prng = np.random.default_rng(placement_seedseq(cfg, f, "random", 0))
+        mask = place_adversary(g, f, "random", prng, cfg.worstcase_max_n)
+        adv = adversary_metrics(g, mask)
+        dz = deanon_metrics(g.n, adv["n_adv"], adv["observed_frac"], k)
+        counts = np.add.reduceat(mask[g.indices].astype(np.int32), g.indptr[:-1])
+        observed_node = counts >= 1
+        honest = np.where(~mask)[0]
+        n = g.n
+        srng = np.random.default_rng(777 + degree + k)
+        trials, d_hit, fd_hit = 60_000, 0, 0
+        for _ in range(trials):
+            s = int(srng.choice(honest))
+            r = srng.choice(n - 1, size=k, replace=False)
+            r[r >= s] += 1                       # blend_hops distinct nodes, all != sender
+            if mask[r].all():
+                d_hit += 1
+                fd_hit += int(observed_node[s])
+        d_emp, fd_emp = d_hit / trials, fd_hit / trials
+        ok &= _check(f"deanon_rate d={degree} f={f} k={k}",
+                     abs(dz["deanon_rate"] - d_emp) < max(0.006, 0.12 * d_emp),
+                     f"closed {dz['deanon_rate']:.4f} vs MC {d_emp:.4f} (~f^k={f ** k:.4f})")
+        ok &= _check(f"full_deanon d={degree} f={f} k={k}",
+                     abs(dz["full_deanon_rate"] - fd_emp) < max(0.006, 0.15 * fd_emp),
+                     f"closed {dz['full_deanon_rate']:.4f} vs MC {fd_emp:.4f}")
+
+    print("OK" if ok else "FAILURES PRESENT")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
