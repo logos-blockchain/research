@@ -12,7 +12,13 @@ Counting models (``countable`` flag; CLI ``--old`` clears it):
   (cryptarchia-v1-protocol.md): the reference must be within the window
   (``0 < slot_B - slot_U <= w``), the uncle must not lie on the counting chain, and its
   **parent must lie on the counting chain** (only the first block of a fork counts).
-  References failing the parent rule are tallied as ``deep`` diagnostics.
+  References failing the parent rule are tallied as ``deep``. On a real run that tally is
+  always ZERO and is a defensive invariant, not a measured rate: countable *selection*
+  already refuses non-first-fork candidates, and for a chain block ``B`` the producer's
+  chain below ``B`` is the same ancestor path as the counting chain below ``B``, so the
+  two rules cannot disagree. A non-zero ``deep`` means selection and counting have drifted
+  (asserted end-to-end by test_countable_counting.py). Only hand-baked references — the
+  ones the unit tests construct — can make it fire.
 * **old** — every baked reference in the measurement window counts (fork depth ignored),
   reproducing the pre-redesign behaviour.
 
@@ -51,9 +57,11 @@ class Measurement:
     q: np.ndarray          # (N,) honest active-slot fraction
     q_eff: np.ndarray      # (N,) uncle-recovered fraction
     orphan_rate: np.ndarray  # (N,)
-    ref_total: np.ndarray  # (N,) distinct referenced uncles examined in the window
-    ref_deep: np.ndarray   # (N,) of those, rejected by the parent-on-chain (first-fork) rule;
-                           #      always 0 under the old model (no rule to reject on)
+    ref_total: np.ndarray  # (N,) distinct referenced uncles examined (slot in [0,T); the
+                           #      per-reference window check is applied after this tally)
+    ref_deep: np.ndarray   # (N,) of those, rejected by the parent-on-chain (first-fork) rule.
+                           #      ALWAYS 0 on a real run under either model — a selection/
+                           #      counting drift alarm, not a rate (see the module docstring)
     agreement_window: float
     agreement_tip: float
 

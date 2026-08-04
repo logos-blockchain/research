@@ -82,3 +82,28 @@ def test_window_recheck_rejects_stale_reference():
     tree = _tree()
     assert countable_refs(tree, CANONICAL, 2) == {5}       # 7, 8 now out of window (d=3)
     assert density_m(tree, CANONICAL, T, countable=True, w=2) == 5
+
+
+def test_deep_ref_share_is_zero_end_to_end():
+    """The counting-side parent-on-chain re-check must never fire on a real countable run.
+
+    Countable SELECTION already refuses to reference a non-first-fork block, and for a
+    block ``b`` on the counting chain the producer's chain below ``b`` IS the counting
+    chain below ``b`` (they are the same ancestor path). So ``ref_deep`` is a defensive
+    invariant, not a measured rate: any non-zero value means selection and counting have
+    drifted apart. The hand-built trees above are the only way to make it fire — they bake
+    references selection would never emit.
+    """
+    import pandas as pd
+
+    from tsi_sim.config import SimConfig
+    from tsi_sim.engine import run_trajectory
+
+    # Small but fork-rich: Blend delay spreads proposals over many slots.
+    cfg = SimConfig(n_nodes=60, topology="blend", blend_hops=2, blend_delay_max=8.0,
+                    degree=4, max_uncles=2, k=32, epochs=3, f=0.1,
+                    stake_dist="pareto", init_dest="common")
+    df = pd.DataFrame(run_trajectory(cfg))
+    assert df.n_blocks.sum() > 0                      # the run actually produced blocks
+    assert (df.deep_ref_share == 0.0).all(), (
+        f"counting rejected references selection emitted: {df.deep_ref_share.tolist()}")

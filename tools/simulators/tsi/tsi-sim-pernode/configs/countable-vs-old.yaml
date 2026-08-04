@@ -1,8 +1,12 @@
 # Headline comparison for the countable uncle model (cryptarchia-v1-protocol.md counting
 # rules) vs the old pre-redesign model: accuracy vs Blend mixing delay at U in {0,1,2,4}.
-# Run TWICE — default (countable) and with --old — same grid; the countable run also
-# yields deep_ref_share (the first-fork restriction's rejection rate) and q/q_eff for the
-# q_u = q + (1-q) r theory overlay. Latency is in SLOTS (1 slot = 1 s).
+# Run TWICE — default (countable) and with --old — same grid; the countable run yields
+# q/q_eff for the q_u = q + (1-q) r theory overlay. (deep_ref_share is a drift alarm that
+# reads 0 on every real run, NOT a measured rejection rate — see measure.py.) The U=0 rows
+# are the NEGATIVE CONTROL: with no uncles the two models are identical by construction, so
+# any U=0 gap is pure between-run RNG noise (the models draw different streams by design)
+# and bounds what a real countable-vs-old effect must exceed.
+# Latency is in SLOTS (1 slot = 1 s).
 n_nodes: [1000]                              # network size
 stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
 topology: [blend]                            # Blend mixnet (the multi-slot fork regime)
