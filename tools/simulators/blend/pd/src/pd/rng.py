@@ -50,11 +50,11 @@ def responsive_seedseq(config: SimConfig, unresponsive_frac: float) -> np.random
 
 
 def round_seedseq(config: SimConfig, blend_hops: int, max_blend_delay: int,
-                  unresponsive_frac: float) -> np.random.SeedSequence:
+                  unresponsive_frac: float, redundancy: int = 1) -> np.random.SeedSequence:
     """Per-cell propagation seed (senders/relays/jitter/mix over n_rounds)."""
     return np.random.SeedSequence(_digest(
         config.root_seed, "rounds", config.n_nodes, config.degree, config.graph_seed,
-        blend_hops, max_blend_delay, unresponsive_frac, config.n_rounds,
+        blend_hops, max_blend_delay, unresponsive_frac, redundancy, config.n_rounds,
         config.transport_jitter_mean_ms,
     ))
 

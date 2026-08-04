@@ -42,29 +42,34 @@ def adversary_metrics(graph: Graph, adv_mask: np.ndarray) -> dict:
     }
 
 
-def deanon_metrics(n: int, n_adv: int, observed_frac: float, blend_hops: int) -> dict:
+def deanon_metrics(n: int, n_adv: int, observed_frac: float, blend_hops: int,
+                   redundancy: int = 1) -> dict:
     """Exact deanonymization rates for an honest sender whose message traverses ``blend_hops``
     relays chosen uniformly *blind to who is adversarial* (the sender cannot know who is honest).
 
-    * ``deanon_rate`` — P(**every** relay on the path is adversarial): the adversary then controls
-      the whole blend cascade and links the message from entry to exit. Because the relays are a
-      uniform draw, this is the hypergeometric ``C(n_adv, k) / C(n-1, k)`` (an honest sender leaves
-      all ``n_adv`` adversaries in the ``n-1``-node relay pool). It therefore depends only on the
-      adversary *count*, not the placement, and ~ ``f_adv**blend_hops``.
+    With messaging **redundancy** ``R``, each emission is sent over ``R`` independent blend cascades
+    and is captured if **any** cascade's whole path is adversarial, so the single-cascade
+    hypergeometric ``d1`` becomes ``1 - (1 - d1)**R``. ``R = 1`` is the plain single-cascade case.
+
+    * ``deanon_rate`` — P(some cascade has **every** relay adversarial): the adversary then controls
+      a whole cascade and links the message from entry to exit. The single-cascade term is the
+      hypergeometric ``d1 = C(n_adv, k) / C(n-1, k)`` (an honest sender leaves all ``n_adv``
+      adversaries in the ``n-1``-node relay pool) — it depends only on the adversary *count*, not
+      the placement, and ``d1 ~ f_adv**blend_hops``.
     * ``full_deanon_rate`` — additionally the honest sender is directly peered with >=1 adversary,
-      so the adversary also ties the message to its originator. The sender is uniform over honest
-      nodes, so this is ``deanon_rate * observed_frac``; ``observed_frac`` (the honest-node fraction
-      with an adversary peer) is placement-dependent, so full deanonymization carries the
-      placement's fingerprint (worst-case coverage drives it up).
+      so the adversary also ties the message to its originator: ``deanon_rate * observed_frac``.
+      ``observed_frac`` (the honest-node fraction with an adversary peer) is placement-dependent, so
+      full deanonymization carries the placement's fingerprint (worst-case coverage drives it up).
 
     Both are exact at every N -- no Monte-Carlo -- matching the other adversary metrics.
     """
-    k = int(blend_hops)
-    deanon = 0.0
+    k, R = int(blend_hops), int(redundancy)
+    d1 = 0.0
     if 1 <= k <= n_adv and k <= n - 1:
-        deanon = 1.0
+        d1 = 1.0
         for i in range(k):
-            deanon *= (n_adv - i) / (n - 1 - i)   # C(n_adv,k)/C(n-1,k), stable for small k
+            d1 *= (n_adv - i) / (n - 1 - i)   # C(n_adv,k)/C(n-1,k), stable for small k
+    deanon = 1.0 - (1.0 - d1) ** R            # any of R independent cascades whole-path-adversarial
     return {"deanon_rate": float(deanon), "full_deanon_rate": float(deanon * observed_frac)}
 
 

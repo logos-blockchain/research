@@ -41,6 +41,23 @@ adversary metrics are exact at every N).
   directly exposed, so the message is tied to its originator. Lengthening the blend path is the
   dominant defence; a higher degree speeds propagation but *raises* the chance a sender directly
   touches the adversary. Both are exact at every N (no Monte-Carlo), like the other adversary metrics.
+- **Messaging redundancy:** `redundancy` R sends each emission over R *independent* blend cascades.
+  A node receives the message from whichever cascade reaches it first (arrival times are combined
+  element-wise), so it is delivered if any cascade delivers (`delivery = 1−(1−(1−u)^blend_hops)^R`)
+  and captured if any cascade is whole-path-adversarial (`deanon = 1−(1−f_adv^blend_hops)^R`) — the
+  same `1−(1−x)^R` law, so redundancy trades reliability against anonymity. It buys **no** extra
+  coverage: a cascade only delivers if the sender could route to its relay, so every delivered
+  cascade floods the sender's own component. R = 1 is the plain single-cascade model (default), to
+  which the whole aggregation reduces exactly.
+- **Churn percolation:** the flood only crosses responsive nodes, so it lives on the responsive
+  sub-graph — site percolation on a d-regular graph, whose giant component survives only while the
+  responsive fraction exceeds `1/(degree−1)`. A network tolerates churn up to
+  `u_c = 1 − 1/(degree−1)` (degree 3 → 0.5, degree 6 → 0.8, degree 16 → 0.93) and shatters above it;
+  `configs/percolation.yaml` walks u across the threshold and `make verify` checks it.
+- **Linkability over time** (`pd.linkability`): given the rates above and an emission cadence (one
+  node emits per 30 s slot, chosen ∝ stake), the module derives the *time to link* an emitter
+  (`≈ 30 s·ln(1/(1−α))/(stake·q)`, inverse in stake) and the *time to learn its stake* to a threshold
+  from the count of attributable observations. See `configs/redundancy.yaml` and the report.
 
 ## Quick start
 ```
@@ -50,6 +67,8 @@ make verify                  # analytic checks (closed forms + graph invariants)
 make test                    # unit tests
 make sweep                   # configs/default.yaml (N up to 1e5, both adversary modes)
 make sweep-fullscale         # configs/fullscale.yaml (N up to 1e6, random-mode exact)
+make redundancy              # configs/redundancy.yaml (R=1..4: delivery vs deanonymization)
+make percolation             # configs/percolation.yaml (churn threshold u_c = 1-1/(degree-1))
 make figures RUN=runs/<dir>
 ```
 

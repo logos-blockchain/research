@@ -22,14 +22,21 @@ _BUILDERS = [
     ("09_heatmap_eclipse", figures.heatmap_eclipse),
     ("10_delivery_vs_unresponsive", figures.delivery_vs_unresponsive),
     ("11_coverage_vs_unresponsive", figures.coverage_vs_unresponsive),
+    ("20_coverage_percolation", figures.coverage_percolation),
 ]
 
-# (prop, adv, deanon) builders — deanonymization crosses propagation paths with the adversary set.
+# (prop, adv, deanon) builders — deanonymization crosses propagation paths with the adversary set,
+# and the linkability-over-time figures (time to link / learn stake, and the redundancy trade-off).
 _DEANON_BUILDERS = [
     ("12_deanon_vs_blendhops", figures.deanon_vs_blendhops),
     ("13_full_deanon_vs_blendhops", figures.full_deanon_vs_blendhops),
     ("14_full_deanon_vs_fadv", figures.full_deanon_vs_fadv),
     ("15_full_deanon_vs_degree", figures.full_deanon_vs_degree),
+    ("16_time_to_link_vs_stake", figures.time_to_link_vs_stake),
+    ("17_time_to_link_vs_stake_redundancy", figures.time_to_link_vs_stake_redundancy),
+    ("18_time_to_stake_vs_threshold", figures.time_to_stake_vs_threshold),
+    ("19_redundancy_tradeoff", figures.redundancy_tradeoff),
+    ("21_redundancy_time_to_link", figures.redundancy_time_to_link),
 ]
 
 

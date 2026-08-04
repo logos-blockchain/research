@@ -44,9 +44,15 @@ def assign_responsive(n: int, unresponsive_frac: float, rng: np.random.Generator
 
 def blend_round(graph: Graph, sender: int, relays: np.ndarray, jitter_mean_ms: float,
                 max_blend_delay: int, rng: np.random.Generator,
-                coverage_pcts: tuple[float, ...], responsive: np.ndarray | None = None) -> dict:
+                coverage_pcts: tuple[float, ...], responsive: np.ndarray | None = None,
+                stats: bool = True) -> dict:
     """One Blend cascade. ``delivered`` is True iff every relay forwards and the final relay (which
-    must be responsive) floods; delay fields are NaN on a dropped message."""
+    must be responsive) floods; delay fields are NaN on a dropped message.
+
+    Always returns ``arrival``: the per-node absolute arrival time (path + flood distance, ``inf``
+    where unreachable, ``None`` if undelivered) -- the quantity a caller combines across redundant
+    cascades. ``stats=False`` skips the per-cascade scalar/percentile summary (the caller derives it
+    from the combined ``arrival`` instead), which is what makes R cascades cost O(R) sorts fewer."""
     data = (graph.base
             + rng.exponential(jitter_mean_ms, size=graph.base.shape[0])
             + graph.p[graph.src])
@@ -77,31 +83,41 @@ def blend_round(graph: Graph, sender: int, relays: np.ndarray, jitter_mean_ms: f
     flood = dist[k]
     finite = np.isfinite(flood)
     delivered = legs_ok and final_ok and bool(finite.any())
+    path = legs + mix_total if delivered else float("nan")
+    # absolute arrival time per node; inf where the flood never reaches it
+    arrival = flood + path if delivered else None
+    out: dict = {"delivered": delivered, "path": path, "arrival": arrival}
+    if not stats:
+        return out
     if delivered:
         reached = flood[finite]
-        broadcast = float(reached.max())
-        covers = [float(np.percentile(reached, pc)) for pc in coverage_pcts]
-        frac_reached = float(finite.mean())
-        path = legs + mix_total
-        full = path + broadcast
+        out["broadcast"] = float(reached.max())
+        out["covers"] = [float(np.percentile(reached, pc)) for pc in coverage_pcts]
+        out["frac_reached"] = float(finite.mean())
+        out["full"] = path + out["broadcast"]
     else:
-        broadcast = float("nan")
-        covers = [float("nan")] * len(coverage_pcts)
-        frac_reached = 0.0
-        path = float("nan")
-        full = float("nan")
-    return {"full": full, "path": path, "broadcast": broadcast, "covers": covers,
-            "frac_reached": frac_reached, "delivered": delivered}
+        out["broadcast"] = float("nan")
+        out["covers"] = [float("nan")] * len(coverage_pcts)
+        out["frac_reached"] = 0.0
+        out["full"] = float("nan")
+    return out
 
 
 def propagation_metrics(graph: Graph, blend_hops: int, max_blend_delay: int,
-                        unresponsive_frac: float, responsive: np.ndarray,
+                        unresponsive_frac: float, redundancy: int, responsive: np.ndarray,
                         config: SimConfig, rng: np.random.Generator) -> dict:
     """Aggregate the Blend cascade over ``config.n_rounds`` rounds.
 
-    Each round a responsive node injects a message and the ``blend_hops`` relays are drawn from the
-    whole node list (blind to responsiveness). ``delivery_rate`` is the fraction that complete the
-    cascade; delay/coverage statistics are conditioned on those delivered rounds.
+    Each round a responsive node injects a message that is sent over ``redundancy`` (``R``)
+    independent blend cascades, each with its own ``blend_hops`` relays drawn from the whole node
+    list (blind to responsiveness). A node receives the message from whichever cascade reaches it
+    **first**, so the round's arrival times are the element-wise minimum over the delivered
+    cascades: the message is **delivered** if any cascade completes, its **coverage** is the union
+    of their reached sets, and its **full delay** is the last node's earliest arrival (not the
+    fastest cascade's own full delay, which would over-state it). ``path`` is the quickest
+    cascade's path delay and the coverage times are measured from it. ``delivery_rate`` is the
+    fraction of rounds delivered; delay/coverage stats are conditioned on those. All of this
+    reduces exactly to the plain single-cascade model at ``R = 1``.
     """
     n = graph.n
     check_alloc(int((blend_hops + 1) * n * 8), "sampled (blend_hops+1) x N distance matrix",
@@ -122,24 +138,37 @@ def propagation_metrics(graph: Graph, blend_hops: int, max_blend_delay: int,
     if resp_ids.shape[0] < 1 or n < blend_hops + 1:
         return _empty()   # no responsive sender, or too few nodes to draw a distinct path
 
+    R = int(redundancy)
     fulls, paths, bcasts, fracs = [], [], [], []
     covers = [[] for _ in pcts]
     delivered = 0
     for _ in range(config.n_rounds):
         sender = int(rng.choice(resp_ids))
-        relays = rng.choice(n - 1, size=blend_hops, replace=False)
-        relays[relays >= sender] += 1          # blend_hops distinct nodes, all != sender
-        r = blend_round(graph, sender, relays, config.transport_jitter_mean_ms,
-                        max_blend_delay, rng, pcts, responsive)
-        if not r["delivered"]:
+        arr = None                          # element-wise earliest arrival over the R cascades
+        path_min = float("inf")
+        for _c in range(R):
+            relays = rng.choice(n - 1, size=blend_hops, replace=False)
+            relays[relays >= sender] += 1      # blend_hops distinct nodes, all != sender
+            rc = blend_round(graph, sender, relays, config.transport_jitter_mean_ms,
+                             max_blend_delay, rng, pcts, responsive, stats=False)
+            if not rc["delivered"]:
+                continue
+            a = rc["arrival"]
+            arr = a if arr is None else np.minimum(arr, a)
+            path_min = min(path_min, rc["path"])
+        if arr is None:             # no cascade delivered this round
             continue
         delivered += 1
-        fulls.append(r["full"])
-        paths.append(r["path"])
-        bcasts.append(r["broadcast"])
-        fracs.append(r["frac_reached"])
-        for j, c in enumerate(r["covers"]):
-            covers[j].append(c)
+        finite = np.isfinite(arr)
+        reached = arr[finite]
+        full = float(reached.max())
+        fulls.append(full)
+        paths.append(path_min)
+        bcasts.append(full - path_min)
+        fracs.append(float(finite.mean()))
+        rel = reached - path_min               # coverage measured from the quickest path's release
+        for j, pc in enumerate(pcts):
+            covers[j].append(float(np.percentile(rel, pc)))
 
     delivery_rate = delivered / config.n_rounds
     if delivered == 0:

@@ -85,12 +85,12 @@ def test_engine_emits_deanon_rows():
     base = SimConfig(n_nodes=1000, degree=8, graph_seed=0, n_placements=2)
     prop_grid = [(2, 0), (3, 0)]                 # distinct blend_hops = {2, 3}
     adv_grid = [(0.2, "random"), (0.0, "random")]
-    prop_rows, adv_rows, deanon_rows = run_graph_cell(base, prop_grid, [0.0], adv_grid)
+    prop_rows, adv_rows, deanon_rows = run_graph_cell(base, prop_grid, [0.0], [1], adv_grid)
 
-    # one deanon row per (placement, distinct blend_hops)
+    # one deanon row per (placement, distinct blend_hops, redundancy)
     assert len(deanon_rows) == len(adv_rows) * 2
-    cols = {"n_nodes", "degree", "blend_hops", "f_adv", "adversary_mode", "graph_seed",
-            "placement_rep", "n_adv", "n_honest", "observed_frac",
+    cols = {"n_nodes", "degree", "blend_hops", "redundancy", "f_adv", "adversary_mode",
+            "graph_seed", "placement_rep", "n_adv", "n_honest", "observed_frac",
             "deanon_rate", "full_deanon_rate"}
     assert cols <= set(deanon_rows[0])
     assert {row["blend_hops"] for row in deanon_rows} == {2, 3}
