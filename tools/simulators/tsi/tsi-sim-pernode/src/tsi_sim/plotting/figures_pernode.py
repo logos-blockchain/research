@@ -27,6 +27,27 @@ CONFIG_COLS = ["n_nodes", "stake_dist", "pareto_shape", "topology", "degree",
 GRAPH_TOPOLOGIES = ("regular", "blend")
 
 
+def sem(x) -> float:
+    """Standard error of the mean over replicates (0 for a single replicate).
+
+    Replicate spread is the only uncertainty estimate these sweeps carry, and at high
+    mixing delay it is large enough to swamp the effects being compared — so any figure or
+    table quoting a cell mean should quote this alongside it.
+    """
+    x = np.asarray(x, dtype=float)
+    return float(x.std(ddof=1) / np.sqrt(len(x))) if len(x) > 1 else 0.0
+
+
+def recovery_rate(q, q_u):
+    """Invert ``theory.q_effective``: ``r = (q_u - q) / (1 - q)``.
+
+    The share of wasted active slots that a countable uncle reference puts back into the
+    count. Clamped denominator so a saturated ``q -> 1`` cell stays finite.
+    """
+    q, q_u = np.asarray(q, dtype=float), np.asarray(q_u, dtype=float)
+    return (q_u - q) / np.maximum(1.0 - q, 1e-12)
+
+
 def _lat_axis(topo: str) -> tuple[str, str]:
     """(dataframe column, axis label) for the dominant latency knob of a graph topology."""
     if topo == "blend":

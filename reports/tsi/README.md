@@ -4,6 +4,8 @@
 
 This report selects and justifies the TSI parameters for Cryptarchia from a per-node network simulation. It is split into four cohesive parts; section numbers (§1–§9, A–C) are stable identifiers preserved across the set.
 
+> **Uncle references.** The model analysed throughout is the **countable** one: counting-only references, deduplicated by slot, drawn from first-fork blocks only, within a window derived as `w_u = W_abs/f`. An **unrestricted** baseline — any orphan in the window at any fork depth — is measured alongside it for comparison. The two are indistinguishable in the design regime `ρ < 1` and diverge only under overload. See the model note at the top of [Part 1](tsi-report-1-overview-and-recommendations.md), the mechanism in [§2.1](tsi-report-2-accuracy-and-design.md#s2-1), the comparison in [§3.2](tsi-report-2-accuracy-and-design.md#s3-2)–[§3.2a](tsi-report-2-accuracy-and-design.md#s3-2a), and the reproduction notes in [§9](tsi-report-4-reproducibility-and-appendices.md#s9).
+
 ## Parts
 
 1. **[Overview and recommendations](tsi-report-1-overview-and-recommendations.md)** — the executive summary, the per-knob parameter reference (§7), and the safest selection with residual risks and the recommendation-vs-spec deltas (§8).

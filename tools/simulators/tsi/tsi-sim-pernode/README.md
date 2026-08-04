@@ -156,7 +156,9 @@ src/tsi_sim/   constants config rng stake lottery topology blocktree(+build_tree
                theory verify  plotting/{style, figures_pernode, make_figures}
 configs/       smoke.yaml  default.yaml  fullscale.yaml
                countable-vs-old.yaml  absorption-window.yaml   (countable-model studies)
+               fine-delay.yaml   (delay 1-5 at 40 replicates: the design band, high precision)
 tests/         test_{pernode,config,rng,lottery,blocktree,uncles,tsi_counting,stake,
                      theory,latency,theory_convergence,countable_counting,...}.py
-scripts/       plot_countable_vs_old.py  (old-vs-countable comparison figures)
+scripts/       plot_countable_vs_old.py  (countable-vs-unrestricted comparison figures)
+               plot_fine_delay.py        (design-band accuracy + model gap with 95% CIs)
 ```

@@ -16,77 +16,19 @@ block id only (no slot exclusion).
 
 Selected refs are baked at production and immutable once adopted, so density counting
 stays view-independent under both models.
+
+``select_uncles_at_production`` is the ONLY selection entry point — blocktree.py calls it
+once per produced block. Tests drive it through the same signature (see
+tests/test_uncles.py ``annotate_via_production``) rather than through a parallel offline
+implementation, so there is no second copy of the rules to drift out of sync.
 """
 
 from __future__ import annotations
 
 import numpy as np
 
-from .blocktree import GENESIS, BlockTree
+from .blocktree import GENESIS
 from .config import SimConfig
-
-
-def _orphans_sorted(tree: BlockTree, canonical_ids: list[int]) -> tuple[np.ndarray, np.ndarray]:
-    """Return orphan block ids sorted by (slot, id) and their slots."""
-    canonical = np.zeros(tree.n_blocks, dtype=bool)
-    canonical[canonical_ids] = True
-    all_real = np.arange(1, tree.n_blocks)
-    orphan_ids = all_real[~canonical[1:]]
-    orphan_slots = tree.slot[orphan_ids]
-    order = np.lexsort((orphan_ids, orphan_slots))  # by slot, then id
-    return orphan_ids[order], orphan_slots[order]
-
-
-def annotate_uncles(
-    tree: BlockTree, canonical_ids: list[int], config: SimConfig, rng: np.random.Generator
-) -> None:
-    """Fill ``tree.uncles[B]`` for every canonical block ``B`` per the selection rule (offline).
-
-    Countable model: candidates are restricted to orphans whose parent is canonical (first
-    fork blocks), slots already occupied on the chain are excluded, and at most one uncle
-    per slot is picked. Old model: any orphan in the window, dedup by id only.
-    """
-    u_max = config.max_uncles
-    if u_max <= 0:
-        return
-    w = config.effective_uncle_window
-    orphan_ids, orphan_slots = _orphans_sorted(tree, canonical_ids)
-    if orphan_ids.size == 0:
-        return
-
-    countable = config.uncle_model != "old"
-    occupied: set[int] = set()
-    if countable:
-        canonical = set(canonical_ids)
-        keep = [i for i in range(orphan_ids.size)
-                if int(tree.parent[orphan_ids[i]]) == GENESIS
-                or int(tree.parent[orphan_ids[i]]) in canonical]
-        orphan_ids, orphan_slots = orphan_ids[keep], orphan_slots[keep]
-        if orphan_ids.size == 0:
-            return
-        occupied = {int(tree.slot[b]) for b in canonical_ids}
-
-    referenced: set[int] = set()
-    # oldest canonical block first
-    for b in reversed(canonical_ids):
-        sb = int(tree.slot[b])
-        lo = int(np.searchsorted(orphan_slots, sb - w, side="left"))   # slot_U >= sb - w
-        hi = int(np.searchsorted(orphan_slots, sb, side="left"))       # slot_U <  sb
-        if hi <= lo:
-            continue
-        window_ids = orphan_ids[lo:hi]  # already oldest-first
-        if countable:
-            window_ids = np.array(
-                [x for x in window_ids.tolist() if int(tree.slot[x]) not in occupied],
-                dtype=np.int64,
-            )
-        selected = _select(window_ids, referenced, config, rng,
-                           slot=tree.slot, one_per_slot=countable)
-        if selected:
-            tree.uncles[b] = tuple(selected)
-            referenced.update(selected)
-            if countable:
-                occupied.update(int(tree.slot[u]) for u in selected)
 
 
 def _select(
