@@ -10,9 +10,22 @@ from __future__ import annotations
 # --- True protocol values (full scale) -------------------------------------
 K_TRUE = 2160          # security parameter (blocks)
 F = 1.0 / 30.0         # slot activation coefficient (default; configurable per run)
-W_DEFAULT = 300        # uncle reference window w_u (slots)
+W_DEFAULT = 300        # old model: uncle reference window w_u (slots), set directly (--old)
 BETA_DEFAULT = 1.0     # TSI learning rate
 SLOT_SECONDS = 1       # slot length (seconds) — so 1 slot == 1 s
+
+# --- Countable uncle model (cryptarchia-v1-protocol.md, uncle references) ---
+# The spec derives the uncle reference window from the *window absorption parameter* W:
+# w_u = W * f^-1 slots, i.e. W expected block-intervals. W is bounded by 1 <= W <= 0.6*k,
+# equivalently w_u <= 0.6*k/f = s/5, keeping the window strictly inside the finalization
+# window. The default W = 10 reproduces w_u = 300 slots at f = 1/30.
+W_ABS_DEFAULT = 10.0       # window absorption parameter W (expected block-intervals)
+W_ABS_MAX_FACTOR = 0.6     # bound: W <= W_ABS_MAX_FACTOR * k
+
+
+def uncle_window_slots(w_abs: float, f: float = F) -> int:
+    """Derived uncle reference window ``w_u = W / f`` in slots (countable model)."""
+    return max(1, int(round(w_abs / f)))
 
 
 # --- Real-world inter-node network latency (per gossip link) ---------------

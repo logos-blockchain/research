@@ -18,6 +18,30 @@ def expected_ratio(f: float, q: ArrayLike) -> ArrayLike:
     return np.log(1.0 - f) / np.log(1.0 - f / q)
 
 
+def q_effective(q: ArrayLike, r: ArrayLike) -> ArrayLike:
+    """Effective slot utilisation with uncle recovery: ``q_u = q + (1 - q) r``.
+
+    ``r`` is the recovery rate — the probability that a wasted active slot is recovered by a
+    countable referenced uncle. Recovery is a binomial thinning of the waste
+    (``n ~ Bin(p, A)`` wasted, ``u | n ~ Bin(r, n)`` recovered, so the residual waste is
+    ``Bin(p(1-r), A)``), hence every closed-form result above holds verbatim with ``q``
+    replaced by ``q_u``. Full recovery (``r = 1``) gives ``q_u = 1`` and an unbiased
+    equilibrium; ``r = 0`` reduces to the chain-only ``q``.
+    """
+    q = np.asarray(q, dtype=float)
+    r = np.asarray(r, dtype=float)
+    return q + (1.0 - q) * r
+
+
+def window_miss_prob(f: float, w_abs: ArrayLike) -> ArrayLike:
+    """P(no canonical block appears within the uncle window ``w_u = W/f``) — the window's
+    contribution to non-recovery: ``(1-f)^(W/f) ~ e^-W`` (4.5e-5 at the default W = 10).
+    The absorption parameter W therefore controls the miss probability directly.
+    """
+    w_abs = np.asarray(w_abs, dtype=float)
+    return (1.0 - f) ** (w_abs / f)
+
+
 def block_count_ceiling(f: float) -> float:
     """LEGACY-mode ceiling: the equilibrium ratio under ``legacy_block_count=True``.
 

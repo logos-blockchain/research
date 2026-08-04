@@ -38,9 +38,18 @@ def check(name: str, ok: bool, detail: str) -> bool:
     return ok
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Per-node TSI analytic checks")
+    ap.add_argument("--old", action="store_true",
+                    help="run the old (pre countable redesign) uncle model")
+    args = ap.parse_args(argv)
+    uncle_model = "old" if args.old else "countable"
+
     results = []
-    common = dict(n_nodes=300, stake_dist="uniform", k=K, epochs=EPOCHS, genesis_d_factor=0.5)
+    common = dict(n_nodes=300, stake_dist="uniform", k=K, epochs=EPOCHS, genesis_d_factor=0.5,
+                  uncle_model=uncle_model)
 
     # 1. Full-mesh baseline: zero per-node divergence, full window agreement.
     fm = SimConfig(topology="full_mesh", latency=4, max_uncles=0, **common)

@@ -18,8 +18,8 @@ from . import style
 # this exhaustive over the recorded config fields (see metrics._CONFIG_FIELDS).
 CONFIG_COLS = ["n_nodes", "stake_dist", "pareto_shape", "topology", "degree",
                "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
-               "latency", "max_uncles", "uncle_strategy", "uncle_window",
-               "init_dest", "init_spread", "genesis_d_factor",
+               "latency", "uncle_model", "window_absorption", "max_uncles", "uncle_strategy",
+               "uncle_window", "init_dest", "init_spread", "genesis_d_factor",
                "f", "beta", "k", "fixed_point", "legacy_block_count"]
 
 # Graph topologies (as opposed to the full_mesh baseline) and the dominant latency knob each
@@ -41,12 +41,15 @@ def equilibrium(df: pd.DataFrame, burn_frac: float = 0.5) -> pd.DataFrame:
     ``epochs`` — early-stopped runs (config.early_stop) terminate well before the planned
     ``epochs``, so thresholding on the configured value would drop every row.
     """
-    max_epoch = df.groupby([*CONFIG_COLS, "replicate"])["epoch"].transform("max")
+    cfg_cols = [c for c in CONFIG_COLS if c in df.columns]     # old parquets lack new fields
+    max_epoch = df.groupby([*cfg_cols, "replicate"])["epoch"].transform("max")
     tail = df[df["epoch"] >= max_epoch * burn_frac]
     agg = {c: (c, "mean") for c in
            ("mean_ratio", "range_ratio", "iqr_ratio", "agreement_window", "agreement_tip",
-            "mean_q", "mean_q_eff", "mean_orphan_rate", "max_ratio", "min_ratio")}
-    return tail.groupby([*CONFIG_COLS, "replicate"], as_index=False).agg(**agg)
+            "mean_q", "mean_q_eff", "mean_orphan_rate", "max_ratio", "min_ratio",
+            "deep_ref_share", "p_ref", "fork_rate")
+           if c in tail.columns}
+    return tail.groupby([*cfg_cols, "replicate"], as_index=False).agg(**agg)
 
 
 def _prov(df: pd.DataFrame) -> str:

@@ -13,7 +13,8 @@ from .epoch import EpochResult
 _CONFIG_FIELDS = (
     "n_nodes", "stake_dist", "pareto_shape", "latency", "topology", "degree",
     "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
-    "init_dest", "init_spread", "uncle_window", "max_uncles", "uncle_strategy",
+    "init_dest", "init_spread", "uncle_model", "window_absorption",
+    "uncle_window", "max_uncles", "uncle_strategy",
     "f", "beta", "k", "genesis_d_factor", "epochs", "fixed_point", "legacy_block_count",
     "replicate",
     "adversary_frac", "adversary_strategy", "adversary_period", "adversary_withhold_epochs",
@@ -58,5 +59,6 @@ def divergence_row(
         max_reorg_depth=er.max_reorg_depth,
         mean_reorg_depth=er.mean_reorg_depth,
         p_ref=er.p_ref,
+        deep_ref_share=er.deep_ref_share,
     )
     return row
