@@ -38,6 +38,16 @@
 - **Per-node views:** one global block tree plus an `(N × n_blocks)` **arrival matrix** `A`;
   each node builds on / measures density over the blocks that have arrived at it. Uncle refs
   are **baked at production** from the producer's view (faithful — immutable once adopted).
+- **Uncle model (`uncle_model`, CLI `--old`):** the default **countable** model implements the
+  spec's counting-only rules (cryptarchia-v1-protocol.md): only the **first block of a fork**
+  (parent on the producer's chain) is referenceable/countable, the window is **derived** as
+  `w_u = window_absorption / f` slots (`W` expected block-intervals, default `W = 10` → 300
+  slots, bounded `W ≤ 0.6·k`), selection skips slots already occupied on the producer's chain
+  and picks one uncle per slot, and the measurement pass re-checks every rule per reference
+  (rejections tallied as `deep_ref_share`). Passing `--old` to `tsi-sweep`/`tsi-verify` runs
+  the pre-redesign model unchanged — window = `uncle_window` slots, any-depth orphans
+  referenceable, every baked reference counted — and **bit-reproduces historical runs** (the
+  old model's RNG key is byte-identical to the pre-`uncle_model` key).
 - **Metrics:** per-node `D_est` spread (`range`, `IQR`), canonical-chain **agreement**
   (window prefix vs current tip), mean accuracy, and — with `init_dest=heterogeneous` —
   transient re-convergence.
@@ -145,6 +155,8 @@ src/tsi_sim/   constants config rng stake lottery topology blocktree(+build_tree
                uncles(+select_uncles_at_production) tsi(+update_D_vec) epoch engine metrics
                theory verify  plotting/{style, figures_pernode, make_figures}
 configs/       smoke.yaml  default.yaml  fullscale.yaml
+               countable-vs-old.yaml  absorption-window.yaml   (countable-model studies)
 tests/         test_{pernode,config,rng,lottery,blocktree,uncles,tsi_counting,stake,
-                     theory,latency,theory_convergence}.py
+                     theory,latency,theory_convergence,countable_counting,...}.py
+scripts/       plot_countable_vs_old.py  (old-vs-countable comparison figures)
 ```

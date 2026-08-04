@@ -45,12 +45,31 @@ def test_no_uncles_when_u_zero():
 
 
 def test_window_excludes_out_of_range_orphan():
+    # OLD model: uncle_window is read directly. (The countable model ignores uncle_window
+    # and derives the window from window_absorption — see the countable twin below.)
     tree, canonical = _canonical_and_orphan_tree()
-    cfg = SimConfig(max_uncles=1, uncle_window=1, uncle_strategy="oldest")
+    cfg = SimConfig(max_uncles=1, uncle_window=1, uncle_strategy="oldest", uncle_model="old")
     annotate_uncles(tree, canonical, cfg, np.random.default_rng(0))
     # orphan 2 at slot1; nearest canonical after it is block3 at slot3 -> gap 2 > W=1
     referenced = {u for b in canonical for u in tree.uncles[b]}
     assert referenced == set()
+
+
+def test_countable_window_is_derived_from_absorption():
+    # countable: w_u = round(W / f). With f=0.5 and W=1, w_u = 2 slots: the orphan at slot1
+    # is out of range of the canonical block at slot5 (gap 4) and of slot3 (gap 2 <= 2 OK).
+    tree, canonical = _canonical_and_orphan_tree()
+    cfg = SimConfig(max_uncles=1, f=0.5, window_absorption=1.0)
+    assert cfg.effective_uncle_window == 2
+    annotate_uncles(tree, canonical, cfg, np.random.default_rng(0))
+    referenced = {u for b in canonical for u in tree.uncles[b]}
+    assert referenced == {2}                       # block3 (slot3) still reaches it
+    # shrink f so the derived window rounds to 1 slot: gap 2 > 1 -> excluded
+    tree2, canonical2 = _canonical_and_orphan_tree()
+    cfg2 = SimConfig(max_uncles=1, f=0.9, window_absorption=1.0)
+    assert cfg2.effective_uncle_window == 1
+    annotate_uncles(tree2, canonical2, cfg2, np.random.default_rng(0))
+    assert {u for b in canonical2 for u in tree2.uncles[b]} == set()
 
 
 def _wide_orphan_tree():
@@ -108,3 +127,72 @@ def test_dedup_across_ancestors():
     annotate_uncles(tree, canonical, cfg, np.random.default_rng(0))
     counts = sum(len(tree.uncles[b]) for b in canonical)
     assert counts == 1  # orphan 2 referenced exactly once despite two eligible blocks
+
+
+# --- countable model (spec counting rules) ---------------------------------------------
+
+
+def _deep_fork_tree():
+    # canonical 1(slot0)->5(slot5); orphan branch 2(slot1,parent=1)->3(slot2,parent=2);
+    # orphan 4(slot3, parent=1). Blocks 2,4 are FIRST fork blocks; 3 is deep.
+    tree = make_tree(
+        slots=[-1, 0, 1, 2, 3, 5],
+        parents=[-1, 0, 1, 2, 1, 1],
+        heights=[0, 1, 2, 3, 2, 2],
+        leaders=[-1, 0, 1, 2, 3, 4],
+    )
+    return tree, [5, 1]  # tip-first
+
+
+def test_countable_excludes_deep_fork_blocks():
+    tree, canonical = _deep_fork_tree()
+    cfg = SimConfig(max_uncles=4)
+    annotate_uncles(tree, canonical, cfg, np.random.default_rng(0))
+    referenced = {u for b in canonical for u in tree.uncles[b]}
+    assert referenced == {2, 4}                    # deep block 3 (parent is an orphan) excluded
+
+
+def test_old_model_still_references_deep_fork_blocks():
+    tree, canonical = _deep_fork_tree()
+    cfg = SimConfig(max_uncles=4, uncle_model="old", uncle_window=300)
+    annotate_uncles(tree, canonical, cfg, np.random.default_rng(0))
+    referenced = {u for b in canonical for u in tree.uncles[b]}
+    assert referenced == {2, 3, 4}                 # --old: fork depth ignored
+
+
+def test_countable_excludes_occupied_slots_and_dedups_per_slot():
+    # canonical 1(slot0)->5(slot4); orphans: 2 at slot0 (canonical-occupied), 3/4 at slot2.
+    tree = make_tree(
+        slots=[-1, 0, 0, 2, 2, 4],
+        parents=[-1, 0, 0, 1, 1, 1],
+        heights=[0, 1, 1, 2, 2, 2],
+        leaders=[-1, 0, 1, 2, 3, 4],
+    )
+    canonical = [5, 1]
+    cfg = SimConfig(max_uncles=4)
+    annotate_uncles(tree, canonical, cfg, np.random.default_rng(0))
+    referenced = {u for b in canonical for u in tree.uncles[b]}
+    # slot0 is canonical-occupied -> orphan 2 excluded; slot2 pair -> exactly one picked
+    assert referenced == {3}
+
+
+def test_production_selection_countable_rules():
+    from tsi_sim.uncles import select_uncles_at_production
+
+    # 0 genesis; 1 canonical slot0; 2 first-fork slot1 (parent 1); 3 deep slot2 (parent 2);
+    # 4/5 same-slot first-forks at slot3 (parent 1).
+    slot = np.array([-1, 0, 1, 2, 3, 3], np.int64)
+    parent = np.array([-1, 0, 1, 2, 1, 1], np.int64)
+    uncles: list = [() for _ in range(6)]
+    arrival = np.zeros(6)                          # everything arrived immediately
+    cfg = SimConfig(max_uncles=4)
+    sel = select_uncles_at_production(
+        slot, parent, uncles, arrival, nb=6, parent_id=1, t=5, config=cfg,
+        rng=np.random.default_rng(0))
+    assert sel == (2, 4)                           # deep 3 excluded; one per slot at slot3
+
+    old = SimConfig(max_uncles=4, uncle_model="old", uncle_window=300)
+    sel_old = select_uncles_at_production(
+        slot, parent, uncles, arrival, nb=6, parent_id=1, t=5, config=old,
+        rng=np.random.default_rng(0))
+    assert sel_old == (2, 3, 4, 5)                 # --old: depth and slot-dedup ignored
