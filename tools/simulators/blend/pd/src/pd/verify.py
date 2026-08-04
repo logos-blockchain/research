@@ -111,6 +111,83 @@ def main(argv: list[str] | None = None) -> int:
                      abs(dz["full_deanon_rate"] - fd_emp) < max(0.006, 0.15 * fd_emp),
                      f"closed {dz['full_deanon_rate']:.4f} vs MC {fd_emp:.4f}")
 
+    # 6. messaging redundancy R and the linkability laws.
+    #    deanon_R = 1-(1-d1)^R (any of R independent cascades whole-path-adversarial); delivery_R =
+    #    1-(1-p1)^R (any of R cascades delivers); T_link ~ 30s*ln(1/(1-alpha))/(s*q).
+    from .linkability import time_to_link_seconds
+    from .propagation import assign_responsive, propagation_metrics
+    from .rng import responsive_seedseq, round_seedseq
+    f, k, degree = 0.33, 2, 8               # (a) deanon_R vs direct R-cascade Monte-Carlo
+    cfg = SimConfig(n_nodes=3000, degree=degree, graph_seed=1, f_adv=f, blend_hops=k)
+    g = build_graph(cfg)
+    mask = place_adversary(g, f, "random",
+                           np.random.default_rng(placement_seedseq(cfg, f, "random", 0)),
+                           cfg.worstcase_max_n)
+    adv = adversary_metrics(g, mask)
+    honest, n = np.where(~mask)[0], g.n
+    for R in (2, 3):
+        dzR = deanon_metrics(n, adv["n_adv"], adv["observed_frac"], k, R)
+        srng = np.random.default_rng(1234 + R)
+        trials, hit = 40_000, 0
+        for _ in range(trials):
+            s = int(srng.choice(honest))
+            captured = False
+            for _c in range(R):
+                r = srng.choice(n - 1, size=k, replace=False)
+                r[r >= s] += 1
+                if mask[r].all():
+                    captured = True
+                    break
+            hit += int(captured)
+        emp = hit / trials
+        ok &= _check(f"deanon_rate R={R}", abs(dzR["deanon_rate"] - emp) < max(0.006, 0.1 * emp),
+                     f"closed {dzR['deanon_rate']:.4f} vs MC {emp:.4f}")
+
+    u = 0.3                                  # (b) simulated delivery_R vs 1-(1-p1)^R
+    dc = SimConfig(n_nodes=5000, degree=16, blend_hops=3, max_blend_delay=0,
+                   transport_jitter_mean_ms=0.0, unresponsive_frac=u, n_rounds=1500)
+    gg = build_graph(dc)
+    resp = assign_responsive(dc.n_nodes, u, np.random.default_rng(responsive_seedseq(dc, u)))
+    deliveries = {}
+    for R in (1, 2, 3):
+        rng = np.random.default_rng(round_seedseq(dc, dc.blend_hops, dc.max_blend_delay, u, R))
+        deliveries[R] = propagation_metrics(
+            gg, dc.blend_hops, dc.max_blend_delay, u, R, resp, dc, rng)["delivery_rate"]
+    for R in (2, 3):
+        th = 1 - (1 - deliveries[1]) ** R    # cascades ~independent given the responsive mask
+        ok &= _check(f"delivery_rate R={R}", abs(deliveries[R] - th) < 0.04,
+                     f"sim {deliveries[R]:.3f} vs 1-(1-p1)^R {th:.3f}")
+
+    s_stake, q = 0.02, 0.05                  # (c) time-to-link geometric law vs emission MC
+    first = np.random.default_rng(99).geometric(s_stake * q, size=200_000)
+    for alpha in (0.5, 0.9):
+        emp = 30.0 * float(np.quantile(first, alpha))
+        closed = time_to_link_seconds(s_stake, q, alpha)
+        ok &= _check(f"time_to_link alpha={alpha}", abs(emp - closed) / closed < 0.03,
+                     f"MC {emp:.0f}s vs closed {closed:.0f}s")
+
+    # 7. churn percolation: the responsive sub-graph is site percolation on a d-regular graph, so
+    #    its giant component survives only while the responsive fraction exceeds 1/(degree-1) --
+    #    i.e. up to churn u_c = 1 - 1/(degree-1). Check it is giant below u_c and gone above.
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.csgraph import connected_components
+    n_p = 20_000
+    for degree in (3, 6):
+        u_c = 1.0 - 1.0 / (degree - 1)
+        cfg = SimConfig(n_nodes=n_p, degree=degree, graph_seed=0)
+        g = build_graph(cfg)
+        giant = {}
+        for u in (u_c - 0.15, min(u_c + 0.15, 0.99)):
+            resp = assign_responsive(n_p, u, np.random.default_rng(responsive_seedseq(cfg, u)))
+            keep = resp[g.src] & resp[g.indices]
+            m = csr_matrix((np.ones(int(keep.sum())), (g.src[keep], g.indices[keep])),
+                           shape=(n_p, n_p))
+            _, lab = connected_components(m, directed=False)
+            giant[round(u, 3)] = float(np.bincount(lab[resp]).max() / n_p)
+        below, above = giant[round(u_c - 0.15, 3)], giant[round(min(u_c + 0.15, 0.99), 3)]
+        ok &= _check(f"percolation d={degree} (u_c={u_c:.2f})", below > 0.1 and above < 0.02,
+                     f"giant {below:.3f} at u_c-0.15 -> {above:.4f} at u_c+0.15")
+
     print("OK" if ok else "FAILURES PRESENT")
     return 0 if ok else 1
 

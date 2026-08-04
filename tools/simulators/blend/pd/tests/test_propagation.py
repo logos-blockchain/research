@@ -1,7 +1,9 @@
 import numpy as np
 
-from pd.graph import Graph
-from pd.propagation import assign_responsive, blend_round
+from pd.config import SimConfig
+from pd.graph import Graph, build_graph
+from pd.propagation import assign_responsive, blend_round, propagation_metrics
+from pd.rng import responsive_seedseq, round_seedseq
 
 
 def _k4(p):
@@ -93,3 +95,106 @@ def test_unresponsive_node_strands_flood_pocket():
                     rng=np.random.default_rng(0), coverage_pcts=(50.0,), responsive=responsive)
     assert r["delivered"] is True
     assert r["frac_reached"] == 0.75                   # node 3 stranded behind unresponsive node 2
+
+
+# --- arrival times and messaging redundancy -----------------------------------------------------
+
+def test_arrival_is_path_plus_flood_distance():
+    """``arrival`` is the absolute per-node arrival time -- what is combined across cascades."""
+    g = _k4([1.0, 2.0, 3.0, 4.0])
+    r = blend_round(g, sender=0, relays=np.array([1]), jitter_mean_ms=0.0, max_blend_delay=0,
+                    rng=np.random.default_rng(0), coverage_pcts=(50.0,))
+    arr = r["arrival"]
+    assert arr[1] == r["path"]                          # the flooding relay itself, at t = path
+    assert float(np.nanmax(arr[np.isfinite(arr)])) == r["full"]   # last arrival == full delay
+    assert np.all(arr[[0, 2, 3]] == r["path"] + 12.0)   # 10 ms link + p(1)=2 from the relay
+
+
+def test_arrival_is_none_when_undelivered():
+    g = _k4([0.0, 0.0, 0.0, 0.0])
+    responsive = np.array([True, False, True, True])
+    r = blend_round(g, 0, np.array([1]), 0.0, 0, np.random.default_rng(0), (50.0,), responsive)
+    assert r["delivered"] is False and r["arrival"] is None
+
+
+def test_stats_false_skips_summary_but_keeps_arrival():
+    g = _k4([1.0, 2.0, 3.0, 4.0])
+    kw = dict(jitter_mean_ms=0.0, max_blend_delay=0, coverage_pcts=(50.0, 90.0))
+    full = blend_round(g, 0, np.array([1]), rng=np.random.default_rng(0), **kw)
+    lean = blend_round(g, 0, np.array([1]), rng=np.random.default_rng(0), stats=False, **kw)
+    assert "full" in full and "full" not in lean
+    assert lean["path"] == full["path"]
+    assert np.array_equal(lean["arrival"], full["arrival"])
+
+
+def _prop(n_nodes, degree, u, blend_hops, R, n_rounds, seed=0):
+    cfg = SimConfig(n_nodes=n_nodes, degree=degree, blend_hops=blend_hops, max_blend_delay=0,
+                    transport_jitter_mean_ms=0.0, unresponsive_frac=u, redundancy=R,
+                    n_rounds=n_rounds, graph_seed=seed)
+    g = build_graph(cfg)
+    resp = assign_responsive(n_nodes, u, np.random.default_rng(responsive_seedseq(cfg, u)))
+    rng = np.random.default_rng(round_seedseq(cfg, blend_hops, 0, u, R))
+    return propagation_metrics(g, blend_hops, 0, u, R, resp, cfg, rng)
+
+
+def test_single_cascade_reduces_to_blend_round_stats():
+    """R=1 aggregation over ``arrival`` must reproduce the per-cascade scalar summary exactly."""
+    g = _k4([1.0, 2.0, 3.0, 4.0])
+    pcts = (50.0, 90.0, 99.0)
+    r = blend_round(g, 0, np.array([1]), 0.0, 0, np.random.default_rng(0), pcts)
+    arr = r["arrival"]
+    finite = np.isfinite(arr)
+    reached = arr[finite]
+    assert float(reached.max()) == r["full"]                        # full delay
+    assert float(reached.max()) - r["path"] == r["broadcast"]       # broadcast phase
+    rel = reached - r["path"]
+    for pc, c in zip(pcts, r["covers"], strict=True):
+        assert abs(float(np.percentile(rel, pc)) - c) < 1e-9        # coverage times
+    assert float(finite.mean()) == r["frac_reached"]
+
+
+def test_redundancy_raises_delivery_monotonically():
+    rates = [_prop(2000, 4, 0.3, 3, R, 300)["delivery_rate"] for R in (1, 2, 3)]
+    assert all(b >= a for a, b in zip(rates, rates[1:], strict=False))
+    assert rates[2] > rates[0] + 0.1        # a real gain, not noise
+
+
+def test_redundancy_buys_no_coverage_even_when_fragmented():
+    """Redundancy raises *delivery*, never *coverage* -- including in the fragmented regime.
+
+    A cascade is delivered only if the sender can route to its relay, so every delivered cascade's
+    relay already lies in the sender's reachable set and floods (a subset of) the same component.
+    The union over R cascades therefore cannot exceed what one delivered cascade already reaches.
+    """
+    for degree, u in ((3, 0.5), (8, 0.3)):          # fragmented, then connected
+        single = _prop(4000, degree, u, 1, 1, 300)["frac_reached"]
+        quad = _prop(4000, degree, u, 1, 4, 300)["frac_reached"]
+        assert quad <= single + 0.01, (degree, u, single, quad)
+
+
+def test_redundant_cascades_flood_the_same_component():
+    """Direct check of the mechanism: with several cascades delivered in one round, the union of
+    their reached sets equals the largest single one."""
+    n, u = 4000, 0.5
+    cfg = SimConfig(n_nodes=n, degree=3, blend_hops=1, max_blend_delay=0,
+                    transport_jitter_mean_ms=0.0, unresponsive_frac=u, graph_seed=0)
+    g = build_graph(cfg)
+    resp = assign_responsive(n, u, np.random.default_rng(responsive_seedseq(cfg, u)))
+    rng = np.random.default_rng(5)
+    resp_ids = np.where(resp)[0]
+    checked = 0
+    for _ in range(400):
+        s = int(rng.choice(resp_ids))
+        masks = []
+        for _c in range(4):
+            rel = rng.choice(n - 1, size=1, replace=False)
+            rel[rel >= s] += 1
+            rc = blend_round(g, s, rel, 0.0, 0, rng, (50.0,), resp, stats=False)
+            if rc["delivered"]:
+                masks.append(np.isfinite(rc["arrival"]))
+        if len(masks) < 2:
+            continue
+        checked += 1
+        union = np.logical_or.reduce(masks)
+        assert int(union.sum()) == max(int(m.sum()) for m in masks)
+    assert checked > 0                               # the multi-delivery case did occur

@@ -8,6 +8,10 @@ f_adv: [0.05, 0.1, 0.2, 0.33, 0.5]
 adversary_mode: [random, worstcase_coverage, worstcase_eclipse]
 seeds: 8
 base:
-  n_rounds: 200
+  # 1000 rounds x 8 topology seeds = 8000 rounds per cell: measured SEM <= 0.009 on the delivery
+  # rates and <= 0.04 s on the full-delay means, so the report's rate tables and 0.1-second delay
+  # tables are resolved rather than sampling noise. (Coverage at degree 3 / u=0.5 stays noisy at
+  # any round count -- it sits on the percolation threshold, where topologies genuinely differ.)
+  n_rounds: 1000
   n_placements: 8
   worstcase_max_n: 100000

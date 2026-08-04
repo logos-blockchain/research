@@ -1,0 +1,24 @@
+# Churn-percolation study: where does the responsive sub-graph shatter?
+#
+# Unresponsive nodes relay nothing, so the network that actually carries a flood is the sub-graph
+# induced on the responsive nodes. That is site percolation on a random d-regular graph, which has
+# a giant component only while the responsive fraction exceeds 1/(degree-1) -- i.e. the network
+# survives churn up to u_c = 1 - 1/(degree-1). This config walks u across that threshold for every
+# degree to locate the collapse (degree 3 breaks at 0.5, degree 6 at 0.8, degree 16 at 0.93).
+#
+# blend_hops=1 isolates the flood (one relay, no extra path fragility) and keeps the cost low;
+# 800 rounds x 8 seeds = 6400 rounds per cell. Coverage right AT the threshold is genuinely
+# bimodal across topologies (critical behaviour), so seed spread there is physics, not noise.
+n_nodes: [100000]
+degree: [3, 4, 6, 8, 12, 16]
+blend_hops: [1]
+max_blend_delay: [0]
+unresponsive_frac: [0.0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+redundancy: [1]
+f_adv: [0.1]
+adversary_mode: [random]
+seeds: 8
+base:
+  n_rounds: 800
+  n_placements: 1
+  worstcase_max_n: 100000

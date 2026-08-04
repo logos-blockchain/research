@@ -12,7 +12,8 @@ def test_key_covers_every_field():
     for name in fields:
         cur = getattr(base, name)
         alt = {"n_nodes": 2000, "degree": 4, "blend_hops": 2, "max_blend_delay": 5,
-               "unresponsive_frac": 0.2, "n_rounds": 10, "transport_jitter_mean_ms": 1.0,
+               "unresponsive_frac": 0.2, "redundancy": 2, "n_rounds": 10,
+               "transport_jitter_mean_ms": 1.0,
                "processing_lags_ms": (11.0, 51.0, 101.0), "processing_lag_probs": (0.6, 0.3, 0.1),
                "link_latency_dist": "fixed", "link_latency_mean_ms": 1.0,
                "coverage_pcts": (25.0,), "f_adv": 0.1, "adversary_mode": "worstcase_coverage",
