@@ -208,6 +208,9 @@ def _perturb(v):
         "exp": "poisson",   # jitter_dist
         "sine": "ramp",     # churn_mode
         "countable": "old",  # uncle_model
+        # adversary_selection. Keyed by VALUE, so this only fires on fields that are currently
+        # "random" — uncle_strategy defaults to "oldest" and keeps its own flip above.
+        "random": "whale",
     }
     if isinstance(v, str) and v in flips:
         return flips[v]

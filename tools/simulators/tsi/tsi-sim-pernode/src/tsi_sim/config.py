@@ -31,6 +31,12 @@ InitDest = Literal["common", "heterogeneous"]
 #     canonical chain), so the counted density drops ~adversary_frac and TSI deflates D_est toward
 #     the reduced ACTIVE stake. Stronger, but the withheld blocks earn nothing (griefing/grinding).
 AdversaryStrategy = Literal["suppress", "withhold"]
+# WHICH nodes make up that coalition, at the same total stake:
+#  "random" — a uniformly random set grown until its stake reaches adversary_frac (the default; the
+#     block share is then smooth in adversary_frac, which is all the density levers depend on);
+#  "whale"  — the LARGEST holders first. Same stake, far fewer nodes, so the coalition's block
+#     production is lumpier — the untested concentration case flagged in report §6.5's scope.
+AdversarySelection = Literal["random", "whale"]
 
 
 @dataclass(frozen=True)
@@ -113,20 +119,26 @@ class SimConfig:
     # back into the next epoch's difficulty — which is the effect being measured, not noise.
     paired_streams: bool = False
     max_uncles: int = 0                       # U (0 = baseline, no uncles)
+    # "oldest" IS the spec rule: cryptarchia-v1-protocol.md (Uncle Selection) has the proposer
+    # take the oldest candidates first, deterministically, because an uncle expires w_u slots
+    # after its own slot so the oldest are the closest to expiring. Every headline result uses it.
     uncle_strategy: UncleStrategy = "oldest"
-    # Coin-flip inclusion prob for the "random" strategy. Only 0.5 reproduces the spec's
-    # unbiased coin (cryptarchia-v1-protocol.md); other values are a deliberate, non-spec
-    # sensitivity knob, not protocol behaviour.
+    # "random" is NOT a spec variant — it is the deviation probe: walk the same oldest-first
+    # candidate order but include each candidate with probability uncle_random_p, so a lone
+    # candidate is dropped half the time. Uncle selection is proposer-local and unvalidated, so a
+    # proposer CAN deviate; this measures what that costs the estimate (report §3.4).
     uncle_random_p: float = 0.5
     # --- adversary (grinding via D_est deflation) ---
     # Fraction of TOTAL STAKE controlled by an adversary that suppresses uncle references in its
     # own blocks (references no uncles), starving the TSI density count so honest nodes under-count
     # blocks and infer a LOW D_est -> everyone's win probability phi(f, w/D_est) rises, which is the
-    # grinding payoff. 0.0 = fully honest (the studied baseline). The coalition is a RANDOM node set
-    # whose stake sums to adversary_frac (see engine._adversary_mask); block production is
-    # stake-proportional, so the deflation depends only on that summed share, not on whether the
-    # coalition is one whale or many small nodes. Withholding is a separate, stronger lever.
+    # grinding payoff. 0.0 = fully honest (the studied baseline). The coalition is by default a
+    # RANDOM node set whose stake sums to adversary_frac (see engine._adversary_mask); block
+    # production is stake-proportional, so the deflation depends only on that summed share, not on
+    # whether the coalition is one whale or many small nodes. Withholding is a separate, stronger
+    # lever, and adversary_selection controls WHICH nodes are taken at that fixed stake.
     adversary_frac: float = 0.0
+    adversary_selection: AdversarySelection = "random"
     # Dynamic (withhold-then-rejoin) schedule for the withholding lever (§6.5). The coalition is
     # FIXED (identity from adversary_frac); this only gates whether it withholds in a given epoch.
     #  adversary_period == 0  -> STATIC: the coalition attacks (withholds) every epoch (the §6.4
@@ -255,6 +267,9 @@ class SimConfig:
             raise ValueError(f"churn_period must be >= 1, got {self.churn_period}")
         if self.clock_skew_max < 0:
             raise ValueError(f"clock_skew_max must be >= 0, got {self.clock_skew_max}")
+        if self.adversary_selection not in ("random", "whale"):
+            raise ValueError(f"adversary_selection must be random|whale, got "
+                             f"{self.adversary_selection!r}")
         if self.adversary_strategy not in ("suppress", "withhold"):
             raise ValueError(f"adversary_strategy must be suppress|withhold, got "
                              f"{self.adversary_strategy!r}")
@@ -361,9 +376,12 @@ class SimConfig:
         key is then byte-identical to the pre-redesign key, so ``--old`` bit-reproduces
         historical runs (the two models still get distinct streams from the marker).
         """
-        if self.uncle_model == "old":
-            return self._base_key()         # historical (pre-uncle_model) key: --old bit-compat
-        return self._base_key() + (self.uncle_model, self.window_absorption)
+        # uncle_model == "old" keeps the historical tuple exactly (--old bit-compat).
+        base = (self._base_key() if self.uncle_model == "old"
+                else self._base_key() + (self.uncle_model, self.window_absorption))
+        # Appended ONLY when non-default, for the same reason the uncle_model marker is: a
+        # "random"-coalition run's key must stay byte-identical to every historical run's.
+        return base if self.adversary_selection == "random" else base + (self.adversary_selection,)
 
     def seed_key(self) -> tuple:
         """The identity the RNG root is actually derived from (see ``rng.seedseq_for``).

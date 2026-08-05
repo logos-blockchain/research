@@ -106,3 +106,47 @@ def test_paired_streams_is_recorded_in_the_output_row():
     from tsi_sim.metrics import _CONFIG_FIELDS
 
     assert "paired_streams" in _CONFIG_FIELDS
+
+
+def test_whale_selection_does_not_perturb_random_coalition_seeds():
+    """A default ("random") coalition's key must stay byte-identical to every historical run's.
+
+    Same protection as test_paired_streams_does_not_perturb_unpaired_seeds gives the uncle model:
+    the marker is appended only when non-default, so adding the knob rewrites no existing seed.
+    """
+    from tsi_sim.rng import seedseq_for
+
+    for model in ("countable", "old"):
+        base = SimConfig(uncle_model=model, n_nodes=50, k=32, epochs=2, adversary_frac=0.3)
+        explicit = SimConfig(uncle_model=model, n_nodes=50, k=32, epochs=2, adversary_frac=0.3,
+                             adversary_selection="random")
+        assert base.key() == explicit.key()
+        assert seedseq_for(base).entropy == seedseq_for(explicit).entropy
+    o = SimConfig(uncle_model="old", n_nodes=50, k=32, epochs=2, adversary_frac=0.3)
+    assert o.key() == o._base_key()                    # still exactly the historical tuple
+    whale = SimConfig(uncle_model="old", n_nodes=50, k=32, epochs=2, adversary_frac=0.3,
+                      adversary_selection="whale")
+    assert whale.key() != o.key()                      # ...but the whale arm is its own stream
+
+
+def test_whale_coalition_takes_the_largest_holders_at_the_same_stake():
+    from tsi_sim.engine import _adversary_mask
+    from tsi_sim.stake import make_stake
+
+    cfg_r = SimConfig(n_nodes=400, stake_dist="pareto", k=32, epochs=2, adversary_frac=0.3)
+    cfg_w = SimConfig(n_nodes=400, stake_dist="pareto", k=32, epochs=2, adversary_frac=0.3,
+                      adversary_selection="whale")
+    stake = make_stake(cfg_r, rng_for(cfg_r))
+    m_r, m_w = _adversary_mask(cfg_r, stake), _adversary_mask(cfg_w, stake)
+    total = stake.sum()
+    # The point of the knob is concentration at MATCHED stake, so the realised shares must agree
+    # closely — a whale arm holding visibly more stake would confound the two.
+    assert abs(stake[m_r].sum() / total - 0.3) < 0.01
+    assert abs(stake[m_w].sum() / total - 0.3) < 0.01
+    # ...and the whales get there with far fewer nodes: that is the variable under test.
+    assert m_w.sum() * 5 < m_r.sum()
+    # The coalition is drawn from the top of the distribution and dominated by it: the biggest
+    # holders are all in, and the small top-up nodes contribute almost none of its stake.
+    top3 = np.argsort(-stake)[:3]
+    assert m_w[top3].all()
+    assert stake[top3].sum() / stake[m_w].sum() > 0.9

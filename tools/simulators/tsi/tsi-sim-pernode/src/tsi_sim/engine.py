@@ -25,24 +25,61 @@ ES_MEASURE = 10       # measurement epochs run after detection
 
 
 def _adversary_mask(config: SimConfig, stake: np.ndarray) -> np.ndarray | None:
-    """Nodes controlled by the uncle-suppressing adversary — a random coalition whose stake sums to
-    ``adversary_frac`` of the total, giving smooth control of the adversary's block share. (For
-    uncle suppression the deflation depends only on that block share, not on whether the coalition
-    is one whale or many small nodes, so concentration is not modelled here.) ``None`` if honest.
+    """Nodes controlled by the uncle-suppressing adversary — a coalition whose stake sums to
+    ``adversary_frac`` of the total, giving smooth control of the adversary's block share.
+    ``None`` if honest.
+
+    ``adversary_selection`` picks *which* nodes, at that same total stake:
+
+    * ``"random"`` (default) — a uniformly random set. For uncle suppression the deflation depends
+      only on the summed block share, not on whether the coalition is one whale or many small
+      nodes, so this is the neutral choice and concentration does not enter.
+    * ``"whale"`` — the largest holders first. Same stake in far fewer nodes, so the coalition's
+      block production is lumpier: it is the concentration case report §6.5 flags as untested, and
+      the reason to run it is the *variance* of the coalition's share, not its mean.
 
     Seeded from a standalone ``SeedSequence([root_seed, replicate, 0xADEADBEEF])`` (independent of
     the main spawn hierarchy), and drawn only after the ``adversary_frac <= 0`` early return, so an
-    ``adversary_frac == 0`` run is bit-identical to the honest baseline.
+    ``adversary_frac == 0`` run is bit-identical to the honest baseline. The whale order is
+    deterministic given the stake vector and consumes no randomness, but the seed is still drawn
+    first so that switching selection never perturbs the rest of the stream.
     """
     if config.adversary_frac <= 0.0:
         return None
     adv_seed = np.random.SeedSequence([config.root_seed, config.replicate, 0xADEADBEEF])
-    order = np.random.default_rng(adv_seed).permutation(config.n_nodes)
+    rand_order = np.random.default_rng(adv_seed).permutation(config.n_nodes)
     target = config.adversary_frac * float(stake.sum())
-    cum = np.cumsum(stake[order])
-    take = int(np.searchsorted(cum, target, side="left")) + 1   # smallest coalition >= target
     mask = np.zeros(config.n_nodes, dtype=bool)
-    mask[order[:take]] = True
+
+    if config.adversary_selection == "whale":
+        # Largest stake first, ties broken by the random order so equal-stake runs stay unbiased.
+        # Taking whales until the cumulative sum first EXCEEDS the target would overshoot badly
+        # under a heavy tail (the top holder alone can be a sixth of the stake), and a coalition
+        # holding visibly more than adversary_frac would confound concentration with stake. So:
+        # walk descending and take every node that still FITS under the target, then close any
+        # remaining gap with the smallest node that can. The coalition is therefore dominated by
+        # the top holders, with small nodes only topping it up onto the target — a handful of
+        # members against the random arm's hundreds, at the same stake.
+        order = rand_order[np.argsort(-stake[rand_order], kind="stable")]
+        st = stake[order]
+        chosen = np.zeros(order.size, dtype=bool)
+        cum = 0.0
+        for j, s in enumerate(st):
+            if cum + s <= target:
+                chosen[j] = True
+                cum += s
+        if cum < target:
+            # `st` is descending, so among the nodes that can close the gap the LAST is the
+            # smallest. Every skipped node exceeds the current gap (the gap only shrinks), so a
+            # candidate always exists while any node remains; the fallback is defensive only.
+            cand = np.nonzero(~chosen & (st >= target - cum))[0]
+            chosen[cand[-1] if cand.size else np.nonzero(~chosen)[0][0]] = True
+        mask[order[chosen]] = True
+        return mask
+
+    cum_r = np.cumsum(stake[rand_order])
+    take = int(np.searchsorted(cum_r, target, side="left")) + 1  # smallest coalition >= target
+    mask[rand_order[:take]] = True
     return mask
 
 
