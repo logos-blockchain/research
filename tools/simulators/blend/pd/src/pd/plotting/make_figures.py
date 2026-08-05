@@ -40,13 +40,20 @@ _DEANON_BUILDERS = [
     ("21_redundancy_time_to_link", figures.redundancy_time_to_link),
 ]
 
+# (traffic,) builders — the cover-traffic study, rendered only when that table exists.
+_TRAFFIC_BUILDERS = [
+    ("23_blending_vs_rate_and_delay", figures.blending_vs_rate_and_delay),
+    ("24_quota_stake_ceiling", figures.quota_stake_ceiling),
+]
+
 
 def render(prop_df: pd.DataFrame, adv_df: pd.DataFrame, deanon_df: pd.DataFrame,
-           out_dir: Path) -> list[Path]:
+           out_dir: Path, traffic_df: pd.DataFrame | None = None) -> list[Path]:
     out_dir = Path(out_dir)
     prov = figures._prov(prop_df, adv_df, deanon_df)
     jobs = ([(name, fn, (prop_df, adv_df)) for name, fn in _BUILDERS]
-            + [(name, fn, (prop_df, adv_df, deanon_df)) for name, fn in _DEANON_BUILDERS])
+            + [(name, fn, (prop_df, adv_df, deanon_df)) for name, fn in _DEANON_BUILDERS]
+            + [(name, fn, (traffic_df,)) for name, fn in _TRAFFIC_BUILDERS])
     written: list[Path] = []
     for name, fn, fn_args in jobs:
         try:

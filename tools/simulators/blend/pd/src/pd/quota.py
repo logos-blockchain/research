@@ -61,6 +61,30 @@ def assign_stake(n_nodes: int, dist: str, rng: np.random.Generator,
     return s
 
 
+def quota_summary(stake: np.ndarray, f: float, n_nodes: int, slots_per_epoch: int,
+                  rng: np.random.Generator, stake_inference_ratio: float = 1.0,
+                  cover_rate_mult: float = 1.0) -> dict:
+    """Scalar view of :func:`simulate_epoch_emissions`, for a result row.
+
+    Reports the measured ceiling (where compliance actually breaks) beside the predicted one, so a
+    run can be checked against the closed form rather than asked to be believed.
+    """
+    r = simulate_epoch_emissions(stake, f, n_nodes, slots_per_epoch, rng,
+                                 stake_inference_ratio, cover_rate_mult)
+    return {
+        "quota_per_epoch": float(r["quota"]),
+        "compliant_frac": r["compliant_frac"],
+        "max_compliant_stake": r["max_compliant_stake"],
+        "min_overrun_stake": r["min_overrun_stake"],
+        "total_overrun": int(r["overrun"].sum()),
+        "top_stake": float(np.max(r["stake"])),
+        "alpha_max_predicted": alpha_max(n_nodes, f, cover_rate_mult),
+        "s_max_predicted": s_max_true(n_nodes, f, stake_inference_ratio, cover_rate_mult),
+        "alpha_max_99": max_alpha_for_confidence(f, n_nodes, slots_per_epoch, 0.99,
+                                                 cover_rate_mult),
+    }
+
+
 def inferred_alpha(stake: np.ndarray, stake_inference_ratio: float = 1.0) -> np.ndarray:
     """Convert true relative stake to the **inferred** relative stake the lottery actually uses.
 

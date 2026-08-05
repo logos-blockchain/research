@@ -1,0 +1,36 @@
+# Cover traffic: the anonymity set it buys, and the stake concentration it tolerates.
+#
+# Every node emits on its own uniformly-chosen slots at rate cover_rate_mult/N, so the default of
+# 1.0 puts one emission per second on the whole network. Winning the block lottery consumes the
+# next scheduled cover, which is what keeps every node's emission COUNT identical whether or not it
+# produces blocks -- the property cover traffic exists to buy.
+#
+# Two things are measured. On a timeline: blending, the broadcasts a relay saw between consecutive
+# releases (the anonymity set, since an observer cannot tell which one it forwarded), against
+# mixing, the messages it held at once. At the baseline rate mixing is essentially nil, so the rate
+# is swept over three decades to find where per-relay mixing actually begins. Over an epoch: which
+# nodes win more proposals than their emission quota and so cannot stay uniform.
+#
+# max_blend_delay is swept alongside the rate because delay is the cheaper lever -- blending is
+# rate*(2M+1)/3, so a longer release interval multiplies the anonymity set without adding a single
+# message to the wire. The cost of that delay is priced in section 3.1.
+n_nodes: [20000]
+degree: [8]
+blend_hops: [3]
+max_blend_delay: [3, 10, 30]
+unresponsive_frac: [0.0]
+cover_rate_mult: [1.0, 4.0, 16.0, 64.0, 256.0]
+f_adv: [0.2]
+adversary_mode: [random]
+seeds: 4
+base:
+  # heavy-tailed stake is what makes the quota ceiling bite: the head sits orders of magnitude
+  # above it while the tail sits far below, so the breakpoint is measurable rather than assumed.
+  stake_dist: zipf
+  stake_zipf_a: 1.0
+  stake_inference_ratio: 1.0    # D_hat/D from the consensus study; 1.0 = an accurate estimator
+  block_interval_slots: 30
+  slots_per_epoch: 648000
+  traffic_window_slots: 900
+  n_rounds: 20                  # propagation is not the subject here; keep it cheap
+  n_placements: 1

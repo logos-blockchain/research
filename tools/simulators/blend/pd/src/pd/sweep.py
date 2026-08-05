@@ -38,36 +38,40 @@ def new_run_dir(outdir: Path, label: str) -> Path:
 
 
 def _cell_worker(base: SimConfig, prop_grid, unresponsive_fracs, redundancies, adv_grid,
-                 churn_modes):
+                 churn_modes, cover_rates):
     return run_graph_cell(base, prop_grid, unresponsive_fracs, redundancies, adv_grid,
-                          churn_modes)
+                          churn_modes, cover_rates)
 
 
-def run_sweep(sweep: SweepConfig,
-              n_jobs: int = -1) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def run_sweep(sweep: SweepConfig, n_jobs: int = -1) -> tuple[pd.DataFrame, ...]:
     cells = sweep.graph_cells()
     prop_grid = sweep.prop_grid()
     unresponsive_fracs = list(sweep.unresponsive_frac)
     redundancies = list(sweep.redundancy)
     churn_modes = list(sweep.churn_mode)
+    cover_rates = list(sweep.cover_rate_mult)
     adv_grid = sweep.adv_grid()
     bases = [sweep.base_config(n, d, g) for (n, d, g) in cells]
     results = Parallel(n_jobs=n_jobs, prefer="processes")(
         delayed(_cell_worker)(base, prop_grid, unresponsive_fracs, redundancies, adv_grid,
-                              churn_modes)
+                              churn_modes, cover_rates)
         for base in tqdm(bases, desc="topologies")
     )
-    prop_rows = [r for pr, _, _ in results for r in pr]
-    adv_rows = [r for _, ar, _ in results for r in ar]
-    deanon_rows = [r for _, _, dr in results for r in dr]
-    return pd.DataFrame(prop_rows), pd.DataFrame(adv_rows), pd.DataFrame(deanon_rows)
+    prop_rows = [r for pr, _, _, _ in results for r in pr]
+    adv_rows = [r for _, ar, _, _ in results for r in ar]
+    deanon_rows = [r for _, _, dr, _ in results for r in dr]
+    traffic_rows = [r for _, _, _, tr in results for r in tr]
+    return (pd.DataFrame(prop_rows), pd.DataFrame(adv_rows), pd.DataFrame(deanon_rows),
+            pd.DataFrame(traffic_rows))
 
 
 def persist(prop_df: pd.DataFrame, adv_df: pd.DataFrame, deanon_df: pd.DataFrame,
-            run_dir: Path) -> None:
+            traffic_df: pd.DataFrame, run_dir: Path) -> None:
     prop_df.to_parquet(run_dir / "propagation.parquet", index=False)
     adv_df.to_parquet(run_dir / "adversary.parquet", index=False)
     deanon_df.to_parquet(run_dir / "deanon.parquet", index=False)
+    if len(traffic_df):                      # only written when a cover-traffic study ran
+        traffic_df.to_parquet(run_dir / "traffic.parquet", index=False)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -82,14 +86,15 @@ def main(argv: list[str] | None = None) -> int:
     sweep = load_sweep_yaml(args.config)
     label = args.label or Path(args.config).stem
     run_dir = new_run_dir(Path(args.outdir), label)
-    prop_df, adv_df, deanon_df = run_sweep(sweep, n_jobs=args.n_jobs)
-    persist(prop_df, adv_df, deanon_df, run_dir)
+    prop_df, adv_df, deanon_df, traffic_df = run_sweep(sweep, n_jobs=args.n_jobs)
+    persist(prop_df, adv_df, deanon_df, traffic_df, run_dir)
+    extra = f" + {len(traffic_df)} traffic" if len(traffic_df) else ""
     print(f"wrote {len(prop_df)} propagation + {len(adv_df)} adversary + "
-          f"{len(deanon_df)} deanon rows -> {run_dir}")
+          f"{len(deanon_df)} deanon{extra} rows -> {run_dir}")
 
     if not args.no_figures:
         from .plotting.make_figures import render
-        figs = render(prop_df, adv_df, deanon_df, run_dir / "figures")
+        figs = render(prop_df, adv_df, deanon_df, run_dir / "figures", traffic_df)
         print(f"wrote {len(figs)} figures -> {run_dir / 'figures'}")
     return 0
 

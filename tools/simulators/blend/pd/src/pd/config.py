@@ -164,6 +164,7 @@ class SweepConfig:
     unresponsive_frac: list[float] = field(default_factory=lambda: [0.0])
     churn_mode: list[str] = field(default_factory=lambda: ["uniform"])
     redundancy: list[int] = field(default_factory=lambda: [1])
+    cover_rate_mult: list[float] = field(default_factory=list)   # empty = no cover-traffic study
     f_adv: list[float] = field(default_factory=lambda: [0.1, 0.2, 0.33, 0.5])
     adversary_mode: list[str] = field(default_factory=lambda: ["random"])
     seeds: int = 8                       # number of graph_seed values (topology ensemble)
@@ -201,7 +202,8 @@ class SweepConfig:
         d = dict(d)
         base = d.pop("base", {})
         known = {"n_nodes", "degree", "blend_hops", "max_blend_delay", "unresponsive_frac",
-                 "churn_mode", "redundancy", "f_adv", "adversary_mode", "seeds"}
+                 "churn_mode", "redundancy", "cover_rate_mult", "f_adv", "adversary_mode",
+                 "seeds"}
         unknown = set(d) - known
         if unknown:
             raise ValueError(f"unknown sweep keys: {sorted(unknown)}")
