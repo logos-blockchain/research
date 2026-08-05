@@ -62,7 +62,7 @@ adversary metrics are exact at every N).
 ## Quick start
 ```
 make install                 # or reuse a sibling venv: PYTHONPATH=src <python> -m pd.sweep ...
-make smoke                   # fast end-to-end -> runs/<ts>_smoke/{propagation,adversary}.parquet + figures/
+make smoke                   # fast end-to-end (every code path + 19 of 21 figure builders)
 make verify                  # analytic checks (closed forms + graph invariants)
 make test                    # unit tests
 make sweep                   # configs/default.yaml (N up to 1e5, both adversary modes)
@@ -74,11 +74,13 @@ make figures RUN=runs/<dir>
 
 ## Outputs
 Three parquets per run: `propagation.parquet` (`full_delay_ms_*`, `delivery_rate`, `frac_reached`,
-`coverN_ms` vs degree / blend_hops / N / unresponsive_frac), `adversary.parquet` (`observed_frac` /
-`eclipsed_frac` vs degree / f_adv / mode, random + worst-case envelope), and `deanon.parquet`
-(`deanon_rate` / `full_deanon_rate` vs degree / blend_hops / f_adv / mode — propagation paths crossed
-with the adversary set). Figures render all three, including delivery-rate and flood-coverage vs the
-unresponsive fraction and the deanonymization rates vs blend-path length, f_adv, and degree.
+`coverN_ms` vs degree / blend_hops / N / unresponsive_frac / redundancy), `adversary.parquet`
+(`observed_frac` / `eclipsed_frac` vs degree / f_adv / mode, random + worst-case envelope), and
+`deanon.parquet` (`deanon_rate` / `full_deanon_rate` vs degree / blend_hops / redundancy / f_adv /
+mode — propagation paths crossed with the adversary set). Figures render all three: delay vs degree /
+path length / N, observation and eclipse vs f_adv and degree, delivery and coverage vs the
+unresponsive fraction (with the `u_c = 1-1/(degree-1)` threshold), the deanonymization rates, and the
+time-to-link / stake-inference / redundancy curves derived from them by `linkability`.
 
 ## Layout
 `src/pd/`: `graph` (matching-union CSR d-regular), `propagation` (Blend cascade), `mixclock`
