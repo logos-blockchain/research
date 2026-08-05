@@ -34,6 +34,13 @@ class SimConfig:
     unresponsive_frac: float = 0.0      # ratio of nodes that do NOT relay any messages (swept)
     churn_mode: ChurnMode = "uniform"   # "uniform" = independent nodes; "regional" = whole regions
     redundancy: int = 1                 # copies per emission via R independent cascades (swept)
+
+    # --- cover traffic (1 slot = 1 second) ---
+    cover_rate_mult: float = 1.0        # emissions/slot network-wide; 1.0 = one per second
+    block_interval_slots: int = 30      # slots per block, i.e. f = 1/30
+    slots_per_epoch: int = 648_000      # epoch length, for the per-node emission quota
+    stake_inference_ratio: float = 1.0  # D_hat/D from the consensus study; scales the stake ceiling
+    traffic_window_slots: int = 600     # simulated timeline length (seconds) per cell
     n_rounds: int = 200                 # random-sender rounds per topology
     transport_jitter_mean_ms: float = 5.0
     processing_lags_ms: tuple[float, ...] = (10.0, 50.0, 100.0)
@@ -66,6 +73,15 @@ class SimConfig:
             raise ValueError(f"need 0 <= unresponsive_frac < 1, got {self.unresponsive_frac}")
         if self.redundancy < 1:
             raise ValueError(f"redundancy must be >= 1, got {self.redundancy}")
+        if self.cover_rate_mult < 0.0:
+            raise ValueError(f"cover_rate_mult must be >= 0, got {self.cover_rate_mult}")
+        if self.block_interval_slots < 2:
+            raise ValueError(f"block_interval_slots must be >= 2, got {self.block_interval_slots}")
+        if self.slots_per_epoch < 1 or self.traffic_window_slots < 1:
+            raise ValueError("slots_per_epoch and traffic_window_slots must be >= 1")
+        if self.stake_inference_ratio <= 0.0:
+            raise ValueError(
+                f"stake_inference_ratio (D_hat/D) must be > 0, got {self.stake_inference_ratio}")
         if self.n_regions < 1:
             raise ValueError(f"n_regions must be >= 1, got {self.n_regions}")
         if self.n_regions > 1:
@@ -114,7 +130,9 @@ class SimConfig:
         return (
             self.n_nodes, self.degree, self.n_regions, self.region_locality,
             self.blend_hops, self.max_blend_delay,
-            self.unresponsive_frac, self.churn_mode, self.redundancy, self.n_rounds,
+            self.unresponsive_frac, self.churn_mode, self.redundancy,
+            self.cover_rate_mult, self.block_interval_slots, self.slots_per_epoch,
+            self.stake_inference_ratio, self.traffic_window_slots, self.n_rounds,
             self.transport_jitter_mean_ms, self.processing_lags_ms, self.processing_lag_probs,
             self.link_latency_dist, self.link_latency_mean_ms, self.coverage_pcts,
             self.f_adv, self.adversary_mode, self.n_placements, self.worstcase_max_n,
