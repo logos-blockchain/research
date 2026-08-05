@@ -4,10 +4,11 @@ Markdown is the source of truth; the HTML is a build artifact (not committed). C
 syntax-highlighted (codehilite + Pygments), and `.md` links are rewritten to `.html` so the
 index and the report navigate to each other.
 
-The report lives in reports/tsi/ (not in this simulator folder) and is a SINGLE document plus a
-short index; figure links are relative to that directory, so paths resolve as-is.
+The report lives in reports/tsi/ (not in this simulator folder) as a SINGLE document, named
+README.md so it renders as the directory landing page; figure links are relative to that
+directory, so paths resolve as-is.
 
-Run:  python scripts/build_html.py --all            # index + report
+Run:  python scripts/build_html.py --all            # the report
       python scripts/build_html.py <file.md> ...     # specific docs (paths relative to reports/tsi)
 """
 
@@ -22,7 +23,7 @@ from pygments.formatters import HtmlFormatter
 
 # The report set lives in the repo's reports/ tree, not alongside the simulator.
 HERE = Path(__file__).resolve().parents[5] / "reports" / "tsi"
-DOCS = ["README.md", "tsi-report.md"]
+DOCS = ["README.md"]   # the report IS the directory README (renders at reports/tsi/)
 
 CSS_BASE = r"""
 @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
