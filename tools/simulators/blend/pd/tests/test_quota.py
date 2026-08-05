@@ -157,3 +157,22 @@ def test_more_cover_traffic_raises_the_ceiling():
     rich = simulate_epoch_emissions(s, F, n, S, np.random.default_rng(10), cover_rate_mult=32.0)
     assert rich["compliant_frac"] > lean["compliant_frac"]
     assert rich["max_compliant_stake"] > lean["max_compliant_stake"]
+
+
+def test_exceedance_survives_a_large_quota():
+    """Regression: exp(-lam) underflows past lam ~ 745, which silently collapsed a hand-rolled
+    Poisson CDF to 0 and reported every node as exceeding. Raising the cover rate reaches that
+    regime immediately, so the mean bind must still be a coin flip at every rate."""
+    n, S = 20_000, 648_000
+    for rate in (1.0, 16.0, 64.0, 256.0):
+        p = quota_exceedance_prob(alpha_max(n, F, rate), F, n, S, rate)
+        assert 0.4 < p < 0.6, (rate, p)
+
+
+def test_the_safe_ceiling_approaches_the_mean_bind_as_the_quota_grows():
+    """Poisson noise shrinks relative to the mean, so the headroom needed for confidence shrinks."""
+    n, S = 20_000, 648_000
+    ratios = [max_alpha_for_confidence(F, n, S, 0.99, r) / alpha_max(n, F, r)
+              for r in (1.0, 16.0, 256.0)]
+    assert all(b > a for a, b in zip(ratios, ratios[1:], strict=False))
+    assert ratios[-1] > 0.9

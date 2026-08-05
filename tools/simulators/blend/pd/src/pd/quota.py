@@ -34,6 +34,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+from scipy.stats import poisson
 
 
 def assign_stake(n_nodes: int, dist: str, rng: np.random.Generator,
@@ -179,19 +180,17 @@ def quota_exceedance_prob(alpha: float, f: float, n_nodes: int, slots_per_epoch:
 
     Wins are Binomial(slots_per_epoch, phi(alpha)); the Poisson limit is used, which is accurate
     here because phi is tiny and the epoch is long.
+
+    Uses scipy's survival function rather than summing the series by hand: ``exp(-lam)`` underflows
+    to zero past ``lam ~ 745``, which silently collapses a hand-rolled CDF to 0 and reports every
+    node as exceeding. That regime is reached as soon as the cover rate is raised (the quota, and
+    with it the tolerable block count, grows in proportion).
     """
     lam = expected_blocks_per_epoch(alpha, f, slots_per_epoch)
     quota = quota_per_epoch(n_nodes, slots_per_epoch, cover_rate_mult)
-    k = math.floor(quota)
-    # P(X > k) for X ~ Poisson(lam), summed up from 0 (k is small in every regime of interest)
     if lam <= 0.0:
         return 0.0
-    term = math.exp(-lam)
-    cdf = term
-    for i in range(1, k + 1):
-        term *= lam / i
-        cdf += term
-    return max(0.0, min(1.0, 1.0 - cdf))
+    return float(poisson.sf(math.floor(quota), lam))
 
 
 def max_alpha_for_confidence(f: float, n_nodes: int, slots_per_epoch: int,
