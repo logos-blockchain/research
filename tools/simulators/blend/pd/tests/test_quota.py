@@ -6,12 +6,15 @@ import numpy as np
 
 from pd.quota import (
     alpha_max,
+    assign_stake,
     emission_quota_per_slot,
     expected_blocks_per_epoch,
+    inferred_alpha,
     max_alpha_for_confidence,
     quota_exceedance_prob,
     quota_per_epoch,
     s_max_true,
+    simulate_epoch_emissions,
     win_prob,
 )
 
@@ -83,3 +86,74 @@ def test_exceedance_matches_a_direct_simulation():
     wins = rng.binomial(S, win_prob(a, F), size=20_000)
     emp = float(np.mean(wins > math.floor(quota)))
     assert abs(closed - emp) < max(0.01, 0.1 * closed)
+
+
+# --- stake distribution and the measured ceiling --------------------------------------------------
+
+def test_stake_distributions_normalise_and_zipf_is_heavy_tailed():
+    n = 5_000
+    rng = np.random.default_rng(0)
+    uni = assign_stake(n, "uniform", rng)
+    zipf = assign_stake(n, "zipf", rng, zipf_a=1.0)
+    for s in (uni, zipf):
+        assert abs(s.sum() - 1.0) < 1e-12
+        assert (s > 0).all()
+    assert np.allclose(uni, 1.0 / n)
+    assert zipf.max() > 50 * uni.max()          # a real head, unlike the flat case
+
+
+def test_inferred_alpha_divides_by_the_estimator_ratio():
+    """The lottery weighs sigma/D_hat, so a low estimate inflates every node's alpha."""
+    s = np.array([0.001, 0.01])
+    assert np.allclose(inferred_alpha(s, 1.0), s)
+    assert np.allclose(inferred_alpha(s, 0.5), s * 2.0)
+
+
+def test_uniform_stake_stays_inside_the_quota_at_scale():
+    """At 1/N each, every node's block rate is f/N -- far under a 1/N emission budget."""
+    n, S = 20_000, 648_000
+    s = assign_stake(n, "uniform", np.random.default_rng(1))
+    r = simulate_epoch_emissions(s, F, n, S, np.random.default_rng(2))
+    assert r["compliant_frac"] == 1.0
+    assert r["overrun"].sum() == 0
+
+
+def test_heavy_tailed_stake_makes_the_head_overrun_its_quota():
+    n, S = 20_000, 648_000
+    s = assign_stake(n, "zipf", np.random.default_rng(3), zipf_a=1.0)
+    r = simulate_epoch_emissions(s, F, n, S, np.random.default_rng(4))
+    assert 0.0 < r["compliant_frac"] < 1.0            # the head breaks, the tail does not
+    assert r["min_overrun_stake"] > r["stake"].min()  # it is the large holders that break
+    assert r["overrun"][np.argmax(s)] > 0             # the biggest staker certainly does
+
+
+def test_the_measured_ceiling_matches_the_closed_form():
+    """Where compliance actually breaks must bracket the analytic alpha_max."""
+    n, S = 20_000, 648_000
+    s = assign_stake(n, "zipf", np.random.default_rng(5), zipf_a=0.8)
+    r = simulate_epoch_emissions(s, F, n, S, np.random.default_rng(6))
+    predicted = alpha_max(n, F)
+    assert r["max_compliant_stake"] < 3.0 * predicted
+    assert r["min_overrun_stake"] > 0.3 * predicted
+
+
+def test_a_low_stake_estimate_tightens_the_measured_ceiling():
+    """D_hat/D is an input, and lowering it must push more nodes over their quota."""
+    n, S = 20_000, 648_000
+    s = assign_stake(n, "zipf", np.random.default_rng(7), zipf_a=1.0)
+    accurate = simulate_epoch_emissions(s, F, n, S, np.random.default_rng(8),
+                                        stake_inference_ratio=1.0)
+    deflated = simulate_epoch_emissions(s, F, n, S, np.random.default_rng(8),
+                                        stake_inference_ratio=0.64)
+    assert deflated["compliant_frac"] < accurate["compliant_frac"]
+    assert deflated["max_compliant_stake"] <= accurate["max_compliant_stake"]
+
+
+def test_more_cover_traffic_raises_the_ceiling():
+    """The quota is the budget, so paying more cover traffic admits more concentrated stake."""
+    n, S = 20_000, 648_000
+    s = assign_stake(n, "zipf", np.random.default_rng(9), zipf_a=1.0)
+    lean = simulate_epoch_emissions(s, F, n, S, np.random.default_rng(10), cover_rate_mult=1.0)
+    rich = simulate_epoch_emissions(s, F, n, S, np.random.default_rng(10), cover_rate_mult=32.0)
+    assert rich["compliant_frac"] > lean["compliant_frac"]
+    assert rich["max_compliant_stake"] > lean["max_compliant_stake"]

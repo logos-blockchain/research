@@ -1,4 +1,4 @@
-"""Flat parquet-row builders for the two result tables."""
+"""Flat parquet-row builders for the result tables."""
 
 from __future__ import annotations
 
@@ -24,6 +24,30 @@ def propagation_row(config: SimConfig, blend_hops: int, max_blend_delay: int,
         "processing_lags_ms": str(tuple(config.processing_lags_ms)),
         "processing_lag_probs": str(tuple(config.processing_lag_probs)),
         **prop,
+    }
+
+
+def traffic_row(config: SimConfig, blend_hops: int, max_blend_delay: int,
+                cover_rate_mult: float, traffic: dict, quota: dict) -> dict:
+    """One cover-traffic cell: what the timeline measured, plus the epoch emission budget.
+
+    ``traffic`` comes from the windowed simulation (blending, mixing, counts) and ``quota`` from
+    the epoch-scale emission budget, which needs no graph and so is computed separately.
+    """
+    return {
+        "n_nodes": config.n_nodes,
+        "degree": config.degree,
+        "blend_hops": blend_hops,
+        "max_blend_delay": max_blend_delay,
+        "cover_rate_mult": cover_rate_mult,
+        "block_interval_slots": config.block_interval_slots,
+        "slots_per_epoch": config.slots_per_epoch,
+        "stake_dist": config.stake_dist,
+        "stake_inference_ratio": config.stake_inference_ratio,
+        "graph_seed": config.graph_seed,
+        "traffic_window_slots": config.traffic_window_slots,
+        **traffic,
+        **quota,
     }
 
 
