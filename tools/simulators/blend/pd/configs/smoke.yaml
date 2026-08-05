@@ -1,9 +1,12 @@
 # Fast end-to-end smoke run (seconds): tiny N, few rounds/seeds, both adversary modes.
+# Numbers here are far too noisy to interpret -- the point is that every code path runs and every
+# figure builder renders, including the multi-cascade (redundancy > 1) aggregation.
 n_nodes: [1000]
 degree: [4, 8]
 blend_hops: [2, 3]
 max_blend_delay: [0, 3]
 unresponsive_frac: [0.0, 0.2, 0.5]
+redundancy: [1, 2]
 f_adv: [0.1, 0.33]
 adversary_mode: [random, worstcase_coverage]
 seeds: 2
