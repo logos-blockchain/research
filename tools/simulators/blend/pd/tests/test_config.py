@@ -16,6 +16,8 @@ def test_key_covers_every_field():
         alt = {"n_nodes": 2000, "degree": 4, "n_regions": 4, "region_locality": 0.5,
                "blend_hops": 2, "max_blend_delay": 5,
                "unresponsive_frac": 0.2, "churn_mode": "regional", "redundancy": 2,
+               "cover_rate_mult": 2.0, "block_interval_slots": 60, "slots_per_epoch": 1000,
+               "stake_inference_ratio": 0.7, "traffic_window_slots": 100,
                "n_rounds": 10, "transport_jitter_mean_ms": 1.0,
                "processing_lags_ms": (11.0, 51.0, 101.0), "processing_lag_probs": (0.6, 0.3, 0.1),
                "link_latency_dist": "fixed", "link_latency_mean_ms": 1.0,
