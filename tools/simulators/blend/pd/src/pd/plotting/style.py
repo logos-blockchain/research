@@ -7,12 +7,10 @@ series; ``cividis`` (perceptually uniform, CVD-safe) for heatmaps. Figures are s
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from pathlib import Path
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import numpy as np
 
 # Okabe-Ito colorblind-safe qualitative palette
 OKABE_ITO = [
@@ -57,24 +55,6 @@ def apply_style() -> None:
 
 def color_for(index: int) -> str:
     return OKABE_ITO[index % len(OKABE_ITO)]
-
-
-def band_plot(
-    ax: plt.Axes,
-    x: Sequence[float],
-    series: np.ndarray,
-    *,
-    color: str,
-    label: str | None = None,
-    percentiles: tuple[float, float] = (10, 90),
-) -> None:
-    """Plot the mean of ``series`` (shape ``(n_replicates, len(x))``) with a percentile band."""
-    x = np.asarray(x, dtype=float)
-    mean = np.nanmean(series, axis=0)
-    lo = np.nanpercentile(series, percentiles[0], axis=0)
-    hi = np.nanpercentile(series, percentiles[1], axis=0)
-    ax.plot(x, mean, color=color, label=label)
-    ax.fill_between(x, lo, hi, color=color, alpha=0.18, linewidth=0)
 
 
 def save(fig: plt.Figure, out_stem: str | Path, provenance: str | None = None) -> list[Path]:

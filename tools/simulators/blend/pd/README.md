@@ -54,6 +54,14 @@ adversary metrics are exact at every N).
   responsive fraction exceeds `1/(degree−1)`. A network tolerates churn up to
   `u_c = 1 − 1/(degree−1)` (degree 3 → 0.5, degree 6 → 0.8, degree 16 → 0.93) and shatters above it;
   `configs/percolation.yaml` walks u across the threshold and `make verify` checks it.
+- **Correlated outages:** `n_regions` splits the network into equal-sized **failure domains** and
+  `region_locality` places that share of each node's peers inside its own domain (the locality
+  matchings keep the graph exactly d-regular). `churn_mode: regional` then fails whole domains
+  instead of scattered nodes, at an identical dead-node count. Locality is what makes this differ
+  from uniform churn at all — with region-blind peering, dropping whole regions removes a uniformly
+  random node set. Clustered failure leaves the survivors fully connected (`frac_reached_live`
+  stays ~1) while stranding the dead domains (`frac_reached` falls); see `configs/correlated-churn.yaml`.
+  Regions are failure and peering domains only — link latency does not depend on them.
 - **Linkability over time** (`pd.linkability`): given the rates above and an emission cadence (one
   node emits per 30 s slot, chosen ∝ stake), the module derives the *time to link* an emitter
   (`≈ 30 s·ln(1/(1−α))/(stake·q)`, inverse in stake) and the *time to learn its stake* to a threshold
@@ -73,8 +81,10 @@ make figures RUN=runs/<dir>
 ```
 
 ## Outputs
-Three parquets per run: `propagation.parquet` (`full_delay_ms_*`, `delivery_rate`, `frac_reached`,
-`coverN_ms` vs degree / blend_hops / N / unresponsive_frac / redundancy), `adversary.parquet`
+Three parquets per run: `propagation.parquet` (`full_delay_ms_*`, `delivery_rate`, `coverN_ms`, and
+two coverage columns — `frac_reached` over all nodes and `frac_reached_live` over the responsive
+ones, which diverge under correlated churn — vs degree / blend_hops / N / unresponsive_frac /
+`churn_mode` / `n_regions` / `region_locality` / redundancy), `adversary.parquet`
 (`observed_frac` / `eclipsed_frac` vs degree / f_adv / mode, random + worst-case envelope), and
 `deanon.parquet` (`deanon_rate` / `full_deanon_rate` vs degree / blend_hops / redundancy / f_adv /
 mode — propagation paths crossed with the adversary set). Figures render all three: delay vs degree /
