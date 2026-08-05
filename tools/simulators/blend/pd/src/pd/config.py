@@ -12,6 +12,8 @@ AdversaryMode = Literal[
     "random", "worstcase_coverage", "worstcase_eclipse", "worstcase_degree"
 ]
 ChurnMode = Literal["uniform", "regional"]
+StakeDist = Literal["uniform", "zipf"]
+_STAKE_DISTS = ("uniform", "zipf")
 _DISTS = ("geo", "fixed", "uniform", "exp")
 _MODES = ("random", "worstcase_coverage", "worstcase_eclipse", "worstcase_degree")
 WORSTCASE_MODES = ("worstcase_coverage", "worstcase_eclipse", "worstcase_degree")
@@ -41,6 +43,8 @@ class SimConfig:
     slots_per_epoch: int = 648_000      # epoch length, for the per-node emission quota
     stake_inference_ratio: float = 1.0  # D_hat/D from the consensus study; scales the stake ceiling
     traffic_window_slots: int = 600     # simulated timeline length (seconds) per cell
+    stake_dist: StakeDist = "uniform"   # per-node stake: "uniform" or heavy-tailed "zipf"
+    stake_zipf_a: float = 1.0           # zipf exponent; larger = more concentrated
     n_rounds: int = 200                 # random-sender rounds per topology
     transport_jitter_mean_ms: float = 5.0
     processing_lags_ms: tuple[float, ...] = (10.0, 50.0, 100.0)
@@ -82,6 +86,10 @@ class SimConfig:
         if self.stake_inference_ratio <= 0.0:
             raise ValueError(
                 f"stake_inference_ratio (D_hat/D) must be > 0, got {self.stake_inference_ratio}")
+        if self.stake_dist not in _STAKE_DISTS:
+            raise ValueError(f"stake_dist must be one of {_STAKE_DISTS}")
+        if self.stake_zipf_a <= 0.0:
+            raise ValueError(f"stake_zipf_a must be > 0, got {self.stake_zipf_a}")
         if self.n_regions < 1:
             raise ValueError(f"n_regions must be >= 1, got {self.n_regions}")
         if self.n_regions > 1:
@@ -132,7 +140,8 @@ class SimConfig:
             self.blend_hops, self.max_blend_delay,
             self.unresponsive_frac, self.churn_mode, self.redundancy,
             self.cover_rate_mult, self.block_interval_slots, self.slots_per_epoch,
-            self.stake_inference_ratio, self.traffic_window_slots, self.n_rounds,
+            self.stake_inference_ratio, self.traffic_window_slots,
+            self.stake_dist, self.stake_zipf_a, self.n_rounds,
             self.transport_jitter_mean_ms, self.processing_lags_ms, self.processing_lag_probs,
             self.link_latency_dist, self.link_latency_mean_ms, self.coverage_pcts,
             self.f_adv, self.adversary_mode, self.n_placements, self.worstcase_max_n,

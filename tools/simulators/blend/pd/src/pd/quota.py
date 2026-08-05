@@ -33,6 +33,76 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
+
+
+def assign_stake(n_nodes: int, dist: str, rng: np.random.Generator,
+                 zipf_a: float = 1.0) -> np.ndarray:
+    """Per-node **true** relative stake ``s = sigma/D``, summing to 1.
+
+    ``uniform`` gives every node ``1/n_nodes`` -- the case where the quota binds on nobody until
+    the network is small. ``zipf`` makes stake heavy-tailed (``s ~ 1/rank**zipf_a``), which is what
+    real stake looks like and what makes the ceiling bite: the head of the distribution sits orders
+    of magnitude above it while the tail sits far below.
+    """
+    if n_nodes < 1:
+        raise ValueError("n_nodes must be >= 1")
+    if dist == "uniform":
+        s = np.full(n_nodes, 1.0 / n_nodes)
+    elif dist == "zipf":
+        if zipf_a <= 0:
+            raise ValueError("zipf_a must be > 0")
+        ranks = np.arange(1, n_nodes + 1, dtype=float)
+        s = ranks ** (-zipf_a)
+        s = s / s.sum()
+        rng.shuffle(s)                       # stake is not correlated with node id
+    else:
+        raise ValueError(f"unknown stake distribution {dist!r}")
+    return s
+
+
+def inferred_alpha(stake: np.ndarray, stake_inference_ratio: float = 1.0) -> np.ndarray:
+    """Convert true relative stake to the **inferred** relative stake the lottery actually uses.
+
+    The threshold is derived from ``D_hat``, so a node's lottery weight is ``sigma/D_hat``, i.e.
+    ``s * D/D_hat = s / stake_inference_ratio``. An estimator that runs low makes every node win
+    more often, which is why it tightens the true-stake ceiling.
+    """
+    if stake_inference_ratio <= 0.0:
+        raise ValueError("stake_inference_ratio must be > 0")
+    return np.asarray(stake, dtype=float) / stake_inference_ratio
+
+
+def simulate_epoch_emissions(stake: np.ndarray, f: float, n_nodes: int, slots_per_epoch: int,
+                             rng: np.random.Generator, stake_inference_ratio: float = 1.0,
+                             cover_rate_mult: float = 1.0) -> dict:
+    """Measure the quota over one epoch: who wins more proposals than their emission budget.
+
+    Needs no graph -- only the counts matter. Each node's proposals are Binomial over the epoch's
+    slots at its lottery probability; a proposal cancels the next scheduled cover, so a node stays
+    at exactly its quota while its wins fit inside it and **overruns** once they do not. An
+    overrunning node emits more often than everybody else, which is precisely the signal cover
+    traffic exists to suppress.
+    """
+    alpha = inferred_alpha(stake, stake_inference_ratio)
+    phi = 1.0 - (1.0 - f) ** alpha
+    blocks = rng.binomial(slots_per_epoch, phi)
+    quota = quota_per_epoch(n_nodes, slots_per_epoch, cover_rate_mult)
+    overrun = np.maximum(0, blocks - math.floor(quota))
+    compliant = overrun == 0
+    return {
+        "stake": np.asarray(stake, dtype=float),
+        "alpha": alpha,
+        "blocks": blocks,
+        "quota": quota,
+        "overrun": overrun,
+        "compliant": compliant,
+        "emissions": np.where(compliant, math.floor(quota), blocks),
+        "compliant_frac": float(compliant.mean()),
+        "max_compliant_stake": float(stake[compliant].max()) if compliant.any() else 0.0,
+        "min_overrun_stake": float(stake[~compliant].min()) if (~compliant).any() else float("nan"),
+    }
+
 
 def emission_quota_per_slot(n_nodes: int, cover_rate_mult: float = 1.0) -> float:
     """Emissions allowed per node per slot. The default rate puts one emission per slot on the
