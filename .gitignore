@@ -224,3 +224,6 @@ __marimo__/
 
 # External upstream clones vendored for benchmarking (own .git, not our history)
 tools/benchmarks/original/
+
+# Rendered report HTML — a build artifact of scripts/build_html.py; markdown is the source
+reports/**/*.html
