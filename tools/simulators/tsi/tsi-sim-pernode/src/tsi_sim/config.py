@@ -99,6 +99,19 @@ class SimConfig:
     # Old model only (--old): the uncle reference window w_u in slots, set directly.
     # Ignored by the countable model, which derives the window from window_absorption.
     uncle_window: int = constants.W_DEFAULT
+    # COMMON RANDOM NUMBERS for countable-vs-old comparisons. Off by default, and deliberately
+    # NOT part of key() — with it off every seed is byte-identical to before, so historical runs
+    # and --old bit-reproduction are untouched.
+    #
+    # The two uncle models normally draw independent streams (uncle_model is in the key), so a
+    # comparison pays the full between-run variance TWICE and the arms differ in stake draw,
+    # peering graph and every lottery outcome. With paired_streams=True the RNG root is derived
+    # from the model-independent part of the key instead, so both arms get the SAME stake, the
+    # SAME graph and the SAME lottery draws; the only difference is the uncle rule, and the
+    # per-replicate difference becomes a paired observation with the shared variance cancelled.
+    # Trajectories still diverge legitimately after epoch 0 — a different counted density feeds
+    # back into the next epoch's difficulty — which is the effect being measured, not noise.
+    paired_streams: bool = False
     max_uncles: int = 0                       # U (0 = baseline, no uncles)
     uncle_strategy: UncleStrategy = "oldest"
     # Coin-flip inclusion prob for the "random" strategy. Only 0.5 reproduces the spec's
@@ -319,16 +332,9 @@ class SimConfig:
     def period_T(self) -> int:
         return constants.period_T(self.k, self.f)
 
-    def key(self) -> tuple:
-        """Hashable identity used to seed the RNG deterministically.
-
-        Must include EVERY field that affects the run (guarded by test_rng), otherwise two
-        distinct configs would share an RNG stream. ``uncle_model`` /
-        ``window_absorption`` are appended ONLY for the countable model: an ``--old`` run's
-        key is then byte-identical to the pre-redesign key, so ``--old`` bit-reproduces
-        historical runs (the two models still get distinct streams from the marker).
-        """
-        base = (
+    def _base_key(self) -> tuple:
+        """Identity fields shared by both uncle models — see ``key`` and ``seed_key``."""
+        return (
             self.n_nodes, self.stake_dist, self.pareto_shape, self.uniform_random,
             self.total_stake, self.latency, self.latency_stochastic, self.uncle_window,
             self.max_uncles, self.uncle_strategy, self.uncle_random_p, self.f, self.beta,
@@ -345,9 +351,29 @@ class SimConfig:
         # NOTE: windowed_fork_choice and prune_arrival are deliberately excluded — they are pure
         # compute/memory optimisations that consume no RNG and (at jitter_mean == 0) change no
         # result, so pruned and full-matrix runs must share a seed (see test_pernode parity).
+
+    def key(self) -> tuple:
+        """Hashable identity used to seed the RNG deterministically.
+
+        Must include EVERY field that affects the run (guarded by test_rng), otherwise two
+        distinct configs would share an RNG stream. ``uncle_model`` /
+        ``window_absorption`` are appended ONLY for the countable model: an ``--old`` run's
+        key is then byte-identical to the pre-redesign key, so ``--old`` bit-reproduces
+        historical runs (the two models still get distinct streams from the marker).
+        """
         if self.uncle_model == "old":
-            return base                     # historical (pre-uncle_model) key: --old bit-compat
-        return base + (self.uncle_model, self.window_absorption)
+            return self._base_key()         # historical (pre-uncle_model) key: --old bit-compat
+        return self._base_key() + (self.uncle_model, self.window_absorption)
+
+    def seed_key(self) -> tuple:
+        """The identity the RNG root is actually derived from (see ``rng.seedseq_for``).
+
+        Identical to ``key`` except under ``paired_streams``, where it deliberately drops the
+        uncle-model marker so that a countable run and an ``--old`` run of the SAME cell draw
+        the SAME root seed — common random numbers, which is what makes the two arms a
+        *paired* sample (see ``paired_streams``).
+        """
+        return self._base_key() if self.paired_streams else self.key()
 
 
 # Axes that can be swept; every SimConfig field is legal here.

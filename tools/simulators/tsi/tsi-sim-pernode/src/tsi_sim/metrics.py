@@ -15,6 +15,10 @@ _CONFIG_FIELDS = (
     "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
     "init_dest", "init_spread", "uncle_model", "window_absorption",
     "uncle_window", "max_uncles", "uncle_strategy",
+    # Recorded so downstream analysis can TELL whether a countable/--old pair actually shared
+    # its RNG streams. The paired test is only valid on paired runs, and without this column
+    # the analysis silently falls back to the much weaker unpaired test.
+    "paired_streams",
     "f", "beta", "k", "genesis_d_factor", "epochs", "fixed_point", "legacy_block_count",
     "replicate",
     "adversary_frac", "adversary_strategy", "adversary_period", "adversary_withhold_epochs",

@@ -140,8 +140,11 @@ def test_key_covers_every_field():
     # uncle_window is read ONLY by the old model; under the (default) countable model it is
     # an ignored field, deliberately left in the base tuple at its old position so that an
     # --old run's key stays byte-identical to historical keys.
+    # paired_streams must NOT be in key(): it selects WHICH key the RNG root is derived from
+    # (see seed_key), so putting it in key() would perturb every historical seed and break
+    # --old bit-reproduction. Its own behaviour is pinned in test_rng.py.
     ignored = {"root_seed", "windowed_fork_choice", "prune_arrival", "early_stop",
-               "uncle_window"}
+               "uncle_window", "paired_streams"}
     names = {f.name for f in dataclasses.fields(SimConfig)} - ignored
     a = SimConfig()
     for name in names:
@@ -152,6 +155,10 @@ def test_key_covers_every_field():
     # ... and uncle_window IS distinguished under the old model, where it is live.
     old = SimConfig(uncle_model="old")
     assert old.key() != dataclasses.replace(old, uncle_window=old.uncle_window + 1).key()
+    # paired_streams leaves key() untouched but DOES change the seed derived from it.
+    a_paired = dataclasses.replace(a, paired_streams=True)
+    assert a.key() == a_paired.key()
+    assert a.seed_key() != a_paired.seed_key()
 
 
 def test_old_model_key_is_historical():

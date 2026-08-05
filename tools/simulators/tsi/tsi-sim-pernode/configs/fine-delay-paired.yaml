@@ -1,0 +1,38 @@
+# PAIRED high-precision sweep of the low mixing-delay band (the design regime).
+#
+# Identical grid to fine-delay.yaml, but with paired_streams: true. The unpaired sweep pays the
+# between-run variance twice — the two uncle models draw independent stake, graph and lottery
+# streams — which puts a ~+-0.0015 per-cell floor on the countable-vs-unrestricted comparison,
+# an order of magnitude above the effect. Only delta_max = 5 resolved there, and only after
+# pooling across uncle caps.
+#
+# paired_streams drops the uncle-model marker from the RNG root, so a countable cell and its
+# --old twin get the SAME stake draw, the SAME peering graph and the SAME lottery outcomes;
+# the uncle rule is then the only difference and the per-replicate difference is a PAIRED
+# observation. The shared variance cancels, so the paired test should resolve the per-cell
+# effect directly. Trajectories still diverge after epoch 0 through the genuine feedback (a
+# different counted density changes the next epoch's difficulty) — that is the signal.
+#
+# Run TWICE — default (countable) and with --old — same grid. U=0 remains the negative control:
+# with no uncles AND a shared stream the two arms must now agree EXACTLY, which is a far
+# stronger check than the unpaired version (there it only had to agree within noise).
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet (the multi-slot fork regime)
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # fixed hop count; delay is the swept knob
+blend_delay_max: [1.0, 2.0, 3.0, 4.0, 5.0]   # THE fine region (integer slots)
+max_uncles: [0, 1, 2, 4]                     # U: 0 = negative control, then the levers
+uncle_strategy: [oldest]                     # spec selection: oldest-first fill
+init_dest: [common]                          # per-node initial D_est from agreement
+replicates: 40                               # matches fine-delay.yaml for a like-for-like read
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true
+  paired_streams: true                       # common random numbers across the two arms

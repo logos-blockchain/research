@@ -46,6 +46,34 @@ def _load(run_dir: str | Path) -> pd.DataFrame:
     return pd.read_parquet(Path(run_dir) / "results.parquet")
 
 
+def paired_gaps(cnt_raw: pd.DataFrame, old_raw: pd.DataFrame) -> pd.DataFrame | None:
+    """Per-replicate differences, when both arms were run with ``paired_streams``.
+
+    Under common random numbers replicate *i* of each arm shares the stake draw, the peering
+    graph and the lottery outcomes, so ``d_i = countable_i - unrestricted_i`` is a PAIRED
+    observation and the shared variance cancels. The test is then a one-sample t on the d_i,
+    which is what makes a sub-0.1 % effect reachable per cell instead of only after pooling.
+
+    Returns None when the runs are not paired, so the caller falls back to the unpaired test.
+    """
+    if not (cnt_raw.get("paired_streams", pd.Series([False])).all()
+            and old_raw.get("paired_streams", pd.Series([False])).all()):
+        return None
+    c, o = equilibrium(cnt_raw), equilibrium(old_raw)
+    keys = [DELAY, "max_uncles", "replicate"]
+    m = c[[*keys, "mean_ratio"]].merge(o[[*keys, "mean_ratio"]], on=keys,
+                                       suffixes=("_c", "_o"))
+    m["d"] = m.mean_ratio_c - m.mean_ratio_o
+    rows = []
+    for (dl, u), s in m.groupby([DELAY, "max_uncles"]):
+        d = s.d.to_numpy()
+        se = sem(d)
+        rows.append({DELAY: dl, "max_uncles": u, "gap": float(d.mean()), "se": se,
+                     "ci95": Z95 * se, "t": abs(d.mean()) / se if se > 0 else np.inf,
+                     "n_pair": len(d), "n_zero": int((d == 0.0).sum())})
+    return pd.DataFrame(rows).sort_values(["max_uncles", DELAY])
+
+
 def _cells(df: pd.DataFrame) -> pd.DataFrame:
     """Per (delay, U): replicate mean, SEM and count of the equilibrium accuracy."""
     return equilibrium(df).groupby([DELAY, "max_uncles"], as_index=False).agg(
@@ -146,10 +174,14 @@ def fig_gap(g: pd.DataFrame) -> plt.Figure:
         span = float(np.abs(np.r_[g[g.max_uncles > 0].gap + g[g.max_uncles > 0].ci95,
                                   g[g.max_uncles > 0].gap - g[g.max_uncles > 0].ci95]).max())
         ax.set_ylim(-1.35 * span, 1.35 * span)
-        ax.text(0.015, 0.03,
+        # Under pairing the control is exactly 0 in every replicate pair (shared streams), so
+        # quoting a CI for it is meaningless; unpaired, the width of that CI is the point.
+        note = ("U=0 negative control: exactly 0.0 in all 200 replicate pairs "
+                "(shared streams — an identity check, not a noise check)"
+                if band == 0.0 else
                 f"U=0 negative control (true gap = 0): 95% CI ±{band:.4f}, "
-                f"{band / span:.0f}× outside this range",
-                transform=ax.transAxes, fontsize=6.5, alpha=0.75)
+                f"{band / span:.0f}× outside this range")
+        ax.text(0.015, 0.03, note, transform=ax.transAxes, fontsize=6.5, alpha=0.75)
     ax.legend(fontsize="x-small", ncol=2)
     return fig
 
@@ -164,10 +196,17 @@ def main() -> None:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    cnt_raw = _load(args.countable)
-    cnt, old = _cells(cnt_raw), _cells(_load(args.old))
-    g = gaps(cnt, old)
-    prov = "tsi-sim-pernode fine-delay.yaml (+--old)"
+    cnt_raw, old_raw = _load(args.countable), _load(args.old)
+    cnt, old = _cells(cnt_raw), _cells(old_raw)
+    unpaired = gaps(cnt, old)
+    pg = paired_gaps(cnt_raw, old_raw)
+    # The paired test supersedes the unpaired one when both arms share their streams: same
+    # estimand, far smaller standard error. Keep the unpaired numbers for the variance-
+    # reduction report below.
+    g = unpaired if pg is None else unpaired.drop(columns=["gap", "se", "ci95", "t"]).merge(
+        pg[[DELAY, "max_uncles", "gap", "se", "ci95", "t"]], on=[DELAY, "max_uncles"])
+    prov = ("tsi-sim-pernode fine-delay%s.yaml (+--old)"
+            % ("-paired" if pg is not None else ""))
 
     # rho per delay, derived (never hand-substituted) — these are the report's axis labels.
     delays = sorted(cnt[DELAY].unique())
@@ -210,11 +249,35 @@ def main() -> None:
     alle = float(np.sqrt(1.0 / w.sum()))
     print(f"  whole band: {allp:+.5f} +-{Z95 * alle:.5f}  t={abs(allp) / alle:.2f}")
 
+    if pg is not None:
+        print("\n=== PAIRED design (common random numbers) ===")
+        # Variance reduction actually achieved, per cell, vs the unpaired standard error.
+        cmp = unpaired[[DELAY, "max_uncles", "se"]].merge(
+            pg[[DELAY, "max_uncles", "se", "n_pair"]], on=[DELAY, "max_uncles"],
+            suffixes=("_unpaired", "_paired"))
+        u = cmp[cmp.max_uncles > 0]
+        ratio = (u.se_unpaired / u.se_paired.replace(0, np.nan))
+        print(f"  SE shrink at U>=1: median {ratio.median():.1f}x, range "
+              f"{ratio.min():.1f}-{ratio.max():.1f}x  ({int(u.n_pair.min())} pairs/cell)")
+        pctl = pg[pg.max_uncles == 0]
+        exact, tot = int(pctl.n_zero.sum()), int(pctl.n_pair.sum())
+        print(f"  U=0 control under pairing must be EXACTLY zero: {exact}/{tot} pairs are 0.0"
+              f" -> {'PASSES' if exact == tot else 'FAILS — streams are not shared'}")
+        res = pg[(pg.max_uncles > 0) & (pg.t >= 2)]
+        print(f"  per-cell resolved at |t|>=2: {len(res)}/{len(pg[pg.max_uncles>0])}"
+              f" (unpaired: {int((unpaired[unpaired.max_uncles>0].t>=2).sum())}/15)")
+
     ctl = g[g.max_uncles == 0]
     if len(ctl):
-        print(f"\nU=0 negative control (true gap = 0): |gap| up to {ctl.gap.abs().max():.4f}, "
-              f"max t = {ctl.t.max():.2f}, 95% CI +-{ctl.ci95.max():.4f} "
-              f"-> control {'PASSES' if ctl.t.max() < 2 else 'FAILS'}")
+        # Under pairing the control gap is EXACTLY 0, so its se is 0 and t is 0/0. That is the
+        # ideal outcome, not a failure — check the gap itself, and only fall back to the
+        # t-based check when there is real spread to test (the unpaired case).
+        worst = float(ctl.gap.abs().max())
+        exact = bool((ctl.se == 0).all()) if "se" in ctl else False
+        ok = (worst == 0.0) if exact else (float(ctl.t.max()) < 2)
+        how = "identical by construction" if exact else "within noise"
+        print(f"\nU=0 negative control (true gap = 0): |gap| up to {worst:.4g} ({how})"
+              f" -> control {'PASSES' if ok else 'FAILS'}")
 
     # Absolute test: does uncle recovery actually land on 1.0? Same question as the gap
     # test, asked without reference to the other model.

@@ -17,7 +17,9 @@ from .config import SimConfig
 
 
 def _entropy(config: SimConfig) -> int:
-    payload = repr((config.root_seed, config.key())).encode()
+    # seed_key() == key() unless paired_streams is set, in which case the uncle-model marker is
+    # dropped so both arms of a comparison share one stream (common random numbers).
+    payload = repr((config.root_seed, config.seed_key())).encode()
     digest = hashlib.blake2b(payload, digest_size=16).digest()
     return int.from_bytes(digest, "big")
 
