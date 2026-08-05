@@ -860,7 +860,7 @@ The whole recipe coheres: accurate to the true stake (the ~1 % rounding removed)
 <a id="s8-5"></a>
 ### 8.5 Recommendation vs the current spec
 
-The deltas this report recommends, in one place. This is a parameter-selection report meant to inform the spec, and it answers an open task the spec states: `analysis-total-stake-inference.md` records that its analysis "covers the total stake inference design **without** uncle references … the results below apply to the design without uncle references", and that "re-analyzing the algorithm with the block count that includes referenced uncles is an open task." That re-analysis is what this report is. Everything below is measured against the spec at revision **1.2.1** (`cryptarchia-v1-protocol.md`); the uncle-reference rules it audits live on the in-flight uncle-references RFC rather than in the released `logos-lips` copy, which is still at 1.1.0 and has no uncle references at all — so a reader comparing against a released spec will not find them.
+The deltas this report recommends, in one place. This is a parameter-selection report meant to inform the spec, and it answers an open task the spec states: `analysis-total-stake-inference.md` records that its analysis "covers the total stake inference design **without** uncle references … the results below apply to the design without uncle references", and that "re-analyzing the algorithm with the block count that includes referenced uncles is an open task." That re-analysis is what this report is. Everything below is measured against `cryptarchia-v1-protocol.md` at revision **1.2.1**, the revision that introduces uncle references.
 
 | parameter | current spec / default | recommended | why |
 |---|---|---|---|
