@@ -30,6 +30,8 @@ class EpochResult:
     max_reorg_depth: int      # deepest maximal orphan branch (blocks a reorg would discard)
     mean_reorg_depth: float   # mean maximal-orphan-branch depth
     p_ref: float              # emergent reference rate: in-window orphans referenced as uncles
+    deep_ref_share: float     # share of examined references rejected by the parent-on-chain
+                              # (first-fork) counting rule; 0 under the old model
 
 
 def _canonical_producer_split(
@@ -101,7 +103,9 @@ def simulate_epoch(
 
     # measurement: each node's own canonical chain, deduped by tip + numba-accelerated
     ms = measure(tree, A, active_slots, T, cutoff=E,
-                 legacy_block_count=config.legacy_block_count)
+                 legacy_block_count=config.legacy_block_count,
+                 countable=config.uncle_model != "old",
+                 w=config.effective_uncle_window)
     n_active_window = int((active_slots < T).sum())
 
     d_next = tsi.update_D_vec(d_est, ms.m, T, f, config.beta, config.fixed_point)
@@ -109,6 +113,8 @@ def simulate_epoch(
     attribution = coalition_mask if coalition_mask is not None else adversary_mask
     adv_blocks, honest_blocks = _canonical_producer_split(tree, A, attribution, T, E)
     fork_rate, max_reorg_depth, mean_reorg_depth, p_ref = fork.fork_stats(tree, A, T, cutoff=E)
+    ref_total = int(ms.ref_total.sum())
+    deep_ref_share = (int(ms.ref_deep.sum()) / ref_total) if ref_total else 0.0
 
     return EpochResult(
         d_next=d_next, m=ms.m, q=ms.q, q_eff=ms.q_eff, n_blocks=tree.n_blocks - 1,
@@ -117,5 +123,5 @@ def simulate_epoch(
         mean_orphan_rate=float(ms.orphan_rate.mean()),
         adv_blocks=adv_blocks, honest_blocks=honest_blocks,
         fork_rate=fork_rate, max_reorg_depth=max_reorg_depth, mean_reorg_depth=mean_reorg_depth,
-        p_ref=p_ref,
+        p_ref=p_ref, deep_ref_share=deep_ref_share,
     )

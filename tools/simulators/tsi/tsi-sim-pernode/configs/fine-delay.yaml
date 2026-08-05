@@ -1,0 +1,35 @@
+# High-precision sweep of the LOW mixing-delay region — the intended operating band.
+#
+# countable-vs-old.yaml samples delay at 4/8/16/32 with 5 replicates, which resolves the
+# overload regime but leaves the design regime under-measured: at delay <= 8 every
+# countable-vs-old gap there sits inside the replicate noise, so the report can only say
+# "no difference detected", not how large a difference is excluded. This sweep spends the
+# replicates instead of the range — delay 1..5 at 40 replicates — to put a tight CI on the
+# model difference exactly where the parameters are actually chosen.
+#
+# rho = f * D_vis with D_vis = hops*delta_max/2 + (hops+1)*ell_mean spans ~0.25 (delay 1)
+# to ~0.45 (delay 5), so the whole sweep sits well inside rho < 1 and U >= 1 should hold
+# the equilibrium at 1.0 under BOTH models. The question is the size of the residual gap.
+#
+# Run TWICE — default (countable) and with --old — same grid. U=0 is the negative control:
+# with no uncles the models are identical by construction, so the U=0 gap measures the
+# between-run RNG noise floor at this replicate count and bounds what a real effect must
+# exceed. Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet (the multi-slot fork regime)
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # fixed hop count; delay is the swept knob
+blend_delay_max: [1.0, 2.0, 3.0, 4.0, 5.0]   # THE fine region (integer slots)
+max_uncles: [0, 1, 2, 4]                     # U: 0 = negative control, then the levers
+uncle_strategy: [oldest]                     # spec selection: oldest-first fill
+init_dest: [common]                          # per-node initial D_est from agreement
+replicates: 40                               # 8x countable-vs-old.yaml: this is the point
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true

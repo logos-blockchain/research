@@ -10,6 +10,16 @@ from . import constants
 
 StakeDist = Literal["uniform", "pareto"]
 UncleStrategy = Literal["oldest", "random"]
+# Uncle counting/selection model:
+#  "countable" (default) — the spec's counting-only model (cryptarchia-v1-protocol.md):
+#     only the FIRST block of a fork is referenceable/countable (its parent lies on the
+#     referencing chain), the window is derived as w_u = window_absorption / f slots,
+#     selection excludes slots already occupied on the producer's chain and picks at most
+#     one uncle per slot, and counting re-checks every rule per reference.
+#  "old" — the pre-redesign model (run with --old): window = uncle_window slots directly,
+#     any orphan in view is referenceable regardless of fork depth, no occupied-slot or
+#     per-slot exclusion, and every baked reference counts.
+UncleModel = Literal["countable", "old"]
 Topology = Literal["full_mesh", "regular", "blend"]
 LinkLatencyDist = Literal["fixed", "uniform", "exp", "geo"]
 JitterDist = Literal["exp", "poisson"]
@@ -81,7 +91,14 @@ class SimConfig:
     jitter_frac: float = 1.0            # fraction of deliveries hit (poisson model; exp uses all)
 
     # --- uncle references ---
-    uncle_window: int = constants.W_DEFAULT   # W
+    uncle_model: UncleModel = "countable"     # countable (spec, default) | old (--old)
+    # Countable model: window absorption parameter W; the uncle reference window is DERIVED
+    # as w_u = W / f slots (W expected block-intervals), bounded 1 <= W <= 0.6*k
+    # (constants.W_ABS_MAX_FACTOR). Ignored by the old model.
+    window_absorption: float = constants.W_ABS_DEFAULT
+    # Old model only (--old): the uncle reference window w_u in slots, set directly.
+    # Ignored by the countable model, which derives the window from window_absorption.
+    uncle_window: int = constants.W_DEFAULT
     max_uncles: int = 0                       # U (0 = baseline, no uncles)
     uncle_strategy: UncleStrategy = "oldest"
     # Coin-flip inclusion prob for the "random" strategy. Only 0.5 reproduces the spec's
@@ -187,6 +204,25 @@ class SimConfig:
             raise ValueError(f"stake_dist must be uniform|pareto, got {self.stake_dist!r}")
         if self.uncle_strategy not in ("oldest", "random"):
             raise ValueError(f"uncle_strategy must be oldest|random, got {self.uncle_strategy!r}")
+        if self.uncle_model not in ("countable", "old"):
+            raise ValueError(f"uncle_model must be countable|old, got {self.uncle_model!r}")
+        if self.uncle_model == "countable":
+            if self.window_absorption < 1.0:
+                raise ValueError(
+                    f"window_absorption W={self.window_absorption} must be >= 1")
+            if self.window_absorption > constants.W_ABS_MAX_FACTOR * self.k:
+                # The spec bounds W <= 0.6*k (w_u <= 0.6*k/f, inside the finalization
+                # window). Scaled-down research geometries (small k) may violate it on
+                # purpose — warn loudly rather than refuse, but full-scale runs should
+                # never see this.
+                import warnings
+
+                warnings.warn(
+                    f"window_absorption W={self.window_absorption} exceeds the spec bound "
+                    f"{constants.W_ABS_MAX_FACTOR}*k = "
+                    f"{constants.W_ABS_MAX_FACTOR * self.k:g} (k={self.k}); the derived "
+                    f"window is outside the finalization window at this geometry",
+                    RuntimeWarning, stacklevel=2)
         if self.topology not in ("full_mesh", "regular", "blend"):
             raise ValueError(f"topology must be full_mesh|regular|blend, got {self.topology!r}")
         if self.link_latency_dist not in ("fixed", "uniform", "exp", "geo"):
@@ -265,6 +301,17 @@ class SimConfig:
 
     # derived geometry -------------------------------------------------------
     @property
+    def effective_uncle_window(self) -> int:
+        """The uncle reference window ``w_u`` in slots actually used by this run.
+
+        Countable model (default): derived, ``w_u = round(window_absorption / f)``.
+        Old model (``--old``): ``uncle_window`` taken directly.
+        """
+        if self.uncle_model == "old":
+            return self.uncle_window
+        return constants.uncle_window_slots(self.window_absorption, self.f)
+
+    @property
     def epoch_len(self) -> int:
         return constants.epoch_len(self.k, self.f)
 
@@ -276,9 +323,12 @@ class SimConfig:
         """Hashable identity used to seed the RNG deterministically.
 
         Must include EVERY field that affects the run (guarded by test_rng), otherwise two
-        distinct configs would share an RNG stream.
+        distinct configs would share an RNG stream. ``uncle_model`` /
+        ``window_absorption`` are appended ONLY for the countable model: an ``--old`` run's
+        key is then byte-identical to the pre-redesign key, so ``--old`` bit-reproduces
+        historical runs (the two models still get distinct streams from the marker).
         """
-        return (
+        base = (
             self.n_nodes, self.stake_dist, self.pareto_shape, self.uniform_random,
             self.total_stake, self.latency, self.latency_stochastic, self.uncle_window,
             self.max_uncles, self.uncle_strategy, self.uncle_random_p, self.f, self.beta,
@@ -295,11 +345,15 @@ class SimConfig:
         # NOTE: windowed_fork_choice and prune_arrival are deliberately excluded — they are pure
         # compute/memory optimisations that consume no RNG and (at jitter_mean == 0) change no
         # result, so pruned and full-matrix runs must share a seed (see test_pernode parity).
+        if self.uncle_model == "old":
+            return base                     # historical (pre-uncle_model) key: --old bit-compat
+        return base + (self.uncle_model, self.window_absorption)
 
 
 # Axes that can be swept; every SimConfig field is legal here.
 _SWEEP_AXES = (
     "n_nodes", "stake_dist", "latency", "max_uncles", "uncle_strategy", "uncle_window",
+    "window_absorption",
     "topology", "degree", "link_latency_mean", "link_latency_dist",
     "blend_hops", "blend_delay_max", "init_dest", "f",
 )
@@ -315,6 +369,7 @@ class SweepConfig:
     max_uncles: list[int] = field(default_factory=lambda: [0, 1, 2, 4])
     uncle_strategy: list[UncleStrategy] = field(default_factory=lambda: ["oldest"])
     uncle_window: list[int] = field(default_factory=lambda: [constants.W_DEFAULT])
+    window_absorption: list[float] = field(default_factory=lambda: [constants.W_ABS_DEFAULT])
     topology: list[Topology] = field(default_factory=lambda: ["regular"])
     degree: list[int] = field(default_factory=lambda: [8])
     link_latency_mean: list[float] = field(default_factory=lambda: [1.0])
@@ -333,11 +388,22 @@ class SweepConfig:
         axis_values = [getattr(self, ax) for ax in _SWEEP_AXES]
         for combo in itertools.product(*axis_values):
             overrides = dict(zip(_SWEEP_AXES, combo, strict=True))
-            # U=0 references no uncles, so it is independent of uncle_strategy AND uncle_window;
-            # keep only the first of each to avoid duplicate (identical) work.
+            # U=0 references no uncles, so it is independent of uncle_strategy AND the window
+            # knobs; keep only the first of each to avoid duplicate (identical) work.
             if overrides["max_uncles"] == 0 and (
                 overrides["uncle_strategy"] != self.uncle_strategy[0]
                 or overrides["uncle_window"] != self.uncle_window[0]
+                or overrides["window_absorption"] != self.window_absorption[0]
+            ):
+                continue
+            # each uncle model reads exactly one window knob — collapse the other axis so a
+            # sweep never emits duplicate cells that differ only in an ignored field.
+            if base.uncle_model == "countable" and (
+                overrides["uncle_window"] != self.uncle_window[0]
+            ):
+                continue
+            if base.uncle_model == "old" and (
+                overrides["window_absorption"] != self.window_absorption[0]
             ):
                 continue
             # full mesh ignores degree / link-latency model; keep only the first to avoid dupes.

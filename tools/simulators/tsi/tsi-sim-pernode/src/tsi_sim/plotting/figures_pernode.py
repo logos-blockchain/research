@@ -18,13 +18,34 @@ from . import style
 # this exhaustive over the recorded config fields (see metrics._CONFIG_FIELDS).
 CONFIG_COLS = ["n_nodes", "stake_dist", "pareto_shape", "topology", "degree",
                "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
-               "latency", "max_uncles", "uncle_strategy", "uncle_window",
-               "init_dest", "init_spread", "genesis_d_factor",
+               "latency", "uncle_model", "window_absorption", "max_uncles", "uncle_strategy",
+               "uncle_window", "init_dest", "init_spread", "genesis_d_factor",
                "f", "beta", "k", "fixed_point", "legacy_block_count"]
 
 # Graph topologies (as opposed to the full_mesh baseline) and the dominant latency knob each
 # is plotted against: regular varies the per-link latency, blend varies the per-hop mix delay.
 GRAPH_TOPOLOGIES = ("regular", "blend")
+
+
+def sem(x) -> float:
+    """Standard error of the mean over replicates (0 for a single replicate).
+
+    Replicate spread is the only uncertainty estimate these sweeps carry, and at high
+    mixing delay it is large enough to swamp the effects being compared — so any figure or
+    table quoting a cell mean should quote this alongside it.
+    """
+    x = np.asarray(x, dtype=float)
+    return float(x.std(ddof=1) / np.sqrt(len(x))) if len(x) > 1 else 0.0
+
+
+def recovery_rate(q, q_u):
+    """Invert ``theory.q_effective``: ``r = (q_u - q) / (1 - q)``.
+
+    The share of wasted active slots that a countable uncle reference puts back into the
+    count. Clamped denominator so a saturated ``q -> 1`` cell stays finite.
+    """
+    q, q_u = np.asarray(q, dtype=float), np.asarray(q_u, dtype=float)
+    return (q_u - q) / np.maximum(1.0 - q, 1e-12)
 
 
 def _lat_axis(topo: str) -> tuple[str, str]:
@@ -41,12 +62,15 @@ def equilibrium(df: pd.DataFrame, burn_frac: float = 0.5) -> pd.DataFrame:
     ``epochs`` — early-stopped runs (config.early_stop) terminate well before the planned
     ``epochs``, so thresholding on the configured value would drop every row.
     """
-    max_epoch = df.groupby([*CONFIG_COLS, "replicate"])["epoch"].transform("max")
+    cfg_cols = [c for c in CONFIG_COLS if c in df.columns]     # old parquets lack new fields
+    max_epoch = df.groupby([*cfg_cols, "replicate"])["epoch"].transform("max")
     tail = df[df["epoch"] >= max_epoch * burn_frac]
     agg = {c: (c, "mean") for c in
            ("mean_ratio", "range_ratio", "iqr_ratio", "agreement_window", "agreement_tip",
-            "mean_q", "mean_q_eff", "mean_orphan_rate", "max_ratio", "min_ratio")}
-    return tail.groupby([*CONFIG_COLS, "replicate"], as_index=False).agg(**agg)
+            "mean_q", "mean_q_eff", "mean_orphan_rate", "max_ratio", "min_ratio",
+            "deep_ref_share", "p_ref", "fork_rate")
+           if c in tail.columns}
+    return tail.groupby([*cfg_cols, "replicate"], as_index=False).agg(**agg)
 
 
 def _prov(df: pd.DataFrame) -> str:

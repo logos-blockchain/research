@@ -1,0 +1,26 @@
+# Countable model: sweep the window absorption parameter W (w_u = W/f slots derived) at
+# U=1 against the Blend mixing delay. The window-miss contribution to non-recovery is
+# (1-f)^(W/f) ~ e^-W (theory.window_miss_prob): recovery should saturate within a few
+# expected block-intervals, with the residual set by the delay (orphans spread wider than
+# the window) and by the first-fork restriction. The countable counterpart of the old
+# model's uncle-window.yaml (which swept uncle_window in raw slots; run that with --old).
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet (delay stresses the window)
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # fixed hop count; delay is the swept knob
+blend_delay_max: [8.0, 16.0, 32.0]           # max per-relay mixing delay (slots)
+window_absorption: [1, 2, 3, 5, 7, 10]       # W: window in expected block-intervals
+max_uncles: [1]                              # FIXED at one uncle (the question is about W)
+uncle_strategy: [oldest]                     # spec selection: oldest-first fill
+init_dest: [common]                          # per-node initial D_est from agreement
+replicates: 5                                # independent RNG replicates per grid cell
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true

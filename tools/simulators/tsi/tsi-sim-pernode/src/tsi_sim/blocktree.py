@@ -364,7 +364,9 @@ def _build_pruned(active_slots, winners_per_slot, path_latency, config, rng,
     from .uncles import select_uncles_at_production
 
     NEG = np.iinfo(np.int64).min
-    keepspan = max(float(horizon), float(config.uncle_window))    # columns kept within this span
+    # columns kept within this span; the uncle window is model-dependent (derived W/f for
+    # countable, uncle_window slots for --old), so use the effective value.
+    keepspan = max(float(horizon), float(config.effective_uncle_window))
     counts = np.array([int(g.shape[0]) for g in winners_per_slot], dtype=np.int64)
     cap = _max_span_blocks(active_slots, counts, keepspan)        # max live blocks at once
     max_slot = int(counts.max()) if counts.size else 0

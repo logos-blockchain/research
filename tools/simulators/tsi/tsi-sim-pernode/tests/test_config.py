@@ -85,19 +85,39 @@ def test_blend_dedup_does_not_multiply_non_blend_configs():
 
 
 def test_uncle_window_sweeps_and_collapses_for_u0():
-    # uncle_window is a live axis for U>0, but U=0 references no uncles so it must collapse.
+    # OLD model: uncle_window is a live axis for U>0, but U=0 references no uncles so it
+    # must collapse. (The countable model ignores uncle_window entirely — see the twin
+    # test below.)
     sweep = SweepConfig(
         n_nodes=[100], stake_dist=["uniform"], topology=["blend"], degree=[6],
         link_latency_mean=[0.5], link_latency_dist=["geo"], blend_hops=[3],
         blend_delay_max=[4.0], uncle_window=[10, 100], max_uncles=[0, 1],
         uncle_strategy=["oldest"], init_dest=["common"], replicates=1,
-        base={"k": 8, "epochs": 3},
+        base={"k": 8, "epochs": 3, "uncle_model": "old"},
     )
     configs = sweep.expand()
     u0 = [c for c in configs if c.max_uncles == 0]
     u1 = [c for c in configs if c.max_uncles == 1]
     assert len(u0) == 1                                    # W collapsed for U=0
     assert {c.uncle_window for c in u1} == {10, 100}       # both W kept for U=1
+
+
+def test_window_absorption_sweeps_and_ignored_axis_collapses():
+    # COUNTABLE model: window_absorption is the live window axis; uncle_window is ignored
+    # and must collapse. And vice versa for the old model (guarded above).
+    sweep = SweepConfig(
+        n_nodes=[100], stake_dist=["uniform"], topology=["blend"], degree=[6],
+        link_latency_mean=[0.5], link_latency_dist=["geo"], blend_hops=[3],
+        blend_delay_max=[4.0], uncle_window=[10, 100], window_absorption=[2.0, 4.0],
+        max_uncles=[0, 1], uncle_strategy=["oldest"], init_dest=["common"], replicates=1,
+        base={"k": 8, "epochs": 3},
+    )
+    configs = sweep.expand()
+    u0 = [c for c in configs if c.max_uncles == 0]
+    u1 = [c for c in configs if c.max_uncles == 1]
+    assert len(u0) == 1                                          # all window knobs collapse
+    assert {c.window_absorption for c in u1} == {2.0, 4.0}       # live axis kept for U=1
+    assert {c.uncle_window for c in u1} == {10}                  # ignored axis collapsed
 
 
 def test_unknown_sweep_key_rejected():
@@ -117,7 +137,11 @@ def test_key_covers_every_field():
     # optimisation (no RNG, identical results) so it is intentionally not in key().
     # early_stop is truncation-only (per-epoch RNG streams are pre-spawned, so the epochs
     # that DO run are bit-identical to a full run's prefix) — intentionally excluded from key().
-    ignored = {"root_seed", "windowed_fork_choice", "prune_arrival", "early_stop"}
+    # uncle_window is read ONLY by the old model; under the (default) countable model it is
+    # an ignored field, deliberately left in the base tuple at its old position so that an
+    # --old run's key stays byte-identical to historical keys.
+    ignored = {"root_seed", "windowed_fork_choice", "prune_arrival", "early_stop",
+               "uncle_window"}
     names = {f.name for f in dataclasses.fields(SimConfig)} - ignored
     a = SimConfig()
     for name in names:
@@ -125,6 +149,42 @@ def test_key_covers_every_field():
         alt = _perturb(cur)
         b = dataclasses.replace(a, **{name: alt})
         assert a.key() != b.key(), f"key() does not distinguish field {name!r}"
+    # ... and uncle_window IS distinguished under the old model, where it is live.
+    old = SimConfig(uncle_model="old")
+    assert old.key() != dataclasses.replace(old, uncle_window=old.uncle_window + 1).key()
+
+
+def test_old_model_key_is_historical():
+    # --old must bit-reproduce historical runs: its key is exactly the pre-uncle_model
+    # tuple (no uncle_model / window_absorption entries), and the countable key extends it.
+    old = SimConfig(uncle_model="old")
+    new = SimConfig()
+    assert new.key()[: len(old.key())] == old.key()
+    assert new.key()[len(old.key()):] == ("countable", new.window_absorption)
+    # window_absorption is ignored (and absent from key) under the old model...
+    assert dataclasses.replace(old, window_absorption=2.0).key() == old.key()
+    # ...and live under the countable model.
+    assert dataclasses.replace(new, window_absorption=2.0).key() != new.key()
+
+
+def test_effective_uncle_window():
+    # countable: derived w_u = round(W / f); old: uncle_window taken directly.
+    assert SimConfig(k=2160).effective_uncle_window == 300          # W=10, f=1/30
+    assert SimConfig(k=2160, window_absorption=5.0).effective_uncle_window == 150
+    assert SimConfig(uncle_model="old", uncle_window=42).effective_uncle_window == 42
+
+
+def test_window_absorption_bound():
+    import warnings
+
+    with pytest.raises(ValueError):
+        SimConfig(window_absorption=0.5)                            # W < 1 rejected
+    with pytest.warns(RuntimeWarning, match="exceeds the spec bound"):
+        SimConfig(k=8, window_absorption=10.0)                      # W > 0.6*k warns
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        SimConfig(k=2160, window_absorption=10.0)                   # full scale: silent
+        SimConfig(k=8, uncle_model="old", uncle_window=300)         # old model: no bound
 
 
 def _perturb(v):
@@ -140,6 +200,7 @@ def _perturb(v):
         "fixed": "exp", "common": "heterogeneous", "suppress": "withhold",
         "exp": "poisson",   # jitter_dist
         "sine": "ramp",     # churn_mode
+        "countable": "old",  # uncle_model
     }
     if isinstance(v, str) and v in flips:
         return flips[v]
