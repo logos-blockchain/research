@@ -20,6 +20,7 @@ from .rng import placement_seedseq, responsive_seedseq, round_seedseq
 def run_graph_cell(base: SimConfig, prop_grid: list[tuple[int, int]],
                    unresponsive_fracs: list[float], redundancies: list[int],
                    adv_grid: list[tuple[float, str]],
+                   churn_modes: list[str] | None = None,
                    ) -> tuple[list[dict], list[dict], list[dict]]:
     """Build ``base``'s topology once; return (propagation, adversary, deanonymization rows).
 
@@ -32,18 +33,22 @@ def run_graph_cell(base: SimConfig, prop_grid: list[tuple[int, int]],
     """
     graph = build_graph(base)
     blend_hops_set = sorted({bh for bh, _ in prop_grid})
+    modes = churn_modes or [base.churn_mode]
 
     prop_rows: list[dict] = []
-    for uf in unresponsive_fracs:
-        responsive = assign_responsive(
-            base.n_nodes, uf, np.random.default_rng(responsive_seedseq(base, uf)))
-        for blend_hops, max_blend_delay in prop_grid:
-            for R in redundancies:
-                rng = np.random.default_rng(
-                    round_seedseq(base, blend_hops, max_blend_delay, uf, R))
-                prop = propagation_metrics(
-                    graph, blend_hops, max_blend_delay, uf, R, responsive, base, rng)
-                prop_rows.append(propagation_row(base, blend_hops, max_blend_delay, uf, R, prop))
+    for cm in modes:
+        for uf in unresponsive_fracs:
+            responsive = assign_responsive(
+                base.n_nodes, uf, np.random.default_rng(responsive_seedseq(base, uf, cm)),
+                cm, base.n_regions)
+            for blend_hops, max_blend_delay in prop_grid:
+                for R in redundancies:
+                    rng = np.random.default_rng(
+                        round_seedseq(base, blend_hops, max_blend_delay, uf, R))
+                    prop = propagation_metrics(
+                        graph, blend_hops, max_blend_delay, uf, R, responsive, base, rng)
+                    prop_rows.append(
+                        propagation_row(base, blend_hops, max_blend_delay, uf, R, prop, cm))
 
     adv_rows: list[dict] = []
     deanon_rows: list[dict] = []
@@ -70,7 +75,9 @@ def run_trajectory(config: SimConfig) -> dict:
     graph = build_graph(config)
     uf = config.unresponsive_frac
     responsive = assign_responsive(
-        config.n_nodes, uf, np.random.default_rng(responsive_seedseq(config, uf)))
+        config.n_nodes, uf,
+        np.random.default_rng(responsive_seedseq(config, uf, config.churn_mode)),
+        config.churn_mode, config.n_regions)
     R = config.redundancy
     prng = np.random.default_rng(
         round_seedseq(config, config.blend_hops, config.max_blend_delay, uf, R))

@@ -188,6 +188,35 @@ def main(argv: list[str] | None = None) -> int:
         ok &= _check(f"percolation d={degree} (u_c={u_c:.2f})", below > 0.1 and above < 0.02,
                      f"giant {below:.3f} at u_c-0.15 -> {above:.4f} at u_c+0.15")
 
+    # 8. correlated (regional) churn vs uniform, at an identical number of dead nodes. With most
+    #    peers inside the failure domain, losing whole domains leaves the survivors fully connected
+    #    -- so every live relay is still routable and delivery equals the live-relay rate -- while
+    #    the same number of scattered failures breaks routes and loses delivery below it.
+    n_c, nr_c, u_c2 = 4000, 20, 0.5
+    cc = SimConfig(n_nodes=n_c, degree=4, n_regions=nr_c, region_locality=0.75, blend_hops=1,
+                   max_blend_delay=0, transport_jitter_mean_ms=0.0, unresponsive_frac=u_c2,
+                   n_rounds=1500, graph_seed=0)
+    gc = build_graph(cc)
+    res = {}
+    for cm in ("uniform", "regional"):
+        mask = assign_responsive(
+            n_c, u_c2, np.random.default_rng(responsive_seedseq(cc, u_c2, cm)), cm, nr_c)
+        ok &= _check(f"churn mode {cm} kills the same count",
+                     int((~mask).sum()) == int(round(u_c2 * n_c)),
+                     f"{int((~mask).sum())} dead of {n_c}")
+        prng = np.random.default_rng(round_seedseq(cc, 1, 0, u_c2, 1))
+        m = propagation_metrics(gc, 1, 0, u_c2, 1, mask, cc, prng)
+        res[cm] = m
+    ok &= _check("regional churn spares the live network",
+                 res["regional"]["frac_reached_live"] > 0.98
+                 and res["regional"]["frac_reached_live"] > res["uniform"]["frac_reached_live"],
+                 f"live coverage regional {res['regional']['frac_reached_live']:.3f}"
+                 f" vs uniform {res['uniform']['frac_reached_live']:.3f}")
+    ok &= _check("uniform churn loses more delivery to broken routes",
+                 res["regional"]["delivery_rate"] > res["uniform"]["delivery_rate"],
+                 f"delivery regional {res['regional']['delivery_rate']:.3f}"
+                 f" vs uniform {res['uniform']['delivery_rate']:.3f}")
+
     print("OK" if ok else "FAILURES PRESENT")
     return 0 if ok else 1
 

@@ -23,6 +23,7 @@ _BUILDERS = [
     ("10_delivery_vs_unresponsive", figures.delivery_vs_unresponsive),
     ("11_coverage_vs_unresponsive", figures.coverage_vs_unresponsive),
     ("20_coverage_percolation", figures.coverage_percolation),
+    ("22_churn_correlated_vs_uniform", figures.churn_correlated_vs_uniform),
 ]
 
 # (prop, adv, deanon) builders — deanonymization crosses propagation paths with the adversary set,

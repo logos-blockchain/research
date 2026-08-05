@@ -33,12 +33,38 @@ from .memguard import check_alloc
 from .mixclock import mix_wait
 
 
-def assign_responsive(n: int, unresponsive_frac: float, rng: np.random.Generator) -> np.ndarray:
-    """Boolean mask (True == responsive/relaying). A random ``unresponsive_frac`` are set False."""
+def assign_responsive(n: int, unresponsive_frac: float, rng: np.random.Generator,
+                      churn_mode: str = "uniform", n_regions: int = 1) -> np.ndarray:
+    """Boolean mask (True == responsive/relaying); exactly ``round(frac*n)`` nodes are set False.
+
+    ``uniform`` drops nodes independently at random -- the model of uncorrelated failure.
+    ``regional`` drops whole **failure domains** (AS/region) at a time, the model of a correlated
+    outage: regions are taken down in random order until the quota is met, with the final partial
+    region trimmed at random so the *count* of dead nodes matches ``uniform`` exactly. The two modes
+    are therefore compared at identical churn, differing only in how the failures are arranged.
+    """
     responsive = np.ones(n, dtype=bool)
     n_unresp = int(round(unresponsive_frac * n))
-    if n_unresp > 0:
+    if n_unresp <= 0:
+        return responsive
+    if churn_mode == "uniform" or n_regions <= 1:
         responsive[rng.choice(n, size=n_unresp, replace=False)] = False
+        return responsive
+    if churn_mode != "regional":
+        raise ValueError(f"unknown churn_mode {churn_mode!r}")
+    from .graph import region_of
+    region = region_of(n, n_regions)
+    dead = 0
+    for r in rng.permutation(n_regions):            # fail whole regions in random order
+        members = np.where(region == r)[0]
+        if dead + members.shape[0] <= n_unresp:
+            responsive[members] = False
+            dead += members.shape[0]
+        else:                                       # partial region: trim to hit the exact count
+            take = n_unresp - dead
+            if take > 0:
+                responsive[rng.choice(members, size=take, replace=False)] = False
+            break
     return responsive
 
 
@@ -130,6 +156,7 @@ def propagation_metrics(graph: Graph, blend_hops: int, max_blend_delay: int,
                ("full_delay_ms_mean", "full_delay_ms_p50", "full_delay_ms_p90",
                 "full_delay_ms_p99", "path_delay_ms_mean", "broadcast_delay_ms_mean")}
         out["frac_reached"] = 0.0
+        out["frac_reached_live"] = 0.0
         out["delivery_rate"] = 0.0
         for pc in pcts:
             out[f"cover{int(pc)}_ms"] = float("nan")
@@ -139,7 +166,7 @@ def propagation_metrics(graph: Graph, blend_hops: int, max_blend_delay: int,
         return _empty()   # no responsive sender, or too few nodes to draw a distinct path
 
     R = int(redundancy)
-    fulls, paths, bcasts, fracs = [], [], [], []
+    fulls, paths, bcasts, fracs, fracs_live = [], [], [], [], []
     covers = [[] for _ in pcts]
     delivered = 0
     for _ in range(config.n_rounds):
@@ -166,6 +193,7 @@ def propagation_metrics(graph: Graph, blend_hops: int, max_blend_delay: int,
         paths.append(path_min)
         bcasts.append(full - path_min)
         fracs.append(float(finite.mean()))
+        fracs_live.append(float(finite[responsive].mean()))   # coverage of the live network
         rel = reached - path_min               # coverage measured from the quickest path's release
         for j, pc in enumerate(pcts):
             covers[j].append(float(np.percentile(rel, pc)))
@@ -185,6 +213,7 @@ def propagation_metrics(graph: Graph, blend_hops: int, max_blend_delay: int,
         "path_delay_ms_mean": float(np.mean(paths)),
         "broadcast_delay_ms_mean": float(np.mean(bcasts)),
         "frac_reached": float(np.mean(fracs)),
+        "frac_reached_live": float(np.mean(fracs_live)),
         "delivery_rate": delivery_rate,
     }
     for pc, col in zip(pcts, covers, strict=True):

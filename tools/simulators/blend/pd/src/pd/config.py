@@ -11,9 +11,11 @@ LatencyDist = Literal["geo", "fixed", "uniform", "exp"]
 AdversaryMode = Literal[
     "random", "worstcase_coverage", "worstcase_eclipse", "worstcase_degree"
 ]
+ChurnMode = Literal["uniform", "regional"]
 _DISTS = ("geo", "fixed", "uniform", "exp")
 _MODES = ("random", "worstcase_coverage", "worstcase_eclipse", "worstcase_degree")
 WORSTCASE_MODES = ("worstcase_coverage", "worstcase_eclipse", "worstcase_degree")
+_CHURN_MODES = ("uniform", "regional")
 
 
 @dataclass(frozen=True)
@@ -23,11 +25,14 @@ class SimConfig:
     # --- network ---
     n_nodes: int = 1000                 # must be even (matching-union construction)
     degree: int = 8                     # peering degree — the primary study axis
+    n_regions: int = 1                  # failure domains (AS/region); 1 = no regional structure
+    region_locality: float = 0.0        # fraction of a node's peers drawn inside its own region
 
     # --- propagation (Blend cascade, delays in ms) ---
     blend_hops: int = 3                 # relay-path length (swept)
     max_blend_delay: int = 3            # free-running release-clock max interval, whole SECONDS
     unresponsive_frac: float = 0.0      # ratio of nodes that do NOT relay any messages (swept)
+    churn_mode: ChurnMode = "uniform"   # "uniform" = independent nodes; "regional" = whole regions
     redundancy: int = 1                 # copies per emission via R independent cascades (swept)
     n_rounds: int = 200                 # random-sender rounds per topology
     transport_jitter_mean_ms: float = 5.0
@@ -61,6 +66,25 @@ class SimConfig:
             raise ValueError(f"need 0 <= unresponsive_frac < 1, got {self.unresponsive_frac}")
         if self.redundancy < 1:
             raise ValueError(f"redundancy must be >= 1, got {self.redundancy}")
+        if self.n_regions < 1:
+            raise ValueError(f"n_regions must be >= 1, got {self.n_regions}")
+        if self.n_regions > 1:
+            # regions must be equal-sized and each internally matchable (even size)
+            if self.n_nodes % self.n_regions != 0:
+                raise ValueError(
+                    f"n_nodes ({self.n_nodes}) must divide evenly into "
+                    f"n_regions ({self.n_regions})")
+            if (self.n_nodes // self.n_regions) % 2 != 0:
+                raise ValueError(
+                    f"region size ({self.n_nodes // self.n_regions}) must be even")
+        if not (0.0 <= self.region_locality <= 1.0):
+            raise ValueError(f"need 0 <= region_locality <= 1, got {self.region_locality}")
+        if self.region_locality > 0.0 and self.n_regions < 2:
+            raise ValueError("region_locality > 0 requires n_regions >= 2")
+        if self.churn_mode not in _CHURN_MODES:
+            raise ValueError(f"churn_mode must be one of {_CHURN_MODES}")
+        if self.churn_mode == "regional" and self.n_regions < 2:
+            raise ValueError("churn_mode 'regional' requires n_regions >= 2")
         if not (0.0 <= self.f_adv < 1.0):
             raise ValueError(f"need 0 <= f_adv < 1, got {self.f_adv}")
         if self.n_rounds < 1 or self.n_placements < 1:
@@ -88,8 +112,9 @@ class SimConfig:
     def key(self) -> tuple:
         """Hashable identity used to seed RNGs deterministically."""
         return (
-            self.n_nodes, self.degree, self.blend_hops, self.max_blend_delay,
-            self.unresponsive_frac, self.redundancy, self.n_rounds,
+            self.n_nodes, self.degree, self.n_regions, self.region_locality,
+            self.blend_hops, self.max_blend_delay,
+            self.unresponsive_frac, self.churn_mode, self.redundancy, self.n_rounds,
             self.transport_jitter_mean_ms, self.processing_lags_ms, self.processing_lag_probs,
             self.link_latency_dist, self.link_latency_mean_ms, self.coverage_pcts,
             self.f_adv, self.adversary_mode, self.n_placements, self.worstcase_max_n,
@@ -110,6 +135,7 @@ class SweepConfig:
     blend_hops: list[int] = field(default_factory=lambda: [3])
     max_blend_delay: list[int] = field(default_factory=lambda: [3])
     unresponsive_frac: list[float] = field(default_factory=lambda: [0.0])
+    churn_mode: list[str] = field(default_factory=lambda: ["uniform"])
     redundancy: list[int] = field(default_factory=lambda: [1])
     f_adv: list[float] = field(default_factory=lambda: [0.1, 0.2, 0.33, 0.5])
     adversary_mode: list[str] = field(default_factory=lambda: ["random"])
@@ -148,7 +174,7 @@ class SweepConfig:
         d = dict(d)
         base = d.pop("base", {})
         known = {"n_nodes", "degree", "blend_hops", "max_blend_delay", "unresponsive_frac",
-                 "redundancy", "f_adv", "adversary_mode", "seeds"}
+                 "churn_mode", "redundancy", "f_adv", "adversary_mode", "seeds"}
         unknown = set(d) - known
         if unknown:
             raise ValueError(f"unknown sweep keys: {sorted(unknown)}")

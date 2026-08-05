@@ -45,10 +45,23 @@ class Graph:
         return csr_matrix((data, self.indices, self.indptr), shape=(self.n, self.n))
 
 
-def build_regular_edges(n: int, degree: int, rng: np.random.Generator) -> np.ndarray:
+def region_of(n: int, n_regions: int) -> np.ndarray:
+    """Region (failure-domain) id per node: equal-sized contiguous blocks."""
+    if n_regions <= 1:
+        return np.zeros(n, dtype=np.int64)
+    return np.arange(n, dtype=np.int64) // (n // n_regions)
+
+
+def build_regular_edges(n: int, degree: int, rng: np.random.Generator,
+                        n_regions: int = 1, region_locality: float = 0.0) -> np.ndarray:
     """Exactly d-regular simple undirected edge list, shape (E, 2) with u < v.
 
     Requires ``n`` even and ``1 <= degree < n``. Deterministic in ``rng``.
+
+    With ``region_locality > 0``, ``round(locality * degree)`` of the ``degree`` matchings are drawn
+    *within* each region instead of globally, so a node keeps that share of its peers inside its own
+    failure domain. Each region is matched independently (its size must be even), so the union is
+    still exactly d-regular -- locality changes *where* the peers are, never how many.
     """
     if n % 2 != 0:
         raise ValueError("n must be even")
@@ -57,9 +70,20 @@ def build_regular_edges(n: int, degree: int, rng: np.random.Generator) -> np.nda
     h = n // 2
     lo = np.empty(degree * h, dtype=np.int64)
     hi = np.empty(degree * h, dtype=np.int64)
+    n_local = int(round(region_locality * degree)) if n_regions > 1 else 0
+    members = ([np.where(region_of(n, n_regions) == r)[0] for r in range(n_regions)]
+               if n_local else [])
     for m in range(degree):
-        perm = rng.permutation(n)
-        a, b = perm[0::2], perm[1::2]
+        if m < n_local:                      # intra-region matching, region by region
+            parts_a, parts_b = [], []
+            for mem in members:
+                perm = mem[rng.permutation(mem.shape[0])]
+                parts_a.append(perm[0::2])
+                parts_b.append(perm[1::2])
+            a, b = np.concatenate(parts_a), np.concatenate(parts_b)
+        else:                                # global matching
+            perm = rng.permutation(n)
+            a, b = perm[0::2], perm[1::2]
         lo[m * h:(m + 1) * h] = np.minimum(a, b)
         hi[m * h:(m + 1) * h] = np.maximum(a, b)
     # drop parallel edges (keep first occurrence of each undirected pair)
@@ -165,7 +189,7 @@ def build_graph(config: SimConfig) -> Graph:
     check_alloc(int(n * degree * 24), "d-regular CSR (indices+base+src)",
                 f"N={n}, degree={degree}")
     rng = np.random.default_rng(graph_seedseq(config))
-    edges = build_regular_edges(n, degree, rng)
+    edges = build_regular_edges(n, degree, rng, config.n_regions, config.region_locality)
     base_u = latency.sample_link_latencies(edges.shape[0], config, rng)
     p = latency.assign_processing_lags(n, config, rng)
     rows = np.concatenate([edges[:, 0], edges[:, 1]])

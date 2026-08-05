@@ -175,7 +175,9 @@ def test_redundancy_buys_no_coverage_even_when_fragmented():
 def test_redundant_cascades_flood_the_same_component():
     """Direct check of the mechanism: with several cascades delivered in one round, the union of
     their reached sets equals the largest single one."""
-    n, u = 4000, 0.5
+    # u just below degree 3's percolation threshold (0.5): the graph is thinned and lossy, but
+    # deliveries are still common enough that the multi-cascade case actually arises.
+    n, u = 4000, 0.4
     cfg = SimConfig(n_nodes=n, degree=3, blend_hops=1, max_blend_delay=0,
                     transport_jitter_mean_ms=0.0, unresponsive_frac=u, graph_seed=0)
     g = build_graph(cfg)
@@ -198,3 +200,59 @@ def test_redundant_cascades_flood_the_same_component():
         union = np.logical_or.reduce(masks)
         assert int(union.sum()) == max(int(m.sum()) for m in masks)
     assert checked > 0                               # the multi-delivery case did occur
+
+
+# --- regional (correlated) churn -----------------------------------------------------------------
+
+def test_regional_churn_drops_whole_regions_and_matches_the_uniform_count():
+    """Correlated churn kills failure domains, not scattered nodes -- at the same total count."""
+    from pd.graph import region_of
+    n, n_regions, u = 1000, 10, 0.3
+    rng = np.random.default_rng(0)
+    mask = assign_responsive(n, u, rng, "regional", n_regions)
+    assert int((~mask).sum()) == 300                      # exactly the same quota as uniform
+    region = region_of(n, n_regions)
+    dead_per_region = [int((~mask[region == r]).sum()) for r in range(n_regions)]
+    # every region is either wholly dead (100) or wholly alive (0), bar at most one trimmed region
+    partial = [d for d in dead_per_region if 0 < d < 100]
+    assert len(partial) <= 1
+    assert sum(1 for d in dead_per_region if d == 100) == 3
+
+
+def test_uniform_churn_scatters_across_all_regions():
+    from pd.graph import region_of
+    n, n_regions, u = 1000, 10, 0.3
+    mask = assign_responsive(n, u, np.random.default_rng(0), "uniform", n_regions)
+    region = region_of(n, n_regions)
+    dead_per_region = [int((~mask[region == r]).sum()) for r in range(n_regions)]
+    assert all(0 < d < 100 for d in dead_per_region)      # every region damaged, none wiped out
+
+
+def test_region_locality_keeps_peers_inside_the_region_and_stays_d_regular():
+    from pd.graph import build_graph, region_of
+    n, n_regions, degree = 2000, 10, 8
+    region = region_of(n, n_regions)
+    for locality, want in ((0.0, 0.1), (0.5, 0.5), (1.0, 1.0)):
+        cfg = SimConfig(n_nodes=n, degree=degree, n_regions=n_regions,
+                        region_locality=locality, graph_seed=0)
+        g = build_graph(cfg)
+        assert np.all(np.diff(g.indptr) == degree)        # exact d-regularity is preserved
+        same = float(np.mean(region[g.src] == region[g.indices]))
+        assert abs(same - want) < 0.05, (locality, same)
+
+
+def test_regional_churn_leaves_survivors_better_connected():
+    """The point of the correlated model: clustered failure removes whole neighbourhoods and
+    leaves the rest intact, so surviving nodes keep more live peers than under scattered failure."""
+    from pd.graph import build_graph
+    n, n_regions, degree, u = 4000, 20, 8, 0.4
+    cfg = SimConfig(n_nodes=n, degree=degree, n_regions=n_regions, region_locality=0.75,
+                    graph_seed=0)
+    g = build_graph(cfg)
+    live_degree = {}
+    for mode in ("uniform", "regional"):
+        mask = assign_responsive(n, u, np.random.default_rng(1), mode, n_regions)
+        live_nbr = mask[g.indices]                        # is each peer alive?
+        counts = np.add.reduceat(live_nbr.astype(np.int32), g.indptr[:-1])
+        live_degree[mode] = float(counts[mask].mean())    # live peers of a surviving node
+    assert live_degree["regional"] > live_degree["uniform"] + 0.5
