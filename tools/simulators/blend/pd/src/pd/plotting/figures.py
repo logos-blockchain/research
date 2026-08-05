@@ -638,3 +638,74 @@ def redundancy_tradeoff(prop, adv, deanon):
     ax.set_title(f"Redundancy: reliability vs anonymity (N={n:,}, degree={deg}, blend_hops={bh})")
     ax.legend()
     return fig
+
+
+# --- cover traffic (traffic table only) -----------------------------------------------------------
+
+def blending_vs_rate_and_delay(traffic: pd.DataFrame):
+    """The anonymity set against the two knobs that buy it: cover rate and release delay.
+
+    Blending is the number of broadcasts a relay saw between consecutive releases -- an observer
+    cannot tell which of them it forwarded. Intervals sampled at a release are size-biased, so the
+    law is ``rate * (2M+1)/3``, exactly twice the mean hold; the dashed lines are that prediction.
+    Delay is the cheaper lever: it multiplies the set without adding a single message to the wire.
+    """
+    if traffic is None or not len(traffic) or "blending_mean" not in traffic:
+        return None
+    import matplotlib.pyplot as plt
+    style.apply_style()
+    d = traffic[traffic.n_nodes == traffic.n_nodes.max()]
+    if d["cover_rate_mult"].nunique() < 2 and d["max_blend_delay"].nunique() < 2:
+        return None
+    fig, ax = plt.subplots()
+    for i, M in enumerate(sorted(d.max_blend_delay.unique())):
+        s = d[d.max_blend_delay == M].groupby("cover_rate_mult").blending_mean.mean().reset_index()
+        c = style.color_for(i)
+        ax.plot(s.cover_rate_mult, s.blending_mean, "-o", ms=4, color=c,
+                label=f"max_blend_delay={int(M)}s")
+        ax.plot(s.cover_rate_mult, s.cover_rate_mult * (2 * M + 1) / 3, "--", lw=0.8,
+                color=c, alpha=0.6)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("cover-traffic rate  (messages/second, network-wide)")
+    ax.set_ylabel("blending: broadcasts seen between releases")
+    ax.set_title("Anonymity set vs cover rate and release delay\n"
+                 "dashed = $rate\\cdot(2M{+}1)/3$")
+    ax.legend()
+    return fig
+
+
+def quota_stake_ceiling(traffic: pd.DataFrame):
+    """Where the uniform-emission guarantee breaks: measured ceiling against the closed form.
+
+    Cover traffic keeps every node's emission count identical only while its block proposals fit
+    inside the quota. Nodes above the ceiling must emit more often than everyone else, which is the
+    very signal the scheme exists to hide. Raising the cover rate raises the ceiling in proportion.
+    """
+    if traffic is None or not len(traffic) or "s_max_predicted" not in traffic:
+        return None
+    import matplotlib.pyplot as plt
+    style.apply_style()
+    d = traffic[traffic.n_nodes == traffic.n_nodes.max()]
+    g = d.groupby("cover_rate_mult").agg(
+        pred=("s_max_predicted", "mean"), safe=("alpha_max_99", "mean"),
+        meas_hi=("max_compliant_stake", "mean"), meas_lo=("min_overrun_stake", "mean"),
+        top=("top_stake", "mean")).reset_index()
+    if not len(g):
+        return None
+    fig, ax = plt.subplots()
+    ax.plot(g.cover_rate_mult, g.pred * 100, "-", lw=1.4, color=style.color_for(0),
+            label="predicted ceiling $s_{max}$")
+    ax.plot(g.cover_rate_mult, g.safe * 100, ":", lw=1.0, color=style.color_for(0),
+            label="99%-safe ceiling")
+    ax.fill_between(g.cover_rate_mult, g.meas_lo * 100, g.meas_hi * 100, alpha=0.25,
+                    color=style.color_for(1), label="measured transition band")
+    ax.plot(g.cover_rate_mult, g.top * 100, "--", lw=1.0, color=style.color_for(2),
+            label="largest staker present")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("cover-traffic rate  (messages/second, network-wide)")
+    ax.set_ylabel("stake (%)")
+    ax.set_title("Emission quota: the most stake a node can hold and stay uniform")
+    ax.legend(fontsize=7)
+    return fig

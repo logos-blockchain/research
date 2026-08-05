@@ -61,6 +61,25 @@ def round_seedseq(config: SimConfig, blend_hops: int, max_blend_delay: int,
     ))
 
 
+def traffic_seedseq(config: SimConfig, blend_hops: int, max_blend_delay: int,
+                    cover_rate_mult: float) -> np.random.SeedSequence:
+    """Cover-traffic timeline seed: emissions, relay paths, and every node's release clock."""
+    return np.random.SeedSequence(_digest(
+        config.root_seed, "traffic", config.n_nodes, config.degree, config.graph_seed,
+        blend_hops, max_blend_delay, cover_rate_mult, config.traffic_window_slots,
+        config.block_interval_slots, config.transport_jitter_mean_ms,
+    ))
+
+
+def stake_seedseq(config: SimConfig, cover_rate_mult: float) -> np.random.SeedSequence:
+    """Stake draw + epoch emission budget; independent of the timeline and of the graph."""
+    return np.random.SeedSequence(_digest(
+        config.root_seed, "stake", config.n_nodes, config.graph_seed, config.stake_dist,
+        config.stake_zipf_a, config.stake_inference_ratio, config.slots_per_epoch,
+        config.block_interval_slots, cover_rate_mult,
+    ))
+
+
 def placement_seedseq(config: SimConfig, f_adv: float, mode: str,
                       placement_rep: int) -> np.random.SeedSequence:
     """Adversary-placement seed, independent of the graph draw and the rounds."""

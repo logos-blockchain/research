@@ -7,29 +7,42 @@ propagation and adversary sub-grids.
 
 from __future__ import annotations
 
+import dataclasses
+
 import numpy as np
 
 from .adversary import adversary_metrics, deanon_metrics, place_adversary
 from .config import WORSTCASE_MODES, SimConfig
 from .graph import build_graph
-from .metrics import adversary_row, deanon_row, propagation_row
+from .metrics import adversary_row, deanon_row, propagation_row, traffic_row
 from .propagation import assign_responsive, propagation_metrics
-from .rng import placement_seedseq, responsive_seedseq, round_seedseq
+from .quota import assign_stake, quota_summary
+from .rng import (
+    placement_seedseq,
+    responsive_seedseq,
+    round_seedseq,
+    stake_seedseq,
+    traffic_seedseq,
+)
+from .traffic import simulate_window, traffic_metrics
 
 
 def run_graph_cell(base: SimConfig, prop_grid: list[tuple[int, int]],
                    unresponsive_fracs: list[float], redundancies: list[int],
                    adv_grid: list[tuple[float, str]],
                    churn_modes: list[str] | None = None,
-                   ) -> tuple[list[dict], list[dict], list[dict]]:
-    """Build ``base``'s topology once; return (propagation, adversary, deanonymization rows).
+                   cover_rates: list[float] | None = None,
+                   ) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
+    """Build ``base``'s topology once; return (propagation, adversary, deanon, traffic rows).
 
     ``base`` carries the topology (n_nodes, degree, graph_seed) and all shared knobs;
     ``prop_grid`` = [(blend_hops, max_blend_delay)], ``unresponsive_fracs`` = the relay-dropout
     axis, ``redundancies`` = the messaging-redundancy axis (R independent cascades per emission),
     ``adv_grid`` = [(f_adv, mode)]. Deanonymization crosses each adversary placement with the
     propagation grid's blend-path lengths and redundancies, so it is emitted alongside the
-    adversary rows.
+    adversary rows. ``cover_rates`` (empty by default) turns on the cover-traffic study: each rate
+    plays a timeline through the same graph and pairs it with the epoch emission budget, which is
+    graph-free and therefore computed separately.
     """
     graph = build_graph(base)
     blend_hops_set = sorted({bh for bh, _ in prop_grid})
@@ -66,7 +79,24 @@ def run_graph_cell(base: SimConfig, prop_grid: list[tuple[int, int]],
                     dz = deanon_metrics(graph.n, adv["n_adv"], adv["observed_frac"], bh, R)
                     deanon_rows.append(deanon_row(base, bh, f_adv, mode, rep, R, adv, dz))
 
-    return prop_rows, adv_rows, deanon_rows
+    traffic_rows: list[dict] = []
+    for rate in (cover_rates or []):
+        cfg = dataclasses.replace(base, cover_rate_mult=rate)
+        f = 1.0 / base.block_interval_slots
+        srng = np.random.default_rng(stake_seedseq(base, rate))
+        stake = assign_stake(base.n_nodes, base.stake_dist, srng, base.stake_zipf_a)
+        quota = quota_summary(stake, f, base.n_nodes, base.slots_per_epoch, srng,
+                              base.stake_inference_ratio, rate)
+        for blend_hops, max_blend_delay in prop_grid:
+            trng = np.random.default_rng(
+                traffic_seedseq(base, blend_hops, max_blend_delay, rate))
+            win = simulate_window(graph, cfg, trng, base.traffic_window_slots,
+                                  max_blend_delay, blend_hops)
+            tm = traffic_metrics(win, cfg, max_blend_delay)
+            traffic_rows.append(
+                traffic_row(base, blend_hops, max_blend_delay, rate, tm, quota))
+
+    return prop_rows, adv_rows, deanon_rows, traffic_rows
 
 
 def run_trajectory(config: SimConfig) -> dict:
