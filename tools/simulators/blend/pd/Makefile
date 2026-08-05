@@ -8,7 +8,7 @@ export OPENBLAS_NUM_THREADS := 1
 export MKL_NUM_THREADS := 1
 export NUMEXPR_NUM_THREADS := 1
 
-.PHONY: install smoke sweep sweep-fullscale redundancy percolation figures verify test lint clean
+.PHONY: install smoke sweep sweep-fullscale redundancy percolation correlated-churn figures verify test lint clean
 
 # The stamp is the real install; targets below depend on it so `make sweep` (etc.) auto-installs
 # on a fresh checkout and re-installs whenever pyproject.toml changes.
@@ -34,6 +34,9 @@ redundancy: $(STAMP) ## messaging redundancy R=1..4 (delivery vs deanonymization
 
 percolation: $(STAMP) ## churn threshold: coverage collapse at u_c = 1 - 1/(degree-1)
 	$(PY) -m pd.sweep --config configs/percolation.yaml
+
+correlated-churn: $(STAMP) ## correlated AS/region outages vs uniform churn, matched fractions
+	$(PY) -m pd.sweep --config configs/correlated-churn.yaml
 
 figures: $(STAMP) ## make figures RUN=runs/<dir>
 	$(PY) -m pd.plotting.make_figures --run $(RUN)

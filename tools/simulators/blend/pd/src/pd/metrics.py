@@ -6,13 +6,17 @@ from .config import SimConfig
 
 
 def propagation_row(config: SimConfig, blend_hops: int, max_blend_delay: int,
-                    unresponsive_frac: float, redundancy: int, prop: dict) -> dict:
+                    unresponsive_frac: float, redundancy: int, prop: dict,
+                    churn_mode: str | None = None) -> dict:
     return {
         "n_nodes": config.n_nodes,
         "degree": config.degree,
         "blend_hops": blend_hops,
         "max_blend_delay": max_blend_delay,
         "unresponsive_frac": unresponsive_frac,
+        "churn_mode": churn_mode or config.churn_mode,
+        "n_regions": config.n_regions,
+        "region_locality": config.region_locality,
         "redundancy": redundancy,
         "graph_seed": config.graph_seed,
         "n_rounds": config.n_rounds,

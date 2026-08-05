@@ -147,6 +147,40 @@ def coverage_percolation(prop: pd.DataFrame, adv: pd.DataFrame):
     return fig
 
 
+def churn_correlated_vs_uniform(prop: pd.DataFrame, adv: pd.DataFrame):
+    """Correlated (AS/region) outages against uniform churn at matched churn fractions.
+
+    Solid = coverage of the *live* network (what the survivors still reach), dashed = coverage of
+    all nodes (which counts the dead, who can still receive). Clustered failure leaves survivors
+    better connected but strands whole dead regions, so the two curves separate in opposite
+    directions -- the single number "coverage" hides which of the two you mean.
+    """
+    if (prop is None or not len(prop) or "churn_mode" not in prop
+            or prop["churn_mode"].nunique() < 2):
+        return None
+    import matplotlib.pyplot as plt
+    style.apply_style()
+    n = _largest_n(prop)
+    bh = int(sorted(prop["blend_hops"].unique())[0])
+    d = prop[(prop.n_nodes == n) & (prop.blend_hops == bh)]
+    deg = _median_degree(d)
+    d = d[d.degree == deg]
+    fig, ax = plt.subplots()
+    for i, mode in enumerate(sorted(d.churn_mode.unique())):
+        c = style.color_for(i)
+        s = d[d.churn_mode == mode].groupby("unresponsive_frac").agg(
+            live=("frac_reached_live", "mean"), all_=("frac_reached", "mean")).reset_index()
+        ax.plot(s.unresponsive_frac, s.live, "-o", ms=4, color=c, label=f"{mode}: live network")
+        ax.plot(s.unresponsive_frac, s.all_, "--s", ms=3, color=c, alpha=0.65,
+                label=f"{mode}: all nodes")
+    ax.set_xlabel("unresponsive fraction  u")
+    ax.set_ylabel("flood coverage")
+    ax.set_ylim(-0.02, 1.02)
+    ax.set_title(f"Correlated vs uniform churn (N={n:,}, degree={deg}, {bh} hop)")
+    ax.legend(fontsize=7)
+    return fig
+
+
 def delay_vs_blendhops(prop: pd.DataFrame, adv: pd.DataFrame):
     if prop is None or not len(prop) or prop["blend_hops"].nunique() < 2:
         return None

@@ -37,8 +37,10 @@ def new_run_dir(outdir: Path, label: str) -> Path:
     return run_dir
 
 
-def _cell_worker(base: SimConfig, prop_grid, unresponsive_fracs, redundancies, adv_grid):
-    return run_graph_cell(base, prop_grid, unresponsive_fracs, redundancies, adv_grid)
+def _cell_worker(base: SimConfig, prop_grid, unresponsive_fracs, redundancies, adv_grid,
+                 churn_modes):
+    return run_graph_cell(base, prop_grid, unresponsive_fracs, redundancies, adv_grid,
+                          churn_modes)
 
 
 def run_sweep(sweep: SweepConfig,
@@ -47,10 +49,12 @@ def run_sweep(sweep: SweepConfig,
     prop_grid = sweep.prop_grid()
     unresponsive_fracs = list(sweep.unresponsive_frac)
     redundancies = list(sweep.redundancy)
+    churn_modes = list(sweep.churn_mode)
     adv_grid = sweep.adv_grid()
     bases = [sweep.base_config(n, d, g) for (n, d, g) in cells]
     results = Parallel(n_jobs=n_jobs, prefer="processes")(
-        delayed(_cell_worker)(base, prop_grid, unresponsive_fracs, redundancies, adv_grid)
+        delayed(_cell_worker)(base, prop_grid, unresponsive_fracs, redundancies, adv_grid,
+                              churn_modes)
         for base in tqdm(bases, desc="topologies")
     )
     prop_rows = [r for pr, _, _ in results for r in pr]

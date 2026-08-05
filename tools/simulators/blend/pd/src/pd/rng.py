@@ -36,16 +36,18 @@ def graph_seedseq(config: SimConfig) -> np.random.SeedSequence:
     """Topology-only seed: peer graph + processing lags depend on these fields alone."""
     return np.random.SeedSequence(_digest(
         config.root_seed, "graph", config.n_nodes, config.degree, config.graph_seed,
+        config.n_regions, config.region_locality,
         config.link_latency_dist, config.link_latency_mean_ms,
         config.processing_lags_ms, config.processing_lag_probs,
     ))
 
 
-def responsive_seedseq(config: SimConfig, unresponsive_frac: float) -> np.random.SeedSequence:
-    """Which nodes are responsive: fixed per (topology, unresponsive_frac), not per round."""
+def responsive_seedseq(config: SimConfig, unresponsive_frac: float,
+                       churn_mode: str = "uniform") -> np.random.SeedSequence:
+    """Which nodes are responsive: fixed per (topology, unresponsive_frac, churn_mode)."""
     return np.random.SeedSequence(_digest(
         config.root_seed, "responsive", config.n_nodes, config.degree, config.graph_seed,
-        unresponsive_frac,
+        unresponsive_frac, churn_mode, config.n_regions,
     ))
 
 

@@ -1,0 +1,29 @@
+# Correlated (AS/region) churn vs uniform churn, at matched churn fractions.
+#
+# Real outages are not independent: a datacentre, AS or region goes dark as a unit. This config
+# partitions the network into `n_regions` failure domains and compares two ways of removing the
+# SAME number of nodes -- `uniform` (scattered, the §3.5 model) against `regional` (whole domains).
+#
+# Correlation only has a structural effect if the peer graph itself is region-aware: with
+# region-blind peering, taking out whole regions removes a uniformly random set of nodes and is
+# therefore indistinguishable from uniform churn. So `region_locality` places 75% of every node's
+# peers inside its own region, which is what makes a failure domain a *connectivity* domain too.
+# Both churn modes run on the SAME topology, so the comparison is controlled.
+#
+# 800 rounds x 8 seeds = 6400 rounds per cell, matching the churn study in configs/percolation.yaml.
+n_nodes: [20000]
+degree: [4, 8, 16]
+blend_hops: [1, 3]
+max_blend_delay: [0]
+unresponsive_frac: [0.0, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8]
+churn_mode: [uniform, regional]
+redundancy: [1]
+f_adv: [0.2]
+adversary_mode: [random]
+seeds: 8
+base:
+  n_regions: 40           # 500 nodes per failure domain
+  region_locality: 0.75   # 3 of every 4 peers inside the node's own region
+  n_rounds: 800
+  n_placements: 1
+  worstcase_max_n: 100000
