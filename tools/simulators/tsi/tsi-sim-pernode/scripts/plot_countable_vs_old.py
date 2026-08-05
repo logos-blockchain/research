@@ -34,7 +34,14 @@ import numpy as np
 import pandas as pd
 
 from tsi_sim.plotting import style
-from tsi_sim.plotting.figures_pernode import equilibrium, recovery_rate, sem
+from tsi_sim.plotting.figures_pernode import (
+    Z95,
+    equilibrium,
+    paired_gaps,
+    pooled_by_delay,
+    recovery_rate,
+    sem,
+)
 from tsi_sim.theory import expected_ratio, q_effective
 
 DELAY = "blend_delay_max"
@@ -61,7 +68,8 @@ def _eq(df: pd.DataFrame, extra_cols: tuple[str, ...] = ()) -> pd.DataFrame:
     return eq.groupby(keys, as_index=False).agg(**agg)
 
 
-def fig_accuracy_vs_delay(cnt: pd.DataFrame, old: pd.DataFrame) -> plt.Figure:
+def fig_accuracy_vs_delay(cnt: pd.DataFrame, old: pd.DataFrame,
+                          paired: bool = False) -> plt.Figure:
     """Accuracy vs delay per U, with replicate SEM bars.
 
     U=0 is the NEGATIVE CONTROL: with no uncles the two models are identical by
@@ -82,7 +90,8 @@ def fig_accuracy_vs_delay(cnt: pd.DataFrame, old: pd.DataFrame) -> plt.Figure:
     ax.axhline(1.0, color="0.4", lw=0.8, ls=":")
     ax.set_xlabel("max per-relay mixing delay (slots)")
     ax.set_ylabel(r"equilibrium $\hat{D}/D_{true}$")
-    ax.set_title("Accuracy vs delay: countable (solid) vs unrestricted (dashed) referencing")
+    ax.set_title("Accuracy vs delay: countable (solid) vs unrestricted (dashed)"
+                 + (" — paired" if paired else ""))
     ax.legend(ncol=2, fontsize="x-small")
     return fig
 
@@ -171,20 +180,26 @@ def main() -> None:
     cnt_raw, old_raw = _load(args.countable), _load(args.old)
     f = float(cnt_raw["f"].iloc[0])
     cnt, old = _eq(cnt_raw), _eq(old_raw)
+    # When both arms shared their RNG streams the comparison is PAIRED: the per-replicate
+    # difference cancels the shared variance, so it supersedes the unpaired two-sample test.
+    pg = paired_gaps(cnt_raw, old_raw)
     prov = "tsi-sim-pernode countable-vs-old.yaml (+--old) / absorption-window.yaml"
 
     written = []
-    written += style.save(fig_accuracy_vs_delay(cnt, old), out / "cvo_accuracy_vs_delay", prov)
+    written += style.save(fig_accuracy_vs_delay(cnt, old, pg is not None),
+                          out / "cvo_accuracy_vs_delay", prov)
     written += style.save(fig_prediction_vs_sim(cnt, f), out / "cvo_prediction_vs_sim", prov)
     written += style.save(fig_recovery_vs_delay(cnt), out / "cvo_recovery_vs_delay", prov)
     written += style.save(fig_absorption_window(_load(args.absorption)),
                           out / "absorption_window", prov)
-    # Headline numbers for the report. Every countable-vs-old gap is printed with the
-    # two-sample t = |diff| / SE(diff) over replicates; |t| < 2 means the cell does NOT
-    # resolve a model difference at this replicate count and must not be read as one.
-    # The U=0 rows are the negative control (models identical by construction, so their
-    # t is a pure noise reading).
-    print(f"{'cell':<14} {'countable':>17} {'old':>17} {'diff':>9} {'t':>6}  verdict")
+    # Headline numbers for the report. The gap is printed with t = |gap| / SE(gap); |t| < 2
+    # means the cell does NOT resolve a model difference at this replicate count and must not
+    # be read as one. Under paired_streams the SE is the per-replicate paired one (the shared
+    # variance cancels); otherwise it is the unpaired two-sample SE. The U=0 rows are the
+    # negative control — identical models, so paired they must be EXACTLY zero.
+    kind = "PAIRED (common random numbers)" if pg is not None else "unpaired two-sample"
+    print(f"\ncountable vs unrestricted — {kind}, {int(cnt.n_rep.min())} replicates/arm")
+    print(f"{'cell':<14} {'countable':>17} {'unrestricted':>17} {'gap':>9} {'t':>6}  verdict")
     for u in sorted(cnt["max_uncles"].unique()):
         for _, row in cnt[cnt.max_uncles == u].sort_values(DELAY).iterrows():
             q, qu = row.mean_q, row.mean_q_eff
@@ -193,10 +208,15 @@ def main() -> None:
             if not len(o):
                 continue
             orow = o.iloc[0]
-            diff = row.mean_ratio - orow.mean_ratio
-            se = float(np.hypot(row.sem_ratio, orow.sem_ratio))
-            t = abs(diff) / se if se > 0 else float("inf")
-            verdict = ("CONTROL (must be 0)" if u == 0 else
+            if pg is not None:
+                pr = pg[(pg.max_uncles == u) & (pg[DELAY] == row[DELAY])].iloc[0]
+                diff, se, t = float(pr.gap), float(pr.se), float(pr.t)
+            else:
+                diff = row.mean_ratio - orow.mean_ratio
+                se = float(np.hypot(row.sem_ratio, orow.sem_ratio))
+                t = abs(diff) / se if se > 0 else float("inf")
+            verdict = ("CONTROL (exactly 0)" if u == 0 and diff == 0.0 else
+                       "CONTROL" if u == 0 else
                        "resolved" if t >= 2 else "NOT RESOLVED (noise)")
             print(f"U={u} delay={row[DELAY]:>5g}  "
                   f"{row.mean_ratio:.4f}+-{row.sem_ratio:.4f}  "
@@ -205,6 +225,16 @@ def main() -> None:
             print(f"{'':>14}   q={q:.4f} q_u={qu:.4f} r={r:.4f} "
                   f"pred={float(expected_ratio(f, q_effective(q, r))):.4f} "
                   f"n_rep={int(row.n_rep)}")
+    if pg is not None:
+        print("\npooled over U>=1 per delay (the caps measure the same difference):")
+        for _, r_ in pooled_by_delay(pg).iterrows():
+            mark = "  <-- resolved" if r_.t >= 2 else ""
+            print(f"  delay={r_[DELAY]:>5g}: {r_.gap:+.5f} +-{Z95 * r_.se:.5f} "
+                  f"t={r_.t:6.2f}{mark}")
+        ctl = pg[pg.max_uncles == 0]
+        ex, tot = int(ctl.n_zero.sum()), int(ctl.n_pair.sum())
+        print(f"  U=0 control must be exactly 0 under pairing: {ex}/{tot} pairs "
+              f"-> {'PASSES' if ex == tot else 'FAILS'}")
     print(f"wrote {len(written)} files -> {out}")
 
 

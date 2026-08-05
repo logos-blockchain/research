@@ -28,50 +28,27 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from statistics import NormalDist
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from tsi_sim.plotting import style
-from tsi_sim.plotting.figures_pernode import equilibrium, rho_for, sem
+from tsi_sim.plotting.figures_pernode import (
+    Z95,
+    equilibrium,
+    paired_gaps,
+    pooled_by_delay,
+    rho_for,
+    sem,
+)
 
 DELAY = "blend_delay_max"
-# Normal approximation: with 40 replicates per arm the t-quantile is within ~2% of 1.96,
-# and the replicate spread itself is the dominant uncertainty, so 1.96 is precise enough.
-Z95 = 1.96
 
 
 def _load(run_dir: str | Path) -> pd.DataFrame:
     return pd.read_parquet(Path(run_dir) / "results.parquet")
-
-
-def paired_gaps(cnt_raw: pd.DataFrame, old_raw: pd.DataFrame) -> pd.DataFrame | None:
-    """Per-replicate differences, when both arms were run with ``paired_streams``.
-
-    Under common random numbers replicate *i* of each arm shares the stake draw, the peering
-    graph and the lottery outcomes, so ``d_i = countable_i - unrestricted_i`` is a PAIRED
-    observation and the shared variance cancels. The test is then a one-sample t on the d_i,
-    which is what makes a sub-0.1 % effect reachable per cell instead of only after pooling.
-
-    Returns None when the runs are not paired, so the caller falls back to the unpaired test.
-    """
-    if not (cnt_raw.get("paired_streams", pd.Series([False])).all()
-            and old_raw.get("paired_streams", pd.Series([False])).all()):
-        return None
-    c, o = equilibrium(cnt_raw), equilibrium(old_raw)
-    keys = [DELAY, "max_uncles", "replicate"]
-    m = c[[*keys, "mean_ratio"]].merge(o[[*keys, "mean_ratio"]], on=keys,
-                                       suffixes=("_c", "_o"))
-    m["d"] = m.mean_ratio_c - m.mean_ratio_o
-    rows = []
-    for (dl, u), s in m.groupby([DELAY, "max_uncles"]):
-        d = s.d.to_numpy()
-        se = sem(d)
-        rows.append({DELAY: dl, "max_uncles": u, "gap": float(d.mean()), "se": se,
-                     "ci95": Z95 * se, "t": abs(d.mean()) / se if se > 0 else np.inf,
-                     "n_pair": len(d), "n_zero": int((d == 0.0).sum())})
-    return pd.DataFrame(rows).sort_values(["max_uncles", DELAY])
 
 
 def _cells(df: pd.DataFrame) -> pd.DataFrame:
@@ -125,24 +102,6 @@ def fig_accuracy(cnt: pd.DataFrame, old: pd.DataFrame) -> plt.Figure:
     ax.set_title("Design-regime accuracy: countable vs unrestricted referencing")
     ax.legend(ncol=2, fontsize="x-small")
     return fig
-
-
-def pooled_by_delay(g: pd.DataFrame) -> pd.DataFrame:
-    """Inverse-variance pooled gap across the U >= 1 arms, per delay.
-
-    Individual cells are underpowered against a sub-0.1 % effect even at 40 replicates, but
-    the three uncle caps are independent measurements of the same underlying difference, so
-    pooling them buys back a factor of ~sqrt(3) and is what actually resolves the trend.
-    """
-    u = g[g.max_uncles > 0]
-    rows = []
-    for d, s in u.groupby(DELAY):
-        w = 1.0 / s.se.to_numpy() ** 2
-        p = float((s.gap.to_numpy() * w).sum() / w.sum())
-        e = float(np.sqrt(1.0 / w.sum()))
-        rows.append({DELAY: d, "gap": p, "se": e, "ci95": Z95 * e,
-                     "t": abs(p) / e if e > 0 else np.inf})
-    return pd.DataFrame(rows).sort_values(DELAY)
 
 
 def fig_gap(g: pd.DataFrame) -> plt.Figure:
@@ -232,9 +191,10 @@ def main() -> None:
     print(f"\nn_rep = {int(g.n_rep_c.min())}/{int(g.n_rep_o.min())} per arm")
     print(f"widest 95% CI half-width at U>=1: +-{worst.ci95.max():.4f} "
           f"({100 * worst.ci95.max():.2f} pp)")
-    # Per-cell significance must be read against the number of cells tested: with 15 cells,
-    # ~0.75 are expected to clear t=2 by chance alone, so quote the Bonferroni threshold.
-    bonf = 2.935 if len(worst) == 15 else float("nan")
+    # Per-cell significance must be read against the number of cells tested — some are
+    # expected to clear t=2 by chance alone — so quote the Bonferroni threshold for the grid
+    # actually run, not a constant baked in for one grid size.
+    bonf = NormalDist().inv_cdf(1 - 0.05 / (2 * len(worst)))
     print(f"per-cell: {int((worst.t >= 2).sum())}/{len(worst)} cells with t>=2 "
           f"(expected by chance {0.05 * len(worst):.2f}); max t = {worst.t.max():.2f} "
           f"vs Bonferroni threshold {bonf:.3f}")
@@ -264,8 +224,10 @@ def main() -> None:
         print(f"  U=0 control under pairing must be EXACTLY zero: {exact}/{tot} pairs are 0.0"
               f" -> {'PASSES' if exact == tot else 'FAILS — streams are not shared'}")
         res = pg[(pg.max_uncles > 0) & (pg.t >= 2)]
-        print(f"  per-cell resolved at |t|>=2: {len(res)}/{len(pg[pg.max_uncles>0])}"
-              f" (unpaired: {int((unpaired[unpaired.max_uncles>0].t>=2).sum())}/15)")
+        n_cells = len(pg[pg.max_uncles > 0])
+        n_unpaired = int((unpaired[unpaired.max_uncles > 0].t >= 2).sum())
+        print(f"  per-cell resolved at |t|>=2: {len(res)}/{n_cells}"
+              f" (same data, unpaired test: {n_unpaired}/{n_cells})")
 
     ctl = g[g.max_uncles == 0]
     if len(ctl):

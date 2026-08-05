@@ -83,6 +83,58 @@ def rho_for(df: pd.DataFrame, delay) -> np.ndarray:
     return f * (hops * np.asarray(delay, dtype=float) / 2.0 + (hops + 1) * ell)
 
 
+DELAY = "blend_delay_max"
+# Normal approximation: at 20+ replicates the t-quantile is within a few percent of
+# 1.96, and the replicate spread dominates, so 1.96 is precise enough for these CIs.
+Z95 = 1.96
+
+
+def paired_gaps(cnt_raw: pd.DataFrame, old_raw: pd.DataFrame) -> pd.DataFrame | None:
+    """Per-replicate differences, when both arms were run with ``paired_streams``.
+
+    Under common random numbers replicate *i* of each arm shares the stake draw, the peering
+    graph and the lottery outcomes, so ``d_i = countable_i - unrestricted_i`` is a PAIRED
+    observation and the shared variance cancels. The test is then a one-sample t on the d_i,
+    which is what makes a sub-0.1 % effect reachable per cell instead of only after pooling.
+
+    Returns None when the runs are not paired, so the caller falls back to the unpaired test.
+    """
+    if not (cnt_raw.get("paired_streams", pd.Series([False])).all()
+            and old_raw.get("paired_streams", pd.Series([False])).all()):
+        return None
+    c, o = equilibrium(cnt_raw), equilibrium(old_raw)
+    keys = ["blend_delay_max", "max_uncles", "replicate"]
+    m = c[[*keys, "mean_ratio"]].merge(o[[*keys, "mean_ratio"]], on=keys,
+                                       suffixes=("_c", "_o"))
+    m["d"] = m.mean_ratio_c - m.mean_ratio_o
+    rows = []
+    for (dl, u), s in m.groupby(["blend_delay_max", "max_uncles"]):
+        d = s.d.to_numpy()
+        se = sem(d)
+        rows.append({"blend_delay_max": dl, "max_uncles": u, "gap": float(d.mean()), "se": se,
+                     "ci95": Z95 * se, "t": abs(d.mean()) / se if se > 0 else np.inf,
+                     "n_pair": len(d), "n_zero": int((d == 0.0).sum())})
+    return pd.DataFrame(rows).sort_values(["max_uncles", "blend_delay_max"])
+
+
+def pooled_by_delay(g: pd.DataFrame) -> pd.DataFrame:
+    """Inverse-variance pooled gap across the U >= 1 arms, per delay.
+
+    Individual cells are underpowered against a sub-0.1 % effect even at 40 replicates, but
+    the three uncle caps are independent measurements of the same underlying difference, so
+    pooling them buys back a factor of ~sqrt(3) and is what actually resolves the trend.
+    """
+    u = g[g.max_uncles > 0]
+    rows = []
+    for d, s in u.groupby(DELAY):
+        w = 1.0 / s.se.to_numpy() ** 2
+        p = float((s.gap.to_numpy() * w).sum() / w.sum())
+        e = float(np.sqrt(1.0 / w.sum()))
+        rows.append({DELAY: d, "gap": p, "se": e, "ci95": Z95 * e,
+                     "t": abs(p) / e if e > 0 else np.inf})
+    return pd.DataFrame(rows).sort_values(DELAY)
+
+
 def _lat_axis(topo: str) -> tuple[str, str]:
     """(dataframe column, axis label) for the dominant latency knob of a graph topology."""
     if topo == "blend":
