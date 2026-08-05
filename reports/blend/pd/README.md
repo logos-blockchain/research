@@ -40,7 +40,7 @@ A node's exposure is not only *whether* it is deanonymized but *how soon*: if ea
 
 **The tension, in one line.** Axes 1, 2-eclipse, and 4 all want *more* degree; axis 2-observation and axis 3-full-deanonymization want *less*. Because whole-path deanonymization (axis 3) depends only on the blend-path length, the resolution is to raise the degree to where speed, eclipse, and churn saturate (6–8) and to control anonymity independently through the number of blend hops. Messaging redundancy (finding 6) does not escape the trade — it moves reliability and anonymity together, never apart — and time itself is an axis: exposure is a rate, and a high-stake node accumulates it fastest (finding 5).
 
-*Method note: the peer graph is a deterministic, exactly d-regular matching-union reconstructible from one seed; the adversary observation/eclipse counts and both deanonymization rates are computed in closed form and are exact at every N (including 10⁶); propagation delays are Monte-Carlo over random senders (200 rounds × 8 topologies per cell). Delays fold a geographic link base (15–200 ms), an exponential transport jitter, and a per-node processing lag ({10, 50, 100} ms); mixing is the residual wait to a relay's next free-running release on a Uniform{0…3}-second clock.*
+*Method note: the peer graph is a deterministic, exactly d-regular matching-union reconstructible from one seed; the adversary observation/eclipse counts and both deanonymization rates are computed in closed form and are exact at every N (including 10⁶); propagation delays are Monte-Carlo over random senders (1 000 rounds × 8 topologies = 8 000 rounds per cell; see §5 for the resulting error bars). Delays fold a geographic link base (15–200 ms), an exponential transport jitter, and a per-node processing lag ({10, 50, 100} ms); mixing is the residual wait to a relay's next free-running release on a Uniform{0…3}-second clock.*
 
 ---
 
@@ -54,6 +54,10 @@ All delays are in milliseconds; the mix clock's maximum interval is in whole sec
 **Blend cascade (propagation).** Each round, a sender routes a message along a path of `blend_hops` relays — each a free-running timed-release mix — and the last relay floods it to the whole network. A transport leg between two nodes is the **directed shortest path** with edge weight `base(u,v) + Exp(jitter) + processing(u)`: a geographic base latency (metro 15 → antipodal 200 ms), an exponential transport jitter (mean 5 ms), and the relaying node's fixed processing lag (drawn once per node from {10, 50, 100} ms at {0.5, 0.4, 0.1}). At each relay the message waits the **residual** to that relay's next release on a free-running clock whose intervals are Uniform{0…`max_blend_delay`} seconds; the final flood is plain transport. The **full delay** is the sum of the transport legs, the per-hop mixing waits, and the broadcast to the last node.
 
 **Unresponsive nodes.** A random fraction `unresponsive_frac` of the population relays nothing — their outgoing edges are removed, so nothing routes *through* them, though they can still *receive* as a leaf. Relays are drawn from the whole node list **blind to responsiveness** (a sender cannot know who is up), so a message dies if any relay on its path is unresponsive. This axis affects propagation only.
+
+**Messaging redundancy.** A sender may emit `redundancy = R` copies of a message over `R` *independent* blend cascades, each drawing its own relays. A node receives whichever copy reaches it first, so the round's arrival times are the element-wise minimum over the cascades that survived: the message is delivered if **any** cascade completes, its coverage is the union of their reached sets, and its full delay is the last node's *earliest* arrival. `R = 1` is the plain single-cascade model, to which this reduces exactly.
+
+**Emission cadence and linking.** For the time-based results, traffic is modelled as: every 30 s slot exactly one node network-wide emits, chosen with probability proportional to its stake — so a node holding stake fraction `s` emits with probability `s` per slot. A node is **linked** the first time one of its emissions is *fully deanonymized*, which requires that node to be linkable at all (to have ≥ 1 adversarial peer; the rest are structurally beyond this attack). Counting the linked emissions over time additionally *estimates* the node's stake, since they arrive at a rate proportional to it.
 
 **Adversary.** A fraction `f_adv` of nodes are adversarial, placed either at random (average case) or by a greedy worst-case strategy (the security *envelope*, characterized at N ≤ 10⁵). An honest node is **observed** if it has ≥ 1 adversarial peer and **eclipsed** if *all* its peers are adversarial; both are counted exactly by one sparse reduction over the graph.
 
@@ -83,6 +87,9 @@ Going from degree 3 to 6 removes ~40 % of the 3-hop delay; from 8 to 16 removes 
 ![Fig 1 — full delay vs peering degree](report-figures/01_delay_vs_degree.png)
 *Fig 1 — Blend full delay vs peering degree, one line per blend-path length (N = 100 000, `max_blend_delay = 3` s). The curve is convex: most of the gain is realised by degree 6–8.*
 
+![Fig 2 — full delay vs blend-path length](report-figures/02_delay_vs_blendhops.png)
+*Fig 2 — The same data read the other way: full delay vs blend-path length, one line per degree. Straight lines — each hop adds a near-constant cost, and the degree sets the slope.*
+
 <a id="s3-2"></a>
 ### 3.2 Delay composition and network-size scaling
 
@@ -94,7 +101,7 @@ The multi-second total is spent in the blend path, not the flood. At degree 8, 3
 <a id="s3-3"></a>
 ### 3.3 Adversary observation and eclipse
 
-With random placement the two structural metrics follow their closed forms exactly. **Observed** — an honest node with ≥ 1 adversarial peer — is `1 − (1 − f_adv)^degree` and rises with degree (N = 100 000):
+With random placement the two structural metrics follow their closed forms exactly. **Observed** — an honest node with ≥ 1 adversarial peer — is `1 − (1 − f_adv)^degree` and rises with degree, in both directions of the grid (**Fig 8**; N = 100 000):
 
 | f_adv | d = 3 | 4 | 6 | 8 | 12 | 16 |
 |---|---|---|---|---|---|---|
@@ -129,6 +136,9 @@ So the blend-path length is the anonymity lever, and the number of hops needed t
 
 ![Fig 12 — deanonymization vs path length](report-figures/12_deanon_vs_blendhops.png)
 *Fig 12 — Whole-path deanonymization rate vs blend-path length, one line per `f_adv` (log-y). Solid = simulated, dashed = the analytic `f_adv^blend_hops`; path length drives it down exponentially, independent of degree.*
+
+![Fig 14 — full deanonymization vs adversary fraction](report-figures/14_full_deanon_vs_fadv.png)
+*Fig 14 — Full deanonymization vs `f_adv`, random against worst-case placement (log-y). The grey dotted ceiling is the whole-path rate, which no placement can exceed; the worst case rides up to it.*
 
 ![Fig 15 — full deanonymization vs degree](report-figures/15_full_deanon_vs_degree.png)
 *Fig 15 — Full deanonymization rate vs peering degree, per `f_adv` (2 hops, log-y). Full deanonymization **rises** with degree (dashed = the degree-flat whole-path rate): more peers make the sender almost surely touch the adversary.*
@@ -268,11 +278,11 @@ Expressing the cost as *time* rather than as a per-emission probability is what 
 
 **Choose the blend-path length for anonymity, independently.** Whole-path deanonymization is `f_adv^blend_hops` and does not depend on degree, so the number of hops is a free anonymity control: `blend_hops ≥ ln ε / ln f_adv` for a whole-path-capture target ε against an assumed adversary fraction `f_adv` (§3.4). The cost is paid in latency (1.5–2.7 s/hop by degree, §3.1) and reliability (a `(1 − u)` factor per hop, §3.5), and those costs — not the anonymity benefit — are what bound the usable path length at a given churn level.
 
-**Plan the adversary against the right case.** Observation and full deanonymization should be planned against the *worst-case* placement envelope (greedy coverage raises observation by up to ~0.15 absolute and pushes full deanonymization to the whole-path ceiling); eclipse can be planned against the random rate, since it is already negligible at degree ≥ 6–8 even in the worst case examined.
+**Plan the adversary against the right case.** Observation and full deanonymization should be planned against the *worst-case* placement envelope, where at a useful degree they simply saturate: greedy coverage takes observation to 1.000 at degree 8 with only `f_adv = 0.2` (§3.3), which drives full deanonymization to its whole-path ceiling. In other words, assume a competent adversary sees every honest node and plan anonymity entirely on path length. Eclipse can be planned against the random rate, since it is already negligible at degree ≥ 6–8 even in the worst case examined.
 
 **Judge anonymity in time, and weigh it by stake.** A per-emission rate that looks small is not safety for an active, high-stake node: exposure accumulates at `stake · f_adv^blend_hops` per slot, so a large staker is linked in days while a small one is effectively never (§3.6). If high-stake participants must stay unlinkable over a long horizon, the lever is the blend-path length — each hop multiplies the time-to-link by `1/f_adv` — since their stake (hence emission rate) is fixed. The corresponding protection against *stake* inference is automatic below ~0.1 % but weak for large stakers, who are both linked and sized quickly (§3.7).
 
-**Add messaging redundancy only for reliability, and price the anonymity it costs.** Redundancy `R` multiplies delivery and capture by the same `1−(1−x)^R`, so it should be raised only when churn makes single-cascade delivery inadequate (e.g. `R = 3` lifts delivery from 0.34 to 0.72 at 30 % churn), accepting that it shortens every time-to-link by ≈ `R` (§3.8). It is strictly the wrong tool for *coverage*: redundancy cannot reach nodes a single delivered cascade misses, because every cascade floods the sender's own component — coverage is bought with peering degree, not repetition. Note also that path length and redundancy pull against each other: each hop divides the capture rate by `f_adv` but multiplies the loss rate, while each extra copy restores delivery at a proportional anonymity cost. The efficient combination is the *shortest* path that still meets the anonymity target at `R = 1`, raising `R` only if the resulting delivery rate is unacceptable.
+**Add messaging redundancy only for reliability, and price the anonymity it costs.** Redundancy `R` multiplies delivery and capture by the same `1−(1−x)^R`, so it should be raised only when churn makes single-cascade delivery inadequate (e.g. `R = 3` lifts delivery from 0.342 to 0.713 at 30 % churn), accepting that it shortens every time-to-link by ≈ `R` (§3.8). It is strictly the wrong tool for *coverage*: redundancy cannot reach nodes a single delivered cascade misses, because every cascade floods the sender's own component — coverage is bought with peering degree, not repetition. Note also that path length and redundancy pull against each other: each hop divides the capture rate by `f_adv` but multiplies the loss rate, while each extra copy restores delivery at a proportional anonymity cost. The efficient combination is the *shortest* path that still meets the anonymity target at `R = 1`, raising `R` only if the resulting delivery rate is unacceptable.
 
 ---
 
@@ -298,4 +308,4 @@ The figures of record for this report are the copies checked in under [`report-f
 
 ## Figures
 
-All twenty-one rendered figures are versioned in [`report-figures/`](report-figures): `01`–`03` propagation delay (vs degree, vs path length, vs N); `04`–`09` adversary observation and eclipse (vs `f_adv`, vs degree, and heatmaps); `10`–`11` reliability under churn (delivery and coverage); `12`–`15` deanonymization (whole-path and full, vs path length, `f_adv`, and degree); `16`–`18` linkability over time (time to link vs stake, with redundancy, and time to learn stake vs threshold); `19` the redundancy reliability-vs-anonymity trade-off in probability and `21` the same trade in delivery-vs-time-to-link; `20` the churn-percolation threshold. Figures 11 and 20 both plot coverage against churn — 20 supersedes 11 by walking the churn past every degree's threshold, so only 20 is embedded above.
+All twenty-one rendered figures are versioned in [`report-figures/`](report-figures): `01`–`03` propagation delay (vs degree, vs path length, vs N); `04`–`09` adversary observation and eclipse (vs `f_adv`, vs degree, and heatmaps); `10`–`11` reliability under churn (delivery and coverage); `12`–`15` deanonymization (whole-path and full, vs path length, `f_adv`, and degree); `16`–`18` linkability over time (time to link vs stake, with redundancy, and time to learn stake vs threshold); `19` the redundancy reliability-vs-anonymity trade-off in probability and `21` the same trade in delivery-vs-time-to-link; `20` the churn-percolation threshold. Fifteen of the twenty-one are embedded above; the other six (`04`–`06`, `09`, `11`, `13`) are alternative cuts of data already shown — for instance 11 and 20 both plot coverage against churn, and 20 supersedes 11 by walking the churn past every degree's threshold.
