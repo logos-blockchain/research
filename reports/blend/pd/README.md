@@ -335,6 +335,8 @@ The simulator, configs, and analytic checks live in [`tools/simulators/blend/pd`
 
 The figures of record for this report are the copies checked in under [`report-figures/`](report-figures); the simulator does not commit its own generated figures. To regenerate: run the sweeps above, then copy `runs/<…>/figures/*.png` into `report-figures/`.
 
+The **evidence** is checked in too: [`data/`](data) holds the sweep outputs behind every table and figure, one directory per study, with [`data/report_numbers.py`](data/report_numbers.py) regenerating every quoted value together with its standard error directly from them. Any number in this report can therefore be checked against its source without re-running the sweeps — see [`data/README.md`](data/README.md) for what each run is and how it was sampled.
+
 ## Figures
 
 All twenty-two rendered figures are versioned in [`report-figures/`](report-figures): `01`–`03` propagation delay (vs degree, vs path length, vs N); `04`–`09` adversary observation and eclipse (vs `f_adv`, vs degree, and heatmaps); `10`–`11` reliability under churn (delivery and coverage); `12`–`15` deanonymization (whole-path and full, vs path length, `f_adv`, and degree); `16`–`18` linkability over time (time to link vs stake, with redundancy, and time to learn stake vs threshold); `19` the redundancy reliability-vs-anonymity trade-off in probability and `21` the same trade in delivery-vs-time-to-link; `20` the churn-percolation threshold; `22` correlated versus uniform outages. Sixteen of the twenty-two are embedded above; the other six (`04`–`06`, `09`, `11`, `13`) are alternative cuts of data already shown — for instance 11 and 20 both plot coverage against churn, and 20 supersedes 11 by walking the churn past every degree's threshold.
