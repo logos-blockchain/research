@@ -14,7 +14,7 @@ import numpy as np
 from .adversary import adversary_metrics, deanon_metrics, place_adversary
 from .config import SimConfig
 from .graph import build_graph
-from .rng import placement_seedseq
+from .rng import placement_seedseq, traffic_seedseq
 
 
 def _check(name: str, ok: bool, detail: str) -> bool:
@@ -216,6 +216,47 @@ def main(argv: list[str] | None = None) -> int:
                  res["regional"]["delivery_rate"] > res["uniform"]["delivery_rate"],
                  f"delivery regional {res['regional']['delivery_rate']:.3f}"
                  f" vs uniform {res['uniform']['delivery_rate']:.3f}")
+
+    # 9. cover traffic. Blending -- the broadcasts a relay saw between consecutive releases, which
+    #    is the anonymity set -- follows rate*(2M+1)/3: gaps sampled AT a release are size-biased,
+    #    so it is twice the mean hold, not rate*M/2. Mixing (messages held at once) stays ~0 at the
+    #    baseline rate, which is the point: at one message a second the relays have nothing to mix.
+    from .traffic import simulate_window, traffic_metrics
+    tc = SimConfig(n_nodes=2000, degree=8, blend_hops=3, max_blend_delay=10,
+                   cover_rate_mult=1.0, graph_seed=0)
+    tg = build_graph(tc)
+    tw = simulate_window(tg, tc, np.random.default_rng(traffic_seedseq(tc, 3, 10, 1.0)), 1200)
+    tm = traffic_metrics(tw, tc)
+    rate = (tw.emitted_cover + tw.emitted_block) / tw.window_seconds
+    blend_th = rate * (2 * 10 + 1) / 3
+    ok &= _check("blending = rate*(2M+1)/3",
+                 abs(tm["blending_mean"] - blend_th) < 0.15 * blend_th,
+                 f"sim {tm['blending_mean']:.2f} vs theory {blend_th:.2f}")
+    ok &= _check("mean hold = (2M+1)/6", abs(tm["hold_seconds_mean"] - 21 / 6) < 0.3,
+                 f"sim {tm['hold_seconds_mean']:.2f}s vs theory {21/6:.2f}s")
+    ok &= _check("mixing is nil at the baseline rate", tm["queue_mean"] < 0.05,
+                 f"mean concurrent holds {tm['queue_mean']:.4f}, max {tm['queue_max']:.0f}")
+    ok &= _check("cover between blocks = rate x block interval",
+                 abs(tm["cover_per_block_interval"] - rate * 30) < 8,
+                 f"sim {tm['cover_per_block_interval']:.1f} vs theory {rate*30:.1f}")
+
+    # 10. the emission quota. The ceiling binds on stake relative to the INFERRED total, and the
+    #     measured breakpoint must bracket the closed form ln(1-q)/ln(1-f).
+    from .quota import alpha_max, assign_stake, simulate_epoch_emissions
+    fq, nq, sq = 1.0 / 30.0, 20_000, 648_000
+    st = assign_stake(nq, "zipf", np.random.default_rng(11), 1.0)
+    qr = simulate_epoch_emissions(st, fq, nq, sq, np.random.default_rng(12))
+    pred = alpha_max(nq, fq)
+    ok &= _check("quota ceiling brackets the closed form",
+                 qr["min_overrun_stake"] <= pred * 1.5 and qr["max_compliant_stake"] >= pred * 0.5,
+                 f"measured band [{qr['min_overrun_stake']*100:.4f}%, "
+                 f"{qr['max_compliant_stake']*100:.4f}%] vs predicted {pred*100:.4f}%")
+    lowd = simulate_epoch_emissions(st, fq, nq, sq, np.random.default_rng(12),
+                                    stake_inference_ratio=0.64)
+    ok &= _check("a low D_hat/D tightens the true-stake ceiling",
+                 lowd["compliant_frac"] < qr["compliant_frac"],
+                 f"compliant {qr['compliant_frac']*100:.2f}% at 1.00 -> "
+                 f"{lowd['compliant_frac']*100:.2f}% at 0.64")
 
     print("OK" if ok else "FAILURES PRESENT")
     return 0 if ok else 1
