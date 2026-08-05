@@ -13,9 +13,18 @@ bisection, solving each inner MDP by relative value iteration.
 
 The optimal revenue is an upper bound on any selfish adversary's take; it lower-bounds the honest
 stake threshold above which deviating pays. Used in §6.6 to bracket the real profit frontier.
+
+:func:`optimal_policy_stats` reads a second quantity off the same solution: how the orphaned
+blocks are *shaped*. The countable uncle model (§2.1) can reference only the **first block of a
+fork**, so an override that discards ``h`` honest blocks — one chain — yields one countable
+uncle, not ``h``. SM1 never lets the honest branch grow past 1 before acting, so under SM1 every
+orphan is countable; the optimum *waits*, and that is what the first-fork restriction cannot
+recover (§6.6).
 """
 
 from __future__ import annotations
+
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -34,46 +43,53 @@ def _build_states(cap: int):
 
 
 def _transitions(a, h, f, action, alpha, gamma, cap):
-    """Legal-action transition list: [(prob, (a',h',f'), adv_reward, hon_reward)].
+    """Legal-action transition list: [(prob, (a',h',f'), adv_reward, hon_reward, orph_hon,
+    orph_adv)].
 
     Returns None if the action is illegal in this state. At the cap, only adopt/override remain so
     the chain stays bounded (the optimal policy resolves long before the cap in the tested range).
+
+    ``orph_hon`` / ``orph_adv`` are the honest / adversary blocks *discarded* on that branch. They
+    are carried here rather than re-derived downstream so the orphan accounting cannot drift from
+    the race logic. Each is a **contiguous chain** rooted at the fork point, which is what makes the
+    countable model's first-fork rule recover exactly one of them (:func:`optimal_policy_stats`).
     """
     beta = 1.0 - alpha
     at_cap = a >= cap or h >= cap
 
     if action == ADOPT:
-        # abandon the secret chain; the h honest blocks are confirmed, then one block is mined
-        return [(alpha, (1, 0, IRRELEVANT), 0, h),
-                (beta, (0, 1, IRRELEVANT), 0, h)]
+        # abandon the secret chain; the h honest blocks are confirmed, then one block is mined.
+        # The a secret blocks are discarded as one chain off the fork point.
+        return [(alpha, (1, 0, IRRELEVANT), 0, h, 0, a),
+                (beta, (0, 1, IRRELEVANT), 0, h, 0, a)]
 
     if action == OVERRIDE:
         if a <= h:
             return None                        # need a strictly longer chain to override
         # publish h+1 blocks -> they override the public h; a-h-1 stay secret; then one block mined
-        return [(alpha, (a - h, 0, IRRELEVANT), h + 1, 0),
-                (beta, (a - h - 1, 1, RELEVANT), h + 1, 0)]
+        return [(alpha, (a - h, 0, IRRELEVANT), h + 1, 0, h, 0),
+                (beta, (a - h - 1, 1, RELEVANT), h + 1, 0, h, 0)]
 
     if at_cap:
         return None                            # only adopt/override allowed at the boundary
 
     if action == WAIT:
         if f != ACTIVE:
-            return [(alpha, (a + 1, h, IRRELEVANT), 0, 0),
-                    (beta, (a, h + 1, RELEVANT), 0, 0)]
+            return [(alpha, (a + 1, h, IRRELEVANT), 0, 0, 0, 0),
+                    (beta, (a, h + 1, RELEVANT), 0, 0, 0, 0)]
         if a < h:
             return None            # inconsistent (unreachable) active state: only adopt is valid
         # waiting while a fork is active: the same race dynamics as match
-        return [(alpha, (a + 1, h, ACTIVE), 0, 0),
-                (gamma * beta, (a - h, 1, RELEVANT), h, 0),      # adv's matched branch wins h
-                ((1 - gamma) * beta, (a, h + 1, RELEVANT), 0, 0)]
+        return [(alpha, (a + 1, h, ACTIVE), 0, 0, 0, 0),
+                (gamma * beta, (a - h, 1, RELEVANT), h, 0, h, 0),  # adv's matched branch wins h
+                ((1 - gamma) * beta, (a, h + 1, RELEVANT), 0, 0, 0, 0)]
 
     if action == MATCH:
         if not (f == RELEVANT and a >= h):
             return None                        # match needs equal-or-longer chain on a fresh tip
-        return [(alpha, (a + 1, h, ACTIVE), 0, 0),
-                (gamma * beta, (a - h, 1, RELEVANT), h, 0),
-                ((1 - gamma) * beta, (a, h + 1, RELEVANT), 0, 0)]
+        return [(alpha, (a + 1, h, ACTIVE), 0, 0, 0, 0),
+                (gamma * beta, (a - h, 1, RELEVANT), h, 0, h, 0),
+                ((1 - gamma) * beta, (a, h + 1, RELEVANT), 0, 0, 0, 0)]
 
     return None
 
@@ -89,6 +105,8 @@ def _precompute(alpha, gamma, states, index, cap):
     nxt = np.zeros((4, n, _K), dtype=np.int64)
     radv = np.zeros((4, n, _K))
     rhon = np.zeros((4, n, _K))
+    ohon = np.zeros((4, n, _K))       # honest blocks discarded on the branch (one chain)
+    oadv = np.zeros((4, n, _K))       # adversary blocks discarded on the branch (one chain)
     legal = np.zeros((4, n), dtype=bool)
     for i, (a, h, f) in enumerate(states):
         for action in (ADOPT, OVERRIDE, MATCH, WAIT):
@@ -96,12 +114,14 @@ def _precompute(alpha, gamma, states, index, cap):
             if tr is None:
                 continue
             legal[action, i] = True
-            for b, (p, s2, ra, rh) in enumerate(tr):
+            for b, (p, s2, ra, rh, oh, oa) in enumerate(tr):
                 probs[action, i, b] = p
                 nxt[action, i, b] = index[s2]
                 radv[action, i, b] = ra
                 rhon[action, i, b] = rh
-    return probs, nxt, radv, rhon, legal
+                ohon[action, i, b] = oh
+                oadv[action, i, b] = oa
+    return probs, nxt, radv, rhon, ohon, oadv, legal
 
 
 def _solve_mdp(pc, rho, ref, iters, tol):
@@ -112,7 +132,7 @@ def _solve_mdp(pc, rho, ref, iters, tol):
     textbook span criterion: at the average-reward fixed point ``TV − V = g·1`` (span → 0), and the
     gain ``g`` is that uniform increment. Returns the span-centre of the final Bellman increment.
     """
-    probs, nxt, radv, rhon, legal = pc
+    probs, nxt, radv, rhon, _ohon, _oadv, legal = pc
     reward = (1.0 - rho) * radv - rho * rhon          # (4, n, K), constant across iterations
     V = np.zeros(probs.shape[1])
     tau = 0.5
@@ -142,6 +162,11 @@ def optimal_selfish_revenue(alpha: float, gamma: float, cap: int = 60,
     states, index = _build_states(cap)
     pc = _precompute(alpha, gamma, states, index, cap)
     ref = index[(1, 0, IRRELEVANT)]
+    return _bisect_revenue(pc, ref, alpha, iters, tol)
+
+
+def _bisect_revenue(pc, ref, alpha, iters, tol):
+    """Bisection on the ratio objective — the shared inner loop of the revenue solvers."""
     lo, hi = alpha - 1e-9, 1.0             # relative revenue in [alpha, 1)
     for _ in range(44):
         mid = 0.5 * (lo + hi)
@@ -151,3 +176,122 @@ def optimal_selfish_revenue(alpha: float, gamma: float, cap: int = 60,
         else:
             hi = mid
     return 0.5 * (lo + hi)
+
+
+@dataclass
+class OptimalPolicyStats:
+    """Per-block-finding-event rates under the optimal policy's stationary distribution.
+
+    Every MDP transition consumes exactly one block-finding event (the alpha/beta branch), so
+    stationary per-step rates *are* per-event rates. ``deviates`` is False below the profitability
+    threshold, where the optimum is honest mining and the MDP is indifferent across policies (the
+    value-iteration policy is then arbitrary and its orphan structure meaningless).
+    """
+    alpha: float
+    gamma: float
+    revenue: float
+    deviates: bool
+    density_fraction: float        # canonical blocks per event — the raw TSI deflation factor
+    orphan_hon_blocks: float       # honest blocks orphaned per event
+    orphan_hon_runs: float         # honest orphan *chains* per event (1 countable uncle each)
+    orphan_adv_blocks: float       # adversary blocks discarded per event
+    orphan_adv_runs: float
+
+    @property
+    def countable_recovery(self) -> float:
+        """Ceiling on the uncle-recovery fraction ``eta`` under the first-fork rule (§2.1).
+
+        ``runs / blocks``: an override discards a *chain* of honest blocks and only its first is
+        referenceable, so this is the largest ``eta`` the deployed counting rules admit — 1.0 under
+        SM1 (which never buries a second block), below 1 whenever the policy waits.
+        """
+        if self.orphan_hon_blocks <= 0:
+            return 1.0
+        return self.orphan_hon_runs / self.orphan_hon_blocks
+
+    @property
+    def countable_recovery_adv(self) -> float:
+        """The same ceiling on the attacker *self-uncling* its own abandoned chain (§6.7(a))."""
+        if self.orphan_adv_blocks <= 0:
+            return 1.0
+        return self.orphan_adv_runs / self.orphan_adv_blocks
+
+    def dhat_ratio(self, p_ref: float = 1.0, countable: bool = True) -> float:
+        """Equilibrium ``D̂/D*`` = canonical density + the referenced share of honest orphans.
+
+        ``countable=True`` counts one uncle per orphaned *chain* (the deployed rule);
+        ``countable=False`` is the unrestricted baseline that counts every orphaned block.
+        """
+        rec = self.orphan_hon_runs if countable else self.orphan_hon_blocks
+        return self.density_fraction + float(np.clip(p_ref, 0.0, 1.0)) * rec
+
+
+def optimal_policy_stats(alpha: float, gamma: float, cap: int = 64,
+                         iters: int = 4000, tol: float = 1e-10) -> OptimalPolicyStats:
+    """Orphan structure of the *optimal* selfish policy — the input the countable model needs.
+
+    Solves the same MDP as :func:`optimal_selfish_revenue`, then reads the greedy policy off the
+    value function at the optimal ``rho``, finds its stationary distribution, and accumulates the
+    per-event canonical / orphan rates carried on the transition table.
+
+    ``cap`` must be larger here than for the revenue alone: the revenue converges once long leads
+    are rare, but the orphan *shape* keeps changing while the policy still waits near the cap
+    (measured drift at alpha = 0.45 is ~0.005 in eta from cap 48 to 64, ~0.0003 at alpha = 0.4).
+    """
+    states, index = _build_states(cap)
+    pc = _precompute(alpha, gamma, states, index, cap)
+    probs, nxt, radv, rhon, ohon, oadv, legal = pc
+    ref = index[(1, 0, IRRELEVANT)]
+    revenue = _bisect_revenue(pc, ref, alpha, iters, tol)
+
+    # Below the profitability threshold the optimum is honest mining (revenue == alpha) and the MDP
+    # is indifferent among many policies; report the honest outcome rather than an arbitrary one.
+    if revenue <= alpha * (1.0 + 1e-6):
+        return OptimalPolicyStats(alpha=alpha, gamma=gamma, revenue=revenue, deviates=False,
+                                  density_fraction=1.0, orphan_hon_blocks=0.0,
+                                  orphan_hon_runs=0.0, orphan_adv_blocks=0.0,
+                                  orphan_adv_runs=0.0)
+
+    # Recover V at the optimal rho, then the greedy policy.
+    reward = (1.0 - revenue) * radv - revenue * rhon
+    n = probs.shape[1]
+    V = np.zeros(n)
+    for _ in range(iters):
+        q = (probs * (reward + V[nxt])).sum(axis=2)
+        q[~legal] = -1e18
+        d = q.max(axis=0) - V
+        if d.max() - d.min() < tol:
+            break
+        V = V + 0.5 * d
+        V -= V[ref]
+    q = (probs * (reward + V[nxt])).sum(axis=2)
+    q[~legal] = -1e18
+    # Deterministic tie-break toward the lowest action index (ADOPT < OVERRIDE < MATCH < WAIT) so
+    # near-ties resolve to the least-deviating policy instead of an arbitrary argmax.
+    best = q.max(axis=0)
+    pol = np.where(q >= best[None, :] - 1e-9, np.arange(4)[:, None], 99).min(axis=0)
+
+    rows = np.arange(n)
+    p_s, n_s = probs[pol, rows], nxt[pol, rows]                  # (n, K)
+    # Stationary distribution. The policy chain is periodic (see _solve_mdp), so iterate the lazy
+    # chain — same stationary vector, no oscillation.
+    pi = np.full(n, 1.0 / n)
+    for _ in range(500_000):
+        new = 0.5 * pi + 0.5 * np.bincount(n_s.ravel(), weights=(pi[:, None] * p_s).ravel(),
+                                           minlength=n)
+        new /= new.sum()
+        if np.abs(new - pi).max() < 1e-15:
+            pi = new
+            break
+        pi = new
+
+    w = pi[:, None] * p_s                                        # stationary branch flow
+    ohon_s, oadv_s = ohon[pol, rows], oadv[pol, rows]
+    return OptimalPolicyStats(
+        alpha=alpha, gamma=gamma, revenue=revenue, deviates=True,
+        density_fraction=float((w * (radv[pol, rows] + rhon[pol, rows])).sum()),
+        orphan_hon_blocks=float((w * ohon_s).sum()),
+        orphan_hon_runs=float((w * (ohon_s > 0)).sum()),
+        orphan_adv_blocks=float((w * oadv_s).sum()),
+        orphan_adv_runs=float((w * (oadv_s > 0)).sum()),
+    )
