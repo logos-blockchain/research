@@ -21,31 +21,12 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from tsi_sim.config import SimConfig  # noqa: E402
 from tsi_sim.plotting import style  # noqa: E402
-from tsi_sim.topology import build_path_latency  # noqa: E402
+from tsi_sim.plotting.figures_pernode import graph_ell_mean  # noqa: E402
 
 HERE = Path(__file__).resolve().parent.parent
 RUNS = HERE / "runs"
 FIGS = HERE / "report-figures"
-
-
-def graph_ell_mean(df: pd.DataFrame) -> float:
-    """``ell_mean`` — the mean shortest-path (gossip) latency of the run's OWN peering graph.
-
-    Measured from the run's recorded ``(n_nodes, degree, link_latency_mean, link_latency_dist)``
-    rather than hardcoded, so the rho axis stays correct if any of those change. It is a statistical
-    property of the random d-regular geo graph (seed-invariant to <1% at this N), so one
-    representative draw suffices. Post-processing only — this rebuilds the latency *graph* to read
-    off its mean, and never touches or re-runs the simulation.
-    """
-    row = df.iloc[0]
-    cfg = SimConfig(n_nodes=int(row.n_nodes), degree=int(row.degree), topology="blend",
-                    link_latency_mean=float(row.link_latency_mean),
-                    link_latency_dist=str(row.link_latency_dist), k=int(row.k))
-    pl = build_path_latency(cfg, np.random.default_rng(0))
-    n = pl.shape[0]
-    return float(pl[~np.eye(n, dtype=bool)].mean())
 
 
 def load() -> pd.DataFrame:

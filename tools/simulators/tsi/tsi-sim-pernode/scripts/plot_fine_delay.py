@@ -34,7 +34,7 @@ import numpy as np
 import pandas as pd
 
 from tsi_sim.plotting import style
-from tsi_sim.plotting.figures_pernode import equilibrium, sem
+from tsi_sim.plotting.figures_pernode import equilibrium, rho_for, sem
 
 DELAY = "blend_delay_max"
 # Normal approximation: with 40 replicates per arm the t-quantile is within ~2% of 1.96,
@@ -54,6 +54,20 @@ def _cells(df: pd.DataFrame) -> pd.DataFrame:
         n_rep=("mean_ratio", "size"),
         mean_q=("mean_q", "mean"),
         mean_q_eff=("mean_q_eff", "mean"))
+
+
+def vs_one(cells: pd.DataFrame) -> pd.DataFrame:
+    """Test each U >= 1 cell against the exact target 1.0.
+
+    An independent read on the same question the gap test asks: the report's claim is that
+    uncle recovery restores the equilibrium to EXACTLY the true stake, so a systematic
+    shortfall across uncle caps is the first-fork cost seen from the absolute side rather
+    than differentially. 40 replicates give ~0.0005 resolution, enough to see 0.1%.
+    """
+    u = cells[cells.max_uncles > 0].copy()
+    u["dev"] = u.mean_ratio - 1.0
+    u["t"] = u.dev / u.sem_ratio.replace(0, np.nan)
+    return u.sort_values(["max_uncles", DELAY])
 
 
 def gaps(cnt: pd.DataFrame, old: pd.DataFrame) -> pd.DataFrame:
@@ -150,9 +164,17 @@ def main() -> None:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    cnt, old = _cells(_load(args.countable)), _cells(_load(args.old))
+    cnt_raw = _load(args.countable)
+    cnt, old = _cells(cnt_raw), _cells(_load(args.old))
     g = gaps(cnt, old)
     prov = "tsi-sim-pernode fine-delay.yaml (+--old)"
+
+    # rho per delay, derived (never hand-substituted) — these are the report's axis labels.
+    delays = sorted(cnt[DELAY].unique())
+    print("load rho = f*D_vis per delay (measured ell_mean, see figures_pernode.rho_for):")
+    print("  " + "  ".join(f"delay={d:g}: rho={r:.3f}"
+                           for d, r in zip(delays, rho_for(cnt_raw, delays), strict=True)))
+    print()
 
     written = []
     written += style.save(fig_accuracy(cnt, old), out / "fine_accuracy_vs_delay", prov)
@@ -193,6 +215,18 @@ def main() -> None:
         print(f"\nU=0 negative control (true gap = 0): |gap| up to {ctl.gap.abs().max():.4f}, "
               f"max t = {ctl.t.max():.2f}, 95% CI +-{ctl.ci95.max():.4f} "
               f"-> control {'PASSES' if ctl.t.max() < 2 else 'FAILS'}")
+
+    # Absolute test: does uncle recovery actually land on 1.0? Same question as the gap
+    # test, asked without reference to the other model.
+    for lbl, cells in (("countable", cnt), ("unrestricted", old)):
+        v = vs_one(cells)
+        lo = v[v.t <= -2]
+        print(f"\nvs exact 1.0, {lbl}: {len(lo)}/{len(v)} cells significantly BELOW 1")
+        if len(lo):
+            for d, s in lo.groupby(DELAY):
+                caps = "/".join(f"U={int(x)}" for x in sorted(s.max_uncles))
+                print(f"  delay={d:>4g}: {caps}  dev {s.dev.min():+.5f}..{s.dev.max():+.5f}  "
+                      f"t {s.t.min():.2f}..{s.t.max():.2f}")
     print(f"wrote {len(written)} files -> {out}")
 
 

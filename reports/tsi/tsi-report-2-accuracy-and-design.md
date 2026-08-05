@@ -116,12 +116,12 @@ The U = 0 under-count **deepens with N** (more nodes → more concurrent proposa
 
 | `δ_max` (s) | ρ | U | countable | unrestricted | gap (t) |
 |---|---|---|---|---|---|
-| 4 | ≈ 0.4 | 1 / 2 / 4 | 0.9979 ± 0.0015 / 0.9982 ± 0.0014 / 0.9995 ± 0.0012 | 0.9981 ± 0.0006 / 0.9985 ± 0.0012 / 0.9992 ± 0.0013 | *none resolved* (0.1–0.2) |
-| 8 | ≈ 0.6 | 1 / 2 / 4 | 0.9965 ± 0.0015 / 0.9955 ± 0.0017 / 0.9963 ± 0.0015 | 0.9986 ± 0.0017 / 0.9993 ± 0.0016 / 0.9989 ± 0.0017 | *none resolved* (1.0–1.6) |
-| 16 | ≈ 1.0 | 1 | 0.9647 ± 0.0065 | 0.9610 ± 0.0043 | *not resolved* (0.5) |
-| 16 | ≈ 1.0 | 2 / 4 | 0.9862 ± 0.0010 / 0.9911 ± 0.0032 | 0.9999 ± 0.0005 / 1.0013 ± 0.0011 | −0.014 (12.1) / −0.010 (3.0) |
-| 32 | ≈ 1.8 | 1 | 0.608 ± 0.069 | 0.570 ± 0.042 | *not resolved* (0.5) |
-| 32 | ≈ 1.8 | 2 / 4 | 0.9343 ± 0.0015 / 0.9517 ± 0.0007 | 0.9774 ± 0.0064 / 1.0020 ± 0.0010 | −0.043 (6.5) / −0.050 (41.0) |
+| 4 | ≈ 0.36 | 1 / 2 / 4 | 0.9979 ± 0.0015 / 0.9982 ± 0.0014 / 0.9995 ± 0.0012 | 0.9981 ± 0.0006 / 0.9985 ± 0.0012 / 0.9992 ± 0.0013 | *none resolved* (0.1–0.2) |
+| 8 | ≈ 0.56 | 1 / 2 / 4 | 0.9965 ± 0.0015 / 0.9955 ± 0.0017 / 0.9963 ± 0.0015 | 0.9986 ± 0.0017 / 0.9993 ± 0.0016 / 0.9989 ± 0.0017 | *none resolved* (1.0–1.6) |
+| 16 | ≈ 0.96 | 1 | 0.9647 ± 0.0065 | 0.9610 ± 0.0043 | *not resolved* (0.5) |
+| 16 | ≈ 0.96 | 2 / 4 | 0.9862 ± 0.0010 / 0.9911 ± 0.0032 | 0.9999 ± 0.0005 / 1.0013 ± 0.0011 | −0.014 (12.1) / −0.010 (3.0) |
+| 32 | ≈ 1.76 | 1 | 0.608 ± 0.069 | 0.570 ± 0.042 | *not resolved* (0.5) |
+| 32 | ≈ 1.76 | 2 / 4 | 0.9343 ± 0.0015 / 0.9517 ± 0.0007 | 0.9774 ± 0.0064 / 1.0020 ± 0.0010 | −0.043 (6.5) / −0.050 (41.0) |
 
 **The `U = 0` rows are a negative control.** With no uncles the two models are identical by construction — no reference is ever taken, so any measured gap is pure between-run noise (the two models draw independent RNG streams by design, so the comparison is unpaired). That control reads **+0.010 (t = 0.8) at `δ_max = 4`** but **−0.230 (t = 2.1) at `δ_max = 32`**, where single replicates range from 0.05 to 0.60. Read the table against that floor: at `δ_max = 32` a gap must clear ~0.2 to mean anything on a single-replicate basis, which is exactly why the `U = 1` cells there are reported as unresolved while the tightly-clustered `U = 2` and `U = 4` cells are not.
 
@@ -144,29 +144,31 @@ So: **at the operating loads (`ρ < 1`) no difference between the models is dete
 
 **The question.** [§3.2](#s3-2) samples the mixing delay at 4/8/16/32. That resolves the overload regime, but it leaves the band the parameters are actually chosen in — the low-delay end, where every operating point sits — measured at four-fold spacing and five replicates, which is enough to say "no difference detected" and nothing more. How accurate is TSI across `δ_max` = 1–5, and how large a first-fork cost can be *excluded* there?
 
-**The finding.** With one uncle slot the estimate is exact across the whole band: every `U ≥ 1` cell under both referencing models lands in **0.998–1.001**, flat in delay. Without uncles the same band decays steeply, 0.810 → 0.640. Through `δ_max ≤ 4` the two referencing models are **indistinguishable**, and the first-fork restriction begins to cost something measurable only at the top of the band.
+**The finding.** One uncle slot holds the estimate at the true stake across the whole band: every `U ≥ 1` cell under both referencing models lands in **0.998–1.001**, flat in delay, while the uncle-free baseline decays 0.810 → 0.640. The two referencing models are **indistinguishable through `δ_max` ≤ 3**; at the top of the band the first-fork restriction becomes measurable and costs **0.1–0.2 %**. Two independent tests — the model-vs-model gap, and each model against the exact target 1.0 — agree on that onset.
 
-`configs/fine-delay.yaml` spends replicates instead of range — `δ_max` ∈ {1,2,3,4,5}, `U` ∈ {0,1,2,4}, **40 replicates** per cell (8× [§3.2](#s3-2)), N = 1 000, blend, 3 hops — run under both models ([§9](tsi-report-4-reproducibility-and-appendices.md#s9)). The band spans `ρ ≈ 0.25` to `0.45`, entirely inside the design regime.
+`configs/fine-delay.yaml` spends replicates instead of range — `δ_max` ∈ {1,2,3,4,5}, `U` ∈ {0,1,2,4}, **40 replicates** per cell (8× [§3.2](#s3-2)), N = 1 000, blend, 3 hops — run under both models ([§9](tsi-report-4-reproducibility-and-appendices.md#s9)). The band spans `ρ ≈ 0.21` to `0.41`, entirely inside the design regime.
 
 | `δ_max` (s) | ρ | `U=0` countable / unrestricted | `U≥1` countable | `U≥1` unrestricted | pooled gap (t) |
 |---|---|---|---|---|---|
-| 1 | ≈ 0.25 | 0.810 / 0.806 | 0.9994 – 0.9999 | 0.9990 – 1.0010 | −0.0004 ± 0.0007 (1.1) |
-| 2 | ≈ 0.30 | 0.762 / 0.763 | 0.9996 – 1.0002 | 0.9996 – 1.0003 | +0.0000 ± 0.0008 (0.0) |
-| 3 | ≈ 0.35 | 0.716 / 0.723 | 0.9995 – 1.0002 | 0.9992 – 1.0004 | −0.0001 ± 0.0008 (0.2) |
-| 4 | ≈ 0.40 | 0.664 / 0.668 | 0.9988 – 0.9996 | 0.9995 – 0.9999 | −0.0005 ± 0.0008 (1.3) |
-| 5 | ≈ 0.45 | 0.640 / 0.623 | 0.9982 – 0.9988 | 0.9995 – 1.0003 | **−0.0014 ± 0.0007 (3.7)** |
+| 1 | ≈ 0.21 | 0.810 / 0.806 | 0.9994 – 0.9999 | 0.9990 – 1.0010 | −0.0004 ± 0.0007 (1.1) |
+| 2 | ≈ 0.26 | 0.762 / 0.763 | 0.9996 – 1.0002 | 0.9996 – 1.0003 | +0.0000 ± 0.0008 (0.0) |
+| 3 | ≈ 0.31 | 0.716 / 0.723 | 0.9995 – 1.0002 | 0.9992 – 1.0004 | −0.0001 ± 0.0008 (0.2) |
+| 4 | ≈ 0.36 | 0.664 / 0.668 | 0.9988 – 0.9996 | 0.9995 – 0.9999 | −0.0005 ± 0.0008 (1.3) |
+| 5 | ≈ 0.41 | 0.640 / 0.623 | 0.9982 – 0.9988 | 0.9995 – 1.0003 | **−0.0014 ± 0.0007 (3.7)** |
 
 **No individual cell resolves a model difference.** Across the 15 `U ≥ 1` cells the widest 95 % CI half-width is ±0.0015, one cell clears `t = 2` (0.75 are expected to by chance), and its `t = 2.59` does not survive the Bonferroni threshold of 2.94 for 15 tests. Read cell by cell, the honest statement is that any difference is **smaller than ±0.15 pp**.
 
 **Pooled, a small delay-dependent cost appears.** The three uncle caps are independent measurements of the same underlying difference, so inverse-variance pooling across them buys ~√3 in precision. Pooled per delay, `δ_max` 1–4 stay unresolved (|t| ≤ 1.3) while **`δ_max = 5` resolves at −0.0014 ± 0.0007 (t = 3.7)** — surviving correction for the five delays tested. Over the whole band the pooled gap is −0.00048 ± 0.00033 (t = 2.8), and 11 of 15 cells are negative. So the first-fork restriction does cost something, in the direction theory predicts, and the cost is **monotone in delay and below 0.15 % everywhere in this band** — negligible against the ±0.9 % per-epoch sampling noise of [Appendix B](tsi-report-4-reproducibility-and-appendices.md#sB). (The pooling was chosen after inspecting the per-cell results; the per-delay trend, not the whole-band figure, is the defensible claim.)
 
+**The absolute test agrees.** Asking the same question without reference to the other model — is each cell's equilibrium exactly 1.0? — reproduces the onset independently. Under the **unrestricted** model 1 of 15 cells sits significantly below 1 (`t` = −2.09, consistent with chance). Under the **countable** model 4 of 15 do, and they are not scattered: `δ_max = 4` at `U = 1` (−0.0012, `t` = −2.6) and **all three uncle caps at `δ_max = 5`** (−0.0012 to −0.0019, `t` = −2.5 to −3.7). A shortfall that appears at every cap simultaneously, only at the top of the band, and only under the restricted model, is the first-fork cost — the same effect the gap test resolves at `δ_max = 5`, seen from the absolute side.
+
 **The negative control passes.** The `U = 0` arms — identical models by construction — show |gap| ≤ 0.016 with max `t` = 1.26, i.e. no spurious signal, but a 95 % CI of ±0.025: **17× wider than the entire `U ≥ 1` range.** The unrecovered regime is intrinsically noisy, which is precisely why the model comparison has to be made where uncles are active.
 
-![Fig 34 — design-regime accuracy, δ_max 1–5, countable (solid) vs unrestricted (dashed) per uncle cap, error bars = replicate SEM over 40 replicates: every U ≥ 1 curve is pinned at 1.000 across the band under both models, while U = 0 (the negative control) decays 0.81 → 0.64.](report-figures/fig34_fine_delay_accuracy.png)
+![Fig 34 — design-regime accuracy, δ_max 1–5, countable (solid) vs unrestricted (dashed) per uncle cap, error bars = replicate SEM over 40 replicates: every U ≥ 1 curve sits at 1.000 across the band under both models (to within 0.2 %), while U = 0 — the negative control — decays 0.81 → 0.64.](report-figures/fig34_fine_delay_accuracy.png)
 
 ![Fig 35 — the countable − unrestricted gap with 95% CIs, zoomed to the U ≥ 1 scale, with the inverse-variance pooled estimate in black: no single cell resolves, the pooled trend is monotone in delay, and only δ_max = 5 separates from zero (−0.0014 ± 0.0007).](report-figures/fig35_fine_delay_gap.png)
 
-**What this settles.** One uncle slot is sufficient — not approximately, exactly — everywhere in the operating band, under either referencing model; the [§3.3](#s3-3) `U ≥ ⌈ρ⌉` rule has margin to spare at `ρ ≤ 0.45`. And the first-fork restriction, which [§3.2](#s3-2) shows costing 1.4 % at `ρ ≈ 1` and 5 % under overload, costs **less than 0.15 %** anywhere a deployment should be operating.
+**What this settles.** One uncle slot is sufficient everywhere in the operating band under either referencing model — the [§3.3](#s3-3) `U ≥ ⌈ρ⌉` rule has margin to spare at `ρ ≤ 0.41`, and raising `U` past 1 buys nothing here (at `δ_max = 5` all three caps sit at the same 0.1–0.2 % shortfall, so the residual is *not* a capacity limit). And the first-fork restriction, which [§3.2](#s3-2) shows costing 1.4 % at `ρ ≈ 1` and 5 % under overload, costs **at most 0.2 %** anywhere a deployment should be operating — an order of magnitude below the ±0.9 % per-epoch sampling noise of [Appendix B](tsi-report-4-reproducibility-and-appendices.md#sB), and below the ~1 % fixed-point rounding bias of [Appendix A](tsi-report-4-reproducibility-and-appendices.md#sA). The [§1](tsi-report-1-overview-and-recommendations.md#s1) statement that one uncle restores the estimate to the true stake holds at the precision that matters; this section puts the residual at 0.1–0.2 % at the top of the band rather than zero.
 
 <a id="s3-3"></a>
 ### 3.3 One uncle is not always enough — the load `ρ`

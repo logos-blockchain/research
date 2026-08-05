@@ -48,6 +48,41 @@ def recovery_rate(q, q_u):
     return (q_u - q) / np.maximum(1.0 - q, 1e-12)
 
 
+def graph_ell_mean(df: pd.DataFrame) -> float:
+    """``ell_mean`` — the mean shortest-path (gossip) latency of the run's OWN peering graph.
+
+    Measured from the run's recorded ``(n_nodes, degree, link_latency_mean,
+    link_latency_dist)`` rather than hardcoded, so any derived quantity stays correct if
+    those change. A statistical property of the random d-regular geo graph (seed-invariant
+    to <1% at these N), so one representative draw suffices. Post-processing only: this
+    rebuilds the latency *graph* to read off its mean and never re-runs the simulation.
+    """
+    from ..config import SimConfig
+    from ..topology import build_path_latency
+
+    row = df.iloc[0]
+    cfg = SimConfig(n_nodes=int(row.n_nodes), degree=int(row.degree), topology="blend",
+                    link_latency_mean=float(row.link_latency_mean),
+                    link_latency_dist=str(row.link_latency_dist), k=int(row.k))
+    pl = build_path_latency(cfg, np.random.default_rng(0))
+    n = pl.shape[0]
+    return float(pl[~np.eye(n, dtype=bool)].mean())
+
+
+def rho_for(df: pd.DataFrame, delay) -> np.ndarray:
+    """Load ``rho = f * D_vis`` with ``D_vis = hops*delta_max/2 + (hops+1)*ell_mean``.
+
+    Every report quotation of ``rho`` must come through here. ``ell_mean`` is the MEASURED
+    mean gossip latency (1.21 slots at N=1000/degree=6), not the per-link
+    ``link_latency_mean`` parameter (0.5) — using the latter understates ``rho`` by ~0.1,
+    and hand-substituting a guessed value is how wrong axis labels get into a report.
+    """
+    f = float(df.f.iloc[0])
+    hops = int(df.blend_hops.iloc[0])
+    ell = graph_ell_mean(df)
+    return f * (hops * np.asarray(delay, dtype=float) / 2.0 + (hops + 1) * ell)
+
+
 def _lat_axis(topo: str) -> tuple[str, str]:
     """(dataframe column, axis label) for the dominant latency knob of a graph topology."""
     if topo == "blend":
