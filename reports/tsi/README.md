@@ -8,40 +8,53 @@
 
 ## Contents
 
-**[1. Executive summary](#s1)** — the problem, what was found, and the recommended configuration.
-
-**[2. Model and method](#s2)** — what is simulated and how accuracy is measured.
-&nbsp;&nbsp;[2.1 The TSI algorithm — before and after uncle references](#s2-1) · [2.2 The equilibrium is bounded by 1](#s2-2)
-
-**[3. Findings](#s3)** — the evidence, in the order a designer needs it.
-&nbsp;&nbsp;[3.1 The per-node estimate is consensus-safe](#s3-1)
-&nbsp;&nbsp;[3.2 Latency biases TSI low; uncles recover it](#s3-2) · [3.2a The design band at high precision (`δ_max` 1–5)](#s3-2a)
-&nbsp;&nbsp;[3.3 When one uncle is not enough — the load `ρ`](#s3-3) · [3.4 The uncle window is set by block spacing](#s3-4)
-&nbsp;&nbsp;[3.5 The joint (W, U) region](#s3-5) · [3.6 Block rate `f` moves every threshold](#s3-6) · [3.7 Network size erodes the one-uncle margin](#s3-7)
-
-**[4. Design equations and parameter-selection algorithm](#s4)** — the sizing rules, calibrated, with worked examples.
-
-**[5. Discussion and caveats](#s5)** — the regime of validity and what is not covered.
-
-**[6. Robustness beyond the honest, deterministic regime](#s6)** — noise, attacks, and the incentive design.
-&nbsp;&nbsp;[6.1 Jitter](#s6-1) · [6.2 The load-feedback loop](#s6-2) · [6.3 Grinding by uncle suppression](#s6-3) · [6.4 Block withholding](#s6-4)
-&nbsp;&nbsp;[6.5 Withhold-then-rejoin grinding](#s6-5) · [6.6 Private-chain (selfish) withholding](#s6-6)
-&nbsp;&nbsp;[6.7 Block and uncle rewards](#s6-7) · [6.8 The soft inclusion rule](#s6-8) · [6.9 Multiple coalitions and bribery](#s6-9)
-&nbsp;&nbsp;[6.10 Fork rate and reorg depth](#s6-10) · [6.11 Organic stake churn](#s6-11)
-
-**[7. Parameter reference — what each knob does](#s7)**
-&nbsp;&nbsp;[7.1 Protocol parameters](#s7-1) · [7.2 Network / environment parameters](#s7-2) · [7.3 Model and attack knobs](#s7-3)
-
-**[8. Safest parameter selection and design](#s8)** — the recommendation and its rationale.
-&nbsp;&nbsp;[8.1 The selection](#s8-1) · [8.2 Design decisions and rationale](#s8-2) · [8.3 Residual risks and open items](#s8-3)
-&nbsp;&nbsp;[8.4 Capstone: the whole recipe in one run](#s8-4) · [8.5 Recommendation vs the current spec](#s8-5)
-
-**[9. Reproducibility](#s9)** — how to re-run every study.
-
-**Appendices**
-&nbsp;&nbsp;[A — the residual ~1 % offset: on-chain rounding of `f`](#sA)
-&nbsp;&nbsp;[B — the per-epoch sampling-noise floor](#sB): [B.1 mechanism](#sB-1) · [B.2 the ±0.9 % floor](#sB-2) · [B.3 delay makes it one-sided](#sB-3) · [B.4 what precision is meaningful](#sB-4)
-&nbsp;&nbsp;[C — consensus properties in detail](#sC): [C.1 per-epoch traces at scale](#sC-1) · [C.2 consensus rests on common initialization](#sC-2)
+- **[1. Executive summary](#s1)** — the problem, what was found, and the recommended configuration
+- **[2. Model and method](#s2)** — what is simulated, and how accuracy is measured
+    - [2.1 The TSI algorithm — before and after uncle references](#s2-1)
+    - [2.2 The equilibrium is bounded by 1](#s2-2)
+- **[3. Findings](#s3)** — the evidence, in the order a designer needs it
+    - [3.1 The per-node estimate is consensus-safe](#s3-1)
+    - [3.2 Latency biases TSI low; uncles recover it](#s3-2)
+    - [3.2a The design band at high precision — `δ_max` 1–5](#s3-2a)
+    - [3.3 When one uncle is not enough — the load `ρ`](#s3-3)
+    - [3.4 The uncle window is set by block spacing, not by delay](#s3-4)
+    - [3.5 The joint (W, U) region — the levers are hierarchical](#s3-5)
+    - [3.6 Block rate `f` moves every threshold predictably](#s3-6)
+    - [3.7 Network size erodes the one-uncle margin](#s3-7)
+- **[4. Design equations and parameter-selection algorithm](#s4)** — the sizing rules, calibrated, with worked examples
+- **[5. Discussion and caveats](#s5)** — the regime of validity, and what is not covered
+- **[6. Robustness beyond the honest, deterministic regime](#s6)** — noise, attacks, and the incentive design
+    - [6.1 Consensus survives network jitter](#s6-1)
+    - [6.2 The estimator is a load-feedback loop](#s6-2)
+    - [6.3 Grinding by uncle suppression](#s6-3)
+    - [6.4 Block withholding](#s6-4)
+    - [6.5 Dynamic withhold-then-rejoin grinding](#s6-5)
+    - [6.6 Private-chain (selfish) withholding](#s6-6)
+    - [6.7 Block and uncle rewards](#s6-7)
+    - [6.8 A soft inclusion rule delivers the benefit without fork risk](#s6-8)
+    - [6.9 Multiple coalitions and bribery](#s6-9)
+    - [6.10 Fork rate and reorg depth](#s6-10)
+    - [6.11 Organic stake churn and the wall-clock cadence](#s6-11)
+- **[7. Parameter reference — what each knob does](#s7)**
+    - [7.1 Protocol parameters](#s7-1)
+    - [7.2 Network / environment parameters](#s7-2)
+    - [7.3 Model and attack knobs (robustness probes)](#s7-3)
+- **[8. Safest parameter selection and design](#s8)** — the recommendation and its rationale
+    - [8.1 The selection](#s8-1)
+    - [8.2 Design decisions and their rationale](#s8-2)
+    - [8.3 Residual risks and open items](#s8-3)
+    - [8.4 Capstone: the whole recipe, in one run](#s8-4)
+    - [8.5 Recommendation vs the current spec](#s8-5)
+- **[9. Reproducibility](#s9)** — how to re-run every study
+- **[Appendix A — the residual ~1 % offset: on-chain rounding of `f`](#sA)**
+- **[Appendix B — the per-epoch sampling-noise floor](#sB)**
+    - [B.1 The mechanism](#sB-1)
+    - [B.2 Measured: the ±0.9 % floor, shrinking as 1/√T](#sB-2)
+    - [B.3 Delay converts the fluctuation into a one-sided under-count](#sB-3)
+    - [B.4 What precision is meaningful](#sB-4)
+- **[Appendix C — consensus properties in detail](#sC)**
+    - [C.1 Per-epoch traces at the largest scale](#sC-1)
+    - [C.2 Consensus rests on common initialization](#sC-2)
 
 ---
 
