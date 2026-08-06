@@ -106,7 +106,7 @@ def run_graph_cell(base: SimConfig, prop_grid: list[tuple[int, int]],
                 trng = np.random.default_rng(
                     traffic_seedseq(base, blend_hops, max_blend_delay, rate))
                 win = simulate_window(graph, cfg, trng, base.traffic_window_slots,
-                                      max_blend_delay, blend_hops, mode, lo)
+                                      max_blend_delay, blend_hops, mode, lo, stake)
                 tm = traffic_metrics(win, cfg, max_blend_delay)
                 tl = timing_linkability(win, cfg, max_blend_delay, lo, mode)
                 traffic_rows.append(

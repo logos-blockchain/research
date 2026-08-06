@@ -27,7 +27,9 @@ derives them and `make verify` checks them against Monte-Carlo.
 python report_numbers.py
 ```
 
-prints every quoted value with its across-topology standard error, straight from the parquets here.
+prints every quoted value straight from the parquets here -- the §3.1–§3.5 and §3.8 tables with
+their across-topology standard errors, and the §3.9–§3.11 tables and the §3.4 attribution bracket
+from their own runs.
 That is the fastest way to check a table in the report against its evidence. It takes optional
 paths (`report_numbers.py <default> <redundancy> <percolation>`) if you want to point it at fresh
 runs instead.
