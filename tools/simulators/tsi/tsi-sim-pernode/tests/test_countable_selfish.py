@@ -76,6 +76,58 @@ def test_attacker_self_uncle_is_capped_too():
     assert 0.5 < s.countable_recovery_adv < 1.0
 
 
+def test_unconstrained_deflation_optimum_is_abstention():
+    # Minimising the estimate with no constraint degenerates: publish nothing, and D-hat lands on
+    # exactly 1 - alpha with zero revenue. §6.4 already covers that case and shows it is CORRECT
+    # measurement rather than mis-measurement, which is why item 16 needs the paid frontier.
+    from tsi_sim.selfish_mdp import deflation_optimal_stats
+
+    for alpha in (0.2, 0.4):
+        s = deflation_optimal_stats(alpha, 0.0, cap=16)
+        assert abs(s.dhat_ratio(1.0, True) - (1.0 - alpha)) < 1e-6
+        assert s.revenue < 1e-9
+        assert s.orphan_hon_blocks < 1e-9          # it orphans no honest work at all
+
+
+def test_deflation_solver_gain_matches_its_stationary_accounting():
+    # deflation_optimal_stats raises if the MDP's average gain disagrees with the estimate
+    # recomputed from the stationary distribution -- an independent check that the solver and the
+    # orphan accounting describe the same policy. Exercise it across a spread of inputs.
+    from tsi_sim.selfish_mdp import deflation_optimal_stats
+
+    for alpha in (0.25, 0.35, 0.45):
+        for p_ref in (0.0, 0.85, 1.0):
+            deflation_optimal_stats(alpha, 0.0, p_ref=p_ref, cap=16)   # no AssertionError
+
+
+def test_frontier_endpoints_bracket_the_two_pure_objectives():
+    from tsi_sim.selfish_mdp import deflation_frontier, deflation_optimal_stats
+
+    alpha = 0.4
+    zero = deflation_frontier(alpha, 0.0, 0.0, cap=16)
+    pure = deflation_optimal_stats(alpha, 0.0, cap=16)
+    assert abs(zero["dhat_countable"] - pure.dhat_ratio(1.0, True)) < 1e-6   # lam=0 is that optimum
+    # Selfish mining takes a bigger share of a SMALLER pie, so maximising raw adversary block
+    # rate returns to honest mining -- the frontier is not monotone in revenue, by construction.
+    far = deflation_frontier(alpha, 0.0, 50.0, cap=16)
+    assert abs(far["revenue"] - alpha) < 1e-3
+    assert abs(far["dhat_countable"] - 1.0) < 1e-3
+
+
+def test_a_paid_policy_deflates_further_than_the_revenue_optimum():
+    # Item 16's answer: the revenue-optimal adversary is not the estimator's worst case. At
+    # alpha = 0.4 a policy exists that pays at least as well as honest mining yet deflates
+    # substantially further than the revenue optimum does.
+    from tsi_sim.selfish_mdp import deflation_frontier, optimal_policy_stats
+
+    alpha, cap = 0.4, 32
+    ro = optimal_policy_stats(alpha, 0.0, cap=cap)
+    paid = [deflation_frontier(alpha, 0.0, lam, cap=cap) for lam in (0.4, 0.6, 0.8, 1.0)]
+    paid = [p for p in paid if p["reward_per_stake"] >= 1.0 - 1e-9]
+    assert paid, "expected at least one break-even-or-better frontier point"
+    assert min(p["dhat_countable"] for p in paid) < ro.dhat_ratio(1.0, True) - 0.05
+
+
 def test_reorg_countable_recovery_from_depths():
     # A depth-d reorg discards one chain of d blocks -> 1 countable uncle: runs / blocks.
     from tsi_sim.reorg import countable_recovery_from_depths

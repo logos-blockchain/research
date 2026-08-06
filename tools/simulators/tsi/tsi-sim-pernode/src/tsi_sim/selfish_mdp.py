@@ -124,16 +124,16 @@ def _precompute(alpha, gamma, states, index, cap):
     return probs, nxt, radv, rhon, ohon, oadv, legal
 
 
-def _solve_mdp(pc, rho, ref, iters, tol):
-    """Optimal average gain for the rho-parametrised reward, by *damped* relative value iteration.
+def _solve_reward(pc, reward, ref, iters, tol):
+    """Optimal average gain for an arbitrary per-branch reward, by *damped* relative value
+    iteration. Returns ``(gain, V)``.
 
     The chain is periodic, so undamped VI oscillates and a naive |Δgain| stop can false-trigger as
     the gain crosses zero. We damp (``V ← V + τ(TV − V)``) to break periodicity and stop on the
     textbook span criterion: at the average-reward fixed point ``TV − V = g·1`` (span → 0), and the
     gain ``g`` is that uniform increment. Returns the span-centre of the final Bellman increment.
     """
-    probs, nxt, radv, rhon, _ohon, _oadv, legal = pc
-    reward = (1.0 - rho) * radv - rho * rhon          # (4, n, K), constant across iterations
+    probs, nxt, _radv, _rhon, _ohon, _oadv, legal = pc
     V = np.zeros(probs.shape[1])
     tau = 0.5
     d = np.zeros(1)
@@ -145,7 +145,61 @@ def _solve_mdp(pc, rho, ref, iters, tol):
             break
         V = V + tau * d
         V -= V[ref]                                     # anchor to keep values bounded
-    return 0.5 * (d.max() + d.min())
+    return 0.5 * (d.max() + d.min()), V
+
+
+def _solve_mdp(pc, rho, ref, iters, tol):
+    """Optimal average gain for the rho-parametrised *revenue* reward (the ratio transform)."""
+    _probs, _nxt, radv, rhon, _ohon, _oadv, _legal = pc
+    return _solve_reward(pc, (1.0 - rho) * radv - rho * rhon, ref, iters, tol)[0]
+
+
+def _greedy_policy(pc, reward, V):
+    """Greedy action per state, tie-broken toward the lowest index (ADOPT first, i.e. the
+    least-deviating action) so near-ties resolve deterministically rather than arbitrarily."""
+    probs, nxt, _radv, _rhon, _ohon, _oadv, legal = pc
+    q = (probs * (reward + V[nxt])).sum(axis=2)
+    q[~legal] = -1e18
+    best = q.max(axis=0)
+    return np.where(q >= best[None, :] - 1e-9, np.arange(4)[:, None], 99).min(axis=0)
+
+
+def _stationary(pc, pol):
+    """Stationary distribution of the policy-induced chain. The chain is periodic (see
+    :func:`_solve_reward`), so iterate the LAZY chain — same stationary vector, no oscillation."""
+    probs, nxt, *_ = pc
+    n = probs.shape[1]
+    rows = np.arange(n)
+    p_s, n_s = probs[pol, rows], nxt[pol, rows]
+    pi = np.full(n, 1.0 / n)
+    for _ in range(500_000):
+        new = 0.5 * pi + 0.5 * np.bincount(n_s.ravel(), weights=(pi[:, None] * p_s).ravel(),
+                                           minlength=n)
+        new /= new.sum()
+        if np.abs(new - pi).max() < 1e-15:
+            return new
+        pi = new
+    return pi
+
+
+def _policy_rates(pc, pol, pi):
+    """Per-block-finding-event rates under a policy's stationary distribution.
+
+    Every MDP transition consumes exactly one block-finding event (the alpha/beta branch), so
+    stationary per-step rates *are* per-event rates.
+    """
+    probs, nxt, radv, rhon, ohon, oadv, _legal = pc
+    rows = np.arange(probs.shape[1])
+    w = pi[:, None] * probs[pol, rows]
+    oh, oa = ohon[pol, rows], oadv[pol, rows]
+    return dict(
+        adv_rate=float((w * radv[pol, rows]).sum()),
+        hon_rate=float((w * rhon[pol, rows]).sum()),
+        orphan_hon_blocks=float((w * oh).sum()),
+        orphan_hon_runs=float((w * (oh > 0)).sum()),
+        orphan_adv_blocks=float((w * oa).sum()),
+        orphan_adv_runs=float((w * (oa > 0)).sum()),
+    )
 
 
 def optimal_selfish_revenue(alpha: float, gamma: float, cap: int = 60,
@@ -226,6 +280,102 @@ class OptimalPolicyStats:
         return self.density_fraction + float(np.clip(p_ref, 0.0, 1.0)) * rec
 
 
+def deflation_optimal_stats(alpha: float, gamma: float, p_ref: float = 1.0, cap: int = 64,
+                            iters: int = 4000, tol: float = 1e-10) -> OptimalPolicyStats:
+    """The policy that MINIMISES the estimate, rather than the one that maximises revenue.
+
+    Both ceilings in §6.6 come from adversaries optimising something else — revenue (the SSZ
+    objective) and reorg depth — so they bound ``eta`` from above without bounding the damage
+    from below. This closes that gap by optimising the estimator directly.
+
+    No ratio transform is needed, unlike the revenue objective. Every transition consumes exactly
+    one block-finding event, and the estimate is
+
+        D̂/D = (canonical blocks + p_ref · countable uncles) / events
+
+    with one countable uncle per discarded honest *run* (§2.1). So the per-event contribution is
+    ``radv + rhon + p_ref·[orphaned honest run]``, and minimising its long-run average is a plain
+    average-reward MDP — solved by maximising the negated reward in one value-iteration pass.
+
+    ``p_ref`` is the share of countable orphans that honest referencers actually pick up; at the
+    default 1 the adversary faces the most effective possible repair, so the resulting deflation
+    is the worst case it can force against a fully-cooperative honest network.
+
+    **The unconstrained optimum is degenerate, and usefully so.** It is pure abstention: mine
+    privately, publish nothing, adopt when overtaken. That drives ``D̂`` to exactly ``1 - alpha``
+    and revenue to zero. But §6.4 already establishes that this is *correct* measurement rather
+    than mis-measurement — a coalition that publishes nothing genuinely is not participating, and
+    ``1 - alpha`` is the right answer for the stake that is. So the unconstrained objective asks
+    the wrong question; the one that matters is how far ``D̂`` can be pushed by an adversary that
+    stays profitable, which :func:`deflation_frontier` traces.
+    """
+    states, index = _build_states(cap)
+    pc = _precompute(alpha, gamma, states, index, cap)
+    probs, nxt, radv, rhon, ohon, oadv, legal = pc
+    ref = index[(1, 0, IRRELEVANT)]
+
+    dhat_step = radv + rhon + float(p_ref) * (ohon > 0)
+    gain, V = _solve_reward(pc, -dhat_step, ref, iters, tol)
+    pol = _greedy_policy(pc, -dhat_step, V)
+    pi = _stationary(pc, pol)
+    rates = _policy_rates(pc, pol, pi)
+
+    # The gain IS the negated minimum estimate; cross-check it against the stationary rates so a
+    # silent mismatch between the solver and the accounting cannot pass unnoticed.
+    dhat = rates["adv_rate"] + rates["hon_rate"] + float(p_ref) * rates["orphan_hon_runs"]
+    if abs(-gain - dhat) > 1e-6:
+        raise AssertionError(f"deflation MDP gain {-gain:.9f} != stationary D-hat {dhat:.9f}")
+
+    revenue = (rates["adv_rate"] / (rates["adv_rate"] + rates["hon_rate"])
+               if rates["adv_rate"] + rates["hon_rate"] > 0 else 0.0)
+    return OptimalPolicyStats(alpha=alpha, gamma=gamma, revenue=revenue, deviates=True,
+                              density_fraction=rates["adv_rate"] + rates["hon_rate"],
+                              orphan_hon_blocks=rates["orphan_hon_blocks"],
+                              orphan_hon_runs=rates["orphan_hon_runs"],
+                              orphan_adv_blocks=rates["orphan_adv_blocks"],
+                              orphan_adv_runs=rates["orphan_adv_runs"])
+
+
+def deflation_frontier(alpha: float, gamma: float, lam: float, p_ref: float = 1.0,
+                       cap: int = 64, iters: int = 4000, tol: float = 1e-10) -> dict:
+    """One point on the profit/deflation trade-off: the policy optimal for a mixed objective.
+
+    Neither pure objective answers item 16. Maximising revenue ignores the estimator; minimising
+    the estimate degenerates to abstention, which forfeits every block reward and is correctly
+    measured anyway (:func:`deflation_optimal_stats`). What the report needs to know is how much
+    deflation an adversary can force *while still being paid* — i.e. the Pareto frontier between
+    the two.
+
+    Sweeping ``lam`` from 0 upward traces it: the per-event reward is
+    ``lam · (adversary blocks) − (contribution to D̂)``, so ``lam = 0`` is the deflation optimum
+    and large ``lam`` approaches the revenue optimum. The point of interest is where the revenue
+    *share* crosses ``alpha`` — an adversary doing at least as well as honest mining — because
+    below that the attack is self-punishing griefing already bounded by §6.5.
+    """
+    states, index = _build_states(cap)
+    pc = _precompute(alpha, gamma, states, index, cap)
+    _probs, _nxt, radv, rhon, ohon, _oadv, _legal = pc
+    ref = index[(1, 0, IRRELEVANT)]
+
+    reward = float(lam) * radv - (radv + rhon + float(p_ref) * (ohon > 0))
+    _gain, V = _solve_reward(pc, reward, ref, iters, tol)
+    pol = _greedy_policy(pc, reward, V)
+    rates = _policy_rates(pc, pol, _stationary(pc, pol))
+    canonical = rates["adv_rate"] + rates["hon_rate"]
+    blocks, runs = rates["orphan_hon_blocks"], rates["orphan_hon_runs"]
+    revenue = (rates["adv_rate"] / canonical) if canonical > 0 else 0.0
+    return dict(
+        alpha=alpha, gamma=gamma, lam=lam,
+        revenue=revenue,
+        reward_per_stake=(revenue / alpha) if alpha else 0.0,
+        density_fraction=canonical,
+        dhat_countable=canonical + float(p_ref) * runs,
+        dhat_unrestricted=canonical + float(p_ref) * blocks,
+        eta=(runs / blocks) if blocks > 0 else 1.0,
+        orphan_hon_blocks=blocks,
+    )
+
+
 def optimal_policy_stats(alpha: float, gamma: float, cap: int = 64,
                          iters: int = 4000, tol: float = 1e-10) -> OptimalPolicyStats:
     """Orphan structure of the *optimal* selfish policy — the input the countable model needs.
@@ -252,46 +402,16 @@ def optimal_policy_stats(alpha: float, gamma: float, cap: int = 64,
                                   orphan_hon_runs=0.0, orphan_adv_blocks=0.0,
                                   orphan_adv_runs=0.0)
 
-    # Recover V at the optimal rho, then the greedy policy.
+    # Recover V at the optimal rho, then read off the greedy policy and its stationary rates.
     reward = (1.0 - revenue) * radv - revenue * rhon
-    n = probs.shape[1]
-    V = np.zeros(n)
-    for _ in range(iters):
-        q = (probs * (reward + V[nxt])).sum(axis=2)
-        q[~legal] = -1e18
-        d = q.max(axis=0) - V
-        if d.max() - d.min() < tol:
-            break
-        V = V + 0.5 * d
-        V -= V[ref]
-    q = (probs * (reward + V[nxt])).sum(axis=2)
-    q[~legal] = -1e18
-    # Deterministic tie-break toward the lowest action index (ADOPT < OVERRIDE < MATCH < WAIT) so
-    # near-ties resolve to the least-deviating policy instead of an arbitrary argmax.
-    best = q.max(axis=0)
-    pol = np.where(q >= best[None, :] - 1e-9, np.arange(4)[:, None], 99).min(axis=0)
-
-    rows = np.arange(n)
-    p_s, n_s = probs[pol, rows], nxt[pol, rows]                  # (n, K)
-    # Stationary distribution. The policy chain is periodic (see _solve_mdp), so iterate the lazy
-    # chain — same stationary vector, no oscillation.
-    pi = np.full(n, 1.0 / n)
-    for _ in range(500_000):
-        new = 0.5 * pi + 0.5 * np.bincount(n_s.ravel(), weights=(pi[:, None] * p_s).ravel(),
-                                           minlength=n)
-        new /= new.sum()
-        if np.abs(new - pi).max() < 1e-15:
-            pi = new
-            break
-        pi = new
-
-    w = pi[:, None] * p_s                                        # stationary branch flow
-    ohon_s, oadv_s = ohon[pol, rows], oadv[pol, rows]
+    _gain, V = _solve_reward(pc, reward, ref, iters, tol)
+    pol = _greedy_policy(pc, reward, V)
+    rates = _policy_rates(pc, pol, _stationary(pc, pol))
     return OptimalPolicyStats(
         alpha=alpha, gamma=gamma, revenue=revenue, deviates=True,
-        density_fraction=float((w * (radv[pol, rows] + rhon[pol, rows])).sum()),
-        orphan_hon_blocks=float((w * ohon_s).sum()),
-        orphan_hon_runs=float((w * (ohon_s > 0)).sum()),
-        orphan_adv_blocks=float((w * oadv_s).sum()),
-        orphan_adv_runs=float((w * (oadv_s > 0)).sum()),
+        density_fraction=rates["adv_rate"] + rates["hon_rate"],
+        orphan_hon_blocks=rates["orphan_hon_blocks"],
+        orphan_hon_runs=rates["orphan_hon_runs"],
+        orphan_adv_blocks=rates["orphan_adv_blocks"],
+        orphan_adv_runs=rates["orphan_adv_runs"],
     )
