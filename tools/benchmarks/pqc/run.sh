@@ -97,11 +97,15 @@ fi
 BENCH_CORE="${BENCH_CORE:-3}"
 export PQB_BENCH_CORE="$BENCH_CORE"
 
-# ---- work directory --------------------------------------------------------
+# ---- work + results directories --------------------------------------------
+# Scratch stays inside the tool; only the finished JSON is published, into
+# reports/pqc/results (see pqb_results_dir — PQC_RESULTS_DIR overrides).
 HOST="$(pqb_resolve_hostname)"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
-WORK="$ROOT/results/.work-$HOST-$TS"
-mkdir -p "$WORK" "$ROOT/results"
+WORK="$ROOT/.work-$HOST-$TS"
+RESULTS="$(pqb_results_dir "$ROOT")"
+mkdir -p "$WORK" "$RESULTS"
+RESULTS="$(cd "$RESULTS" && pwd)"
 KEMSIG_OUT="$WORK/kemsig.jsonl"; : > "$KEMSIG_OUT"
 TLS_OUT="$WORK/tls.json"
 RUST_TLS_PROV=""   # set when the TLS layer runs (rustls provenance path)
@@ -346,7 +350,7 @@ collect_host_facts() {
 collect_host_facts
 
 # ---- assemble final results JSON -------------------------------------------
-OUT="$ROOT/results/${HOST}-${TS}.json"
+OUT="$RESULTS/${HOST}-${TS}.json"
 python3 "$ROOT/bench/lib/assemble.py" \
   --meta "$META" --lock "$LOCK" --features "$FEATURES" \
   --kemsig "$KEMSIG_OUT" ${TLS_OUT:+--tls "$TLS_OUT"} \

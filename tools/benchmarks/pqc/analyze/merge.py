@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-"""merge.py — merge many results/<host>-<ts>.json files into one dataset the
+"""merge.py — merge many <host>-<ts>.json result files into one dataset the
 dashboard (and PNG export) consume.
 
   python3 analyze/merge.py                    # merge the PUBLISHED set (see below)
-  python3 analyze/merge.py results/*.json ... # merge an explicit ad-hoc set
+  python3 analyze/merge.py <files>...         # merge an explicit ad-hoc set
+
+Results live in the report tree, reports/pqc/results/, not next to the tool;
+manifest entries are resolved relative to it. PQC_RESULTS_DIR overrides the
+location (it must match what run.sh used — see pqb_results_dir in
+setup/lib_platform.sh).
 
 With no inputs, the file list comes from analyze/published_runs.txt — the
 explicit, reviewed manifest of which results files feed the published dashboard
-dataset. That keeps ad-hoc dev runs sitting in results/ from silently leaking
-into dashboard/data/merged.json: getting a run published is an edit to the
-manifest, not an accident of globbing.
+dataset. That keeps ad-hoc dev runs sitting in the results directory from
+silently leaking into dashboard/data/merged.json: getting a run published is an
+edit to the manifest, not an accident of globbing.
 
 The merged file keeps every run as a separate record (so multiple machines /
 repetitions can be compared) plus a flat index for quick charting. It never
@@ -36,6 +41,9 @@ MERGED_SCHEMA = "2.0.0"
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 MANIFEST = os.path.join(HERE, "published_runs.txt")
+# Keep in sync with pqb_results_dir() in setup/lib_platform.sh.
+RESULTS = os.environ.get("PQC_RESULTS_DIR") or os.path.normpath(
+    os.path.join(ROOT, "..", "..", "..", "reports", "pqc", "results"))
 
 PQ_KEM_TOKENS = ("mlkem", "kyber", "frodo", "hqc", "bike", "ntru", "mceliece")
 CLASSICAL_SIG_PREFIXES = ("ed25519", "ed448", "ecdsa", "rsa")
@@ -77,7 +85,7 @@ def manifest_paths():
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            p = line if os.path.isabs(line) else os.path.join(ROOT, "results", line)
+            p = line if os.path.isabs(line) else os.path.join(RESULTS, line)
             if os.path.isfile(p):
                 paths.append(p)
             else:

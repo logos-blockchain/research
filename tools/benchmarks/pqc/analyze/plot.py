@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """plot.py — export publication-ready PNGs from a merged dataset.
 
-  python3 analyze/plot.py dashboard/data/merged.json -o analyze/png
+  python3 analyze/plot.py dashboard/data/merged.json
+
+Figures land next to the results they summarise, in reports/pqc/figures (-o
+overrides).
 
 matplotlib is an OPTIONAL dependency. If it is not installed this prints a clear
 hint and exits 0 (the HTML dashboard remains the primary, dependency-free view).
@@ -28,6 +31,12 @@ except ImportError:
           "    analyze/.venv/bin/python analyze/plot.py dashboard/data/merged.json\n"
           "  (the HTML dashboard works without it)", file=sys.stderr)
     sys.exit(0)
+
+# Figures belong with the results, in the report tree — not in the tool.
+# Keep the relative hop in sync with pqb_results_dir() in setup/lib_platform.sh.
+DEFAULT_OUTDIR = os.environ.get("PQC_FIGURES_DIR") or os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                 "..", "..", "..", "..", "reports", "pqc", "figures"))
 
 
 def median_ms(ns):
@@ -126,7 +135,7 @@ def tls_bar(tls_rows, outpath):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("merged")
-    ap.add_argument("-o", "--outdir", default="analyze/png")
+    ap.add_argument("-o", "--outdir", default=DEFAULT_OUTDIR)
     ap.add_argument("--include-smoke", action="store_true")
     args = ap.parse_args()
 

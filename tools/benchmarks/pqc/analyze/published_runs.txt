@@ -2,10 +2,11 @@
 # dashboard/data/merged.json when analyze/merge.py runs without arguments.
 #
 # Membership criterion: the file is in the published Logos snapshot and cited
-# by the companion document's provenance section — NOT merely git-tracked here.
-# Paths are relative to results/. Publishing a new run = adding a line here
-# (and un-ignoring the file in .gitignore); dev/smoke runs sitting in results/
-# never leak into the published dataset by accident.
+# by the companion document's provenance section — NOT merely git-tracked.
+# Paths are relative to the results directory, reports/pqc/results. Publishing
+# a new run = adding a line here AND un-ignoring the file in that directory's
+# .gitignore; dev/smoke runs sitting next to it never leak into the published
+# dataset by accident.
 #
 # ---- current generation (schema 2.0.0: four measurement groups, three-stack
 # ---- TLS phase matrix, SLH-DSA + SPHINCS+ side by side, Frodo AES+SHAKE) ----

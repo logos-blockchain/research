@@ -11,6 +11,24 @@
 # pretends the action happened.
 # =============================================================================
 
+# ---- results location ------------------------------------------------------
+# Every run's JSON lands in the research repo's report tree, not next to the
+# tool: tools/benchmarks/pqc/ -> reports/pqc/results/. One resolver, so run.sh,
+# the selftest, merge.py and plot.py can never disagree about where results are.
+#
+# PQC_RESULTS_DIR overrides it — needed wherever the tool is used outside a
+# checkout of this repo (the Fedora container copy, a standalone clone on a
+# measurement box). Set it and the tool never looks at the default.
+#
+# $1: the tool root (the directory holding run.sh).
+pqb_results_dir() {
+  if [ -n "${PQC_RESULTS_DIR:-}" ]; then
+    printf '%s\n' "$PQC_RESULTS_DIR"
+    return 0
+  fi
+  printf '%s\n' "$1/../../../reports/pqc/results"
+}
+
 # ---- platform detection ----------------------------------------------------
 # Sets: PQB_OS (macos|linux), PQB_ARCH, PQB_IS_RPI (1|0), PQB_RPI_MODEL
 pqb_detect_platform() {

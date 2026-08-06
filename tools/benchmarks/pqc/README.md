@@ -129,7 +129,7 @@ measured handshake latency is the protocol overhead.
 ## Project layout
 
 ```
-pqc-bench/
+tools/benchmarks/pqc/
   setup/         build + pin liboqs, OpenSSL 3.5+, oqs-provider (versions.env / versions.lock)
   bench/kem_sig/ bench_pq.c     primitive KEM/sig harness (liboqs + OpenSSL EVP baselines)
   bench/tls/     bench_tls.c    in-process TLS 1.3 handshake harness (OpenSSL API;
@@ -138,13 +138,24 @@ pqc-bench/
   bench/rust/    pqb-rust       pure-Rust (RustCrypto) primitive harness + dalek anchors
   bench/rust-tls/ pqb-rust-tls  rustls + aws-lc-rs TLS harness + aws-lc-rs pricing rows
   bench/lib/     assemble.py / merge helpers / miniyaml.py (zero-dep YAML)
-  results/       results/<host>-<timestamp>.json  (one per run, full metadata)
   analyze/       merge.py (combine machines) + plot.py (matplotlib PNGs, optional venv)
   dashboard/     static HTML/JS (Chart.js) — no backend, GitHub-Pages deployable
   run.sh         governor + taskset + thermal wrapper + orchestrator
   config.yaml    candidate lists (extend here)
   Dockerfile     reproducible Debian-aarch64 build
+
+reports/pqc/
+  results/       <host>-<timestamp>.json  (one per run, full metadata)
+  figures/       exported PNGs (make figures)
+  README.md      the measurement record: published dataset, provenance, headline
 ```
+
+**Results do not live next to the tool.** Every run writes its JSON to
+`reports/pqc/results/` and figures to `reports/pqc/figures/`, so measurements sit
+with the rest of the reports instead of inside the harness that produced them.
+`make where` prints both paths; `PQC_RESULTS_DIR` / `PQC_FIGURES_DIR` (or
+`make RESULTS=… run`) override them, which is what you want when running from a
+standalone copy of this directory rather than a checkout of the research repo.
 
 ---
 
@@ -216,7 +227,7 @@ root for exactly one step — writing `performance` into the sysfs CPU-governor
 files — so on Linux they cache sudo credentials once up front (`sudo -v`) and
 only that step escalates (`sudo -n`); the measurement itself, including the
 cargo builds and all result files, runs as your user. (The old whole-run sudo
-design left root-owned `results/.work-*` and `target/` artifacts behind and
+design left root-owned `.work-*` and `target/` artifacts behind and
 needed a fragile `sudo env RUSTUP_HOME=…` workaround for cargo — all gone.)
 On macOS no escalation of any kind is used. `NOSUDO=1 make run` skips the
 sudo attempt and honestly records the governor demerit. `build`'s skip logic uses live checks (artifacts + `openssl version`
@@ -523,15 +534,19 @@ anything your liboqs build doesn't enable (and says so).
 
 ## Output & analysis
 
-- `results/<hostname>-<timestamp>.json` — one self-describing file per run.
-- `analyze/merge.py` — with **no arguments**, merges the **published set**
-  pinned in `analyze/published_runs.txt` into `dashboard/data/merged.json`
-  (explicit manifest, so ad-hoc dev runs in `results/` never leak into the
-  published dataset); pass explicit files/globs for an ad-hoc merge. Keeps
-  each run distinct; never mixes baseline with smoke.
-- `analyze/plot.py` — matplotlib PNGs for papers (optional; install into
-  `analyze/.venv` via `analyze/requirements.txt` to keep system python clean —
-  it gracefully skips if matplotlib is absent).
+- `reports/pqc/results/<hostname>-<timestamp>.json` — one self-describing file
+  per run. `make where` prints the directory.
+- `analyze/merge.py` (`make merge`) — with **no arguments**, merges the
+  **published set** pinned in `analyze/published_runs.txt` into
+  `dashboard/data/merged.json` (explicit manifest, so ad-hoc dev runs in the
+  results directory never leak into the published dataset); pass explicit
+  files/globs for an ad-hoc merge. Keeps each run distinct; never mixes baseline
+  with smoke. `merged.json` is the dashboard's input, not a result, which is why
+  it stays in the tool.
+- `analyze/plot.py` (`make figures`) — matplotlib PNGs for papers, written to
+  `reports/pqc/figures/` (optional; install into `analyze/.venv` via
+  `analyze/requirements.txt` to keep system python clean — it gracefully skips
+  if matplotlib is absent).
 - `dashboard/` — static, no-backend dashboard (see `dashboard/README.md`):
   the TLS migration-phase view (Pi and Mac side by side, latency + bytes with
   ×multipliers), the full three-stack handshake matrix, cross-implementation
@@ -565,9 +580,9 @@ For your numbers to count as baseline-grade, the run must satisfy the
   extra algorithms simply add columns.)
 
 ```bash
-git clone <this repo> && cd pqc-bench
+cd tools/benchmarks/pqc
 make check && make build && make test
-make run     # sudo (with the required rustup env) is handled for you
+make run     # privilege for the governor step is handled for you
 ```
 
 A full run takes ~30 min on a Pi 5 (hash-based signing dominates). To check the
@@ -580,7 +595,7 @@ When the run finishes, the summary prints `baseline-grade (RPi5): True`. Verify
 in the JSON too:
 
 ```bash
-f=$(ls -t results/*.json | head -1)
+f=$(ls -t "$(make -s where | awk '/^results:/{print $2}')"/*.json | head -1)
 python3 -c "import json;d=json.load(open('$f'));print('baseline_grade:',d['is_baseline_grade']);\
 print('reasons:',d['baseline_grade_reasons']);\
 print('throttled:',d['thermal_trace']['throttling_detected']);\
@@ -593,21 +608,20 @@ you what to fix (usually cooling/PSU/governor) — fix and re-run.
 
 ### 3. Submit it
 
-Your `results/<hostname>-<timestamp>.json` is fully self-describing (host model,
+Your `reports/pqc/results/<hostname>-<timestamp>.json` is fully self-describing (host model,
 kernel, OS, governor, clock/temp trace, compiler + liboqs/oqs-provider/OpenSSL
 commits, build flags). It contains your **hostname** and Pi model and nothing
 else identifying — if you'd rather not share the hostname, prepend
 `HOSTNAME=mypi5` to the sudo run line, or just rename the file before
 submitting.
 
-`results/*.json` is git-ignored by default (so you never accidentally commit
-local experiments), so add yours explicitly:
+Result files are git-ignored by default (so you never accidentally commit local
+experiments), so add yours explicitly:
 
 ```bash
 git checkout -b results/<your-handle>-pi5
-git add -f results/<hostname>-<timestamp>.json
-git commit -m "results: RPi5 baseline from <your-handle>"
-# push to your fork and open a PR
+git add -f reports/pqc/results/<hostname>-<timestamp>.json
+git commit -m "reports/pqc: RPi5 baseline from <your-handle>"
 ```
 
 **PR checklist** (maintainers will look for these):
@@ -624,13 +638,13 @@ git commit -m "results: RPi5 baseline from <your-handle>"
       groups are missing, revisit the sudo env line above
 - [ ] unmodified candidate list (or extensions noted in the PR description)
 
-Once merged, your file joins `results/` and gets a line in
-`analyze/published_runs.txt` (the explicit manifest of published runs); anyone
-can then regenerate the aggregated dataset and dashboard with
-`python3 analyze/merge.py`. The dashboard's run selector will then include
+Once merged, your file joins `reports/pqc/results/` and gets a line in
+`analyze/published_runs.txt` (the explicit manifest of published runs) and in
+that directory's `.gitignore`; anyone can then regenerate the aggregated dataset
+and dashboard with `make merge`. The dashboard's run selector will then include
 your Pi alongside everyone else's.
 
-> Prefer not to use GitHub? Open an issue and attach the JSON file instead — a
+> Prefer not to open a PR? Open an issue and attach the JSON file instead — a
 > maintainer will add it.
 
 ---
