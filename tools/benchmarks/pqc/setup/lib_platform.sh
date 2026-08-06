@@ -51,6 +51,32 @@ pqb_detect_platform() {
   export PQB_OS PQB_ARCH PQB_IS_RPI PQB_RPI_MODEL
 }
 
+# ---- host facts ------------------------------------------------------------
+# Probe the machine's identity into PQB_CPU_BRAND / PQB_NCPU / PQB_RAM_BYTES /
+# PQB_OS_PRETTY / PQB_KERNEL. Every run (measurement or stress) stamps these
+# into its results, so they are resolved in exactly one place — a second copy
+# would eventually disagree about, say, what a Pi reports as its CPU brand.
+# Requires pqb_detect_platform to have run.
+pqb_host_probe() {
+  PQB_KERNEL="$(uname -r)"
+  if [ "$PQB_OS" = "macos" ]; then
+    PQB_CPU_BRAND="$(sysctl -n machdep.cpu.brand_string 2>/dev/null)"
+    PQB_NCPU="$(sysctl -n hw.ncpu 2>/dev/null)"
+    PQB_RAM_BYTES="$(sysctl -n hw.memsize 2>/dev/null)"
+    PQB_OS_PRETTY="macOS $(sw_vers -productVersion 2>/dev/null) ($(sw_vers -buildVersion 2>/dev/null))"
+  else
+    # aarch64 /proc/cpuinfo has no 'model name' line, so this grep misses; the
+    # trailing `|| true` keeps `set -o pipefail` from aborting the caller
+    # (errexit) before the PQB_RPI_MODEL fallback below can supply the brand.
+    PQB_CPU_BRAND="$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | sed 's/.*: //' || true)"
+    [ -z "$PQB_CPU_BRAND" ] && PQB_CPU_BRAND="$PQB_RPI_MODEL"
+    PQB_NCPU="$( (command -v nproc >/dev/null && nproc) || grep -c ^processor /proc/cpuinfo)"
+    PQB_RAM_BYTES="$(( $(grep -m1 MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}') * 1024 ))"
+    PQB_OS_PRETTY="$(. /etc/os-release 2>/dev/null; echo "$PRETTY_NAME")"
+  fi
+  export PQB_CPU_BRAND PQB_NCPU PQB_RAM_BYTES PQB_OS_PRETTY PQB_KERNEL
+}
+
 # ---- Linux distro family (for package-name hints and deps installs) --------
 # echoes: debian | fedora | arch | suse | unknown
 # PQB_TEST_OS_RELEASE overrides the os-release path (test hook, used to

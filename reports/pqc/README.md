@@ -14,11 +14,15 @@ Everything the benchmark produces lands here:
 | what | where | produced by |
 |---|---|---|
 | per-run results (one self-describing JSON per run) | [`results/`](results) | `make run` |
+| role-asymmetry stress runs (`stress-*.json`) | [`results/`](results) | `make stress` |
 | exported figures | `figures/` | `make figures` |
 | written analysis | this directory | by hand, from the above |
 
 Analyses published here so far:
 
+- [Sender/receiver asymmetry](sender-receiver-asymmetry.md) — which side of an
+  exchange pays, measured with both sides running flat out, and how migrating
+  to PQ changes the answer.
 - [Does the benchmark need sudo?](sudo-and-measurement-conditions.md) — what
   the one privileged step buys, what a run without it loses, and how to remove
   the need for it entirely.

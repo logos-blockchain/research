@@ -78,12 +78,19 @@ case "${OQSPROVIDER_MODULE:-}" in
   *) pqb_err "versions.lock points at a NON-VENDORED oqs-provider ($OQSPROVIDER_MODULE) — refusing: only the pinned, vendored provider may be used"; exit 1 ;;
 esac
 
-pqb_log "building bench_pq / bench_tls"
+pqb_log "building bench_pq / bench_tls / stress_roles"
 make -C bench/kem_sig \
   LIBOQS_PREFIX="${PREFIX:-$HERE/vendor/install}" \
   OPENSSL_PREFIX="${OPENSSL_PREFIX:-/usr}" \
   BENCH_CFLAGS="${BENCH_CFLAGS:--O3}"
 make -C bench/tls OPENSSL_PREFIX="${OPENSSL_PREFIX:-/usr}"
+# Same pinned toolchain and the same host-tuned flags as bench_pq: role ratios
+# are only comparable with the per-operation numbers if both were compiled the
+# same way.
+make -C bench/stress \
+  LIBOQS_PREFIX="${PREFIX:-$HERE/vendor/install}" \
+  OPENSSL_PREFIX="${OPENSSL_PREFIX:-/usr}" \
+  BENCH_CFLAGS="${BENCH_CFLAGS:--O3}"
 
 if cargo --version >/dev/null 2>&1; then
   if [ "$(id -u)" -eq 0 ]; then

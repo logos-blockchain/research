@@ -9,6 +9,10 @@
 #     (an upgraded OpenSSL or deleted toolchain always triggers a rebuild).
 #   * `smoke`/`run` depend on `build` only: `test`'s hygiene checks must never
 #     block a 30-minute measurement. Run `make test` before trusting results.
+#   * `run` and `stress` answer different questions and must not be confused:
+#     `run` measures one operation at a time on one pinned core; `stress` runs
+#     both sides of an exchange flat out on every core. Stress output is
+#     stamped is_stress_grade and is never reference data.
 #   * All test artifacts live in /tmp — never in the results tree or
 #     bench/tls/pki/.
 #   * Results are NOT kept next to the tool: every run writes its JSON to
@@ -25,7 +29,7 @@ FIGURES ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../../reports/pqc/fig
 export PQC_RESULTS_DIR := $(RESULTS)
 export PQC_FIGURES_DIR := $(FIGURES)
 
-.PHONY: help check deps build test test-fedora smoke run merge figures dashboard where clean distclean
+.PHONY: help check deps build test test-fedora smoke run stress stress-smoke merge figures dashboard where clean distclean
 
 help: ## list targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-10s %s\n", $$1, $$2}'
@@ -55,6 +59,12 @@ smoke: build ## all-four-groups smoke benchmark (1 rep, 50 handshakes/cell)
 run: build ## full benchmark run (~30 min Pi / ~36 min M3); sudo handled per-platform
 	@scripts/bench-run.sh
 
+stress: build ## role-asymmetry stress sweep (encoder vs decoder under load)
+	@./stress.sh
+
+stress-smoke: build ## 250 ms-per-leg stress sweep: pipeline check, not data
+	@./stress.sh --smoke
+
 merge: ## regenerate dashboard/data/merged.json from the published_runs manifest
 	python3 analyze/merge.py
 
@@ -68,6 +78,7 @@ dashboard: ## serve the dashboard over HTTP (does NOT touch merged.json; see 'me
 clean: ## remove bench binaries and Rust target trees
 	$(MAKE) -C bench/kem_sig clean
 	$(MAKE) -C bench/tls clean
+	$(MAKE) -C bench/stress clean
 	rm -rf bench/rust/target bench/rust-tls/target
 
 distclean: clean ## additionally remove the vendored C toolchain (forces full rebuild)

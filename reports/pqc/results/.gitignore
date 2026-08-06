@@ -22,6 +22,12 @@
 !Mac-20260730T134951Z.json
 !fedora-20260730T120637Z.json
 
+# ---- role-asymmetry stress runs (schema stress-1.0.0) ----------------------
+# Different measurement, different grade: these carry is_stress_grade and never
+# is_baseline_grade, and analyze/published_runs.txt does not list them (they are
+# not dashboard inputs). See ../sender-receiver-asymmetry.md.
+!stress-Mac-20260806T171550Z.json
+
 # ---- retired, kept as history ----------------------------------------------
 # rasberrypi5-20260614T205226Z is additionally the schema-1.0.0 COMPATIBILITY
 # FIXTURE for `make test` (hygiene check 5) — do not delete it when tidying.

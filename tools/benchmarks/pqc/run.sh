@@ -289,23 +289,10 @@ GOV_AFTER_END="$(pqb_get_governor)"
 
 # ---- host facts ------------------------------------------------------------
 collect_host_facts() {
-  local cpu_brand="" ncpu="" ram="" os_pretty="" kernel
-  kernel="$(uname -r)"
-  if [ "$PQB_OS" = "macos" ]; then
-    cpu_brand="$(sysctl -n machdep.cpu.brand_string 2>/dev/null)"
-    ncpu="$(sysctl -n hw.ncpu 2>/dev/null)"
-    ram="$(sysctl -n hw.memsize 2>/dev/null)"
-    os_pretty="macOS $(sw_vers -productVersion 2>/dev/null) ($(sw_vers -buildVersion 2>/dev/null))"
-  else
-    # aarch64 /proc/cpuinfo has no 'model name' line, so this grep misses; the
-    # trailing `|| true` keeps `set -o pipefail` from aborting the run (errexit)
-    # before the PQB_RPI_MODEL fallback below can supply the brand.
-    cpu_brand="$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | sed 's/.*: //' || true)"
-    [ -z "$cpu_brand" ] && cpu_brand="$PQB_RPI_MODEL"
-    ncpu="$( (command -v nproc >/dev/null && nproc) || grep -c ^processor /proc/cpuinfo)"
-    ram="$(( $(grep -m1 MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}') * 1024 ))"
-    os_pretty="$(. /etc/os-release 2>/dev/null; echo "$PRETTY_NAME")"
-  fi
+  local cpu_brand ncpu ram os_pretty kernel
+  pqb_host_probe
+  kernel="$PQB_KERNEL"; cpu_brand="$PQB_CPU_BRAND"; ncpu="$PQB_NCPU"
+  ram="$PQB_RAM_BYTES"; os_pretty="$PQB_OS_PRETTY"
   {
     echo "TOOL_VERSION=$TOOL_VERSION"
     echo "HOSTNAME=$HOST"

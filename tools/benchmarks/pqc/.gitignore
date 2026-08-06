@@ -6,6 +6,7 @@ setup/versions.lock
 # Compiled harness binaries
 bench/kem_sig/bench_pq
 bench/tls/bench_tls
+bench/stress/stress_roles
 *.o
 
 # Generated TLS material

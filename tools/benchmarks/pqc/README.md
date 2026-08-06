@@ -141,15 +141,19 @@ tools/benchmarks/pqc/
                  run_tls.sh      PKI generation + three-stack phase-matrix driver
   bench/rust/    pqb-rust       pure-Rust (RustCrypto) primitive harness + dalek anchors
   bench/rust-tls/ pqb-rust-tls  rustls + aws-lc-rs TLS harness + aws-lc-rs pricing rows
-  bench/lib/     assemble.py / merge helpers / miniyaml.py (zero-dep YAML)
-  analyze/       merge.py (combine machines) + plot.py (matplotlib PNGs, optional venv)
+  bench/stress/  stress_roles.c  encoder/decoder role harness under load
+  bench/lib/     assemble.py / assemble_stress.py / miniyaml.py (zero-dep YAML)
+  analyze/       merge.py (combine machines) + plot.py (matplotlib PNGs,
+                 optional venv) + asymmetry.py (read a stress run)
   dashboard/     static HTML/JS (Chart.js) — no backend, GitHub-Pages deployable
   run.sh         governor + taskset + thermal wrapper + orchestrator
+  stress.sh      role-asymmetry sweep (every core, deliberately unpinned)
   config.yaml    candidate lists (extend here)
   Dockerfile     reproducible Debian-aarch64 build
 
 reports/pqc/
-  results/       <host>-<timestamp>.json  (one per run, full metadata)
+  results/       <host>-<timestamp>.json         (one per measurement run)
+                 stress-<host>-<timestamp>.json  (one per role-asymmetry run)
   figures/       exported PNGs (make figures)
   README.md      the measurement record: published dataset, provenance, headline
 ```
@@ -210,7 +214,7 @@ make deps      # OPT-IN installer for what check reported: apt / dnf / brew
 make build     # C toolchain + bench binaries + both Rust harnesses (as your
                # user — it refuses to run cargo as root, and refuses to link
                # a system liboqs)
-make test      # ~1-2 min verification gate (21 checks): harness correctness
+make test      # ~1-2 min verification gate (26 checks): harness correctness
                # gates, LINK-TARGET verification (vendored liboqs + pinned
                # OpenSSL, via otool/ldd), the three TLS stacks incl. the
                # native no-OQS-provider assertion, cross-implementation size
@@ -223,6 +227,7 @@ make test-fedora # check+build+test in a Fedora container (podman/docker;
                # package split, lib64 defaults, x86 /proc/cpuinfo shape);
                # exercises degradation paths, produces no measurement data
 make run       # the full benchmark (~30 min on the reference platform)
+make stress    # sender/receiver asymmetry sweep (see below); NOT reference data
 make merge     # rebuild dashboard/data/merged.json from the published manifest
 make dashboard # serve the dashboard over HTTP (view only; never mutates data)
 ```
@@ -561,6 +566,67 @@ IND-CCA2 implementation issue), so it is intentionally omitted rather than
 listed-and-disabled; re-add it once linked against a liboqs that re-enables it.
 Add further algorithms by uncommenting/adding entries — the harness skips
 anything your liboqs build doesn't enable (and says so).
+
+---
+
+## Sender/receiver asymmetry (`make stress`)
+
+`make run` answers *what does one operation cost?* — one operation at a time,
+on one pinned core. `make stress` answers a different question: **when both
+sides of an exchange run flat out at once, who pays?**
+
+That is a protocol-design number rather than a microbenchmark one. If producing
+a message is much cheaper than consuming it, a peer can impose more work than
+it performs, and the receiver is the side that falls over — at a rate set by the
+ratio, not by either side's absolute speed.
+
+**The role model.** The *encoder* produces the wire object; the *decoder*
+consumes it.
+
+| | encoder | decoder | measured as |
+|---|---|---|---|
+| KEM | `encaps` (produces the ciphertext) | `decaps` (consumes it) | keygen reported separately as decoder setup, because the decoder is the side that must publish a key first — so the results carry both a per-message and a per-session (ephemeral-key, TLS-shaped) ratio |
+| Signature | `sign` | `verify` | signature keys are long-lived identities, so keygen is not part of either per-message cost |
+| X25519 | `derive` | `derive` | both peers run the identical operation, so the exchange is symmetric **by construction** — its measured ratio near 1.0 is the harness checking itself, and `make test` asserts it |
+
+**The phases**, each a fixed-duration leg:
+
+- **isolated** — one thread, one role at a time. The algorithm's intrinsic
+  asymmetry, uncontended.
+- **saturated** — every core, one role at a time. Each role's throughput
+  ceiling on this machine; it can differ from the isolated ratio when the roles
+  have different memory behaviour.
+- **contended** — one encoder thread against T decoder threads, *concurrently*.
+  The adversarial shape: one sender, a receiver with the whole machine.
+
+```bash
+make stress                      # full sweep over the config.yaml candidates
+make stress-smoke                # 250 ms legs: pipeline check, not data
+./stress.sh --alg ML-KEM-768     # one algorithm (repeatable)
+./stress.sh --duration-ms 5000   # longer legs, tighter numbers
+python3 analyze/asymmetry.py reports/pqc/results/stress-<host>-<ts>.json
+```
+
+The findings from the current sweep — including that migrating to PQ signatures
+*reverses* which side of a signature exchange pays — are written up in
+[reports/pqc/sender-receiver-asymmetry.md](../../../reports/pqc/sender-receiver-asymmetry.md),
+along with the limitation that matters most: these are valid-input costs, and a
+denial-of-service attacker does not send valid inputs.
+
+**Stress runs are never reference measurements, and the schema says so.** They
+use every core and are deliberately *not* pinned — concurrency is the thing
+being measured, so pinning would defeat it — which means they cannot satisfy
+the reference-grade gate. Output carries `is_stress_grade` and an explicit
+`not_reference_because` list, and never `is_baseline_grade: true`; a separate
+field name is what stops a stress file from being merged into the reference
+dataset by something that only checks a flag. Ratios between roles measured in
+the same phase are what transfers between machines; the absolute rates are not.
+
+One implementation note worth keeping: worker threads are created with a 32 MB
+stack. The largest Classic McEliece parameter sets keep multi-megabyte arrays
+on the stack, which the default pthread stack cannot hold — `bench_pq` never
+hit this because it runs on the main thread, whose stack grows on demand. On a
+pthread it is an immediate SIGBUS, so `make test` guards it.
 
 ---
 

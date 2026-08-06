@@ -2,7 +2,8 @@
 # =============================================================================
 # make test — the consolidated fast verification gate (~1-2 min).
 #
-# CORRECTNESS tests (1-4) exercise the measurement pipeline and BLOCK (nonzero
+# CORRECTNESS tests (1-4, including 3b for the role-asymmetry stress harness)
+# exercise the measurement pipeline and BLOCK (nonzero
 # exit): harness micro-runs + correctness gates, cross-implementation size
 # agreement, the three TLS stacks incl. the native no-OQS-provider negative
 # control, and a schema round-trip through assemble.py.
@@ -165,6 +166,64 @@ if [ "$HAVE_CARGO" = 1 ]; then
     || fail "rustls-awslc cell"
 else
   skip "rustls-awslc cell (cargo unavailable)"
+fi
+
+echo "== correctness 3b: role-asymmetry stress harness =="
+STRESS=bench/stress/stress_roles
+if [ ! -x "$STRESS" ]; then
+  fail "stress harness not built (make build should have produced $STRESS)"
+else
+  # X25519 is the harness checking itself: both peers run the identical
+  # operation, so anything but ~1.0 means the role plumbing is wrong, not that
+  # the algorithm is asymmetric.
+  "$STRESS" --kind kem --alg X25519 --duration-ms 200 --threads 2 > "$T/stress_x.json" 2>"$T/stress_x.err" \
+    && python3 - "$T/stress_x.json" <<'PY' && pass "symmetric control: X25519 encoder/decoder ratio ~1.0" || fail "X25519 role ratio is not ~1.0 — role plumbing is wrong (see above)"
+import json,sys
+d=json.load(open(sys.argv[1]))
+a=d["asymmetry"]
+assert a["symmetric_by_construction"] is True, "X25519 not flagged symmetric"
+r=a["latency_ratio_decoder_over_encoder"]
+assert 0.75 <= r <= 1.33, f"X25519 decoder/encoder ratio {r} is not ~1.0"
+assert a["cheaper_side"]=="neither", f"X25519 cheaper_side={a['cheaper_side']}"
+PY
+
+  # Shape + liveness on one PQ algorithm of each kind, and no failed operations:
+  # a worker that cannot complete its op would otherwise show up as a fast role.
+  for spec in "kem ML-KEM-768" "sig ML-DSA-65"; do
+    k="${spec%% *}"; a="${spec#* }"
+    "$STRESS" --kind "$k" --alg "$a" --duration-ms 200 --threads 2 > "$T/stress_$k.json" 2>/dev/null \
+      && python3 - "$T/stress_$k.json" <<'PY' && pass "stress $k: three phases, both roles live, zero failures" || fail "stress harness output malformed for $k"
+import json,sys
+d=json.load(open(sys.argv[1]))
+assert d["enabled"] and d["roles"]["encoder"] and d["roles"]["decoder"]
+for ph in ("isolated","saturated","contended"):
+    p=d["phases"][ph]
+    for role in ("encoder","decoder"):
+        g=p[role]
+        assert g["ops"]>0, f"{ph}/{role} completed no operations"
+        assert g["failures"]==0, f"{ph}/{role} had {g['failures']} failures"
+        assert g["latency_ns"]["median"]>0, f"{ph}/{role} has no latency"
+        assert g["latency_ns"]["samples"]>0, f"{ph}/{role} recorded no samples"
+assert d["phases"]["contended"]["decoder"]["threads"]>=1
+PY
+  done
+
+  # A build without an algorithm must say so in-band, not crash the sweep.
+  if "$STRESS" --kind kem --alg NoSuchAlgorithm-9000 --duration-ms 50 2>/dev/null \
+     | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['enabled'] is False and d['reason']"; then
+    pass "unknown algorithm is a recorded absence, not a crash"
+  else
+    fail "unknown algorithm did not produce an absence row"
+  fi
+
+  # Classic McEliece keeps multi-megabyte arrays on the stack; a default-sized
+  # pthread stack SIGBUSes on it. This is the regression guard for that fix.
+  if OQS_MC=Classic-McEliece-348864; "$STRESS" --kind kem --alg "$OQS_MC" --duration-ms 200 --threads 2 >"$T/stress_mc.json" 2>/dev/null \
+     && python3 -c "import json,sys; d=json.load(open('$T/stress_mc.json')); assert not d['enabled'] or d['phases']['isolated']['decoder']['ops']>0"; then
+    pass "large-stack algorithm (Classic McEliece) runs on worker threads"
+  else
+    fail "Classic McEliece crashed a worker thread — check the worker stack size"
+  fi
 fi
 
 echo "== correctness 4: schema round-trip through assemble.py =="
