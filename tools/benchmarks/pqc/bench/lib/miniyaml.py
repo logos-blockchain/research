@@ -2,7 +2,7 @@
 config.yaml.
 
 We deliberately avoid a PyYAML runtime dependency so the core pipeline runs on a
-stock Python 3 (the RPi5 / Mac smoke box both have only stdlib by default).
+stock Python 3 (measurement boxes routinely have only the stdlib).
 
 Supported subset (sufficient for config.yaml):
   - nested mappings via indentation (2 spaces per level by convention)

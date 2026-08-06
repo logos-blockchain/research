@@ -152,7 +152,7 @@ sig:
       security_level: 5
     # SPHINCS+ (round-3 "simple" sets) — a DIFFERENT algorithm from FIPS 205
     # SLH-DSA, not a relabelling. Kept alongside so (a) new runs compare
-    # directly against the three published RPi5 baselines that measured these,
+    # directly against the three published reference runs that measured these,
     # and (b) the TLS matrix's oqs-provider `sphincssha2128fsimple` cell keeps
     # a matching primitive row for its handshake_primitive_sum. Will drop when
     # we move to liboqs 0.16.0 (which removes SPHINCS+).

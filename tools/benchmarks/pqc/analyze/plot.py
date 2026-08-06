@@ -9,7 +9,7 @@ overrides).
 matplotlib is an OPTIONAL dependency. If it is not installed this prints a clear
 hint and exits 0 (the HTML dashboard remains the primary, dependency-free view).
 
-By default it plots only baseline-grade (RPi5) runs so paper figures are never
+By default it plots only reference-grade runs so paper figures are never
 polluted with macOS smoke data; pass --include-smoke to override. The classical
 Logos baseline (X25519 / Ed25519) is drawn as a reference line on every chart.
 """
@@ -143,7 +143,7 @@ def main():
         merged = json.load(f)
     ids = pick_runs(merged, args.include_smoke)
     if not ids:
-        print("no baseline-grade runs to plot (use --include-smoke for macOS/dev data)",
+        print("no reference-grade runs to plot (use --include-smoke for cross-platform data)",
               file=sys.stderr)
         return
 
@@ -164,7 +164,7 @@ def main():
     size_speed_scatter(sig, "sign", "signature",
                        "Signature: signature size vs sign latency", f"{O}/sig_size_speed.png")
     tls_bar(tls, f"{O}/tls_throughput.png")
-    print(f"PNGs in {O}/ ({'incl. smoke' if args.include_smoke else 'baseline-grade only'})")
+    print(f"PNGs in {O}/ ({'incl. smoke' if args.include_smoke else 'reference-grade only'})")
 
 
 if __name__ == "__main__":

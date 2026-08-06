@@ -17,6 +17,12 @@ Everything the benchmark produces lands here:
 | exported figures | `figures/` | `make figures` |
 | written analysis | this directory | by hand, from the above |
 
+Analyses published here so far:
+
+- [Does the benchmark need sudo?](sudo-and-measurement-conditions.md) — what
+  the one privileged step buys, what a run without it loses, and how to remove
+  the need for it entirely.
+
 The one deliberate exception is `dashboard/data/merged.json`, which stays in the
 tool: it is not a result but the dashboard's input, fetched by a relative path so
 the static dashboard stays deployable on its own. `make merge` regenerates it

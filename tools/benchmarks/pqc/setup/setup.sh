@@ -12,9 +12,10 @@
 # resolved git commits + the optimization flags actually used are written to
 # setup/versions.lock, which run.sh stamps into every results JSON.
 #
-# Identical flags for every candidate: -O3 -mcpu=cortex-a76 on the RPi5. On a
+# Identical flags for every candidate: -O3 -mcpu=cortex-a76 on the reference
+# platform. On a
 # non-A76 host (the macOS smoke box) we fall back to -O3 and RECORD that, so
-# smoke-test numbers can never masquerade as the RPi5 baseline.
+# smoke-test numbers can never masquerade as reference numbers.
 # =============================================================================
 set -euo pipefail
 

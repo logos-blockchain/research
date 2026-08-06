@@ -18,7 +18,7 @@ edit to the manifest, not an accident of globbing.
 
 The merged file keeps every run as a separate record (so multiple machines /
 repetitions can be compared) plus a flat index for quick charting. It never
-collapses RPi5 baseline-grade runs together with non-baseline (e.g. macOS smoke)
+collapses reference-grade runs together with non-reference (e.g. macOS smoke)
 runs — each record carries its own `is_baseline_grade` flag and host, and the
 dashboard filters on it by default.
 

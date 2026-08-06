@@ -3,7 +3,7 @@
 # lib_platform.sh — portable platform abstraction
 #
 # Sourced by setup/setup.sh and run.sh. Every operation that differs between the
-# RPi5 (Debian/Ubuntu aarch64) measurement target and the macOS/Apple-Silicon
+# reference platform (Debian/Ubuntu aarch64) and the macOS/Apple-Silicon
 # dev box is funneled through one of these functions, so the *identical* codebase
 # runs unchanged on both. Where a capability does not exist on a platform
 # (governor control, core pinning, on-die thermal sensors), the function degrades
@@ -74,7 +74,7 @@ pqb_linux_family() {
 # Resolve THIS host's tuned build flags (the credibility anchor: identical,
 # host-tuned flags for every candidate; the resolved values go into
 # versions.lock and every results JSON):
-#   Linux aarch64 (the RPi5 target):  -O3 -mcpu=cortex-a76 / "cortex-a76"
+#   Linux aarch64 (the reference platform):  -O3 -mcpu=cortex-a76 / "cortex-a76"
 #   Apple-silicon macOS (uname -m is  -O3 -mcpu=native     / "apple-mN"
 #     "arm64", NOT "aarch64" — the      (label from the CPU brand string)
 #     old check missed Macs entirely
@@ -90,8 +90,8 @@ pqb_choose_cflags() {  # sets + exports BENCH_CFLAGS, CFLAGS_TARGET
   CFLAGS_TARGET="generic-fallback"
   # shellcheck disable=SC2086
   if [ "$PQB_OS" = "linux" ] && [ "$PQB_ARCH" = "aarch64" ] && \
-     $cc ${TARGET_CFLAGS_RPI5:--O3 -mcpu=cortex-a76} "$probe" -o "$probe.out" 2>/dev/null; then
-    BENCH_CFLAGS="${TARGET_CFLAGS_RPI5:--O3 -mcpu=cortex-a76}"
+     $cc ${TARGET_CFLAGS_REFERENCE:--O3 -mcpu=cortex-a76} "$probe" -o "$probe.out" 2>/dev/null; then
+    BENCH_CFLAGS="${TARGET_CFLAGS_REFERENCE:--O3 -mcpu=cortex-a76}"
     CFLAGS_TARGET="cortex-a76"
   elif [ "$PQB_OS" = "macos" ] && [ "$PQB_ARCH" = "arm64" ] && \
        $cc -O3 -mcpu=native "$probe" -o "$probe.out" 2>/dev/null; then
@@ -126,7 +126,7 @@ _pqb_good_host() {
 # Resolve a readable, stable host identifier, falling through:
 #   $HOSTNAME -> `hostname` -> hostnamectl --static (Linux) /
 #   scutil --get LocalHostName (macOS) -> short machine id (last resort).
-# Domain suffixes (.home/.local/...) are stripped. On the RPi5 this yields the
+# Domain suffixes (.home/.local/...) are stripped. On a stock Pi this yields the
 # actual pi hostname; on this Mac it falls through to LocalHostName.
 pqb_resolve_hostname() {
   local cands=() c h
@@ -166,6 +166,17 @@ pqb_resolve_hostname() {
 pqb_set_governor_performance() {
   if [ "$PQB_OS" = "linux" ] && [ -d /sys/devices/system/cpu/cpu0/cpufreq ]; then
     local ok=1 g
+    # Already there? Then this run needs no privilege at all. A dedicated
+    # measurement box that pins the governor at boot (cpupower.service, a
+    # tmpfiles.d rule, or the kernel cmdline) takes the only privileged step in
+    # the benchmark out of the run entirely — and must not be told off for it.
+    ok=1
+    for g in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+      [ "$(cat "$g" 2>/dev/null)" = performance ] || { ok=0; break; }
+    done
+    if [ "$ok" = 1 ]; then echo performance; return 0; fi
+
+    ok=1
     for g in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
       if [ -w "$g" ]; then
         echo performance > "$g" 2>/dev/null || ok=0

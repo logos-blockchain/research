@@ -4,8 +4,8 @@
 #
 # Does the things that make a number credible:
 #   * sets the CPU governor to `performance` (Linux; warns elsewhere)
-#   * pins the benchmark to a single isolated core via taskset (core 3 on RPi5;
-#     core 3 stays clear of CPU0 where the kernel steers IRQs/RPS)
+#   * pins the benchmark to a single isolated core via taskset (core 3 by
+#     default: it stays clear of CPU0, where the kernel steers IRQs/RPS)
 #   * logs ARM clock + SoC temperature throughout, embeds the trace in results,
 #     and warns on thermal throttling
 #   * runs every candidate from config.yaml, then assembles one results JSON
@@ -368,7 +368,7 @@ d=json.load(open(sys.argv[1]))
 g=d["is_baseline_grade"]
 print(f"  results: {sys.argv[1]}")
 print(f"  host: {d['host']['cpu_brand']} ({d['host']['os_pretty']})")
-print(f"  baseline-grade (reference platform: RPi5): {g}")
+print(f"  reference-grade: {g}")
 if not g:
     for r in d['baseline_grade_reasons']:
         print(f"     - {r}")
