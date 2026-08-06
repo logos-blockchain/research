@@ -14,7 +14,8 @@ def test_key_covers_every_field():
     for name in fields:
         cur = getattr(base, name)
         alt = {"n_nodes": 2000, "degree": 4, "n_regions": 4, "region_locality": 0.5,
-               "blend_hops": 2, "max_blend_delay": 5,
+               "blend_hops": 2, "max_blend_delay": 5, "min_blend_delay": 1,
+               "release_mode": "jitter",
                "unresponsive_frac": 0.2, "churn_mode": "regional", "redundancy": 2,
                "cover_rate_mult": 2.0, "block_interval_slots": 60, "slots_per_epoch": 1000,
                "stake_inference_ratio": 0.7, "traffic_window_slots": 100,
