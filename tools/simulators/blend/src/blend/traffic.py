@@ -261,7 +261,8 @@ def traffic_metrics(win: TrafficWindow, config: SimConfig,
 def timing_linkability(win: TrafficWindow, config: SimConfig,
                        max_blend_delay: int | None = None,
                        min_blend_delay: int | None = None,
-                       release_mode: str | None = None) -> dict:
+                       release_mode: str | None = None,
+                       adversary_knows_schedule: bool = True) -> dict:
     """Can an observer match a relay's outgoing message to the incoming one, from timing alone?
 
     This is the attack that distinguishes a *blended* message from a merely *relayed* one: a relay
@@ -276,6 +277,13 @@ def timing_linkability(win: TrafficWindow, config: SimConfig,
     * ``jitter`` -- each message waits an independent draw, so every earlier arrival is a candidate
       weighted by the delay density (exponential here). Nothing is quantised, so the weights decay
       smoothly and the posterior concentrates on whichever arrival is closest to the expected lag.
+
+    ``adversary_knows_schedule`` selects how much the clock design concedes. A free-running clock
+    ticks whether or not anything is held, but only ticks that *release* something are visible. The
+    strong adversary (default) is handed the true schedule and can exclude everything before the
+    previous tick; the weak one sees only the node's previous release, so silent ticks widen its
+    candidate window. Jitter has no schedule to know, so the switch does not affect it -- which is
+    exactly why the comparison has to be run both ways.
 
     ``linked_frac`` is the share of releases whose set collapses to one candidate: the message is
     then linked with certainty, whatever the nominal delay was.
@@ -301,14 +309,20 @@ def timing_linkability(win: TrafficWindow, config: SimConfig,
     for node, holds in by_node.items():
         arrivals = np.sort(np.array([h.arrived for h in holds]))
         true_src = {h.released: h.arrived for h in holds}     # the arrival that really produced it
-        for r in sorted({h.released for h in holds}):
+        rel_times = sorted({h.released for h in holds})
+        for r in rel_times:
             if mode == "clock":
-                clock = win.clocks.get(node)
                 prev = 0.0
-                if clock is not None:
-                    earlier = [t for t in clock.ticks_in(-1e18, r) if t < r]
-                    if earlier:
-                        prev = earlier[-1]
+                if adversary_knows_schedule:
+                    clock = win.clocks.get(node)
+                    if clock is not None:
+                        earlier = [t for t in clock.ticks_in(-1e18, r) if t < r]
+                        if earlier:
+                            prev = earlier[-1]
+                else:
+                    seen = [t for t in rel_times if t < r]     # only releases are observable
+                    if seen:
+                        prev = seen[-1]
                 cand = arrivals[(arrivals > prev) & (arrivals <= r + 1e-12)]
                 n_c = max(len(cand), 1)
                 sets.append(float(n_c))                        # uniform posterior -> perplexity = n

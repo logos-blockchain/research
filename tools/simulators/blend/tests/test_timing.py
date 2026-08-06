@@ -88,3 +88,32 @@ def test_perplexity_flatters_jitter_more_than_the_best_guess_does():
     map_gain = (1 - j["map_success"]) / (1 - c["map_success"])
     assert set_gain > 1.0 and map_gain > 1.0        # jitter wins on both
     assert set_gain > map_gain                      # but the set measure overstates by how much
+
+
+def test_knowing_the_tick_schedule_gains_the_adversary_nothing():
+    """The clock design concedes the same whether or not the observer knows the tick times.
+
+    A silent tick implies nothing was pending at it, and any arrival older than the previous
+    release has demonstrably already left. So the candidate window bounded by the true previous
+    tick and the one bounded by the previous observed release contain the same arrivals. This
+    matters because it removes the obvious objection to the jitter-vs-clock comparison: the clock
+    design is not being handicapped by a generous adversary assumption.
+    """
+    for n, rate, slots in ((2000, 1.0, 120), (200, 32.0, 90)):     # sparse and dense
+        cfg = SimConfig(n_nodes=n, degree=8, blend_hops=3, max_blend_delay=30,
+                        release_mode="clock", cover_rate_mult=rate)
+        g = build_graph(cfg)
+        w = simulate_window(g, cfg, np.random.default_rng(5), slots)
+        strong = timing_linkability(w, cfg, adversary_knows_schedule=True)
+        weak = timing_linkability(w, cfg, adversary_knows_schedule=False)
+        assert abs(strong["timing_set_mean"] - weak["timing_set_mean"]) < 1e-9
+        assert abs(strong["map_success"] - weak["map_success"]) < 1e-9
+
+
+def test_jitter_beats_the_clock_at_a_matched_delay_budget():
+    """The verdict, on the measure a heavy tail cannot flatter: at equal mean delay the
+    independent-draw design leaves the adversary's best guess wrong more often."""
+    _, c = _run("clock", rate=64.0, slots=60)
+    _, j = _run("jitter", rate=64.0, slots=60)
+    assert j["map_success"] < c["map_success"]
+    assert j["timing_set_mean"] > c["timing_set_mean"]
