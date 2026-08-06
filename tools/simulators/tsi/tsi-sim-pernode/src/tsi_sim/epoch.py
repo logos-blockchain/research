@@ -109,7 +109,8 @@ def simulate_epoch(
                  w=config.effective_uncle_window)
     n_active_window = int((active_slots < T).sum())
 
-    d_next = tsi.update_D_vec(d_est, ms.m, T, f, config.beta, config.fixed_point)
+    d_next = tsi.update_D_vec(d_est, ms.m, T, f, config.beta, config.fixed_point,
+                              config.f_precision)
 
     attribution = coalition_mask if coalition_mask is not None else adversary_mask
     adv_blocks, honest_blocks = _canonical_producer_split(tree, A, attribution, T, E)

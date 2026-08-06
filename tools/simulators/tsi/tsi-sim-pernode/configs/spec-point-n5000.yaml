@@ -1,0 +1,34 @@
+# Handoff E2, the size arm: does the no-uncle loss deepen with N at the SPEC's operating point?
+#
+# The design-band study (fine-delay-paired.yaml) already settles the countable-vs-unrestricted
+# question at delta_max = 4 with 40 replicates, but only at N = 1000. Claim C3 of the handoff
+# ("without uncles the loss is 18.7 %") is the U = 0 column, and the report shows that column is
+# N-dependent (0.739 -> 0.635 over N = 1k -> 10k) at delta_max = 8. This measures it at the
+# deployment's own delay instead, where nothing has been run at N > 1000.
+#
+# delta_max = 4 is the E1 answer: the spec's blending_delay is a FIXED 2 s per-hop dwell, and the
+# simulator's Uniform(0, delta_max) matches it in the mean at 4. D_vis ~ 8 s, rho ~ 0.27.
+#
+# Run TWICE — default (countable) and with --old — so the first-fork gap is measured at this size
+# too. `--old` is NOT a candidate design: under the current spec a block carrying a deep-fork
+# reference is REJECTED, so the unrestricted arm is an unreachable upper bound on what any
+# counting rule could recover. It is kept as exactly that ceiling.
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [5000]                              # the size arm; N = 1000 is already committed
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet — the deployment transport
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # the spec's Blend cascade length
+blend_delay_max: [4.0]                       # E1: the spec's 2 s dwell, matched in the mean
+max_uncles: [0, 1, 2, 4]                     # 0 = the C3 column; 4 = the spec's MAX_UNCLES
+uncle_strategy: [oldest]                     # spec Uncle Selection
+init_dest: [common]                          # per-node initial D_est from agreement
+replicates: 12                               # N = 5000 at true k is heavy; 12 gives ~±0.2 pp
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true

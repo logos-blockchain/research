@@ -21,6 +21,7 @@ _CONFIG_FIELDS = (
     "paired_streams",
     "f", "beta", "k", "genesis_d_factor", "epochs", "fixed_point", "legacy_block_count",
     "replicate",
+    "f_precision",
     "adversary_frac", "adversary_strategy", "adversary_selection", "adversary_period",
     "adversary_withhold_epochs",
 )
