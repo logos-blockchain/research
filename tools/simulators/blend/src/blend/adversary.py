@@ -73,6 +73,59 @@ def deanon_metrics(n: int, n_adv: int, observed_frac: float, blend_hops: int,
     return {"deanon_rate": float(deanon), "full_deanon_rate": float(deanon * observed_frac)}
 
 
+def attribution_confidence(adv_peers: np.ndarray | int, degree: int) -> np.ndarray | float:
+    """How sure the adversary is that a node it saw transmitting is the message's **originator**.
+
+    Capturing the whole cascade tells the adversary which message it is following, not who started
+    it. Seeing an honest node ``X`` transmit is consistent with two stories: ``X`` originated the
+    message, or ``X`` received it from a peer and passed it on. The adversary separates them by
+    *not* having seen the message arrive at ``X`` -- certain if ``X`` originated it, but of
+    probability ``1 - a/d`` if ``X`` relayed, since the delivering peer may simply have been one it
+    cannot watch. With equal priors that gives
+
+        confidence = 1 / (2 - a/d) = d / (2d - a)
+
+    for ``a`` adversarial peers out of degree ``d``. The relays do not enter: the conditioning event
+    already fixes them as adversarial, so an honest ``X`` cannot be one of them for this message.
+
+    Note the ends: ``a = d`` (every link watched) gives certainty, and ``a = 0`` returns the 0.5
+    prior -- though such a node is never observed transmitting at all, so callers should treat it as
+    unattributable rather than as a coin flip.
+
+    This is a **lower bound on the adversary's capability**: it credits only the sender's own links.
+    An honest peer that has adversarial peers of its own also leaks the message upstream, so real
+    confidence is higher (see the report's caveat on neighbourhood observability).
+    """
+    a = np.asarray(adv_peers, dtype=float)
+    return degree / (2.0 * degree - a)
+
+
+def attribution_metrics(graph: Graph, adv_mask: np.ndarray,
+                        thresholds: tuple[float, ...] = (0.5, 0.9, 0.99)) -> dict:
+    """Distribution of :func:`attribution_confidence` over the honest nodes of this placement.
+
+    ``attributable_frac_<t>`` is the share of honest nodes the adversary could name as originator
+    with confidence at least ``t`` -- the factor that should multiply the whole-path capture rate,
+    in place of the binary "has at least one adversarial peer".
+    """
+    adv = adv_mask
+    honest = ~adv
+    n_honest = int(honest.sum())
+    counts = np.add.reduceat(adv[graph.indices].astype(np.int32), graph.indptr[:-1])
+    if n_honest == 0:
+        out = {"attribution_conf_mean": 0.0}
+        for t in thresholds:
+            out[f"attributable_frac_{int(t * 100)}"] = 0.0
+        return out
+    a_honest = counts[honest]
+    conf = attribution_confidence(a_honest, graph.degree)
+    seen = a_honest >= 1                      # never observed transmitting without a watched link
+    out = {"attribution_conf_mean": float(np.mean(np.where(seen, conf, 0.0)))}
+    for t in thresholds:
+        out[f"attributable_frac_{int(t * 100)}"] = float(np.mean(seen & (conf >= t - 1e-12)))
+    return out
+
+
 def _peers(graph: Graph, v: int) -> np.ndarray:
     return graph.indices[graph.indptr[v]:graph.indptr[v + 1]]
 

@@ -98,3 +98,51 @@ def test_engine_emits_deanon_rows():
         assert 0.0 <= row["full_deanon_rate"] <= row["deanon_rate"] + 1e-12
         if row["f_adv"] == 0.0:
             assert row["deanon_rate"] == 0.0            # no adversary -> no deanonymization
+
+
+# --- attribution confidence -----------------------------------------------------------------------
+
+def test_attribution_confidence_endpoints_and_monotonicity():
+    """d/(2d-a): the 0.5 prior with no watched links, certainty when every link is watched."""
+    from blend.adversary import attribution_confidence
+    d = 8
+    assert abs(float(attribution_confidence(0, d)) - 0.5) < 1e-12
+    assert abs(float(attribution_confidence(d, d)) - 1.0) < 1e-12
+    vals = [float(attribution_confidence(a, d)) for a in range(d + 1)]
+    assert all(b > a for a, b in zip(vals, vals[1:], strict=False))
+    assert abs(vals[1] - 1 / (2 - 1 / 8)) < 1e-12          # one peer buys only ~0.53
+
+
+def test_confidence_does_not_depend_on_the_number_of_relays():
+    """The conditioning event fixes the relays as adversarial, so an honest sender is not one of
+    them; the path length cannot enter the estimator."""
+    import inspect
+
+    from blend.adversary import attribution_confidence
+    src = inspect.getsource(attribution_confidence)
+    assert "blend_hops" not in src and "hops" not in src.split('"""')[2]
+
+
+def test_high_confidence_attribution_equals_the_eclipse_condition():
+    """At degree 8, 90% confidence needs a >= 8 -- every peer adversarial. So the confidence-
+    weighted attribution collapses onto eclipse, not onto observed."""
+    from blend.adversary import adversary_metrics, attribution_metrics, place_adversary
+    g = build_graph(SimConfig(n_nodes=20000, degree=8, graph_seed=0))
+    for f in (0.33, 0.5):
+        mask = place_adversary(g, f, "random", np.random.default_rng(0), 10**9)
+        am = adversary_metrics(g, mask)
+        at = attribution_metrics(g, mask)
+        assert abs(at["attributable_frac_90"] - am["eclipsed_frac"]) < 1e-12
+        assert abs(at["attributable_frac_50"] - am["observed_frac"]) < 1e-12   # >=1 peer clears 0.5
+
+
+def test_confident_attribution_is_far_rarer_than_observation():
+    """The correction that matters: observed_frac massively overstates confident attribution."""
+    from blend.adversary import adversary_metrics, attribution_metrics, place_adversary
+    g = build_graph(SimConfig(n_nodes=20000, degree=8, graph_seed=1))
+    mask = place_adversary(g, 0.2, "random", np.random.default_rng(1), 10**9)
+    am = adversary_metrics(g, mask)
+    at = attribution_metrics(g, mask)
+    assert am["observed_frac"] > 0.8
+    assert at["attributable_frac_90"] < 1e-4
+    assert at["attribution_conf_mean"] < 0.6        # one or two peers buys very little
