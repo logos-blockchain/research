@@ -190,7 +190,7 @@ function wrapSingle(d) {
            kem, sig, tls, kem_absent, sig_absent, tls_absent };
 }
 
-/* short platform tag for legends: "Pi 5" / "M3" style, from the host brand */
+/* short platform tag for legends, derived from the host CPU brand */
 function runTag(r) {
   const b = ((MERGED.runs.find(x=>x.run_id===r.run_id)||r).host||{}).cpu_brand ||
             r.cpu_brand || r.hostname || "?";
@@ -258,8 +258,8 @@ function renderRunCards() {
     card.className = "run-card " + (good ? "good" : "ref");
     const reasons = (r.baseline_grade_reasons||[]).map(x=>`<li>${x}</li>`).join("");
     card.innerHTML =
-      `<span class="tag">${good ? "✅ baseline-grade (RPi5 reference)"
-                                : "⚠ cross-platform reference — not baseline-grade"}</span><br>` +
+      `<span class="tag">${good ? "✅ reference-grade"
+                                : "⚠ cross-platform datapoint — not reference-grade"}</span><br>` +
       `<b>${h.cpu_brand||"?"}</b> · ${h.os_pretty||h.os||"?"} · ${r.generated_utc||""}` +
       (good ? "" : `<details><summary>why it doesn't meet the reference bar</summary><ul>${reasons}</ul></details>`) +
       `<div class="chips">` +

@@ -20,7 +20,7 @@
  * Metrics per operation: full per-iteration wall-clock nanosecond distribution
  * -> median, MAD, IQR, min, max, mean, stddev, ops/sec, plus per-repetition
  * medians. Optional userspace PMU cycle counts when available. Heap high-water
- * via mallinfo2 on glibc (the RPi5 target); honestly reported unavailable
+ * via mallinfo2 on glibc; honestly reported unavailable
  * elsewhere (e.g. the macOS smoke box).
  * ===========================================================================*/
 #define _POSIX_C_SOURCE 200809L

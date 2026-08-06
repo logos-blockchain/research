@@ -1,9 +1,11 @@
 # pqc — post-quantum cryptography benchmark
 
-A reproducible, general-purpose **post-quantum cryptography benchmark** whose
-baseline **reference platform** is the **Raspberry Pi 5** (Broadcom BCM2712,
-Cortex-A76, aarch64). It runs on any Linux or macOS box; results from the
-reference platform aggregate and compare apples-to-apples.
+A reproducible, general-purpose **post-quantum cryptography benchmark** that
+runs on any Linux or macOS machine. Numbers from *one* designated
+**reference platform** — currently a **Raspberry Pi 5** (Broadcom BCM2712,
+Cortex-A76, aarch64), chosen as representative validator-grade hardware — are
+marked reference-grade and aggregate apples-to-apples; every other machine
+produces a labelled cross-platform datapoint.
 
 Results and figures land in [`reports/pqc`](../../../reports/pqc) — see that
 directory for the published dataset and what it shows.
@@ -187,9 +189,10 @@ standalone copy of this directory rather than a checkout of the research repo.
   silently change what is measured (and the pinned oqs-provider expects
   exactly the pinned liboqs' headers). `make build` produces the vendored
   build; `make test` verifies the built binaries actually link it.
-- Any Linux or macOS box works: non-Pi hosts run fine and are stamped
-  `is_baseline_grade=false` with reasons — only a Raspberry Pi 5 under the
-  controlled conditions below produces reference-grade rows.
+- Any Linux or macOS box works. Hosts other than the reference platform run
+  fine and are stamped `is_baseline_grade=false` with the reasons — only the
+  reference platform, under the controlled conditions below, produces
+  reference-grade rows.
 
 ### The make targets (all platforms — executable documentation)
 
@@ -216,10 +219,10 @@ make test      # ~1-2 min verification gate (21 checks): harness correctness
 make smoke     # all-four-groups pipeline check (1 rep, 50 handshakes/cell)
 make test-fedora # check+build+test in a Fedora container (podman/docker;
                # SMOKE=1 adds a smoke run) — covers the Red Hat platform
-               # differences Mac+Pi testing structurally cannot catch (dnf
+               # differences Debian/macOS testing structurally cannot catch (dnf
                # package split, lib64 defaults, x86 /proc/cpuinfo shape);
                # exercises degradation paths, produces no measurement data
-make run       # the full benchmark (~30 min Pi 5 / ~36 min M3)
+make run       # the full benchmark (~30 min on the reference platform)
 make merge     # rebuild dashboard/data/merged.json from the published manifest
 make dashboard # serve the dashboard over HTTP (view only; never mutates data)
 ```
@@ -236,12 +239,13 @@ sudo attempt and honestly records the governor demerit. `build`'s skip logic use
 against the lock), never stamp files — upgrading OpenSSL triggers a rebuild
 instead of being silently masked.
 
-### On a Raspberry Pi 5 (the real measurement target)
+### Reference-grade runs
 
-Nothing is Pi-specific about the commands — they are the same targets as
-everywhere else: `make check && make build && make test && make run`. What is
-Pi-specific is the *measurement conditions* the baseline-grade gate checks, and
-they are physical, not procedural:
+Nothing about the commands changes per platform — they are the same targets
+everywhere: `make check && make build && make test && make run`. What the
+reference-grade gate additionally requires is *measurement conditions*, and on
+the current reference platform (a Raspberry Pi 5) those are physical, not
+procedural:
 
 - **Active cooling** (the official Active Cooler or a fan). PQ signing —
   SLH-DSA especially — holds the core at load long enough to throttle an
@@ -254,15 +258,18 @@ they are physical, not procedural:
 - Run `make build` inside **tmux** so a dropped SSH session doesn't kill it
   (5–15 min, dominated by liboqs and the first AWS-LC build).
 
-See [Contributing your RPi5 results](#contributing-your-rpi5-results) for the
-full gate and the submission checklist.
+See [Contributing results](#contributing-results) for the full gate and the
+submission checklist.
 
 **On `sudo`:** it is **optional, not a prerequisite.** The only thing it does is
 set the CPU governor to `performance` — none of the crypto needs root. `./run.sh`
 runs fine without it: it warns, skips the governor step, completes the run, and
 the results JSON is automatically stamped `is_baseline_grade=false` (governor
-demerit). So use `sudo` when you want a baseline-grade reference run; drop it for
-a quick local run you don't intend to submit.
+demerit). So use `sudo` when you want a reference-grade run; drop it for a quick
+local run you don't intend to submit — and see
+[Does this need sudo?](../../../reports/pqc/sudo-and-measurement-conditions.md)
+for what the governor actually buys and how to take the privilege out of the
+run entirely.
 
 `./run.sh --smoke` runs tiny iteration counts as a fast pipeline check.
 `./run.sh --kemsig-only` / `--tls-only` scope the run. `--iters/--warmup/--reps`
@@ -274,9 +281,10 @@ Same targets: `make check` tells you what to `brew install` (or `make deps`
 does it for you), then `make build && make test && make smoke`. Runs are
 stamped `is_baseline_grade=false` with reasons, by design:
 
-> **macOS runs are cross-platform / smoke data, never baseline-grade — by
+> **macOS runs are cross-platform / smoke data, never reference-grade — by
 > design, for three concrete reasons:**
-> 1. **Not a Raspberry Pi**, so it fails the gate's first condition outright.
+> 1. **Not the reference platform**, so it fails the gate's first condition
+>    outright.
 > 2. **No userspace cycle counter, and ~1 µs timer granularity.** macOS exposes
 >    no readable PMU cycle counter and its wall-clock quantizes to ~1 µs steps —
 >    a ~10% floor on the fastest ops (ML-KEM ~10 µs), negligible for anything
@@ -288,8 +296,8 @@ stamped `is_baseline_grade=false` with reasons, by design:
 >
 > Every macOS results file records `is_baseline_grade=false` with the exact
 > reasons, and the dashboard shows such runs labelled **"cross-platform
-> reference — not baseline-grade"** (shown and labelled, never mixed with or
-> mistaken for the Pi reference). They still produce
+> datapoint — not reference-grade"** (shown and labelled, never mixed with or
+> mistaken for the reference numbers). They still produce
 > **useful cross-platform numbers** (the heavier McEliece/FrodoKEM ops are barely
 > affected by the timer floor) — they just can't meet the controlled reference
 > bar, hence smoke-only.
@@ -313,7 +321,7 @@ docker build -t pqc .   # builds + pins the C toolchain inside the image
 **Run the measurement bare-metal on the host.** A container can't reliably set
 the CPU governor, pin to an isolated core, or read the Pi's thermal/throttle
 sensors — the noise-control knobs the reference-grade gate relies on — so an
-in-container run could never be baseline-grade and would only add jitter. Build
+in-container run could never be reference-grade and would only add jitter. Build
 in Docker if you like; then run `./run.sh` on the host.
 
 ---
@@ -342,7 +350,7 @@ in Docker if you like; then run `./run.sh` on the host.
   (`vcgencmd measure_clock arm`) and SoC temperature (`vcgencmd measure_temp`)
   ~once a second for the whole run. The full trace is embedded in the results
   JSON, and **thermal throttling** (`vcgencmd get_throttled`, plus a clock-droop
-  heuristic) is detected and flagged — a throttled run is not baseline-grade.
+  heuristic) is detected and flagged — a throttled run is not reference-grade.
 - **Warmup + N timed iterations, multiple repetitions.** Primary metric is
   wall-clock nanoseconds via `clock_gettime(CLOCK_MONOTONIC)`. We report
   **median, MAD, IQR, min, max, mean, stddev, ops/sec**, plus per-repetition
@@ -360,9 +368,9 @@ in Docker if you like; then run `./run.sh` on the host.
   back to wall-clock and records exactly that** in the JSON
   (`run.cycles_available=false` + the reason). **On a stock machine the cycle
   counter is not available, so runs use the wall-clock timer by default** — and
-  both published runs reflect this: the RPi5 baseline and the macOS run *both*
-  have `cycles_available=false` (both wall-clock). The remaining difference
-  between them is wall-clock **granularity**, not clock *type*: the Pi's
+  the published runs reflect this: the reference run and the macOS runs *all*
+  have `cycles_available=false` (all wall-clock). The remaining difference
+  between them is wall-clock **granularity**, not clock *type*: Linux/aarch64's
   wall-clock lands on fractional microseconds, while macOS quantizes to ~1 µs
   steps — a ~10% resolution floor on the fastest ops (ML-KEM keygen ~10 µs),
   negligible for anything ≥100 µs (McEliece, FrodoKEM).
@@ -442,7 +450,7 @@ All `bench_pq.c` references are `bench/kem_sig/bench_pq.c`.
    thermal throttling (`:166`). Throttling is read from `vcgencmd get_throttled`
    bits 2/18 plus a clock-droop heuristic (`assemble.py:91-98,:110-113`). Any
    failure appends a human-readable reason and flips the flag to `false`; the
-   dashboard and `plot.py` default to baseline-grade runs only.
+   dashboard and `plot.py` default to reference-grade runs only.
 
 ---
 
@@ -473,11 +481,12 @@ All `bench_pq.c` references are `bench/kem_sig/bench_pq.c`.
   `handshake_primitive_sum` block. Older (schema `1.0.0`) result files are
   **never rewritten** — `analyze/merge.py` injects the equivalent values at
   merge time (`backend`→`implementation`, phase inference, derived totals).
-- **Every results JSON carries full environment metadata**: RPi model, RAM,
-  kernel, OS, governor, the clock/temp trace during the run, compiler version,
-  liboqs/oqs-provider/OpenSSL versions+commits, build flags, and the candidate
-  list. A macOS smoke file and an RPi5 baseline file can never be confused.
-- **Identical flags for every candidate:** `-O3 -mcpu=cortex-a76` on the Pi.
+- **Every results JSON carries full environment metadata**: board/CPU model,
+  RAM, kernel, OS, governor, the clock/temp trace during the run, compiler
+  version, liboqs/oqs-provider/OpenSSL versions+commits, build flags, and the
+  candidate list. A smoke file and a reference run can never be confused.
+- **Identical flags for every candidate:** `-O3 -mcpu=cortex-a76` on the
+  reference platform, host-tuned elsewhere.
   Document your `gcc`/`clang` version — it is auto-captured in `versions.lock`
   (`CC_VERSION`).
 
@@ -486,13 +495,19 @@ All `bench_pq.c` references are `bench/kem_sig/bench_pq.c`.
 A **reference-measurement quality gate**, not a deployment requirement. It marks
 whether a run was produced under controlled, reproducible *reference* conditions,
 so the numbers are comparable across algorithms and across machines. It is `true`
-**only** when all hold: real Raspberry Pi · `performance` governor · core-pinned ·
-`cortex-a76` build flags · no thermal throttling. Otherwise it is `false` with a
-list of reasons.
+**only** when all hold: the run is on the reference platform · `performance`
+governor · core-pinned · reference build flags (`cortex-a76`) · no thermal
+throttling. Otherwise it is `false` with a list of reasons.
+
+The reference platform is hardcoded in `bench/lib/assemble.py`
+(`REFERENCE_PLATFORM`) on purpose: a run must not be promotable to
+reference-grade by editing a config file. Changing it is a deliberate change to
+what the published numbers mean, and invalidates comparison with the runs
+already published.
 
 - **What it is:** a label that says "this run is clean enough to sit in the
   cross-algorithm / cross-machine reference comparison." The dashboard and
-  `plot.py` default to baseline-grade runs only, so noisy runs don't distort the
+  `plot.py` default to reference-grade runs only, so noisy runs don't distort the
   picture.
 - **What it is *not*:** a claim about how nodes must be configured in production.
   Real deployments are heterogeneous (different SoCs, governors, thermals) —
@@ -522,7 +537,7 @@ list of reasons.
 
   > **Comparability note (SPHINCS+ vs SLH-DSA).** Round-3 SPHINCS+ and FIPS 205
   > SLH-DSA are **different algorithms**, not a relabelling. The earlier
-  > (now-retired generation) RPi5 baselines measured only the SPHINCS+ sets;
+  > (now-retired generation) reference runs measured only the SPHINCS+ sets;
   > the config measures both generations side by side, so runs (a) stay
   > directly comparable to that history via the SPHINCS+ rows and (b) carry
   > the standardised SLH-DSA numbers. Don't compare an SLH-DSA row against an old SPHINCS+ row as if
@@ -574,18 +589,21 @@ anything your liboqs build doesn't enable (and says so).
 
 ---
 
-## Contributing your RPi5 results
+## Contributing results
 
-The whole point is a **shared, aggregated baseline**: the more Raspberry Pi 5
-results we collect under identical conditions, the more confident the migration-
-cost picture. If you have a Pi 5, please contribute a run — it takes one command
-and a pull request.
+Two kinds of run are worth contributing. A run on the **reference platform**
+under controlled conditions sharpens the reference numbers themselves — the more
+of those measured identically, the more confident the migration-cost picture. A
+run on **any other machine** is a cross-platform datapoint, which is how the
+results stop being a statement about one board; it is labelled as such
+automatically and never mixed into the reference set.
 
-### 1. Run under baseline conditions
+### 1. Run under controlled conditions
 
-For your numbers to count as baseline-grade, the run must satisfy the
-`is_baseline_grade` gate (real Pi 5 · `performance` governor · core-pinned ·
-`cortex-a76` flags · no thermal throttling). To give it the best shot:
+For your numbers to count as reference-grade, the run must satisfy the
+`is_baseline_grade` gate (reference platform · `performance` governor ·
+core-pinned · `cortex-a76` flags · no thermal throttling). On the current
+reference platform, to give it the best shot:
 
 - **Use a Raspberry Pi 5** with active cooling (the official Active Cooler or a
   fan). PQ signing (esp. SLH-DSA) runs the core hot for a while; without cooling
@@ -602,14 +620,15 @@ make check && make build && make test
 make run     # privilege for the governor step is handled for you
 ```
 
-A full run takes ~30 min on a Pi 5 (hash-based signing dominates). To check the
+A full run takes ~30 min on the reference platform (hash-based signing
+dominates). To check the
 pipeline first without committing to the full run, `make smoke` — but only a
 **full** run (not smoke) counts as a submission.
 
-### 2. Confirm it's baseline-grade
+### 2. Confirm it's reference-grade
 
-When the run finishes, the summary prints `baseline-grade (RPi5): True`. Verify
-in the JSON too:
+When the run finishes, the summary prints `reference-grade: True`. Verify in
+the JSON too:
 
 ```bash
 f=$(ls -t "$(make -s where | awk '/^results:/{print $2}')"/*.json | head -1)
@@ -629,16 +648,16 @@ Your `reports/pqc/results/<hostname>-<timestamp>.json` is fully self-describing 
 kernel, OS, governor, clock/temp trace, compiler + liboqs/oqs-provider/OpenSSL
 commits, build flags). It contains your **hostname** and Pi model and nothing
 else identifying — if you'd rather not share the hostname, prepend
-`HOSTNAME=mypi5` to the sudo run line, or just rename the file before
+`HOSTNAME=mybox` to the run line, or just rename the file before
 submitting.
 
 Result files are git-ignored by default (so you never accidentally commit local
 experiments), so add yours explicitly:
 
 ```bash
-git checkout -b results/<your-handle>-pi5
+git checkout -b results/<your-handle>
 git add -f reports/pqc/results/<hostname>-<timestamp>.json
-git commit -m "reports/pqc: RPi5 baseline from <your-handle>"
+git commit -m "reports/pqc: reference run from <your-handle>"
 ```
 
 **PR checklist** (maintainers will look for these):

@@ -1,7 +1,7 @@
 # =============================================================================
 # pqc — post-quantum cryptography benchmark. Executable documentation:
 # `make help` lists everything, and these targets are the ONLY supported way to
-# check, build, test and run it on any platform (including a Raspberry Pi 5).
+# check, build, test and run it on any supported platform.
 #
 # Design rules (docs/history behind them: the cold-read round):
 #   * `check` is READ-ONLY; `deps` is the only target that installs anything.

@@ -11,10 +11,11 @@ Inputs (all paths):
   --thermal   thermal.csv    epoch_s,arm_clock_hz,temp_c,throttled_hex samples
   --out       reports/pqc/results/<host>-<ts>.json
 
-The single most important output field is `is_baseline_grade`: true ONLY on a
-real RPi5 with performance governor, core pinning, A76-targeted flags, and no
-thermal throttling. Everything else (notably macOS smoke runs) is false, with
-reasons recorded — so smoke output can never be mistaken for the baseline.
+The single most important output field is `is_baseline_grade`: true ONLY for a
+run on the designated reference platform under controlled conditions (see the
+gate below). Every other run — a different machine, an uncontrolled one, a
+macOS smoke run — is false, with the reasons recorded, so no run can be
+mistaken for a reference measurement.
 """
 from __future__ import annotations
 import argparse
@@ -22,6 +23,11 @@ import json
 import os
 import statistics
 import sys
+
+# The platform whose runs carry the reference numbers, and the build flags a
+# reference run must have been compiled with. See the gate in build_result().
+REFERENCE_PLATFORM = "Raspberry Pi 5"
+REFERENCE_CFLAGS_TARGET = "cortex-a76"
 
 # 2.0.0: per-row `backend` renamed to `implementation` (which library produced
 # the measurement — vocabulary: liboqs, openssl, rustcrypto, oqs-provider,
@@ -530,16 +536,26 @@ def main():
     cflags_target = lock.get("CFLAGS_TARGET", "unknown")
 
     # ---- the anti-confusion gate -----------------------------------------
+    # Reference-grade numbers must all come from ONE machine class measured
+    # under the same controlled conditions; otherwise runs from different
+    # hardware get compared as if they were the same measurement. The
+    # reference platform below is therefore hardcoded ON PURPOSE — a run must
+    # not become reference-grade because someone edited a config file. It is
+    # one platform among many the benchmark supports, not what the benchmark
+    # is about: every other host runs fine and is recorded as a
+    # cross-platform datapoint with the reasons it missed the gate.
     baseline_reasons = []
     if not is_rpi:
         baseline_reasons.append(
-            f"host is not a Raspberry Pi (model='{meta.get('RPI_MODEL','')}', os={meta.get('OS')})")
+            f"host is not the reference platform ({REFERENCE_PLATFORM}): "
+            f"model='{meta.get('RPI_MODEL','')}', os={meta.get('OS')}")
     if governor != "performance":
         baseline_reasons.append(f"CPU governor is '{governor}', not 'performance'")
     if not pinned:
         baseline_reasons.append("benchmark was not pinned to a dedicated core (no taskset)")
-    if cflags_target != "cortex-a76":
-        baseline_reasons.append(f"build flags targeted '{cflags_target}', not cortex-a76")
+    if cflags_target != REFERENCE_CFLAGS_TARGET:
+        baseline_reasons.append(
+            f"build flags targeted '{cflags_target}', not {REFERENCE_CFLAGS_TARGET}")
     if thermal.get("throttling_detected"):
         baseline_reasons.append("thermal throttling was detected during the run")
     is_baseline_grade = len(baseline_reasons) == 0
@@ -549,7 +565,8 @@ def main():
     if raw_warn:
         warnings.extend([w for w in raw_warn.split("||") if w])
     if not is_baseline_grade:
-        warnings.append("NOT RPi5-baseline-grade: " + "; ".join(baseline_reasons))
+        warnings.append(f"NOT reference-grade ({REFERENCE_PLATFORM}): "
+                        + "; ".join(baseline_reasons))
     cross_check_sizes(kem_rows, sig_rows, warnings)
 
     result = {
