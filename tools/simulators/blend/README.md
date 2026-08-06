@@ -80,6 +80,9 @@ make sweep                   # configs/default.yaml (N up to 1e5, both adversary
 make sweep-fullscale         # configs/fullscale.yaml (N up to 1e6, random-mode exact)
 make redundancy              # configs/redundancy.yaml (R=1..4: delivery vs deanonymization)
 make percolation             # configs/percolation.yaml (churn threshold u_c = 1-1/(degree-1))
+make correlated-churn        # configs/correlated-churn.yaml (AS/region outages vs uniform churn)
+make cover-traffic           # configs/cover-traffic.yaml (blending, mixing, the stake ceiling)
+make timing                  # configs/timing.yaml (jitter vs clock-tick release under attack)
 make figures RUN=runs/<dir>
 ```
 
