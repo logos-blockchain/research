@@ -39,9 +39,19 @@ runs instead.
 
 From [`tools/simulators/blend`](../../../tools/simulators/blend): `make sweep`,
 `make redundancy`, `make percolation`, `make correlated-churn`, `make sweep-fullscale`. Results
-land in that simulator's `runs/<timestamp>_<label>/`. Note that the seed streams depend on the
-configuration, so re-running reproduces the *statistics*, not bit-identical numbers, unless the
-config is unchanged — in which case it does reproduce exactly.
+land in that simulator's `runs/<timestamp>_<label>/`.
+
+**On exact reproduction.** Seed streams are derived from the configuration, so re-running a study
+reproduces its *statistics* rather than bit-identical numbers whenever that derivation has moved.
+It has moved once since these runs: adding failure domains (§3.9) put `n_regions` and
+`region_locality` into the topology seed, which changes the graph drawn for every config, including
+those leaving both at their defaults. `default/`, `percolation/` and `redundancy/` were produced
+before that change and so no longer reproduce bit-exactly — a spot-checked cell moved by 0.3 %,
+about 1.5 standard errors, which is ordinary variation between independent realisations rather than
+a change in behaviour. `correlated-churn/`, `cover-traffic/`, `fullscale/`, `timing/` and
+`attribution/` were produced by the current derivation. Quantities that are closed-form
+(`deanon_rate`, the quota ceiling, the confidence formulae) depend only on counts and are identical
+either way; the Monte-Carlo ones scatter within their stated error bars.
 
 Two runs from the same session are deliberately **not** kept: the smoke runs (throwaway, far too
 noisy to interpret) and an earlier 144-rounds/cell redundancy grid that was superseded because its
