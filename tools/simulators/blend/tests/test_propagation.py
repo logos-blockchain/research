@@ -1,9 +1,9 @@
 import numpy as np
 
-from pd.config import SimConfig
-from pd.graph import Graph, build_graph
-from pd.propagation import assign_responsive, blend_round, propagation_metrics
-from pd.rng import responsive_seedseq, round_seedseq
+from blend.config import SimConfig
+from blend.graph import Graph, build_graph
+from blend.propagation import assign_responsive, blend_round, propagation_metrics
+from blend.rng import responsive_seedseq, round_seedseq
 
 
 def _k4(p):
@@ -206,7 +206,7 @@ def test_redundant_cascades_flood_the_same_component():
 
 def test_regional_churn_drops_whole_regions_and_matches_the_uniform_count():
     """Correlated churn kills failure domains, not scattered nodes -- at the same total count."""
-    from pd.graph import region_of
+    from blend.graph import region_of
     n, n_regions, u = 1000, 10, 0.3
     rng = np.random.default_rng(0)
     mask = assign_responsive(n, u, rng, "regional", n_regions)
@@ -220,7 +220,7 @@ def test_regional_churn_drops_whole_regions_and_matches_the_uniform_count():
 
 
 def test_uniform_churn_scatters_across_all_regions():
-    from pd.graph import region_of
+    from blend.graph import region_of
     n, n_regions, u = 1000, 10, 0.3
     mask = assign_responsive(n, u, np.random.default_rng(0), "uniform", n_regions)
     region = region_of(n, n_regions)
@@ -229,7 +229,7 @@ def test_uniform_churn_scatters_across_all_regions():
 
 
 def test_region_locality_keeps_peers_inside_the_region_and_stays_d_regular():
-    from pd.graph import build_graph, region_of
+    from blend.graph import build_graph, region_of
     n, n_regions, degree = 2000, 10, 8
     region = region_of(n, n_regions)
     for locality, want in ((0.0, 0.1), (0.5, 0.5), (1.0, 1.0)):
@@ -244,7 +244,7 @@ def test_region_locality_keeps_peers_inside_the_region_and_stays_d_regular():
 def test_regional_churn_leaves_survivors_better_connected():
     """The point of the correlated model: clustered failure removes whole neighbourhoods and
     leaves the rest intact, so surviving nodes keep more live peers than under scattered failure."""
-    from pd.graph import build_graph
+    from blend.graph import build_graph
     n, n_regions, degree, u = 4000, 20, 8, 0.4
     cfg = SimConfig(n_nodes=n, degree=degree, n_regions=n_regions, region_locality=0.75,
                     graph_seed=0)

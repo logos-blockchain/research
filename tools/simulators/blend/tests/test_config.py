@@ -2,7 +2,7 @@ import dataclasses
 
 import pytest
 
-from pd.config import SimConfig, SweepConfig
+from blend.config import SimConfig, SweepConfig
 
 
 def test_key_covers_every_field():

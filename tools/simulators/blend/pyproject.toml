@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pd"
+name = "blend"
 version = "0.1.0"
 description = "Peering-degree Monte-Carlo graph simulator for the Blend network"
 requires-python = ">=3.11"
@@ -22,12 +22,12 @@ dependencies = [
 dev = ["pytest", "pytest-xdist", "ruff", "mypy"]
 
 [project.scripts]
-pd-sweep = "pd.sweep:main"
-pd-verify = "pd.verify:main"
-pd-figures = "pd.plotting.make_figures:main"
+pd-sweep = "blend.sweep:main"
+pd-verify = "blend.verify:main"
+pd-figures = "blend.plotting.make_figures:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pd"]
+packages = ["src/blend"]
 
 [tool.ruff]
 line-length = 100

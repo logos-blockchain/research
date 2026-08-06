@@ -1,5 +1,5 @@
-from pd.config import SimConfig
-from pd.rng import (
+from blend.config import SimConfig
+from blend.rng import (
     graph_seedseq,
     responsive_seedseq,
     rng_for,

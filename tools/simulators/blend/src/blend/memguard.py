@@ -6,7 +6,7 @@ sampled single-source distance matrices (``S x N`` or ``(blend_hops+1) x N``), w
 would exceed its budget, so an under-sized config fails with a clear message instead of freezing
 the machine.
 
-Budget (``budget_bytes``): ``PD_BYTES_BUDGET`` > 0 -> that many bytes (the sweep sets this to
+Budget (``budget_bytes``): ``BLEND_BYTES_BUDGET`` > 0 -> that many bytes (the sweep sets this to
 each worker's RAM share); otherwise ``DEFAULT_BUDGET_FRAC`` of physical RAM.
 """
 
@@ -38,7 +38,7 @@ def total_ram_bytes() -> int:
 def budget_bytes() -> int:
     """Per-process byte budget for a single big array (see module docstring)."""
     try:
-        explicit = int(os.environ.get("PD_BYTES_BUDGET", "0"))
+        explicit = int(os.environ.get("BLEND_BYTES_BUDGET", "0"))
     except ValueError:
         explicit = 0
     if explicit > 0:

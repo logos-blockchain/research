@@ -1,6 +1,9 @@
-# pd — peering-degree Monte-Carlo graph simulator
+# blend — a Monte-Carlo simulator for the Blend network
 
-Quantifies how a node's **peering degree** trades off, in the Blend network:
+Measures the Blend network on a seeded peer graph: propagation, adversary exposure,
+deanonymization, reliability under churn, messaging redundancy and cover traffic.
+Peering degree is the primary study axis and the one that ties the rest together —
+it trades off, simultaneously:
 
 - **propagation speed** — the full delay (ms) of a message: a random sender routes it along a
   `blend_hops`-relay Blend path (each relay a free-running timed-release mix node) and the last
@@ -62,14 +65,14 @@ adversary metrics are exact at every N).
   random node set. Clustered failure leaves the survivors fully connected (`frac_reached_live`
   stays ~1) while stranding the dead domains (`frac_reached` falls); see `configs/correlated-churn.yaml`.
   Regions are failure and peering domains only — link latency does not depend on them.
-- **Linkability over time** (`pd.linkability`): given the rates above and an emission cadence (one
+- **Linkability over time** (`blend.linkability`): given the rates above and an emission cadence (one
   node emits per 30 s slot, chosen ∝ stake), the module derives the *time to link* an emitter
   (`≈ 30 s·ln(1/(1−α))/(stake·q)`, inverse in stake) and the *time to learn its stake* to a threshold
   from the count of attributable observations. See `configs/redundancy.yaml` and the report.
 
 ## Quick start
 ```
-make install                 # or reuse a sibling venv: PYTHONPATH=src <python> -m pd.sweep ...
+make install                 # or reuse a sibling venv: PYTHONPATH=src <python> -m blend.sweep ...
 make smoke                   # fast end-to-end (every code path + 19 of 21 figure builders)
 make verify                  # analytic checks (closed forms + graph invariants)
 make test                    # unit tests
@@ -93,7 +96,7 @@ unresponsive fraction (with the `u_c = 1-1/(degree-1)` threshold), the deanonymi
 time-to-link / stake-inference / redundancy curves derived from them by `linkability`.
 
 ## Layout
-`src/pd/`: `graph` (matching-union CSR d-regular), `propagation` (Blend cascade), `mixclock`
+`src/blend/`: `graph` (matching-union CSR d-regular), `propagation` (Blend cascade), `mixclock`
 (release-clock residual), `adversary` (exact observation/eclipse + deanonymization + placement),
 `config`/`engine`/`sweep`/`metrics`, `plotting`. `configs/` sweeps, `tests/`, `scripts/` shims.
-Reports of record live outside the sim at `reports/blend/pd/`.
+Reports of record live outside the sim at `reports/blend/`.

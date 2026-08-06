@@ -4,7 +4,7 @@ import math
 
 import numpy as np
 
-from pd.linkability import (
+from blend.linkability import (
     capture_prob,
     obs_for_precision,
     redundant,

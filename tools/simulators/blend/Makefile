@@ -21,28 +21,28 @@ $(STAMP): pyproject.toml
 install: $(STAMP)
 
 smoke: $(STAMP) ## fast end-to-end (seconds): tiny N, few rounds/seeds
-	$(PY) -m pd.sweep --config configs/smoke.yaml
+	$(PY) -m blend.sweep --config configs/smoke.yaml
 
 sweep: $(STAMP)
-	$(PY) -m pd.sweep --config configs/default.yaml
+	$(PY) -m blend.sweep --config configs/default.yaml
 
 sweep-fullscale: $(STAMP)
-	$(PY) -m pd.sweep --config configs/fullscale.yaml
+	$(PY) -m blend.sweep --config configs/fullscale.yaml
 
 redundancy: $(STAMP) ## messaging redundancy R=1..4 (delivery vs deanonymization, time-to-link)
-	$(PY) -m pd.sweep --config configs/redundancy.yaml
+	$(PY) -m blend.sweep --config configs/redundancy.yaml
 
 percolation: $(STAMP) ## churn threshold: coverage collapse at u_c = 1 - 1/(degree-1)
-	$(PY) -m pd.sweep --config configs/percolation.yaml
+	$(PY) -m blend.sweep --config configs/percolation.yaml
 
 correlated-churn: $(STAMP) ## correlated AS/region outages vs uniform churn, matched fractions
-	$(PY) -m pd.sweep --config configs/correlated-churn.yaml
+	$(PY) -m blend.sweep --config configs/correlated-churn.yaml
 
 figures: $(STAMP) ## make figures RUN=runs/<dir>
-	$(PY) -m pd.plotting.make_figures --run $(RUN)
+	$(PY) -m blend.plotting.make_figures --run $(RUN)
 
 verify: $(STAMP)
-	$(PY) -m pd.verify
+	$(PY) -m blend.verify
 
 test: $(STAMP)
 	$(PY) -m pytest
