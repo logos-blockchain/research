@@ -28,7 +28,9 @@ def propagation_row(config: SimConfig, blend_hops: int, max_blend_delay: int,
 
 
 def traffic_row(config: SimConfig, blend_hops: int, max_blend_delay: int,
-                cover_rate_mult: float, traffic: dict, quota: dict) -> dict:
+                cover_rate_mult: float, traffic: dict, quota: dict,
+                min_blend_delay: int | None = None, release_mode: str | None = None,
+                timing: dict | None = None) -> dict:
     """One cover-traffic cell: what the timeline measured, plus the epoch emission budget.
 
     ``traffic`` comes from the windowed simulation (blending, mixing, counts) and ``quota`` from
@@ -39,6 +41,8 @@ def traffic_row(config: SimConfig, blend_hops: int, max_blend_delay: int,
         "degree": config.degree,
         "blend_hops": blend_hops,
         "max_blend_delay": max_blend_delay,
+        "min_blend_delay": config.min_blend_delay if min_blend_delay is None else min_blend_delay,
+        "release_mode": release_mode or config.release_mode,
         "cover_rate_mult": cover_rate_mult,
         "block_interval_slots": config.block_interval_slots,
         "slots_per_epoch": config.slots_per_epoch,
@@ -48,6 +52,7 @@ def traffic_row(config: SimConfig, blend_hops: int, max_blend_delay: int,
         "traffic_window_slots": config.traffic_window_slots,
         **traffic,
         **quota,
+        **(timing or {}),
     }
 
 

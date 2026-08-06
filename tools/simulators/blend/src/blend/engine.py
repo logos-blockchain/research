@@ -15,6 +15,8 @@ from .adversary import (
     adversary_metrics,
     attribution_metrics,
     deanon_metrics,
+    mean_upstream_hops,
+    neighbourhood_confidence,
     place_adversary,
 )
 from .config import WORSTCASE_MODES, SimConfig
@@ -29,7 +31,7 @@ from .rng import (
     stake_seedseq,
     traffic_seedseq,
 )
-from .traffic import simulate_window, traffic_metrics
+from .traffic import simulate_window, timing_linkability, traffic_metrics
 
 
 def run_graph_cell(base: SimConfig, prop_grid: list[tuple[int, int]],
@@ -37,6 +39,7 @@ def run_graph_cell(base: SimConfig, prop_grid: list[tuple[int, int]],
                    adv_grid: list[tuple[float, str]],
                    churn_modes: list[str] | None = None,
                    cover_rates: list[float] | None = None,
+                   release_designs: list[tuple[int, str]] | None = None,
                    ) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
     """Build ``base``'s topology once; return (propagation, adversary, deanon, traffic rows).
 
@@ -50,6 +53,7 @@ def run_graph_cell(base: SimConfig, prop_grid: list[tuple[int, int]],
     graph-free and therefore computed separately.
     """
     graph = build_graph(base)
+    upstream = mean_upstream_hops(graph, np.random.default_rng(base.root_seed))
     blend_hops_set = sorted({bh for bh, _ in prop_grid})
     modes = churn_modes or [base.churn_mode]
 
@@ -79,6 +83,9 @@ def run_graph_cell(base: SimConfig, prop_grid: list[tuple[int, int]],
             adv_mask = place_adversary(graph, f_adv, mode, rng, base.worstcase_max_n)
             adv = adversary_metrics(graph, adv_mask)
             att = attribution_metrics(graph, adv_mask)
+            # upper end of the attribution bracket: the adversary also sees the message upstream
+            att = dict(att, upstream_hops=upstream,
+                       neighbourhood_conf=neighbourhood_confidence(f_adv, upstream))
             adv_rows.append(adversary_row(base, f_adv, mode, rep, adv))
             for bh in blend_hops_set:
                 for R in redundancies:
@@ -95,13 +102,15 @@ def run_graph_cell(base: SimConfig, prop_grid: list[tuple[int, int]],
         quota = quota_summary(stake, f, base.n_nodes, base.slots_per_epoch, srng,
                               base.stake_inference_ratio, rate)
         for blend_hops, max_blend_delay in prop_grid:
-            trng = np.random.default_rng(
-                traffic_seedseq(base, blend_hops, max_blend_delay, rate))
-            win = simulate_window(graph, cfg, trng, base.traffic_window_slots,
-                                  max_blend_delay, blend_hops)
-            tm = traffic_metrics(win, cfg, max_blend_delay)
-            traffic_rows.append(
-                traffic_row(base, blend_hops, max_blend_delay, rate, tm, quota))
+            for lo, mode in (release_designs or [(base.min_blend_delay, base.release_mode)]):
+                trng = np.random.default_rng(
+                    traffic_seedseq(base, blend_hops, max_blend_delay, rate))
+                win = simulate_window(graph, cfg, trng, base.traffic_window_slots,
+                                      max_blend_delay, blend_hops, mode, lo)
+                tm = traffic_metrics(win, cfg, max_blend_delay)
+                tl = timing_linkability(win, cfg, max_blend_delay, lo, mode)
+                traffic_rows.append(
+                    traffic_row(base, blend_hops, max_blend_delay, rate, tm, quota, lo, mode, tl))
 
     return prop_rows, adv_rows, deanon_rows, traffic_rows
 

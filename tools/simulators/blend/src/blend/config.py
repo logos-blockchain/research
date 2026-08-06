@@ -199,6 +199,10 @@ class SweepConfig:
         """(blend_hops, max_blend_delay) settings each topology is measured over."""
         return [(bh, md) for bh in self.blend_hops for md in self.max_blend_delay]
 
+    def release_designs(self) -> list[tuple[int, str]]:
+        """(min_blend_delay, release_mode) pairs the cover-traffic timeline is measured over."""
+        return [(lo, mode) for lo in self.min_blend_delay for mode in self.release_mode]
+
     def adv_grid(self) -> list[tuple[float, str]]:
         """(f_adv, adversary_mode) settings; f_adv==0 keeps only one (mode-irrelevant) row."""
         out: list[tuple[float, str]] = []

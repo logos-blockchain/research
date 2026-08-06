@@ -1,0 +1,30 @@
+# Release designs under a timing attack (report section 3.11).
+#
+# A blend relay holds a message and re-emits it; a node merely forwarding passes it straight
+# through. If that delay is visible so is the relay's role, and matching an outgoing message to the
+# incoming one links both ends of a hop. This sweeps the two ways of delaying at a MATCHED latency
+# budget, so they differ only in HOW they delay:
+#
+#   clock  -- the free-running tick: everything held leaves together at the next tick.
+#   jitter -- each message waits its own independent draw, same mean as the clock's residual.
+#
+# min_blend_delay 0 vs 1 tests whether forbidding instant re-release buys anything. It should not:
+# a zero-length gap is instantaneous, so it never covers an arrival and is never sampled.
+#
+# The rate is swept because section 3.10 predicts the answer is dominated by traffic, not delay --
+# a relay holding ~one message has nothing to be confused with under either design.
+n_nodes: [2000]
+degree: [8]
+blend_hops: [3]
+max_blend_delay: [30]
+min_blend_delay: [0, 1]
+release_mode: [clock, jitter]
+cover_rate_mult: [1.0, 16.0, 64.0]
+unresponsive_frac: [0.0]
+f_adv: [0.2]
+adversary_mode: [random]
+seeds: 3
+base:
+  traffic_window_slots: 120
+  n_rounds: 10        # propagation is not the subject here
+  n_placements: 1
