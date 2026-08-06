@@ -14,6 +14,7 @@ Each run directory holds the three tables the simulator writes: `propagation.par
 | `percolation/` | `configs/percolation.yaml` | 800 × 8 = **6 400/cell** | §3.5 — the churn threshold `u_c = 1 − 1/(degree − 1)` |
 | `correlated-churn/` | `configs/correlated-churn.yaml` | 800 × 8 = **6 400/cell** | §3.9 — correlated AS/region outages vs uniform churn |
 | `fullscale/` | `configs/fullscale.yaml` | 64 × 3 = **192/cell** | §5 — the 10⁶ scaling check (deliberately lighter; not a source of headline numbers) |
+| `cover-traffic/` | `configs/cover-traffic.yaml` | 900 s timeline × 4 seeds | §3.10 — blending, mixing, and the emission-quota stake ceiling. Carries a fourth table, `traffic.parquet` |
 
 The linkability results (§3.6–§3.7) and both deanonymization rates are closed forms over these
 tables rather than separate measurements, so they have no run of their own — `pd.linkability`
