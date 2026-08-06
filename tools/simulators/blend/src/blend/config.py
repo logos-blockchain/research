@@ -12,6 +12,8 @@ AdversaryMode = Literal[
     "random", "worstcase_coverage", "worstcase_eclipse", "worstcase_degree"
 ]
 ChurnMode = Literal["uniform", "regional"]
+ReleaseMode = Literal["clock", "jitter"]
+_RELEASE_MODES = ("clock", "jitter")
 StakeDist = Literal["uniform", "zipf"]
 _STAKE_DISTS = ("uniform", "zipf")
 _DISTS = ("geo", "fixed", "uniform", "exp")
@@ -33,6 +35,8 @@ class SimConfig:
     # --- propagation (Blend cascade, delays in ms) ---
     blend_hops: int = 3                 # relay-path length (swept)
     max_blend_delay: int = 3            # free-running release-clock max interval, whole SECONDS
+    min_blend_delay: int = 0            # shortest allowed interval; 1 forbids instant re-release
+    release_mode: ReleaseMode = "clock"  # "clock" = batch at ticks; "jitter" = per-message delay
     unresponsive_frac: float = 0.0      # ratio of nodes that do NOT relay any messages (swept)
     churn_mode: ChurnMode = "uniform"   # "uniform" = independent nodes; "regional" = whole regions
     redundancy: int = 1                 # copies per emission via R independent cascades (swept)
@@ -73,6 +77,11 @@ class SimConfig:
             raise ValueError(f"need 1 <= blend_hops < n_nodes, got {self.blend_hops}")
         if self.max_blend_delay < 0:
             raise ValueError("max_blend_delay must be >= 0 (whole seconds)")
+        if not (0 <= self.min_blend_delay <= max(self.max_blend_delay, 0)):
+            raise ValueError(
+                f"need 0 <= min_blend_delay <= max_blend_delay, got {self.min_blend_delay}")
+        if self.release_mode not in _RELEASE_MODES:
+            raise ValueError(f"release_mode must be one of {_RELEASE_MODES}")
         if not (0.0 <= self.unresponsive_frac < 1.0):
             raise ValueError(f"need 0 <= unresponsive_frac < 1, got {self.unresponsive_frac}")
         if self.redundancy < 1:
@@ -137,7 +146,7 @@ class SimConfig:
         """Hashable identity used to seed RNGs deterministically."""
         return (
             self.n_nodes, self.degree, self.n_regions, self.region_locality,
-            self.blend_hops, self.max_blend_delay,
+            self.blend_hops, self.max_blend_delay, self.min_blend_delay, self.release_mode,
             self.unresponsive_frac, self.churn_mode, self.redundancy,
             self.cover_rate_mult, self.block_interval_slots, self.slots_per_epoch,
             self.stake_inference_ratio, self.traffic_window_slots,
@@ -163,6 +172,8 @@ class SweepConfig:
     max_blend_delay: list[int] = field(default_factory=lambda: [3])
     unresponsive_frac: list[float] = field(default_factory=lambda: [0.0])
     churn_mode: list[str] = field(default_factory=lambda: ["uniform"])
+    min_blend_delay: list[int] = field(default_factory=lambda: [0])
+    release_mode: list[str] = field(default_factory=lambda: ["clock"])
     redundancy: list[int] = field(default_factory=lambda: [1])
     cover_rate_mult: list[float] = field(default_factory=list)   # empty = no cover-traffic study
     f_adv: list[float] = field(default_factory=lambda: [0.1, 0.2, 0.33, 0.5])
@@ -202,7 +213,8 @@ class SweepConfig:
         d = dict(d)
         base = d.pop("base", {})
         known = {"n_nodes", "degree", "blend_hops", "max_blend_delay", "unresponsive_frac",
-                 "churn_mode", "redundancy", "cover_rate_mult", "f_adv", "adversary_mode",
+                 "churn_mode", "min_blend_delay", "release_mode", "redundancy", "cover_rate_mult",
+                 "f_adv", "adversary_mode",
                  "seeds"}
         unknown = set(d) - known
         if unknown:

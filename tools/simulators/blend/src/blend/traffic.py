@@ -33,7 +33,7 @@ from scipy.sparse.csgraph import dijkstra
 
 from .config import SimConfig
 from .graph import Graph
-from .mixclock import mix_wait
+from .mixclock import mean_residual_ms, mix_wait
 
 
 class ReleaseClock:
@@ -44,12 +44,14 @@ class ReleaseClock:
     only the relays a message actually visits ever grow a clock.
     """
 
-    __slots__ = ("_m", "_rng", "_ticks")
+    __slots__ = ("_lo", "_m", "_rng", "_ticks")
 
-    def __init__(self, max_blend_delay: int, rng: np.random.Generator) -> None:
+    def __init__(self, max_blend_delay: int, rng: np.random.Generator,
+                 min_blend_delay: int = 0) -> None:
         self._m = int(max_blend_delay)
+        self._lo = max(int(min_blend_delay), 0)
         self._rng = rng
-        first = 0.0 if self._m <= 0 else float(mix_wait(rng, self._m, 1)[0]) / 1000.0
+        first = 0.0 if self._m <= 0 else float(mix_wait(rng, self._m, 1, self._lo)[0]) / 1000.0
         self._ticks: list[float] = [first]
 
     def next_tick_at_or_after(self, t: float) -> float:
@@ -57,7 +59,7 @@ class ReleaseClock:
         if self._m <= 0:
             return t
         while self._ticks[-1] < t:
-            step = float(self._rng.integers(0, self._m + 1))
+            step = float(self._rng.integers(self._lo, self._m + 1))
             self._ticks.append(self._ticks[-1] + step)
         for tick in self._ticks:                 # tick lists stay short (window / mean interval)
             if tick >= t:
@@ -93,17 +95,18 @@ class TrafficWindow:
 
 
 def _clock(clocks: dict[int, ReleaseClock], node: int, max_blend_delay: int,
-           rng: np.random.Generator) -> ReleaseClock:
+           rng: np.random.Generator, min_blend_delay: int = 0) -> ReleaseClock:
     c = clocks.get(node)
     if c is None:
-        c = ReleaseClock(max_blend_delay, rng)
+        c = ReleaseClock(max_blend_delay, rng, min_blend_delay)
         clocks[node] = c
     return c
 
 
 def simulate_window(graph: Graph, config: SimConfig, rng: np.random.Generator,
                     window_slots: int, max_blend_delay: int | None = None,
-                    blend_hops: int | None = None) -> TrafficWindow:
+                    blend_hops: int | None = None, release_mode: str | None = None,
+                    min_blend_delay: int | None = None) -> TrafficWindow:
     """Play ``window_slots`` seconds of network traffic and record every hold and broadcast.
 
     Each slot, the network emits once per ``cover_rate_mult`` on average -- the emitter is uniform
@@ -113,6 +116,11 @@ def simulate_window(graph: Graph, config: SimConfig, rng: np.random.Generator,
     n = graph.n
     k = int(config.blend_hops if blend_hops is None else blend_hops)
     m = int(config.max_blend_delay if max_blend_delay is None else max_blend_delay)
+    lo = int(config.min_blend_delay if min_blend_delay is None else min_blend_delay)
+    mode = release_mode or config.release_mode
+    # Matched delay budget: exponential jitter with the same mean hold as the clock, so the two
+    # designs are compared at equal latency cost and differ only in HOW they delay.
+    jitter_mean_s = mean_residual_ms(m, lo) / 1000.0
     f = 1.0 / config.block_interval_slots
     win = TrafficWindow(window_seconds=float(window_slots))
     clocks = win.clocks
@@ -154,7 +162,12 @@ def simulate_window(graph: Graph, config: SimConfig, rng: np.random.Generator,
                     dropped = True
                     break
                 arrived = t + float(leg) / 1000.0
-                released = _clock(clocks, int(relays[hop]), m, rng).next_tick_at_or_after(arrived)
+                if mode == "jitter":
+                    # each message waits its own independent draw -- no batching, no quantisation
+                    released = arrived + float(rng.exponential(jitter_mean_s)) if m > 0 else arrived
+                else:
+                    released = _clock(clocks, int(relays[hop]), m, rng,
+                                      lo).next_tick_at_or_after(arrived)
                 win.holds.append(Hold(int(relays[hop]), arrived, released))
                 t = released
             if not dropped:
@@ -243,3 +256,79 @@ def traffic_metrics(win: TrafficWindow, config: SimConfig,
         out.update(blending_mean=float(arr.mean()), blending_p50=float(np.percentile(arr, 50)),
                    blending_p90=float(np.percentile(arr, 90)), blending_max=float(arr.max()))
     return out
+
+
+def timing_linkability(win: TrafficWindow, config: SimConfig,
+                       max_blend_delay: int | None = None,
+                       min_blend_delay: int | None = None,
+                       release_mode: str | None = None) -> dict:
+    """Can an observer match a relay's outgoing message to the incoming one, from timing alone?
+
+    This is the attack that distinguishes a *blended* message from a merely *relayed* one: a relay
+    that holds and re-emits leaves a timing signature, and if only one arrival can explain a given
+    release then the two are linked and the relay's role in that cascade is exposed.
+
+    The measure is the **effective anonymity set** of each release -- the perplexity of the
+    observer's posterior over which arrival produced it. It is comparable across designs:
+
+    * ``clock`` -- a release at a tick could be any arrival since the previous tick, all equally
+      likely, so the effective set is simply the batch size.
+    * ``jitter`` -- each message waits an independent draw, so every earlier arrival is a candidate
+      weighted by the delay density (exponential here). Nothing is quantised, so the weights decay
+      smoothly and the posterior concentrates on whichever arrival is closest to the expected lag.
+
+    ``linked_frac`` is the share of releases whose set collapses to one candidate: the message is
+    then linked with certainty, whatever the nominal delay was.
+
+    The effective set alone flatters a heavy-tailed delay, because a long thin tail keeps old
+    arrivals nominally "possible" while contributing almost nothing. ``map_success`` therefore also
+    reports how often the adversary's single best guess is right -- for an exponential delay the
+    most likely source is always the most recent arrival, so a design can look unlinkable by
+    perplexity and still be guessed correctly most of the time.
+    """
+    m = int(config.max_blend_delay if max_blend_delay is None else max_blend_delay)
+    lo = int(config.min_blend_delay if min_blend_delay is None else min_blend_delay)
+    mode = release_mode or config.release_mode
+    if not win.holds or m <= 0:
+        return {"timing_set_mean": 1.0, "timing_set_p90": 1.0, "timing_linked_frac": 1.0}
+    mean_hold = mean_residual_ms(m, lo) / 1000.0
+    by_node: dict[int, list[Hold]] = {}
+    for h in win.holds:
+        by_node.setdefault(h.node, []).append(h)
+
+    sets: list[float] = []
+    hits: list[float] = []
+    for node, holds in by_node.items():
+        arrivals = np.sort(np.array([h.arrived for h in holds]))
+        true_src = {h.released: h.arrived for h in holds}     # the arrival that really produced it
+        for r in sorted({h.released for h in holds}):
+            if mode == "clock":
+                clock = win.clocks.get(node)
+                prev = 0.0
+                if clock is not None:
+                    earlier = [t for t in clock.ticks_in(-1e18, r) if t < r]
+                    if earlier:
+                        prev = earlier[-1]
+                cand = arrivals[(arrivals > prev) & (arrivals <= r + 1e-12)]
+                n_c = max(len(cand), 1)
+                sets.append(float(n_c))                        # uniform posterior -> perplexity = n
+                hits.append(1.0 / n_c)                         # MAP is a coin flip among the batch
+            else:
+                earlier = arrivals[arrivals <= r + 1e-12]
+                if earlier.size == 0:
+                    sets.append(1.0)
+                    hits.append(1.0)
+                    continue
+                w = np.exp(-(r - earlier) / mean_hold)         # exponential delay density
+                p = w / w.sum()
+                ent = float(-np.sum(p * np.log(np.clip(p, 1e-300, None))))
+                sets.append(float(np.exp(ent)))                # perplexity = effective set size
+                # MAP for an exponential is the most recent arrival; is that the true source?
+                hits.append(float(abs(earlier[int(np.argmax(p))] - true_src[r]) < 1e-12))
+    arr = np.asarray(sets)
+    return {
+        "timing_set_mean": float(arr.mean()),
+        "timing_set_p90": float(np.percentile(arr, 90)),
+        "timing_linked_frac": float(np.mean(arr < 1.5)),       # effectively a forced match
+        "map_success": float(np.mean(hits)) if hits else 1.0,  # best single guess is correct
+    }
