@@ -4,7 +4,7 @@ import math
 
 import numpy as np
 
-from pd.quota import (
+from blend.quota import (
     alpha_max,
     assign_stake,
     emission_quota_per_slot,

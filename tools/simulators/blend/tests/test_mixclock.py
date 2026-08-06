@@ -1,6 +1,6 @@
 import numpy as np
 
-from pd.mixclock import mean_residual_ms, mix_wait
+from blend.mixclock import mean_residual_ms, mix_wait
 
 
 def test_zero_max_delay_is_zero():

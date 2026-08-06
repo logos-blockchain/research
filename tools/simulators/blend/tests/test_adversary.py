@@ -2,9 +2,9 @@ from itertools import combinations
 
 import numpy as np
 
-from pd.adversary import _greedy_coverage, adversary_metrics, place_adversary
-from pd.config import SimConfig
-from pd.graph import Graph, build_graph
+from blend.adversary import _greedy_coverage, adversary_metrics, place_adversary
+from blend.config import SimConfig
+from blend.graph import Graph, build_graph
 
 
 def _cycle4():

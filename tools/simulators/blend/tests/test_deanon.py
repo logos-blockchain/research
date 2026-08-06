@@ -6,10 +6,10 @@ uniformly blind to who is adversarial, so both rates are exact (no sampling in p
 
 import numpy as np
 
-from pd.adversary import adversary_metrics, deanon_metrics, place_adversary
-from pd.config import SimConfig
-from pd.engine import run_graph_cell
-from pd.graph import build_graph
+from blend.adversary import adversary_metrics, deanon_metrics, place_adversary
+from blend.config import SimConfig
+from blend.engine import run_graph_cell
+from blend.graph import build_graph
 
 
 def test_deanon_rate_hand_computed():

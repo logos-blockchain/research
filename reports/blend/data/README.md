@@ -17,7 +17,7 @@ Each run directory holds the three tables the simulator writes: `propagation.par
 | `cover-traffic/` | `configs/cover-traffic.yaml` | 900 s timeline × 4 seeds | §3.10 — blending, mixing, and the emission-quota stake ceiling. Carries a fourth table, `traffic.parquet` |
 
 The linkability results (§3.6–§3.7) and both deanonymization rates are closed forms over these
-tables rather than separate measurements, so they have no run of their own — `pd.linkability`
+tables rather than separate measurements, so they have no run of their own — `blend.linkability`
 derives them and `make verify` checks them against Monte-Carlo.
 
 ## Regenerating the report's numbers
@@ -33,7 +33,7 @@ runs instead.
 
 ## Regenerating the data itself
 
-From [`tools/simulators/blend/pd`](../../../../tools/simulators/blend/pd): `make sweep`,
+From [`tools/simulators/blend`](../../../tools/simulators/blend): `make sweep`,
 `make redundancy`, `make percolation`, `make correlated-churn`, `make sweep-fullscale`. Results
 land in that simulator's `runs/<timestamp>_<label>/`. Note that the seed streams depend on the
 configuration, so re-running reproduces the *statistics*, not bit-identical numbers, unless the

@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from pd.config import SimConfig
-from pd.graph import build_graph, build_regular_edges
+from blend.config import SimConfig
+from blend.graph import build_graph, build_regular_edges
 
 
 @pytest.mark.parametrize("n,degree", [(10, 1), (10, 2), (10, 3), (100, 4), (100, 7),

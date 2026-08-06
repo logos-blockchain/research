@@ -2,9 +2,9 @@
 
 import numpy as np
 
-from pd.config import SimConfig
-from pd.graph import build_graph
-from pd.traffic import ReleaseClock, simulate_window, traffic_metrics
+from blend.config import SimConfig
+from blend.graph import build_graph
+from blend.traffic import ReleaseClock, simulate_window, traffic_metrics
 
 
 def _win(n_nodes=2000, degree=8, hops=3, M=3, mult=1.0, slots=600, seed=0):
