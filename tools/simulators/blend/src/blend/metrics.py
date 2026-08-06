@@ -65,7 +65,8 @@ def adversary_row(config: SimConfig, f_adv: float, mode: str, placement_rep: int
 
 
 def deanon_row(config: SimConfig, blend_hops: int, f_adv: float, mode: str,
-               placement_rep: int, redundancy: int, adv: dict, deanon: dict) -> dict:
+               placement_rep: int, redundancy: int, adv: dict, deanon: dict,
+               att: dict | None = None) -> dict:
     """One row of the deanonymization table: a (placement x blend-path-length x redundancy) cell.
 
     ``blend_hops`` and ``redundancy`` come from the propagation grid, the rest from the adversary
@@ -85,4 +86,10 @@ def deanon_row(config: SimConfig, blend_hops: int, f_adv: float, mode: str,
         "n_honest": adv["n_honest"],
         "observed_frac": adv["observed_frac"],
         **deanon,
+        **(att or {}),
+        # Confidence-weighted attribution: the whole-path capture rate times the share of nodes the
+        # adversary could actually name as originator at that confidence, rather than the binary
+        # "has an adversarial peer" that full_deanon_rate uses.
+        **({f"confident_deanon_{k.rsplit('_', 1)[1]}": deanon["deanon_rate"] * v
+            for k, v in att.items() if k.startswith("attributable_frac_")} if att else {}),
     }

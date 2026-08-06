@@ -11,7 +11,12 @@ import dataclasses
 
 import numpy as np
 
-from .adversary import adversary_metrics, deanon_metrics, place_adversary
+from .adversary import (
+    adversary_metrics,
+    attribution_metrics,
+    deanon_metrics,
+    place_adversary,
+)
 from .config import WORSTCASE_MODES, SimConfig
 from .graph import build_graph
 from .metrics import adversary_row, deanon_row, propagation_row, traffic_row
@@ -73,11 +78,13 @@ def run_graph_cell(base: SimConfig, prop_grid: list[tuple[int, int]],
             rng = np.random.default_rng(placement_seedseq(base, f_adv, mode, rep))
             adv_mask = place_adversary(graph, f_adv, mode, rng, base.worstcase_max_n)
             adv = adversary_metrics(graph, adv_mask)
+            att = attribution_metrics(graph, adv_mask)
             adv_rows.append(adversary_row(base, f_adv, mode, rep, adv))
             for bh in blend_hops_set:
                 for R in redundancies:
                     dz = deanon_metrics(graph.n, adv["n_adv"], adv["observed_frac"], bh, R)
-                    deanon_rows.append(deanon_row(base, bh, f_adv, mode, rep, R, adv, dz))
+                    deanon_rows.append(
+                        deanon_row(base, bh, f_adv, mode, rep, R, adv, dz, att))
 
     traffic_rows: list[dict] = []
     for rate in (cover_rates or []):
