@@ -1,0 +1,23 @@
+# Attribution confidence at the scale the report quotes (section 3.4).
+#
+# Capturing a cascade identifies the MESSAGE, not the originator: an honest node seen transmitting
+# may simply have been passing one along. This run measures both ends of the resulting bracket.
+#
+#   local        -- confidence d/(2d-a) from the sender's own a adversarial peers, and the share of
+#                   honest nodes attributable at 0.5 / 0.9 / 0.99.
+#   neighbourhood -- 1/(1+(1-f)^L), where the adversary also sees the message anywhere upstream.
+#                    L is fixed by the graph, so upstream_hops is recorded per run.
+#
+# Propagation is not the subject, so n_rounds is minimal: the adversary and deanonymization metrics
+# are closed-form and exact, and the hop distance is a property of the topology.
+n_nodes: [20000]
+degree: [4, 8, 16]
+blend_hops: [3]
+max_blend_delay: [3]
+unresponsive_frac: [0.0]
+f_adv: [0.1, 0.2, 0.33, 0.5]
+adversary_mode: [random, worstcase_coverage]
+seeds: 4
+base:
+  n_rounds: 10
+  n_placements: 4
