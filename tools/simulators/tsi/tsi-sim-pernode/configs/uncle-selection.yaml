@@ -1,0 +1,41 @@
+# Does the SPEC's uncle-selection rule move the window floor? (§3.4, §8.3 item 11)
+#
+# Every window result in the report fills uncle slots OLDEST-FIRST, and the ~7/f floor is derived
+# from exactly that: an orphan queue drained one per block interval. The spec selects with an
+# unbiased per-candidate coin instead (uncle_random_p = 0.5). §3.4 argues a coin drains a queued
+# orphan no faster than oldest-first, so the floor under it can only be the same or higher, and
+# reads the margined W = 10/f as covering the difference. That argument has never been measured.
+#
+# This sweeps the window absorption parameter under BOTH selection rules at the two delays that
+# bracket the design regime (rho ~ 0.6 and rho ~ 1), and asks one question: does the recovery knee
+# move, and does W_abs = 10 still clear?
+#
+# UNPAIRED by construction: uncle_strategy is part of the RNG identity, so the two arms draw
+# independent stake, graph and lottery streams — and unlike the countable-vs-old comparison there
+# is no way to share them, because the coin arm consumes draws the oldest-first arm does not.
+# Note the §9 negative-control idiom is NOT available here: SweepConfig.expand() collapses U=0
+# across uncle_strategy (with no uncle slots the two arms would be the identical run), so there is
+# no U=0 gap to read a noise floor off. Resolution comes from the replicate SEM within each cell
+# instead, which is why this runs 10 replicates against absorption-window.yaml's 5. U=0 is still
+# carried as the recovery baseline the knee is measured against.
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet (delay stresses the window)
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # fixed hop count; delay is the swept knob
+blend_delay_max: [8.0, 16.0]                 # design point (rho ~ 0.6) and the boundary (rho ~ 1)
+window_absorption: [1, 2, 3, 5, 7, 10]       # W: window in expected block-intervals
+max_uncles: [0, 1]                           # 0 = negative control (rule never invoked), 1 = U
+uncle_strategy: [oldest, random]             # THE comparison: FIFO fill vs the spec's coin
+init_dest: [common]                          # per-node initial D_est from agreement
+replicates: 10                               # 2x absorption-window.yaml: the arms are unpaired
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true
+  uncle_random_p: 0.5                        # the spec's unbiased coin (only read by `random`)

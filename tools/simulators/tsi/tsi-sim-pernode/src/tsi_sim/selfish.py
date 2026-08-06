@@ -63,6 +63,29 @@ class RaceResult:
         """Counted canonical blocks / all mined blocks — the factor TSI deflates ``D̂`` by."""
         return (self.adv + self.hon) / self.events if self.events else 1.0
 
+    @property
+    def orphan_hon_runs(self) -> int:
+        """Orphaned honest *chains* — the number of them the countable model can reference.
+
+        The countable uncle model (§2.1) can reference only the first block of a fork, so a
+        discarded chain of ``h`` honest blocks yields one countable uncle, not ``h``. **Under SM1
+        this equals** ``orphan_hon``: the rule acts the moment the honest branch reaches length 1
+        (match at a 1-lead, override at a 2-lead, publish-one above it), so it never buries a
+        second block behind the first and every orphan it makes is the first block of its fork.
+        The optimal policy *waits* and does bury them — see
+        :func:`tsi_sim.selfish_mdp.optimal_policy_stats`, where the ratio drops well below 1.
+        """
+        return self.orphan_hon
+
+    @property
+    def countable_recovery(self) -> float:
+        """Ceiling on the uncle-recovery fraction ``eta`` under the first-fork rule: 1.0 for SM1.
+
+        Stated as a property rather than a constant so the SM1 claim is checkable in one place
+        (``tests/test_countable_selfish.py``) against the same quantity computed for the optimum.
+        """
+        return self.orphan_hon_runs / self.orphan_hon if self.orphan_hon else 1.0
+
 
 def simulate_selfish(is_adv: np.ndarray, gamma: float, rng: np.random.Generator) -> RaceResult:
     """Eyal–Sirer SM1 selfish-mining race over a stream of block-finding events.
@@ -217,6 +240,12 @@ def tsi_dhat_ratio(race: RaceResult, uncle_recovery: float) -> float:
     TSI drives the *counted* density to ``f``; the counted density is the canonical fraction plus a
     recovered fraction ``uncle_recovery ∈ [0,1]`` of the orphaned HONEST blocks (referenced back as
     uncles — adversary blocks reference none, §6.4). ``D̂/D* = (adv + hon + u*orphan_hon)/events``.
+
+    ``uncle_recovery`` is a free knob. Against **SM1** the deployed counting rules admit its full
+    range — every orphan SM1 makes is countable (``race.countable_recovery == 1``). Against the
+    **optimal** policy they do not: use
+    :meth:`tsi_sim.selfish_mdp.OptimalPolicyStats.dhat_ratio`, which caps recovery at one uncle per
+    orphaned chain (§6.6).
     """
     u = float(np.clip(uncle_recovery, 0.0, 1.0))
     counted = race.adv + race.hon + u * race.orphan_hon

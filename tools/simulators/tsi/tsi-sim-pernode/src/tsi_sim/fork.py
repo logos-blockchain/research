@@ -18,17 +18,24 @@ import numpy as np
 from .blocktree import BlockTree
 
 
-def fork_stats(tree: BlockTree, A, T: int, cutoff: int) -> tuple[float, int, float, float]:
-    """Return ``(fork_rate, max_reorg_depth, mean_reorg_depth, p_ref)`` over in-window blocks.
+def fork_stats(tree: BlockTree, A, T: int, cutoff: int,
+               coalition_mask=None) -> tuple[float, int, float, float, float]:
+    """Return ``(fork_rate, max_reorg_depth, mean_reorg_depth, p_ref, p_ref_honest)``.
 
     ``p_ref`` is the emergent **reference rate**: the fraction of in-window orphans that some
     canonical block references as an uncle — the quantity the §6.8 soft-inclusion argument
     assumes is high. ``A`` is the arrival matrix (full ``np.ndarray`` or pruned): only used to
     exclude withheld blocks (which reach no node) from canonical-tip selection.
+
+    ``p_ref_honest`` restricts that to orphans produced by nodes OUTSIDE ``coalition_mask``.
+    Under a private-chain attack the two diverge and only the honest one measures the repair the
+    report credits to uncle counting: an attacker's own discarded blocks are its loss to bear,
+    and counting them would flatter `p_ref` with orphans nobody is owed. Equal to ``p_ref`` when
+    no mask is given.
     """
     nb = tree.n_blocks
     if nb <= 1:
-        return 0.0, 0, 0.0, 1.0
+        return 0.0, 0, 0.0, 1.0, 1.0
     ids = np.arange(nb)
     if isinstance(A, np.ndarray):
         arrived = (A <= cutoff).any(axis=0)
@@ -48,7 +55,7 @@ def fork_stats(tree: BlockTree, A, T: int, cutoff: int) -> tuple[float, int, flo
     in_win = (tree.slot >= 0) & (tree.slot < T)
     total = int(in_win.sum())
     if total == 0:
-        return 0.0, 0, 0.0, 1.0
+        return 0.0, 0, 0.0, 1.0, 1.0
 
     # depth[b] = length of the non-canonical run ending at b (0 if canonical). Parent-before-child
     # holds because a block\'s parent has a strictly smaller id (built earlier).
@@ -75,4 +82,11 @@ def fork_stats(tree: BlockTree, A, T: int, cutoff: int) -> tuple[float, int, flo
             referenced[u] = True
     ref_orphans = int((orphan_in_win & referenced).sum())
     p_ref = ref_orphans / n_orphan if n_orphan else 1.0
-    return fork_rate, max_depth, mean_depth, p_ref
+
+    if coalition_mask is None:
+        p_ref_honest = p_ref
+    else:
+        honest_orphan = orphan_in_win & ~np.asarray(coalition_mask)[tree.leader]
+        n_ho = int(honest_orphan.sum())
+        p_ref_honest = (int((honest_orphan & referenced).sum()) / n_ho) if n_ho else 1.0
+    return fork_rate, max_depth, mean_depth, p_ref, p_ref_honest

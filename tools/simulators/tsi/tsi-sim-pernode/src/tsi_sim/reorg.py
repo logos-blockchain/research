@@ -20,8 +20,11 @@ per-node loop. Two ingredients tie it to the protocol parameters:
   ``+1`` w.p. ``alpha_eff`` (adversary extends privately), ``-1`` w.p. ``1-alpha_eff`` (honest
   extends the public chain). Each excursion above 0 is one attack; the deepest reorg it can force
   is the maximum lead reached (release the private chain at its peak, displacing that many public
-  confirmations). The tail is the Nakamoto/Rosenfeld gambler's-ruin first passage
-  ``P(depth >= d) = (alpha_eff/(1-alpha_eff))**d`` for ``alpha_eff < 1/2``.
+  confirmations). ``P(depth >= d) = (alpha_eff/(1-alpha_eff))**d`` (``alpha_eff < 1/2``) is the
+  Nakamoto/Rosenfeld gambler's-ruin *catch-up* probability — the chance an adversary ``d`` blocks
+  behind ever draws level — an upper bound on that per-attack maximum, not its exact distribution
+  (which is smaller). ``fig27`` plots the occupancy Monte-Carlo; §6.10's 4/8/17 and 8/15/34 are the
+  engine's realised reorg depths.
 """
 
 from __future__ import annotations
@@ -71,3 +74,20 @@ def simulate_deepest_reorg(alpha_eff: float, n_events: int,
                 peak = 0
         # honest block at lead 0 -> canonical growth, no attack in progress
     return np.asarray(depths, dtype=np.int64)
+
+
+def countable_recovery_from_depths(depths: np.ndarray) -> float:
+    """Share of reorg-discarded public blocks the countable model can reference back (§6.6).
+
+    A depth-``d`` reorg displaces ``d`` *consecutive* public blocks. They form one chain rooted at
+    the fork point, and the countable model can reference only the block whose parent lies on the
+    referencing chain — so one of the ``d`` is recoverable into the density and ``d-1`` are not.
+    Over a run of attacks that ceiling is ``attacks / blocks = len(depths) / sum(depths)``.
+
+    This is the depth-*maximising* adversary's value; the revenue-maximising one is
+    :func:`tsi_sim.selfish_mdp.optimal_policy_stats`. Neither is a worst case for the estimator —
+    an adversary optimising deflation directly would trade revenue for depth.
+    """
+    d = np.asarray(depths, dtype=np.int64)
+    total = int(d.sum())
+    return (d.size / total) if total else 1.0

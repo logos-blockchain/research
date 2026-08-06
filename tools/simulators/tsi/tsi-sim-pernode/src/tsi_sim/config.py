@@ -10,6 +10,16 @@ from . import constants
 
 StakeDist = Literal["uniform", "pareto"]
 UncleStrategy = Literal["oldest", "random"]
+# Uncle counting/selection model:
+#  "countable" (default) — the spec's counting-only model (cryptarchia-v1-protocol.md):
+#     only the FIRST block of a fork is referenceable/countable (its parent lies on the
+#     referencing chain), the window is derived as w_u = window_absorption / f slots,
+#     selection excludes slots already occupied on the producer's chain and picks at most
+#     one uncle per slot, and counting re-checks every rule per reference.
+#  "old" — the pre-redesign model (run with --old): window = uncle_window slots directly,
+#     any orphan in view is referenceable regardless of fork depth, no occupied-slot or
+#     per-slot exclusion, and every baked reference counts.
+UncleModel = Literal["countable", "old"]
 Topology = Literal["full_mesh", "regular", "blend"]
 LinkLatencyDist = Literal["fixed", "uniform", "exp", "geo"]
 JitterDist = Literal["exp", "poisson"]
@@ -20,7 +30,18 @@ InitDest = Literal["common", "heterogeneous"]
 #  "withhold" — never gossips its blocks (they are orphaned, its won slots become gaps in the
 #     canonical chain), so the counted density drops ~adversary_frac and TSI deflates D_est toward
 #     the reduced ACTIVE stake. Stronger, but the withheld blocks earn nothing (griefing/grinding).
-AdversaryStrategy = Literal["suppress", "withhold"]
+#  "selfish" — mines a PRIVATE chain and releases it to orphan honest blocks (Eyal-Sirer SM1).
+#     Unlike "withhold" (which discards its blocks — abstention, a dead loss), this recovers the
+#     forfeit by displacing honest work, and is the one profitable lever (report §6.6). Its
+#     estimator damage is what the countable uncle rule can only partly repair, because an
+#     override discards a CHAIN of honest blocks and only the first is referenceable (§2.1).
+AdversaryStrategy = Literal["suppress", "withhold", "selfish"]
+# WHICH nodes make up that coalition, at the same total stake:
+#  "random" — a uniformly random set grown until its stake reaches adversary_frac (the default; the
+#     block share is then smooth in adversary_frac, which is all the density levers depend on);
+#  "whale"  — the LARGEST holders first. Same stake, far fewer nodes, so the coalition's block
+#     production is lumpier — the untested concentration case flagged in report §6.5's scope.
+AdversarySelection = Literal["random", "whale"]
 
 
 @dataclass(frozen=True)
@@ -81,22 +102,48 @@ class SimConfig:
     jitter_frac: float = 1.0            # fraction of deliveries hit (poisson model; exp uses all)
 
     # --- uncle references ---
-    uncle_window: int = constants.W_DEFAULT   # W
+    uncle_model: UncleModel = "countable"     # countable (spec, default) | old (--old)
+    # Countable model: window absorption parameter W; the uncle reference window is DERIVED
+    # as w_u = W / f slots (W expected block-intervals), bounded 1 <= W <= 0.6*k
+    # (constants.W_ABS_MAX_FACTOR). Ignored by the old model.
+    window_absorption: float = constants.W_ABS_DEFAULT
+    # Old model only (--old): the uncle reference window w_u in slots, set directly.
+    # Ignored by the countable model, which derives the window from window_absorption.
+    uncle_window: int = constants.W_DEFAULT
+    # COMMON RANDOM NUMBERS for countable-vs-old comparisons. Off by default, and deliberately
+    # NOT part of key() — with it off every seed is byte-identical to before, so historical runs
+    # and --old bit-reproduction are untouched.
+    #
+    # The two uncle models normally draw independent streams (uncle_model is in the key), so a
+    # comparison pays the full between-run variance TWICE and the arms differ in stake draw,
+    # peering graph and every lottery outcome. With paired_streams=True the RNG root is derived
+    # from the model-independent part of the key instead, so both arms get the SAME stake, the
+    # SAME graph and the SAME lottery draws; the only difference is the uncle rule, and the
+    # per-replicate difference becomes a paired observation with the shared variance cancelled.
+    # Trajectories still diverge legitimately after epoch 0 — a different counted density feeds
+    # back into the next epoch's difficulty — which is the effect being measured, not noise.
+    paired_streams: bool = False
     max_uncles: int = 0                       # U (0 = baseline, no uncles)
+    # "oldest" IS the spec rule: cryptarchia-v1-protocol.md (Uncle Selection) has the proposer
+    # take the oldest candidates first, deterministically, because an uncle expires w_u slots
+    # after its own slot so the oldest are the closest to expiring. Every headline result uses it.
     uncle_strategy: UncleStrategy = "oldest"
-    # Coin-flip inclusion prob for the "random" strategy. Only 0.5 reproduces the spec's
-    # unbiased coin (cryptarchia-v1-protocol.md); other values are a deliberate, non-spec
-    # sensitivity knob, not protocol behaviour.
+    # "random" is NOT a spec variant — it is the deviation probe: walk the same oldest-first
+    # candidate order but include each candidate with probability uncle_random_p, so a lone
+    # candidate is dropped half the time. Uncle selection is proposer-local and unvalidated, so a
+    # proposer CAN deviate; this measures what that costs the estimate (report §3.4).
     uncle_random_p: float = 0.5
     # --- adversary (grinding via D_est deflation) ---
     # Fraction of TOTAL STAKE controlled by an adversary that suppresses uncle references in its
     # own blocks (references no uncles), starving the TSI density count so honest nodes under-count
     # blocks and infer a LOW D_est -> everyone's win probability phi(f, w/D_est) rises, which is the
-    # grinding payoff. 0.0 = fully honest (the studied baseline). The coalition is a RANDOM node set
-    # whose stake sums to adversary_frac (see engine._adversary_mask); block production is
-    # stake-proportional, so the deflation depends only on that summed share, not on whether the
-    # coalition is one whale or many small nodes. Withholding is a separate, stronger lever.
+    # grinding payoff. 0.0 = fully honest (the studied baseline). The coalition is by default a
+    # RANDOM node set whose stake sums to adversary_frac (see engine._adversary_mask); block
+    # production is stake-proportional, so the deflation depends only on that summed share, not on
+    # whether the coalition is one whale or many small nodes. Withholding is a separate, stronger
+    # lever, and adversary_selection controls WHICH nodes are taken at that fixed stake.
     adversary_frac: float = 0.0
+    adversary_selection: AdversarySelection = "random"
     # Dynamic (withhold-then-rejoin) schedule for the withholding lever (§6.5). The coalition is
     # FIXED (identity from adversary_frac); this only gates whether it withholds in a given epoch.
     #  adversary_period == 0  -> STATIC: the coalition attacks (withholds) every epoch (the §6.4
@@ -115,8 +162,10 @@ class SimConfig:
     k: int = 64                          # scaled by default; full scale = 2160
     genesis_d_factor: float = 0.5        # genesis D = factor * true total stake
     epochs: int = 40
-    # If True, mirror the spec's integer fixed-point f-truncation (f_p = int(f*1000)/1000),
-    # which the on-chain estimator uses; this reproduces its ~1% systematic overestimate.
+    # If True, quantise the target rate the way an on-chain integer estimator does:
+    # f_p = int(f*tsi.PRECISION)/tsi.PRECISION. With tsi.PRECISION = 1_000_000 (the report's
+    # recommended 10^-6 f-precision, §8) this gives f_p = 0.033333 and a negligible residual
+    # f/f_p < 1e-5 — not the ~1% overestimate the old 10^-3 truncation produced.
     # Default False keeps the analysis-faithful exact-f behaviour.
     fixed_point: bool = False
     # If True, count uncle references per BLOCK ID (the pre-fix behaviour, which double-counts
@@ -139,9 +188,10 @@ class SimConfig:
     churn_amp: float = 0.0
     churn_period: int = 4
     churn_mode: ChurnMode = "sine"
-    # Per-node constant slot-clock offset (~Uniform(-clock_skew_max, +clock_skew_max) slots),
-    # applied to each node's measurement-window bounds — tests whether a whole-timeline clock shift
-    # (unlike per-arrival jitter) can split slot-occupancy at the window edges and break consensus.
+    # INERT: nothing reads this. The §6.1 clock-skew study is run stand-alone by
+    # scripts/clock_skew.py, which applies its own per-node offsets — not through this field.
+    # Retained only as a key() seed contributor for run-hash compatibility (like `per_node_dest`);
+    # leave at 0.
     clock_skew_max: int = 0
     # Each node updates its OWN D_est from its OWN view — the point of this simulator, and the ONLY
     # mode implemented here (always True). The global-consensus-D_est baseline (per_node_dest=False)
@@ -155,8 +205,9 @@ class SimConfig:
     init_spread: float = 0.0             # relative spread of heterogeneous initial D_est
 
     # --- performance ---
-    # >1 parallelises the per-slot lottery across slot-chunks (opt-in; must be pinned and
-    # recorded because it changes the RNG stream — see lottery.sample_wins_chunked).
+    # INERT: nothing reads this — `simulate_epoch` never calls `lottery.sample_wins_chunked`,
+    # so it has no modelled effect. Retained as a key() seed contributor for run-hash
+    # compatibility (like `per_node_dest` above); leave at 1.
     lottery_chunks: int = 1
     # Windowed fork choice bounds the per-slot candidate scan to a horizon of the max path
     # latency (plus the fully-propagated best tip), turning O(n_blocks^2) into O(n_blocks*H).
@@ -183,6 +234,25 @@ class SimConfig:
             raise ValueError(f"stake_dist must be uniform|pareto, got {self.stake_dist!r}")
         if self.uncle_strategy not in ("oldest", "random"):
             raise ValueError(f"uncle_strategy must be oldest|random, got {self.uncle_strategy!r}")
+        if self.uncle_model not in ("countable", "old"):
+            raise ValueError(f"uncle_model must be countable|old, got {self.uncle_model!r}")
+        if self.uncle_model == "countable":
+            if self.window_absorption < 1.0:
+                raise ValueError(
+                    f"window_absorption W={self.window_absorption} must be >= 1")
+            if self.window_absorption > constants.W_ABS_MAX_FACTOR * self.k:
+                # The spec bounds W <= 0.6*k (w_u <= 0.6*k/f, inside the finalization
+                # window). Scaled-down research geometries (small k) may violate it on
+                # purpose — warn loudly rather than refuse, but full-scale runs should
+                # never see this.
+                import warnings
+
+                warnings.warn(
+                    f"window_absorption W={self.window_absorption} exceeds the spec bound "
+                    f"{constants.W_ABS_MAX_FACTOR}*k = "
+                    f"{constants.W_ABS_MAX_FACTOR * self.k:g} (k={self.k}); the derived "
+                    f"window is outside the finalization window at this geometry",
+                    RuntimeWarning, stacklevel=2)
         if self.topology not in ("full_mesh", "regular", "blend"):
             raise ValueError(f"topology must be full_mesh|regular|blend, got {self.topology!r}")
         if self.link_latency_dist not in ("fixed", "uniform", "exp", "geo"):
@@ -202,8 +272,11 @@ class SimConfig:
             raise ValueError(f"churn_period must be >= 1, got {self.churn_period}")
         if self.clock_skew_max < 0:
             raise ValueError(f"clock_skew_max must be >= 0, got {self.clock_skew_max}")
-        if self.adversary_strategy not in ("suppress", "withhold"):
-            raise ValueError(f"adversary_strategy must be suppress|withhold, got "
+        if self.adversary_selection not in ("random", "whale"):
+            raise ValueError(f"adversary_selection must be random|whale, got "
+                             f"{self.adversary_selection!r}")
+        if self.adversary_strategy not in ("suppress", "withhold", "selfish"):
+            raise ValueError(f"adversary_strategy must be suppress|withhold|selfish, got "
                              f"{self.adversary_strategy!r}")
         checks = {
             "n_nodes": self.n_nodes >= 1,
@@ -261,6 +334,17 @@ class SimConfig:
 
     # derived geometry -------------------------------------------------------
     @property
+    def effective_uncle_window(self) -> int:
+        """The uncle reference window ``w_u`` in slots actually used by this run.
+
+        Countable model (default): derived, ``w_u = round(window_absorption / f)``.
+        Old model (``--old``): ``uncle_window`` taken directly.
+        """
+        if self.uncle_model == "old":
+            return self.uncle_window
+        return constants.uncle_window_slots(self.window_absorption, self.f)
+
+    @property
     def epoch_len(self) -> int:
         return constants.epoch_len(self.k, self.f)
 
@@ -268,12 +352,8 @@ class SimConfig:
     def period_T(self) -> int:
         return constants.period_T(self.k, self.f)
 
-    def key(self) -> tuple:
-        """Hashable identity used to seed the RNG deterministically.
-
-        Must include EVERY field that affects the run (guarded by test_rng), otherwise two
-        distinct configs would share an RNG stream.
-        """
+    def _base_key(self) -> tuple:
+        """Identity fields shared by both uncle models — see ``key`` and ``seed_key``."""
         return (
             self.n_nodes, self.stake_dist, self.pareto_shape, self.uniform_random,
             self.total_stake, self.latency, self.latency_stochastic, self.uncle_window,
@@ -292,10 +372,37 @@ class SimConfig:
         # compute/memory optimisations that consume no RNG and (at jitter_mean == 0) change no
         # result, so pruned and full-matrix runs must share a seed (see test_pernode parity).
 
+    def key(self) -> tuple:
+        """Hashable identity used to seed the RNG deterministically.
+
+        Must include EVERY field that affects the run (guarded by test_rng), otherwise two
+        distinct configs would share an RNG stream. ``uncle_model`` /
+        ``window_absorption`` are appended ONLY for the countable model: an ``--old`` run's
+        key is then byte-identical to the pre-redesign key, so ``--old`` bit-reproduces
+        historical runs (the two models still get distinct streams from the marker).
+        """
+        # uncle_model == "old" keeps the historical tuple exactly (--old bit-compat).
+        base = (self._base_key() if self.uncle_model == "old"
+                else self._base_key() + (self.uncle_model, self.window_absorption))
+        # Appended ONLY when non-default, for the same reason the uncle_model marker is: a
+        # "random"-coalition run's key must stay byte-identical to every historical run's.
+        return base if self.adversary_selection == "random" else base + (self.adversary_selection,)
+
+    def seed_key(self) -> tuple:
+        """The identity the RNG root is actually derived from (see ``rng.seedseq_for``).
+
+        Identical to ``key`` except under ``paired_streams``, where it deliberately drops the
+        uncle-model marker so that a countable run and an ``--old`` run of the SAME cell draw
+        the SAME root seed — common random numbers, which is what makes the two arms a
+        *paired* sample (see ``paired_streams``).
+        """
+        return self._base_key() if self.paired_streams else self.key()
+
 
 # Axes that can be swept; every SimConfig field is legal here.
 _SWEEP_AXES = (
     "n_nodes", "stake_dist", "latency", "max_uncles", "uncle_strategy", "uncle_window",
+    "window_absorption",
     "topology", "degree", "link_latency_mean", "link_latency_dist",
     "blend_hops", "blend_delay_max", "init_dest", "f",
 )
@@ -311,6 +418,7 @@ class SweepConfig:
     max_uncles: list[int] = field(default_factory=lambda: [0, 1, 2, 4])
     uncle_strategy: list[UncleStrategy] = field(default_factory=lambda: ["oldest"])
     uncle_window: list[int] = field(default_factory=lambda: [constants.W_DEFAULT])
+    window_absorption: list[float] = field(default_factory=lambda: [constants.W_ABS_DEFAULT])
     topology: list[Topology] = field(default_factory=lambda: ["regular"])
     degree: list[int] = field(default_factory=lambda: [8])
     link_latency_mean: list[float] = field(default_factory=lambda: [1.0])
@@ -329,11 +437,22 @@ class SweepConfig:
         axis_values = [getattr(self, ax) for ax in _SWEEP_AXES]
         for combo in itertools.product(*axis_values):
             overrides = dict(zip(_SWEEP_AXES, combo, strict=True))
-            # U=0 references no uncles, so it is independent of uncle_strategy AND uncle_window;
-            # keep only the first of each to avoid duplicate (identical) work.
+            # U=0 references no uncles, so it is independent of uncle_strategy AND the window
+            # knobs; keep only the first of each to avoid duplicate (identical) work.
             if overrides["max_uncles"] == 0 and (
                 overrides["uncle_strategy"] != self.uncle_strategy[0]
                 or overrides["uncle_window"] != self.uncle_window[0]
+                or overrides["window_absorption"] != self.window_absorption[0]
+            ):
+                continue
+            # each uncle model reads exactly one window knob — collapse the other axis so a
+            # sweep never emits duplicate cells that differ only in an ignored field.
+            if base.uncle_model == "countable" and (
+                overrides["uncle_window"] != self.uncle_window[0]
+            ):
+                continue
+            if base.uncle_model == "old" and (
+                overrides["window_absorption"] != self.window_absorption[0]
             ):
                 continue
             # full mesh ignores degree / link-latency model; keep only the first to avoid dupes.

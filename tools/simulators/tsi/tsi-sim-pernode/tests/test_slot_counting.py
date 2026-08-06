@@ -64,19 +64,31 @@ def test_distinct_slot_uncles_still_counted():
 
 
 def test_zero_delay_equilibrium_is_one_not_ceiling():
-    """The c(f) ceiling was the bug: corrected counting equilibrates at 1.0 with uncles."""
+    """The c(f) ceiling was the bug: corrected counting equilibrates at 1.0 with uncles.
+
+    Holds under the (default) countable model too: at zero delay the only orphans are
+    same-slot co-winners, which countable selection never references (occupied slot) and
+    which add nothing to the slot count anyway. 5 replicates / 0.02 tolerance because the
+    countable model's key() draws a different RNG stream than the historical runs the old
+    3-rep/0.015 margin was tuned on.
+    """
     base = dict(n_nodes=300, stake_dist="uniform", topology="full_mesh", latency=0,
                 max_uncles=2, uncle_window=300, k=64, epochs=24, genesis_d_factor=1.0)
     tails = []
-    for rep in range(3):
+    for rep in range(5):
         df = pd.DataFrame(run_trajectory(SimConfig(**base, replicate=rep)))
         tails.append(df[df.epoch >= 8].mean_ratio.mean())
-    assert abs(np.mean(tails) - 1.0) < 0.015
+    assert abs(np.mean(tails) - 1.0) < 0.02
 
 
 def test_legacy_flag_reproduces_the_ceiling():
+    # OLD model on purpose: the c(f) ceiling arises from referencing same-slot co-winners
+    # and counting them per block id. The countable model never references a same-slot
+    # co-winner (its slot is already occupied on the chain), so under it the legacy flag
+    # has nothing to double-count and this historical bug cannot be reproduced.
     base = dict(n_nodes=300, stake_dist="uniform", topology="full_mesh", latency=0,
-                max_uncles=2, uncle_window=300, k=64, epochs=24, genesis_d_factor=1.0)
+                max_uncles=2, uncle_window=300, k=64, epochs=24, genesis_d_factor=1.0,
+                uncle_model="old")
     tails = []
     for rep in range(3):
         df = pd.DataFrame(run_trajectory(

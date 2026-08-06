@@ -41,11 +41,17 @@ def main() -> None:
     df.to_parquet(out / "capstone.parquet", index=False)
     print("=== Capstone: recommended config, all metrics together (equilibrium tail) ===")
     for adv, g in df.groupby("adv"):
-        t = g[g.epoch >= g.epoch.max() // 2]
+        # Per-REPLICATE tail: early_stop ends replicates at different epochs, so a per-arm cut
+        # (epoch >= arm_max//2) would silently drop any replicate that stopped before the cut
+        # and skew the tail toward the slow-converging ones. The report's §8.4 numbers are the
+        # per-replicate aggregation; keep this printout matching them.
+        t = pd.concat([r[r.epoch >= r.epoch.max() // 2] for _, r in g.groupby("replicate")])
+        per_rep = t.groupby("replicate").fork_rate.mean()
+        sem = per_rep.std(ddof=1) / (len(per_rep) ** 0.5)
         print(f"adversary {adv:.0%}: D̂/D {t.mean_ratio.mean():.4f}  "
               f"range_ratio {t.range_ratio.max():.4f}  agreement {t.agreement_window.min():.4f}  "
-              f"fork_rate {t.fork_rate.mean():.3f}  max_reorg_depth {t.max_reorg_depth.max()}  "
-              f"p_ref {t.p_ref.mean():.3f}")
+              f"fork_rate {per_rep.mean():.3f}+-{sem:.3f}(SEM over {len(per_rep)} reps)  "
+              f"max_reorg_depth {t.max_reorg_depth.max()}  p_ref {t.p_ref.mean():.3f}")
     print(f"wrote {out/'capstone.parquet'} ({len(df)} rows)")
 
 

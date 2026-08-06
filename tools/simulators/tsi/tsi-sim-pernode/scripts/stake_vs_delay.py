@@ -1,9 +1,9 @@
 """Relative stake estimate vs network delay (fig16).
 
 Shows the report's central relationship: the recovered *relative stake* ``D̂/D`` as a function of the
-mean block-visibility delay ``D_vis`` (seconds), one curve per uncle cap ``U``. Accuracy holds near
-the ceiling ``c(f)`` while the load ``ρ = f·D_vis`` stays below ``⌈U⌉``, then collapses — so larger
-delay needs more uncles. Blend transport, f = 1/30 (30 s blocks); delay swept via the
+mean block-visibility delay ``D_vis`` (seconds), one curve per uncle cap ``U``. Accuracy holds at
+the 1.0 exact-recovery bound while the load ``ρ = f·D_vis`` stays below ``⌈U⌉``, then collapses — so
+larger delay needs more uncles. Blend transport, f = 1/30 (30 s blocks); delay swept via the
 per-hop blending budget ``blend_delay_max``.
 
 Run:  python scripts/stake_vs_delay.py   (writes runs/stake_vs_delay.parquet + fig16)

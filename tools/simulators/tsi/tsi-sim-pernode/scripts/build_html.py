@@ -1,11 +1,15 @@
-"""Render the TSI report markdown set (index + 4 parts) to standalone, print-friendly HTML.
+"""Render the TSI report markdown to standalone, print-friendly HTML.
 
-Committed replacement for the ad-hoc HTML build. Markdown is the source of truth; the HTML is a
-build artifact (not committed). Code blocks are syntax-highlighted (codehilite + Pygments),
-and cross-document `.md` links are rewritten to `.html` so the rendered set navigates internally.
+Markdown is the source of truth; the HTML is a build artifact (not committed). Code blocks are
+syntax-highlighted (codehilite + Pygments), and `.md` links are rewritten to `.html` so the
+index and the report navigate to each other.
 
-Run:  python scripts/build_html.py --all            # index + 4 parts
-      python scripts/build_html.py <file.md> ...     # specific docs
+The report lives in reports/tsi/ (not in this simulator folder) as a SINGLE document, named
+README.md so it renders as the directory landing page; figure links are relative to that
+directory, so paths resolve as-is.
+
+Run:  python scripts/build_html.py --all            # the report
+      python scripts/build_html.py <file.md> ...     # specific docs (paths relative to reports/tsi)
 """
 
 from __future__ import annotations
@@ -17,14 +21,9 @@ from pathlib import Path
 import markdown
 from pygments.formatters import HtmlFormatter
 
-HERE = Path(__file__).resolve().parent.parent
-DOCS = [
-    "REPORT-tsi-parameter-selection.md",
-    "tsi-report-1-overview-and-recommendations.md",
-    "tsi-report-2-accuracy-and-design.md",
-    "tsi-report-3-robustness-and-incentives.md",
-    "tsi-report-4-reproducibility-and-appendices.md",
-]
+# The report set lives in the repo's reports/ tree, not alongside the simulator.
+HERE = Path(__file__).resolve().parents[5] / "reports" / "tsi"
+DOCS = ["README.md"]   # the report IS the directory README (renders at reports/tsi/)
 
 CSS_BASE = r"""
 @page { size: A4; margin: 18mm 16mm 20mm 16mm; }

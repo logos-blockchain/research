@@ -77,7 +77,7 @@ def _arrival_columns(config: SimConfig, peak_blocks: int) -> int:
     if not (config.prune_arrival and config.windowed_fork_choice):
         return peak_blocks
     per_slot = peak_blocks / config.epoch_len if config.epoch_len else peak_blocks
-    keepspan = float(config.uncle_window)
+    keepspan = float(config.effective_uncle_window)
     if config.topology == "blend":
         lat = max(config.link_latency_mean, 0.1)
         keepspan = max(keepspan, (config.blend_hops + 1) * lat * 4
@@ -314,19 +314,26 @@ def main(argv: list[str] | None = None) -> None:
                              "(default) probes when N>2000, 'always', or 'never' (estimate only)")
     parser.add_argument("--no-figures", action="store_true",
                         help="skip auto figure generation")
+    parser.add_argument("--old", action="store_true",
+                        help="run the old (pre countable redesign) uncle model: window = "
+                             "uncle_window slots, any-depth orphans referenceable, every "
+                             "baked reference counts; bit-reproduces historical runs")
     args = parser.parse_args(argv)
 
     batch_size = int(args.batch_size) if args.batch_size != "auto" else "auto"
-    label = args.label or Path(args.config).stem
+    label = args.label or (Path(args.config).stem + ("-old" if args.old else ""))
     run_dir = new_run_dir(args.outdir, label)
 
     sweep = load_sweep_yaml(args.config)
+    if args.old:
+        sweep.base["uncle_model"] = "old"
     df = run_sweep(sweep, n_jobs=args.n_jobs, batch_size=batch_size, mem_frac=args.mem_frac,
                    calibrate=args.calibrate)
     results_path = run_dir / "results.parquet"
     persist(df, results_path)
     key_cols = ["n_nodes", "stake_dist", "topology", "degree", "link_latency_mean",
-                "latency", "max_uncles", "uncle_strategy", "init_dest", "replicate"]
+                "latency", "uncle_model", "max_uncles", "uncle_strategy", "init_dest",
+                "replicate"]
     n_cfg = len(df[key_cols].drop_duplicates())
     print(f"wrote {len(df)} rows ({n_cfg} configs) -> {results_path}")
 

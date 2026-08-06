@@ -13,13 +13,126 @@ import pandas as pd
 
 from . import style
 
-CONFIG_COLS = ["n_nodes", "stake_dist", "topology", "degree", "link_latency_mean",
-               "blend_hops", "blend_delay_max", "latency", "max_uncles",
-               "uncle_strategy", "uncle_window", "init_dest", "k"]
+# A trajectory's identity: every config axis a sweep can vary. Anything swept but ABSENT here is
+# silently averaged into one cell — the block-rate sweep varies `f`, so it must be listed — so keep
+# this exhaustive over the recorded config fields (see metrics._CONFIG_FIELDS).
+CONFIG_COLS = ["n_nodes", "stake_dist", "pareto_shape", "topology", "degree",
+               "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
+               "latency", "uncle_model", "window_absorption", "max_uncles", "uncle_strategy",
+               "uncle_window", "init_dest", "init_spread", "genesis_d_factor",
+               "f", "beta", "k", "fixed_point", "legacy_block_count"]
 
 # Graph topologies (as opposed to the full_mesh baseline) and the dominant latency knob each
 # is plotted against: regular varies the per-link latency, blend varies the per-hop mix delay.
 GRAPH_TOPOLOGIES = ("regular", "blend")
+
+
+def sem(x) -> float:
+    """Standard error of the mean over replicates (0 for a single replicate).
+
+    Replicate spread is the only uncertainty estimate these sweeps carry, and at high
+    mixing delay it is large enough to swamp the effects being compared — so any figure or
+    table quoting a cell mean should quote this alongside it.
+    """
+    x = np.asarray(x, dtype=float)
+    return float(x.std(ddof=1) / np.sqrt(len(x))) if len(x) > 1 else 0.0
+
+
+def recovery_rate(q, q_u):
+    """Invert ``theory.q_effective``: ``r = (q_u - q) / (1 - q)``.
+
+    The share of wasted active slots that a countable uncle reference puts back into the
+    count. Clamped denominator so a saturated ``q -> 1`` cell stays finite.
+    """
+    q, q_u = np.asarray(q, dtype=float), np.asarray(q_u, dtype=float)
+    return (q_u - q) / np.maximum(1.0 - q, 1e-12)
+
+
+def graph_ell_mean(df: pd.DataFrame) -> float:
+    """``ell_mean`` — the mean shortest-path (gossip) latency of the run's OWN peering graph.
+
+    Measured from the run's recorded ``(n_nodes, degree, link_latency_mean,
+    link_latency_dist)`` rather than hardcoded, so any derived quantity stays correct if
+    those change. A statistical property of the random d-regular geo graph (seed-invariant
+    to <1% at these N), so one representative draw suffices. Post-processing only: this
+    rebuilds the latency *graph* to read off its mean and never re-runs the simulation.
+    """
+    from ..config import SimConfig
+    from ..topology import build_path_latency
+
+    row = df.iloc[0]
+    cfg = SimConfig(n_nodes=int(row.n_nodes), degree=int(row.degree), topology="blend",
+                    link_latency_mean=float(row.link_latency_mean),
+                    link_latency_dist=str(row.link_latency_dist), k=int(row.k))
+    pl = build_path_latency(cfg, np.random.default_rng(0))
+    n = pl.shape[0]
+    return float(pl[~np.eye(n, dtype=bool)].mean())
+
+
+def rho_for(df: pd.DataFrame, delay) -> np.ndarray:
+    """Load ``rho = f * D_vis`` with ``D_vis = hops*delta_max/2 + (hops+1)*ell_mean``.
+
+    Every report quotation of ``rho`` must come through here. ``ell_mean`` is the MEASURED
+    mean gossip latency (1.21 slots at N=1000/degree=6), not the per-link
+    ``link_latency_mean`` parameter (0.5) — using the latter understates ``rho`` by ~0.1,
+    and hand-substituting a guessed value is how wrong axis labels get into a report.
+    """
+    f = float(df.f.iloc[0])
+    hops = int(df.blend_hops.iloc[0])
+    ell = graph_ell_mean(df)
+    return f * (hops * np.asarray(delay, dtype=float) / 2.0 + (hops + 1) * ell)
+
+
+DELAY = "blend_delay_max"
+# Normal approximation: at 20+ replicates the t-quantile is within a few percent of
+# 1.96, and the replicate spread dominates, so 1.96 is precise enough for these CIs.
+Z95 = 1.96
+
+
+def paired_gaps(cnt_raw: pd.DataFrame, old_raw: pd.DataFrame) -> pd.DataFrame | None:
+    """Per-replicate differences, when both arms were run with ``paired_streams``.
+
+    Under common random numbers replicate *i* of each arm shares the stake draw, the peering
+    graph and the lottery outcomes, so ``d_i = countable_i - unrestricted_i`` is a PAIRED
+    observation and the shared variance cancels. The test is then a one-sample t on the d_i,
+    which is what makes a sub-0.1 % effect reachable per cell instead of only after pooling.
+
+    Returns None when the runs are not paired, so the caller falls back to the unpaired test.
+    """
+    if not (cnt_raw.get("paired_streams", pd.Series([False])).all()
+            and old_raw.get("paired_streams", pd.Series([False])).all()):
+        return None
+    c, o = equilibrium(cnt_raw), equilibrium(old_raw)
+    keys = ["blend_delay_max", "max_uncles", "replicate"]
+    m = c[[*keys, "mean_ratio"]].merge(o[[*keys, "mean_ratio"]], on=keys,
+                                       suffixes=("_c", "_o"))
+    m["d"] = m.mean_ratio_c - m.mean_ratio_o
+    rows = []
+    for (dl, u), s in m.groupby(["blend_delay_max", "max_uncles"]):
+        d = s.d.to_numpy()
+        se = sem(d)
+        rows.append({"blend_delay_max": dl, "max_uncles": u, "gap": float(d.mean()), "se": se,
+                     "ci95": Z95 * se, "t": abs(d.mean()) / se if se > 0 else np.inf,
+                     "n_pair": len(d), "n_zero": int((d == 0.0).sum())})
+    return pd.DataFrame(rows).sort_values(["max_uncles", "blend_delay_max"])
+
+
+def pooled_by_delay(g: pd.DataFrame) -> pd.DataFrame:
+    """Inverse-variance pooled gap across the U >= 1 arms, per delay.
+
+    Individual cells are underpowered against a sub-0.1 % effect even at 40 replicates, but
+    the three uncle caps are independent measurements of the same underlying difference, so
+    pooling them buys back a factor of ~sqrt(3) and is what actually resolves the trend.
+    """
+    u = g[g.max_uncles > 0]
+    rows = []
+    for d, s in u.groupby(DELAY):
+        w = 1.0 / s.se.to_numpy() ** 2
+        p = float((s.gap.to_numpy() * w).sum() / w.sum())
+        e = float(np.sqrt(1.0 / w.sum()))
+        rows.append({DELAY: d, "gap": p, "se": e, "ci95": Z95 * e,
+                     "t": abs(p) / e if e > 0 else np.inf})
+    return pd.DataFrame(rows).sort_values(DELAY)
 
 
 def _lat_axis(topo: str) -> tuple[str, str]:
@@ -36,12 +149,15 @@ def equilibrium(df: pd.DataFrame, burn_frac: float = 0.5) -> pd.DataFrame:
     ``epochs`` — early-stopped runs (config.early_stop) terminate well before the planned
     ``epochs``, so thresholding on the configured value would drop every row.
     """
-    max_epoch = df.groupby([*CONFIG_COLS, "replicate"])["epoch"].transform("max")
+    cfg_cols = [c for c in CONFIG_COLS if c in df.columns]     # old parquets lack new fields
+    max_epoch = df.groupby([*cfg_cols, "replicate"])["epoch"].transform("max")
     tail = df[df["epoch"] >= max_epoch * burn_frac]
     agg = {c: (c, "mean") for c in
            ("mean_ratio", "range_ratio", "iqr_ratio", "agreement_window", "agreement_tip",
-            "mean_q", "mean_q_eff", "mean_orphan_rate", "max_ratio", "min_ratio")}
-    return tail.groupby([*CONFIG_COLS, "replicate"], as_index=False).agg(**agg)
+            "mean_q", "mean_q_eff", "mean_orphan_rate", "max_ratio", "min_ratio",
+            "deep_ref_share", "p_ref", "fork_rate")
+           if c in tail.columns}
+    return tail.groupby([*cfg_cols, "replicate"], as_index=False).agg(**agg)
 
 
 def _prov(df: pd.DataFrame) -> str:

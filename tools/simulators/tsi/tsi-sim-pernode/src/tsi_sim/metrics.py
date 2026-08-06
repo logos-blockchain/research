@@ -1,4 +1,4 @@
-"""Per-epoch per-node divergence rows and equilibrium summaries."""
+"""Per-epoch per-node divergence rows."""
 
 from __future__ import annotations
 
@@ -13,10 +13,16 @@ from .epoch import EpochResult
 _CONFIG_FIELDS = (
     "n_nodes", "stake_dist", "pareto_shape", "latency", "topology", "degree",
     "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
-    "init_dest", "init_spread", "uncle_window", "max_uncles", "uncle_strategy",
+    "init_dest", "init_spread", "uncle_model", "window_absorption",
+    "uncle_window", "max_uncles", "uncle_strategy",
+    # Recorded so downstream analysis can TELL whether a countable/--old pair actually shared
+    # its RNG streams. The paired test is only valid on paired runs, and without this column
+    # the analysis silently falls back to the much weaker unpaired test.
+    "paired_streams",
     "f", "beta", "k", "genesis_d_factor", "epochs", "fixed_point", "legacy_block_count",
     "replicate",
-    "adversary_frac", "adversary_strategy", "adversary_period", "adversary_withhold_epochs",
+    "adversary_frac", "adversary_strategy", "adversary_selection", "adversary_period",
+    "adversary_withhold_epochs",
 )
 
 
@@ -58,25 +64,7 @@ def divergence_row(
         max_reorg_depth=er.max_reorg_depth,
         mean_reorg_depth=er.mean_reorg_depth,
         p_ref=er.p_ref,
+        p_ref_honest=er.p_ref_honest,
+        deep_ref_share=er.deep_ref_share,
     )
     return row
-
-
-def equilibrium_stats(values: np.ndarray, burn_in: int) -> dict[str, float]:
-    """Mean/variance of ``values`` after ``burn_in`` epochs."""
-    values = np.asarray(values, dtype=float)
-    if values.size == 0:
-        return {"mean": float("nan"), "var": float("nan"), "std": float("nan")}
-    tail = values[burn_in:]
-    if tail.size == 0:
-        tail = values[-1:]
-    return {"mean": float(np.mean(tail)), "var": float(np.var(tail)), "std": float(np.std(tail))}
-
-
-def epochs_to_within(values: np.ndarray, target: float, eps: float) -> int:
-    """First epoch after which ``|values - target| <= eps`` holds for the rest."""
-    within = np.abs(np.asarray(values, dtype=float) - target) <= eps
-    if within.size == 0:
-        return 0
-    false_idx = np.flatnonzero(~within)
-    return int(false_idx[-1] + 1) if false_idx.size else 0
