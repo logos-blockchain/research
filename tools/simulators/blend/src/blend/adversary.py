@@ -100,6 +100,43 @@ def attribution_confidence(adv_peers: np.ndarray | int, degree: int) -> np.ndarr
     return degree / (2.0 * degree - a)
 
 
+def neighbourhood_confidence(f_adv: float, upstream_hops: float) -> float:
+    """Attribution confidence when the adversary also learns from the sender's *neighbourhood*.
+
+    :func:`attribution_confidence` counts only the sender's own links, which understates the
+    adversary: to rule out that ``X`` was merely forwarding, it does not need to hold ``X``'s
+    incoming link -- it only needs to have seen the message anywhere upstream. A message that
+    reached ``X`` travelled a route, and the adversary misses it only if **no** upstream node is
+    adversarial:
+
+        P(miss | X forwarded) = (1 - f_adv) ** upstream_hops
+        confidence            = 1 / (1 + (1 - f_adv) ** upstream_hops)
+
+    The local model is exactly the ``upstream_hops = 1`` case. Confidence rises with route length
+    because a longer route offers more chances to be seen, and approaches 1 only for routes far
+    longer than a low-diameter peer graph actually has.
+    """
+    if not (0.0 <= f_adv < 1.0):
+        raise ValueError("need 0 <= f_adv < 1")
+    return 1.0 / (1.0 + (1.0 - f_adv) ** max(upstream_hops, 0.0))
+
+
+def mean_upstream_hops(graph: Graph, rng: np.random.Generator, samples: int = 40) -> float:
+    """Mean number of nodes upstream of a forwarder: half the mean hop distance of the graph.
+
+    A node that is forwarding sits somewhere along a route, uniformly on average, so it has about
+    half the route behind it. Hop distance is measured unweighted -- what matters is how many nodes
+    handled the message, not how long the links were.
+    """
+    from scipy.sparse.csgraph import shortest_path
+    n = graph.n
+    src = rng.choice(n, size=min(samples, n), replace=False)
+    d = shortest_path(graph.weighted_csr(np.ones_like(graph.base)), method="D",
+                      unweighted=True, indices=src)
+    finite = d[np.isfinite(d) & (d > 0)]
+    return float(finite.mean()) / 2.0 if finite.size else 1.0
+
+
 def attribution_metrics(graph: Graph, adv_mask: np.ndarray,
                         thresholds: tuple[float, ...] = (0.5, 0.9, 0.99)) -> dict:
     """Distribution of :func:`attribution_confidence` over the honest nodes of this placement.

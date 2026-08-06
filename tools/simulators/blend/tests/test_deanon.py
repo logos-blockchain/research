@@ -146,3 +146,29 @@ def test_confident_attribution_is_far_rarer_than_observation():
     assert am["observed_frac"] > 0.8
     assert at["attributable_frac_90"] < 1e-4
     assert at["attribution_conf_mean"] < 0.6        # one or two peers buys very little
+
+
+def test_neighbourhood_confidence_reduces_to_the_local_model_at_one_hop():
+    from blend.adversary import neighbourhood_confidence
+    for f in (0.1, 0.2, 0.33):
+        assert abs(neighbourhood_confidence(f, 1.0) - 1.0 / (1.0 + (1 - f))) < 1e-12
+
+
+def test_confidence_rises_with_route_length_but_needs_an_unrealistic_one_for_certainty():
+    """Seeing the message anywhere upstream rules out forwarding, so a longer route helps the
+    adversary -- but reaching 0.9 needs ~10 upstream hops at f_adv=0.2, and a low-diameter peer
+    graph offers about 2.6."""
+    from blend.adversary import neighbourhood_confidence
+    vals = [neighbourhood_confidence(0.2, L) for L in (1, 2, 5, 10, 20)]
+    assert all(b > a for a, b in zip(vals, vals[1:], strict=False))
+    assert neighbourhood_confidence(0.2, 2.6) < 0.7        # realistic route: still not confident
+    assert neighbourhood_confidence(0.2, 10) > 0.9         # needs ~4x the real route length
+
+
+def test_measured_route_length_leaves_attribution_uncertain():
+    """The bracket closes near the local model, not near certainty."""
+    from blend.adversary import mean_upstream_hops, neighbourhood_confidence
+    g = build_graph(SimConfig(n_nodes=20000, degree=8, graph_seed=0))
+    L = mean_upstream_hops(g, np.random.default_rng(0), samples=12)
+    assert 1.5 < L < 4.0                                   # low-diameter graph, short routes
+    assert 0.55 < neighbourhood_confidence(0.2, L) < 0.75
