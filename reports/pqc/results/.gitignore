@@ -1,0 +1,34 @@
+# Results produced by tools/benchmarks/pqc (`make run` writes here).
+#
+# Local runs are the contributor's own business and are NOT committed by
+# default: everything is ignored unless it is explicitly listed below.
+# Publishing a run is therefore a deliberate two-line act — un-ignore it here,
+# and add it to tools/benchmarks/pqc/analyze/published_runs.txt, which is the
+# manifest `make merge` reads. Ad-hoc runs sitting in this directory can never
+# leak into the published dashboard dataset by accident.
+#
+# Full provenance for every file below: ../README.md and published_runs.txt.
+
+*.json
+
+# Tiny macOS smoke output shipped as a schema example, not measurement data.
+!example-*.json
+
+# ---- current published set (schema 2.0.0) ----------------------------------
+# Baseline-grade RPi5 reference run (narrowed-sudo runner).
+!rasberrypi5-20260730T212145Z.json
+# Cross-platform runs: Apple M3, Apple M4 Pro, Fedora 44 x86_64.
+!mehmetmac-20260719T224937Z.json
+!Mac-20260730T134951Z.json
+!fedora-20260730T120637Z.json
+
+# ---- retired, kept as history ----------------------------------------------
+# rasberrypi5-20260614T205226Z is additionally the schema-1.0.0 COMPATIBILITY
+# FIXTURE for `make test` (hygiene check 5) — do not delete it when tidying.
+!rasberrypi5-20260608T223040Z.json
+!rasberrypi5-20260614T205226Z.json
+!rasberrypi5-20260625T202356Z.json
+!rasberrypi5-20260720T143239Z.json
+!mehmetmac-20260624T140033Z.json
+!mehmetmac-20260625T220618Z.json
+!thomas-pi-20260703T083302Z.json

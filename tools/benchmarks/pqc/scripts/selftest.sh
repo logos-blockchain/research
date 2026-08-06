@@ -12,16 +12,21 @@
 # hygiene failure must never block a 30-minute measurement run.
 #
 # EVERYTHING this script produces lives under one mktemp dir: it never writes
-# into results/ or bench/tls/pki/ (a test must not be able to leak into the
-# published set or clobber certs a real run depends on).
+# into the results directory or bench/tls/pki/ (a test must not be able to leak
+# into the published set or clobber certs a real run depends on).
 #
-# Fixture note: hygiene test 5 reads results/rasberrypi5-20260614T205226Z.json
-# as the schema-1.0.0 COMPATIBILITY FIXTURE (see analyze/published_runs.txt) —
-# retired from the published set, but load-bearing here; do not delete it.
+# Fixture note: hygiene test 5 reads rasberrypi5-20260614T205226Z.json from the
+# results directory as the schema-1.0.0 COMPATIBILITY FIXTURE (see
+# analyze/published_runs.txt) — retired from the published set, but
+# load-bearing here; do not delete it.
 # =============================================================================
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
+# shellcheck source=setup/lib_platform.sh
+source "$HERE/setup/lib_platform.sh"
+RESULTS="$(pqb_results_dir "$HERE")"
+export PQC_RESULTS_DIR="$RESULTS"   # merge.py must resolve the same directory
 LOCK="$HERE/setup/versions.lock"
 # shellcheck disable=SC1090
 [ -f "$LOCK" ] && source "$LOCK"
@@ -199,7 +204,7 @@ for c in cells:  # covered cells must have complete, per-stack-priced sums
 PY
 
 echo "== hygiene 5: schema-1.0.0 compatibility fixture through merge.py =="
-FIX=results/rasberrypi5-20260614T205226Z.json
+FIX="$RESULTS/rasberrypi5-20260614T205226Z.json"
 if [ -f "$FIX" ]; then
   python3 analyze/merge.py "$FIX" -o "$T/merged_v1.json" >/dev/null 2>&1
   python3 - "$FIX" "$T/merged_v1.json" <<'PY' && pass "v1 fixture: rows preserved, implementation/phase/totals injected" || warnf "v1 compatibility regressed"
@@ -219,9 +224,10 @@ fi
 echo "== hygiene 6: published_runs manifest vs disk vs committed merged.json =="
 python3 - <<'PY' && pass "manifest entries exist; merged.json matches the published set" || warnf "manifest/merged.json drift — re-run 'make merge'"
 import json,os
+results=os.environ["PQC_RESULTS_DIR"]
 entries=[l.strip() for l in open("analyze/published_runs.txt")
          if l.strip() and not l.startswith("#")]
-missing=[e for e in entries if not os.path.isfile("results/"+e)]
+missing=[e for e in entries if not os.path.isfile(os.path.join(results,e))]
 assert not missing, f"missing on disk: {missing}"
 m=json.load(open("dashboard/data/merged.json"))
 assert sorted(r["source_file"] for r in m["runs"])==sorted(entries), "merged.json != manifest"

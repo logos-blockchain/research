@@ -9,7 +9,7 @@ Inputs (all paths):
   --kemsig    kemsig.jsonl   one JSON object per algorithm from bench_pq
   --tls       tls.json       output of the TLS harness (optional)
   --thermal   thermal.csv    epoch_s,arm_clock_hz,temp_c,throttled_hex samples
-  --out       results/<host>-<ts>.json
+  --out       reports/pqc/results/<host>-<ts>.json
 
 The single most important output field is `is_baseline_grade`: true ONLY on a
 real RPi5 with performance governor, core pinning, A76-targeted flags, and no
