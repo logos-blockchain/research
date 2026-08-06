@@ -33,9 +33,13 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 
+from tsi_sim import lottery, topology
+from tsi_sim.blocktree import build_tree_pernode
 from tsi_sim.config import SimConfig
-from tsi_sim.engine import run_trajectory
+from tsi_sim.engine import _adversary_mask, run_trajectory
 from tsi_sim.memguard import ArrivalMatrixTooLarge
+from tsi_sim.rng import rng_for, seedseq_for
+from tsi_sim.stake import make_stake
 
 HERE = Path(__file__).resolve().parent.parent
 RUNS = HERE / "runs"
@@ -86,6 +90,78 @@ def sweep() -> pd.DataFrame:
     return df
 
 
+def _decompose_cell(alpha: float, u: int, rep: int, delay: float = 8.0, w: int = 10) -> dict:
+    """Split the honest orphans into "unreferenceable" and "eligible but unreferenced".
+
+    ``p_ref_honest`` alone cannot answer item 5, because it falls for two unrelated reasons: a
+    block can be *structurally* uncountable (buried behind the first block of an override, so no
+    proposer may reference it — §2.1) or countable but starved of an uncle slot (the queue the
+    cap `U` drains). Only the second is a cap-sizing problem. ``deep_ref_share`` does not
+    separate them either: the proposer's candidate filter drops deep-fork blocks before they are
+    ever proposed, so no deep reference is examined and the metric is 0 by construction here.
+    This walks the tree and measures both directly.
+    """
+    cfg = SimConfig(**{**BASE, "epochs": 4}, blend_delay_max=delay, max_uncles=u,
+                    window_absorption=w, adversary_frac=alpha, replicate=rep,
+                    prune_arrival=False, windowed_fork_choice=False)
+    stake = make_stake(cfg, rng_for(cfg))
+    mask = _adversary_mask(cfg, stake)
+    flat = np.zeros(cfg.n_nodes, dtype=bool) if mask is None else mask
+    kids = seedseq_for(cfg).spawn(cfg.epochs + 3)
+    pl = topology.build_path_latency(cfg, np.random.default_rng(kids[1]))
+    d_est = np.full(cfg.n_nodes, cfg.genesis_d_factor * float(stake.sum()))
+    p = lottery.win_probs(stake, d_est, cfg.f)
+    ws, wn = lottery.sample_wins(p, cfg.epoch_len, np.random.default_rng(kids[3]))
+    slots, groups = lottery.group_by_slot(ws, wn)
+    tree, A = build_tree_pernode(slots, groups, pl, cfg, np.random.default_rng(kids[4]),
+                                 adversary_mask=mask)
+
+    E, T, nb = cfg.epoch_len, cfg.period_T, tree.n_blocks
+    ids = np.arange(nb)
+    arrived = (A <= E).any(axis=0)
+    arrived[0] = True
+    h = np.where(arrived, tree.height, np.iinfo(np.int64).min)
+    canon = np.zeros(nb, dtype=bool)
+    b = int(np.lexsort((-ids, -tree.slot, h))[-1])
+    while b > 0:
+        canon[b] = True
+        b = int(tree.parent[b])
+    canon[0] = True
+    in_win = (tree.slot >= 0) & (tree.slot < T)
+    hon_orph = in_win & ~canon & ~flat[tree.leader]
+    countable = hon_orph & canon[tree.parent]          # first block of its fork
+    referenced = np.zeros(nb, dtype=bool)
+    for cb in np.nonzero(canon)[0]:
+        for un in tree.uncles[cb]:
+            referenced[un] = True
+    n, nc = int(hon_orph.sum()), int(countable.sum())
+    return dict(alpha=alpha, max_uncles=u, rep=rep, honest_orphans=n,
+                countable_share=(nc / n) if n else np.nan,
+                referenced_of_countable=(int((countable & referenced).sum()) / nc)
+                if nc else np.nan,
+                referenced_of_all=(int((hon_orph & referenced).sum()) / n) if n else np.nan)
+
+
+def decompose(reps: int = 6) -> pd.DataFrame:
+    jobs = [(a, u, r) for a in (0.0, 0.2, 0.3) for u in (1, 2, 4) for r in range(reps)]
+    df = pd.DataFrame(Parallel(n_jobs=N_JOBS, backend="loky", inner_max_num_threads=1)(
+        delayed(_decompose_cell)(a, u, r) for a, u, r in jobs))
+    df.to_parquet(RUNS / "selfish_uncle_margin_decomp.parquet", index=False)
+    return df
+
+
+def report_decomposition(df: pd.DataFrame) -> None:
+    print("\n=== why p_ref_honest falls: structure vs queue (delta = 8, W = 10) ===")
+    print(f"{'alpha':>6} {'U':>2} | {'countable share':>16} {'referenced OF those':>20}"
+          f" {'referenced of all':>18}")
+    for a in sorted(df.alpha.unique()):
+        for u in sorted(df.max_uncles.unique()):
+            g = df[(df.alpha == a) & (df.max_uncles == u)]
+            print(f"{a:6.2f} {u:2d} | {g.countable_share.mean() * 100:14.1f}%"
+                  f" {g.referenced_of_countable.mean() * 100:18.1f}%"
+                  f" {g.referenced_of_all.mean() * 100:16.1f}%")
+
+
 BAR = 0.98        # the §3.6 recovery bar, as a fraction of the true stake
 
 
@@ -120,7 +196,8 @@ def main() -> None:
     print(f"=== selfish uncle-margin sweep ({len(ALPHAS)*len(DELAYS)*len(CAPS)*len(WINDOWS)*REPS}"
           f" runs; recovery bar {BAR}) ===")
     report(sweep())
-    print(f"\nwrote {RUNS}/selfish_uncle_margin.parquet")
+    report_decomposition(decompose())
+    print(f"\nwrote {RUNS}/selfish_uncle_margin{{,_decomp}}.parquet")
 
 
 if __name__ == "__main__":
