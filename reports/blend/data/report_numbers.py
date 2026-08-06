@@ -4,6 +4,7 @@ Run from this directory:  python report_numbers.py
 Each printed value is mean +- SEM over the independent topology seeds, computed from the
 parquets checked in beside this script (see README.md for what each run is).
 """
+import itertools
 import os
 import sys
 
@@ -14,6 +15,9 @@ _here = os.path.dirname(os.path.abspath(__file__))
 D = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_here, "default")
 R = sys.argv[2] if len(sys.argv) > 2 else os.path.join(_here, "redundancy")
 PC = sys.argv[3] if len(sys.argv) > 3 else os.path.join(_here, "percolation")
+CC = os.path.join(_here, "correlated-churn")
+CT = os.path.join(_here, "cover-traffic")
+TM = os.path.join(_here, "timing")
 P = pd.read_parquet(D + "/propagation.parquet")
 A = pd.read_parquet(D + "/adversary.parquet")
 Z = pd.read_parquet(D + "/deanon.parquet")
@@ -117,7 +121,7 @@ for u in sorted(pr.unresponsive_frac.unique()):
         m, e = cell(pr[(pr.unresponsive_frac == u) & (pr.redundancy == Rn)], "delivery_rate")
         vals.append(m)
         out.append(f"R{Rn}:{m:.3f}+-{e:.3f}[{1-(1-p1)**Rn:.3f}]")
-    mono = all(y >= x - 1e-9 for x, y in zip(vals, vals[1:]))
+    mono = all(y >= x - 1e-9 for x, y in itertools.pairwise(vals))
     print(f" u={u}  " + " ".join(out) + ("" if mono else "   <<< NON-MONOTONIC"))
 print(" coverage vs R (should be flat -- no union bonus):")
 for d in sorted(PR.degree.unique()):
@@ -129,3 +133,53 @@ print(" deanon vs R (exact, N=20k deg8 bh3 f=0.2 random):")
 zr = ZR[(ZR.degree == 8) & (ZR.blend_hops == 3) & (ZR.f_adv == 0.2)
         & (ZR.adversary_mode == "random")]
 print(zr.groupby("redundancy")[["deanon_rate", "full_deanon_rate"]].mean().round(4).to_string())
+
+
+# --- 3.9 correlated outages ----------------------------------------------------------------------
+CCP = pd.read_parquet(CC + "/propagation.parquet")
+print("\n### 3.9 correlated vs uniform churn (N=20k, 1 hop): live / all-node coverage, delivery")
+for deg in sorted(CCP.degree.unique()):
+    d = CCP[(CCP.degree == deg) & (CCP.blend_hops == 1)]
+    for u in sorted(d.unresponsive_frac.unique()):
+        if u == 0:
+            continue
+        r = {m: d[(d.unresponsive_frac == u) & (d.churn_mode == m)] for m in ("uniform", "regional")}
+        print(f"  deg={deg:<3} u={u:.1f}  live {r['uniform'].frac_reached_live.mean():.3f} ->"
+              f" {r['regional'].frac_reached_live.mean():.3f} | all"
+              f" {r['uniform'].frac_reached.mean():.3f} -> {r['regional'].frac_reached.mean():.3f}"
+              f" | delivery {r['uniform'].delivery_rate.mean():.3f} ->"
+              f" {r['regional'].delivery_rate.mean():.3f}")
+
+# --- 3.10 cover traffic --------------------------------------------------------------------------
+CTT = pd.read_parquet(CT + "/traffic.parquet")
+print("\n### 3.10 blending / mixing vs cover rate and release delay")
+print(CTT.pivot_table(index="cover_rate_mult", columns="max_blend_delay",
+                      values="blending_mean").round(1).to_string())
+print("  mixing (mean concurrent holds):")
+print(CTT.pivot_table(index="cover_rate_mult", columns="max_blend_delay",
+                      values="queue_mean").round(4).to_string())
+print("\n### 3.10 emission-quota stake ceiling vs cover rate")
+q = CTT.groupby("cover_rate_mult").agg(
+    quota=("quota_per_epoch", "mean"), pred=("s_max_predicted", "mean"),
+    safe=("alpha_max_99", "mean"), hi=("max_compliant_stake", "mean"),
+    lo=("min_overrun_stake", "mean"), comp=("compliant_frac", "mean")).reset_index()
+print(q.to_string(index=False, float_format=lambda v: f"{v:.5f}"))
+
+# --- 3.11 timing ---------------------------------------------------------------------------------
+TMT = pd.read_parquet(TM + "/traffic.parquet")
+print("\n### 3.11 timing: release designs at a matched delay budget (min_blend_delay = 0)")
+t = TMT[TMT.min_blend_delay == 0].groupby(["cover_rate_mult", "release_mode"]).agg(
+    hold=("hold_seconds_mean", "mean"), eff_set=("timing_set_mean", "mean"),
+    linked=("timing_linked_frac", "mean"), map_success=("map_success", "mean")).reset_index()
+print(t.to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+print("  minimum-interval control (clock):")
+m = TMT[TMT.release_mode == "clock"].groupby("min_blend_delay").agg(
+    hold=("hold_seconds_mean", "mean"), map_success=("map_success", "mean")).reset_index()
+print(m.to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+
+# --- 3.4 attribution bracket ---------------------------------------------------------------------
+print("\n### 3.4 attribution: local confidence vs the neighbourhood bound")
+TD = pd.read_parquet(TM + "/deanon.parquet")
+cols = ["attribution_conf_mean", "attributable_frac_50", "attributable_frac_90",
+        "upstream_hops", "neighbourhood_conf"]
+print(TD[cols].mean().round(4).to_string())

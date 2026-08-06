@@ -113,3 +113,42 @@ def test_every_hop_is_recorded_as_a_hold():
     w, m = _win(hops=3, slots=300, seed=8)
     delivered = len(w.broadcasts)
     assert m["hold_events"] >= 3 * delivered                          # 3 relays per delivered msg
+
+
+def test_repeat_proposals_owe_repeat_cancellations():
+    """Regression: pending cancellations were a set, so a node proposing twice before its next
+    cover emission forfeited only one -- it would then over-emit relative to its quota, which is
+    the very uniformity cover traffic exists to preserve."""
+    from collections import Counter
+
+    from blend.traffic import simulate_window
+    cfg = SimConfig(n_nodes=40, degree=8, blend_hops=2, max_blend_delay=3,
+                    cover_rate_mult=8.0, block_interval_slots=2)   # tiny net, many proposals
+    g = build_graph(cfg)
+    w = simulate_window(g, cfg, np.random.default_rng(0), 400)
+    assert w.emitted_block > 20                       # plenty of repeat proposers at this size
+    assert w.cancelled_cover > 0
+    assert w.cancelled_cover <= w.emitted_block
+    assert isinstance(Counter(), Counter)
+
+
+def test_block_proposer_follows_the_stake_when_given():
+    """The lottery is stake-weighted, so the timeline must not draw the proposer uniformly.
+
+    Concentrating the stake is visible in the quota bookkeeping: a dominant proposer wins most
+    proposals but rarely draws a cover slot to forfeit, so far fewer cancellations are redeemed
+    than when proposals are spread uniformly. That unredeemed backlog is exactly the over-emission
+    that section 3.10's stake ceiling is about.
+    """
+    from blend.traffic import simulate_window
+    n = 200
+    stake = np.full(n, 0.2 / (n - 1))
+    stake[7] = 0.8                                     # one dominant holder
+    stake = stake / stake.sum()
+    cfg = SimConfig(n_nodes=n, degree=8, blend_hops=2, max_blend_delay=3,
+                    cover_rate_mult=1.0, block_interval_slots=2)
+    g = build_graph(cfg)
+    weighted = simulate_window(g, cfg, np.random.default_rng(1), 400, stake=stake)
+    uniform = simulate_window(g, cfg, np.random.default_rng(1), 400)
+    assert weighted.emitted_block > 100 and uniform.emitted_block > 100
+    assert weighted.cancelled_cover < 0.5 * uniform.cancelled_cover

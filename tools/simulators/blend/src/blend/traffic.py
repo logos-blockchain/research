@@ -26,6 +26,7 @@ independently drawn paths, and both end in a broadcast, so they are indistinguis
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -106,12 +107,14 @@ def _clock(clocks: dict[int, ReleaseClock], node: int, max_blend_delay: int,
 def simulate_window(graph: Graph, config: SimConfig, rng: np.random.Generator,
                     window_slots: int, max_blend_delay: int | None = None,
                     blend_hops: int | None = None, release_mode: str | None = None,
-                    min_blend_delay: int | None = None) -> TrafficWindow:
+                    min_blend_delay: int | None = None,
+                    stake: np.ndarray | None = None) -> TrafficWindow:
     """Play ``window_slots`` seconds of network traffic and record every hold and broadcast.
 
-    Each slot, the network emits once per ``cover_rate_mult`` on average -- the emitter is uniform
-    because every node carries the same per-slot rate. A block proposal is drawn at the network
-    block rate and, per the quota rule, cancels that node's next cover emission.
+    Each slot, the network emits once per ``cover_rate_mult`` on average -- the cover emitter is
+    uniform because every node carries the same per-slot rate. A block proposal is drawn at the
+    network block rate, from ``stake`` when given (the lottery is stake-weighted; uniform if it is
+    not), and per the quota rule it cancels that node's next cover emission.
     """
     n = graph.n
     k = int(config.blend_hops if blend_hops is None else blend_hops)
@@ -124,7 +127,9 @@ def simulate_window(graph: Graph, config: SimConfig, rng: np.random.Generator,
     f = 1.0 / config.block_interval_slots
     win = TrafficWindow(window_seconds=float(window_slots))
     clocks = win.clocks
-    cancelled: set[int] = set()          # nodes owing a cancelled cover after a block proposal
+    # multiset: a node that proposes twice before its next cover owes two cancellations
+    cancelled: Counter[int] = Counter()
+    cum = np.cumsum(np.asarray(stake, dtype=float)) if stake is not None else None
 
     for slot in range(window_slots):
         t0 = float(slot)
@@ -132,15 +137,18 @@ def simulate_window(graph: Graph, config: SimConfig, rng: np.random.Generator,
         block_this_slot = rng.random() < f
         senders = rng.integers(0, n, size=n_emissions).tolist() if n_emissions else []
         if block_this_slot:
-            senders.append(int(rng.integers(0, n)))            # the proposer also emits
+            if cum is not None:                                # stake-weighted lottery
+                senders.append(int(np.searchsorted(cum, rng.random() * cum[-1])))
+            else:
+                senders.append(int(rng.integers(0, n)))        # the proposer also emits
         for i, sender in enumerate(senders):
             is_block = block_this_slot and i == len(senders) - 1
-            if not is_block and sender in cancelled:
-                cancelled.discard(sender)                      # this cover is the one forfeited
+            if not is_block and cancelled[sender] > 0:
+                cancelled[sender] -= 1                         # this cover is the one forfeited
                 win.cancelled_cover += 1
                 continue
             if is_block:
-                cancelled.add(sender)
+                cancelled[sender] += 1
                 win.emitted_block += 1
                 win.block_slots.append(t0)
             else:
