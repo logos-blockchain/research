@@ -174,6 +174,76 @@ def _max_span_blocks(active_slots: np.ndarray, counts: np.ndarray, span: float) 
     return best
 
 
+class _SelfishCoalition:
+    """Eyal–Sirer SM1 private-chain state, driven from the coalition's shared view.
+
+    The coalition mines one private chain and releases it under the classic SM1 rules, in terms
+    of ``a`` = unreleased private blocks since the fork and ``h`` = public blocks since the fork
+    as the coalition sees them:
+
+        h > a            adopt    — the public chain won; the private blocks are dead
+        h == a  (a > 0)  match    — release all; the two chains race at equal length
+        h == a - 1 (a>=2) override — release all; the public ``h`` blocks are orphaned
+        h < a - 1        wait     — stay hidden and keep the lead
+
+    Only *visibility* is modelled here; the coalition's **mining** needs no special case. A
+    coalition member's fork choice already builds on the private tip whenever the private chain
+    leads, because that tip has the greatest height among the blocks that member can see — and
+    it falls back to the public chain exactly when the public chain overtakes, which is the
+    "adopt" branch. So the private chain forms, extends and is abandoned emergently.
+
+    The coalition is treated as one entity that shares its view instantly: a member learns a
+    public block as soon as the *earliest* member does, and sees every private block at its
+    production slot. Both are best-case-for-the-adversary, which is the direction we want for a
+    bound on the damage.
+    """
+
+    def __init__(self, coal_idx: np.ndarray, n_blocks: int, E: int) -> None:
+        self.coal = coal_idx
+        self.priv: list[int] = []          # unreleased private blocks, oldest first
+        self.fork_height = 0               # height of the block the private chain forked from
+        self.unreleased = np.zeros(n_blocks, dtype=bool)
+        self.coal_arr = np.full(n_blocks, float(E) + 1.0)   # when the coalition learns of a block
+        self.coal_arr[0] = 0.0
+        self.n_released = 0                # blocks made public by a release
+        self.n_abandoned = 0               # private blocks the coalition gave up on
+        self.n_override = 0                # releases that orphaned >=1 honest block
+
+    def note_block(self, b: int, arrival_at_coalition: float) -> None:
+        self.coal_arr[b] = arrival_at_coalition
+
+    def add_private(self, b: int, t: int, parent_height: int) -> None:
+        if not self.priv:                  # opening a new private chain: record its fork height
+            self.fork_height = parent_height
+        self.priv.append(b)
+        self.unreleased[b] = True
+        self.coal_arr[b] = float(t)        # shared inside the coalition immediately
+
+    def public_height(self, t: int, height: np.ndarray, nb: int) -> int:
+        """Best height the coalition can see on the PUBLIC chain (private blocks excluded)."""
+        vis = (self.coal_arr[:nb] <= t) & (~self.unreleased[:nb])
+        return int(height[:nb][vis].max()) if vis.any() else 0
+
+    def decide(self, t: int, height: np.ndarray, nb: int) -> list[int]:
+        """Apply the SM1 rule; return the private blocks to release now (possibly empty)."""
+        a = len(self.priv)
+        if a == 0:
+            return []
+        h = self.public_height(t, height, nb) - self.fork_height
+        if h > a:                                  # adopt: the public chain won outright
+            self.n_abandoned += a
+            self.priv.clear()
+            return []
+        if h == a or (h == a - 1 and a >= 2):      # match / override: publish the whole chain
+            out = self.priv
+            self.priv = []
+            self.n_released += len(out)
+            if h >= 1:
+                self.n_override += 1
+            return out
+        return []                                  # wait
+
+
 def build_tree_pernode(
     active_slots: np.ndarray,
     winners_per_slot: list[np.ndarray],
@@ -237,7 +307,12 @@ def build_tree_pernode(
     key[0] = np.int64(0) * c1 - np.int64(-1) * c2 - np.int64(0)
     NEG = np.iinfo(np.int64).min
 
-    windowed = bool(config.windowed_fork_choice)
+    selfish = (adversary_mask is not None and config.adversary_frac > 0.0
+               and config.adversary_strategy == "selfish")
+    # A private chain breaks the windowed horizon's premise: an unreleased block is old enough to
+    # be "fully propagated" while no honest node has it, and it becomes visible LATER (on release),
+    # which the one-way frontier pointer can never revisit. So selfish runs the exact full scan.
+    windowed = bool(config.windowed_fork_choice) and not selfish
     if not windowed:
         horizon = float(E)                             # full scan (gb unused)
     elif config.topology == "blend":
@@ -264,6 +339,7 @@ def build_tree_pernode(
     withholding = (adversary_mask is not None and config.adversary_frac > 0.0
                    and config.adversary_strategy == "withhold")
     if config.prune_arrival and windowed and config.jitter_mean == 0.0 and not withholding:
+        # (selfish already cleared `windowed`, so it never reaches the pruned path either)
         return _build_pruned(active_slots, winners_per_slot, path_latency, config, rng,
                              slot, parent, height, leader, uncles, key, c1, c2,
                              float(horizon), n_blocks, E, n, adversary_mask)
@@ -288,6 +364,8 @@ def build_tree_pernode(
     gb_key = key[0]     # running best fully-propagated tip (slot <= t - H)
     gb_id = 0
     fp_idx = 1          # frontier pointer over fully-propagated blocks
+
+    coalition = _SelfishCoalition(np.nonzero(adversary_mask)[0], n_blocks, E) if selfish else None
 
     nb = 1
     for si in range(active_slots.shape[0]):
@@ -338,11 +416,45 @@ def build_tree_pernode(
             if hide:
                 A[:, b] = float(E) + 1.0                     # withheld: never arrives -> orphan
                 withheld[b] = True
+            elif coalition is not None and adv:
+                # Private: visible to the whole coalition at once, invisible to everyone else
+                # until released. Kept off the honest side by the same sentinel `withhold` uses.
+                A[:, b] = float(E) + 1.0
+                A[coalition.coal, b] = max(float(t), float(A[v, p_id]))
+                withheld[b] = True                           # flipped back on release
+                coalition.add_private(b, t, int(height[p_id]))
             else:
                 np.maximum(col, A[:, p_id], out=col)
                 A[:, b] = col
                 A[v, b] = max(float(t), float(A[v, p_id]))   # producer sees own block at its slot
+                if coalition is not None:
+                    coalition.note_block(b, float(A[coalition.coal, b].min()))
             nb += 1
+
+        if coalition is not None:
+            for rb in coalition.decide(t, height, nb):
+                # Release by DIRECT gossip from the producer, bypassing the Blend cascade: the
+                # adversary has no privacy budget to respect and wants the race won, so this is
+                # its fastest legal publication. Oldest first, so each block's parent arrival is
+                # already final when the no-earlier-than-parent clamp is applied.
+                prod = int(leader[rb])
+                rel = float(t) + path_latency[prod]
+                np.maximum(rel, A[:, int(parent[rb])], out=rel)
+                np.minimum(rel, A[:, rb], out=rel)           # coalition already had it privately
+                A[:, rb] = rel
+                withheld[rb] = False
+                coalition.unreleased[rb] = False
+
+    if coalition is not None and coalition.priv:
+        # Private blocks still hidden when the epoch ends are abandoned: the race they were held
+        # for is over, so they can never be cashed in. Hide them from the coalition too, or the
+        # canonical-tip search (which takes the best tip ANY node holds) would crown a chain no
+        # honest node ever saw and credit it phantom blocks.
+        stranded = np.array(coalition.priv, dtype=np.int64)
+        A[:, stranded] = float(E) + 1.0
+        withheld[stranded] = True
+        coalition.n_abandoned += len(coalition.priv)
+        coalition.priv.clear()
 
     tree = BlockTree(slot=slot, parent=parent, height=height, leader=leader, uncles=uncles)
     return tree, A

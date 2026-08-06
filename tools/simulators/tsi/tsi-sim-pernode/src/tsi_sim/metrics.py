@@ -64,6 +64,7 @@ def divergence_row(
         max_reorg_depth=er.max_reorg_depth,
         mean_reorg_depth=er.mean_reorg_depth,
         p_ref=er.p_ref,
+        p_ref_honest=er.p_ref_honest,
         deep_ref_share=er.deep_ref_share,
     )
     return row

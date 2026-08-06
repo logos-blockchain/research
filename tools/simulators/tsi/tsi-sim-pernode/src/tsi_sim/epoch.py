@@ -30,6 +30,7 @@ class EpochResult:
     max_reorg_depth: int      # deepest maximal orphan branch (blocks a reorg would discard)
     mean_reorg_depth: float   # mean maximal-orphan-branch depth
     p_ref: float              # emergent reference rate: in-window orphans referenced as uncles
+    p_ref_honest: float       # ...restricted to orphans produced OUTSIDE the coalition
     deep_ref_share: float     # share of examined references rejected by the parent-on-chain
                               # (first-fork) counting rule; 0 under the old model
 
@@ -112,7 +113,8 @@ def simulate_epoch(
 
     attribution = coalition_mask if coalition_mask is not None else adversary_mask
     adv_blocks, honest_blocks = _canonical_producer_split(tree, A, attribution, T, E)
-    fork_rate, max_reorg_depth, mean_reorg_depth, p_ref = fork.fork_stats(tree, A, T, cutoff=E)
+    fork_rate, max_reorg_depth, mean_reorg_depth, p_ref, p_ref_honest = fork.fork_stats(
+        tree, A, T, cutoff=E, coalition_mask=attribution)
     ref_total = int(ms.ref_total.sum())
     deep_ref_share = (int(ms.ref_deep.sum()) / ref_total) if ref_total else 0.0
 
@@ -123,5 +125,5 @@ def simulate_epoch(
         mean_orphan_rate=float(ms.orphan_rate.mean()),
         adv_blocks=adv_blocks, honest_blocks=honest_blocks,
         fork_rate=fork_rate, max_reorg_depth=max_reorg_depth, mean_reorg_depth=mean_reorg_depth,
-        p_ref=p_ref, deep_ref_share=deep_ref_share,
+        p_ref=p_ref, p_ref_honest=p_ref_honest, deep_ref_share=deep_ref_share,
     )

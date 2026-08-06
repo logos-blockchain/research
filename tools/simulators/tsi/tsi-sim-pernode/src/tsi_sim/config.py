@@ -30,7 +30,12 @@ InitDest = Literal["common", "heterogeneous"]
 #  "withhold" — never gossips its blocks (they are orphaned, its won slots become gaps in the
 #     canonical chain), so the counted density drops ~adversary_frac and TSI deflates D_est toward
 #     the reduced ACTIVE stake. Stronger, but the withheld blocks earn nothing (griefing/grinding).
-AdversaryStrategy = Literal["suppress", "withhold"]
+#  "selfish" — mines a PRIVATE chain and releases it to orphan honest blocks (Eyal-Sirer SM1).
+#     Unlike "withhold" (which discards its blocks — abstention, a dead loss), this recovers the
+#     forfeit by displacing honest work, and is the one profitable lever (report §6.6). Its
+#     estimator damage is what the countable uncle rule can only partly repair, because an
+#     override discards a CHAIN of honest blocks and only the first is referenceable (§2.1).
+AdversaryStrategy = Literal["suppress", "withhold", "selfish"]
 # WHICH nodes make up that coalition, at the same total stake:
 #  "random" — a uniformly random set grown until its stake reaches adversary_frac (the default; the
 #     block share is then smooth in adversary_frac, which is all the density levers depend on);
@@ -270,8 +275,8 @@ class SimConfig:
         if self.adversary_selection not in ("random", "whale"):
             raise ValueError(f"adversary_selection must be random|whale, got "
                              f"{self.adversary_selection!r}")
-        if self.adversary_strategy not in ("suppress", "withhold"):
-            raise ValueError(f"adversary_strategy must be suppress|withhold, got "
+        if self.adversary_strategy not in ("suppress", "withhold", "selfish"):
+            raise ValueError(f"adversary_strategy must be suppress|withhold|selfish, got "
                              f"{self.adversary_strategy!r}")
         checks = {
             "n_nodes": self.n_nodes >= 1,
