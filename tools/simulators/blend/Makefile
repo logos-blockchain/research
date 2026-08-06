@@ -8,7 +8,7 @@ export OPENBLAS_NUM_THREADS := 1
 export MKL_NUM_THREADS := 1
 export NUMEXPR_NUM_THREADS := 1
 
-.PHONY: install smoke sweep sweep-fullscale redundancy percolation correlated-churn cover-traffic timing figures verify test lint clean
+.PHONY: install smoke sweep sweep-fullscale redundancy percolation correlated-churn cover-traffic timing attribution figures verify test lint clean
 
 # The stamp is the real install; targets below depend on it so `make sweep` (etc.) auto-installs
 # on a fresh checkout and re-installs whenever pyproject.toml changes.
@@ -34,6 +34,9 @@ redundancy: $(STAMP) ## messaging redundancy R=1..4 (delivery vs deanonymization
 
 percolation: $(STAMP) ## churn threshold: coverage collapse at u_c = 1 - 1/(degree-1)
 	$(PY) -m blend.sweep --config configs/percolation.yaml
+
+attribution: $(STAMP) ## attribution confidence: the local bound and the neighbourhood bound
+	$(PY) -m blend.sweep --config configs/attribution.yaml
 
 cover-traffic: $(STAMP) ## cover traffic: blending, mixing, and the emission-quota ceiling
 	$(PY) -m blend.sweep --config configs/cover-traffic.yaml

@@ -44,6 +44,7 @@ _DEANON_BUILDERS = [
 _TRAFFIC_BUILDERS = [
     ("23_blending_vs_rate_and_delay", figures.blending_vs_rate_and_delay),
     ("24_quota_stake_ceiling", figures.quota_stake_ceiling),
+    ("25_timing_linkability", figures.timing_linkability_vs_rate),
 ]
 
 

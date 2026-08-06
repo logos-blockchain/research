@@ -709,3 +709,42 @@ def quota_stake_ceiling(traffic: pd.DataFrame):
     ax.set_title("Emission quota: the most stake a node can hold and stay uniform")
     ax.legend(fontsize=7)
     return fig
+
+
+def timing_linkability_vs_rate(traffic: pd.DataFrame):
+    """Can an observer match a relay's outgoing message to the incoming one? (§3.11)
+
+    Solid = MAP success, how often the observer's single best guess is right; dashed = the
+    effective anonymity set on the right axis. Both release designs cost the same mean delay, so
+    they differ only in how they delay. The two lines together make the point that the set size
+    alone would miss: a heavy-tailed delay inflates the set while leaving the best guess nearly as
+    good, so the jitter design's real advantage is a fraction of its apparent one.
+    """
+    if (traffic is None or not len(traffic) or "map_success" not in traffic
+            or traffic["release_mode"].nunique() < 2):
+        return None
+    import matplotlib.pyplot as plt
+    style.apply_style()
+    d = traffic[traffic.min_blend_delay == traffic.min_blend_delay.min()]
+    fig, ax = plt.subplots()
+    ax2 = ax.twinx()
+    ax2.grid(False)
+    for i, mode in enumerate(sorted(d.release_mode.unique())):
+        c = style.color_for(i)
+        s = d[d.release_mode == mode].groupby("cover_rate_mult").agg(
+            mp=("map_success", "mean"), es=("timing_set_mean", "mean")).reset_index()
+        ax.plot(s.cover_rate_mult, s.mp, "-o", ms=5, color=c, label=f"{mode}: MAP success  ↓ good")
+        ax2.plot(s.cover_rate_mult, s.es, "--s", ms=4, color=c, alpha=0.65,
+                 label=f"{mode}: effective set  ↑ good")
+    ax.axhline(1.0, ls=":", lw=0.8, color="0.6")
+    ax.set_xscale("log")
+    ax.set_xlabel("cover-traffic rate  (messages/second, network-wide)")
+    ax.set_ylabel("MAP success: best guess is correct")
+    ax.set_ylim(0.0, 1.05)
+    ax2.set_ylabel("effective anonymity set of a release")
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax.legend(h1 + h2, l1 + l2, fontsize=7, loc="center left")
+    ax.set_title("Timing: matching a relay's output to its input\n"
+                 "(matched delay budget; at the baseline rate both designs fail)")
+    return fig

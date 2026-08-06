@@ -178,8 +178,11 @@ m = TMT[TMT.release_mode == "clock"].groupby("min_blend_delay").agg(
 print(m.to_string(index=False, float_format=lambda v: f"{v:.3f}"))
 
 # --- 3.4 attribution bracket ---------------------------------------------------------------------
-print("\n### 3.4 attribution: local confidence vs the neighbourhood bound")
-TD = pd.read_parquet(TM + "/deanon.parquet")
-cols = ["attribution_conf_mean", "attributable_frac_50", "attributable_frac_90",
-        "upstream_hops", "neighbourhood_conf"]
-print(TD[cols].mean().round(4).to_string())
+AT = os.path.join(_here, "attribution")
+print("\n### 3.4 attribution bracket (N=20k, random placement)")
+AD = pd.read_parquet(AT + "/deanon.parquet")
+a = AD[AD.adversary_mode == "random"].groupby(["degree", "f_adv"]).agg(
+    observed=("observed_frac", "mean"), local_mean=("attribution_conf_mean", "mean"),
+    attributable_90=("attributable_frac_90", "mean"), upstream=("upstream_hops", "mean"),
+    neighbourhood=("neighbourhood_conf", "mean")).reset_index()
+print(a.to_string(index=False, float_format=lambda v: f"{v:.5f}"))
