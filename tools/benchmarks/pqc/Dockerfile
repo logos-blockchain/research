@@ -5,12 +5,12 @@
 # COVERAGE NOTE: C toolchain ONLY (liboqs / OpenSSL / oqs-provider). This image
 # installs no Rust, so the RustCrypto (bench/rust) and rustls (bench/rust-tls)
 # measurement groups are not built here, and the image has not been re-verified
-# since those groups were added. The verified setup paths are the bare-metal
-# ones in README.md / RUNNING-ON-YOUR-RPI5.md.
+# since those groups were added. The verified setup path is the bare-metal one:
+# `make check && make build` on the host, as README.md describes.
 #
 # This image is for BUILDING ONLY — it is NOT for running the benchmark.
 #
-#   docker build -t pq-bench-rpi5 .          # build + pin the toolchain
+#   docker build -t pqc .                    # build + pin the toolchain
 #
 # Run the MEASUREMENT bare-metal on the host, never in the container. A
 # container cannot reliably control the CPU governor, pin to an isolated core,

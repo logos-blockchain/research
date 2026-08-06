@@ -2,7 +2,7 @@
 name = "pqb-rust"
 version = "0.1.0"
 edition = "2021"
-description = "pq-bench-rpi5 pure-Rust (RustCrypto) KEM/signature harness — same methodology as bench/kem_sig/bench_pq.c, emitting the same schema-2.0.0 JSONL rows with implementation:\"rustcrypto\""
+description = "pqc pure-Rust (RustCrypto) KEM/signature harness — same methodology as bench/kem_sig/bench_pq.c, emitting the same schema-2.0.0 JSONL rows with implementation:\"rustcrypto\""
 publish = false
 
 [dependencies]

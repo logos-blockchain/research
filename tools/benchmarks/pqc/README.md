@@ -1,10 +1,12 @@
-# pqc-bench
+# pqc — post-quantum cryptography benchmark
 
-A reproducible, general-purpose **post-quantum cryptography benchmark**
-(formerly `pq-bench-rpi5`) whose baseline **reference platform** is the
-**Raspberry Pi 5** (Broadcom BCM2712, Cortex-A76,
-aarch64). Anyone can run it on their own Pi 5 and the results aggregate and
-compare apples-to-apples.
+A reproducible, general-purpose **post-quantum cryptography benchmark** whose
+baseline **reference platform** is the **Raspberry Pi 5** (Broadcom BCM2712,
+Cortex-A76, aarch64). It runs on any Linux or macOS box; results from the
+reference platform aggregate and compare apples-to-apples.
+
+Results and figures land in [`reports/pqc`](../../../reports/pqc) — see that
+directory for the published dataset and what it shows.
 
 **Framing — migration cost.** How much does moving from the cryptography Logos
 uses *today* (X25519 key exchange + Ed25519 signatures) to PQ candidates cost on
@@ -195,7 +197,7 @@ The setup and run steps live in the **Makefile**, so they can't drift from
 reality the way prose does; `make help` lists everything. The flow:
 
 ```bash
-git clone <this repo> && cd pqc-bench
+cd tools/benchmarks/pqc
 make check     # read-only: verifies the environment — including that the
                # OpenSSL the build will use has its DEVELOPMENT files
                # (compile-and-link probe) — and prints per-platform install
@@ -236,9 +238,24 @@ instead of being silently masked.
 
 ### On a Raspberry Pi 5 (the real measurement target)
 
-Follow **[RUNNING-ON-YOUR-RPI5.md](RUNNING-ON-YOUR-RPI5.md)** for the
-Pi-specific context (cooling, PSU, governor, baseline-grade); the commands are
-the same targets: `make check && make build && make test && make run`.
+Nothing is Pi-specific about the commands — they are the same targets as
+everywhere else: `make check && make build && make test && make run`. What is
+Pi-specific is the *measurement conditions* the baseline-grade gate checks, and
+they are physical, not procedural:
+
+- **Active cooling** (the official Active Cooler or a fan). PQ signing —
+  SLH-DSA especially — holds the core at load long enough to throttle an
+  uncooled Pi, and a throttled run is flagged non-baseline.
+- **The official 27 W USB-C PSU.** Under-voltage trips the same throttle flag.
+- **Raspberry Pi OS / Debian 13 (trixie) or newer**, whose system OpenSSL is
+  already on the pinned 3.5.x line with ML-KEM/ML-DSA/SLH-DSA compiled in, so no
+  OpenSSL source build is needed. `make check` verifies this; on an older OS the
+  build falls back to compiling the pinned OpenSSL from source (+15–30 min).
+- Run `make build` inside **tmux** so a dropped SSH session doesn't kill it
+  (5–15 min, dominated by liboqs and the first AWS-LC build).
+
+See [Contributing your RPi5 results](#contributing-your-rpi5-results) for the
+full gate and the submission checklist.
 
 **On `sudo`:** it is **optional, not a prerequisite.** The only thing it does is
 set the CPU governor to `performance` — none of the crypto needs root. `./run.sh`
@@ -283,7 +300,7 @@ Docker is for reproducibly **building** the pinned C toolchain (liboqs /
 OpenSSL / oqs-provider), not for running the benchmark:
 
 ```bash
-docker build -t pqc-bench .   # builds + pins the C toolchain inside the image
+docker build -t pqc .   # builds + pins the C toolchain inside the image
 ```
 
 > **Coverage note:** the image covers the **C toolchain only** — it installs no

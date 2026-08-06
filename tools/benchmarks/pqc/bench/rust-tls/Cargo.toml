@@ -2,7 +2,7 @@
 name = "pqb-rust-tls"
 version = "0.1.0"
 edition = "2021"
-description = "pq-bench-rpi5 rustls + aws-lc-rs TLS 1.3 handshake harness — mirrors bench/tls/bench_tls.c, emitting the same schema-2.0.0 rows with implementation:\"rustls-awslc\""
+description = "pqc rustls + aws-lc-rs TLS 1.3 handshake harness — mirrors bench/tls/bench_tls.c, emitting the same schema-2.0.0 rows with implementation:\"rustls-awslc\""
 publish = false
 
 [dependencies]

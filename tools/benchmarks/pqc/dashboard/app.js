@@ -1,4 +1,4 @@
-/* pq-bench-rpi5 dashboard — pure client-side, reads a merged.json produced by
+/* pqc benchmark dashboard — pure client-side, reads a merged.json produced by
  * analyze/merge.py. No backend.
  *
  * Views (stage-6): TLS migration phases (Pi + Mac side by side), the full
