@@ -140,38 +140,46 @@ def study_withhold_load() -> pd.DataFrame:
     `1 - beta_adv` BY DESIGN (§6.4), so a 50 % coalition doubles the load — and at the design
     point `rho ~ 0.56` that lands on `rho_eff ~ 1.1`, past the fold.
 
-    This sweeps the blending budget under static withholding at `beta_adv` 0.3/0.5 and records
-    how often the estimate collapses, which is the direct test of "never reached in the dynamics".
+    This sweeps the blending budget under static withholding at `beta_adv` 0.3/0.5 — for BOTH
+    coalition selections, since the one observed collapse was a whale cell — and records how often
+    the estimate collapses, which is the direct test of "never reached in the dynamics".
     """
-    def cell(badv: float, delay: float, rep: int) -> dict:
+    def cell(badv: float, delay: float, selection: str, rep: int) -> dict:
         cfg = SimConfig(**{**WHALE_BASE, "blend_delay_max": delay},
-                        adversary_frac=badv, adversary_strategy="withhold", replicate=rep)
+                        adversary_frac=badv, adversary_strategy="withhold",
+                        adversary_selection=selection, replicate=rep)
         t, collapsed = _tail_or_collapse(cfg)
-        row = dict(beta_adv=badv, blend_delay_max=delay, rep=rep, collapsed=collapsed)
+        row = dict(beta_adv=badv, blend_delay_max=delay, selection=selection, rep=rep,
+                   collapsed=collapsed)
         if t is not None:
             row |= dict(mean_ratio=float(t.mean_ratio.mean()),
                         min_ratio=float(t.mean_ratio.min()),
                         adv_block_share=float(t.adv_block_share.mean()))
         return row
 
-    jobs = [(b, d, r) for b in (0.3, 0.5) for d in (4.0, 8.0) for r in range(REPS)]
+    jobs = [(b, d, s, r) for b in (0.3, 0.5) for d in (4.0, 8.0)
+            for s in ("random", "whale") for r in range(REPS)]
     df = pd.DataFrame(Parallel(n_jobs=N_JOBS, backend="loky", inner_max_num_threads=1)(
-        delayed(cell)(b, d, r) for b, d, r in jobs))
+        delayed(cell)(b, d, s, r) for b, d, s, r in jobs))
     df.to_parquet(RUNS / "adversary_variants_withhold_load.parquet", index=False)
     return df
 
 
 def _report_withhold_load(df: pd.DataFrame) -> None:
     print("\n=== D. static withholding vs the §6.2 fold (rho_eff = rho / r) ===")
-    print(f"{'b_adv':>6} {'delta':>6} {'collapsed':>10} {'D-hat/D':>18} {'worst epoch':>12}")
+    print(f"{'b_adv':>6} {'delta':>6} {'sel':>7} {'collapsed':>10} {'D-hat/D':>18} "
+          f"{'worst epoch':>12}")
     for badv in sorted(df.beta_adv.unique()):
         for delay in sorted(df.blend_delay_max.unique()):
-            g = df[(df.beta_adv == badv) & (df.blend_delay_max == delay)]
-            ok = g[~g.collapsed]
-            mr = f"{ok.mean_ratio.mean():8.4f}+-{ok.mean_ratio.std(ddof=1):.4f}" if len(ok) > 1 \
-                else f"{'n/a':>16}"
-            worst = f"{ok.min_ratio.min():12.4f}" if len(ok) else f"{'n/a':>12}"
-            print(f"{badv:6.1f} {delay:6.1f} {int(g.collapsed.sum()):5d}/{len(g):<4d} {mr} {worst}")
+            for sel in sorted(df.selection.unique()):
+                g = df[(df.beta_adv == badv) & (df.blend_delay_max == delay)
+                       & (df.selection == sel)]
+                ok = g[~g.collapsed]
+                mr = (f"{ok.mean_ratio.mean():8.4f}+-{ok.mean_ratio.std(ddof=1):.4f}"
+                      if len(ok) > 1 else f"{'n/a':>16}")
+                worst = f"{ok.min_ratio.min():12.4f}" if len(ok) else f"{'n/a':>12}"
+                print(f"{badv:6.1f} {delay:6.1f} {sel:>7} {int(g.collapsed.sum()):5d}/{len(g):<4d}"
+                      f" {mr} {worst}")
 
 
 def _report_whale(df: pd.DataFrame) -> None:

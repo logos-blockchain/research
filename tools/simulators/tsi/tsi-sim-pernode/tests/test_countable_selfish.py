@@ -76,6 +76,17 @@ def test_attacker_self_uncle_is_capped_too():
     assert 0.5 < s.countable_recovery_adv < 1.0
 
 
+def test_reorg_countable_recovery_from_depths():
+    # A depth-d reorg discards one chain of d blocks -> 1 countable uncle: runs / blocks.
+    from tsi_sim.reorg import countable_recovery_from_depths
+
+    assert countable_recovery_from_depths(np.array([], dtype=np.int64)) == 1.0
+    assert countable_recovery_from_depths(np.array([1, 1, 1])) == 1.0     # SM1-like: all depth-1
+    assert countable_recovery_from_depths(np.array([3, 1, 2])) == 0.5     # 3 runs / 6 blocks
+    # and it is the depth-weighted harmonic sense of "share": deeper reorgs drag it down
+    assert countable_recovery_from_depths(np.array([10])) == 0.1
+
+
 @pytest.mark.slow
 def test_cap_convergence():
     # The orphan shape converges more slowly in cap than the revenue does; check the drift is

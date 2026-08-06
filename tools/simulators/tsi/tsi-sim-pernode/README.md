@@ -158,7 +158,10 @@ configs/       smoke.yaml  default.yaml  fullscale.yaml
                countable-vs-old.yaml  absorption-window.yaml   (countable-model studies)
                fine-delay.yaml   (delay 1-5 at 40 replicates: the design band, high precision)
 tests/         test_{pernode,config,rng,lottery,blocktree,uncles,tsi_counting,stake,
-                     theory,latency,theory_convergence,countable_counting,...}.py
+                     theory,latency,theory_convergence,countable_counting,
+                     countable_selfish,...}.py
 scripts/       plot_countable_vs_old.py  (countable-vs-unrestricted comparison figures)
                plot_fine_delay.py        (design-band accuracy + model gap with 95% CIs)
+               countable_selfish.py      (first-fork ceiling under the selfish MDP; fig36)
+               adversary_variants.py     (whale/jitter/slow-beta variants + the withhold-load sweep)
 ```
