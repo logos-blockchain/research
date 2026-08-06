@@ -117,3 +117,40 @@ def test_jitter_beats_the_clock_at_a_matched_delay_budget():
     _, j = _run("jitter", rate=64.0, slots=60)
     assert j["map_success"] < c["map_success"]
     assert j["timing_set_mean"] > c["timing_set_mean"]
+
+
+def test_release_design_is_a_real_sweep_axis():
+    """Regression: min_blend_delay and release_mode were declared on SweepConfig, validated and
+    keyed, but never read by the sweep -- a YAML setting them was silently ignored."""
+    from blend.config import SweepConfig
+    sw = SweepConfig(min_blend_delay=[0, 1], release_mode=["clock", "jitter"])
+    assert sorted(sw.release_designs()) == [(0, "clock"), (0, "jitter"),
+                                            (1, "clock"), (1, "jitter")]
+
+
+def test_the_engine_emits_a_timing_row_per_release_design():
+    """The timing measures must land in a result table, not only in ad-hoc analysis."""
+    from blend.config import SimConfig
+    from blend.engine import run_graph_cell
+    base = SimConfig(n_nodes=600, degree=8, traffic_window_slots=40, n_rounds=5, n_placements=1)
+    _, _, deanon_rows, traffic_rows = run_graph_cell(
+        base, [(3, 30)], [0.0], [1], [(0.2, "random")],
+        cover_rates=[1.0], release_designs=[(0, "clock"), (0, "jitter")])
+    assert len(traffic_rows) == 2
+    for row in traffic_rows:
+        for col in ("release_mode", "min_blend_delay", "timing_set_mean", "map_success"):
+            assert col in row, col
+    assert {r["release_mode"] for r in traffic_rows} == {"clock", "jitter"}
+    # and the attribution bracket reaches the deanon table
+    for col in ("attribution_conf_mean", "upstream_hops", "neighbourhood_conf"):
+        assert col in deanon_rows[0], col
+
+
+def test_propagation_honours_the_minimum_interval():
+    """Regression: the non-timeline path called mix_wait without the minimum, so the knob was
+    silently inert on the delay tables of 3.1-3.2."""
+    import inspect
+
+    from blend import propagation
+    src = inspect.getsource(propagation.propagation_metrics)
+    assert "min_blend_delay=config.min_blend_delay" in src

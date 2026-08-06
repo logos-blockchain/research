@@ -71,7 +71,7 @@ def assign_responsive(n: int, unresponsive_frac: float, rng: np.random.Generator
 def blend_round(graph: Graph, sender: int, relays: np.ndarray, jitter_mean_ms: float,
                 max_blend_delay: int, rng: np.random.Generator,
                 coverage_pcts: tuple[float, ...], responsive: np.ndarray | None = None,
-                stats: bool = True) -> dict:
+                stats: bool = True, min_blend_delay: int = 0) -> dict:
     """One Blend cascade. ``delivered`` is True iff every relay forwards and the final relay (which
     must be responsive) floods; delay fields are NaN on a dropped message.
 
@@ -101,7 +101,7 @@ def blend_round(graph: Graph, sender: int, relays: np.ndarray, jitter_mean_ms: f
             legs_ok = False
             break
         legs += float(d)
-    mix_total = float(mix_wait(rng, max_blend_delay, k).sum())
+    mix_total = float(mix_wait(rng, max_blend_delay, k, min_blend_delay).sum())
 
     final_relay = int(sources[k])
     final_ok = responsive is None or bool(responsive[final_relay])
@@ -177,7 +177,8 @@ def propagation_metrics(graph: Graph, blend_hops: int, max_blend_delay: int,
             relays = rng.choice(n - 1, size=blend_hops, replace=False)
             relays[relays >= sender] += 1      # blend_hops distinct nodes, all != sender
             rc = blend_round(graph, sender, relays, config.transport_jitter_mean_ms,
-                             max_blend_delay, rng, pcts, responsive, stats=False)
+                             max_blend_delay, rng, pcts, responsive, stats=False,
+                             min_blend_delay=config.min_blend_delay)
             if not rc["delivered"]:
                 continue
             a = rc["arrival"]

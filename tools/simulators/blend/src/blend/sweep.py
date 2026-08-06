@@ -38,9 +38,9 @@ def new_run_dir(outdir: Path, label: str) -> Path:
 
 
 def _cell_worker(base: SimConfig, prop_grid, unresponsive_fracs, redundancies, adv_grid,
-                 churn_modes, cover_rates):
+                 churn_modes, cover_rates, release_designs):
     return run_graph_cell(base, prop_grid, unresponsive_fracs, redundancies, adv_grid,
-                          churn_modes, cover_rates)
+                          churn_modes, cover_rates, release_designs)
 
 
 def run_sweep(sweep: SweepConfig, n_jobs: int = -1) -> tuple[pd.DataFrame, ...]:
@@ -50,11 +50,12 @@ def run_sweep(sweep: SweepConfig, n_jobs: int = -1) -> tuple[pd.DataFrame, ...]:
     redundancies = list(sweep.redundancy)
     churn_modes = list(sweep.churn_mode)
     cover_rates = list(sweep.cover_rate_mult)
+    release_designs = sweep.release_designs()
     adv_grid = sweep.adv_grid()
     bases = [sweep.base_config(n, d, g) for (n, d, g) in cells]
     results = Parallel(n_jobs=n_jobs, prefer="processes")(
         delayed(_cell_worker)(base, prop_grid, unresponsive_fracs, redundancies, adv_grid,
-                              churn_modes, cover_rates)
+                              churn_modes, cover_rates, release_designs)
         for base in tqdm(bases, desc="topologies")
     )
     prop_rows = [r for pr, _, _, _ in results for r in pr]
