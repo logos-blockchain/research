@@ -6,9 +6,11 @@
 
 ## Verdict
 
-**The added section's headline is wrong by ~10×, and it is agonising over the wrong bias.** The residual it attributes to deep forks is 0.08 pp, not 1.4 %. Meanwhile the deployed estimator carries a **+1.0 % bias of the opposite sign** that the section does not mention — from the `f` rounding, not from forks. Rewriting the section around the second number rather than the first is the substantive change.
+**The added section's headline is wrong by ~17×, and it is agonising over the wrong bias.** The residual it attributes to deep forks is 0.08 pp, not 1.4 %. Meanwhile the deployed estimator carries a **+1.0 % bias of the opposite sign** that the section does not mention — from the `f` rounding, not from forks. Rewriting the section around the second number rather than the first is the substantive change.
 
 The no-uncle loss is also **understated, not overstated**: 33 % at the operating point, not 18.7 %, and it deepens with network size.
+
+**But the section's number is not an arithmetic error, and E5 identifies what it is.** It is what this model produces once per-recipient delay spread reaches ~8 slots — which is ~16× the gossip spread Blend's cascade actually delivers, because the cascade's variance is per *block* (shared by all recipients, harmless to the estimate) rather than per *recipient* (divergent, and the only kind that manufactures unrecoverable forks). That distinction is the whole disagreement and belongs in the rewritten section.
 
 ## The requested table
 
@@ -27,7 +29,11 @@ E3  largest ρ with U=4 ≥ 0.98:  > 1.87 (U=3 already suffices there)   margin:
 E4  D̂/D vs W_abs {1,2,3,5,7,10,15,20}:
       0.854 / 0.938 / 0.967 / 0.992 / 0.999 / 0.998 / 0.999 / 1.000
       knee at W_abs ≈ 5;  spec's W = 10 sits ~2× above it
-E5  not yet run (the jitter diagnostic — see "What is still open")
+E5  jitter_mean {0,1,2,4,8} slots, δ_max = 4, U=1, exact oracle, 12 reps:
+      D̂/D              0.9983 / 0.9992 / 0.9991 / 0.9971 / 0.9871
+      depth≥2 orphans   0.25 % / 0.38 % / 0.53 % / 1.20 % / 3.30 %
+      consensus         range_ratio = 0 and agreement = 1.000 in all 480 runs
+      → the section's 0.986 is reproducible, at ~8 slots of per-recipient variance
 E6  fixed_point off / 1e3 / 1e6:  0.99997 / 1.01026 / 0.99990   (predicted 1.000 / 1.0101 / 1.00001)
 ```
 
@@ -70,11 +76,27 @@ Three arms, identical but for the estimator's target-rate quantisation:
 
 The deployed estimator drives density to `f_p = 0.033` instead of `1/30`, so the chain reads **1.0 % high** — measured in the full per-node dynamics, matching `theory.fixed_point_bias` to within one standard error. It is ~13× the first-fork cost the section is concerned with, opposite in sign, and removed entirely by a one-constant change.
 
-## What is still open
+### E5 — the diagnostic: the section's number is reproducible, and that pins its hidden assumption
 
-**E5 — the diagnostic — has not been run.** It is the only experiment that could invalidate the *report* rather than the section, and the primary hypothesis for the original discrepancy: the standalone simulation drew an independent delay per (block, recipient), while the simulator's Blend cascade floods from the last relay, so views stay synchronised. If real Blend carries more per-recipient variance, the design-regime numbers above are optimistic. The lever exists (`jitter_mean`) and this is also the report's open item 15.
+This was the experiment that could have invalidated the *report*. It does not — but it does something more useful than refuting the section: it says exactly what the section's number assumes.
 
-Until E5 runs, every number here carries the cascade model's assumption that nodes receive a block at nearly the same time.
+Sweeping per-(block, node) arrival jitter on top of the cascade interpolates between the two delay models — 0 is the report's cascade, large values approach the standalone's independent-per-recipient draws:
+
+| `jitter_mean` (slots) | 0 | 1 | 2 | 4 | 8 |
+|---|---|---|---|---|---|
+| `D̂/D` at `U = 1` | 0.9983 | 0.9992 | 0.9991 | 0.9971 | **0.9871** |
+| depth-≥2 orphans | 0.25 % | 0.38 % | 0.53 % | 1.20 % | **3.30 %** |
+| fork rate | 0.266 | 0.272 | 0.275 | 0.310 | 0.366 |
+
+**Both branches of the handoff's pass/fail are true, at different jitter levels.** Up to ~2 slots of per-recipient variance the report is entirely robust: accuracy 0.999, deep orphans half a percent. But at 8 slots accuracy lands on **0.9871** — essentially the section's 0.986 — with deep orphans at 3.3 %. So the standalone result is not arithmetic error; it is what this model produces once per-recipient spread reaches roughly eight seconds.
+
+That converts the disagreement into a question with a checkable answer: **does Blend deliver ~8 slots of per-recipient spread?** Under the spec's own model it cannot come close. The blending delay is a fixed per-hop dwell and the cascade's final step is a network-wide gossip flood from the last relay, so what varies per *recipient* is only that flood — and the report measures the gossip spread at `ℓ_mean ≈ 0.5` slot over a degree-6 graph. Eight slots is ~16× that. Per-*block* delay variance, which the cascade does have and which is large, moves every recipient together and so creates no deep forks at all.
+
+The distinction is the whole disagreement, and it is worth stating in the section: **variance in *when a block becomes public* is harmless to the estimate; variance in *when each node sees it* is what manufactures unrecoverable forks.** The two are easy to conflate and the standalone model charged the second where Blend delivers the first.
+
+Consensus is untouched throughout — `range_ratio = 0` and `agreement_window = 1.000` in all 480 runs, at every jitter level — reconfirming §6.1's structural argument at the deployment's own operating point.
+
+**This also partly closes the report's open item 15** (correlated/heterogeneous latency untested): the report is robust to per-recipient variance up to ~2–4 slots and degrades measurably beyond, which is a bound it did not previously carry. What remains untested there is *spatially correlated* latency — nodes in a region straggling together — which jitter, being i.i.d. per (block, node), does not model.
 
 ## Notes on the guide (§4)
 
