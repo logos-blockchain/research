@@ -167,6 +167,16 @@ def select_uncles_at_production(
         [b for b in pre if int(parent[b]) == GENESIS or int(parent[b]) in chain_ids],
         dtype=np.int64,
     )
+    if config.uncle_window_anchor == "parent" and cands.size:
+        # Proposed rule: the window is measured to the uncle's PARENT, not the uncle. A block
+        # strictly postdates its parent, so this gap is never smaller than the uncle's own —
+        # the [t-w, t) scan above is therefore a superset and this only narrows it. Filtering
+        # here as well as at counting keeps the proposer from spending an entry on a reference
+        # that will not count.
+        cands = cands[np.array([int(slot[int(parent[b])]) >= t - w for b in cands.tolist()],
+                               dtype=bool)]
+        if cands.size == 0:
+            return ()
     if cands.size == 0:
         return ()
     # cands already oldest-first (slot, id); one uncle per slot per the spec's selection.

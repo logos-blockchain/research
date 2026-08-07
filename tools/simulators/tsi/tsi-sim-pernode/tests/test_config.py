@@ -211,6 +211,7 @@ def _perturb(v):
         # adversary_selection. Keyed by VALUE, so this only fires on fields that are currently
         # "random" — uncle_strategy defaults to "oldest" and keeps its own flip above.
         "random": "whale",
+        "uncle": "parent",   # uncle_window_anchor
     }
     if isinstance(v, str) and v in flips:
         return flips[v]

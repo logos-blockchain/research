@@ -35,13 +35,29 @@ InitDest = Literal["common", "heterogeneous"]
 #     forfeit by displacing honest work, and is the one profitable lever (report §6.6). Its
 #     estimator damage is what the countable uncle rule can only partly repair, because an
 #     override discards a CHAIN of honest blocks and only the first is referenceable (§2.1).
-AdversaryStrategy = Literal["suppress", "withhold", "selfish"]
+#  "deep_parent" — mints blocks that hang off an ANCIENT chain block instead of the current
+#     tip. Each is a genuine lottery win and a legal first-fork uncle, and under the spec's
+#     uncle-anchored window it is eligible the moment it is produced (its OWN slot is recent),
+#     so honest proposers reference it — forcing every validator to derive the epoch and ledger
+#     state at that ancient parent to check its Proof of Leadership. The attack this branch
+#     evaluates: it costs the adversary nothing it would not already spend, and the effort it
+#     imposes is bounded only by how far back the block tree reaches.
+AdversaryStrategy = Literal["suppress", "withhold", "selfish", "deep_parent"]
 # WHICH nodes make up that coalition, at the same total stake:
 #  "random" — a uniformly random set grown until its stake reaches adversary_frac (the default; the
 #     block share is then smooth in adversary_frac, which is all the density levers depend on);
 #  "whale"  — the LARGEST holders first. Same stake, far fewer nodes, so the coalition's block
 #     production is lumpier — the untested concentration case flagged in report §6.5's scope.
 AdversarySelection = Literal["random", "whale"]
+# WHICH slot the uncle reference window is measured against:
+#  "uncle"  (spec) — the uncle's own slot: 0 < sl_A - sl_U <= w_u. Bounds how old a referenced
+#     block may be, but leaves its PARENT unbounded, so a valid uncle may hang off an
+#     arbitrarily old chain block and force a validator to derive historical epoch/ledger
+#     state at that ancient parent to check its Proof of Leadership.
+#  "parent" (proposed) — the uncle's parent's slot: sl_A - sl_parent(U) <= w_u. Since a block
+#     strictly postdates its parent, the parent gap is never smaller than the uncle gap, so
+#     this is STRICTLY TIGHTER: it bounds both, and bounds how far back state must be reached.
+UncleWindowAnchor = Literal["uncle", "parent"]
 
 
 @dataclass(frozen=True)
@@ -128,6 +144,7 @@ class SimConfig:
     # take the oldest candidates first, deterministically, because an uncle expires w_u slots
     # after its own slot so the oldest are the closest to expiring. Every headline result uses it.
     uncle_strategy: UncleStrategy = "oldest"
+    uncle_window_anchor: UncleWindowAnchor = "uncle"   # "parent" = the proposed rule
     # "random" is NOT a spec variant — it is the deviation probe: walk the same oldest-first
     # candidate order but include each candidate with probability uncle_random_p, so a lone
     # candidate is dropped half the time. Uncle selection is proposer-local and unvalidated, so a
@@ -278,11 +295,16 @@ class SimConfig:
             raise ValueError(f"clock_skew_max must be >= 0, got {self.clock_skew_max}")
         if self.f_precision < 1 or self.f_precision != int(self.f_precision):
             raise ValueError(f"f_precision must be a positive integer, got {self.f_precision!r}")
+        if self.uncle_window_anchor not in ("uncle", "parent"):
+            raise ValueError(f"uncle_window_anchor must be uncle|parent, got "
+                             f"{self.uncle_window_anchor!r}")
         if self.adversary_selection not in ("random", "whale"):
             raise ValueError(f"adversary_selection must be random|whale, got "
                              f"{self.adversary_selection!r}")
-        if self.adversary_strategy not in ("suppress", "withhold", "selfish"):
-            raise ValueError(f"adversary_strategy must be suppress|withhold|selfish, got "
+        if self.adversary_strategy not in ("suppress", "withhold", "selfish",
+                                           "deep_parent"):
+            raise ValueError(f"adversary_strategy must be "
+                             f"suppress|withhold|selfish|deep_parent, got "
                              f"{self.adversary_strategy!r}")
         checks = {
             "n_nodes": self.n_nodes >= 1,
@@ -396,7 +418,9 @@ class SimConfig:
             base = base + (self.adversary_selection,)
         # Same append-only-when-non-default discipline: a run at the default precision keeps a
         # byte-identical key, so no committed result is reseeded by adding the knob.
-        return base if self.f_precision == 1_000_000 else base + (self.f_precision,)
+        if self.f_precision != 1_000_000:
+            base = base + (self.f_precision,)
+        return base if self.uncle_window_anchor == "uncle" else base + (self.uncle_window_anchor,)
 
     def seed_key(self) -> tuple:
         """The identity the RNG root is actually derived from (see ``rng.seedseq_for``).

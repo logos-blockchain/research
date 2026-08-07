@@ -309,6 +309,11 @@ def build_tree_pernode(
 
     selfish = (adversary_mask is not None and config.adversary_frac > 0.0
                and config.adversary_strategy == "selfish")
+    # A deep-parent block hangs off an ancient chain block, whose arrival column the sliding
+    # prune has long since dropped, so this adversary needs the full matrix too.
+    deep_parent = (adversary_mask is not None and config.adversary_frac > 0.0
+                   and config.adversary_strategy == "deep_parent")
+    deep_parent_max = float(E)          # reach as far back as the epoch allows
     # A private chain breaks the windowed horizon's premise: an unreleased block is old enough to
     # be "fully propagated" while no honest node has it, and it becomes visible LATER (on release),
     # which the one-way frontier pointer can never revisit. So selfish runs the exact full scan.
@@ -336,8 +341,8 @@ def build_tree_pernode(
     # choice AND jitter_mean == 0. With jitter the full matrix's safety clamp is required. A
     # withholding adversary produces blocks that NEVER arrive (arrival > E), violating the prune's
     # "finalized => arrived-everywhere" assumption, so it too forces the full matrix.
-    withholding = (adversary_mask is not None and config.adversary_frac > 0.0
-                   and config.adversary_strategy == "withhold")
+    withholding = ((adversary_mask is not None and config.adversary_frac > 0.0
+                    and config.adversary_strategy == "withhold") or deep_parent)
     if config.prune_arrival and windowed and config.jitter_mean == 0.0 and not withholding:
         # (selfish already cleared `windowed`, so it never reaches the pruned path either)
         return _build_pruned(active_slots, winners_per_slot, path_latency, config, rng,
@@ -400,6 +405,20 @@ def build_tree_pernode(
         for wi in range(winners.shape[0]):
             v = int(winners[wi])
             p_id = int(parents[wi])
+            if deep_parent and adversary_mask[v]:
+                # Walk back along the chain this node would have extended, as far as the epoch
+                # allows. The result is a genuine lottery win whose parent lies on the canonical
+                # chain — a legal FIRST-FORK uncle — but one whose Proof of Leadership can only
+                # be verified against epoch/ledger state from far back. Nothing in the spec's
+                # uncle-anchored window forbids it: only the uncle's OWN slot is bounded, and
+                # that is `t`, the current slot.
+                anc = p_id
+                while anc > 0:
+                    nxt = int(parent[anc])
+                    if nxt <= 0 or t - int(slot[nxt]) > deep_parent_max:
+                        break
+                    anc = nxt
+                p_id = anc
             h = int(height[p_id]) + 1
             b = nb
             slot[b], parent[b], height[b], leader[b] = t, p_id, h, v

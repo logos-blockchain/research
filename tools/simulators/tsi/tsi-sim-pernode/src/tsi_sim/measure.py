@@ -80,7 +80,7 @@ def _uncles_csr(tree: BlockTree) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _measure_tips_py(distinct_tips, parent, slot, uncle_flat, uncle_ptr, T, w, countable,
-                     uncle_stamp, honest_stamp, chain_stamp):
+                     uncle_stamp, honest_stamp, chain_stamp, parent_anchor=False):
     """Pure-Python per-distinct-tip walk (fallback / reference for the kernel)."""
     K = distinct_tips.shape[0]
     m = np.empty(K, np.int64)
@@ -121,7 +121,12 @@ def _measure_tips_py(distinct_tips, parent, slot, uncle_flat, uncle_ptr, T, w, c
                     if countable:
                         # spec counting rules, re-checked per reference:
                         d = int(slot[b]) - su
-                        if d <= 0 or d > w:
+                        if d <= 0:
+                            continue                     # uncle must strictly precede
+                        # window anchor: the uncle's own slot (spec), or its PARENT's. The
+                        # parent gap is never smaller, so the parent anchor is strictly tighter.
+                        gap = int(slot[b]) - int(slot[int(parent[u])]) if parent_anchor else d
+                        if gap > w:
                             continue                     # outside the reference window
                         if chain_stamp[u] == ki:
                             continue                     # uncle lies on the counting chain
@@ -160,7 +165,7 @@ if _HAVE_NUMBA:
 
     @njit(cache=True)
     def _measure_tips_nb(distinct_tips, parent, slot, uncle_flat, uncle_ptr, T, w, countable,
-                         uncle_stamp, honest_stamp, chain_stamp):
+                         uncle_stamp, honest_stamp, chain_stamp, parent_anchor):
         K = distinct_tips.shape[0]
         m = np.empty(K, np.int64)
         n_honest = np.empty(K, np.int64)
@@ -198,8 +203,9 @@ if _HAVE_NUMBA:
                         ok = True
                         if countable:
                             d = slot[b] - su
-                            if d <= 0 or d > w:
-                                ok = False               # outside the reference window
+                            gap = slot[b] - slot[parent[u]] if parent_anchor else d
+                            if d <= 0 or gap > w:
+                                ok = False               # non-preceding, or outside the window
                             elif chain_stamp[u] == ki:
                                 ok = False               # uncle lies on the counting chain
                             else:
@@ -225,7 +231,7 @@ if _HAVE_NUMBA:
 
 def measure(tree: BlockTree, A, active_slots: np.ndarray, T: int, cutoff: int,
             use_numba: bool = True, legacy_block_count: bool = False,
-            countable: bool = False, w: int = 0) -> Measurement:
+            countable: bool = False, w: int = 0, parent_anchor: bool = False) -> Measurement:
     """Per-node m/q/q_eff + agreement, deduped by tip and (optionally) numba-accelerated.
 
     ``countable`` applies the spec's per-reference counting rules (window ``w``,
@@ -250,7 +256,7 @@ def measure(tree: BlockTree, A, active_slots: np.ndarray, T: int, cutoff: int,
     m_d, nh_d, nrec_d, nref_d, ndeep_d, clen_d, fp_d = kernel(
         distinct_tips.astype(np.int64), tree.parent, tree.slot,
         uncle_flat, uncle_ptr, np.int64(T), np.int64(w), bool(countable),
-        uncle_stamp, honest_stamp, chain_stamp)
+        uncle_stamp, honest_stamp, chain_stamp, bool(parent_anchor))
 
     # correct slot counting: canonical slots + recovered (non-canonical, deduped) uncle slots.
     # legacy_block_count reproduces the earlier per-block-id count (kernel's m = honest + ucnt).
