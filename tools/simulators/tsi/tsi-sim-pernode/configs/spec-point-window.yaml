@@ -1,12 +1,12 @@
-# Handoff E4: is w_u = 300 adequate at the SPEC's operating point, and how much margin is there?
+# Is w_u = 300 adequate at the SPEC's operating point, and how much margin is there?
 #
-# Claim C5 says the window "never binds" (observed median reference lag 34 slots, max 197). The
-# report puts a hard recovery floor at ~7/f = 210 slots, set by block SPACING rather than by
+# The spec section claims the window "never binds" (median reference lag 34 slots,
+# max 197). The report puts a hard recovery floor at ~7/f = 210 slots, set by block SPACING rather than by
 # delay, and advises widening to 450-600 near rho ~ 1. "Has margin at rho < 1" is defensible;
 # "never binds" is not, and the difference is what this measures.
 #
 # absorption-window.yaml sweeps the same axis but starts at delta_max = 8; nothing has been run at
-# the deployment's delta_max = 4 (E1). Since the floor is set by block spacing the knee should sit
+# the deployment's delta_max = 4. Since the floor is set by block spacing the knee should sit
 # in the same place, which is itself worth confirming rather than assuming — the report's
 # delay-invariance claim is exactly what makes a single recommended W defensible.
 #
@@ -20,7 +20,7 @@ degree: [6]                                  # peering degree of the d-regular g
 link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
 link_latency_dist: [geo]                     # real-world geographic band mixture
 blend_hops: [3]                              # the spec's Blend cascade length
-blend_delay_max: [4.0]                       # E1: the spec's operating point
+blend_delay_max: [4.0]                       # the spec's operating point
 window_absorption: [1, 2, 3, 5, 7, 10, 15, 20]   # W in expected block-intervals; w_u = W/f slots
 max_uncles: [1]                              # FIXED at one uncle: the question is about W
 uncle_strategy: [oldest]                     # spec Uncle Selection

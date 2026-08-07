@@ -1,4 +1,4 @@
-"""What the DEPLOYED chain would read at the spec's own operating point — handoff E1/E2/E6.
+"""What the DEPLOYED chain would read at the spec's own operating point.
 
 The report measures the mechanism: it drives the estimator to exact `f`, so its numbers isolate
 fork loss from every other effect. That is the right default for design questions and the wrong
@@ -6,7 +6,7 @@ one for "what will the deployed chain read", because the spec's estimator quanti
 rate — `cryptarchia-total-stake-inference.md` carries `const PRECISION: u64 = 1e3`, so
 `f_p = 0.033` at `f = 1/30` and the recursion drives density to a target ~1 % below `f`.
 
-E1 pins the operating point from `analysis-block-times-blend-network.md`: `blending_delay` is a
+The operating point comes from `analysis-block-times-blend-network.md`: `blending_delay` is a
 FIXED per-hop dwell of 2 s (the `3d+5` max-delay arithmetic gives 11 s at d=2 and 14 s at d=3,
 matching the prose), so the simulator's `Uniform(0, delta_max)` matches it in the mean at
 `delta_max = 4` -> `D_vis ~ 8 s`, `rho ~ 0.27`.
@@ -43,7 +43,7 @@ EPOCHS = 20
 REPS = 20
 N_JOBS = 6
 
-# The spec's operating point (E1), with the spec's own MAX_UNCLES rather than the report's U = 2.
+# The spec's operating point , with the spec's own MAX_UNCLES rather than the report's U = 2.
 SPEC_POINT = dict(n_nodes=1000, stake_dist="pareto", topology="blend", degree=6,
                   link_latency_mean=0.5, link_latency_dist="geo", blend_hops=3,
                   blend_delay_max=4.0, max_uncles=4, uncle_strategy="oldest",

@@ -1,7 +1,7 @@
-"""E5 — does per-recipient delay variance reproduce the standalone result? (the diagnostic).
+"""does per-recipient delay variance reproduce the standalone result? (the diagnostic).
 
-The only experiment in the fork-loss handoff that could invalidate the REPORT rather than the
-spec section. The hypothesis for the original discrepancy is a modelling difference, not a
+The one fork-loss experiment that could invalidate the REPORT rather than the spec section it
+is checking. The hypothesis for the original discrepancy is a modelling difference, not a
 measurement one: the standalone simulation drew an independent propagation delay per
 (block, recipient), whereas this simulator's Blend cascade floods network-wide from the last
 relay, so nodes receive a block at nearly the same time and their views stay synchronised.
@@ -11,11 +11,12 @@ depth->=2 forks the first-fork rule cannot recover.
 `jitter_mean` adds per-(block, node) arrival noise on top of the cascade, so sweeping it
 interpolates between the two models. The deciding observable is `deep_orphan_share`: the fraction
 of in-window orphans sitting deeper than the first block of their fork — precisely the structural
-quantity behind claim C2, and the thing `p_ref` conflates with "never picked up".
+quantity behind the spec section's deep-fork claim, and the thing `p_ref` conflates with
+"never picked up".
 
-Pass / fail, as the handoff sets it:
+Pass / fail:
   * D-hat/D holds at ~1.000 and deep orphans stay negligible as jitter rises  -> the standalone
-    model was simply wrong; C1/C2 are artefacts and the report is robust to this failure mode.
+    model was simply wrong; its numbers are artefacts and the report is robust to this failure mode.
   * accuracy degrades toward 0.986 and deep orphans reach ~1 % of blocks at some jitter level
     -> record that level and compare it to what Blend plausibly delivers; per-recipient variance
     then becomes a parameter the report must carry, and the spec section's number is defensible
@@ -97,7 +98,7 @@ def report(df: pd.DataFrame) -> None:
 
 
 def main() -> None:
-    print(f"=== E5: jitter sweep, exact oracle, {len(JITTERS)*len(CAPS)*REPS*2} runs ===")
+    print(f"=== jitter sweep, exact oracle, {len(JITTERS)*len(CAPS)*REPS*2} runs ===")
     report(sweep())
     print(f"\nwrote {RUNS}/spec_jitter.parquet")
 

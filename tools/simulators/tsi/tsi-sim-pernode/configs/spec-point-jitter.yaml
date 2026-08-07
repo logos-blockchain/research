@@ -1,7 +1,7 @@
-# Handoff E5 — the diagnostic: does per-recipient delay variance reproduce the standalone result?
+# The diagnostic: does per-recipient delay variance reproduce the standalone result?
 #
-# This is the only experiment in the handoff that could invalidate the REPORT rather than the spec
-# section. The primary hypothesis for the original discrepancy is modelling, not measurement: the
+# The one experiment here that could invalidate the REPORT rather than the spec section it is
+# checking. The hypothesis for the discrepancy is modelling, not measurement: the
 # standalone simulation drew an INDEPENDENT propagation delay per (block, recipient), while this
 # simulator's blend topology runs a cascade of relays and then floods network-wide from the LAST
 # relay, so nodes receive a block at nearly the same time and their views stay synchronised.
@@ -12,7 +12,7 @@
 # interpolates between the two models: 0 is the report's cascade, large values approach the
 # standalone's independent-delay regime. The observable that decides it is deep_orphan_share --
 # the fraction of in-window orphans sitting deeper than the first block of their fork, which is
-# precisely the structural quantity behind claim C2.
+# precisely the structural quantity behind the spec section's deep-fork claim.
 #
 # This is also the report's open item 15 (correlated/heterogeneous latency untested).
 #
@@ -31,7 +31,7 @@ degree: [6]                                  # peering degree of the d-regular g
 link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
 link_latency_dist: [geo]                     # real-world geographic band mixture
 blend_hops: [3]                              # the spec's Blend cascade length
-blend_delay_max: [4.0]                       # E1: the spec's operating point (rho ~ 0.27)
+blend_delay_max: [4.0]                       # the spec's operating point (rho ~ 0.27)
 max_uncles: [0, 1, 2, 4]                     # 0 = negative control; 4 = the spec's MAX_UNCLES
 uncle_strategy: [oldest]                     # spec Uncle Selection
 init_dest: [common]                          # per-node initial D_est from agreement
