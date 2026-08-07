@@ -4,6 +4,13 @@ picture as a table.
 
   python3 analyze/asymmetry.py reports/pqc/results/stress-<host>-<ts>.json
   python3 analyze/asymmetry.py <file> --phase saturated
+  python3 analyze/asymmetry.py <file1> <file2> <file3>    # aggregate repeats
+
+Given several result files it reports the MEDIAN ratio across runs and their
+spread, (max-min)/median. That spread is the honest error bar: this is a
+throughput measurement on a machine that is never perfectly quiet, and a single
+run cannot distinguish a real difference from the scheduler having a bad
+second. Quote the median, and treat anything inside the spread as unresolved.
 
 The column that matters is `dec/enc`: the cost of consuming a message divided
 by the cost of producing one. `per-sess` is the same ratio when the keypair is
@@ -33,13 +40,20 @@ and printing it would invite it to be quoted.
         comfortable direction for a node that consumes many messages from
         many peers.
 
-`--reject` switches to the denial-of-service view: what the decoder spends on a
-message that does NOT verify. `rej/ok` near 1.0 means the algorithm does the
-full work before it can reject, so garbage costs a receiver the same as real
-traffic. `ns/byte` is receiver nanoseconds bought per byte the attacker sends,
-which is the figure that bounds a flood — an attacker spends bandwidth, not
-CPU, so a small wire object backed by expensive verification is the dangerous
-shape.
+`--reject` switches to the per-received-byte view: receiver nanoseconds bought
+per byte put on the wire, for EVERY message of the exchange, honest and
+attacked. That unit is the defender's scarce resource over the attacker's — an
+attacker spends bandwidth, not CPU — so it is what bounds a flood.
+
+It is reported per message because an exchange has more than one and they are
+not alike. For a KEM the encapsulator receives a public key and the
+decapsulator receives a ciphertext; for Classic McEliece those two differ by
+six orders of magnitude, and a single number for the algorithm would be
+meaningless. A signer receives nothing, so signatures have only the one
+direction.
+
+`rej/ok` near 1.0 means the algorithm does the full work before it can reject,
+so garbage costs a receiver the same as honest traffic.
 
 Ratios are the portable output. The absolute rates in the same file describe
 one machine under saturation and do not transfer.
@@ -63,9 +77,51 @@ def fmt_ns(v):
     return f"{v:7.0f}ns"
 
 
+def aggregate(docs, args):
+    """Median ratio per algorithm across repeat runs, with the spread."""
+    host = docs[0].get("host", {})
+    print(f"role asymmetry — {host.get('cpu_brand','?')} "
+          f"({host.get('ncpu','?')} cores) · {len(docs)} runs, median of")
+    loads = [str((d.get("run") or {}).get("loadavg_before", "?")) for d in docs]
+    print(f"1-min load at each run's start: {', '.join(loads)}"
+          + ("   [not idle — see the report]"
+             if any(_num(l) and _num(l) > 1.0 for l in loads) else ""))
+    print()
+    print(f"{'algorithm':<26} {'runs':>5} {'median':>10} {'spread':>9} "
+          f"{'min':>10} {'max':>10}")
+    print("-" * 74)
+
+    order, series = [], {}
+    for d in docs:
+        for r in d.get("algorithms", []):
+            if not r.get("enabled"):
+                continue
+            v = (r.get("asymmetry") or {}).get("latency_ratio_decoder_over_encoder")
+            if not v:
+                continue
+            if r["alg"] not in series:
+                series[r["alg"]] = []
+                order.append((not r.get("classical"), r.get("kind"), r["alg"]))
+            series[r["alg"]].append(v)
+
+    for _, _, alg in sorted(order):
+        vs = sorted(series[alg])
+        med = vs[len(vs) // 2] if len(vs) % 2 else (vs[len(vs)//2 - 1] + vs[len(vs)//2]) / 2
+        spread = (vs[-1] - vs[0]) / med * 100 if med else 0
+        print(f"{alg:<26} {len(vs):>5} {med:>10.3f} {spread:>8.1f}% "
+              f"{vs[0]:>10.3f} {vs[-1]:>10.3f}")
+
+
+def _num(s):
+    try:
+        return float(s)
+    except (TypeError, ValueError):
+        return None
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("results")
+    ap.add_argument("results", nargs="+")
     ap.add_argument("--phase", default="isolated",
                     choices=("isolated", "saturated", "contended"),
                     help="which phase's latencies to show (default: isolated)")
@@ -73,8 +129,14 @@ def main():
                     help="show the rejection path (denial-of-service view) instead")
     args = ap.parse_args()
 
-    with open(args.results) as f:
-        d = json.load(f)
+    docs = []
+    for path in args.results:
+        with open(path) as f:
+            docs.append(json.load(f))
+    if len(docs) > 1:
+        aggregate(docs, args)
+        return
+    d = docs[0]
 
     host = d.get("host", {})
     run = d.get("run", {})
@@ -85,9 +147,10 @@ def main():
           + ("  [SMOKE — not measurement data]" if run.get("smoke") else ""))
     print()
     if args.reject:
-        print(f"{'algorithm':<26} {'wire bytes':>10} {'accept':>10} {'reject':>10} "
-              f"{'rej/ok':>7} {'ns/byte':>12}")
-        print("-" * 80)
+        print(f"{'':<26} {'-- encoder receives --':>26} {'-- decoder receives --':>30}")
+        print(f"{'algorithm':<26} {'bytes':>10} {'ns/byte':>14} "
+              f"{'bytes':>10} {'ns/byte':>10} {'reject ns/B':>12} {'rej/ok':>7}")
+        print("-" * 96)
     else:
         print(f"{'algorithm':<26} {'roles':<16} {'encoder':>9} {'decoder':>9} "
               f"{'dec/enc':>9} {'mean':>7} {'per-sess':>9} {'contended':>9}  cheaper")
@@ -119,23 +182,21 @@ def main():
         sess_s = f"{sess:9.2f}" if setup_n >= MIN_SETUP_SAMPLES else f"{'-':>9}"
 
         if args.reject:
-            iso = (r.get("phases") or {}).get("isolated") or {}
-            wire = (r.get("sizes") or {}).get("encoder_emits")
-            if "decoder_invalid" not in iso:
-                # a run from before the rejection path existed — say so rather
-                # than implying the algorithm has none
-                print(f"{r['alg']:<26} {wire or 0:>10} "
-                      f"{'—':>10} {'—':>10} {'—':>7} {'—':>12}   (not measured in this run)")
+            cpb = r.get("cost_per_received_byte")
+            if not cpb:
+                print(f"{r['alg']:<26}   (not measured in this run)")
                 continue
-            bad = iso.get("decoder_invalid") or {}
-            if not bad.get("applicable"):
-                print(f"{r['alg']:<26} {wire or 0:>10} "
-                      f"{'—':>10} {'—':>10} {'—':>7} {'—':>12}   (no rejection path)")
-                continue
-            bl = (bad.get("latency_ns") or {}).get("median")
-            print(f"{r['alg']:<26} {wire or 0:>10} {fmt_ns(dl):>10} {fmt_ns(bl):>10} "
-                  f"{a.get('rejection_vs_valid') or 0:7.3f} "
-                  f"{a.get('rejection_ns_per_wire_byte') or 0:12.1f}")
+            enc_r, dec_r, bad_r = cpb["encoder"], cpb["decoder"], cpb["decoder_invalid"]
+            if enc_r.get("applicable"):
+                enc_s = f"{enc_r['bytes']:>10} {enc_r['ns_per_byte']:>14,.2f}"
+            else:
+                enc_s = f"{'—':>10} {'(nothing received)':>14}"
+            rej_s = (f"{bad_r['ns_per_byte']:>12,.2f}" if bad_r.get("applicable")
+                     else f"{'—':>12}")
+            ratio = a.get("rejection_vs_valid") or 0
+            rat_s = f"{ratio:7.3f}" if bad_r.get("applicable") else f"{'—':>7}"
+            print(f"{r['alg']:<26} {enc_s} "
+                  f"{dec_r['bytes']:>10} {dec_r['ns_per_byte']:>10,.2f} {rej_s} {rat_s}")
             continue
 
         mark = "  <-- receiver pays" if ratio > 1.05 else ""

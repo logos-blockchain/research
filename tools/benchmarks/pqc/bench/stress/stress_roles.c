@@ -621,6 +621,27 @@ static void print_group(FILE *f, const group_t *g) {
             (unsigned long long)g->lat.n);
 }
 
+/* Receiver cost per byte received, for ONE message of an exchange.
+ *
+ * The unit is the defender's scarce resource over the attacker's: an attacker
+ * spends bandwidth, not computation, so "CPU bought per byte sent" is what
+ * bounds a flood. It is reported per message because an exchange has more than
+ * one, and they are not alike — for a KEM the encapsulator receives a public
+ * key and the decapsulator receives a ciphertext, and for Classic McEliece
+ * those two differ by six orders of magnitude. A single number for the
+ * algorithm would be meaningless. */
+static void print_recv(FILE *f, const char *what, size_t bytes, double ns,
+                       int applicable, const char *reason) {
+    if (!applicable) {
+        fprintf(f, "{\"applicable\":false,\"reason\":\"%s\"}",
+                reason ? reason : "not applicable");
+        return;
+    }
+    fprintf(f, "{\"applicable\":true,\"receives\":\"%s\",\"bytes\":%zu,"
+               "\"cost_ns\":%.2f,\"ns_per_byte\":%.4f}",
+            what, bytes, ns, bytes ? ns / (double)bytes : 0);
+}
+
 static void usage(void) {
     fprintf(stderr,
       "usage: stress_roles --kind kem|sig --alg NAME [--duration-ms N] [--threads N]\n"
@@ -856,11 +877,9 @@ int main(int argc, char **argv) {
      *                         attacker sends. This is the amplification factor
      *                         that matters, because the attacker's own cost is
      *                         bandwidth, not computation. */
-    double rej_ratio = 0, rej_per_byte = 0;
-    if (iso_bad.applicable && iso_bad.lat.median > 0) {
-        if (iso_dec.lat.median > 0) rej_ratio = iso_bad.lat.median / iso_dec.lat.median;
-        if (wire_len) rej_per_byte = iso_bad.lat.median / (double)wire_len;
-    }
+    double rej_ratio = 0;
+    if (iso_bad.applicable && iso_bad.lat.median > 0 && iso_dec.lat.median > 0)
+        rej_ratio = iso_bad.lat.median / iso_dec.lat.median;
 
     printf("{\"alg\":\"%s\",\"kind\":\"%s\",\"implementation\":\"%s\","
            "\"classical\":%s,\"enabled\":true,\"claimed_nist_level\":%d,",
@@ -890,14 +909,30 @@ int main(int argc, char **argv) {
            "\"decoder_cores_per_encoder_core\":%.4f,"
            "\"contended_decoder_cores_per_encoder_core\":%.4f,"
            "\"rejection_vs_valid\":%.4f,"
-           "\"rejection_ns_per_wire_byte\":%.4f,"
            "\"symmetric_by_construction\":%s,"
            "\"cheaper_side\":\"%s\"}",
            iso_ratio, iso_ratio_session, sat_ratio, dec_per_enc, con_cores_per_enc,
-           rej_ratio, rej_per_byte,
+           rej_ratio,
            is_x25519 ? "true" : "false",
            iso_ratio > 1.05 ? "encoder"
                             : (iso_ratio < 0.95 ? "decoder" : "neither"));
+    /* Every message of the exchange, honest and attacked, in one place. */
+    printf(",\"cost_per_received_byte\":{\"encoder\":");
+    if (is_kem)
+        print_recv(stdout, is_x25519 ? "peer_share" : "public_key",
+                   pk_len, iso_enc.lat.median, 1, NULL);
+    else
+        print_recv(stdout, NULL, 0, 0, 0,
+                   "a signer receives nothing: signing is initiated by the signer, "
+                   "not by a peer, so no message imposes this cost");
+    printf(",\"decoder\":");
+    print_recv(stdout, is_x25519 ? "peer_share" : (is_kem ? "ciphertext" : "signature"),
+               wire_len, iso_dec.lat.median, 1, NULL);
+    printf(",\"decoder_invalid\":");
+    print_recv(stdout, is_kem ? "ciphertext" : "signature", wire_len,
+               iso_bad.lat.median, iso_bad.applicable, invalid_na_reason);
+    printf("}");
+
     printf("}\n");
 
     /* Consume the per-worker sinks exactly once, so nothing they guard can be

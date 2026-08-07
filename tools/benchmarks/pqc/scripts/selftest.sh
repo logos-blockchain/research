@@ -185,6 +185,12 @@ assert a["symmetric_by_construction"] is True, "X25519 not flagged symmetric"
 r=a["latency_ratio_decoder_over_encoder"]
 assert 0.75 <= r <= 1.33, f"X25519 decoder/encoder ratio {r} is not ~1.0"
 assert a["cheaper_side"]=="neither", f"X25519 cheaper_side={a['cheaper_side']}"
+# both peers run the identical operation on an identical share, so the
+# per-received-byte cost must match in both directions too
+c=d["cost_per_received_byte"]
+e,dd=c["encoder"],c["decoder"]
+assert e["applicable"] and dd["applicable"] and e["bytes"]==dd["bytes"]
+assert 0.75 <= e["ns_per_byte"]/dd["ns_per_byte"] <= 1.33, "X25519 per-byte cost differs by direction"
 PY
 
   # Shape + liveness on one PQ algorithm of each kind, and no failed operations:
@@ -205,6 +211,13 @@ for ph in ("isolated","saturated","contended"):
         assert g["latency_ns"]["median"]>0, f"{ph}/{role} has no latency"
         assert g["latency_ns"]["samples"]>0, f"{ph}/{role} recorded no samples"
 assert d["phases"]["contended"]["decoder"]["threads"]>=1
+# every message of the exchange must be priced, or silently absent with a reason
+c=d["cost_per_received_byte"]
+assert c["decoder"]["applicable"] and c["decoder"]["bytes"]>0
+if d["kind"]=="kem":
+    assert c["encoder"]["applicable"], "a KEM encapsulator receives a public key"
+else:
+    assert not c["encoder"]["applicable"] and c["encoder"]["reason"], "a signer receives nothing"
 PY
   done
 

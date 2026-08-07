@@ -616,8 +616,19 @@ make stress-smoke                # 250 ms legs: pipeline check, not data
 ./stress.sh --alg ML-KEM-768     # one algorithm (repeatable)
 ./stress.sh --duration-ms 5000   # longer legs, tighter numbers
 python3 analyze/asymmetry.py reports/pqc/results/stress-<host>-<ts>.json
-python3 analyze/asymmetry.py <file> --reject   # denial-of-service view
+python3 analyze/asymmetry.py <f1> <f2> <f3>    # medians + spread across runs
+python3 analyze/asymmetry.py <file> --reject   # per-received-byte view
 ```
+
+**Run it repeatedly, on as quiet a machine as you can get.** This is a
+throughput measurement, so competing load lands directly in it — and if load
+arrives during one role's leg and not the other's, it moves that algorithm's
+ratio, not merely its rate. Every run records `run.loadavg_before`, and a run
+started above load 1.0 says so in its own `not_reference_because` list. Measured
+here: at 1-min load 113 absolute latencies inflated 26-33%, while the ratios
+stayed within 4% — they are largely self-normalising, since load steals cycles
+from both roles alike. Quote medians across several runs, check the spread, and
+do not quote an absolute number from a busy machine at all.
 
 The findings from the current sweep — including that migrating to PQ signatures
 *reverses* which side of a signature exchange pays — are written up in

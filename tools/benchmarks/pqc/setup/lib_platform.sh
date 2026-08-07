@@ -29,6 +29,22 @@ pqb_results_dir() {
   printf '%s\n' "$1/../../../reports/pqc/results"
 }
 
+# ---- system load -----------------------------------------------------------
+# 1-minute load average, or "" where it cannot be read.
+#
+# A stress run measures throughput with every core saturated, so anything else
+# running during it lands directly in the numbers — and if it lands during one
+# role's leg but not the other's, it corrupts that algorithm's RATIO, not just
+# its rate. Recording the load at both ends makes a contaminated run detectable
+# after the fact instead of indistinguishable from a clean one.
+pqb_loadavg() {
+  if [ "$PQB_OS" = "macos" ]; then
+    sysctl -n vm.loadavg 2>/dev/null | awk '{print $2}'
+  else
+    cut -d' ' -f1 /proc/loadavg 2>/dev/null
+  fi
+}
+
 # ---- platform detection ----------------------------------------------------
 # Sets: PQB_OS (macos|linux), PQB_ARCH, PQB_IS_RPI (1|0), PQB_RPI_MODEL
 pqb_detect_platform() {

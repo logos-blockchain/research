@@ -1,0 +1,7181 @@
+{
+ "schema_version": "stress-1.0.0",
+ "tool_version": "0.1.0",
+ "generated_utc": "20260807T165015Z",
+ "measurement": "role-asymmetry stress",
+ "is_stress_grade": true,
+ "is_baseline_grade": false,
+ "not_reference_because": [
+  "stress runs use every core and are not pinned (concurrency is the measurement, so pinning would defeat it)",
+  "throughput under saturation is sensitive to thermal and scheduler behaviour that the reference protocol exists to exclude",
+  "CPU governor is 'unavailable', not 'performance'",
+  "machine was not idle at start (1-min load 1.99)"
+ ],
+ "roles_model": {
+  "encoder": "the side that produces the wire object (KEM: encaps; signature: sign)",
+  "decoder": "the side that consumes it (KEM: decaps; signature: verify)",
+  "decoder_invalid": "the same decoder op against a deliberately corrupted wire object: what a receiver spends rejecting a message that will not verify",
+  "note": "X25519 is symmetric by construction \u2014 both peers run the same keygen+derive \u2014 so its measured ratio near 1.0 also serves as a check on the harness."
+ },
+ "host": {
+  "hostname": "Mac",
+  "os": "macos",
+  "os_pretty": "macOS 26.6 (25G72)",
+  "arch": "arm64",
+  "kernel": "25.6.0",
+  "is_rpi": false,
+  "rpi_model": "",
+  "cpu_brand": "Apple M4 Pro",
+  "ncpu": 14,
+  "ram_bytes": 51539607552
+ },
+ "run": {
+  "duration_ms_per_leg": 2000,
+  "threads_requested": 0,
+  "pinned": false,
+  "governor_before": "unavailable",
+  "governor_after": "unavailable",
+  "loadavg_before": "1.99",
+  "loadavg_after": "24.89",
+  "smoke": false
+ },
+ "toolchain": {
+  "liboqs_ref": "0.15.0",
+  "liboqs_commit": "97f6b86b1b6d109cfd43cf276ae39c2e776aed80",
+  "liboqs_opt_defines": "OQS_COMPILE_BUILD_TARGET arm64-Darwin-25.6.0;ARCH_ARM64v8 1;OQS_OPT_TARGET auto;OQS_USE_ARM_AES_INSTRUCTIONS 1;OQS_USE_ARM_SHA2_INSTRUCTIONS 1;OQS_USE_ARM_SHA3_INSTRUCTIONS 1;OQS_USE_ARM_NEON_INSTRUCTIONS 1;OQS_ENABLE_KEM_kyber_512_aarch64 1;OQS_ENABLE_KEM_kyber_768_aarch64 1;OQS_ENABLE_KEM_kyber_1024_aarch64 1;OQS_ENABLE_KEM_ml_kem_512_aarch64 1;OQS_ENABLE_KEM_ml_kem_768_aarch64 1;OQS_ENABLE_KEM_ml_kem_1024_aarch64 1;OQS_ENABLE_SIG_falcon_512_aarch64 1;OQS_ENABLE_SIG_falcon_1024_aarch64 1;OQS_ENABLE_SIG_falcon_padded_512_aarch64 1;OQS_ENABLE_SIG_falcon_padded_1024_aarch64 1;",
+  "openssl_commit": "system:3.5.7",
+  "openssl_prefix": "/opt/homebrew/opt/openssl@3.5",
+  "cflags_target": "apple-m4-pro",
+  "bench_cflags": "-O3 -mcpu=native",
+  "cc_version": "Apple clang version 21.0.0 (clang-2100.1.1.101)"
+ },
+ "warnings": [
+  "governor is 'unavailable', not 'performance' \u2014 role ratios measured under a moving clock; see reports/pqc/sudo-and-measurement-conditions.md",
+  "system load is 1.99 at start \u2014 this machine is not idle, and role ratios measured under competing load are not trustworthy"
+ ],
+ "algorithms": [
+  {
+   "alg": "X25519",
+   "kind": "kem",
+   "implementation": "openssl",
+   "classical": true,
+   "enabled": true,
+   "claimed_nist_level": 1,
+   "roles": {
+    "encoder": "derive",
+    "decoder": "derive"
+   },
+   "sizes": {
+    "public_key": 32,
+    "secret_key": 32,
+    "encoder_emits": 32
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "derive",
+      "applicable": true,
+      "threads": 1,
+      "ops": 107923,
+      "failures": 0,
+      "wall_ns": 2000735000,
+      "ops_per_sec": 53941.68,
+      "ops_per_sec_per_thread": 53941.68,
+      "cpu_ns_per_op": 18507.77,
+      "latency_ns": {
+       "median": 19000.0,
+       "mad": 1000.0,
+       "p95": 21000.0,
+       "p99": 24000.0,
+       "min": 16000.0,
+       "max": 50000.0,
+       "mean": 18505.67,
+       "samples": 100000
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "derive",
+      "applicable": true,
+      "threads": 1,
+      "ops": 108153,
+      "failures": 0,
+      "wall_ns": 2007109000,
+      "ops_per_sec": 53884.97,
+      "ops_per_sec_per_thread": 53884.97,
+      "cpu_ns_per_op": 18526.22,
+      "latency_ns": {
+       "median": 19000.0,
+       "mad": 1000.0,
+       "p95": 21000.0,
+       "p99": 24000.0,
+       "min": 16000.0,
+       "max": 48000.0,
+       "mean": 18526.12,
+       "samples": 100000
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "derive",
+      "applicable": false,
+      "reason": "X25519 has no rejection path: every 32-byte string is a well-formed public key and the derive succeeds on any of them"
+     },
+     "decoder_setup": {
+      "role": "peer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 126593,
+      "failures": 0,
+      "wall_ns": 2010058000,
+      "ops_per_sec": 62979.77,
+      "ops_per_sec_per_thread": 62979.77,
+      "cpu_ns_per_op": 15832.64,
+      "latency_ns": {
+       "median": 16000.0,
+       "mad": 0.0,
+       "p95": 17000.0,
+       "p99": 20000.0,
+       "min": 14000.0,
+       "max": 48000.0,
+       "mean": 15834.12,
+       "samples": 100000
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "derive",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1067771,
+      "failures": 0,
+      "wall_ns": 2003996000,
+      "ops_per_sec": 532820.92,
+      "ops_per_sec_per_thread": 38058.64,
+      "cpu_ns_per_op": 26244.81,
+      "latency_ns": {
+       "median": 21000.0,
+       "mad": 1000.0,
+       "p95": 66000.0,
+       "p99": 69000.0,
+       "min": 19000.0,
+       "max": 5671000.0,
+       "mean": 26244.81,
+       "samples": 1067771
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "derive",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1070574,
+      "failures": 0,
+      "wall_ns": 2010329000,
+      "ops_per_sec": 532536.71,
+      "ops_per_sec_per_thread": 38038.34,
+      "cpu_ns_per_op": 26259.1,
+      "latency_ns": {
+       "median": 21000.0,
+       "mad": 1000.0,
+       "p95": 66000.0,
+       "p99": 69000.0,
+       "min": 19000.0,
+       "max": 8700000.0,
+       "mean": 26259.1,
+       "samples": 1070574
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "derive",
+      "applicable": true,
+      "threads": 1,
+      "ops": 70748,
+      "failures": 0,
+      "wall_ns": 2010419000,
+      "ops_per_sec": 35190.67,
+      "ops_per_sec_per_thread": 35190.67,
+      "cpu_ns_per_op": 28384.87,
+      "latency_ns": {
+       "median": 21000.0,
+       "mad": 1000.0,
+       "p95": 67000.0,
+       "p99": 69000.0,
+       "min": 19000.0,
+       "max": 5459000.0,
+       "mean": 28384.87,
+       "samples": 70748
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "derive",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1006019,
+      "failures": 0,
+      "wall_ns": 2010419000,
+      "ops_per_sec": 500402.65,
+      "ops_per_sec_per_thread": 35743.05,
+      "cpu_ns_per_op": 27936.18,
+      "latency_ns": {
+       "median": 21000.0,
+       "mad": 1000.0,
+       "p95": 66000.0,
+       "p99": 69000.0,
+       "min": 19000.0,
+       "max": 11006000.0,
+       "mean": 27936.18,
+       "samples": 1006019
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 1.0,
+    "latency_ratio_per_session": 1.0,
+    "throughput_ratio_encoder_over_decoder": 1.0005,
+    "decoder_cores_per_encoder_core": 1.0005,
+    "contended_decoder_cores_per_encoder_core": 0.9845,
+    "rejection_vs_valid": 0.0,
+    "symmetric_by_construction": true,
+    "cheaper_side": "neither"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "peer_share",
+     "bytes": 32,
+     "cost_ns": 19000.0,
+     "ns_per_byte": 593.75
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "peer_share",
+     "bytes": 32,
+     "cost_ns": 19000.0,
+     "ns_per_byte": 593.75
+    },
+    "decoder_invalid": {
+     "applicable": false,
+     "reason": "X25519 has no rejection path: every 32-byte string is a well-formed public key and the derive succeeds on any of them"
+    }
+   }
+  },
+  {
+   "alg": "ML-KEM-512",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 1,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 800,
+    "secret_key": 1632,
+    "encoder_emits": 768
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 351237,
+      "failures": 0,
+      "wall_ns": 2003972000,
+      "ops_per_sec": 175270.41,
+      "ops_per_sec_per_thread": 175270.41,
+      "cpu_ns_per_op": 5651.33,
+      "latency_ns": {
+       "median": 6000.0,
+       "mad": 0.0,
+       "p95": 6000.0,
+       "p99": 7000.0,
+       "min": 4000.0,
+       "max": 38000.0,
+       "mean": 5650.05,
+       "samples": 100000
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 302025,
+      "failures": 0,
+      "wall_ns": 2010051000,
+      "ops_per_sec": 150257.38,
+      "ops_per_sec_per_thread": 150257.38,
+      "cpu_ns_per_op": 6608.13,
+      "latency_ns": {
+       "median": 7000.0,
+       "mad": 0.0,
+       "p95": 7000.0,
+       "p99": 9000.0,
+       "min": 5000.0,
+       "max": 31000.0,
+       "mean": 6605.86,
+       "samples": 100000
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 300728,
+      "failures": 0,
+      "wall_ns": 2002470000,
+      "ops_per_sec": 150178.53,
+      "ops_per_sec_per_thread": 150178.53,
+      "cpu_ns_per_op": 6612.75,
+      "latency_ns": {
+       "median": 7000.0,
+       "mad": 0.0,
+       "p95": 7000.0,
+       "p99": 8000.0,
+       "min": 5000.0,
+       "max": 36000.0,
+       "mean": 6615.48,
+       "samples": 100000
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 394739,
+      "failures": 0,
+      "wall_ns": 2003262000,
+      "ops_per_sec": 197048.11,
+      "ops_per_sec_per_thread": 197048.11,
+      "cpu_ns_per_op": 5032.07,
+      "latency_ns": {
+       "median": 5000.0,
+       "mad": 0.0,
+       "p95": 6000.0,
+       "p99": 7000.0,
+       "min": 4000.0,
+       "max": 30000.0,
+       "mean": 5031.61,
+       "samples": 100000
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 3415690,
+      "failures": 0,
+      "wall_ns": 2012168000,
+      "ops_per_sec": 1697517.3,
+      "ops_per_sec_per_thread": 121251.24,
+      "cpu_ns_per_op": 8206.65,
+      "latency_ns": {
+       "median": 7000.0,
+       "mad": 1000.0,
+       "p95": 15000.0,
+       "p99": 16000.0,
+       "min": 5000.0,
+       "max": 5617000.0,
+       "mean": 8203.71,
+       "samples": 1337266
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 3256453,
+      "failures": 0,
+      "wall_ns": 2013240000,
+      "ops_per_sec": 1617518.53,
+      "ops_per_sec_per_thread": 115537.04,
+      "cpu_ns_per_op": 8609.67,
+      "latency_ns": {
+       "median": 7000.0,
+       "mad": 0.0,
+       "p95": 17000.0,
+       "p99": 17000.0,
+       "min": 6000.0,
+       "max": 6640000.0,
+       "mean": 8584.98,
+       "samples": 1288872
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 258218,
+      "failures": 0,
+      "wall_ns": 2002873000,
+      "ops_per_sec": 128923.8,
+      "ops_per_sec_per_thread": 128923.8,
+      "cpu_ns_per_op": 7696.54,
+      "latency_ns": {
+       "median": 6000.0,
+       "mad": 0.0,
+       "p95": 15000.0,
+       "p99": 15000.0,
+       "min": 5000.0,
+       "max": 6957000.0,
+       "mean": 7582.06,
+       "samples": 100000
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 3023206,
+      "failures": 0,
+      "wall_ns": 2002873000,
+      "ops_per_sec": 1509434.7,
+      "ops_per_sec_per_thread": 107816.76,
+      "cpu_ns_per_op": 9216.52,
+      "latency_ns": {
+       "median": 7000.0,
+       "mad": 0.0,
+       "p95": 17000.0,
+       "p99": 18000.0,
+       "min": 6000.0,
+       "max": 14226000.0,
+       "mean": 9289.34,
+       "samples": 1358419
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 1.1667,
+    "latency_ratio_per_session": 2.0,
+    "throughput_ratio_encoder_over_decoder": 1.0495,
+    "decoder_cores_per_encoder_core": 1.0495,
+    "contended_decoder_cores_per_encoder_core": 1.1958,
+    "rejection_vs_valid": 1.0,
+    "symmetric_by_construction": false,
+    "cheaper_side": "encoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 800,
+     "cost_ns": 6000.0,
+     "ns_per_byte": 7.5
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 768,
+     "cost_ns": 7000.0,
+     "ns_per_byte": 9.1146
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 768,
+     "cost_ns": 7000.0,
+     "ns_per_byte": 9.1146
+    }
+   }
+  },
+  {
+   "alg": "ML-KEM-768",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 3,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 1184,
+    "secret_key": 2400,
+    "encoder_emits": 1088
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 221821,
+      "failures": 0,
+      "wall_ns": 2003668000,
+      "ops_per_sec": 110707.46,
+      "ops_per_sec_per_thread": 110707.46,
+      "cpu_ns_per_op": 8982.71,
+      "latency_ns": {
+       "median": 9000.0,
+       "mad": 0.0,
+       "p95": 10000.0,
+       "p99": 11000.0,
+       "min": 7000.0,
+       "max": 37000.0,
+       "mean": 8984.45,
+       "samples": 100000
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 190930,
+      "failures": 0,
+      "wall_ns": 2005010000,
+      "ops_per_sec": 95226.46,
+      "ops_per_sec_per_thread": 95226.46,
+      "cpu_ns_per_op": 10436.04,
+      "latency_ns": {
+       "median": 10000.0,
+       "mad": 0.0,
+       "p95": 11000.0,
+       "p99": 13000.0,
+       "min": 9000.0,
+       "max": 43000.0,
+       "mean": 10438.55,
+       "samples": 100000
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 190828,
+      "failures": 0,
+      "wall_ns": 2001753000,
+      "ops_per_sec": 95330.44,
+      "ops_per_sec_per_thread": 95330.44,
+      "cpu_ns_per_op": 10432.88,
+      "latency_ns": {
+       "median": 10000.0,
+       "mad": 0.0,
+       "p95": 11000.0,
+       "p99": 13000.0,
+       "min": 9000.0,
+       "max": 38000.0,
+       "mean": 10432.52,
+       "samples": 100000
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 235321,
+      "failures": 0,
+      "wall_ns": 2004653000,
+      "ops_per_sec": 117387.4,
+      "ops_per_sec_per_thread": 117387.4,
+      "cpu_ns_per_op": 8466.4,
+      "latency_ns": {
+       "median": 8000.0,
+       "mad": 0.0,
+       "p95": 9000.0,
+       "p99": 11000.0,
+       "min": 7000.0,
+       "max": 42000.0,
+       "mean": 8466.11,
+       "samples": 100000
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 2213600,
+      "failures": 0,
+      "wall_ns": 2000567000,
+      "ops_per_sec": 1106486.31,
+      "ops_per_sec_per_thread": 79034.74,
+      "cpu_ns_per_op": 12613.07,
+      "latency_ns": {
+       "median": 10000.0,
+       "mad": 0.0,
+       "p95": 24000.0,
+       "p99": 25000.0,
+       "min": 9000.0,
+       "max": 10806000.0,
+       "mean": 12643.08,
+       "samples": 1260657
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 2008223,
+      "failures": 0,
+      "wall_ns": 2010367000,
+      "ops_per_sec": 998933.53,
+      "ops_per_sec_per_thread": 71352.39,
+      "cpu_ns_per_op": 13967.09,
+      "latency_ns": {
+       "median": 11000.0,
+       "mad": 0.0,
+       "p95": 27000.0,
+       "p99": 27000.0,
+       "min": 10000.0,
+       "max": 40221000.0,
+       "mean": 13979.49,
+       "samples": 1359658
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 156554,
+      "failures": 0,
+      "wall_ns": 2010499000,
+      "ops_per_sec": 77868.23,
+      "ops_per_sec_per_thread": 77868.23,
+      "cpu_ns_per_op": 12758.75,
+      "latency_ns": {
+       "median": 10000.0,
+       "mad": 0.0,
+       "p95": 23000.0,
+       "p99": 23000.0,
+       "min": 9000.0,
+       "max": 7473000.0,
+       "mean": 12645.52,
+       "samples": 100000
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1898907,
+      "failures": 0,
+      "wall_ns": 2010499000,
+      "ops_per_sec": 944495.37,
+      "ops_per_sec_per_thread": 67463.96,
+      "cpu_ns_per_op": 14748.39,
+      "latency_ns": {
+       "median": 11000.0,
+       "mad": 0.0,
+       "p95": 27000.0,
+       "p99": 27000.0,
+       "min": 10000.0,
+       "max": 10167000.0,
+       "mean": 14734.76,
+       "samples": 1377811
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 1.1111,
+    "latency_ratio_per_session": 2.0,
+    "throughput_ratio_encoder_over_decoder": 1.1077,
+    "decoder_cores_per_encoder_core": 1.1077,
+    "contended_decoder_cores_per_encoder_core": 1.1542,
+    "rejection_vs_valid": 1.0,
+    "symmetric_by_construction": false,
+    "cheaper_side": "encoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 1184,
+     "cost_ns": 9000.0,
+     "ns_per_byte": 7.6014
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 1088,
+     "cost_ns": 10000.0,
+     "ns_per_byte": 9.1912
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 1088,
+     "cost_ns": 10000.0,
+     "ns_per_byte": 9.1912
+    }
+   }
+  },
+  {
+   "alg": "ML-KEM-1024",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 5,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 1568,
+    "secret_key": 3168,
+    "encoder_emits": 1568
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 148298,
+      "failures": 0,
+      "wall_ns": 2004948000,
+      "ops_per_sec": 73966.01,
+      "ops_per_sec_per_thread": 73966.01,
+      "cpu_ns_per_op": 13469.63,
+      "latency_ns": {
+       "median": 13000.0,
+       "mad": 0.0,
+       "p95": 14000.0,
+       "p99": 17000.0,
+       "min": 13000.0,
+       "max": 50000.0,
+       "mean": 13468.48,
+       "samples": 100000
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 127526,
+      "failures": 0,
+      "wall_ns": 2008663000,
+      "ops_per_sec": 63488.0,
+      "ops_per_sec_per_thread": 63488.0,
+      "cpu_ns_per_op": 15687.3,
+      "latency_ns": {
+       "median": 16000.0,
+       "mad": 1000.0,
+       "p95": 17000.0,
+       "p99": 19000.0,
+       "min": 13000.0,
+       "max": 58000.0,
+       "mean": 15685.93,
+       "samples": 100000
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 127360,
+      "failures": 0,
+      "wall_ns": 2000202000,
+      "ops_per_sec": 63673.57,
+      "ops_per_sec_per_thread": 63673.57,
+      "cpu_ns_per_op": 15662.2,
+      "latency_ns": {
+       "median": 16000.0,
+       "mad": 1000.0,
+       "p95": 17000.0,
+       "p99": 19000.0,
+       "min": 13000.0,
+       "max": 43000.0,
+       "mean": 15664.97,
+       "samples": 100000
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 158514,
+      "failures": 0,
+      "wall_ns": 2010047000,
+      "ops_per_sec": 78860.84,
+      "ops_per_sec_per_thread": 78860.84,
+      "cpu_ns_per_op": 12623.47,
+      "latency_ns": {
+       "median": 12000.0,
+       "mad": 0.0,
+       "p95": 14000.0,
+       "p99": 16000.0,
+       "min": 11000.0,
+       "max": 43000.0,
+       "mean": 12624.55,
+       "samples": 100000
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1502471,
+      "failures": 0,
+      "wall_ns": 2004890000,
+      "ops_per_sec": 749403.21,
+      "ops_per_sec_per_thread": 53528.8,
+      "cpu_ns_per_op": 18647.3,
+      "latency_ns": {
+       "median": 15000.0,
+       "mad": 0.0,
+       "p95": 35000.0,
+       "p99": 36000.0,
+       "min": 14000.0,
+       "max": 29124000.0,
+       "mean": 18631.74,
+       "samples": 1322020
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1317896,
+      "failures": 0,
+      "wall_ns": 2011080000,
+      "ops_per_sec": 655317.54,
+      "ops_per_sec_per_thread": 46808.4,
+      "cpu_ns_per_op": 21331.1,
+      "latency_ns": {
+       "median": 18000.0,
+       "mad": 1000.0,
+       "p95": 41000.0,
+       "p99": 44000.0,
+       "min": 16000.0,
+       "max": 18419000.0,
+       "mean": 21331.1,
+       "samples": 1317896
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 101075,
+      "failures": 0,
+      "wall_ns": 2010424000,
+      "ops_per_sec": 50275.46,
+      "ops_per_sec_per_thread": 50275.46,
+      "cpu_ns_per_op": 19854.34,
+      "latency_ns": {
+       "median": 15000.0,
+       "mad": 1000.0,
+       "p95": 36000.0,
+       "p99": 37000.0,
+       "min": 13000.0,
+       "max": 7849000.0,
+       "mean": 19873.38,
+       "samples": 100000
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1209868,
+      "failures": 0,
+      "wall_ns": 2010424000,
+      "ops_per_sec": 601797.43,
+      "ops_per_sec_per_thread": 42985.53,
+      "cpu_ns_per_op": 23217.44,
+      "latency_ns": {
+       "median": 18000.0,
+       "mad": 1000.0,
+       "p95": 42000.0,
+       "p99": 45000.0,
+       "min": 16000.0,
+       "max": 13456000.0,
+       "mean": 23217.44,
+       "samples": 1209868
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 1.2308,
+    "latency_ratio_per_session": 2.1538,
+    "throughput_ratio_encoder_over_decoder": 1.1436,
+    "decoder_cores_per_encoder_core": 1.1436,
+    "contended_decoder_cores_per_encoder_core": 1.1696,
+    "rejection_vs_valid": 1.0,
+    "symmetric_by_construction": false,
+    "cheaper_side": "encoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 1568,
+     "cost_ns": 13000.0,
+     "ns_per_byte": 8.2908
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 1568,
+     "cost_ns": 16000.0,
+     "ns_per_byte": 10.2041
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 1568,
+     "cost_ns": 16000.0,
+     "ns_per_byte": 10.2041
+    }
+   }
+  },
+  {
+   "alg": "X25519MLKEM768",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "enabled": false,
+   "reason": "not enabled in this liboqs build"
+  },
+  {
+   "alg": "SecP256r1MLKEM768",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "enabled": false,
+   "reason": "not enabled in this liboqs build"
+  },
+  {
+   "alg": "Classic-McEliece-348864",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 1,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 261120,
+    "secret_key": 6492,
+    "encoder_emits": 96
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 148750,
+      "failures": 0,
+      "wall_ns": 2010053000,
+      "ops_per_sec": 74003.02,
+      "ops_per_sec_per_thread": 74003.02,
+      "cpu_ns_per_op": 13452.99,
+      "latency_ns": {
+       "median": 12000.0,
+       "mad": 1000.0,
+       "p95": 19000.0,
+       "p99": 24000.0,
+       "min": 10000.0,
+       "max": 40000.0,
+       "mean": 13466.1,
+       "samples": 100000
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 149,
+      "failures": 0,
+      "wall_ns": 2015906000,
+      "ops_per_sec": 73.91,
+      "ops_per_sec_per_thread": 73.91,
+      "cpu_ns_per_op": 13529295.3,
+      "latency_ns": {
+       "median": 13471000.0,
+       "mad": 32000.0,
+       "p95": 13935200.0,
+       "p99": 14069600.0,
+       "min": 13097000.0,
+       "max": 14118000.0,
+       "mean": 13529295.3,
+       "samples": 149
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 149,
+      "failures": 0,
+      "wall_ns": 2005057000,
+      "ops_per_sec": 74.31,
+      "ops_per_sec_per_thread": 74.31,
+      "cpu_ns_per_op": 13456503.36,
+      "latency_ns": {
+       "median": 13441000.0,
+       "mad": 73000.0,
+       "p95": 13882000.0,
+       "p99": 14102000.0,
+       "min": 12951000.0,
+       "max": 14153000.0,
+       "mean": 13456503.36,
+       "samples": 149
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 15,
+      "failures": 0,
+      "wall_ns": 2476493000,
+      "ops_per_sec": 6.06,
+      "ops_per_sec_per_thread": 6.06,
+      "cpu_ns_per_op": 165096800.0,
+      "latency_ns": {
+       "median": 96020000.0,
+       "mad": 42618000.0,
+       "p95": 484618900.0,
+       "p99": 509344580.0,
+       "min": 53048000.0,
+       "max": 515526000.0,
+       "mean": 165096800.0,
+       "samples": 15
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1543045,
+      "failures": 0,
+      "wall_ns": 2010354000,
+      "ops_per_sec": 767548.9,
+      "ops_per_sec_per_thread": 54824.92,
+      "cpu_ns_per_op": 18202.3,
+      "latency_ns": {
+       "median": 15000.0,
+       "mad": 2000.0,
+       "p95": 35000.0,
+       "p99": 44000.0,
+       "min": 11000.0,
+       "max": 7576000.0,
+       "mean": 18174.49,
+       "samples": 1340617
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1756,
+      "failures": 0,
+      "wall_ns": 2024498000,
+      "ops_per_sec": 867.38,
+      "ops_per_sec_per_thread": 61.96,
+      "cpu_ns_per_op": 16082440.77,
+      "latency_ns": {
+       "median": 15132000.0,
+       "mad": 1084000.0,
+       "p95": 20772500.0,
+       "p99": 23621700.0,
+       "min": 13988000.0,
+       "max": 42980000.0,
+       "mean": 16082440.77,
+       "samples": 1756
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 109058,
+      "failures": 0,
+      "wall_ns": 2025178000,
+      "ops_per_sec": 53851.07,
+      "ops_per_sec_per_thread": 53851.07,
+      "cpu_ns_per_op": 18348.88,
+      "latency_ns": {
+       "median": 14000.0,
+       "mad": 2000.0,
+       "p95": 33000.0,
+       "p99": 41000.0,
+       "min": 11000.0,
+       "max": 6256000.0,
+       "mean": 18288.7,
+       "samples": 100000
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1648,
+      "failures": 0,
+      "wall_ns": 2025178000,
+      "ops_per_sec": 813.76,
+      "ops_per_sec_per_thread": 58.13,
+      "cpu_ns_per_op": 17113041.26,
+      "latency_ns": {
+       "median": 16159500.0,
+       "mad": 2107500.0,
+       "p95": 23853200.0,
+       "p99": 26839030.0,
+       "min": 13990000.0,
+       "max": 38004000.0,
+       "mean": 17113041.26,
+       "samples": 1648
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 1122.5833,
+    "latency_ratio_per_session": 9124.25,
+    "throughput_ratio_encoder_over_decoder": 884.9096,
+    "decoder_cores_per_encoder_core": 884.9096,
+    "contended_decoder_cores_per_encoder_core": 926.4636,
+    "rejection_vs_valid": 0.9978,
+    "symmetric_by_construction": false,
+    "cheaper_side": "encoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 261120,
+     "cost_ns": 12000.0,
+     "ns_per_byte": 0.046
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 96,
+     "cost_ns": 13471000.0,
+     "ns_per_byte": 140322.9167
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 96,
+     "cost_ns": 13441000.0,
+     "ns_per_byte": 140010.4167
+    }
+   }
+  },
+  {
+   "alg": "Classic-McEliece-460896",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 3,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 524160,
+    "secret_key": 13608,
+    "encoder_emits": 156
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 68911,
+      "failures": 0,
+      "wall_ns": 2003455000,
+      "ops_per_sec": 34396.08,
+      "ops_per_sec_per_thread": 34396.08,
+      "cpu_ns_per_op": 29034.25,
+      "latency_ns": {
+       "median": 25000.0,
+       "mad": 5000.0,
+       "p95": 49000.0,
+       "p99": 67000.0,
+       "min": 18000.0,
+       "max": 135000.0,
+       "mean": 29034.25,
+       "samples": 68911
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 66,
+      "failures": 0,
+      "wall_ns": 2028568000,
+      "ops_per_sec": 32.54,
+      "ops_per_sec_per_thread": 32.54,
+      "cpu_ns_per_op": 30735212.12,
+      "latency_ns": {
+       "median": 30709000.0,
+       "mad": 395000.0,
+       "p95": 31658250.0,
+       "p99": 31852150.0,
+       "min": 29706000.0,
+       "max": 31884000.0,
+       "mean": 30735212.12,
+       "samples": 66
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 66,
+      "failures": 0,
+      "wall_ns": 2018367000,
+      "ops_per_sec": 32.7,
+      "ops_per_sec_per_thread": 32.7,
+      "cpu_ns_per_op": 30580666.67,
+      "latency_ns": {
+       "median": 30475500.0,
+       "mad": 340000.0,
+       "p95": 31605750.0,
+       "p99": 31838850.0,
+       "min": 29302000.0,
+       "max": 31924000.0,
+       "mean": 30580666.67,
+       "samples": 66
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 4,
+      "failures": 0,
+      "wall_ns": 2177195000,
+      "ops_per_sec": 1.84,
+      "ops_per_sec_per_thread": 1.84,
+      "cpu_ns_per_op": 544286750.0,
+      "latency_ns": {
+       "median": 470768000.0,
+       "mad": 145975500.0,
+       "p95": 866832900.0,
+       "p99": 902164980.0,
+       "min": 324613000.0,
+       "max": 910998000.0,
+       "mean": 544286750.0,
+       "samples": 4
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 740745,
+      "failures": 0,
+      "wall_ns": 2010370000,
+      "ops_per_sec": 368462.02,
+      "ops_per_sec_per_thread": 26318.72,
+      "cpu_ns_per_op": 37960.48,
+      "latency_ns": {
+       "median": 29000.0,
+       "mad": 7000.0,
+       "p95": 74000.0,
+       "p99": 107000.0,
+       "min": 21000.0,
+       "max": 7626000.0,
+       "mean": 37960.48,
+       "samples": 740745
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 750,
+      "failures": 0,
+      "wall_ns": 2034852000,
+      "ops_per_sec": 368.58,
+      "ops_per_sec_per_thread": 26.33,
+      "cpu_ns_per_op": 37749821.33,
+      "latency_ns": {
+       "median": 36792500.0,
+       "mad": 2345500.0,
+       "p95": 45183900.0,
+       "p99": 52282730.0,
+       "min": 32444000.0,
+       "max": 86302000.0,
+       "mean": 37749821.33,
+       "samples": 750
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 49432,
+      "failures": 0,
+      "wall_ns": 2034562000,
+      "ops_per_sec": 24296.14,
+      "ops_per_sec_per_thread": 24296.14,
+      "cpu_ns_per_op": 40425.49,
+      "latency_ns": {
+       "median": 31000.0,
+       "mad": 9000.0,
+       "p95": 78000.0,
+       "p99": 113000.0,
+       "min": 21000.0,
+       "max": 6768000.0,
+       "mean": 40425.49,
+       "samples": 49432
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 705,
+      "failures": 0,
+      "wall_ns": 2034562000,
+      "ops_per_sec": 346.51,
+      "ops_per_sec_per_thread": 24.75,
+      "cpu_ns_per_op": 40157025.53,
+      "latency_ns": {
+       "median": 39783000.0,
+       "mad": 4041000.0,
+       "p95": 49898800.0,
+       "p99": 54558160.0,
+       "min": 32446000.0,
+       "max": 59115000.0,
+       "mean": 40157025.53,
+       "samples": 705
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 1228.36,
+    "latency_ratio_per_session": 20059.08,
+    "throughput_ratio_encoder_over_decoder": 999.6876,
+    "decoder_cores_per_encoder_core": 999.6876,
+    "contended_decoder_cores_per_encoder_core": 981.6284,
+    "rejection_vs_valid": 0.9924,
+    "symmetric_by_construction": false,
+    "cheaper_side": "encoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 524160,
+     "cost_ns": 25000.0,
+     "ns_per_byte": 0.0477
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 156,
+     "cost_ns": 30709000.0,
+     "ns_per_byte": 196852.5641
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 156,
+     "cost_ns": 30475500.0,
+     "ns_per_byte": 195355.7692
+    }
+   }
+  },
+  {
+   "alg": "Classic-McEliece-460896f",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 3,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 524160,
+    "secret_key": 13608,
+    "encoder_emits": 156
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 68870,
+      "failures": 0,
+      "wall_ns": 2010058000,
+      "ops_per_sec": 34262.69,
+      "ops_per_sec_per_thread": 34262.69,
+      "cpu_ns_per_op": 29148.35,
+      "latency_ns": {
+       "median": 26000.0,
+       "mad": 5000.0,
+       "p95": 49000.0,
+       "p99": 67310.0,
+       "min": 18000.0,
+       "max": 158000.0,
+       "mean": 29148.35,
+       "samples": 68870
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 65,
+      "failures": 0,
+      "wall_ns": 2021079000,
+      "ops_per_sec": 32.16,
+      "ops_per_sec_per_thread": 32.16,
+      "cpu_ns_per_op": 31092846.15,
+      "latency_ns": {
+       "median": 31006000.0,
+       "mad": 311000.0,
+       "p95": 31971200.0,
+       "p99": 32197480.0,
+       "min": 30382000.0,
+       "max": 32257000.0,
+       "mean": 31092846.15,
+       "samples": 65
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 66,
+      "failures": 0,
+      "wall_ns": 2033678000,
+      "ops_per_sec": 32.45,
+      "ops_per_sec_per_thread": 32.45,
+      "cpu_ns_per_op": 30812575.76,
+      "latency_ns": {
+       "median": 30763500.0,
+       "mad": 318500.0,
+       "p95": 31748750.0,
+       "p99": 32003550.0,
+       "min": 29428000.0,
+       "max": 32116000.0,
+       "mean": 30812575.76,
+       "samples": 66
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 12,
+      "failures": 0,
+      "wall_ns": 2151664000,
+      "ops_per_sec": 5.58,
+      "ops_per_sec_per_thread": 5.58,
+      "cpu_ns_per_op": 179301166.67,
+      "latency_ns": {
+       "median": 179425000.0,
+       "mad": 539500.0,
+       "p95": 180213600.0,
+       "p99": 180498720.0,
+       "min": 178213000.0,
+       "max": 180570000.0,
+       "mean": 179301166.67,
+       "samples": 12
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 734059,
+      "failures": 0,
+      "wall_ns": 2005084000,
+      "ops_per_sec": 366098.88,
+      "ops_per_sec_per_thread": 26149.92,
+      "cpu_ns_per_op": 38201.6,
+      "latency_ns": {
+       "median": 29000.0,
+       "mad": 7000.0,
+       "p95": 74000.0,
+       "p99": 108000.0,
+       "min": 21000.0,
+       "max": 10297000.0,
+       "mean": 38201.6,
+       "samples": 734059
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 753,
+      "failures": 0,
+      "wall_ns": 2044163000,
+      "ops_per_sec": 368.37,
+      "ops_per_sec_per_thread": 26.31,
+      "cpu_ns_per_op": 37689729.08,
+      "latency_ns": {
+       "median": 36960000.0,
+       "mad": 1732000.0,
+       "p95": 44150600.0,
+       "p99": 50049080.0,
+       "min": 32321000.0,
+       "max": 58972000.0,
+       "mean": 37689729.08,
+       "samples": 753
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 51932,
+      "failures": 0,
+      "wall_ns": 2033356000,
+      "ops_per_sec": 25540.04,
+      "ops_per_sec_per_thread": 25540.04,
+      "cpu_ns_per_op": 38451.92,
+      "latency_ns": {
+       "median": 27000.0,
+       "mad": 5000.0,
+       "p95": 71000.0,
+       "p99": 106000.0,
+       "min": 21000.0,
+       "max": 6472000.0,
+       "mean": 38451.92,
+       "samples": 51932
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 705,
+      "failures": 0,
+      "wall_ns": 2033356000,
+      "ops_per_sec": 346.72,
+      "ops_per_sec_per_thread": 24.77,
+      "cpu_ns_per_op": 40048539.01,
+      "latency_ns": {
+       "median": 39773000.0,
+       "mad": 3256000.0,
+       "p95": 49308200.0,
+       "p99": 53986080.0,
+       "min": 32444000.0,
+       "max": 61902000.0,
+       "mean": 40048539.01,
+       "samples": 705
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 1192.5385,
+    "latency_ratio_per_session": 8093.5,
+    "throughput_ratio_encoder_over_decoder": 993.8457,
+    "decoder_cores_per_encoder_core": 993.8457,
+    "contended_decoder_cores_per_encoder_core": 1031.2738,
+    "rejection_vs_valid": 0.9922,
+    "symmetric_by_construction": false,
+    "cheaper_side": "encoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 524160,
+     "cost_ns": 26000.0,
+     "ns_per_byte": 0.0496
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 156,
+     "cost_ns": 31006000.0,
+     "ns_per_byte": 198756.4103
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 156,
+     "cost_ns": 30763500.0,
+     "ns_per_byte": 197201.9231
+    }
+   }
+  },
+  {
+   "alg": "Classic-McEliece-6688128",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 5,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 1044992,
+    "secret_key": 13932,
+    "encoder_emits": 208
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 32175,
+      "failures": 0,
+      "wall_ns": 2010086000,
+      "ops_per_sec": 16006.78,
+      "ops_per_sec_per_thread": 16006.78,
+      "cpu_ns_per_op": 62439.47,
+      "latency_ns": {
+       "median": 58000.0,
+       "mad": 13000.0,
+       "p95": 103000.0,
+       "p99": 138000.0,
+       "min": 39000.0,
+       "max": 251000.0,
+       "mean": 62439.47,
+       "samples": 32175
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 35,
+      "failures": 0,
+      "wall_ns": 2056341000,
+      "ops_per_sec": 17.02,
+      "ops_per_sec_per_thread": 17.02,
+      "cpu_ns_per_op": 58751514.29,
+      "latency_ns": {
+       "median": 58725000.0,
+       "mad": 563000.0,
+       "p95": 60281700.0,
+       "p99": 60384120.0,
+       "min": 57382000.0,
+       "max": 60412000.0,
+       "mean": 58751514.29,
+       "samples": 35
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 35,
+      "failures": 0,
+      "wall_ns": 2051213000,
+      "ops_per_sec": 17.06,
+      "ops_per_sec_per_thread": 17.06,
+      "cpu_ns_per_op": 58603971.43,
+      "latency_ns": {
+       "median": 58496000.0,
+       "mad": 410000.0,
+       "p95": 60038400.0,
+       "p99": 60230720.0,
+       "min": 56890000.0,
+       "max": 60262000.0,
+       "mean": 58603971.43,
+       "samples": 35
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2,
+      "failures": 0,
+      "wall_ns": 2144589000,
+      "ops_per_sec": 0.93,
+      "ops_per_sec_per_thread": 0.93,
+      "cpu_ns_per_op": 1072268000.0,
+      "latency_ns": {
+       "median": 1072268000.0,
+       "mad": 277000.0,
+       "p95": 1072517300.0,
+       "p99": 1072539460.0,
+       "min": 1071991000.0,
+       "max": 1072545000.0,
+       "mean": 1072268000.0,
+       "samples": 2
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 347596,
+      "failures": 0,
+      "wall_ns": 2002320000,
+      "ops_per_sec": 173596.63,
+      "ops_per_sec_per_thread": 12399.76,
+      "cpu_ns_per_op": 80607.89,
+      "latency_ns": {
+       "median": 63000.0,
+       "mad": 16000.0,
+       "p95": 158000.0,
+       "p99": 231000.0,
+       "min": 46000.0,
+       "max": 8276000.0,
+       "mean": 80607.89,
+       "samples": 347596
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 392,
+      "failures": 0,
+      "wall_ns": 2069980000,
+      "ops_per_sec": 189.37,
+      "ops_per_sec_per_thread": 13.53,
+      "cpu_ns_per_op": 72848308.67,
+      "latency_ns": {
+       "median": 71778000.0,
+       "mad": 3704500.0,
+       "p95": 84091850.0,
+       "p99": 90163540.0,
+       "min": 62104000.0,
+       "max": 132324000.0,
+       "mean": 72848308.67,
+       "samples": 392
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 23409,
+      "failures": 0,
+      "wall_ns": 2059838000,
+      "ops_per_sec": 11364.49,
+      "ops_per_sec_per_thread": 11364.49,
+      "cpu_ns_per_op": 85410.61,
+      "latency_ns": {
+       "median": 62000.0,
+       "mad": 15000.0,
+       "p95": 162600.0,
+       "p99": 254920.0,
+       "min": 46000.0,
+       "max": 9015000.0,
+       "mean": 85410.61,
+       "samples": 23409
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 369,
+      "failures": 0,
+      "wall_ns": 2059838000,
+      "ops_per_sec": 179.14,
+      "ops_per_sec_per_thread": 12.8,
+      "cpu_ns_per_op": 76781384.82,
+      "latency_ns": {
+       "median": 76940000.0,
+       "mad": 4662000.0,
+       "p95": 88152400.0,
+       "p99": 92397280.0,
+       "min": 62117000.0,
+       "max": 98043000.0,
+       "mean": 76781384.82,
+       "samples": 369
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 1012.5,
+    "latency_ratio_per_session": 19499.8793,
+    "throughput_ratio_encoder_over_decoder": 916.6876,
+    "decoder_cores_per_encoder_core": 916.6876,
+    "contended_decoder_cores_per_encoder_core": 888.1463,
+    "rejection_vs_valid": 0.9961,
+    "symmetric_by_construction": false,
+    "cheaper_side": "encoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 1044992,
+     "cost_ns": 58000.0,
+     "ns_per_byte": 0.0555
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 208,
+     "cost_ns": 58725000.0,
+     "ns_per_byte": 282331.7308
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 208,
+     "cost_ns": 58496000.0,
+     "ns_per_byte": 281230.7692
+    }
+   }
+  },
+  {
+   "alg": "Classic-McEliece-6960119",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 5,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 1047319,
+    "secret_key": 13948,
+    "encoder_emits": 194
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 22430,
+      "failures": 0,
+      "wall_ns": 2005933000,
+      "ops_per_sec": 11181.83,
+      "ops_per_sec_per_thread": 11181.83,
+      "cpu_ns_per_op": 89395.63,
+      "latency_ns": {
+       "median": 84000.0,
+       "mad": 7000.0,
+       "p95": 120000.0,
+       "p99": 141000.0,
+       "min": 68000.0,
+       "max": 215000.0,
+       "mean": 89395.63,
+       "samples": 22430
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 36,
+      "failures": 0,
+      "wall_ns": 2048951000,
+      "ops_per_sec": 17.57,
+      "ops_per_sec_per_thread": 17.57,
+      "cpu_ns_per_op": 56914305.56,
+      "latency_ns": {
+       "median": 56707500.0,
+       "mad": 644500.0,
+       "p95": 58409000.0,
+       "p99": 59637150.0,
+       "min": 55431000.0,
+       "max": 60187000.0,
+       "mean": 56914305.56,
+       "samples": 36
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 36,
+      "failures": 0,
+      "wall_ns": 2033527000,
+      "ops_per_sec": 17.7,
+      "ops_per_sec_per_thread": 17.7,
+      "cpu_ns_per_op": 56485694.44,
+      "latency_ns": {
+       "median": 56344000.0,
+       "mad": 727500.0,
+       "p95": 58145500.0,
+       "p99": 58601900.0,
+       "min": 55312000.0,
+       "max": 58821000.0,
+       "mean": 56485694.44,
+       "samples": 36
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2,
+      "failures": 0,
+      "wall_ns": 2635322000,
+      "ops_per_sec": 0.76,
+      "ops_per_sec_per_thread": 0.76,
+      "cpu_ns_per_op": 1317636500.0,
+      "latency_ns": {
+       "median": 1317636500.0,
+       "mad": 646642500.0,
+       "p95": 1899614750.0,
+       "p99": 1951346150.0,
+       "min": 670994000.0,
+       "max": 1964279000.0,
+       "mean": 1317636500.0,
+       "samples": 2
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 245275,
+      "failures": 0,
+      "wall_ns": 2001280000,
+      "ops_per_sec": 122559.06,
+      "ops_per_sec_per_thread": 8754.22,
+      "cpu_ns_per_op": 114179.16,
+      "latency_ns": {
+       "median": 89000.0,
+       "mad": 8000.0,
+       "p95": 224000.0,
+       "p99": 289000.0,
+       "min": 79000.0,
+       "max": 10700000.0,
+       "mean": 114179.16,
+       "samples": 245275
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 407,
+      "failures": 0,
+      "wall_ns": 2065213000,
+      "ops_per_sec": 197.07,
+      "ops_per_sec_per_thread": 14.08,
+      "cpu_ns_per_op": 70270796.07,
+      "latency_ns": {
+       "median": 69407000.0,
+       "mad": 3372000.0,
+       "p95": 80292300.0,
+       "p99": 86919680.0,
+       "min": 60281000.0,
+       "max": 96270000.0,
+       "mean": 70270796.07,
+       "samples": 407
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 16728,
+      "failures": 0,
+      "wall_ns": 2070578000,
+      "ops_per_sec": 8078.9,
+      "ops_per_sec_per_thread": 8078.9,
+      "cpu_ns_per_op": 120122.43,
+      "latency_ns": {
+       "median": 88000.0,
+       "mad": 8000.0,
+       "p95": 222000.0,
+       "p99": 294000.0,
+       "min": 80000.0,
+       "max": 8154000.0,
+       "mean": 120122.43,
+       "samples": 16728
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 382,
+      "failures": 0,
+      "wall_ns": 2070578000,
+      "ops_per_sec": 184.49,
+      "ops_per_sec_per_thread": 13.18,
+      "cpu_ns_per_op": 74664345.55,
+      "latency_ns": {
+       "median": 74245000.0,
+       "mad": 4323000.0,
+       "p95": 86266250.0,
+       "p99": 92868410.0,
+       "min": 60065000.0,
+       "max": 95231000.0,
+       "mean": 74664345.55,
+       "samples": 382
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 675.0893,
+    "latency_ratio_per_session": 16361.2381,
+    "throughput_ratio_encoder_over_decoder": 621.8933,
+    "decoder_cores_per_encoder_core": 621.8933,
+    "contended_decoder_cores_per_encoder_core": 613.0681,
+    "rejection_vs_valid": 0.9936,
+    "symmetric_by_construction": false,
+    "cheaper_side": "encoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 1047319,
+     "cost_ns": 84000.0,
+     "ns_per_byte": 0.0802
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 194,
+     "cost_ns": 56707500.0,
+     "ns_per_byte": 292306.701
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 194,
+     "cost_ns": 56344000.0,
+     "ns_per_byte": 290432.9897
+    }
+   }
+  },
+  {
+   "alg": "Classic-McEliece-8192128",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 5,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 1357824,
+    "secret_key": 14120,
+    "encoder_emits": 208
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 37617,
+      "failures": 0,
+      "wall_ns": 2001552000,
+      "ops_per_sec": 18793.92,
+      "ops_per_sec_per_thread": 18793.92,
+      "cpu_ns_per_op": 53168.89,
+      "latency_ns": {
+       "median": 48000.0,
+       "mad": 7000.0,
+       "p95": 82000.0,
+       "p99": 109000.0,
+       "min": 36000.0,
+       "max": 208000.0,
+       "mean": 53168.89,
+       "samples": 37617
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 29,
+      "failures": 0,
+      "wall_ns": 2044586000,
+      "ops_per_sec": 14.18,
+      "ops_per_sec_per_thread": 14.18,
+      "cpu_ns_per_op": 70501586.21,
+      "latency_ns": {
+       "median": 70119000.0,
+       "mad": 649000.0,
+       "p95": 71817200.0,
+       "p99": 72512080.0,
+       "min": 68784000.0,
+       "max": 72782000.0,
+       "mean": 70501586.21,
+       "samples": 29
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 29,
+      "failures": 0,
+      "wall_ns": 2037990000,
+      "ops_per_sec": 14.23,
+      "ops_per_sec_per_thread": 14.23,
+      "cpu_ns_per_op": 70274103.45,
+      "latency_ns": {
+       "median": 70336000.0,
+       "mad": 810000.0,
+       "p95": 71435200.0,
+       "p99": 71961920.0,
+       "min": 68581000.0,
+       "max": 72161000.0,
+       "mean": 70274103.45,
+       "samples": 29
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 3,
+      "failures": 0,
+      "wall_ns": 2674010000,
+      "ops_per_sec": 1.12,
+      "ops_per_sec_per_thread": 1.12,
+      "cpu_ns_per_op": 891322000.0,
+      "latency_ns": {
+       "median": 892062000.0,
+       "mad": 427108000.0,
+       "p95": 1276459200.0,
+       "p99": 1310627840.0,
+       "min": 462734000.0,
+       "max": 1319170000.0,
+       "mean": 891322000.0,
+       "samples": 3
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 398539,
+      "failures": 0,
+      "wall_ns": 2010417000,
+      "ops_per_sec": 198236.98,
+      "ops_per_sec_per_thread": 14159.78,
+      "cpu_ns_per_op": 70564.45,
+      "latency_ns": {
+       "median": 54000.0,
+       "mad": 10000.0,
+       "p95": 148000.0,
+       "p99": 200000.0,
+       "min": 42000.0,
+       "max": 7815000.0,
+       "mean": 70564.45,
+       "samples": 398539
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 321,
+      "failures": 0,
+      "wall_ns": 2079984000,
+      "ops_per_sec": 154.33,
+      "ops_per_sec_per_thread": 11.02,
+      "cpu_ns_per_op": 89083691.59,
+      "latency_ns": {
+       "median": 88088000.0,
+       "mad": 3107000.0,
+       "p95": 99799000.0,
+       "p99": 105236000.0,
+       "min": 76511000.0,
+       "max": 158443000.0,
+       "mean": 89083691.59,
+       "samples": 321
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 27300,
+      "failures": 0,
+      "wall_ns": 2093991000,
+      "ops_per_sec": 13037.31,
+      "ops_per_sec_per_thread": 13037.31,
+      "cpu_ns_per_op": 73571.28,
+      "latency_ns": {
+       "median": 50000.0,
+       "mad": 7000.0,
+       "p95": 145000.0,
+       "p99": 208010.0,
+       "min": 42000.0,
+       "max": 7399000.0,
+       "mean": 73571.28,
+       "samples": 27300
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 307,
+      "failures": 0,
+      "wall_ns": 2093991000,
+      "ops_per_sec": 146.61,
+      "ops_per_sec_per_thread": 10.47,
+      "cpu_ns_per_op": 94092211.73,
+      "latency_ns": {
+       "median": 94292000.0,
+       "mad": 4892000.0,
+       "p95": 105818900.0,
+       "p99": 112420900.0,
+       "min": 76508000.0,
+       "max": 114141000.0,
+       "mean": 94092211.73,
+       "samples": 307
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 1460.8125,
+    "latency_ratio_per_session": 20045.4375,
+    "throughput_ratio_encoder_over_decoder": 1284.5164,
+    "decoder_cores_per_encoder_core": 1284.5164,
+    "contended_decoder_cores_per_encoder_core": 1244.9511,
+    "rejection_vs_valid": 1.0031,
+    "symmetric_by_construction": false,
+    "cheaper_side": "encoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 1357824,
+     "cost_ns": 48000.0,
+     "ns_per_byte": 0.0354
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 208,
+     "cost_ns": 70119000.0,
+     "ns_per_byte": 337110.5769
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 208,
+     "cost_ns": 70336000.0,
+     "ns_per_byte": 338153.8462
+    }
+   }
+  },
+  {
+   "alg": "FrodoKEM-640-AES",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 1,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 9616,
+    "secret_key": 19888,
+    "encoder_emits": 9720
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 9425,
+      "failures": 0,
+      "wall_ns": 2009185000,
+      "ops_per_sec": 4690.96,
+      "ops_per_sec_per_thread": 4690.96,
+      "cpu_ns_per_op": 213138.78,
+      "latency_ns": {
+       "median": 211000.0,
+       "mad": 2000.0,
+       "p95": 224000.0,
+       "p99": 235000.0,
+       "min": 190000.0,
+       "max": 285000.0,
+       "mean": 213138.78,
+       "samples": 9425
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 9689,
+      "failures": 0,
+      "wall_ns": 2001880000,
+      "ops_per_sec": 4839.95,
+      "ops_per_sec_per_thread": 4839.95,
+      "cpu_ns_per_op": 206581.38,
+      "latency_ns": {
+       "median": 204000.0,
+       "mad": 2000.0,
+       "p95": 217000.0,
+       "p99": 227000.0,
+       "min": 181000.0,
+       "max": 1120000.0,
+       "mean": 206581.38,
+       "samples": 9689
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 9746,
+      "failures": 0,
+      "wall_ns": 2009471000,
+      "ops_per_sec": 4850.03,
+      "ops_per_sec_per_thread": 4850.03,
+      "cpu_ns_per_op": 206151.45,
+      "latency_ns": {
+       "median": 204000.0,
+       "mad": 2000.0,
+       "p95": 216000.0,
+       "p99": 224000.0,
+       "min": 188000.0,
+       "max": 243000.0,
+       "mean": 206151.45,
+       "samples": 9746
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 11970,
+      "failures": 0,
+      "wall_ns": 2004751000,
+      "ops_per_sec": 5970.82,
+      "ops_per_sec_per_thread": 5970.82,
+      "cpu_ns_per_op": 167442.86,
+      "latency_ns": {
+       "median": 166000.0,
+       "mad": 2000.0,
+       "p95": 176000.0,
+       "p99": 186000.0,
+       "min": 147000.0,
+       "max": 207000.0,
+       "mean": 167442.86,
+       "samples": 11970
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 102651,
+      "failures": 0,
+      "wall_ns": 2009917000,
+      "ops_per_sec": 51072.26,
+      "ops_per_sec_per_thread": 3648.02,
+      "cpu_ns_per_op": 274053.28,
+      "latency_ns": {
+       "median": 223000.0,
+       "mad": 1000.0,
+       "p95": 556000.0,
+       "p99": 639000.0,
+       "min": 219000.0,
+       "max": 15516000.0,
+       "mean": 274053.28,
+       "samples": 102651
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 106213,
+      "failures": 0,
+      "wall_ns": 2009984000,
+      "ops_per_sec": 52842.71,
+      "ops_per_sec_per_thread": 3774.48,
+      "cpu_ns_per_op": 264869.07,
+      "latency_ns": {
+       "median": 215000.0,
+       "mad": 1000.0,
+       "p95": 535000.0,
+       "p99": 618000.0,
+       "min": 212000.0,
+       "max": 8595000.0,
+       "mean": 264869.07,
+       "samples": 106213
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 6881,
+      "failures": 0,
+      "wall_ns": 2010146000,
+      "ops_per_sec": 3423.13,
+      "ops_per_sec_per_thread": 3423.13,
+      "cpu_ns_per_op": 292052.32,
+      "latency_ns": {
+       "median": 224000.0,
+       "mad": 2000.0,
+       "p95": 559000.0,
+       "p99": 997000.0,
+       "min": 219000.0,
+       "max": 10095000.0,
+       "mean": 292052.32,
+       "samples": 6881
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 99374,
+      "failures": 0,
+      "wall_ns": 2010146000,
+      "ops_per_sec": 49436.21,
+      "ops_per_sec_per_thread": 3531.16,
+      "cpu_ns_per_op": 282947.31,
+      "latency_ns": {
+       "median": 216000.0,
+       "mad": 1000.0,
+       "p95": 537000.0,
+       "p99": 884000.0,
+       "min": 212000.0,
+       "max": 11866000.0,
+       "mean": 282947.31,
+       "samples": 99374
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.9668,
+    "latency_ratio_per_session": 1.7536,
+    "throughput_ratio_encoder_over_decoder": 0.9665,
+    "decoder_cores_per_encoder_core": 0.9665,
+    "contended_decoder_cores_per_encoder_core": 0.9694,
+    "rejection_vs_valid": 1.0,
+    "symmetric_by_construction": false,
+    "cheaper_side": "neither"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 9616,
+     "cost_ns": 211000.0,
+     "ns_per_byte": 21.9426
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 9720,
+     "cost_ns": 204000.0,
+     "ns_per_byte": 20.9877
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 9720,
+     "cost_ns": 204000.0,
+     "ns_per_byte": 20.9877
+    }
+   }
+  },
+  {
+   "alg": "FrodoKEM-976-AES",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 3,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 15632,
+    "secret_key": 31296,
+    "encoder_emits": 15744
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 5443,
+      "failures": 0,
+      "wall_ns": 2009751000,
+      "ops_per_sec": 2708.3,
+      "ops_per_sec_per_thread": 2708.3,
+      "cpu_ns_per_op": 369196.95,
+      "latency_ns": {
+       "median": 366000.0,
+       "mad": 3000.0,
+       "p95": 386000.0,
+       "p99": 395000.0,
+       "min": 351000.0,
+       "max": 459000.0,
+       "mean": 369196.95,
+       "samples": 5443
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 5700,
+      "failures": 0,
+      "wall_ns": 2009921000,
+      "ops_per_sec": 2835.93,
+      "ops_per_sec_per_thread": 2835.93,
+      "cpu_ns_per_op": 352581.93,
+      "latency_ns": {
+       "median": 349000.0,
+       "mad": 3000.0,
+       "p95": 370000.0,
+       "p99": 389000.0,
+       "min": 345000.0,
+       "max": 417000.0,
+       "mean": 352581.93,
+       "samples": 5700
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 5708,
+      "failures": 0,
+      "wall_ns": 2010121000,
+      "ops_per_sec": 2839.63,
+      "ops_per_sec_per_thread": 2839.63,
+      "cpu_ns_per_op": 352123.16,
+      "latency_ns": {
+       "median": 349000.0,
+       "mad": 3000.0,
+       "p95": 369000.0,
+       "p99": 377930.0,
+       "min": 330000.0,
+       "max": 456000.0,
+       "mean": 352123.16,
+       "samples": 5708
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 7139,
+      "failures": 0,
+      "wall_ns": 2009905000,
+      "ops_per_sec": 3551.91,
+      "ops_per_sec_per_thread": 3551.91,
+      "cpu_ns_per_op": 281505.81,
+      "latency_ns": {
+       "median": 279000.0,
+       "mad": 2000.0,
+       "p95": 294000.0,
+       "p99": 304000.0,
+       "min": 275000.0,
+       "max": 326000.0,
+       "mean": 281505.81,
+       "samples": 7139
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 58797,
+      "failures": 0,
+      "wall_ns": 2010377000,
+      "ops_per_sec": 29246.75,
+      "ops_per_sec_per_thread": 2089.05,
+      "cpu_ns_per_op": 478579.11,
+      "latency_ns": {
+       "median": 384000.0,
+       "mad": 2000.0,
+       "p95": 1032000.0,
+       "p99": 1172000.0,
+       "min": 380000.0,
+       "max": 12018000.0,
+       "mean": 478579.11,
+       "samples": 58797
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 60379,
+      "failures": 0,
+      "wall_ns": 2011549000,
+      "ops_per_sec": 30016.17,
+      "ops_per_sec_per_thread": 2144.01,
+      "cpu_ns_per_op": 466269.07,
+      "latency_ns": {
+       "median": 377000.0,
+       "mad": 11000.0,
+       "p95": 995000.0,
+       "p99": 1127000.0,
+       "min": 363000.0,
+       "max": 7383000.0,
+       "mean": 466269.07,
+       "samples": 60379
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 3779,
+      "failures": 0,
+      "wall_ns": 2010679000,
+      "ops_per_sec": 1879.46,
+      "ops_per_sec_per_thread": 1879.46,
+      "cpu_ns_per_op": 531934.37,
+      "latency_ns": {
+       "median": 407000.0,
+       "mad": 6000.0,
+       "p95": 1052000.0,
+       "p99": 2349640.0,
+       "min": 381000.0,
+       "max": 11569000.0,
+       "mean": 531934.37,
+       "samples": 3779
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 55710,
+      "failures": 0,
+      "wall_ns": 2010679000,
+      "ops_per_sec": 27707.06,
+      "ops_per_sec_per_thread": 1979.08,
+      "cpu_ns_per_op": 504838.52,
+      "latency_ns": {
+       "median": 388000.0,
+       "mad": 6000.0,
+       "p95": 1006000.0,
+       "p99": 2227910.0,
+       "min": 363000.0,
+       "max": 17231000.0,
+       "mean": 504838.52,
+       "samples": 55710
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.9536,
+    "latency_ratio_per_session": 1.7158,
+    "throughput_ratio_encoder_over_decoder": 0.9744,
+    "decoder_cores_per_encoder_core": 0.9744,
+    "contended_decoder_cores_per_encoder_core": 0.9497,
+    "rejection_vs_valid": 1.0,
+    "symmetric_by_construction": false,
+    "cheaper_side": "neither"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 15632,
+     "cost_ns": 366000.0,
+     "ns_per_byte": 23.4135
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 15744,
+     "cost_ns": 349000.0,
+     "ns_per_byte": 22.1672
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 15744,
+     "cost_ns": 349000.0,
+     "ns_per_byte": 22.1672
+    }
+   }
+  },
+  {
+   "alg": "FrodoKEM-1344-AES",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 5,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 21520,
+    "secret_key": 43088,
+    "encoder_emits": 21632
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 3117,
+      "failures": 0,
+      "wall_ns": 2002090000,
+      "ops_per_sec": 1556.87,
+      "ops_per_sec_per_thread": 1556.87,
+      "cpu_ns_per_op": 642267.56,
+      "latency_ns": {
+       "median": 637000.0,
+       "mad": 5000.0,
+       "p95": 668000.0,
+       "p99": 680000.0,
+       "min": 630000.0,
+       "max": 738000.0,
+       "mean": 642267.56,
+       "samples": 3117
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 3247,
+      "failures": 0,
+      "wall_ns": 2010235000,
+      "ops_per_sec": 1615.23,
+      "ops_per_sec_per_thread": 1615.23,
+      "cpu_ns_per_op": 619068.99,
+      "latency_ns": {
+       "median": 615000.0,
+       "mad": 5000.0,
+       "p95": 644000.0,
+       "p99": 655000.0,
+       "min": 608000.0,
+       "max": 673000.0,
+       "mean": 619068.99,
+       "samples": 3247
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 3243,
+      "failures": 0,
+      "wall_ns": 2010046000,
+      "ops_per_sec": 1613.4,
+      "ops_per_sec_per_thread": 1613.4,
+      "cpu_ns_per_op": 619771.2,
+      "latency_ns": {
+       "median": 615000.0,
+       "mad": 5000.0,
+       "p95": 645000.0,
+       "p99": 654000.0,
+       "min": 608000.0,
+       "max": 725000.0,
+       "mean": 619771.2,
+       "samples": 3243
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 4053,
+      "failures": 0,
+      "wall_ns": 2010085000,
+      "ops_per_sec": 2016.33,
+      "ops_per_sec_per_thread": 2016.33,
+      "cpu_ns_per_op": 495909.2,
+      "latency_ns": {
+       "median": 491000.0,
+       "mad": 3000.0,
+       "p95": 517000.0,
+       "p99": 525000.0,
+       "min": 487000.0,
+       "max": 553000.0,
+       "mean": 495909.2,
+       "samples": 4053
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 33142,
+      "failures": 0,
+      "wall_ns": 2007924000,
+      "ops_per_sec": 16505.6,
+      "ops_per_sec_per_thread": 1178.97,
+      "cpu_ns_per_op": 847994.99,
+      "latency_ns": {
+       "median": 684000.0,
+       "mad": 18000.0,
+       "p95": 1829000.0,
+       "p99": 2038000.0,
+       "min": 663000.0,
+       "max": 11802000.0,
+       "mean": 847994.99,
+       "samples": 33142
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 33593,
+      "failures": 0,
+      "wall_ns": 2010868000,
+      "ops_per_sec": 16705.72,
+      "ops_per_sec_per_thread": 1193.27,
+      "cpu_ns_per_op": 837792.1,
+      "latency_ns": {
+       "median": 682000.0,
+       "mad": 4000.0,
+       "p95": 1777000.0,
+       "p99": 2003160.0,
+       "min": 640000.0,
+       "max": 23558000.0,
+       "mean": 837792.1,
+       "samples": 33593
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2161,
+      "failures": 0,
+      "wall_ns": 2010914000,
+      "ops_per_sec": 1074.64,
+      "ops_per_sec_per_thread": 1074.64,
+      "cpu_ns_per_op": 930451.18,
+      "latency_ns": {
+       "median": 708000.0,
+       "mad": 2000.0,
+       "p95": 1892000.0,
+       "p99": 3828000.0,
+       "min": 665000.0,
+       "max": 8433000.0,
+       "mean": 930451.18,
+       "samples": 2161
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 31218,
+      "failures": 0,
+      "wall_ns": 2010914000,
+      "ops_per_sec": 15524.28,
+      "ops_per_sec_per_thread": 1108.88,
+      "cpu_ns_per_op": 901105.87,
+      "latency_ns": {
+       "median": 683000.0,
+       "mad": 2000.0,
+       "p95": 1820000.0,
+       "p99": 3819660.0,
+       "min": 640000.0,
+       "max": 13963000.0,
+       "mean": 901105.87,
+       "samples": 31218
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.9655,
+    "latency_ratio_per_session": 1.7363,
+    "throughput_ratio_encoder_over_decoder": 0.988,
+    "decoder_cores_per_encoder_core": 0.988,
+    "contended_decoder_cores_per_encoder_core": 0.9691,
+    "rejection_vs_valid": 1.0,
+    "symmetric_by_construction": false,
+    "cheaper_side": "neither"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 21520,
+     "cost_ns": 637000.0,
+     "ns_per_byte": 29.6004
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 21632,
+     "cost_ns": 615000.0,
+     "ns_per_byte": 28.4301
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 21632,
+     "cost_ns": 615000.0,
+     "ns_per_byte": 28.4301
+    }
+   }
+  },
+  {
+   "alg": "FrodoKEM-640-SHAKE",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 1,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 9616,
+    "secret_key": 19888,
+    "encoder_emits": 9720
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2133,
+      "failures": 0,
+      "wall_ns": 2006614000,
+      "ops_per_sec": 1062.98,
+      "ops_per_sec_per_thread": 1062.98,
+      "cpu_ns_per_op": 940687.76,
+      "latency_ns": {
+       "median": 935000.0,
+       "mad": 9000.0,
+       "p95": 981000.0,
+       "p99": 1003000.0,
+       "min": 921000.0,
+       "max": 1042000.0,
+       "mean": 940687.76,
+       "samples": 2133
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 1944,
+      "failures": 0,
+      "wall_ns": 2010249000,
+      "ops_per_sec": 967.04,
+      "ops_per_sec_per_thread": 967.04,
+      "cpu_ns_per_op": 1034037.04,
+      "latency_ns": {
+       "median": 1028000.0,
+       "mad": 8000.0,
+       "p95": 1078000.0,
+       "p99": 1091000.0,
+       "min": 1014000.0,
+       "max": 1175000.0,
+       "mean": 1034037.04,
+       "samples": 1944
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 1946,
+      "failures": 0,
+      "wall_ns": 2010711000,
+      "ops_per_sec": 967.82,
+      "ops_per_sec_per_thread": 967.82,
+      "cpu_ns_per_op": 1033195.27,
+      "latency_ns": {
+       "median": 1028000.0,
+       "mad": 7000.0,
+       "p95": 1077750.0,
+       "p99": 1090100.0,
+       "min": 1014000.0,
+       "max": 1131000.0,
+       "mean": 1033195.27,
+       "samples": 1946
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2392,
+      "failures": 0,
+      "wall_ns": 2010352000,
+      "ops_per_sec": 1189.84,
+      "ops_per_sec_per_thread": 1189.84,
+      "cpu_ns_per_op": 840397.16,
+      "latency_ns": {
+       "median": 835000.0,
+       "mad": 7000.0,
+       "p95": 875000.0,
+       "p99": 887000.0,
+       "min": 823000.0,
+       "max": 906000.0,
+       "mean": 840397.16,
+       "samples": 2392
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 20812,
+      "failures": 0,
+      "wall_ns": 2011525000,
+      "ops_per_sec": 10346.38,
+      "ops_per_sec_per_thread": 739.03,
+      "cpu_ns_per_op": 1352510.33,
+      "latency_ns": {
+       "median": 1117000.0,
+       "mad": 48000.0,
+       "p95": 2493000.0,
+       "p99": 3035000.0,
+       "min": 993000.0,
+       "max": 10504000.0,
+       "mean": 1352510.33,
+       "samples": 20812
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 19212,
+      "failures": 0,
+      "wall_ns": 2011605000,
+      "ops_per_sec": 9550.58,
+      "ops_per_sec_per_thread": 682.18,
+      "cpu_ns_per_op": 1465108.27,
+      "latency_ns": {
+       "median": 1227000.0,
+       "mad": 49000.0,
+       "p95": 2492000.0,
+       "p99": 3114120.0,
+       "min": 1097000.0,
+       "max": 12233000.0,
+       "mean": 1465108.27,
+       "samples": 19212
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 1331,
+      "failures": 0,
+      "wall_ns": 2002808000,
+      "ops_per_sec": 664.57,
+      "ops_per_sec_per_thread": 664.57,
+      "cpu_ns_per_op": 1504310.29,
+      "latency_ns": {
+       "median": 1163000.0,
+       "mad": 56000.0,
+       "p95": 2649500.0,
+       "p99": 5633300.0,
+       "min": 997000.0,
+       "max": 8823000.0,
+       "mean": 1504310.29,
+       "samples": 1331
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 17744,
+      "failures": 0,
+      "wall_ns": 2002808000,
+      "ops_per_sec": 8859.56,
+      "ops_per_sec_per_thread": 632.83,
+      "cpu_ns_per_op": 1578718.67,
+      "latency_ns": {
+       "median": 1273000.0,
+       "mad": 52000.0,
+       "p95": 2726550.0,
+       "p99": 5690400.0,
+       "min": 1090000.0,
+       "max": 14396000.0,
+       "mean": 1578718.67,
+       "samples": 17744
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 1.0995,
+    "latency_ratio_per_session": 1.9925,
+    "throughput_ratio_encoder_over_decoder": 1.0833,
+    "decoder_cores_per_encoder_core": 1.0833,
+    "contended_decoder_cores_per_encoder_core": 1.0502,
+    "rejection_vs_valid": 1.0,
+    "symmetric_by_construction": false,
+    "cheaper_side": "encoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 9616,
+     "cost_ns": 935000.0,
+     "ns_per_byte": 97.2338
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 9720,
+     "cost_ns": 1028000.0,
+     "ns_per_byte": 105.7613
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 9720,
+     "cost_ns": 1028000.0,
+     "ns_per_byte": 105.7613
+    }
+   }
+  },
+  {
+   "alg": "FrodoKEM-976-SHAKE",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 3,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 15632,
+    "secret_key": 31296,
+    "encoder_emits": 15744
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 984,
+      "failures": 0,
+      "wall_ns": 2007187000,
+      "ops_per_sec": 490.24,
+      "ops_per_sec_per_thread": 490.24,
+      "cpu_ns_per_op": 2039745.93,
+      "latency_ns": {
+       "median": 2027000.0,
+       "mad": 11000.0,
+       "p95": 2116850.0,
+       "p99": 2138170.0,
+       "min": 2003000.0,
+       "max": 2159000.0,
+       "mean": 2039745.93,
+       "samples": 984
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 989,
+      "failures": 0,
+      "wall_ns": 2002006000,
+      "ops_per_sec": 494.0,
+      "ops_per_sec_per_thread": 494.0,
+      "cpu_ns_per_op": 2024186.05,
+      "latency_ns": {
+       "median": 2010000.0,
+       "mad": 10000.0,
+       "p95": 2103000.0,
+       "p99": 2132120.0,
+       "min": 1987000.0,
+       "max": 2149000.0,
+       "mean": 2024186.05,
+       "samples": 989
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 990,
+      "failures": 0,
+      "wall_ns": 2004063000,
+      "ops_per_sec": 494.0,
+      "ops_per_sec_per_thread": 494.0,
+      "cpu_ns_per_op": 2024227.27,
+      "latency_ns": {
+       "median": 2011000.0,
+       "mad": 10000.0,
+       "p95": 2105000.0,
+       "p99": 2127220.0,
+       "min": 1988000.0,
+       "max": 2157000.0,
+       "mean": 2024227.27,
+       "samples": 990
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 1109,
+      "failures": 0,
+      "wall_ns": 2009958000,
+      "ops_per_sec": 551.75,
+      "ops_per_sec_per_thread": 551.75,
+      "cpu_ns_per_op": 1812331.83,
+      "latency_ns": {
+       "median": 1801000.0,
+       "mad": 12000.0,
+       "p95": 1881600.0,
+       "p99": 1899000.0,
+       "min": 1774000.0,
+       "max": 1966000.0,
+       "mean": 1812331.83,
+       "samples": 1109
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 9544,
+      "failures": 0,
+      "wall_ns": 2012889000,
+      "ops_per_sec": 4741.44,
+      "ops_per_sec_per_thread": 338.67,
+      "cpu_ns_per_op": 2950254.51,
+      "latency_ns": {
+       "median": 2475000.0,
+       "mad": 89000.0,
+       "p95": 5379000.0,
+       "p99": 6814120.0,
+       "min": 2118000.0,
+       "max": 18976000.0,
+       "mean": 2950254.51,
+       "samples": 9544
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 9524,
+      "failures": 0,
+      "wall_ns": 2014861000,
+      "ops_per_sec": 4726.88,
+      "ops_per_sec_per_thread": 337.63,
+      "cpu_ns_per_op": 2959812.47,
+      "latency_ns": {
+       "median": 2494000.0,
+       "mad": 118000.0,
+       "p95": 5319700.0,
+       "p99": 6140770.0,
+       "min": 2237000.0,
+       "max": 25470000.0,
+       "mean": 2959812.47,
+       "samples": 9524
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 626,
+      "failures": 0,
+      "wall_ns": 2013057000,
+      "ops_per_sec": 310.97,
+      "ops_per_sec_per_thread": 310.97,
+      "cpu_ns_per_op": 3212325.88,
+      "latency_ns": {
+       "median": 2515000.0,
+       "mad": 85500.0,
+       "p95": 6249000.0,
+       "p99": 8056750.0,
+       "min": 2192000.0,
+       "max": 10892000.0,
+       "mean": 3212325.88,
+       "samples": 626
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 8735,
+      "failures": 0,
+      "wall_ns": 2013057000,
+      "ops_per_sec": 4339.17,
+      "ops_per_sec_per_thread": 309.94,
+      "cpu_ns_per_op": 3223006.87,
+      "latency_ns": {
+       "median": 2524000.0,
+       "mad": 102000.0,
+       "p95": 6215600.0,
+       "p99": 9199300.0,
+       "min": 2163000.0,
+       "max": 16201000.0,
+       "mean": 3223006.87,
+       "samples": 8735
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.9916,
+    "latency_ratio_per_session": 1.8801,
+    "throughput_ratio_encoder_over_decoder": 1.0031,
+    "decoder_cores_per_encoder_core": 1.0031,
+    "contended_decoder_cores_per_encoder_core": 1.0033,
+    "rejection_vs_valid": 1.0005,
+    "symmetric_by_construction": false,
+    "cheaper_side": "neither"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 15632,
+     "cost_ns": 2027000.0,
+     "ns_per_byte": 129.6699
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 15744,
+     "cost_ns": 2010000.0,
+     "ns_per_byte": 127.6677
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 15744,
+     "cost_ns": 2011000.0,
+     "ns_per_byte": 127.7312
+    }
+   }
+  },
+  {
+   "alg": "FrodoKEM-1344-SHAKE",
+   "kind": "kem",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 5,
+   "roles": {
+    "encoder": "encaps",
+    "decoder": "decaps"
+   },
+   "sizes": {
+    "public_key": 21520,
+    "secret_key": 43088,
+    "encoder_emits": 21632
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 543,
+      "failures": 0,
+      "wall_ns": 2004937000,
+      "ops_per_sec": 270.83,
+      "ops_per_sec_per_thread": 270.83,
+      "cpu_ns_per_op": 3692198.9,
+      "latency_ns": {
+       "median": 3669000.0,
+       "mad": 16000.0,
+       "p95": 3837100.0,
+       "p99": 3885640.0,
+       "min": 3642000.0,
+       "max": 3909000.0,
+       "mean": 3692198.9,
+       "samples": 543
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 546,
+      "failures": 0,
+      "wall_ns": 2002608000,
+      "ops_per_sec": 272.64,
+      "ops_per_sec_per_thread": 272.64,
+      "cpu_ns_per_op": 3667677.66,
+      "latency_ns": {
+       "median": 3647000.0,
+       "mad": 19000.0,
+       "p95": 3786000.0,
+       "p99": 3842550.0,
+       "min": 3612000.0,
+       "max": 3880000.0,
+       "mean": 3667677.66,
+       "samples": 546
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 547,
+      "failures": 0,
+      "wall_ns": 2011822000,
+      "ops_per_sec": 271.89,
+      "ops_per_sec_per_thread": 271.89,
+      "cpu_ns_per_op": 3677826.33,
+      "latency_ns": {
+       "median": 3644000.0,
+       "mad": 16000.0,
+       "p95": 3831400.0,
+       "p99": 4066940.0,
+       "min": 3616000.0,
+       "max": 4210000.0,
+       "mean": 3677826.33,
+       "samples": 547
+      }
+     },
+     "decoder_setup": {
+      "role": "decoder_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 609,
+      "failures": 0,
+      "wall_ns": 2010532000,
+      "ops_per_sec": 302.9,
+      "ops_per_sec_per_thread": 302.9,
+      "cpu_ns_per_op": 3301267.65,
+      "latency_ns": {
+       "median": 3281000.0,
+       "mad": 17000.0,
+       "p95": 3432000.0,
+       "p99": 3476760.0,
+       "min": 3243000.0,
+       "max": 3571000.0,
+       "mean": 3301267.65,
+       "samples": 609
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 5335,
+      "failures": 0,
+      "wall_ns": 2014667000,
+      "ops_per_sec": 2648.08,
+      "ops_per_sec_per_thread": 189.15,
+      "cpu_ns_per_op": 5280195.13,
+      "latency_ns": {
+       "median": 4366000.0,
+       "mad": 122000.0,
+       "p95": 9366300.0,
+       "p99": 10921820.0,
+       "min": 3860000.0,
+       "max": 39044000.0,
+       "mean": 5280195.13,
+       "samples": 5335
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 5282,
+      "failures": 0,
+      "wall_ns": 2016376000,
+      "ops_per_sec": 2619.55,
+      "ops_per_sec_per_thread": 187.11,
+      "cpu_ns_per_op": 5340964.03,
+      "latency_ns": {
+       "median": 4449000.0,
+       "mad": 174000.0,
+       "p95": 9460000.0,
+       "p99": 10836320.0,
+       "min": 3981000.0,
+       "max": 14512000.0,
+       "mean": 5340964.03,
+       "samples": 5282
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "encaps",
+      "applicable": true,
+      "threads": 1,
+      "ops": 344,
+      "failures": 0,
+      "wall_ns": 2014908000,
+      "ops_per_sec": 170.73,
+      "ops_per_sec_per_thread": 170.73,
+      "cpu_ns_per_op": 5843593.02,
+      "latency_ns": {
+       "median": 4703500.0,
+       "mad": 303000.0,
+       "p95": 11002000.0,
+       "p99": 13023030.0,
+       "min": 4168000.0,
+       "max": 15125000.0,
+       "mean": 5843593.02,
+       "samples": 344
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "decaps",
+      "applicable": true,
+      "threads": 14,
+      "ops": 4845,
+      "failures": 0,
+      "wall_ns": 2014908000,
+      "ops_per_sec": 2404.58,
+      "ops_per_sec_per_thread": 171.76,
+      "cpu_ns_per_op": 5813139.94,
+      "latency_ns": {
+       "median": 4658000.0,
+       "mad": 278000.0,
+       "p95": 10630600.0,
+       "p99": 13915240.0,
+       "min": 4150000.0,
+       "max": 18027000.0,
+       "mean": 5813139.94,
+       "samples": 4845
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.994,
+    "latency_ratio_per_session": 1.8883,
+    "throughput_ratio_encoder_over_decoder": 1.0109,
+    "decoder_cores_per_encoder_core": 1.0109,
+    "contended_decoder_cores_per_encoder_core": 0.994,
+    "rejection_vs_valid": 0.9992,
+    "symmetric_by_construction": false,
+    "cheaper_side": "neither"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": true,
+     "receives": "public_key",
+     "bytes": 21520,
+     "cost_ns": 3669000.0,
+     "ns_per_byte": 170.4926
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 21632,
+     "cost_ns": 3647000.0,
+     "ns_per_byte": 168.5928
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "ciphertext",
+     "bytes": 21632,
+     "cost_ns": 3644000.0,
+     "ns_per_byte": 168.4541
+    }
+   }
+  },
+  {
+   "alg": "Ed25519",
+   "kind": "sig",
+   "implementation": "openssl",
+   "classical": true,
+   "enabled": true,
+   "claimed_nist_level": 1,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 32,
+    "secret_key": 32,
+    "encoder_emits": 64
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 122244,
+      "failures": 0,
+      "wall_ns": 2010057000,
+      "ops_per_sec": 60816.19,
+      "ops_per_sec_per_thread": 60816.19,
+      "cpu_ns_per_op": 16394.23,
+      "latency_ns": {
+       "median": 16000.0,
+       "mad": 0.0,
+       "p95": 18000.0,
+       "p99": 20000.0,
+       "min": 15000.0,
+       "max": 47000.0,
+       "mean": 16393.26,
+       "samples": 100000
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 49638,
+      "failures": 0,
+      "wall_ns": 2002197000,
+      "ops_per_sec": 24791.77,
+      "ops_per_sec_per_thread": 24791.77,
+      "cpu_ns_per_op": 40309.04,
+      "latency_ns": {
+       "median": 40000.0,
+       "mad": 0.0,
+       "p95": 43000.0,
+       "p99": 48000.0,
+       "min": 39000.0,
+       "max": 74000.0,
+       "mean": 40309.04,
+       "samples": 49638
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 48674,
+      "failures": 0,
+      "wall_ns": 2005976000,
+      "ops_per_sec": 24264.5,
+      "ops_per_sec_per_thread": 24264.5,
+      "cpu_ns_per_op": 41184.23,
+      "latency_ns": {
+       "median": 41000.0,
+       "mad": 0.0,
+       "p95": 44000.0,
+       "p99": 49000.0,
+       "min": 40000.0,
+       "max": 69000.0,
+       "mean": 41184.23,
+       "samples": 48674
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 122767,
+      "failures": 0,
+      "wall_ns": 2010059000,
+      "ops_per_sec": 61076.32,
+      "ops_per_sec_per_thread": 61076.32,
+      "cpu_ns_per_op": 16314.43,
+      "latency_ns": {
+       "median": 16000.0,
+       "mad": 0.0,
+       "p95": 18000.0,
+       "p99": 20000.0,
+       "min": 15000.0,
+       "max": 59000.0,
+       "mean": 16313.23,
+       "samples": 100000
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1174836,
+      "failures": 0,
+      "wall_ns": 2013992000,
+      "ops_per_sec": 583336.97,
+      "ops_per_sec_per_thread": 41666.93,
+      "cpu_ns_per_op": 23966.72,
+      "latency_ns": {
+       "median": 19000.0,
+       "mad": 1000.0,
+       "p95": 51000.0,
+       "p99": 54000.0,
+       "min": 16000.0,
+       "max": 6489000.0,
+       "mean": 23966.72,
+       "samples": 1174836
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 479156,
+      "failures": 0,
+      "wall_ns": 2011020000,
+      "ops_per_sec": 238265.16,
+      "ops_per_sec_per_thread": 17018.94,
+      "cpu_ns_per_op": 58715.78,
+      "latency_ns": {
+       "median": 47000.0,
+       "mad": 1000.0,
+       "p95": 138000.0,
+       "p99": 148000.0,
+       "min": 40000.0,
+       "max": 7866000.0,
+       "mean": 58715.78,
+       "samples": 479156
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 76963,
+      "failures": 0,
+      "wall_ns": 2010458000,
+      "ops_per_sec": 38281.33,
+      "ops_per_sec_per_thread": 38281.33,
+      "cpu_ns_per_op": 26084.96,
+      "latency_ns": {
+       "median": 20000.0,
+       "mad": 1000.0,
+       "p95": 51000.0,
+       "p99": 55000.0,
+       "min": 16000.0,
+       "max": 8016000.0,
+       "mean": 26084.96,
+       "samples": 76963
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 441523,
+      "failures": 0,
+      "wall_ns": 2010458000,
+      "ops_per_sec": 219613.14,
+      "ops_per_sec_per_thread": 15686.65,
+      "cpu_ns_per_op": 63684.61,
+      "latency_ns": {
+       "median": 48000.0,
+       "mad": 2000.0,
+       "p95": 138000.0,
+       "p99": 151000.0,
+       "min": 40000.0,
+       "max": 9840000.0,
+       "mean": 63684.61,
+       "samples": 441523
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 2.5,
+    "latency_ratio_per_session": 2.5,
+    "throughput_ratio_encoder_over_decoder": 2.4483,
+    "decoder_cores_per_encoder_core": 2.4483,
+    "contended_decoder_cores_per_encoder_core": 2.4404,
+    "rejection_vs_valid": 1.025,
+    "symmetric_by_construction": false,
+    "cheaper_side": "encoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 64,
+     "cost_ns": 40000.0,
+     "ns_per_byte": 625.0
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 64,
+     "cost_ns": 41000.0,
+     "ns_per_byte": 640.625
+    }
+   }
+  },
+  {
+   "alg": "ML-DSA-44",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 2,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 1312,
+    "secret_key": 2560,
+    "encoder_emits": 2420
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 13069,
+      "failures": 0,
+      "wall_ns": 2010201000,
+      "ops_per_sec": 6501.34,
+      "ops_per_sec_per_thread": 6501.34,
+      "cpu_ns_per_op": 153783.61,
+      "latency_ns": {
+       "median": 118000.0,
+       "mad": 54000.0,
+       "p95": 367000.0,
+       "p99": 538320.0,
+       "min": 60000.0,
+       "max": 1062000.0,
+       "mean": 153783.61,
+       "samples": 13069
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 55870,
+      "failures": 0,
+      "wall_ns": 2008798000,
+      "ops_per_sec": 27812.65,
+      "ops_per_sec_per_thread": 27812.65,
+      "cpu_ns_per_op": 35926.7,
+      "latency_ns": {
+       "median": 36000.0,
+       "mad": 1000.0,
+       "p95": 39000.0,
+       "p99": 43000.0,
+       "min": 35000.0,
+       "max": 66000.0,
+       "mean": 35926.7,
+       "samples": 55870
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 56049,
+      "failures": 0,
+      "wall_ns": 2010072000,
+      "ops_per_sec": 27884.08,
+      "ops_per_sec_per_thread": 27884.08,
+      "cpu_ns_per_op": 35834.54,
+      "latency_ns": {
+       "median": 35000.0,
+       "mad": 0.0,
+       "p95": 39000.0,
+       "p99": 43000.0,
+       "min": 35000.0,
+       "max": 80000.0,
+       "mean": 35834.54,
+       "samples": 56049
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 60807,
+      "failures": 0,
+      "wall_ns": 2002209000,
+      "ops_per_sec": 30369.96,
+      "ops_per_sec_per_thread": 30369.96,
+      "cpu_ns_per_op": 32897.94,
+      "latency_ns": {
+       "median": 33000.0,
+       "mad": 1000.0,
+       "p95": 36000.0,
+       "p99": 39000.0,
+       "min": 31000.0,
+       "max": 63000.0,
+       "mean": 32897.94,
+       "samples": 60807
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 137094,
+      "failures": 0,
+      "wall_ns": 2010799000,
+      "ops_per_sec": 68178.87,
+      "ops_per_sec_per_thread": 4869.92,
+      "cpu_ns_per_op": 205274.6,
+      "latency_ns": {
+       "median": 150000.0,
+       "mad": 68000.0,
+       "p95": 512000.0,
+       "p99": 873000.0,
+       "min": 63000.0,
+       "max": 7787000.0,
+       "mean": 205274.6,
+       "samples": 137094
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 564570,
+      "failures": 0,
+      "wall_ns": 2014052000,
+      "ops_per_sec": 280315.5,
+      "ops_per_sec_per_thread": 20022.54,
+      "cpu_ns_per_op": 49900.48,
+      "latency_ns": {
+       "median": 42000.0,
+       "mad": 1000.0,
+       "p95": 83000.0,
+       "p99": 96000.0,
+       "min": 36000.0,
+       "max": 5887000.0,
+       "mean": 49900.48,
+       "samples": 564570
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 8890,
+      "failures": 0,
+      "wall_ns": 2010439000,
+      "ops_per_sec": 4421.92,
+      "ops_per_sec_per_thread": 4421.92,
+      "cpu_ns_per_op": 226085.15,
+      "latency_ns": {
+       "median": 161000.0,
+       "mad": 70000.0,
+       "p95": 551550.0,
+       "p99": 1098660.0,
+       "min": 63000.0,
+       "max": 7760000.0,
+       "mean": 226085.15,
+       "samples": 8890
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 523485,
+      "failures": 0,
+      "wall_ns": 2010439000,
+      "ops_per_sec": 260383.43,
+      "ops_per_sec_per_thread": 18598.82,
+      "cpu_ns_per_op": 53700.45,
+      "latency_ns": {
+       "median": 43000.0,
+       "mad": 2000.0,
+       "p95": 83000.0,
+       "p99": 98000.0,
+       "min": 36000.0,
+       "max": 11806000.0,
+       "mean": 53700.45,
+       "samples": 523485
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.3051,
+    "latency_ratio_per_session": 0.3051,
+    "throughput_ratio_encoder_over_decoder": 0.2432,
+    "decoder_cores_per_encoder_core": 0.2432,
+    "contended_decoder_cores_per_encoder_core": 0.2378,
+    "rejection_vs_valid": 0.9722,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 2420,
+     "cost_ns": 36000.0,
+     "ns_per_byte": 14.876
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 2420,
+     "cost_ns": 35000.0,
+     "ns_per_byte": 14.4628
+    }
+   }
+  },
+  {
+   "alg": "ML-DSA-65",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 3,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 1952,
+    "secret_key": 4032,
+    "encoder_emits": 3309
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 7846,
+      "failures": 0,
+      "wall_ns": 2002254000,
+      "ops_per_sec": 3918.58,
+      "ops_per_sec_per_thread": 3918.58,
+      "cpu_ns_per_op": 255155.11,
+      "latency_ns": {
+       "median": 201000.0,
+       "mad": 86000.0,
+       "p95": 614750.0,
+       "p99": 905000.0,
+       "min": 90000.0,
+       "max": 1691000.0,
+       "mean": 255155.11,
+       "samples": 7846
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 34324,
+      "failures": 0,
+      "wall_ns": 2001832000,
+      "ops_per_sec": 17146.29,
+      "ops_per_sec_per_thread": 17146.29,
+      "cpu_ns_per_op": 58294.11,
+      "latency_ns": {
+       "median": 58000.0,
+       "mad": 1000.0,
+       "p95": 62000.0,
+       "p99": 67000.0,
+       "min": 56000.0,
+       "max": 113000.0,
+       "mean": 58294.11,
+       "samples": 34324
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 34230,
+      "failures": 0,
+      "wall_ns": 2010069000,
+      "ops_per_sec": 17029.27,
+      "ops_per_sec_per_thread": 17029.27,
+      "cpu_ns_per_op": 58694.13,
+      "latency_ns": {
+       "median": 58000.0,
+       "mad": 1000.0,
+       "p95": 63000.0,
+       "p99": 70000.0,
+       "min": 55000.0,
+       "max": 139000.0,
+       "mean": 58694.13,
+       "samples": 34230
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 30742,
+      "failures": 0,
+      "wall_ns": 2007627000,
+      "ops_per_sec": 15312.61,
+      "ops_per_sec_per_thread": 15312.61,
+      "cpu_ns_per_op": 65277.02,
+      "latency_ns": {
+       "median": 65000.0,
+       "mad": 1000.0,
+       "p95": 69000.0,
+       "p99": 74000.0,
+       "min": 63000.0,
+       "max": 162000.0,
+       "mean": 65277.02,
+       "samples": 30742
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 56269,
+      "failures": 0,
+      "wall_ns": 2006075000,
+      "ops_per_sec": 28049.3,
+      "ops_per_sec_per_thread": 2003.52,
+      "cpu_ns_per_op": 498829.14,
+      "latency_ns": {
+       "median": 252000.0,
+       "mad": 121000.0,
+       "p95": 1221000.0,
+       "p99": 4124000.0,
+       "min": 95000.0,
+       "max": 194629000.0,
+       "mean": 498829.14,
+       "samples": 56269
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 297970,
+      "failures": 0,
+      "wall_ns": 2005367000,
+      "ops_per_sec": 148586.27,
+      "ops_per_sec_per_thread": 10613.3,
+      "cpu_ns_per_op": 94093.4,
+      "latency_ns": {
+       "median": 67000.0,
+       "mad": 3000.0,
+       "p95": 153000.0,
+       "p99": 452000.0,
+       "min": 59000.0,
+       "max": 39343000.0,
+       "mean": 94093.4,
+       "samples": 297970
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 4503,
+      "failures": 0,
+      "wall_ns": 2005477000,
+      "ops_per_sec": 2245.35,
+      "ops_per_sec_per_thread": 2245.35,
+      "cpu_ns_per_op": 445220.3,
+      "latency_ns": {
+       "median": 278000.0,
+       "mad": 130000.0,
+       "p95": 1192900.0,
+       "p99": 3156840.0,
+       "min": 96000.0,
+       "max": 18806000.0,
+       "mean": 445220.3,
+       "samples": 4503
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 280796,
+      "failures": 0,
+      "wall_ns": 2005477000,
+      "ops_per_sec": 140014.57,
+      "ops_per_sec_per_thread": 10001.04,
+      "cpu_ns_per_op": 99854.46,
+      "latency_ns": {
+       "median": 71000.0,
+       "mad": 4000.0,
+       "p95": 154000.0,
+       "p99": 474000.0,
+       "min": 60000.0,
+       "max": 16612000.0,
+       "mean": 99854.46,
+       "samples": 280796
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.2886,
+    "latency_ratio_per_session": 0.2886,
+    "throughput_ratio_encoder_over_decoder": 0.1888,
+    "decoder_cores_per_encoder_core": 0.1888,
+    "contended_decoder_cores_per_encoder_core": 0.2245,
+    "rejection_vs_valid": 1.0,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 3309,
+     "cost_ns": 58000.0,
+     "ns_per_byte": 17.528
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 3309,
+     "cost_ns": 58000.0,
+     "ns_per_byte": 17.528
+    }
+   }
+  },
+  {
+   "alg": "ML-DSA-87",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 5,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 2592,
+    "secret_key": 4896,
+    "encoder_emits": 4627
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 6310,
+      "failures": 0,
+      "wall_ns": 2006037000,
+      "ops_per_sec": 3145.51,
+      "ops_per_sec_per_thread": 3145.51,
+      "cpu_ns_per_op": 317868.78,
+      "latency_ns": {
+       "median": 255000.0,
+       "mad": 108000.0,
+       "p95": 708000.0,
+       "p99": 1084820.0,
+       "min": 139000.0,
+       "max": 4432000.0,
+       "mean": 317868.78,
+       "samples": 6310
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 20905,
+      "failures": 0,
+      "wall_ns": 2005132000,
+      "ops_per_sec": 10425.75,
+      "ops_per_sec_per_thread": 10425.75,
+      "cpu_ns_per_op": 95883.62,
+      "latency_ns": {
+       "median": 94000.0,
+       "mad": 1000.0,
+       "p95": 103000.0,
+       "p99": 113000.0,
+       "min": 93000.0,
+       "max": 252000.0,
+       "mean": 95883.62,
+       "samples": 20905
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 20861,
+      "failures": 0,
+      "wall_ns": 2001010000,
+      "ops_per_sec": 10425.24,
+      "ops_per_sec_per_thread": 10425.24,
+      "cpu_ns_per_op": 95889.46,
+      "latency_ns": {
+       "median": 94000.0,
+       "mad": 0.0,
+       "p95": 102000.0,
+       "p99": 111000.0,
+       "min": 93000.0,
+       "max": 211000.0,
+       "mean": 95889.46,
+       "samples": 20861
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 21713,
+      "failures": 0,
+      "wall_ns": 2004429000,
+      "ops_per_sec": 10832.51,
+      "ops_per_sec_per_thread": 10832.51,
+      "cpu_ns_per_op": 92280.52,
+      "latency_ns": {
+       "median": 90000.0,
+       "mad": 1000.0,
+       "p95": 100000.0,
+       "p99": 114000.0,
+       "min": 88000.0,
+       "max": 187000.0,
+       "mean": 92280.52,
+       "samples": 21713
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 62676,
+      "failures": 0,
+      "wall_ns": 2006038000,
+      "ops_per_sec": 31243.68,
+      "ops_per_sec_per_thread": 2231.69,
+      "cpu_ns_per_op": 447933.82,
+      "latency_ns": {
+       "median": 321000.0,
+       "mad": 146000.0,
+       "p95": 1107000.0,
+       "p99": 2246250.0,
+       "min": 146000.0,
+       "max": 19171000.0,
+       "mean": 447933.82,
+       "samples": 62676
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 195957,
+      "failures": 0,
+      "wall_ns": 2003973000,
+      "ops_per_sec": 97784.25,
+      "ops_per_sec_per_thread": 6984.59,
+      "cpu_ns_per_op": 143100.53,
+      "latency_ns": {
+       "median": 115000.0,
+       "mad": 5000.0,
+       "p95": 233000.0,
+       "p99": 537000.0,
+       "min": 98000.0,
+       "max": 12897000.0,
+       "mean": 143100.53,
+       "samples": 195957
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 4035,
+      "failures": 0,
+      "wall_ns": 2005489000,
+      "ops_per_sec": 2011.98,
+      "ops_per_sec_per_thread": 2011.98,
+      "cpu_ns_per_op": 496928.87,
+      "latency_ns": {
+       "median": 333000.0,
+       "mad": 150000.0,
+       "p95": 1200900.0,
+       "p99": 3237080.0,
+       "min": 147000.0,
+       "max": 13328000.0,
+       "mean": 496928.87,
+       "samples": 4035
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 181815,
+      "failures": 0,
+      "wall_ns": 2005489000,
+      "ops_per_sec": 90658.69,
+      "ops_per_sec_per_thread": 6475.62,
+      "cpu_ns_per_op": 154299.21,
+      "latency_ns": {
+       "median": 115000.0,
+       "mad": 2000.0,
+       "p95": 235000.0,
+       "p99": 664860.0,
+       "min": 98000.0,
+       "max": 20105000.0,
+       "mean": 154299.21,
+       "samples": 181815
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.3686,
+    "latency_ratio_per_session": 0.3686,
+    "throughput_ratio_encoder_over_decoder": 0.3195,
+    "decoder_cores_per_encoder_core": 0.3195,
+    "contended_decoder_cores_per_encoder_core": 0.3107,
+    "rejection_vs_valid": 1.0,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 4627,
+     "cost_ns": 94000.0,
+     "ns_per_byte": 20.3155
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 4627,
+     "cost_ns": 94000.0,
+     "ns_per_byte": 20.3155
+    }
+   }
+  },
+  {
+   "alg": "Falcon-512",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 1,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 897,
+    "secret_key": 1281,
+    "encoder_emits": 752
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 18761,
+      "failures": 0,
+      "wall_ns": 2005109000,
+      "ops_per_sec": 9356.6,
+      "ops_per_sec_per_thread": 9356.6,
+      "cpu_ns_per_op": 106846.97,
+      "latency_ns": {
+       "median": 106000.0,
+       "mad": 2000.0,
+       "p95": 114000.0,
+       "p99": 119000.0,
+       "min": 98000.0,
+       "max": 207000.0,
+       "mean": 106846.97,
+       "samples": 18761
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 122122,
+      "failures": 0,
+      "wall_ns": 2005050000,
+      "ops_per_sec": 60907.21,
+      "ops_per_sec_per_thread": 60907.21,
+      "cpu_ns_per_op": 16381.03,
+      "latency_ns": {
+       "median": 16000.0,
+       "mad": 0.0,
+       "p95": 18000.0,
+       "p99": 21000.0,
+       "min": 15000.0,
+       "max": 85000.0,
+       "mean": 16379.84,
+       "samples": 100000
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 121707,
+      "failures": 0,
+      "wall_ns": 2005064000,
+      "ops_per_sec": 60699.81,
+      "ops_per_sec_per_thread": 60699.81,
+      "cpu_ns_per_op": 16433.29,
+      "latency_ns": {
+       "median": 16000.0,
+       "mad": 0.0,
+       "p95": 18000.0,
+       "p99": 23000.0,
+       "min": 15000.0,
+       "max": 88000.0,
+       "mean": 16431.2,
+       "samples": 100000
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 636,
+      "failures": 0,
+      "wall_ns": 2006066000,
+      "ops_per_sec": 317.04,
+      "ops_per_sec_per_thread": 317.04,
+      "cpu_ns_per_op": 3154044.03,
+      "latency_ns": {
+       "median": 2929500.0,
+       "mad": 361500.0,
+       "p95": 4541250.0,
+       "p99": 5684800.0,
+       "min": 2407000.0,
+       "max": 8587000.0,
+       "mean": 3154044.03,
+       "samples": 636
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 191157,
+      "failures": 0,
+      "wall_ns": 2008597000,
+      "ops_per_sec": 95169.41,
+      "ops_per_sec_per_thread": 6797.82,
+      "cpu_ns_per_op": 147051.52,
+      "latency_ns": {
+       "median": 117000.0,
+       "mad": 3000.0,
+       "p95": 245000.0,
+       "p99": 577000.0,
+       "min": 103000.0,
+       "max": 23035000.0,
+       "mean": 147051.52,
+       "samples": 191157
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1139930,
+      "failures": 0,
+      "wall_ns": 2007965000,
+      "ops_per_sec": 567704.12,
+      "ops_per_sec_per_thread": 40550.29,
+      "cpu_ns_per_op": 24620.04,
+      "latency_ns": {
+       "median": 19000.0,
+       "mad": 1000.0,
+       "p95": 40000.0,
+       "p99": 56000.0,
+       "min": 16000.0,
+       "max": 27558000.0,
+       "mean": 24620.04,
+       "samples": 1139930
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 12185,
+      "failures": 0,
+      "wall_ns": 2005381000,
+      "ops_per_sec": 6076.15,
+      "ops_per_sec_per_thread": 6076.15,
+      "cpu_ns_per_op": 164524.0,
+      "latency_ns": {
+       "median": 128000.0,
+       "mad": 5000.0,
+       "p95": 238000.0,
+       "p99": 639240.0,
+       "min": 105000.0,
+       "max": 22147000.0,
+       "mean": 164524.0,
+       "samples": 12185
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1052239,
+      "failures": 0,
+      "wall_ns": 2005381000,
+      "ops_per_sec": 524707.77,
+      "ops_per_sec_per_thread": 37479.13,
+      "cpu_ns_per_op": 26629.63,
+      "latency_ns": {
+       "median": 20000.0,
+       "mad": 1000.0,
+       "p95": 40000.0,
+       "p99": 57000.0,
+       "min": 16000.0,
+       "max": 30520000.0,
+       "mean": 26629.63,
+       "samples": 1052239
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.1509,
+    "latency_ratio_per_session": 0.1509,
+    "throughput_ratio_encoder_over_decoder": 0.1676,
+    "decoder_cores_per_encoder_core": 0.1676,
+    "contended_decoder_cores_per_encoder_core": 0.1621,
+    "rejection_vs_valid": 1.0,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 752,
+     "cost_ns": 16000.0,
+     "ns_per_byte": 21.2766
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 752,
+     "cost_ns": 16000.0,
+     "ns_per_byte": 21.2766
+    }
+   }
+  },
+  {
+   "alg": "Falcon-1024",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 5,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 1793,
+    "secret_key": 2305,
+    "encoder_emits": 1462
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 9333,
+      "failures": 0,
+      "wall_ns": 2001669000,
+      "ops_per_sec": 4662.61,
+      "ops_per_sec_per_thread": 4662.61,
+      "cpu_ns_per_op": 214438.44,
+      "latency_ns": {
+       "median": 213000.0,
+       "mad": 4000.0,
+       "p95": 227000.0,
+       "p99": 238000.0,
+       "min": 199000.0,
+       "max": 308000.0,
+       "mean": 214438.44,
+       "samples": 9333
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 61689,
+      "failures": 0,
+      "wall_ns": 2002308000,
+      "ops_per_sec": 30808.95,
+      "ops_per_sec_per_thread": 30808.95,
+      "cpu_ns_per_op": 32431.47,
+      "latency_ns": {
+       "median": 32000.0,
+       "mad": 0.0,
+       "p95": 35000.0,
+       "p99": 41000.0,
+       "min": 31000.0,
+       "max": 136000.0,
+       "mean": 32431.47,
+       "samples": 61689
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 61549,
+      "failures": 0,
+      "wall_ns": 2005042000,
+      "ops_per_sec": 30697.11,
+      "ops_per_sec_per_thread": 30697.11,
+      "cpu_ns_per_op": 32551.66,
+      "latency_ns": {
+       "median": 32000.0,
+       "mad": 0.0,
+       "p95": 36000.0,
+       "p99": 41000.0,
+       "min": 31000.0,
+       "max": 200000.0,
+       "mean": 32551.66,
+       "samples": 61549
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 203,
+      "failures": 0,
+      "wall_ns": 2013743000,
+      "ops_per_sec": 100.81,
+      "ops_per_sec_per_thread": 100.81,
+      "cpu_ns_per_op": 9919620.69,
+      "latency_ns": {
+       "median": 9258000.0,
+       "mad": 790000.0,
+       "p95": 15213800.0,
+       "p99": 17077860.0,
+       "min": 8074000.0,
+       "max": 19646000.0,
+       "mean": 9919620.69,
+       "samples": 203
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 96365,
+      "failures": 0,
+      "wall_ns": 2005593000,
+      "ops_per_sec": 48048.13,
+      "ops_per_sec_per_thread": 3432.01,
+      "cpu_ns_per_op": 291277.84,
+      "latency_ns": {
+       "median": 234000.0,
+       "mad": 4000.0,
+       "p95": 517000.0,
+       "p99": 1308000.0,
+       "min": 210000.0,
+       "max": 12938000.0,
+       "mean": 291277.84,
+       "samples": 96365
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 574140,
+      "failures": 0,
+      "wall_ns": 2006010000,
+      "ops_per_sec": 286209.94,
+      "ops_per_sec_per_thread": 20443.57,
+      "cpu_ns_per_op": 48860.26,
+      "latency_ns": {
+       "median": 39000.0,
+       "mad": 2000.0,
+       "p95": 80000.0,
+       "p99": 148000.0,
+       "min": 33000.0,
+       "max": 15325000.0,
+       "mean": 48860.26,
+       "samples": 574140
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 5806,
+      "failures": 0,
+      "wall_ns": 2005455000,
+      "ops_per_sec": 2895.1,
+      "ops_per_sec_per_thread": 2895.1,
+      "cpu_ns_per_op": 345343.78,
+      "latency_ns": {
+       "median": 257000.0,
+       "mad": 10000.0,
+       "p95": 550000.0,
+       "p99": 1706100.0,
+       "min": 218000.0,
+       "max": 18437000.0,
+       "mean": 345343.78,
+       "samples": 5806
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 532595,
+      "failures": 0,
+      "wall_ns": 2005455000,
+      "ops_per_sec": 265573.15,
+      "ops_per_sec_per_thread": 18969.51,
+      "cpu_ns_per_op": 52627.99,
+      "latency_ns": {
+       "median": 39000.0,
+       "mad": 2000.0,
+       "p95": 80000.0,
+       "p99": 155000.0,
+       "min": 33000.0,
+       "max": 19906000.0,
+       "mean": 52627.99,
+       "samples": 532595
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.1502,
+    "latency_ratio_per_session": 0.1502,
+    "throughput_ratio_encoder_over_decoder": 0.1679,
+    "decoder_cores_per_encoder_core": 0.1679,
+    "contended_decoder_cores_per_encoder_core": 0.1526,
+    "rejection_vs_valid": 1.0,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 1462,
+     "cost_ns": 32000.0,
+     "ns_per_byte": 21.8878
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 1462,
+     "cost_ns": 32000.0,
+     "ns_per_byte": 21.8878
+    }
+   }
+  },
+  {
+   "alg": "SLH_DSA_PURE_SHA2_128F",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 1,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 32,
+    "secret_key": 64,
+    "encoder_emits": 17088
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 174,
+      "failures": 0,
+      "wall_ns": 2014275000,
+      "ops_per_sec": 86.38,
+      "ops_per_sec_per_thread": 86.38,
+      "cpu_ns_per_op": 11575885.06,
+      "latency_ns": {
+       "median": 11518000.0,
+       "mad": 58000.0,
+       "p95": 11899050.0,
+       "p99": 12029360.0,
+       "min": 11395000.0,
+       "max": 12107000.0,
+       "mean": 11575885.06,
+       "samples": 174
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2937,
+      "failures": 0,
+      "wall_ns": 2003606000,
+      "ops_per_sec": 1465.86,
+      "ops_per_sec_per_thread": 1465.86,
+      "cpu_ns_per_op": 682152.54,
+      "latency_ns": {
+       "median": 678000.0,
+       "mad": 9000.0,
+       "p95": 712000.0,
+       "p99": 731640.0,
+       "min": 666000.0,
+       "max": 771000.0,
+       "mean": 682152.54,
+       "samples": 2937
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2937,
+      "failures": 0,
+      "wall_ns": 2005678000,
+      "ops_per_sec": 1464.34,
+      "ops_per_sec_per_thread": 1464.34,
+      "cpu_ns_per_op": 682853.93,
+      "latency_ns": {
+       "median": 679000.0,
+       "mad": 8000.0,
+       "p95": 713000.0,
+       "p99": 732000.0,
+       "min": 668000.0,
+       "max": 804000.0,
+       "mean": 682853.93,
+       "samples": 2937
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 4018,
+      "failures": 0,
+      "wall_ns": 2000391000,
+      "ops_per_sec": 2008.61,
+      "ops_per_sec_per_thread": 2008.61,
+      "cpu_ns_per_op": 497812.59,
+      "latency_ns": {
+       "median": 492000.0,
+       "mad": 7000.0,
+       "p95": 519000.0,
+       "p99": 539000.0,
+       "min": 483000.0,
+       "max": 5579000.0,
+       "mean": 497812.59,
+       "samples": 4018
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1751,
+      "failures": 0,
+      "wall_ns": 2021756000,
+      "ops_per_sec": 866.08,
+      "ops_per_sec_per_thread": 61.86,
+      "cpu_ns_per_op": 16114330.67,
+      "latency_ns": {
+       "median": 12663000.0,
+       "mad": 228000.0,
+       "p95": 29611500.0,
+       "p99": 38443000.0,
+       "min": 11906000.0,
+       "max": 73855000.0,
+       "mean": 16114330.67,
+       "samples": 1751
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 28482,
+      "failures": 0,
+      "wall_ns": 2007090000,
+      "ops_per_sec": 14190.69,
+      "ops_per_sec_per_thread": 1013.62,
+      "cpu_ns_per_op": 986023.8,
+      "latency_ns": {
+       "median": 773000.0,
+       "mad": 19000.0,
+       "p95": 2350000.0,
+       "p99": 4047380.0,
+       "min": 683000.0,
+       "max": 40054000.0,
+       "mean": 986023.8,
+       "samples": 28482
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 115,
+      "failures": 0,
+      "wall_ns": 2006043000,
+      "ops_per_sec": 57.33,
+      "ops_per_sec_per_thread": 57.33,
+      "cpu_ns_per_op": 17441652.17,
+      "latency_ns": {
+       "median": 13161000.0,
+       "mad": 551000.0,
+       "p95": 31609300.0,
+       "p99": 41389540.0,
+       "min": 11946000.0,
+       "max": 42712000.0,
+       "mean": 17441652.17,
+       "samples": 115
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 26170,
+      "failures": 0,
+      "wall_ns": 2006043000,
+      "ops_per_sec": 13045.58,
+      "ops_per_sec_per_thread": 931.83,
+      "cpu_ns_per_op": 1072253.0,
+      "latency_ns": {
+       "median": 775000.0,
+       "mad": 22000.0,
+       "p95": 2590100.0,
+       "p99": 6305170.0,
+       "min": 684000.0,
+       "max": 21128000.0,
+       "mean": 1072253.0,
+       "samples": 26170
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.0589,
+    "latency_ratio_per_session": 0.0589,
+    "throughput_ratio_encoder_over_decoder": 0.061,
+    "decoder_cores_per_encoder_core": 0.061,
+    "contended_decoder_cores_per_encoder_core": 0.0615,
+    "rejection_vs_valid": 1.0015,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 17088,
+     "cost_ns": 678000.0,
+     "ns_per_byte": 39.677
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 17088,
+     "cost_ns": 679000.0,
+     "ns_per_byte": 39.7355
+    }
+   }
+  },
+  {
+   "alg": "SLH_DSA_PURE_SHA2_128S",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 1,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 32,
+    "secret_key": 64,
+    "encoder_emits": 7856
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 9,
+      "failures": 0,
+      "wall_ns": 2166381000,
+      "ops_per_sec": 4.15,
+      "ops_per_sec_per_thread": 4.15,
+      "cpu_ns_per_op": 240701222.22,
+      "latency_ns": {
+       "median": 240343000.0,
+       "mad": 242000.0,
+       "p95": 241801800.0,
+       "p99": 242061960.0,
+       "min": 240101000.0,
+       "max": 242127000.0,
+       "mean": 240701222.22,
+       "samples": 9
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 8497,
+      "failures": 0,
+      "wall_ns": 2003559000,
+      "ops_per_sec": 4240.95,
+      "ops_per_sec_per_thread": 4240.95,
+      "cpu_ns_per_op": 235761.45,
+      "latency_ns": {
+       "median": 234000.0,
+       "mad": 3000.0,
+       "p95": 248000.0,
+       "p99": 258000.0,
+       "min": 230000.0,
+       "max": 337000.0,
+       "mean": 235761.45,
+       "samples": 8497
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 8252,
+      "failures": 0,
+      "wall_ns": 2000467000,
+      "ops_per_sec": 4125.04,
+      "ops_per_sec_per_thread": 4125.04,
+      "cpu_ns_per_op": 242388.03,
+      "latency_ns": {
+       "median": 240000.0,
+       "mad": 3000.0,
+       "p95": 255000.0,
+       "p99": 267000.0,
+       "min": 236000.0,
+       "max": 356000.0,
+       "mean": 242388.03,
+       "samples": 8252
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 64,
+      "failures": 0,
+      "wall_ns": 2015682000,
+      "ops_per_sec": 31.75,
+      "ops_per_sec_per_thread": 31.75,
+      "cpu_ns_per_op": 31494218.75,
+      "latency_ns": {
+       "median": 31371500.0,
+       "mad": 153500.0,
+       "p95": 32098450.0,
+       "p99": 32271850.0,
+       "min": 31115000.0,
+       "max": 32401000.0,
+       "mean": 31494218.75,
+       "samples": 64
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 92,
+      "failures": 0,
+      "wall_ns": 2239088000,
+      "ops_per_sec": 41.09,
+      "ops_per_sec_per_thread": 2.93,
+      "cpu_ns_per_op": 325064000.0,
+      "latency_ns": {
+       "median": 318125500.0,
+       "mad": 23020500.0,
+       "p95": 420917800.0,
+       "p99": 477124360.0,
+       "min": 258365000.0,
+       "max": 482224000.0,
+       "mean": 325064000.0,
+       "samples": 92
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 84731,
+      "failures": 0,
+      "wall_ns": 2002879000,
+      "ops_per_sec": 42304.6,
+      "ops_per_sec_per_thread": 3021.76,
+      "cpu_ns_per_op": 330663.48,
+      "latency_ns": {
+       "median": 259000.0,
+       "mad": 7000.0,
+       "p95": 716000.0,
+       "p99": 1434000.0,
+       "min": 235000.0,
+       "max": 19218000.0,
+       "mean": 330663.48,
+       "samples": 84731
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 6,
+      "failures": 0,
+      "wall_ns": 2189652000,
+      "ops_per_sec": 2.74,
+      "ops_per_sec_per_thread": 2.74,
+      "cpu_ns_per_op": 364922333.33,
+      "latency_ns": {
+       "median": 385432500.0,
+       "mad": 11005000.0,
+       "p95": 397254750.0,
+       "p99": 397908550.0,
+       "min": 256692000.0,
+       "max": 398072000.0,
+       "mean": 364922333.33,
+       "samples": 6
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 78248,
+      "failures": 0,
+      "wall_ns": 2189652000,
+      "ops_per_sec": 35735.36,
+      "ops_per_sec_per_thread": 2552.53,
+      "cpu_ns_per_op": 358340.28,
+      "latency_ns": {
+       "median": 263000.0,
+       "mad": 7000.0,
+       "p95": 719000.0,
+       "p99": 2157120.0,
+       "min": 235000.0,
+       "max": 23083000.0,
+       "mean": 358340.28,
+       "samples": 78248
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.001,
+    "latency_ratio_per_session": 0.001,
+    "throughput_ratio_encoder_over_decoder": 0.001,
+    "decoder_cores_per_encoder_core": 0.001,
+    "contended_decoder_cores_per_encoder_core": 0.0011,
+    "rejection_vs_valid": 1.0256,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 7856,
+     "cost_ns": 234000.0,
+     "ns_per_byte": 29.7862
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 7856,
+     "cost_ns": 240000.0,
+     "ns_per_byte": 30.5499
+    }
+   }
+  },
+  {
+   "alg": "SLH_DSA_PURE_SHA2_192F",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 3,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 48,
+    "secret_key": 96,
+    "encoder_emits": 35664
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 107,
+      "failures": 0,
+      "wall_ns": 2019641000,
+      "ops_per_sec": 52.98,
+      "ops_per_sec_per_thread": 52.98,
+      "cpu_ns_per_op": 18874542.06,
+      "latency_ns": {
+       "median": 18788000.0,
+       "mad": 135000.0,
+       "p95": 19430100.0,
+       "p99": 19575340.0,
+       "min": 18575000.0,
+       "max": 19853000.0,
+       "mean": 18874542.06,
+       "samples": 107
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 1934,
+      "failures": 0,
+      "wall_ns": 2002079000,
+      "ops_per_sec": 966.0,
+      "ops_per_sec_per_thread": 966.0,
+      "cpu_ns_per_op": 1035154.6,
+      "latency_ns": {
+       "median": 1029000.0,
+       "mad": 9000.0,
+       "p95": 1077000.0,
+       "p99": 1093670.0,
+       "min": 1015000.0,
+       "max": 1128000.0,
+       "mean": 1035154.6,
+       "samples": 1934
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 1978,
+      "failures": 0,
+      "wall_ns": 2004924000,
+      "ops_per_sec": 986.57,
+      "ops_per_sec_per_thread": 986.57,
+      "cpu_ns_per_op": 1013549.04,
+      "latency_ns": {
+       "median": 1006000.0,
+       "mad": 13000.0,
+       "p95": 1060000.0,
+       "p99": 1091000.0,
+       "min": 986000.0,
+       "max": 1154000.0,
+       "mean": 1013549.04,
+       "samples": 1978
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2803,
+      "failures": 0,
+      "wall_ns": 2005397000,
+      "ops_per_sec": 1397.73,
+      "ops_per_sec_per_thread": 1397.73,
+      "cpu_ns_per_op": 715399.22,
+      "latency_ns": {
+       "median": 711000.0,
+       "mad": 8000.0,
+       "p95": 746000.0,
+       "p99": 760980.0,
+       "min": 700000.0,
+       "max": 811000.0,
+       "mean": 715399.22,
+       "samples": 2803
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1041,
+      "failures": 0,
+      "wall_ns": 2026956000,
+      "ops_per_sec": 513.58,
+      "ops_per_sec_per_thread": 36.68,
+      "cpu_ns_per_op": 27140399.62,
+      "latency_ns": {
+       "median": 23974000.0,
+       "mad": 3781000.0,
+       "p95": 42519000.0,
+       "p99": 72187400.0,
+       "min": 19387000.0,
+       "max": 174422000.0,
+       "mean": 27140399.62,
+       "samples": 1041
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 19446,
+      "failures": 0,
+      "wall_ns": 2003369000,
+      "ops_per_sec": 9706.65,
+      "ops_per_sec_per_thread": 693.33,
+      "cpu_ns_per_op": 1439766.43,
+      "latency_ns": {
+       "median": 1110000.0,
+       "mad": 31000.0,
+       "p95": 3179750.0,
+       "p99": 5127100.0,
+       "min": 1012000.0,
+       "max": 119424000.0,
+       "mean": 1439766.43,
+       "samples": 19446
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 71,
+      "failures": 0,
+      "wall_ns": 2019067000,
+      "ops_per_sec": 35.16,
+      "ops_per_sec_per_thread": 35.16,
+      "cpu_ns_per_op": 28435943.66,
+      "latency_ns": {
+       "median": 27210000.0,
+       "mad": 6583000.0,
+       "p95": 44348500.0,
+       "p99": 48090000.0,
+       "min": 20311000.0,
+       "max": 51569000.0,
+       "mean": 28435943.66,
+       "samples": 71
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 18220,
+      "failures": 0,
+      "wall_ns": 2019067000,
+      "ops_per_sec": 9023.97,
+      "ops_per_sec_per_thread": 644.57,
+      "cpu_ns_per_op": 1540576.23,
+      "latency_ns": {
+       "median": 1119000.0,
+       "mad": 24000.0,
+       "p95": 3670100.0,
+       "p99": 7519050.0,
+       "min": 1011000.0,
+       "max": 21619000.0,
+       "mean": 1540576.23,
+       "samples": 18220
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.0548,
+    "latency_ratio_per_session": 0.0548,
+    "throughput_ratio_encoder_over_decoder": 0.0529,
+    "decoder_cores_per_encoder_core": 0.0529,
+    "contended_decoder_cores_per_encoder_core": 0.0546,
+    "rejection_vs_valid": 0.9776,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 35664,
+     "cost_ns": 1029000.0,
+     "ns_per_byte": 28.8526
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 35664,
+     "cost_ns": 1006000.0,
+     "ns_per_byte": 28.2077
+    }
+   }
+  },
+  {
+   "alg": "SLH_DSA_PURE_SHA2_256F",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 5,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 64,
+    "secret_key": 128,
+    "encoder_emits": 49856
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 52,
+      "failures": 0,
+      "wall_ns": 2020671000,
+      "ops_per_sec": 25.73,
+      "ops_per_sec_per_thread": 25.73,
+      "cpu_ns_per_op": 38858211.54,
+      "latency_ns": {
+       "median": 38747000.0,
+       "mad": 161000.0,
+       "p95": 39595500.0,
+       "p99": 39842280.0,
+       "min": 38395000.0,
+       "max": 39981000.0,
+       "mean": 38858211.54,
+       "samples": 52
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 1946,
+      "failures": 0,
+      "wall_ns": 2005228000,
+      "ops_per_sec": 970.46,
+      "ops_per_sec_per_thread": 970.46,
+      "cpu_ns_per_op": 1030387.46,
+      "latency_ns": {
+       "median": 1024000.0,
+       "mad": 10000.0,
+       "p95": 1074000.0,
+       "p99": 1089000.0,
+       "min": 1008000.0,
+       "max": 1127000.0,
+       "mean": 1030387.46,
+       "samples": 1946
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 1876,
+      "failures": 0,
+      "wall_ns": 2002574000,
+      "ops_per_sec": 936.79,
+      "ops_per_sec_per_thread": 936.79,
+      "cpu_ns_per_op": 1067429.1,
+      "latency_ns": {
+       "median": 1058000.0,
+       "mad": 12000.0,
+       "p95": 1113000.0,
+       "p99": 1152500.0,
+       "min": 1040000.0,
+       "max": 1733000.0,
+       "mean": 1067429.1,
+       "samples": 1876
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 1058,
+      "failures": 0,
+      "wall_ns": 2006390000,
+      "ops_per_sec": 527.32,
+      "ops_per_sec_per_thread": 527.32,
+      "cpu_ns_per_op": 1896323.25,
+      "latency_ns": {
+       "median": 1885000.0,
+       "mad": 15000.0,
+       "p95": 1965000.0,
+       "p99": 1993000.0,
+       "min": 1858000.0,
+       "max": 2058000.0,
+       "mean": 1896323.25,
+       "samples": 1058
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 534,
+      "failures": 0,
+      "wall_ns": 2045659000,
+      "ops_per_sec": 261.04,
+      "ops_per_sec_per_thread": 18.65,
+      "cpu_ns_per_op": 53138816.48,
+      "latency_ns": {
+       "median": 51302000.0,
+       "mad": 7608500.0,
+       "p95": 71819900.0,
+       "p99": 88178490.0,
+       "min": 40041000.0,
+       "max": 115938000.0,
+       "mean": 53138816.48,
+       "samples": 534
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 19654,
+      "failures": 0,
+      "wall_ns": 2008887000,
+      "ops_per_sec": 9783.53,
+      "ops_per_sec_per_thread": 698.82,
+      "cpu_ns_per_op": 1430541.16,
+      "latency_ns": {
+       "median": 1128000.0,
+       "mad": 28000.0,
+       "p95": 3250350.0,
+       "p99": 4835350.0,
+       "min": 1038000.0,
+       "max": 27344000.0,
+       "mean": 1430541.16,
+       "samples": 19654
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 36,
+      "failures": 0,
+      "wall_ns": 2031544000,
+      "ops_per_sec": 17.72,
+      "ops_per_sec_per_thread": 17.72,
+      "cpu_ns_per_op": 56428111.11,
+      "latency_ns": {
+       "median": 56782000.0,
+       "mad": 8724000.0,
+       "p95": 72493250.0,
+       "p99": 82664600.0,
+       "min": 42382000.0,
+       "max": 88112000.0,
+       "mean": 56428111.11,
+       "samples": 36
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 18069,
+      "failures": 0,
+      "wall_ns": 2031544000,
+      "ops_per_sec": 8894.22,
+      "ops_per_sec_per_thread": 635.3,
+      "cpu_ns_per_op": 1553287.68,
+      "latency_ns": {
+       "median": 1138000.0,
+       "mad": 23000.0,
+       "p95": 3672800.0,
+       "p99": 8169080.0,
+       "min": 1039000.0,
+       "max": 23094000.0,
+       "mean": 1553287.68,
+       "samples": 18069
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.0264,
+    "latency_ratio_per_session": 0.0264,
+    "throughput_ratio_encoder_over_decoder": 0.0267,
+    "decoder_cores_per_encoder_core": 0.0267,
+    "contended_decoder_cores_per_encoder_core": 0.0279,
+    "rejection_vs_valid": 1.0332,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 49856,
+     "cost_ns": 1024000.0,
+     "ns_per_byte": 20.5392
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 49856,
+     "cost_ns": 1058000.0,
+     "ns_per_byte": 21.2211
+    }
+   }
+  },
+  {
+   "alg": "SPHINCS+-SHA2-128f-simple",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 1,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 32,
+    "secret_key": 64,
+    "encoder_emits": 17088
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 206,
+      "failures": 0,
+      "wall_ns": 2007022000,
+      "ops_per_sec": 102.64,
+      "ops_per_sec_per_thread": 102.64,
+      "cpu_ns_per_op": 9742475.73,
+      "latency_ns": {
+       "median": 9711500.0,
+       "mad": 127500.0,
+       "p95": 10118750.0,
+       "p99": 10407000.0,
+       "min": 9305000.0,
+       "max": 10498000.0,
+       "mean": 9742475.73,
+       "samples": 206
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 3278,
+      "failures": 0,
+      "wall_ns": 2005252000,
+      "ops_per_sec": 1634.71,
+      "ops_per_sec_per_thread": 1634.71,
+      "cpu_ns_per_op": 611688.83,
+      "latency_ns": {
+       "median": 609000.0,
+       "mad": 12000.0,
+       "p95": 642000.0,
+       "p99": 659000.0,
+       "min": 583000.0,
+       "max": 710000.0,
+       "mean": 611688.83,
+       "samples": 3278
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 3486,
+      "failures": 0,
+      "wall_ns": 2005236000,
+      "ops_per_sec": 1738.45,
+      "ops_per_sec_per_thread": 1738.45,
+      "cpu_ns_per_op": 575183.59,
+      "latency_ns": {
+       "median": 573000.0,
+       "mad": 10000.0,
+       "p95": 604000.0,
+       "p99": 620000.0,
+       "min": 545000.0,
+       "max": 667000.0,
+       "mean": 575183.59,
+       "samples": 3486
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 4819,
+      "failures": 0,
+      "wall_ns": 2002984000,
+      "ops_per_sec": 2405.91,
+      "ops_per_sec_per_thread": 2405.91,
+      "cpu_ns_per_op": 415597.43,
+      "latency_ns": {
+       "median": 413000.0,
+       "mad": 8000.0,
+       "p95": 439000.0,
+       "p99": 457000.0,
+       "min": 392000.0,
+       "max": 649000.0,
+       "mean": 415597.43,
+       "samples": 4819
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 123,
+      "failures": 0,
+      "wall_ns": 2165469000,
+      "ops_per_sec": 56.8,
+      "ops_per_sec_per_thread": 4.06,
+      "cpu_ns_per_op": 243130886.18,
+      "latency_ns": {
+       "median": 246044000.0,
+       "mad": 5649000.0,
+       "p95": 258177100.0,
+       "p99": 291150600.0,
+       "min": 165160000.0,
+       "max": 307433000.0,
+       "mean": 243130886.18,
+       "samples": 123
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1918,
+      "failures": 0,
+      "wall_ns": 2011577000,
+      "ops_per_sec": 953.48,
+      "ops_per_sec_per_thread": 68.11,
+      "cpu_ns_per_op": 14668640.25,
+      "latency_ns": {
+       "median": 14365000.0,
+       "mad": 670000.0,
+       "p95": 18110400.0,
+       "p99": 24234320.0,
+       "min": 1320000.0,
+       "max": 60194000.0,
+       "mean": 14668640.25,
+       "samples": 1918
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 8,
+      "failures": 0,
+      "wall_ns": 2008522000,
+      "ops_per_sec": 3.98,
+      "ops_per_sec_per_thread": 3.98,
+      "cpu_ns_per_op": 251051125.0,
+      "latency_ns": {
+       "median": 263306000.0,
+       "mad": 5215500.0,
+       "p95": 270316000.0,
+       "p99": 271380000.0,
+       "min": 167648000.0,
+       "max": 271646000.0,
+       "mean": 251051125.0,
+       "samples": 8
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1788,
+      "failures": 0,
+      "wall_ns": 2008522000,
+      "ops_per_sec": 890.21,
+      "ops_per_sec_per_thread": 63.59,
+      "cpu_ns_per_op": 15677140.38,
+      "latency_ns": {
+       "median": 14534500.0,
+       "mad": 1113500.0,
+       "p95": 23147550.0,
+       "p99": 28170350.0,
+       "min": 5495000.0,
+       "max": 37875000.0,
+       "mean": 15677140.38,
+       "samples": 1788
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.0627,
+    "latency_ratio_per_session": 0.0627,
+    "throughput_ratio_encoder_over_decoder": 0.0596,
+    "decoder_cores_per_encoder_core": 0.0596,
+    "contended_decoder_cores_per_encoder_core": 0.0626,
+    "rejection_vs_valid": 0.9409,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 17088,
+     "cost_ns": 609000.0,
+     "ns_per_byte": 35.639
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 17088,
+     "cost_ns": 573000.0,
+     "ns_per_byte": 33.5323
+    }
+   }
+  },
+  {
+   "alg": "SPHINCS+-SHA2-128s-simple",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 1,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 32,
+    "secret_key": 64,
+    "encoder_emits": 7856
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 11,
+      "failures": 0,
+      "wall_ns": 2186277000,
+      "ops_per_sec": 5.03,
+      "ops_per_sec_per_thread": 5.03,
+      "cpu_ns_per_op": 198746000.0,
+      "latency_ns": {
+       "median": 198233000.0,
+       "mad": 1215000.0,
+       "p95": 201573500.0,
+       "p99": 202083500.0,
+       "min": 195184000.0,
+       "max": 202211000.0,
+       "mean": 198746000.0,
+       "samples": 11
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 9178,
+      "failures": 0,
+      "wall_ns": 2002877000,
+      "ops_per_sec": 4582.41,
+      "ops_per_sec_per_thread": 4582.41,
+      "cpu_ns_per_op": 218191.98,
+      "latency_ns": {
+       "median": 217000.0,
+       "mad": 4000.0,
+       "p95": 232000.0,
+       "p99": 244000.0,
+       "min": 206000.0,
+       "max": 320000.0,
+       "mean": 218191.98,
+       "samples": 9178
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 10335,
+      "failures": 0,
+      "wall_ns": 2005187000,
+      "ops_per_sec": 5154.13,
+      "ops_per_sec_per_thread": 5154.13,
+      "cpu_ns_per_op": 193988.29,
+      "latency_ns": {
+       "median": 192000.0,
+       "mad": 3000.0,
+       "p95": 206000.0,
+       "p99": 217000.0,
+       "min": 185000.0,
+       "max": 326000.0,
+       "mean": 193988.29,
+       "samples": 10335
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 77,
+      "failures": 0,
+      "wall_ns": 2022702000,
+      "ops_per_sec": 38.07,
+      "ops_per_sec_per_thread": 38.07,
+      "cpu_ns_per_op": 26268129.87,
+      "latency_ns": {
+       "median": 26241000.0,
+       "mad": 302000.0,
+       "p95": 27099800.0,
+       "p99": 27446200.0,
+       "min": 25255000.0,
+       "max": 27450000.0,
+       "mean": 26268129.87,
+       "samples": 77
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 14,
+      "failures": 0,
+      "wall_ns": 4973256000,
+      "ops_per_sec": 2.82,
+      "ops_per_sec_per_thread": 0.2,
+      "cpu_ns_per_op": 4946134928.57,
+      "latency_ns": {
+       "median": 4953071000.0,
+       "mad": 19298000.0,
+       "p95": 4972742400.0,
+       "p99": 4973056480.0,
+       "min": 4900592000.0,
+       "max": 4973135000.0,
+       "mean": 4946134928.57,
+       "samples": 14
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 5780,
+      "failures": 0,
+      "wall_ns": 2007382000,
+      "ops_per_sec": 2879.37,
+      "ops_per_sec_per_thread": 205.67,
+      "cpu_ns_per_op": 4860382.18,
+      "latency_ns": {
+       "median": 4765500.0,
+       "mad": 235500.0,
+       "p95": 6267100.0,
+       "p99": 9151150.0,
+       "min": 2116000.0,
+       "max": 48424000.0,
+       "mean": 4860382.18,
+       "samples": 5780
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 1,
+      "failures": 0,
+      "wall_ns": 2126159000,
+      "ops_per_sec": 0.47,
+      "ops_per_sec_per_thread": 0.47,
+      "cpu_ns_per_op": 2126041000.0,
+      "latency_ns": {
+       "median": 2126041000.0,
+       "mad": 0.0,
+       "p95": 2126041000.0,
+       "p99": 2126041000.0,
+       "min": 2126041000.0,
+       "max": 2126041000.0,
+       "mean": 2126041000.0,
+       "samples": 1
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 5411,
+      "failures": 0,
+      "wall_ns": 2126159000,
+      "ops_per_sec": 2544.96,
+      "ops_per_sec_per_thread": 181.78,
+      "cpu_ns_per_op": 5188201.81,
+      "latency_ns": {
+       "median": 4794000.0,
+       "mad": 276000.0,
+       "p95": 8838000.0,
+       "p99": 12975400.0,
+       "min": 1683000.0,
+       "max": 24456000.0,
+       "mean": 5188201.81,
+       "samples": 5411
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.0011,
+    "latency_ratio_per_session": 0.0011,
+    "throughput_ratio_encoder_over_decoder": 0.001,
+    "decoder_cores_per_encoder_core": 0.001,
+    "contended_decoder_cores_per_encoder_core": 0.0026,
+    "rejection_vs_valid": 0.8848,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 7856,
+     "cost_ns": 217000.0,
+     "ns_per_byte": 27.6222
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 7856,
+     "cost_ns": 192000.0,
+     "ns_per_byte": 24.4399
+    }
+   }
+  },
+  {
+   "alg": "SPHINCS+-SHA2-192f-simple",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 3,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 48,
+    "secret_key": 96,
+    "encoder_emits": 35664
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 123,
+      "failures": 0,
+      "wall_ns": 2001472000,
+      "ops_per_sec": 61.45,
+      "ops_per_sec_per_thread": 61.45,
+      "cpu_ns_per_op": 16271593.5,
+      "latency_ns": {
+       "median": 16232000.0,
+       "mad": 225000.0,
+       "p95": 16936000.0,
+       "p99": 17291580.0,
+       "min": 15579000.0,
+       "max": 17448000.0,
+       "mean": 16271593.5,
+       "samples": 123
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2350,
+      "failures": 0,
+      "wall_ns": 2001006000,
+      "ops_per_sec": 1174.41,
+      "ops_per_sec_per_thread": 1174.41,
+      "cpu_ns_per_op": 851436.17,
+      "latency_ns": {
+       "median": 846000.0,
+       "mad": 15000.0,
+       "p95": 897000.0,
+       "p99": 927530.0,
+       "min": 808000.0,
+       "max": 972000.0,
+       "mean": 851436.17,
+       "samples": 2350
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2348,
+      "failures": 0,
+      "wall_ns": 2005678000,
+      "ops_per_sec": 1170.68,
+      "ops_per_sec_per_thread": 1170.68,
+      "cpu_ns_per_op": 854156.3,
+      "latency_ns": {
+       "median": 851000.0,
+       "mad": 16000.0,
+       "p95": 901000.0,
+       "p99": 927000.0,
+       "min": 808000.0,
+       "max": 987000.0,
+       "mean": 854156.3,
+       "samples": 2348
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 3264,
+      "failures": 0,
+      "wall_ns": 2000830000,
+      "ops_per_sec": 1631.32,
+      "ops_per_sec_per_thread": 1631.32,
+      "cpu_ns_per_op": 612952.21,
+      "latency_ns": {
+       "median": 610000.0,
+       "mad": 11000.0,
+       "p95": 648000.0,
+       "p99": 671000.0,
+       "min": 579000.0,
+       "max": 715000.0,
+       "mean": 612952.21,
+       "samples": 3264
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 82,
+      "failures": 0,
+      "wall_ns": 2174604000,
+      "ops_per_sec": 37.71,
+      "ops_per_sec_per_thread": 2.69,
+      "cpu_ns_per_op": 365433634.15,
+      "latency_ns": {
+       "median": 365091000.0,
+       "mad": 7054500.0,
+       "p95": 413928800.0,
+       "p99": 449984040.0,
+       "min": 205863000.0,
+       "max": 473244000.0,
+       "mean": 365433634.15,
+       "samples": 82
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1404,
+      "failures": 0,
+      "wall_ns": 2014627000,
+      "ops_per_sec": 696.9,
+      "ops_per_sec_per_thread": 49.78,
+      "cpu_ns_per_op": 20065582.62,
+      "latency_ns": {
+       "median": 19742000.0,
+       "mad": 827000.0,
+       "p95": 24298750.0,
+       "p99": 32591240.0,
+       "min": 7853000.0,
+       "max": 55181000.0,
+       "mean": 20065582.62,
+       "samples": 1404
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 6,
+      "failures": 0,
+      "wall_ns": 2026603000,
+      "ops_per_sec": 2.96,
+      "ops_per_sec_per_thread": 2.96,
+      "cpu_ns_per_op": 337748666.67,
+      "latency_ns": {
+       "median": 397945000.0,
+       "mad": 4420000.0,
+       "p95": 403133000.0,
+       "p99": 403747400.0,
+       "min": 37262000.0,
+       "max": 403901000.0,
+       "mean": 337748666.67,
+       "samples": 6
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1321,
+      "failures": 0,
+      "wall_ns": 2026603000,
+      "ops_per_sec": 651.83,
+      "ops_per_sec_per_thread": 46.56,
+      "cpu_ns_per_op": 21290439.06,
+      "latency_ns": {
+       "median": 20030000.0,
+       "mad": 1720000.0,
+       "p95": 29518000.0,
+       "p99": 35106200.0,
+       "min": 9431000.0,
+       "max": 41070000.0,
+       "mean": 21290439.06,
+       "samples": 1321
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.0521,
+    "latency_ratio_per_session": 0.0521,
+    "throughput_ratio_encoder_over_decoder": 0.0541,
+    "decoder_cores_per_encoder_core": 0.0541,
+    "contended_decoder_cores_per_encoder_core": 0.0636,
+    "rejection_vs_valid": 1.0059,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 35664,
+     "cost_ns": 846000.0,
+     "ns_per_byte": 23.7214
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 35664,
+     "cost_ns": 851000.0,
+     "ns_per_byte": 23.8616
+    }
+   }
+  },
+  {
+   "alg": "SPHINCS+-SHA2-256f-simple",
+   "kind": "sig",
+   "implementation": "liboqs",
+   "classical": false,
+   "enabled": true,
+   "claimed_nist_level": 5,
+   "roles": {
+    "encoder": "sign",
+    "decoder": "verify"
+   },
+   "sizes": {
+    "public_key": 64,
+    "secret_key": 128,
+    "encoder_emits": 49856
+   },
+   "config": {
+    "duration_ms": 2000,
+    "threads": 14,
+    "max_samples_per_worker": 100000
+   },
+   "phases": {
+    "isolated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 61,
+      "failures": 0,
+      "wall_ns": 2016600000,
+      "ops_per_sec": 30.25,
+      "ops_per_sec_per_thread": 30.25,
+      "cpu_ns_per_op": 33057950.82,
+      "latency_ns": {
+       "median": 33024000.0,
+       "mad": 355000.0,
+       "p95": 33830000.0,
+       "p99": 34388000.0,
+       "min": 32177000.0,
+       "max": 34580000.0,
+       "mean": 33057950.82,
+       "samples": 61
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2296,
+      "failures": 0,
+      "wall_ns": 2005055000,
+      "ops_per_sec": 1145.11,
+      "ops_per_sec_per_thread": 1145.11,
+      "cpu_ns_per_op": 873228.66,
+      "latency_ns": {
+       "median": 869000.0,
+       "mad": 16000.0,
+       "p95": 923000.0,
+       "p99": 948000.0,
+       "min": 826000.0,
+       "max": 990000.0,
+       "mean": 873228.66,
+       "samples": 2296
+      }
+     },
+     "decoder_invalid": {
+      "role": "decoder_invalid",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 1,
+      "ops": 2212,
+      "failures": 0,
+      "wall_ns": 2005924000,
+      "ops_per_sec": 1102.73,
+      "ops_per_sec_per_thread": 1102.73,
+      "cpu_ns_per_op": 906780.29,
+      "latency_ns": {
+       "median": 902000.0,
+       "mad": 17000.0,
+       "p95": 954000.0,
+       "p99": 1003780.0,
+       "min": 852000.0,
+       "max": 1508000.0,
+       "mean": 906780.29,
+       "samples": 2212
+      }
+     },
+     "decoder_setup": {
+      "role": "signer_setup",
+      "operation": "keygen",
+      "applicable": true,
+      "threads": 1,
+      "ops": 1243,
+      "failures": 0,
+      "wall_ns": 2006103000,
+      "ops_per_sec": 619.61,
+      "ops_per_sec_per_thread": 619.61,
+      "cpu_ns_per_op": 1613844.73,
+      "latency_ns": {
+       "median": 1608000.0,
+       "mad": 33000.0,
+       "p95": 1699900.0,
+       "p99": 1738740.0,
+       "min": 1516000.0,
+       "max": 1786000.0,
+       "mean": 1613844.73,
+       "samples": 1243
+      }
+     }
+    },
+    "saturated": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 14,
+      "ops": 42,
+      "failures": 0,
+      "wall_ns": 2292471000,
+      "ops_per_sec": 18.32,
+      "ops_per_sec_per_thread": 1.31,
+      "cpu_ns_per_op": 759923309.52,
+      "latency_ns": {
+       "median": 757100000.0,
+       "mad": 6402500.0,
+       "p95": 786386450.0,
+       "p99": 871439120.0,
+       "min": 673652000.0,
+       "max": 874911000.0,
+       "mean": 759923309.52,
+       "samples": 42
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1399,
+      "failures": 0,
+      "wall_ns": 2017353000,
+      "ops_per_sec": 693.48,
+      "ops_per_sec_per_thread": 49.53,
+      "cpu_ns_per_op": 20156289.49,
+      "latency_ns": {
+       "median": 19862000.0,
+       "mad": 748000.0,
+       "p95": 23838400.0,
+       "p99": 27619600.0,
+       "min": 10696000.0,
+       "max": 37777000.0,
+       "mean": 20156289.49,
+       "samples": 1399
+      }
+     }
+    },
+    "contended": {
+     "encoder": {
+      "role": "encoder",
+      "operation": "sign",
+      "applicable": true,
+      "threads": 1,
+      "ops": 3,
+      "failures": 0,
+      "wall_ns": 2030447000,
+      "ops_per_sec": 1.48,
+      "ops_per_sec_per_thread": 1.48,
+      "cpu_ns_per_op": 676776333.33,
+      "latency_ns": {
+       "median": 805004000.0,
+       "mad": 12873000.0,
+       "p95": 816589700.0,
+       "p99": 817619540.0,
+       "min": 407448000.0,
+       "max": 817877000.0,
+       "mean": 676776333.33,
+       "samples": 3
+      }
+     },
+     "decoder": {
+      "role": "decoder",
+      "operation": "verify",
+      "applicable": true,
+      "threads": 14,
+      "ops": 1310,
+      "failures": 0,
+      "wall_ns": 2030447000,
+      "ops_per_sec": 645.18,
+      "ops_per_sec_per_thread": 46.08,
+      "cpu_ns_per_op": 21493421.37,
+      "latency_ns": {
+       "median": 20143000.0,
+       "mad": 1898000.0,
+       "p95": 29252400.0,
+       "p99": 34431420.0,
+       "min": 11464000.0,
+       "max": 48311000.0,
+       "mean": 21493421.37,
+       "samples": 1310
+      }
+     }
+    }
+   },
+   "asymmetry": {
+    "latency_ratio_decoder_over_encoder": 0.0263,
+    "latency_ratio_per_session": 0.0263,
+    "throughput_ratio_encoder_over_decoder": 0.0264,
+    "decoder_cores_per_encoder_core": 0.0264,
+    "contended_decoder_cores_per_encoder_core": 0.0321,
+    "rejection_vs_valid": 1.038,
+    "symmetric_by_construction": false,
+    "cheaper_side": "decoder"
+   },
+   "cost_per_received_byte": {
+    "encoder": {
+     "applicable": false,
+     "reason": "a signer receives nothing: signing is initiated by the signer, not by a peer, so no message imposes this cost"
+    },
+    "decoder": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 49856,
+     "cost_ns": 869000.0,
+     "ns_per_byte": 17.4302
+    },
+    "decoder_invalid": {
+     "applicable": true,
+     "receives": "signature",
+     "bytes": 49856,
+     "cost_ns": 902000.0,
+     "ns_per_byte": 18.0921
+    }
+   }
+  }
+ ]
+}

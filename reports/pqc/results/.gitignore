@@ -26,7 +26,18 @@
 # Different measurement, different grade: these carry is_stress_grade and never
 # is_baseline_grade, and analyze/published_runs.txt does not list them (they are
 # not dashboard inputs). See ../sender-receiver-asymmetry.md.
-!stress-Mac-20260807T090258Z.json
+#
+# Three runs on a quiet machine (1-min load 1.66 / 1.99 / 1.64). The report
+# quotes their MEDIAN and states the spread; one run cannot tell a real
+# difference from the scheduler having a bad second.
+!stress-Mac-20260807T163719Z.json
+!stress-Mac-20260807T165015Z.json
+!stress-Mac-20260807T171426Z.json
+# Kept deliberately: a sweep that started at 1-min load 113. It is the evidence
+# for the report's claim that competing load distorts absolute latency
+# (+26-33%) while leaving the ratios within 4%; deleting it would leave that
+# claim unsupported. NOT part of the medians.
+!stress-Mac-20260807T155820Z.json
 
 # ---- retired, kept as history ----------------------------------------------
 # rasberrypi5-20260614T205226Z is additionally the schema-1.0.0 COMPATIBILITY

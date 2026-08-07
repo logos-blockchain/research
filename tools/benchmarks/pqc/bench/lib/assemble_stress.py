@@ -91,6 +91,12 @@ def main():
     if meta.get("GOVERNOR_AFTER") != "performance":
         not_reference.append(
             f"CPU governor is '{meta.get('GOVERNOR_AFTER')}', not 'performance'")
+    try:
+        if float(meta.get("LOAD_BEFORE") or 0) > 1.0:
+            not_reference.append(
+                f"machine was not idle at start (1-min load {meta.get('LOAD_BEFORE')})")
+    except ValueError:
+        pass
 
     result = {
         "schema_version": SCHEMA_VERSION,
@@ -130,6 +136,11 @@ def main():
             "pinned": False,
             "governor_before": meta.get("GOVERNOR_BEFORE", ""),
             "governor_after": meta.get("GOVERNOR_AFTER", ""),
+            # 1-minute load average either side of the sweep. A saturation
+            # measurement taken on a busy machine is not comparable with one
+            # taken on an idle machine, and this is the evidence of which it was.
+            "loadavg_before": meta.get("LOAD_BEFORE", ""),
+            "loadavg_after": meta.get("LOAD_AFTER", ""),
             "smoke": meta.get("SMOKE") == "1",
         },
         # Key names follow setup/versions.lock exactly; the lock is the single

@@ -89,6 +89,16 @@ if [ "$GOV_AFTER" != "performance" ]; then
   add_warn "governor is '$GOV_AFTER', not 'performance' — role ratios measured under a moving clock; see reports/pqc/sudo-and-measurement-conditions.md"
 fi
 
+# ---- idle check -------------------------------------------------------------
+# This measures saturation throughput, so a busy machine does not merely add
+# noise: load arriving during one role's leg and not the other's shifts that
+# algorithm's ratio. Recorded at both ends and warned about up front, because
+# the mistake is easy to make and invisible afterwards otherwise.
+LOAD_BEFORE="$(pqb_loadavg)"
+if [ -n "$LOAD_BEFORE" ] && awk "BEGIN{exit !($LOAD_BEFORE > 1.0)}"; then
+  add_warn "system load is $LOAD_BEFORE at start — this machine is not idle, and role ratios measured under competing load are not trustworthy"
+fi
+
 # Deliberately NOT pinned: see the header. Recorded so the file says so.
 # 0 means "let the harness use every online CPU".
 if [ -z "$THREADS" ]; then THREADS=0; fi
@@ -135,6 +145,8 @@ pqb_host_probe
   echo "CPU_BRAND=\"$PQB_CPU_BRAND\""
   echo "NCPU=$PQB_NCPU"
   echo "RAM_BYTES=$PQB_RAM_BYTES"
+  echo "LOAD_BEFORE=$LOAD_BEFORE"
+  echo "LOAD_AFTER=$(pqb_loadavg)"
   echo "GOVERNOR_BEFORE=$GOV_BEFORE"
   echo "GOVERNOR_AFTER=$GOV_AFTER"
   echo "DURATION_MS=$DURATION_MS"
