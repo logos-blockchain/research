@@ -19,8 +19,9 @@ from .blocktree import BlockTree
 
 
 def fork_stats(tree: BlockTree, A, T: int, cutoff: int,
-               coalition_mask=None) -> tuple[float, int, float, float, float]:
-    """Return ``(fork_rate, max_reorg_depth, mean_reorg_depth, p_ref, p_ref_honest)``.
+               coalition_mask=None) -> tuple[float, int, float, float, float, float]:
+    """Return ``(fork_rate, max_reorg_depth, mean_reorg_depth, p_ref, p_ref_honest,
+    deep_orphan_share)``.
 
     ``p_ref`` is the emergent **reference rate**: the fraction of in-window orphans that some
     canonical block references as an uncle — the quantity the §6.8 soft-inclusion argument
@@ -35,7 +36,7 @@ def fork_stats(tree: BlockTree, A, T: int, cutoff: int,
     """
     nb = tree.n_blocks
     if nb <= 1:
-        return 0.0, 0, 0.0, 1.0, 1.0
+        return 0.0, 0, 0.0, 1.0, 1.0, 0.0
     ids = np.arange(nb)
     if isinstance(A, np.ndarray):
         arrived = (A <= cutoff).any(axis=0)
@@ -55,7 +56,7 @@ def fork_stats(tree: BlockTree, A, T: int, cutoff: int,
     in_win = (tree.slot >= 0) & (tree.slot < T)
     total = int(in_win.sum())
     if total == 0:
-        return 0.0, 0, 0.0, 1.0, 1.0
+        return 0.0, 0, 0.0, 1.0, 1.0, 0.0
 
     # depth[b] = length of the non-canonical run ending at b (0 if canonical). Parent-before-child
     # holds because a block\'s parent has a strictly smaller id (built earlier).
@@ -89,4 +90,10 @@ def fork_stats(tree: BlockTree, A, T: int, cutoff: int,
         honest_orphan = orphan_in_win & ~np.asarray(coalition_mask)[tree.leader]
         n_ho = int(honest_orphan.sum())
         p_ref_honest = (int((honest_orphan & referenced).sum()) / n_ho) if n_ho else 1.0
-    return fork_rate, max_depth, mean_depth, p_ref, p_ref_honest
+
+    # Share of in-window orphans that sit DEEPER than the first block of their fork, i.e. whose
+    # parent is itself off-chain. These are exactly the blocks the countable rule can never
+    # reference (§2.1), so this is the direct structural observable behind the first-fork cost —
+    # p_ref conflates it with orphans that were merely never picked up.
+    deep_orphan_share = (float((depth[orphan_in_win] >= 2).sum()) / n_orphan) if n_orphan else 0.0
+    return fork_rate, max_depth, mean_depth, p_ref, p_ref_honest, deep_orphan_share
