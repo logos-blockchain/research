@@ -122,6 +122,18 @@ pre-configured machine still got told it "could not set governor to
 performance" — the run was fine and the gate passed, but the warning implied a
 privilege problem that did not exist.
 
+Writing a test for that path then exposed a second, more consequential bug in
+the same function, this one long-standing. When it could not set the governor,
+it reported the machine's state by reading **`cpu0` alone**. On a host where
+`cpu0` happens to be `performance` but another core is not — a partly
+configured machine, or one where something reset a single policy — it therefore
+answered `performance`, no governor demerit was recorded, and the run could be
+stamped reference-grade under a moving clock on most of its cores. It now
+reports the *effective* governor: `performance` only if every core agrees,
+otherwise the first core that disagrees. `make test` covers both the
+all-performance and the mixed case against a fixture directory, so this path is
+verified on any platform rather than only on real Linux hardware.
+
 For anyone else — a contributor running it once on a laptop, a cross-platform
 datapoint, a smoke test — sudo is not worth asking for. `NOSUDO=1 make run` is
 the right call, and the resulting file is honest about what it is.

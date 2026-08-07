@@ -57,6 +57,7 @@ echo "[test-fedora] engine=$ENGINE image=fedora:42 ${ARCH:+arch=$ARCH }(source +
         --exclude "bench/rust-tls/target/" --exclude ".work-*" \
         --exclude "setup/versions.lock" \
         --exclude "bench/kem_sig/bench_pq" --exclude "bench/tls/bench_tls" \
+        --exclude "bench/stress/stress_roles" \
         --exclude "bench/tls/pki/" --exclude "*.o" \
         /src/ /work/
   rsync -a --exclude ".work-*" /src-results/ /work-results/

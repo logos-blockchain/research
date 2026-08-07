@@ -2,11 +2,11 @@
 # =============================================================================
 # make test — the consolidated fast verification gate (~1-2 min).
 #
-# CORRECTNESS tests (1-4, including 3b for the role-asymmetry stress harness)
-# exercise the measurement pipeline and BLOCK (nonzero
+# CORRECTNESS tests (1-4) exercise the measurement pipeline and BLOCK (nonzero
 # exit): harness micro-runs + correctness gates, cross-implementation size
 # agreement, the three TLS stacks incl. the native no-OQS-provider negative
-# control, and a schema round-trip through assemble.py.
+# control, the role-asymmetry stress harness (3b), the no-privilege governor
+# path against a fixture (3c), and a schema round-trip through assemble.py.
 #
 # HYGIENE tests (5-7) check repo consistency (v1-compat merge fixture, the
 # published_runs manifest, absence-array propagation) and only WARN — a
@@ -224,6 +224,37 @@ PY
   else
     fail "Classic McEliece crashed a worker thread — check the worker stack size"
   fi
+fi
+
+echo "== correctness 3c: governor handling (no-privilege path) =="
+# The sudo assessment recommends pinning the governor at boot so the run needs
+# no privilege at all. That path is Linux-only and cannot be exercised on a Mac
+# without a fixture, which is exactly why it once emitted a spurious "could not
+# set governor" warning on a correctly configured machine.
+GOVDIR="$T/cpufreq"
+mkdir -p "$GOVDIR/cpu0/cpufreq" "$GOVDIR/cpu1/cpufreq"
+echo performance > "$GOVDIR/cpu0/cpufreq/scaling_governor"
+echo performance > "$GOVDIR/cpu1/cpufreq/scaling_governor"
+gov_out="$(PQB_OS=linux PQB_CPUFREQ_ROOT="$GOVDIR" bash -c \
+  'source setup/lib_platform.sh; pqb_set_governor_performance' 2>"$T/gov.err")"
+gov_rc=$?
+if [ "$gov_out" = performance ] && [ "$gov_rc" -eq 0 ] && ! grep -q WARN "$T/gov.err"; then
+  pass "governor already 'performance': accepted silently, no privilege needed"
+else
+  fail "pre-set governor mishandled (out='$gov_out' rc=$gov_rc; $(cat "$T/gov.err"))"
+fi
+
+# cpu0 still reads 'performance' but cpu1 does not. The probe must not
+# short-circuit on cpu0, or a partly-configured host would be recorded as clean.
+echo ondemand > "$GOVDIR/cpu1/cpufreq/scaling_governor"
+chmod a-w "$GOVDIR"/cpu*/cpufreq/scaling_governor 2>/dev/null || true
+gov_out="$(PQB_OS=linux PQB_CPUFREQ_ROOT="$GOVDIR" bash -c \
+  'source setup/lib_platform.sh; pqb_set_governor_performance' 2>/dev/null || true)"
+chmod u+w "$GOVDIR"/cpu*/cpufreq/scaling_governor 2>/dev/null || true
+if [ "$gov_out" != performance ]; then
+  pass "a single non-performance core is not reported as performance"
+else
+  fail "governor probe short-circuits on cpu0 (a mixed-governor host looks clean)"
 fi
 
 echo "== correctness 4: schema round-trip through assemble.py =="

@@ -105,6 +105,9 @@ def main():
                        "(KEM: encaps; signature: sign)",
             "decoder": "the side that consumes it "
                        "(KEM: decaps; signature: verify)",
+            "decoder_invalid": "the same decoder op against a deliberately "
+                               "corrupted wire object: what a receiver spends "
+                               "rejecting a message that will not verify",
             "note": "X25519 is symmetric by construction — both peers run the "
                     "same keygen+derive — so its measured ratio near 1.0 also "
                     "serves as a check on the harness.",

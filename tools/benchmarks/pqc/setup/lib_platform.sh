@@ -189,21 +189,45 @@ pqb_resolve_hostname() {
 # root-owned bench/*/target artifacts). bench-run.sh caches credentials up
 # front (sudo -v) and sets PQB_GOV_SUDO=1; writes then use non-interactive
 # `sudo -n`, so a run can never stall on a mid-run password prompt.
+#
+# PQB_CPUFREQ_ROOT overrides the sysfs root (test hook). The no-privilege path
+# below is the one the docs recommend for a dedicated measurement box, so it
+# needs to be exercised somewhere other than production — scripts/selftest.sh
+# points this at a fixture directory.
+# Echo the governor the MACHINE is effectively running: 'performance' only if
+# every core says so, otherwise the first core that disagrees.
+#
+# Reading cpu0 alone (which is what this used to do) is not equivalent, and the
+# difference is load-bearing: on a host where cpu0 happens to be 'performance'
+# but another core is not, cpu0's answer would let the run be stamped
+# reference-grade with no governor demerit — a half-configured machine
+# reporting as a controlled one. scripts/selftest.sh pins this down.
+_pqb_effective_governor() {
+  local cpuroot="${1:-/sys/devices/system/cpu}" g v seen=""
+  for g in "$cpuroot"/cpu*/cpufreq/scaling_governor; do
+    v="$(cat "$g" 2>/dev/null)" || continue
+    [ -n "$v" ] || continue
+    seen=1
+    if [ "$v" != performance ]; then printf '%s\n' "$v"; return 1; fi
+  done
+  [ -n "$seen" ] || { printf 'unknown\n'; return 1; }
+  printf 'performance\n'
+}
+
 pqb_set_governor_performance() {
-  if [ "$PQB_OS" = "linux" ] && [ -d /sys/devices/system/cpu/cpu0/cpufreq ]; then
+  local cpuroot="${PQB_CPUFREQ_ROOT:-/sys/devices/system/cpu}"
+  if [ "$PQB_OS" = "linux" ] && [ -d "$cpuroot/cpu0/cpufreq" ]; then
     local ok=1 g
     # Already there? Then this run needs no privilege at all. A dedicated
     # measurement box that pins the governor at boot (cpupower.service, a
     # tmpfiles.d rule, or the kernel cmdline) takes the only privileged step in
     # the benchmark out of the run entirely — and must not be told off for it.
-    ok=1
-    for g in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
-      [ "$(cat "$g" 2>/dev/null)" = performance ] || { ok=0; break; }
-    done
-    if [ "$ok" = 1 ]; then echo performance; return 0; fi
+    if _pqb_effective_governor "$cpuroot" >/dev/null; then
+      echo performance; return 0
+    fi
 
     ok=1
-    for g in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+    for g in "$cpuroot"/cpu*/cpufreq/scaling_governor; do
       if [ -w "$g" ]; then
         echo performance > "$g" 2>/dev/null || ok=0
       elif [ "${PQB_GOV_SUDO:-0}" = 1 ] && command -v sudo >/dev/null 2>&1; then
@@ -213,7 +237,7 @@ pqb_set_governor_performance() {
       fi
     done
     if [ "$ok" = 1 ]; then
-      cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null
+      _pqb_effective_governor "$cpuroot"
       return 0
     fi
     # cpupower fallback, same single-step escalation rules
@@ -224,8 +248,8 @@ pqb_set_governor_performance() {
         echo performance; return 0
       fi
     fi
-    pqb_warn "could not set governor to performance (use 'make run' so this one step can escalate, or accept the non-baseline demerit)"
-    cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo "unknown"
+    pqb_warn "could not set governor to performance (use 'make run' so this one step can escalate, or set it persistently at boot — see reports/pqc/sudo-and-measurement-conditions.md)"
+    _pqb_effective_governor "$cpuroot" || true
     return 1
   fi
   # macOS / other: no userspace governor control.
@@ -234,8 +258,9 @@ pqb_set_governor_performance() {
 }
 
 pqb_get_governor() {
-  if [ "$PQB_OS" = "linux" ] && [ -r /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]; then
-    cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+  local cpuroot="${PQB_CPUFREQ_ROOT:-/sys/devices/system/cpu}"
+  if [ "$PQB_OS" = "linux" ] && [ -r "$cpuroot/cpu0/cpufreq/scaling_governor" ]; then
+    _pqb_effective_governor "$cpuroot" || true
   else
     echo "unavailable"
   fi

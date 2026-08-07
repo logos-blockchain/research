@@ -589,10 +589,21 @@ consumes it.
 | Signature | `sign` | `verify` | signature keys are long-lived identities, so keygen is not part of either per-message cost |
 | X25519 | `derive` | `derive` | both peers run the identical operation, so the exchange is symmetric **by construction** — its measured ratio near 1.0 is the harness checking itself, and `make test` asserts it |
 
+**The rejection path.** Those ratios are what two *honest* peers pay, and an
+attacker is not honest — it sends something that will not verify. The isolated
+phase therefore also times the decoder against a deliberately corrupted wire
+object (a valid one with a bit flipped: free for an attacker to produce from
+any message it has seen, and it drives the receiver as deep into verification
+as the algorithm allows). Two figures come out of it — how rejecting compares
+to accepting, and **receiver-nanoseconds per byte the attacker had to send**,
+which is the amplification that actually bounds a flood, since an attacker
+spends bandwidth rather than CPU. `python3 analyze/asymmetry.py <file> --reject`
+shows that view.
+
 **The phases**, each a fixed-duration leg:
 
 - **isolated** — one thread, one role at a time. The algorithm's intrinsic
-  asymmetry, uncontended.
+  asymmetry, uncontended; also the rejection path and the keygen cost.
 - **saturated** — every core, one role at a time. Each role's throughput
   ceiling on this machine; it can differ from the isolated ratio when the roles
   have different memory behaviour.
@@ -605,6 +616,7 @@ make stress-smoke                # 250 ms legs: pipeline check, not data
 ./stress.sh --alg ML-KEM-768     # one algorithm (repeatable)
 ./stress.sh --duration-ms 5000   # longer legs, tighter numbers
 python3 analyze/asymmetry.py reports/pqc/results/stress-<host>-<ts>.json
+python3 analyze/asymmetry.py <file> --reject   # denial-of-service view
 ```
 
 The findings from the current sweep — including that migrating to PQ signatures
@@ -622,11 +634,22 @@ field name is what stops a stress file from being merged into the reference
 dataset by something that only checks a flag. Ratios between roles measured in
 the same phase are what transfers between machines; the absolute rates are not.
 
-One implementation note worth keeping: worker threads are created with a 32 MB
-stack. The largest Classic McEliece parameter sets keep multi-megabyte arrays
-on the stack, which the default pthread stack cannot hold — `bench_pq` never
-hit this because it runs on the main thread, whose stack grows on demand. On a
-pthread it is an immediate SIGBUS, so `make test` guards it.
+Three implementation notes worth keeping, each of which took a bug to learn:
+
+- Worker threads get a **32 MB stack**. The largest Classic McEliece parameter
+  sets keep multi-megabyte arrays on the stack, which the default pthread stack
+  cannot hold — `bench_pq` never hit this because it runs on the main thread,
+  whose stack grows on demand. On a pthread it is an immediate SIGBUS, so
+  `make test` guards it.
+- Workers are **cache-line aligned and share no mutable state**, down to the
+  per-worker counter that keeps the optimiser from eliding the crypto. A single
+  shared counter incremented by every thread on every operation is both a data
+  race and a cache line ping-ponging between cores — noise injected into
+  exactly the concurrency being measured.
+- Per-worker latency reservoirs are pooled **in proportion to the operations
+  each worker completed**, not concatenated. On a machine with performance and
+  efficiency cores an E-core worker fills the same size reservoir from a third
+  of the operations, and concatenating would weight its samples equally.
 
 ---
 

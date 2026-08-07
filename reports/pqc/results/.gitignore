@@ -26,7 +26,7 @@
 # Different measurement, different grade: these carry is_stress_grade and never
 # is_baseline_grade, and analyze/published_runs.txt does not list them (they are
 # not dashboard inputs). See ../sender-receiver-asymmetry.md.
-!stress-Mac-20260806T171550Z.json
+!stress-Mac-20260807T090258Z.json
 
 # ---- retired, kept as history ----------------------------------------------
 # rasberrypi5-20260614T205226Z is additionally the schema-1.0.0 COMPATIBILITY

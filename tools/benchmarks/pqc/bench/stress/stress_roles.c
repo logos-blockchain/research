@@ -37,9 +37,22 @@
  *             measured ratio of ~1.0 doubles as a check on this harness.
  *   Ed25519   encoder = sign, decoder = verify, as for any signature.
  *
+ * ---- the rejection path ---------------------------------------------------
+ * The ratios above are what two honest peers pay. An attacker is not honest:
+ * it sends something that will not verify, and what matters then is what the
+ * receiver spends before it can say no. The isolated phase therefore also
+ * times the decoder against a deliberately corrupted wire object — a valid one
+ * with a bit flipped, which is free for an attacker to produce from any
+ * message it has seen, and drives the receiver as deep into verification as
+ * the algorithm allows. Reported as `decoder_invalid`, with two derived
+ * figures: how rejecting compares to accepting, and receiver-nanoseconds per
+ * byte the attacker had to send — the amplification that actually bounds a
+ * flood, since the attacker's cost is bandwidth rather than computation.
+ *
  * ---- the phases -----------------------------------------------------------
  *   isolated   one thread, one role at a time. Uncontended cost per role: the
  *              latency ratio here is the algorithm's intrinsic asymmetry.
+ *              Also runs the rejection path and the keygen/setup cost.
  *   saturated  T threads, one role at a time. Each role's throughput ceiling
  *              on this machine. The ratio of ceilings is what a deployment
  *              actually experiences, and it can differ from the isolated ratio
@@ -94,7 +107,12 @@
 #define WORKER_STACK_BYTES (32u * 1024u * 1024u)
 
 static volatile int g_stop = 0;   /* set by the driver thread to end a phase */
-static uint64_t g_sink = 0;       /* keeps the optimiser from eliding work   */
+/* Consumed once at exit so the per-worker sinks cannot be optimised away.
+ * The sinks themselves are per-worker on purpose: a single shared counter
+ * incremented by every thread on every operation is a data race, and worse for
+ * a concurrency harness, a cache line ping-ponging between every core — noise
+ * injected into the very thing being measured. */
+static volatile uint64_t g_sink_final = 0;
 
 static inline uint64_t now_ns(void) {
     struct timespec ts;
@@ -171,10 +189,20 @@ static lat_t latency_of(uint64_t *s, uint64_t n) {
 typedef enum { OP_KEM_KEYGEN, OP_KEM_ENCAPS, OP_KEM_DECAPS,
                OP_SIG_KEYGEN, OP_SIG_SIGN, OP_SIG_VERIFY,
                OP_X25519_KEYGEN, OP_X25519_DERIVE,
-               OP_ED_KEYGEN, OP_ED_SIGN, OP_ED_VERIFY } op_kind;
+               OP_ED_KEYGEN, OP_ED_SIGN, OP_ED_VERIFY,
+               /* the rejection path: what the decoder pays for a message that
+                * does not verify. A rejection is the EXPECTED outcome here, so
+                * these ops never count a non-success return as a failure. */
+               OP_KEM_DECAPS_INVALID, OP_SIG_VERIFY_INVALID, OP_ED_VERIFY_INVALID
+             } op_kind;
 
+/* Cache-line aligned: adjacent workers must not share a line, or one thread's
+ * counter updates would invalidate its neighbour's on every operation. The
+ * current field layout happens to be large enough to avoid it, which is
+ * exactly the kind of accident that a later field reorder would silently undo. */
+#define CACHELINE 128
 typedef struct {
-    op_kind op;
+    _Alignas(CACHELINE) op_kind op;
     const char *alg;
     /* KEM state */
     OQS_KEM *kem;
@@ -187,6 +215,7 @@ typedef struct {
     EVP_PKEY *ev_self, *ev_peer, *ev_scratch;
     unsigned char ed_msg[MSGLEN], ed_sig[64]; size_t ed_siglen;
     /* results */
+    uint64_t sink;                 /* per-worker; see g_sink_final */
     uint64_t ops, busy_ns, failures;
     uint64_t *samples; uint64_t nsamples, cap, seen;
     uint64_t rng;
@@ -246,7 +275,7 @@ static int evp_sign(worker_t *w) {
              EVP_DigestSign(m, w->ed_sig, &w->ed_siglen, w->ed_msg, MSGLEN) > 0;
     EVP_MD_CTX_free(m);
     if (!ok) return 1;
-    g_sink += w->ed_sig[0];
+    w->sink += w->ed_sig[0];
     return 0;
 }
 
@@ -257,7 +286,7 @@ static int evp_verify(worker_t *w) {
              EVP_DigestVerify(m, w->ed_sig, w->ed_siglen, w->ed_msg, MSGLEN) > 0;
     EVP_MD_CTX_free(m);
     if (!ok) return 1;
-    g_sink += 1;
+    w->sink += 1;
     return 0;
 }
 
@@ -265,25 +294,25 @@ static int do_op(worker_t *w) {
     switch (w->op) {
     case OP_KEM_KEYGEN:
         if (OQS_KEM_keypair(w->kem, w->pk_s, w->sk_s) != OQS_SUCCESS) return 1;
-        g_sink += w->pk_s[0]; return 0;
+        w->sink += w->pk_s[0]; return 0;
     case OP_KEM_ENCAPS:
         if (OQS_KEM_encaps(w->kem, w->ct, w->ss_a, w->pk) != OQS_SUCCESS) return 1;
-        g_sink += w->ct[0]; return 0;
+        w->sink += w->ct[0]; return 0;
     case OP_KEM_DECAPS:
         if (OQS_KEM_decaps(w->kem, w->ss_b, w->ct, w->sk) != OQS_SUCCESS) return 1;
-        g_sink += w->ss_b[0]; return 0;
+        w->sink += w->ss_b[0]; return 0;
     case OP_SIG_KEYGEN:
         if (OQS_SIG_keypair(w->sig, w->pk_s, w->sk_s) != OQS_SUCCESS) return 1;
-        g_sink += w->pk_s[0]; return 0;
+        w->sink += w->pk_s[0]; return 0;
     case OP_SIG_SIGN:
         w->sg_s_len = w->sig->length_signature;
         if (OQS_SIG_sign(w->sig, w->sg_s, &w->sg_s_len, w->msg, MSGLEN, w->sk)
             != OQS_SUCCESS) return 1;
-        g_sink += w->sg_s[0]; return 0;
+        w->sink += w->sg_s[0]; return 0;
     case OP_SIG_VERIFY:
         if (OQS_SIG_verify(w->sig, w->msg, MSGLEN, w->sg, w->sglen, w->pk)
             != OQS_SUCCESS) return 1;
-        g_sink += 1; return 0;
+        w->sink += 1; return 0;
     case OP_X25519_KEYGEN:
     case OP_ED_KEYGEN: {
         int id = (w->op == OP_X25519_KEYGEN) ? EVP_PKEY_X25519 : EVP_PKEY_ED25519;
@@ -291,15 +320,31 @@ static int do_op(worker_t *w) {
         if (!k) return 1;
         if (w->ev_scratch) EVP_PKEY_free(w->ev_scratch);
         w->ev_scratch = k;
-        g_sink += 1; return 0;
+        w->sink += 1; return 0;
     }
     case OP_X25519_DERIVE: {
         unsigned char secret[32];
         if (!evp_derive_into(w->ev_self, w->ev_peer, secret)) return 1;
-        g_sink += secret[0]; return 0;
+        w->sink += secret[0]; return 0;
     }
     case OP_ED_SIGN:   return evp_sign(w);
     case OP_ED_VERIFY: return evp_verify(w);
+
+    /* Rejection path. The primitive is expected to say no; what is being timed
+     * is how much work it does before it can. The return value is deliberately
+     * discarded — treating "rejected" as a failure would report zero
+     * operations and no measurement at all. */
+    case OP_KEM_DECAPS_INVALID:
+        w->sink += (OQS_KEM_decaps(w->kem, w->ss_b, w->ct, w->sk) == OQS_SUCCESS);
+        w->sink += w->ss_b[0];
+        return 0;
+    case OP_SIG_VERIFY_INVALID:
+        w->sink += (OQS_SIG_verify(w->sig, w->msg, MSGLEN, w->sg, w->sglen,
+                                   w->pk) == OQS_SUCCESS);
+        return 0;
+    case OP_ED_VERIFY_INVALID:
+        w->sink += (evp_verify(w) == 0);
+        return 0;
     }
     return 1;
 }
@@ -322,6 +367,20 @@ static void *worker_main(void *arg) {
 static void die(const char *alg, const char *what) {
     fprintf(stderr, "FATAL [%s]: %s\n", alg, what);
     exit(3);
+}
+
+/* Flip one bit in the middle of a wire object.
+ *
+ * The threat model this represents: an attacker who has seen one valid message
+ * and re-sends it altered. That costs the attacker nothing — no key, no
+ * signing, no encapsulation — while forcing the receiver as deep into the
+ * verification as the algorithm's structure allows. Filling the buffer with
+ * random bytes would be cheaper still to produce but is typically rejected
+ * EARLIER, by a length or encoding check, so it understates what a receiver
+ * can be made to do. This is the expensive-for-the-receiver end of the cheap
+ * attacks, which is the end worth measuring. */
+static void corrupt(uint8_t *buf, size_t len) {
+    if (len) buf[len / 2] ^= 0x01;
 }
 
 /* Every worker gets its own algorithm object and its own VALIDATED inputs: a
@@ -348,13 +407,19 @@ static void worker_init(worker_t *w, const char *kind, const char *alg,
             die(alg, "X25519 shared-secret mismatch — refusing to stress a broken build");
         return;
     }
-    if (w->op == OP_ED_KEYGEN || w->op == OP_ED_SIGN || w->op == OP_ED_VERIFY) {
+    if (w->op == OP_ED_KEYGEN || w->op == OP_ED_SIGN || w->op == OP_ED_VERIFY ||
+        w->op == OP_ED_VERIFY_INVALID) {
         w->ev_self = evp_keygen(EVP_PKEY_ED25519);
         if (!w->ev_self) die(alg, "Ed25519 keygen failed");
         memset(w->ed_msg, 0xA5, MSGLEN);
         if (evp_sign(w) != 0) die(alg, "Ed25519 sign failed");
         if (evp_verify(w) != 0)
             die(alg, "Ed25519 verify failed on a valid signature — refusing to stress a broken build");
+        if (w->op == OP_ED_VERIFY_INVALID) {
+            corrupt(w->ed_sig, sizeof w->ed_sig);
+            if (evp_verify(w) == 0)
+                die(alg, "corrupted Ed25519 signature still verified — the rejection path is not being measured");
+        }
         return;
     }
     if (strcmp(kind, "kem") == 0) {
@@ -374,6 +439,14 @@ static void worker_init(worker_t *w, const char *kind, const char *alg,
         if (OQS_KEM_decaps(w->kem, w->ss_b, w->ct, w->sk) != OQS_SUCCESS) die(alg, "decaps failed");
         if (memcmp(w->ss_a, w->ss_b, w->kem->length_shared_secret) != 0)
             die(alg, "KEM shared-secret mismatch — refusing to stress a broken build");
+        /* Corrupt only AFTER the round trip has proved the state is good, so a
+         * rejection measured below is the algorithm rejecting, not a broken
+         * setup quietly failing. Implicitly-rejecting KEMs (ML-KEM, McEliece)
+         * still return success here and hand back a pseudorandom secret —
+         * that is the design, and it is why this is timed rather than
+         * checked. */
+        if (w->op == OP_KEM_DECAPS_INVALID)
+            corrupt(w->ct, w->kem->length_ciphertext);
     } else {
         w->sig = OQS_SIG_new(alg);
         if (!w->sig) die(alg, "signature not enabled in this liboqs build");
@@ -393,6 +466,12 @@ static void worker_init(worker_t *w, const char *kind, const char *alg,
             die(alg, "sign failed");
         if (OQS_SIG_verify(w->sig, w->msg, MSGLEN, w->sg, w->sglen, w->pk) != OQS_SUCCESS)
             die(alg, "verify failed on a valid signature — refusing to stress a broken build");
+        if (w->op == OP_SIG_VERIFY_INVALID) {
+            corrupt(w->sg, w->sglen);
+            if (OQS_SIG_verify(w->sig, w->msg, MSGLEN, w->sg, w->sglen, w->pk)
+                == OQS_SUCCESS)
+                die(alg, "corrupted signature still verified — the rejection path is not being measured");
+        }
     }
 }
 
@@ -409,63 +488,108 @@ static void worker_free(worker_t *w) {
 
 /* ---- a measured group of workers ----------------------------------------- */
 typedef struct {
-    const char *role;      /* "encoder" / "decoder" / "decoder_setup" */
+    const char *role;      /* "encoder" / "decoder" / "decoder_invalid" / ... */
     const char *operation; /* "encaps" / "decaps" / "sign" / ...      */
     int threads;
+    int applicable;        /* 0 = this role has no such measurement (see below) */
+    const char *na_reason; /* why, when applicable == 0 */
     uint64_t ops, failures, busy_ns, wall_ns;
     lat_t lat;
 } group_t;
 
-/* Runs `groups` concurrently for duration_ms and fills in their results. This
- * is the only place a phase's wall clock is taken, so every group in a phase
- * shares one clock and the rates are directly comparable. */
-static void run_phase(worker_t *ws, int nws, group_t *gs, int ngs,
+/* Runs `groups` concurrently for duration_ms and fills in their results.
+ *
+ * Takes an array of POINTERS, not structs: a worker owns a sample buffer, and
+ * copying one to build a mixed phase would leave two structs aliasing the same
+ * buffer with independently drifting counters.
+ *
+ * This is also the only place a phase's wall clock is taken, so every group in
+ * a phase shares one clock and their rates are directly comparable. */
+static void run_phase(worker_t **ws, int nws, group_t *gs, int ngs,
                       const int *group_of, unsigned duration_ms) {
     pthread_attr_t attr;
-    if (pthread_attr_init(&attr) != 0) die(ws[0].alg, "pthread_attr_init failed");
+    if (pthread_attr_init(&attr) != 0) die(ws[0]->alg, "pthread_attr_init failed");
     if (pthread_attr_setstacksize(&attr, WORKER_STACK_BYTES) != 0)
-        die(ws[0].alg, "pthread_attr_setstacksize failed");
+        die(ws[0]->alg, "pthread_attr_setstacksize failed");
+
+    for (int i = 0; i < nws; i++) {
+        ws[i]->ops = ws[i]->busy_ns = ws[i]->failures = 0;
+        ws[i]->nsamples = ws[i]->seen = 0;
+    }
 
     g_stop = 0;
     uint64_t t0 = now_ns();
     for (int i = 0; i < nws; i++)
-        if (pthread_create(&ws[i].tid, &attr, worker_main, &ws[i]) != 0)
-            die(ws[i].alg, "pthread_create failed");
+        if (pthread_create(&ws[i]->tid, &attr, worker_main, ws[i]) != 0)
+            die(ws[i]->alg, "pthread_create failed");
     pthread_attr_destroy(&attr);
     sleep_ms(duration_ms);
     g_stop = 1;
-    for (int i = 0; i < nws; i++) pthread_join(ws[i].tid, NULL);
+    for (int i = 0; i < nws; i++) pthread_join(ws[i]->tid, NULL);
     uint64_t wall = now_ns() - t0;
 
     for (int g = 0; g < ngs; g++) {
         gs[g].wall_ns = wall;
         gs[g].ops = gs[g].failures = gs[g].busy_ns = 0;
     }
-    /* pool each group's reservoirs; every worker sampled its own stream
-     * uniformly, and equal-length runs make a plain concatenation fair */
+
     for (int g = 0; g < ngs; g++) {
+        /* Pool the workers' reservoirs PROPORTIONALLY to how many operations
+         * each actually completed. Concatenating them outright would weight a
+         * slow worker's samples the same as a fast one's — which on a machine
+         * with performance and efficiency cores is a real distortion, since an
+         * E-core worker fills the same size reservoir from a third of the
+         * operations. Each reservoir is already a uniform sample of its own
+         * worker's stream, so a prefix of it is too, and taking prefixes in
+         * proportion to the streams yields a uniform sample of their union.
+         *
+         * (The mean in each group is computed from summed busy_ns over summed
+         * ops, so it is unweighted by construction and unaffected by any of
+         * this. Where the two disagree, trust the mean.) */
+        uint64_t seen_total = 0;
+        for (int i = 0; i < nws; i++)
+            if (group_of[i] == g) seen_total += ws[i]->seen;
+
+        double scale = 0;
+        if (seen_total) {
+            scale = -1;   /* largest proportional sample every worker can fill */
+            for (int i = 0; i < nws; i++) {
+                if (group_of[i] != g || ws[i]->seen == 0) continue;
+                double s = (double)ws[i]->nsamples * (double)seen_total
+                           / (double)ws[i]->seen;
+                if (scale < 0 || s < scale) scale = s;
+            }
+            if (scale < 0) scale = 0;
+        }
+
         uint64_t total = 0;
-        for (int i = 0; i < nws; i++) if (group_of[i] == g) total += ws[i].nsamples;
+        for (int i = 0; i < nws; i++) {
+            if (group_of[i] != g) continue;
+            gs[g].ops += ws[i]->ops;
+            gs[g].failures += ws[i]->failures;
+            gs[g].busy_ns += ws[i]->busy_ns;
+            if (seen_total) {
+                uint64_t take = (uint64_t)(scale * (double)ws[i]->seen
+                                           / (double)seen_total);
+                if (take > ws[i]->nsamples) take = ws[i]->nsamples;
+                total += take;
+            }
+        }
+
         uint64_t *pool = malloc((total ? total : 1) * sizeof(uint64_t));
         if (!pool) die(gs[g].operation, "out of memory (pooling samples)");
         uint64_t k = 0;
-        for (int i = 0; i < nws; i++) {
+        for (int i = 0; i < nws && seen_total; i++) {
             if (group_of[i] != g) continue;
-            gs[g].ops += ws[i].ops;
-            gs[g].failures += ws[i].failures;
-            gs[g].busy_ns += ws[i].busy_ns;
-            memcpy(pool + k, ws[i].samples, ws[i].nsamples * sizeof(uint64_t));
-            k += ws[i].nsamples;
+            uint64_t take = (uint64_t)(scale * (double)ws[i]->seen
+                                       / (double)seen_total);
+            if (take > ws[i]->nsamples) take = ws[i]->nsamples;
+            if (take > total - k) take = total - k;
+            memcpy(pool + k, ws[i]->samples, take * sizeof(uint64_t));
+            k += take;
         }
-        gs[g].lat = latency_of(pool, total);
+        gs[g].lat = latency_of(pool, k);
         free(pool);
-    }
-}
-
-static void reset_counters(worker_t *ws, int n) {
-    for (int i = 0; i < n; i++) {
-        ws[i].ops = ws[i].busy_ns = ws[i].failures = 0;
-        ws[i].nsamples = ws[i].seen = 0;
     }
 }
 
@@ -475,7 +599,13 @@ static double rate(const group_t *g) {
 }
 
 static void print_group(FILE *f, const group_t *g) {
-    fprintf(f, "{\"role\":\"%s\",\"operation\":\"%s\",\"threads\":%d,"
+    if (!g->applicable) {
+        fprintf(f, "{\"role\":\"%s\",\"operation\":\"%s\",\"applicable\":false,"
+                   "\"reason\":\"%s\"}", g->role, g->operation,
+                g->na_reason ? g->na_reason : "not applicable");
+        return;
+    }
+    fprintf(f, "{\"role\":\"%s\",\"operation\":\"%s\",\"applicable\":true,\"threads\":%d,"
                "\"ops\":%llu,\"failures\":%llu,\"wall_ns\":%llu,"
                "\"ops_per_sec\":%.2f,\"ops_per_sec_per_thread\":%.2f,"
                "\"cpu_ns_per_op\":%.2f,"
@@ -526,7 +656,9 @@ int main(int argc, char **argv) {
     const int is_ed     = !strcmp(alg, "Ed25519");
     const int classical = is_x25519 || is_ed;
 
-    op_kind enc_op, dec_op, setup_op;
+    op_kind enc_op, dec_op, setup_op, invalid_op = OP_KEM_DECAPS_INVALID;
+    int invalid_op_valid = 1;
+    const char *invalid_na_reason = NULL;
     const char *enc_name, *dec_name;
     if (is_x25519) {
         /* Both peers run the identical operation, so the roles are the same
@@ -534,14 +666,21 @@ int main(int argc, char **argv) {
          * ratio near 1.0 is the harness checking itself. */
         enc_op = dec_op = OP_X25519_DERIVE; setup_op = OP_X25519_KEYGEN;
         enc_name = dec_name = "derive";
+        invalid_op_valid = 0;
+        invalid_na_reason = "X25519 has no rejection path: every 32-byte string "
+                            "is a well-formed public key and the derive succeeds "
+                            "on any of them";
     } else if (is_ed) {
         enc_op = OP_ED_SIGN; dec_op = OP_ED_VERIFY; setup_op = OP_ED_KEYGEN;
+        invalid_op = OP_ED_VERIFY_INVALID;
         enc_name = "sign"; dec_name = "verify";
     } else if (is_kem) {
         enc_op = OP_KEM_ENCAPS; dec_op = OP_KEM_DECAPS; setup_op = OP_KEM_KEYGEN;
+        invalid_op = OP_KEM_DECAPS_INVALID;
         enc_name = "encaps"; dec_name = "decaps";
     } else {
         enc_op = OP_SIG_SIGN; dec_op = OP_SIG_VERIFY; setup_op = OP_SIG_KEYGEN;
+        invalid_op = OP_SIG_VERIFY_INVALID;
         enc_name = "sign"; dec_name = "verify";
     }
 
@@ -571,15 +710,27 @@ int main(int argc, char **argv) {
     /* One worker pool, reused across phases: allocating T encoders and T
      * decoders once means no phase pays another phase's allocation or
      * first-touch page-fault cost. */
-    worker_t *enc = calloc(threads, sizeof(worker_t));
-    worker_t *dec = calloc(threads, sizeof(worker_t));
+    /* posix_memalign, not calloc: _Alignas on worker_t sizes each element to a
+     * whole number of cache lines, but only an aligned base address actually
+     * keeps neighbouring workers off each other's lines. worker_init zeroes
+     * each element. */
+    worker_t *enc = NULL, *dec = NULL;
+    if (posix_memalign((void **)&enc, CACHELINE, (size_t)threads * sizeof(worker_t)) != 0 ||
+        posix_memalign((void **)&dec, CACHELINE, (size_t)threads * sizeof(worker_t)) != 0)
+        die(alg, "out of memory (worker pools)");
     worker_t setup;
-    if (!enc || !dec) die(alg, "out of memory (worker pools)");
     for (int i = 0; i < threads; i++) {
         worker_init(&enc[i], kind, alg, enc_op, cap, 0x9E3779B97F4A7C15ull ^ (uint64_t)(i + 1));
         worker_init(&dec[i], kind, alg, dec_op, cap, 0xD1B54A32D192ED03ull ^ (uint64_t)(i + 1));
     }
     worker_init(&setup, kind, alg, setup_op, cap, 0xA24BAED4963EE407ull);
+    /* The rejection path needs one worker, and only where "invalid" means
+     * something. It does not for X25519: every 32-byte string is a well-formed
+     * public key, the derive succeeds on any of them, and there is nothing to
+     * reject. Reported as inapplicable rather than silently omitted. */
+    worker_t invalid;
+    if (invalid_op_valid) worker_init(&invalid, kind, alg, invalid_op, cap,
+                                      0x2545F4914F6CDD1Dull);
 
     size_t pk_len, sk_len, wire_len;
     int nist_level;
@@ -601,29 +752,46 @@ int main(int argc, char **argv) {
         nist_level = enc[0].sig->claimed_nist_level;
     }
 
-    int *gmap = calloc(2 * threads, sizeof(int));
+    int *gmap = calloc(2 * threads + 2, sizeof(int));
     if (!gmap) die(alg, "out of memory (group map)");
+    /* run_phase takes pointers so that a worker is never copied (a copy would
+     * alias its sample buffer); these arrays are just the addresses. */
+    worker_t **penc = calloc(threads, sizeof(worker_t *));
+    worker_t **pdec = calloc(threads, sizeof(worker_t *));
+    if (!penc || !pdec) die(alg, "out of memory (worker pointer arrays)");
+    for (int i = 0; i < threads; i++) { penc[i] = &enc[i]; pdec[i] = &dec[i]; }
+    worker_t *psetup[1] = { &setup };
+    worker_t *pinvalid[1] = { &invalid };
 
     /* ---- phase: isolated (1 thread, one role at a time) ------------------ */
-    group_t iso_enc = { "encoder", enc_name, 1, 0,0,0,0, {0} };
-    group_t iso_dec = { "decoder", dec_name, 1, 0,0,0,0, {0} };
+    group_t iso_enc = { "encoder", enc_name, 1, 1, NULL, 0,0,0,0, {0} };
+    group_t iso_dec = { "decoder", dec_name, 1, 1, NULL, 0,0,0,0, {0} };
+    group_t iso_bad = { "decoder_invalid", dec_name, 1,
+                        invalid_op_valid, invalid_na_reason, 0,0,0,0, {0} };
     /* For a KEM the keypair is the decoder's setup cost, and for an ephemeral
      * exchange it is paid per session. A signature keypair is a long-lived
      * identity belonging to the signer, so calling it "decoder_setup" there
      * would misattribute it — it is reported, but under its own name. */
-    group_t iso_setup = { is_kem ? "decoder_setup" : "signer_setup",
-                          "keygen", 1, 0,0,0,0, {0} };
+    /* For a KEM the keypair is the decoder's setup cost, paid per session when
+     * the key is ephemeral. In a DH exchange BOTH peers generate one, so it
+     * belongs to neither role alone. A signature keypair is a long-lived
+     * identity belonging to the signer. Three different things, three names. */
+    group_t iso_setup = { is_x25519 ? "peer_setup"
+                                    : (is_kem ? "decoder_setup" : "signer_setup"),
+                          "keygen", 1, 1, NULL, 0,0,0,0, {0} };
     gmap[0] = 0;
-    reset_counters(enc, 1);   run_phase(enc, 1, &iso_enc, 1, gmap, duration_ms);
-    reset_counters(dec, 1);   run_phase(dec, 1, &iso_dec, 1, gmap, duration_ms);
-    reset_counters(&setup, 1);run_phase(&setup, 1, &iso_setup, 1, gmap, duration_ms);
+    run_phase(penc,   1, &iso_enc,   1, gmap, duration_ms);
+    run_phase(pdec,   1, &iso_dec,   1, gmap, duration_ms);
+    run_phase(psetup, 1, &iso_setup, 1, gmap, duration_ms);
+    if (invalid_op_valid)
+        run_phase(pinvalid, 1, &iso_bad, 1, gmap, duration_ms);
 
     /* ---- phase: saturated (T threads, one role at a time) ---------------- */
-    group_t sat_enc = { "encoder", enc_name, threads, 0,0,0,0, {0} };
-    group_t sat_dec = { "decoder", dec_name, threads, 0,0,0,0, {0} };
+    group_t sat_enc = { "encoder", enc_name, threads, 1, NULL, 0,0,0,0, {0} };
+    group_t sat_dec = { "decoder", dec_name, threads, 1, NULL, 0,0,0,0, {0} };
     for (int i = 0; i < threads; i++) gmap[i] = 0;
-    reset_counters(enc, threads); run_phase(enc, threads, &sat_enc, 1, gmap, duration_ms);
-    reset_counters(dec, threads); run_phase(dec, threads, &sat_dec, 1, gmap, duration_ms);
+    run_phase(penc, threads, &sat_enc, 1, gmap, duration_ms);
+    run_phase(pdec, threads, &sat_dec, 1, gmap, duration_ms);
 
     /* ---- phase: contended (1 encoder vs T decoders, together) ------------ */
     /* The adversarial shape: one sender, a receiver with the whole machine.
@@ -631,17 +799,16 @@ int main(int argc, char **argv) {
      * and the question "can one sender outrun T receivers?" is answered by
      * numbers taken at the same instant under the same thermal conditions. */
     int nmix = 1 + threads;
-    worker_t *mix = calloc(nmix, sizeof(worker_t));
+    worker_t **mix = calloc(nmix, sizeof(worker_t *));
     if (!mix) die(alg, "out of memory (mixed pool)");
-    mix[0] = enc[0];
-    for (int i = 0; i < threads; i++) mix[1 + i] = dec[i];
+    mix[0] = &enc[0];
+    for (int i = 0; i < threads; i++) mix[1 + i] = &dec[i];
     gmap[0] = 0;
     for (int i = 0; i < threads; i++) gmap[1 + i] = 1;
     group_t con[2] = {
-        { "encoder", enc_name, 1, 0,0,0,0, {0} },
-        { "decoder", dec_name, threads, 0,0,0,0, {0} },
+        { "encoder", enc_name, 1,       1, NULL, 0,0,0,0, {0} },
+        { "decoder", dec_name, threads, 1, NULL, 0,0,0,0, {0} },
     };
-    reset_counters(mix, nmix);
     run_phase(mix, nmix, con, 2, gmap, duration_ms);
 
     /* ---- derived asymmetry ---------------------------------------------- */
@@ -679,6 +846,22 @@ int main(int argc, char **argv) {
     double con_dec_pt = con[1].threads ? rate(&con[1]) / con[1].threads : 0;
     double con_cores_per_enc = con_dec_pt > 0 ? rate(&con[0]) / con_dec_pt : 0;
 
+    /* The rejection path, which is what a denial-of-service attacker actually
+     * exercises. Two numbers:
+     *   rejection_vs_valid  — is rejecting cheaper than accepting? A value near
+     *                         1.0 means the algorithm does the full work before
+     *                         it can say no, so garbage costs the receiver as
+     *                         much as real traffic.
+     *   rejection_ns_per_wire_byte — receiver nanoseconds bought per byte the
+     *                         attacker sends. This is the amplification factor
+     *                         that matters, because the attacker's own cost is
+     *                         bandwidth, not computation. */
+    double rej_ratio = 0, rej_per_byte = 0;
+    if (iso_bad.applicable && iso_bad.lat.median > 0) {
+        if (iso_dec.lat.median > 0) rej_ratio = iso_bad.lat.median / iso_dec.lat.median;
+        if (wire_len) rej_per_byte = iso_bad.lat.median / (double)wire_len;
+    }
+
     printf("{\"alg\":\"%s\",\"kind\":\"%s\",\"implementation\":\"%s\","
            "\"classical\":%s,\"enabled\":true,\"claimed_nist_level\":%d,",
            alg, kind, classical ? "openssl" : "liboqs",
@@ -692,6 +875,7 @@ int main(int argc, char **argv) {
     printf("\"phases\":{");
     printf("\"isolated\":{\"encoder\":");    print_group(stdout, &iso_enc);
     printf(",\"decoder\":");                 print_group(stdout, &iso_dec);
+    printf(",\"decoder_invalid\":");          print_group(stdout, &iso_bad);
     printf(",\"decoder_setup\":");           print_group(stdout, &iso_setup);
     printf("},\"saturated\":{\"encoder\":"); print_group(stdout, &sat_enc);
     printf(",\"decoder\":");                 print_group(stdout, &sat_dec);
@@ -705,17 +889,27 @@ int main(int argc, char **argv) {
            "\"throughput_ratio_encoder_over_decoder\":%.4f,"
            "\"decoder_cores_per_encoder_core\":%.4f,"
            "\"contended_decoder_cores_per_encoder_core\":%.4f,"
+           "\"rejection_vs_valid\":%.4f,"
+           "\"rejection_ns_per_wire_byte\":%.4f,"
            "\"symmetric_by_construction\":%s,"
            "\"cheaper_side\":\"%s\"}",
            iso_ratio, iso_ratio_session, sat_ratio, dec_per_enc, con_cores_per_enc,
+           rej_ratio, rej_per_byte,
            is_x25519 ? "true" : "false",
            iso_ratio > 1.05 ? "encoder"
                             : (iso_ratio < 0.95 ? "decoder" : "neither"));
     printf("}\n");
 
-    free(gmap); free(mix);
+    /* Consume the per-worker sinks exactly once, so nothing they guard can be
+     * optimised away without the compiler proving the whole program dead. */
+    uint64_t sink = setup.sink + (invalid_op_valid ? invalid.sink : 0);
+    for (int i = 0; i < threads; i++) sink += enc[i].sink + dec[i].sink;
+    g_sink_final = sink;
+
+    free(gmap); free(mix); free(penc); free(pdec);
     for (int i = 0; i < threads; i++) { worker_free(&enc[i]); worker_free(&dec[i]); }
     worker_free(&setup);
+    if (invalid_op_valid) worker_free(&invalid);
     free(enc); free(dec);
     return 0;
 }

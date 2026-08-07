@@ -48,17 +48,21 @@ DURATION_MS=2000
 THREADS=""
 SMOKE=0
 ONLY_ALGS=()
+# `set -u` turns a missing option value into an "unbound variable" abort with no
+# useful message; check for it and say what was wrong instead.
+need_value() { [ $# -ge 2 ] || { pqb_err "$1 needs a value"; exit 2; }; }
 while [ $# -gt 0 ]; do
   case "$1" in
     --smoke) SMOKE=1 ;;
-    --duration-ms) DURATION_MS="$2"; shift ;;
-    --threads) THREADS="$2"; shift ;;
-    --alg) ONLY_ALGS+=("$2"); shift ;;
+    --duration-ms) need_value "$@"; DURATION_MS="$2"; shift ;;
+    --threads) need_value "$@"; THREADS="$2"; shift ;;
+    --alg) need_value "$@"; ONLY_ALGS+=("$2"); shift ;;
     -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) pqb_err "unknown arg: $1"; exit 2 ;;
   esac
   shift
 done
+case "$DURATION_MS" in ''|*[!0-9]*) pqb_err "--duration-ms must be a number"; exit 2 ;; esac
 if [ "$SMOKE" = 1 ]; then DURATION_MS=250; fi
 
 BIN="$ROOT/bench/stress/stress_roles"

@@ -33,6 +33,14 @@ and printing it would invite it to be quoted.
         comfortable direction for a node that consumes many messages from
         many peers.
 
+`--reject` switches to the denial-of-service view: what the decoder spends on a
+message that does NOT verify. `rej/ok` near 1.0 means the algorithm does the
+full work before it can reject, so garbage costs a receiver the same as real
+traffic. `ns/byte` is receiver nanoseconds bought per byte the attacker sends,
+which is the figure that bounds a flood — an attacker spends bandwidth, not
+CPU, so a small wire object backed by expensive verification is the dangerous
+shape.
+
 Ratios are the portable output. The absolute rates in the same file describe
 one machine under saturation and do not transfer.
 """
@@ -61,6 +69,8 @@ def main():
     ap.add_argument("--phase", default="isolated",
                     choices=("isolated", "saturated", "contended"),
                     help="which phase's latencies to show (default: isolated)")
+    ap.add_argument("--reject", action="store_true",
+                    help="show the rejection path (denial-of-service view) instead")
     args = ap.parse_args()
 
     with open(args.results) as f:
@@ -74,9 +84,14 @@ def main():
           f" · governor {run.get('governor_after','?')}"
           + ("  [SMOKE — not measurement data]" if run.get("smoke") else ""))
     print()
-    print(f"{'algorithm':<26} {'roles':<16} {'encoder':>9} {'decoder':>9} "
-          f"{'dec/enc':>9} {'mean':>7} {'per-sess':>9} {'contended':>9}  cheaper")
-    print("-" * 112)
+    if args.reject:
+        print(f"{'algorithm':<26} {'wire bytes':>10} {'accept':>10} {'reject':>10} "
+              f"{'rej/ok':>7} {'ns/byte':>12}")
+        print("-" * 80)
+    else:
+        print(f"{'algorithm':<26} {'roles':<16} {'encoder':>9} {'decoder':>9} "
+              f"{'dec/enc':>9} {'mean':>7} {'per-sess':>9} {'contended':>9}  cheaper")
+        print("-" * 112)
 
     rows = [r for r in d.get("algorithms", []) if r.get("enabled")]
     # classical baselines first: the comparison only means something against
@@ -102,6 +117,26 @@ def main():
         setup_n = (setup.get("latency_ns") or {}).get("samples") or 0
         sess = a.get("latency_ratio_per_session") or 0
         sess_s = f"{sess:9.2f}" if setup_n >= MIN_SETUP_SAMPLES else f"{'-':>9}"
+
+        if args.reject:
+            iso = (r.get("phases") or {}).get("isolated") or {}
+            wire = (r.get("sizes") or {}).get("encoder_emits")
+            if "decoder_invalid" not in iso:
+                # a run from before the rejection path existed — say so rather
+                # than implying the algorithm has none
+                print(f"{r['alg']:<26} {wire or 0:>10} "
+                      f"{'—':>10} {'—':>10} {'—':>7} {'—':>12}   (not measured in this run)")
+                continue
+            bad = iso.get("decoder_invalid") or {}
+            if not bad.get("applicable"):
+                print(f"{r['alg']:<26} {wire or 0:>10} "
+                      f"{'—':>10} {'—':>10} {'—':>7} {'—':>12}   (no rejection path)")
+                continue
+            bl = (bad.get("latency_ns") or {}).get("median")
+            print(f"{r['alg']:<26} {wire or 0:>10} {fmt_ns(dl):>10} {fmt_ns(bl):>10} "
+                  f"{a.get('rejection_vs_valid') or 0:7.3f} "
+                  f"{a.get('rejection_ns_per_wire_byte') or 0:12.1f}")
+            continue
 
         mark = "  <-- receiver pays" if ratio > 1.05 else ""
         print(f"{r['alg']:<26} {roles:<16} {fmt_ns(el)} {fmt_ns(dl)} "

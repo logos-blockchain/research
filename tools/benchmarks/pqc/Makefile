@@ -22,8 +22,13 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-RESULTS ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../../reports/pqc/results)
-FIGURES ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../../reports/pqc/figures)
+# An inherited PQC_RESULTS_DIR / PQC_FIGURES_DIR WINS. `make test-fedora` sets
+# it inside the container, and a standalone copy of this directory has no
+# ../../../reports to resolve — so the Makefile must adopt what the caller
+# chose rather than recompute a path that does not exist there and export it
+# back over the top.
+RESULTS ?= $(or $(PQC_RESULTS_DIR),$(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../../reports/pqc/results))
+FIGURES ?= $(or $(PQC_FIGURES_DIR),$(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../../reports/pqc/figures))
 # Exported so run.sh, the selftest and the container gate all resolve the same
 # directories — `make RESULTS=/somewhere run` redirects every target at once.
 export PQC_RESULTS_DIR := $(RESULTS)

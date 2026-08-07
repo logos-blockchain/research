@@ -15,53 +15,60 @@ by the ratio, not by either side's absolute speed.
 ## Headline
 
 **Migrating to post-quantum signatures reverses the direction of the signature
-asymmetry.** Today's Ed25519 makes the *receiver* pay 2.35× what the sender
+asymmetry.** Today's Ed25519 makes the *receiver* pay 2.48× what the sender
 pays. Every PQ signature scheme measured inverts that: ML-DSA moves the cost to
-the signer (0.28–0.38), Falcon further (0.15), and SLH-DSA to the point of
-absurdity — SLH-DSA-SHA2-128s signs in 298 ms and verifies in 272 µs, a ratio of
-0.001. For a network whose nodes verify far more signatures than they produce,
-this is the favourable direction: the cost of migration lands on the side doing
-the signing.
+the signer (0.31–0.38), Falcon further (0.16), and SLH-DSA to the point of
+absurdity — SLH-DSA-SHA2-128s signs in 371 ms and verifies in 300 µs, a ratio of
+0.0008. For a network whose nodes verify far more signatures than they produce,
+this is the favourable direction: the migration bill lands on the side signing.
 
-**Key exchange moves the other way, mildly.** X25519 is symmetric by
-construction: both peers generate an ephemeral share and both derive, so the
-exchange costs both sides the same (measured: 1.00). ML-KEM is not symmetric —
-only the decoder generates a keypair — so with ephemeral keys the receiver pays
-2.1–2.3× the sender. Per message alone, ignoring keygen, it is a mild 1.2×.
+**Rejecting a bad message costs the same as accepting a good one — everywhere.**
+Timed against deliberately corrupted input, all 29 algorithms with a rejection
+path land between 0.91× and 1.08× of their valid-input cost. These are
+constant-time implementations; none of them bails out early. So the ratios above
+are not merely the honest-peer case, they are also the attack case, and the two
+do not need to be reasoned about separately.
 
-**Classic McEliece is in a category of its own and is disqualified by this
-metric.** Decapsulation costs 600–1500× encapsulation: a peer hands the receiver
-three orders of magnitude more work than it spent, per message, with no attack
-required. Keygen additionally runs into whole seconds (0.2–2.7 s), so ephemeral
-keys are not on the table at all. Its very small ciphertext is a genuine
-bandwidth advantage, and this is its price.
+**Post-quantum is also the better direction for flood resistance, because the
+messages are bigger.** An attacker spends bandwidth, not CPU, so what bounds a
+flood is receiver-CPU purchased per byte sent. A 64-byte Ed25519 signature buys
+875 ns of verification — 875 ns/byte. A 3309-byte ML-DSA-65 signature buys
+75 µs — 23 ns/byte, **38× less**. The same holds for key exchange: X25519 is
+594 ns/byte against ML-KEM-768's 10 ns/byte. PQ's large wire objects, usually
+counted as a cost, are a defensive asset here.
+
+**Classic McEliece is disqualified on this metric, by three orders of
+magnitude.** Decapsulation costs 740–1770× encapsulation, and its very small
+ciphertext turns that into 141 000–522 000 ns of receiver CPU per byte — a
+thousandfold worse than anything else measured, ML-KEM included. Its compact
+ciphertext is a real bandwidth advantage, and this is its price.
 
 ## Results
 
-Apple M4 Pro (14 cores), 2 s per phase leg, liboqs 0.15.0 pinned. **This is a
-cross-platform datapoint, not a reference measurement** — see *Status* below.
+Apple M4 Pro (14 cores), 2 s per phase leg, liboqs 0.15.0 pinned, from
+[`results/stress-Mac-20260807T090258Z.json`](results). **A cross-platform
+datapoint, not a reference measurement** — see *Status* below.
 
 | algorithm | roles | encoder | decoder | per message | mean | per session | contended |
 |---|---|---:|---:|---:|---:|---:|---:|
-| **X25519** | derive/derive | 22 µs | 22 µs | **1.00** | 0.99 | 1.00 | 1.00 |
-| **Ed25519** | sign/verify | 20 µs | 47 µs | **2.35** | 2.39 | 2.35 | 2.38 |
-| ML-KEM-512 | encaps/decaps | 6 µs | 8 µs | 1.33 | 1.24 | 2.33 | 1.16 |
-| ML-KEM-768 | encaps/decaps | 10 µs | 12 µs | 1.20 | 1.18 | 2.20 | 1.14 |
-| ML-KEM-1024 | encaps/decaps | 16 µs | 18 µs | 1.12 | 1.17 | 2.06 | 1.19 |
-| FrodoKEM-640-AES | encaps/decaps | 246 µs | 239 µs | 0.97 | 1.00 | 1.76 | 0.95 |
-| FrodoKEM-976-AES | encaps/decaps | 424 µs | 406 µs | 0.96 | 0.98 | 1.72 | 0.95 |
-| FrodoKEM-1344-AES | encaps/decaps | 738 µs | 713 µs | 0.97 | 0.97 | 1.74 | 0.96 |
-| Classic-McEliece-348864 | encaps/decaps | 15 µs | 15.6 ms | **1041** | 944 | — | 958 |
-| Classic-McEliece-6960119 | encaps/decaps | 102 µs | 69.2 ms | **678** | 622 | — | 611 |
-| Classic-McEliece-8192128 | encaps/decaps | 59 µs | 87.5 ms | **1483** | 1275 | — | 1250 |
-| ML-DSA-44 | sign/verify | 148 µs | 42 µs | 0.28 | 0.23 | 0.28 | 0.23 |
-| ML-DSA-65 | sign/verify | 233 µs | 68 µs | 0.29 | 0.24 | 0.29 | 0.23 |
-| ML-DSA-87 | sign/verify | 292 µs | 110 µs | 0.38 | 0.31 | 0.38 | 0.32 |
-| Falcon-512 | sign/verify | 121 µs | 19 µs | 0.16 | 0.15 | 0.16 | 0.16 |
-| Falcon-1024 | sign/verify | 247 µs | 37 µs | 0.15 | 0.16 | 0.15 | 0.15 |
-| SLH-DSA-SHA2-128f | sign/verify | 13.2 ms | 833 µs | 0.06 | 0.06 | 0.06 | 0.06 |
-| SLH-DSA-SHA2-128s | sign/verify | 298 ms | 272 µs | **0.00097** | 0.001 | 0.001 | 0.001 |
-| SLH-DSA-SHA2-256f | sign/verify | 46.6 ms | 1.21 ms | 0.03 | 0.03 | 0.03 | 0.03 |
+| **X25519** | derive/derive | 19 µs | 19 µs | **1.00** | 1.00 | 1.00 | 0.97 |
+| **Ed25519** | sign/verify | 21 µs | 52 µs | **2.48** | 2.59 | 2.48 | 2.45 |
+| ML-KEM-512 | encaps/decaps | 6 µs | 7 µs | 1.17 | 1.17 | 2.00 | 1.20 |
+| ML-KEM-768 | encaps/decaps | 9 µs | 11 µs | 1.22 | 1.16 | 2.22 | 1.21 |
+| ML-KEM-1024 | encaps/decaps | 14 µs | 16 µs | 1.14 | 1.21 | 2.07 | 1.18 |
+| FrodoKEM-640-AES | encaps/decaps | 259 µs | 285 µs | 1.10 | 1.06 | 1.94 | 0.98 |
+| FrodoKEM-976-AES | encaps/decaps | 474 µs | 454 µs | 0.96 | 0.94 | 1.72 | 0.98 |
+| FrodoKEM-1344-AES | encaps/decaps | 827 µs | 798 µs | 0.96 | 0.99 | 1.74 | 1.01 |
+| Classic-McEliece-348864 | encaps/decaps | 12 µs | 13.6 ms | **1137** | 999 | — | 937 |
+| Classic-McEliece-8192128 | encaps/decaps | 63 µs | 111.5 ms | **1770** | 1381 | — | 1270 |
+| ML-DSA-44 | sign/verify | 162 µs | 50 µs | 0.31 | 0.25 | 0.31 | 0.23 |
+| ML-DSA-65 | sign/verify | 259 µs | 81 µs | 0.31 | 0.27 | 0.31 | 0.23 |
+| ML-DSA-87 | sign/verify | 342 µs | 131 µs | 0.38 | 0.32 | 0.38 | 0.31 |
+| Falcon-512 | sign/verify | 131 µs | 21 µs | 0.16 | 0.17 | 0.16 | 0.15 |
+| Falcon-1024 | sign/verify | 260 µs | 45 µs | 0.17 | 0.16 | 0.17 | 0.16 |
+| SLH-DSA-SHA2-128f | sign/verify | 14.8 ms | 884 µs | 0.06 | 0.06 | 0.06 | 0.06 |
+| SLH-DSA-SHA2-128s | sign/verify | 371 ms | 300 µs | **0.0008** | 0.0008 | 0.0008 | 0.0008 |
+| SLH-DSA-SHA2-256f | sign/verify | 59.5 ms | 1.43 ms | 0.02 | 0.03 | 0.02 | 0.03 |
 
 *Per message* ignores keygen (long-lived keys). *Mean* is the same ratio from
 each role's mean cost per operation instead of its median — see the note on
@@ -72,17 +79,70 @@ identities; it reads "—" for Classic McEliece, whose seconds-long keygen yield
 too few samples in a 2 s leg to support the figure. *Contended* is the same
 quantity measured under load — how many decoder cores one encoder thread keeps
 busy while both compete for the machine — rather than derived from isolated
-latencies.
-
-The full sweep, covering all 30 candidates, is in
-[`results/stress-Mac-20260806T171550Z.json`](results); regenerate this view with
+latencies. All 30 candidates are in the results file; regenerate this view with
 `python3 analyze/asymmetry.py <file>`.
+
+## What an attacker pays for
+
+The ratios above are what two *honest* peers pay. An attacker is not honest: it
+sends something that will not verify, and what matters then is what the receiver
+spends before it can say no. Every decoder was therefore also timed against a
+corrupted wire object — a valid one with a bit flipped, which costs an attacker
+nothing to produce from any message it has seen, and drives the receiver as deep
+into verification as the algorithm's structure allows.
+
+`python3 analyze/asymmetry.py <file> --reject`:
+
+| algorithm | wire bytes | accept | reject | reject/accept | ns per attacker byte |
+|---|---:|---:|---:|---:|---:|
+| X25519 | 32 | 19 µs | *no rejection path* | — | **594** |
+| Ed25519 | 64 | 52 µs | 56 µs | 1.08 | **875** |
+| ML-KEM-768 | 1088 | 11 µs | 11 µs | 1.00 | **10** |
+| ML-KEM-1024 | 1568 | 16 µs | 16 µs | 1.00 | 10 |
+| FrodoKEM-976-AES | 15744 | 454 µs | 453 µs | 1.00 | 29 |
+| ML-DSA-44 | 2420 | 50 µs | 50 µs | 1.00 | 21 |
+| ML-DSA-65 | 3309 | 81 µs | 75 µs | 0.93 | **23** |
+| ML-DSA-87 | 4627 | 131 µs | 123 µs | 0.94 | 27 |
+| Falcon-512 | 752 | 21 µs | 21 µs | 1.00 | 28 |
+| SLH-DSA-SHA2-128f | 17088 | 884 µs | 887 µs | 1.00 | 52 |
+| Classic-McEliece-348864 | 96 | 13.6 ms | 13.6 ms | 0.99 | **141 287** |
+| Classic-McEliece-8192128 | 208 | 111 ms | 109 ms | 0.97 | **522 014** |
+
+Two things follow.
+
+**Nothing here rejects early.** Every ratio sits at 1.0 within noise, because
+these are constant-time implementations by design — the work is done before the
+answer is known. That is good for side-channel resistance, and it means garbage
+traffic costs a receiver exactly what real traffic costs. It also means the
+honest-peer asymmetry measured above transfers directly to the adversarial case.
+
+**X25519's missing rejection path is not good news.** It has none because every
+32-byte string is a well-formed public key: there is nothing to reject, so
+*everything* is processed at full cost. That is the maximally amplifying shape,
+and at 594 ns/byte it is 59× worse than ML-KEM-768.
+
+To make the unit concrete — 1 Gbps of attack traffic (125 MB/s), against the
+primitive alone:
+
+| what is flooded | messages/s | receiver cores consumed |
+|---|---:|---:|
+| Ed25519 signatures | 1.95 M | **109** |
+| X25519 shares | 3.91 M | 74 |
+| ML-DSA-65 signatures | 37.8 k | **2.8** |
+| ML-KEM-768 ciphertexts | 115 k | 1.3 |
+| Classic-McEliece-348864 ciphertexts | 1.30 M | **17 700** |
+
+These are *primitive-level bounds, not protocol attacks.* A real deployment puts
+a handshake, a cookie, or a rate limiter in front of the expensive operation,
+and the figures above say nothing about how well it does that. What they do say
+is what the primitive costs once an attacker gets past it, and how much margin
+each choice leaves.
 
 ## What the numbers mean for Logos
 
 **Signature migration bills the signer, not the verifier.** In absolute terms,
-verification gets ~1.4× more expensive moving Ed25519 → ML-DSA-65 (47 µs →
-68 µs), while signing gets ~12× more expensive (20 µs → 233 µs). A node that
+verification gets ~1.6× more expensive moving Ed25519 → ML-DSA-65 (52 µs →
+81 µs), while signing gets ~12× more expensive (21 µs → 259 µs). A node that
 verifies many signatures and produces few — which is what consensus
 participation looks like — absorbs the smaller half of the migration cost. A
 node that signs at high rate does not.
@@ -90,49 +150,56 @@ node that signs at high rate does not.
 **Ephemeral ML-KEM shifts key-exchange cost to the key publisher.** X25519's
 symmetry is not a property PQ inherits: in TLS the client generates the ML-KEM
 keypair and decapsulates while the server only encapsulates, so the client's
-share of the handshake grows. At ML-KEM-768 that is 10 µs of keygen plus 12 µs
-of decaps against the server's 10 µs of encaps.
+share of the handshake grows. At ML-KEM-768 that is 10 µs of keygen plus 11 µs
+of decaps against the server's 9 µs of encaps — a per-session ratio of 2.2
+against X25519's 1.0.
+
+**Flood resistance improves in the same direction, for an unrelated reason.**
+Larger wire objects mean fewer messages per gigabit, and the receiver's cost is
+per message. Every axis measured here — who pays, and how much an attacker buys
+per byte — moves the same way when signatures go post-quantum.
 
 **The measures agree, which is the reason to believe them.** Isolated median,
 mean cost per operation, and the contended head-to-head are three largely
 independent ways of asking the same question, and for every algorithm they land
-in the same place — X25519 at 1.00/0.99/1.00, Ed25519 at 2.35/2.39/2.38,
-ML-DSA-65 at 0.29/0.24/0.23. X25519 earns its place in the sweep for exactly
+in the same place — X25519 at 1.00/1.00/0.97, Ed25519 at 2.48/2.59/2.45,
+ML-DSA-65 at 0.31/0.27/0.23. X25519 earns its place in the sweep for exactly
 this reason: its two roles are *the identical operation*, so a ratio other than
 ~1.0 is a bug in the role plumbing rather than a finding, and `make test`
 asserts it stays there.
 
 ## Limitations
 
-**These are valid-input costs, and a denial-of-service attacker does not send
-valid inputs.** Every measurement here uses a ciphertext that really decapsulates
-and a signature that really verifies. An attacker sends garbage, and for several
-of these algorithms a malformed input is rejected much earlier than a valid one
-is accepted — so the ratios above are the *honest-peer* asymmetry, not an attack
-cost model. Measuring the rejection path is the natural next step and would
-change the DoS reading, possibly substantially.
+**One corruption shape, not all of them.** The rejection path is measured
+against a valid message with a bit flipped. That is the cheap-for-the-attacker,
+expensive-for-the-receiver case, and it is the right one to bound with — but a
+structurally malformed input (wrong length, invalid encoding) may be rejected
+sooner, and an input crafted against a specific implementation may behave
+differently again. The uniform ~1.0 ratios make a large surprise unlikely for
+these constant-time implementations; they do not rule one out.
 
 **Fast operations are limited by the platform's clock, not by the harness.**
 macOS resolves ~1 µs, so a 6 µs ML-KEM-512 encapsulation lands on a coarse grid
-and its *median* ratio can only take a few discrete values — which is why that
-row reads 1.33 by median and 1.24 by mean, and why the median moved between
-repeat runs while the mean did not. The mean is taken over every operation the
-leg completed (hundreds of thousands), so for anything under ~20 µs it is the
-figure to quote. Nothing above ~100 µs is affected.
+and its *median* ratio can only take a few discrete values. The mean is taken
+over every operation the leg completed (hundreds of thousands), so for anything
+under ~20 µs it is the figure to quote. Nothing above ~100 µs is affected.
 
 **Absolute rates do not leave this machine; ratios do.** A stress run uses every
 core and is deliberately unpinned, so its throughput numbers carry the host's
 thermal and scheduler behaviour. The ratio between two roles measured in the
-same phase, on the same silicon, at the same moment is what transfers.
+same phase, on the same silicon, at the same moment is what transfers. Repeat
+runs move the ratios by a few percent (Ed25519 measured 2.35 and 2.48 on two
+sweeps); treat the second decimal place as noise.
 
 **The contended phase understates the encoder.** It runs one encoder thread
 against a full set of decoder threads on the same cores, so the single encoder
 is oversubscribed — the multiplier it reports is a floor, not a midpoint.
 
 **No reference-platform run yet.** The sweep above is an Apple M4 Pro. The
-ratios are unlikely to move much — they are dominated by algorithm structure,
-not microarchitecture — but that is a prediction, not a measurement, until the
-same sweep runs on the reference platform.
+ratios should be dominated by algorithm structure rather than microarchitecture,
+but that is a prediction, not a measurement, until the same sweep runs on the
+reference platform. The per-byte figures in particular scale with absolute
+speed and will be larger on a Raspberry Pi 5.
 
 ## Status and provenance
 
@@ -147,7 +214,8 @@ Reproduce with:
 
 ```bash
 cd tools/benchmarks/pqc
-make build && make stress            # full sweep; ~15 min
+make build && make stress            # full sweep; ~20 min
 ./stress.sh --alg ML-KEM-768         # one algorithm
 python3 analyze/asymmetry.py reports/pqc/results/stress-<host>-<ts>.json
+python3 analyze/asymmetry.py <file> --reject     # the flood view
 ```
