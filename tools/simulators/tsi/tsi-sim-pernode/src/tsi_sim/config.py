@@ -144,7 +144,12 @@ class SimConfig:
     # take the oldest candidates first, deterministically, because an uncle expires w_u slots
     # after its own slot so the oldest are the closest to expiring. Every headline result uses it.
     uncle_strategy: UncleStrategy = "oldest"
-    uncle_window_anchor: UncleWindowAnchor = "uncle"   # "parent" = the proposed rule
+    # DEFAULT is the deployed rule, so the simulator describes the protocol as it stands and the
+    # §6.12 proposal is an explicit arm — the same convention `fixed_point` follows. It must also
+    # stay "uncle" for a harder reason: key() appends the anchor only when it is not "uncle", so
+    # this default is what keeps an --old run's key byte-identical to the pre-redesign key and
+    # lets it bit-reproduce every historical run (§9).
+    uncle_window_anchor: UncleWindowAnchor = "uncle"
     # "random" is NOT a spec variant — it is the deviation probe: walk the same oldest-first
     # candidate order but include each candidate with probability uncle_random_p, so a lone
     # candidate is dropped half the time. Uncle selection is proposer-local and unvalidated, so a
@@ -436,6 +441,7 @@ class SimConfig:
 # Axes that can be swept; every SimConfig field is legal here.
 _SWEEP_AXES = (
     "n_nodes", "stake_dist", "latency", "max_uncles", "uncle_strategy", "uncle_window",
+    "uncle_window_anchor",
     "window_absorption",
     "topology", "degree", "link_latency_mean", "link_latency_dist",
     "blend_hops", "blend_delay_max", "init_dest", "f",
@@ -452,6 +458,7 @@ class SweepConfig:
     max_uncles: list[int] = field(default_factory=lambda: [0, 1, 2, 4])
     uncle_strategy: list[UncleStrategy] = field(default_factory=lambda: ["oldest"])
     uncle_window: list[int] = field(default_factory=lambda: [constants.W_DEFAULT])
+    uncle_window_anchor: list[UncleWindowAnchor] = field(default_factory=lambda: ["uncle"])
     window_absorption: list[float] = field(default_factory=lambda: [constants.W_ABS_DEFAULT])
     topology: list[Topology] = field(default_factory=lambda: ["regular"])
     degree: list[int] = field(default_factory=lambda: [8])

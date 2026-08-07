@@ -24,6 +24,7 @@ blend_delay_max: [4.0]                       # the spec's operating point
 window_absorption: [1, 2, 3, 5, 7, 10, 15, 20]   # W in expected block-intervals; w_u = W/f slots
 max_uncles: [1]                              # FIXED at one uncle: the question is about W
 uncle_strategy: [oldest]                     # spec Uncle Selection
+uncle_window_anchor: [uncle]                 # SPEC AS DEPLOYED, not the sec 6.12 proposal
 init_dest: [common]                          # per-node initial D_est from agreement
 replicates: 12                               # enough to place the knee, not to resolve 0.1 pp
 base:                                        # per-run settings shared by every cell
