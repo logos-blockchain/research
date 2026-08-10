@@ -1,0 +1,49 @@
+# Where exactly does the parent-anchored window cross today's recipe? (§6.12) — high-power run
+#
+# The 8-15 integer sweep put the crossing between W = 11 (-0.0024, t = -4.5) and W = 12
+# (+0.00004, t = 0.1), and recommended 12 as the smallest window reaching parity. That is a
+# ~0.0005-scale claim resting on a ~0.0005 standard error, so the crossing is located to about one
+# block-interval and no better. This run is built to place it more finely and to show the answer
+# is not an artefact of replicate noise.
+#
+# Three changes, each attacking a different variance source:
+#   * HALF-INTEGER W across the crossing (9 to 14 in steps of 0.5). w_u = floor(W/f) is 285 slots
+#     at W = 9.5 against 270 at 9 and 300 at 10, so these are genuinely distinct windows and not
+#     re-labelled duplicates. If the crossing sits at 11.5 rather than 12, this resolves it.
+#   * 96 REPLICATES (from 32) — cuts the standard error on a paired difference by ~1.7x.
+#   * early_stop OFF, 30 EPOCHS (from early-stopped 20) — the per-run equilibrium sample goes from
+#     ~10 measured epochs to a full 15, which attacks the within-run noise the replicate count
+#     cannot touch. This is the more important of the two: replicates average out between-run
+#     variance, epochs average out the per-epoch sampling noise of +-0.9% (Appendix B).
+#
+# paired_streams stays on and is what makes any of this affordable: SimConfig._base_key() excludes
+# uncle_window_anchor and window_absorption, so at a given replicate every cell draws the same
+# stake vector, peering graph and lottery, and the differences are paired. Unpaired, none of these
+# differences would resolve at any replicate count worth running.
+#
+# 11 windows x 2 anchors x 96 replicates = 2112 runs. Geometry is the capstone's, so the answer
+# lands on the recommended configuration: delta_max = 8 (rho ~ 0.47), U = 2 = ceil(rho)+1,
+# degree 6, k = 2160, 30% suppression adversary. Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet — the deployment transport
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # the spec's Blend cascade length
+blend_delay_max: [8.0]                       # the capstone's operating point, rho ~ 0.47
+window_absorption: [9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14]   # half-interval steps
+uncle_window_anchor: [uncle, parent]         # spec rule vs the §6.12 proposal
+max_uncles: [2]                              # the recommended cap U = ceil(rho)+1
+uncle_strategy: [oldest]                     # spec Uncle Selection
+init_dest: [common]                          # per-node initial D_est from agreement
+replicates: 96                               # 3x the integer sweep
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 30                                 # 15 equilibrium epochs after the 50% burn
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: false                          # OFF: take the full equilibrium sample per run
+  adversary_frac: 0.3                        # the capstone's suppression coalition
+  adversary_strategy: suppress               # references no uncles from its own blocks
+  paired_streams: true                       # COMMON RANDOM NUMBERS across anchor and W
