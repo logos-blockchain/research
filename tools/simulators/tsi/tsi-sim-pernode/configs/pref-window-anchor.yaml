@@ -1,0 +1,39 @@
+# Does widening W restore what the parent anchor costs under a suppression adversary? (§6.8, §6.12)
+#
+# The capstone found the one place the anchor change actually bites: honest recovery is
+# unaffected, but under a 30 % uncle-suppression coalition the parent-anchored rule drops to
+# D_hat = 0.974 with p_ref = 0.875, against 0.994 / 0.936 for the spec's rule. The two effects
+# compound — a tighter effective window leaves an orphan fewer chances to be referenced before
+# its PARENT ages out, and a suppressing adversary removes some of those chances by declining to
+# reference from its own blocks.
+#
+# The report now recommends pairing the anchor change with W = 12 to restore the margin. That
+# recommendation has been asserted from the shape of the mechanism and not yet measured, which is
+# what this config is for: sweep W across both anchors, with and without the adversary, and read
+# off whether a wider window buys back p_ref and the estimate.
+#
+# Geometry is the capstone's, so the answer lands on the recommended configuration rather than a
+# probe point: delta_max = 8 (rho ~ 0.47), U = 2 = ceil(rho)+1, degree 6, k = 2160.
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet — the deployment transport
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # the spec's Blend cascade length
+blend_delay_max: [8.0]                       # the capstone's operating point, rho ~ 0.47
+window_absorption: [8, 10, 12, 15, 20]       # W in block-intervals; 10 = today, 12 = proposed
+uncle_window_anchor: [uncle, parent]         # spec rule vs the §6.12 proposal
+max_uncles: [2]                              # the recommended cap U = ceil(rho)+1
+uncle_strategy: [oldest]                     # spec Uncle Selection
+init_dest: [common]                          # per-node initial D_est from agreement
+replicates: 12
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true
+  adversary_frac: 0.3                        # the capstone's suppression coalition
+  adversary_strategy: suppress                # references no uncles from its own blocks
