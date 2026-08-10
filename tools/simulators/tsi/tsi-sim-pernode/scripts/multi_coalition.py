@@ -191,11 +191,25 @@ def fig39(acc: pd.DataFrame, spl: pd.DataFrame) -> None:
     ax.legend(fontsize=7)
 
     ax = axes[1]
+    flagged = False
     for i, b in enumerate(BETAS):
         g = spl[spl.beta == b].groupby("K")[["stake_share", "canonical_share"]].mean()
-        ax.plot(g.index, g.canonical_share / g.stake_share, marker="o", ms=4,
-                color=style.OKABE_ITO[i + 1], label=rf"$\beta$ = {b:.1f}")
+        strand = spl[spl.beta == b].groupby("K").stranded.mean()
+        ratio = g.canonical_share / g.stake_share
+        ax.plot(g.index, ratio, marker="o", ms=4, color=style.OKABE_ITO[i + 1],
+                label=rf"$\beta$ = {b:.1f}")
+        # A cell whose private chains were still hidden at the epoch boundary is measuring the
+        # boundary, not the attack. Draw it hollow so the curve cannot be read as if every point
+        # carried the same weight — the §6.9 text says the same thing in words.
+        bad = strand > 0.2
+        if bad.any():
+            flagged = True
+            ax.plot(ratio.index[bad], ratio[bad], "o", ms=9, mfc="none", mew=1.4,
+                    color=style.OKABE_ITO[i + 1], zorder=5)
     ax.axhline(1.0, color="0.5", lw=0.9, ls="--")
+    if flagged:
+        ax.annotate("hollow: private chains\nstranded at epoch end\n(read as directional)",
+                    xy=(0.30, 0.04), xycoords="axes fraction", fontsize=6, color="0.35")
     ax.set_xticks(KS)
     ax.set_xlabel("number of rival coalitions $K$")
     ax.set_ylabel("canonical share / own stake\n(per coalition; > 1 = selfish mining pays)")
