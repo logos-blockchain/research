@@ -1,16 +1,23 @@
-# Does widening W restore what the parent anchor costs under a suppression adversary? (§6.8, §6.12)
+# Which W pairs the parent-anchored window back to today's recipe? (§6.8, §6.12)
 #
-# The capstone found the one place the anchor change actually bites: honest recovery is
-# unaffected, but under a 30 % uncle-suppression coalition the parent-anchored rule drops to
-# D_hat = 0.974 with p_ref = 0.875, against 0.994 / 0.936 for the spec's rule. The two effects
-# compound — a tighter effective window leaves an orphan fewer chances to be referenced before
-# its PARENT ages out, and a suppressing adversary removes some of those chances by declining to
-# reference from its own blocks.
+# The capstone found the one place the anchor change bites: honest recovery is unaffected, but
+# under a 30 % uncle-suppression coalition the parent-anchored rule costs accuracy, because a
+# tighter effective window and a suppressing adversary compound — an orphan gets fewer chances to
+# be referenced before its PARENT ages out, and the adversary removes some of the chances it has.
+# The report recommends pairing the anchor change with a wider W; this sweep is what fixes the
+# value, so it has to resolve differences of ~0.001 in D_hat/D.
 #
-# The report now recommends pairing the anchor change with W = 12 to restore the margin. That
-# recommendation has been asserted from the shape of the mechanism and not yet measured, which is
-# what this config is for: sweep W across both anchors, with and without the adversary, and read
-# off whether a wider window buys back p_ref and the estimate.
+# Two things make it able to. First, W is swept at EVERY integer from 8 to 15 rather than at 4
+# scattered points, so the crossing is located rather than bracketed. Second, `paired_streams`
+# puts the whole grid on COMMON RANDOM NUMBERS: SimConfig._base_key() excludes both
+# uncle_window_anchor and window_absorption, so every cell of this sweep draws the same stake
+# vector, the same peering graph and the same lottery outcomes at a given replicate, and the only
+# thing that differs between two cells is the window rule itself. Differences are then paired,
+# which removes the between-replicate variance that dominated the earlier unpaired version (SEM
+# ~0.0009 on a difference of ~0.0009 — i.e. unresolved).
+#
+# Supersedes the earlier 5-point, 12-replicate unpaired version of this file. Its numbers were
+# also taken before the §9 coalition-sizing fix, so they are superseded on both counts.
 #
 # Geometry is the capstone's, so the answer lands on the recommended configuration rather than a
 # probe point: delta_max = 8 (rho ~ 0.47), U = 2 = ceil(rho)+1, degree 6, k = 2160.
@@ -23,12 +30,12 @@ link_latency_mean: [0.5]                     # natural geographic transport (sub
 link_latency_dist: [geo]                     # real-world geographic band mixture
 blend_hops: [3]                              # the spec's Blend cascade length
 blend_delay_max: [8.0]                       # the capstone's operating point, rho ~ 0.47
-window_absorption: [8, 10, 12, 15, 20]       # W in block-intervals; 10 = today, 12 = proposed
+window_absorption: [8, 9, 10, 11, 12, 13, 14, 15]   # every integer across the crossing
 uncle_window_anchor: [uncle, parent]         # spec rule vs the §6.12 proposal
 max_uncles: [2]                              # the recommended cap U = ceil(rho)+1
 uncle_strategy: [oldest]                     # spec Uncle Selection
 init_dest: [common]                          # per-node initial D_est from agreement
-replicates: 12
+replicates: 32                               # with pairing, enough to resolve ~0.0005
 base:                                        # per-run settings shared by every cell
   k: 2160                                    # true security parameter
   epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
@@ -36,4 +43,5 @@ base:                                        # per-run settings shared by every 
   genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
   early_stop: true
   adversary_frac: 0.3                        # the capstone's suppression coalition
-  adversary_strategy: suppress                # references no uncles from its own blocks
+  adversary_strategy: suppress               # references no uncles from its own blocks
+  paired_streams: true                       # COMMON RANDOM NUMBERS across anchor and W

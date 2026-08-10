@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 import numpy as np
@@ -77,10 +78,82 @@ def _adversary_mask(config: SimConfig, stake: np.ndarray) -> np.ndarray | None:
         mask[order[chosen]] = True
         return mask
 
-    cum_r = np.cumsum(stake[rand_order])
-    take = int(np.searchsorted(cum_r, target, side="left")) + 1  # smallest coalition >= target
-    mask[rand_order[:take]] = True
+    # Fit-then-close, the whale branch's rule walked in random order instead of descending: take
+    # every node that still FITS under the target, then close whatever gap remains with the
+    # smallest node that can.
+    #
+    # This replaces a plain cumulative-prefix cut ("smallest prefix reaching the target"), which
+    # let a single whale straddling the cutoff carry the coalition far past its label — the exact
+    # failure ``_churn_inactive_mask`` documents for the churn amplitude, never applied here.
+    # Measured over 60 replicates of the Pareto default, an adversary_frac of 0.4 realised a
+    # MAJORITY coalition in ~10 % of replicates and up to 0.97, and 0.2 reached 0.90, so the
+    # knob's tail was simulating a different attacker than the one it names. The median was always
+    # on-label, which is why it hid: it distorted the tail, not the centre.
+    #
+    # Nearest-fill alone (the churn rule) is not enough: it accepts an early whale whenever
+    # including it lands closer than stopping short, which is locally right and still leaves a
+    # ~3 % tail of majority coalitions. Fit-then-close cannot overshoot by more than one closing
+    # node. Candidate membership and RNG draw are unchanged.
+    st = stake[rand_order]
+    chosen = np.zeros(rand_order.size, dtype=bool)
+    cum = 0.0
+    for j, s in enumerate(st):
+        if cum + s <= target:
+            chosen[j] = True
+            cum += float(s)
+    if cum < target:
+        cand = np.nonzero(~chosen & (st >= target - cum))[0]
+        if cand.size:
+            # Smallest node that closes the gap — but only if closing beats stopping short. When
+            # one holder has most of the stake, nothing fits under the target and the only
+            # candidate is that whale, so "close the gap" would hand over the whole network to
+            # reach a 40 % label. Undershooting is then the nearer answer, and the warning below
+            # reports the miss rather than letting it pass as an on-label run.
+            j = cand[np.argmin(st[cand])]
+            if float(st[j]) - (target - cum) < (target - cum):
+                chosen[j] = True
+                cum += float(st[j])
+    mask[rand_order[chosen]] = True
+    got = cum / float(stake.sum())
+    if abs(got - config.adversary_frac) > 0.2 * config.adversary_frac:
+        warnings.warn(
+            f"adversary_frac={config.adversary_frac} is not reachable on this stake draw "
+            f"(n_nodes={config.n_nodes}, {config.stake_dist}, replicate={config.replicate}): "
+            f"realised {got:.3f}. The heavy tail leaves no subset near the label; treat this "
+            f"replicate's adversary as {got:.3f}, not {config.adversary_frac}.",
+            RuntimeWarning, stacklevel=2,
+        )
     return mask
+
+
+def _coalition_ids(config: SimConfig, stake: np.ndarray,
+                   mask: np.ndarray | None) -> np.ndarray | None:
+    """Split the adversarial set into ``adversary_coalitions`` rival groups of near-equal stake.
+
+    Returns a per-node ``int8`` label: ``-1`` for honest nodes, ``0..K-1`` for coalition members.
+    ``None`` when there is nothing to split (honest run, or the default single coalition), which
+    keeps the single-coalition path exactly as it was.
+
+    The split is by **stake**, not by node count: under a Pareto tail an even split of members
+    would hand one group most of the adversarial power, and the question §6.9 asks is what happens
+    when the same total stake is held by ``K`` *equal* rivals. Longest-processing-time first —
+    walk the members in descending stake and put each into the lightest group so far — which for
+    this input lands every group within one small holder of ``beta/K``.
+
+    Deterministic given the mask and the stake vector: it draws no randomness, so adding the knob
+    reseeds nothing, and ``K == 1`` returns ``None`` rather than an all-zero label for the same
+    reason.
+    """
+    if mask is None or config.adversary_coalitions <= 1:
+        return None
+    members = np.nonzero(mask)[0]
+    ids = np.full(config.n_nodes, -1, dtype=np.int8)
+    loads = np.zeros(config.adversary_coalitions, dtype=float)
+    for v in members[np.argsort(-stake[members], kind="stable")]:
+        g = int(np.argmin(loads))
+        ids[v] = g
+        loads[g] += float(stake[v])
+    return ids
 
 
 def _initial_d_est(config: SimConfig, d_true: float, rng: np.random.Generator) -> np.ndarray:
@@ -151,6 +224,7 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
     path_latency = topology.build_path_latency(config, np.random.default_rng(children[1]))
     d_est = _initial_d_est(config, d_true, np.random.default_rng(children[2]))
     adv_mask = _adversary_mask(config, stake)
+    coal_ids = _coalition_ids(config, stake, adv_mask)
     # exact stake fraction of the (integer-rounded) coalition, for the active-stake bookkeeping
     coalition_frac = float(stake[adv_mask].sum() / d_true) if adv_mask is not None else 0.0
     withholding = adv_mask is not None and config.adversary_strategy == "withhold"
@@ -190,6 +264,7 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
             active_stake_frac = float(stake[~inactive_mask].sum() / d_true) * active_stake_frac
         er = simulate_epoch(config, stake, d_est, path_latency, children[epoch + 3],
                             adversary_mask=behaviour_mask, coalition_mask=adv_mask,
+                            coalition_ids=coal_ids,
                             inactive_mask=inactive_mask)
         row = divergence_row(config, epoch, d_est, er, d_true)
         row["adversary_withholding"] = bool(withholding and attacks)

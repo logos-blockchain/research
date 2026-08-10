@@ -198,16 +198,19 @@ class _SelfishCoalition:
     bound on the damage.
     """
 
-    def __init__(self, coal_idx: np.ndarray, n_blocks: int, E: int) -> None:
+    def __init__(self, coal_idx: np.ndarray, n_blocks: int, E: int,
+                 lead_cap: int = 1 << 60) -> None:
         self.coal = coal_idx
         self.priv: list[int] = []          # unreleased private blocks, oldest first
         self.fork_height = 0               # height of the block the private chain forked from
         self.unreleased = np.zeros(n_blocks, dtype=bool)
         self.coal_arr = np.full(n_blocks, float(E) + 1.0)   # when the coalition learns of a block
         self.coal_arr[0] = 0.0
+        self.lead_cap = lead_cap           # publish once ahead by this much (see `decide`)
         self.n_released = 0                # blocks made public by a release
         self.n_abandoned = 0               # private blocks the coalition gave up on
         self.n_override = 0                # releases that orphaned >=1 honest block
+        self.n_cashed_in = 0               # releases forced by the lead cap
 
     def note_block(self, b: int, arrival_at_coalition: float) -> None:
         self.coal_arr[b] = arrival_at_coalition
@@ -241,6 +244,27 @@ class _SelfishCoalition:
             if h >= 1:
                 self.n_override += 1
             return out
+        if a - h >= self.lead_cap:                 # cash in: the lead is already irreversible
+            # Textbook SM1 has no such branch — it waits while it leads, on the assumption that
+            # the lead returns to zero and the chain is cashed in then. That assumption fails
+            # here. Honest blocks FORK against each other, so the public chain's HEIGHT grows at
+            # roughly (1-alpha)*f*(1-fork_rate) while a coalition sharing one view extends its
+            # private chain at the full alpha*f; past a fork rate of about 1 - alpha/(1-alpha)
+            # the private chain simply outruns the public one and `wait` never terminates. The
+            # lead then runs to thousands of blocks and every one of them is stranded at the
+            # epoch boundary (measured: 98% of adversarial blocks at alpha = 0.4, delta_max = 8),
+            # which scores an attacker that WON the race as having earned nothing.
+            #
+            # A lead of `lead_cap` = k is past the finality depth: no honest chain can ever catch
+            # it, so holding it gains nothing and risks everything. Publishing is what a rational
+            # coalition does, so that is what this does.
+            out = self.priv
+            self.priv = []
+            self.n_released += len(out)
+            self.n_cashed_in += 1
+            if h >= 1:
+                self.n_override += 1
+            return out
         return []                                  # wait
 
 
@@ -251,11 +275,15 @@ def build_tree_pernode(
     config,
     rng: np.random.Generator,
     adversary_mask: np.ndarray | None = None,
+    coalition_ids: np.ndarray | None = None,
 ):
     """Build the global block tree AND the per-node arrival matrix.
 
     ``adversary_mask[v] == True`` marks a node that suppresses uncle references in its own blocks
     (references none), to deflate the TSI density count (grinding). ``None`` = fully honest.
+
+    ``coalition_ids`` optionally splits those nodes into rival selfish coalitions (``-1`` honest,
+    ``0..K-1`` membership — see ``engine._coalition_ids``). ``None`` is the single-coalition case.
 
     Each winner builds on the best tip *in its own arrival-filtered view*; uncle refs are
     baked at production from the producer's view. Returns ``(BlockTree, A)`` where
@@ -370,7 +398,24 @@ def build_tree_pernode(
     gb_id = 0
     fp_idx = 1          # frontier pointer over fully-propagated blocks
 
-    coalition = _SelfishCoalition(np.nonzero(adversary_mask)[0], n_blocks, E) if selfish else None
+    # One private chain per coalition. With K > 1 the groups are RIVALS: a coalition never learns
+    # of another's unreleased blocks (they reach no node until released, so the arrival sentinel
+    # keeps them out of every rival's `public_height`), so the private chains race each other as
+    # well as the honest chain, and a release that overrides the public chain also buries whatever
+    # a rival was hiding behind it.
+    if not selfish:
+        coalitions: list[_SelfishCoalition] = []
+    else:
+        cap = getattr(config, "selfish_lead_cap", 0)
+        cap = config.k if cap == 0 else (1 << 60 if cap < 0 else cap)
+        members = ([np.nonzero(adversary_mask)[0]] if coalition_ids is None else
+                   [np.nonzero(coalition_ids == g)[0]
+                    for g in range(int(coalition_ids.max()) + 1)])
+        coalitions = [_SelfishCoalition(m, n_blocks, E, lead_cap=cap) for m in members]
+    # Which coalition a producer belongs to; with K == 1 every adversary is in group 0.
+    coal_of = (coalition_ids if coalition_ids is not None
+               else (np.where(adversary_mask, 0, -1).astype(np.int8)
+                     if selfish and adversary_mask is not None else None))
 
     nb = 1
     for si in range(active_slots.shape[0]):
@@ -435,23 +480,25 @@ def build_tree_pernode(
             if hide:
                 A[:, b] = float(E) + 1.0                     # withheld: never arrives -> orphan
                 withheld[b] = True
-            elif coalition is not None and adv:
-                # Private: visible to the whole coalition at once, invisible to everyone else
-                # until released. Kept off the honest side by the same sentinel `withhold` uses.
+            elif coalitions and adv:
+                # Private: visible to the producer's OWN coalition at once, invisible to everyone
+                # else — honest nodes and rival coalitions alike — until released. Kept off the
+                # public side by the same sentinel `withhold` uses.
+                own = coalitions[int(coal_of[v])]
                 A[:, b] = float(E) + 1.0
-                A[coalition.coal, b] = max(float(t), float(A[v, p_id]))
+                A[own.coal, b] = max(float(t), float(A[v, p_id]))
                 withheld[b] = True                           # flipped back on release
-                coalition.add_private(b, t, int(height[p_id]))
+                own.add_private(b, t, int(height[p_id]))
             else:
                 np.maximum(col, A[:, p_id], out=col)
                 A[:, b] = col
                 A[v, b] = max(float(t), float(A[v, p_id]))   # producer sees own block at its slot
-                if coalition is not None:
-                    coalition.note_block(b, float(A[coalition.coal, b].min()))
+                for c in coalitions:
+                    c.note_block(b, float(A[c.coal, b].min()))
             nb += 1
 
-        if coalition is not None:
-            for rb in coalition.decide(t, height, nb):
+        for c in coalitions:
+            for rb in c.decide(t, height, nb):
                 # Release by DIRECT gossip from the producer, bypassing the Blend cascade: the
                 # adversary has no privacy budget to respect and wants the race won, so this is
                 # its fastest legal publication. Oldest first, so each block's parent arrival is
@@ -462,18 +509,25 @@ def build_tree_pernode(
                 np.minimum(rel, A[:, rb], out=rel)           # coalition already had it privately
                 A[:, rb] = rel
                 withheld[rb] = False
-                coalition.unreleased[rb] = False
+                c.unreleased[rb] = False
+                # A release is public, so every RIVAL coalition learns of it now — this is the
+                # channel through which one coalition's override orphans another's private chain.
+                for other in coalitions:
+                    if other is not c:
+                        other.note_block(rb, float(A[other.coal, rb].min()))
 
-    if coalition is not None and coalition.priv:
+    for c in coalitions:
+        if not c.priv:
+            continue
         # Private blocks still hidden when the epoch ends are abandoned: the race they were held
         # for is over, so they can never be cashed in. Hide them from the coalition too, or the
         # canonical-tip search (which takes the best tip ANY node holds) would crown a chain no
         # honest node ever saw and credit it phantom blocks.
-        stranded = np.array(coalition.priv, dtype=np.int64)
+        stranded = np.array(c.priv, dtype=np.int64)
         A[:, stranded] = float(E) + 1.0
         withheld[stranded] = True
-        coalition.n_abandoned += len(coalition.priv)
-        coalition.priv.clear()
+        c.n_abandoned += len(c.priv)
+        c.priv.clear()
 
     tree = BlockTree(slot=slot, parent=parent, height=height, leader=leader, uncles=uncles)
     return tree, A

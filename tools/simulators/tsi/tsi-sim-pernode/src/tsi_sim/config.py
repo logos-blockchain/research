@@ -166,6 +166,26 @@ class SimConfig:
     # lever, and adversary_selection controls WHICH nodes are taken at that fixed stake.
     adversary_frac: float = 0.0
     adversary_selection: AdversarySelection = "random"
+    # How many INDEPENDENT coalitions the adversarial stake is split into (§6.9). 1 = the single
+    # coalition every other study assumes. K > 1 partitions the same adversary_frac into K groups
+    # of near-equal stake, each running its OWN private chain with its own view: a rival's
+    # unreleased blocks are invisible (they reach no node until released), so the coalitions
+    # orphan each other as well as the honest chain. Only meaningful for
+    # adversary_strategy == "selfish" — under "suppress"/"withhold" the deflation depends on the
+    # summed stake alone, which is exactly the structure-independence result of §6.9, so the
+    # partition provably cannot matter there and the engine ignores it.
+    adversary_coalitions: int = 1
+    # Lead at which a selfish coalition PUBLISHES its private chain instead of extending it.
+    #   0  (default) -> the finality depth k: a lead past k can never be caught, so holding it
+    #                   gains nothing and a rational coalition cashes in.
+    #   > 0          -> that lead, explicitly.
+    #   < 0          -> uncapped: textbook SM1, which waits for as long as it leads.
+    # Textbook SM1 assumes the lead returns to zero and the chain is cashed in then. That fails
+    # under a forking honest network: the public chain's HEIGHT grows at ~(1-alpha)*f*(1-fork)
+    # while a coalition sharing one view extends privately at the full alpha*f, so past a fork
+    # rate of ~1 - alpha/(1-alpha) the private chain outruns the public one and `wait` never
+    # terminates. See _SelfishCoalition.decide.
+    selfish_lead_cap: int = 0
     # Dynamic (withhold-then-rejoin) schedule for the withholding lever (§6.5). The coalition is
     # FIXED (identity from adversary_frac); this only gates whether it withholds in a given epoch.
     #  adversary_period == 0  -> STATIC: the coalition attacks (withholds) every epoch (the §6.4
@@ -334,6 +354,7 @@ class SimConfig:
             "adversary_frac": 0.0 <= self.adversary_frac < 1.0,
             "adversary_period": self.adversary_period >= 0,
             "adversary_withhold_epochs": self.adversary_withhold_epochs >= 0,
+            "adversary_coalitions": self.adversary_coalitions >= 1,
         }
         bad = [name for name, ok in checks.items() if not ok]
         if bad:
@@ -425,6 +446,15 @@ class SimConfig:
         # byte-identical key, so no committed result is reseeded by adding the knob.
         if self.f_precision != 1_000_000:
             base = base + (self.f_precision,)
+        # Likewise: K == 1 is the single-coalition assumption every prior study was run under, so
+        # a K == 1 key must stay byte-identical to the historical one.
+        if self.adversary_coalitions != 1:
+            base = base + (self.adversary_coalitions,)
+        # Same discipline again. NOTE this knob changes RESULTS at the default value (it fixes the
+        # runaway described on the field), so it is the one case where an unchanged key does not
+        # imply an unchanged number — see report §9 on which selfish runs were re-measured.
+        if self.selfish_lead_cap != 0:
+            base = base + (self.selfish_lead_cap,)
         return base if self.uncle_window_anchor == "uncle" else base + (self.uncle_window_anchor,)
 
     def seed_key(self) -> tuple:
