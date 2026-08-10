@@ -42,8 +42,8 @@ from tsi_sim.blocktree import build_tree_pernode
 from tsi_sim.config import SimConfig
 from tsi_sim.engine import _adversary_mask, run_trajectory
 from tsi_sim.plotting import style
-from tsi_sim.rng import rng_for, seedseq_for
-from tsi_sim.stake import make_stake
+from tsi_sim.rng import seedseq_for
+from tsi_sim.stake import stake_for
 
 HERE = Path(__file__).resolve().parent.parent
 RUNS = HERE / "runs"
@@ -86,7 +86,7 @@ def _effort(anchor: str, delay: float, adv: float, rep: int) -> dict:
                     blend_delay_max=delay, adversary_frac=adv,
                     adversary_strategy="deep_parent", replicate=rep)
     kids = seedseq_for(cfg).spawn(cfg.epochs + 3)
-    stake = make_stake(cfg, rng_for(cfg))
+    stake = stake_for(cfg)
     mask = _adversary_mask(cfg, stake)
     pl = topology.build_path_latency(cfg, np.random.default_rng(kids[1]))
     d = np.full(cfg.n_nodes, cfg.genesis_d_factor * float(stake.sum()))

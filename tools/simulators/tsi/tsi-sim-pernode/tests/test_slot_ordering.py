@@ -21,8 +21,8 @@ import pytest
 from tsi_sim import lottery, topology
 from tsi_sim.blocktree import build_tree_pernode
 from tsi_sim.config import SimConfig
-from tsi_sim.rng import rng_for, seedseq_for
-from tsi_sim.stake import make_stake
+from tsi_sim.rng import seedseq_for
+from tsi_sim.stake import stake_for
 
 GEOMETRIES = [
     dict(topology="blend", blend_delay_max=4.0, blend_hops=3),    # the deployed operating point
@@ -37,7 +37,7 @@ def _tree(**over):
                               k=96, epochs=3, genesis_d_factor=0.5,
                               prune_arrival=False, windowed_fork_choice=False), **over})
     kids = seedseq_for(cfg).spawn(cfg.epochs + 3)
-    stake = make_stake(cfg, rng_for(cfg))
+    stake = stake_for(cfg)
     pl = topology.build_path_latency(cfg, np.random.default_rng(kids[1]))
     d = np.full(cfg.n_nodes, cfg.genesis_d_factor * float(stake.sum()))
     ws, wn = lottery.sample_wins(lottery.win_probs(stake, d, cfg.f), cfg.epoch_len,

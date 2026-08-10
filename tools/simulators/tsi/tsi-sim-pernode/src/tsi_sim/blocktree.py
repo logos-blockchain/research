@@ -486,7 +486,12 @@ def build_tree_pernode(
                 # public side by the same sentinel `withhold` uses.
                 own = coalitions[int(coal_of[v])]
                 A[:, b] = float(E) + 1.0
-                A[own.coal, b] = max(float(t), float(A[v, p_id]))
+                # Shared instantly inside the coalition, but never before a member holds the
+                # PARENT. Clamping against the producer's view of the parent alone is not enough:
+                # when the parent is a public block still propagating, another member may not
+                # have it yet, and would otherwise receive the child first and be able to build
+                # on a block whose parent it has never seen.
+                A[own.coal, b] = np.maximum(max(float(t), float(A[v, p_id])), A[own.coal, p_id])
                 withheld[b] = True                           # flipped back on release
                 own.add_private(b, t, int(height[p_id]))
             else:

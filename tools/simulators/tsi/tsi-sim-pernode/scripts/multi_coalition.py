@@ -22,9 +22,10 @@ Two arms:
     answers (b). A coalition profits when its canonical share exceeds its stake share; the joint
     question is whether that holds for every one of K rivals that are each below 1/3.
 
-Note the realised beta overshoots its target under a Pareto tail (`_adversary_mask` takes the
-smallest node set reaching the target, and the last node can be a whale), so both arms record the
-REALISED stake shares and the report quotes those, not the nominal knob.
+Both arms record the REALISED stake shares rather than trusting the knob. That is no longer a
+correction for the sizing defect §9 describes (fixed: the coalition now lands within 0.1 % of its
+label), but it stays because a Pareto draw can still leave `beta` unreachable — one holder above
+the target — and the split into K rivals is only as even as the tail permits.
 
 Run:  python scripts/multi_coalition.py   (writes runs/multi_coalition{,_split}.parquet + fig39)
 """
@@ -43,8 +44,8 @@ from tsi_sim.config import SimConfig
 from tsi_sim.engine import _adversary_mask, _coalition_ids, run_trajectory
 from tsi_sim.epoch import _canonical_producer_split
 from tsi_sim.plotting import style
-from tsi_sim.rng import rng_for, seedseq_for
-from tsi_sim.stake import make_stake
+from tsi_sim.rng import seedseq_for
+from tsi_sim.stake import stake_for
 
 HERE = Path(__file__).resolve().parent.parent
 RUNS = HERE / "runs"
@@ -90,7 +91,7 @@ def _profit(beta: float, K: int, rep: int, ratio: float) -> list[dict]:
     cfg = SimConfig(**{**BASE, "epochs": 2}, adversary_frac=beta,
                     adversary_coalitions=K, replicate=rep)
     kids = seedseq_for(cfg).spawn(cfg.epochs + 3)
-    stake = make_stake(cfg, rng_for(cfg))
+    stake = stake_for(cfg)
     mask = _adversary_mask(cfg, stake)
     ids = _coalition_ids(cfg, stake, mask)
     pl = topology.build_path_latency(cfg, np.random.default_rng(kids[1]))

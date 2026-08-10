@@ -12,8 +12,7 @@ import pytest
 from tsi_sim.blocktree import build_tree_pernode
 from tsi_sim.config import SimConfig
 from tsi_sim.engine import _adversary_mask, run_trajectory
-from tsi_sim.rng import rng_for
-from tsi_sim.stake import make_stake
+from tsi_sim.stake import stake_for
 
 BASE = dict(n_nodes=200, stake_dist="pareto", topology="blend", degree=6,
             link_latency_mean=0.5, link_latency_dist="geo", blend_hops=3, blend_delay_max=8.0,
@@ -56,7 +55,7 @@ def test_selfish_is_deterministic():
 
 def _tree(**over):
     cfg = SimConfig(**{**BASE, **over})
-    stake = make_stake(cfg, rng_for(cfg))
+    stake = stake_for(cfg)
     mask = _adversary_mask(cfg, stake)
     from tsi_sim import lottery, topology
     root = __import__("tsi_sim.rng", fromlist=["seedseq_for"]).seedseq_for(cfg)
