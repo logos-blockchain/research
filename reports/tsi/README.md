@@ -814,18 +814,18 @@ Nothing about this is expensive for the attacker. It spends lottery wins it alre
 
 | `δ_max` | adversary | oldest state reached: median / p99 / max (slots) |
 |---|---|---|
-| 4 | none | 54 / 131 / 233 |
-| 4 | **30 %** | **20 144 / 75 525 / 76 778** |
-| 8 | 30 % | 6 390 / 75 272 / 76 789 |
-| 16 | 30 % | 872 / 75 109 / 76 798 |
+| 4 | none | 55 / 126 / 202 |
+| 4 | **30 %** | **11 563 / 75 478 / 76 773** |
+| 8 | 30 % | 2 465 / 75 172 / 76 774 |
+| 16 | 30 % | 206 / 75 095 / 76 760 |
 
-A 30 % coalition moves the *median* referenced parent from 54 slots back to 20 144, and the worst case to the epoch boundary — about 21 hours of history, ~256× the nominal window, on a reference the estimator counts. And the amplification is not a tail: at the deployment's own operating point the median reference reaches ten thousand slots back.
+A 30 % coalition moves the *median* referenced parent from 55 slots back to 11 563, and the worst case to the epoch boundary — about 21 hours of history, ~256× the nominal window, on a reference the estimator counts. And the amplification is not a tail: at the deployment's own operating point the median reference reaches ten thousand slots back.
 
 **The fix is a substitution, not an addition.** Anchor the window to the parent: `sl_A − sl_parent(U) ≤ w_u`. Because a block strictly postdates its parent and a referenced uncle strictly precedes its referencer — both invariants pinned in `tests/test_slot_ordering.py` — the parent gap is never smaller than the uncle gap:
 
 > `sl_A − sl_U  <  sl_A − sl_parent(U) ≤ w_u`
 
-so bounding the parent bounds the uncle *for free*. A rule imposing both windows would be identical to the parent rule alone, which is why only two arms are simulated. Under it the same 30 % coalition reaches 292 / 300 / 300 slots at the three delays — capped at `w_u` by construction, a bound that now actually holds.
+so bounding the parent bounds the uncle *for free*. A rule imposing both windows would be identical to the parent rule alone, which is why only two arms are simulated. Under it the same 30 % coalition reaches 293 / 298 / 300 slots at the three delays — capped at `w_u` by construction, a bound that now actually holds.
 
 **What it costs: nothing at the recommended cap, but the window floor moves.** A latency orphan's parent is recent by construction — it forked off the chain a block or two ago — so at the recommended `U = ⌈ρ⌉ + 1` the anchor is free: `D̂/D` reads **0.9993 → 0.9999** at `δ_max` = 4, **0.9969 → 0.9986** at 8 and **0.9791 → 0.9858** at 16 (uncle- → parent-anchored, `U` = 4), no loss anywhere within one to two standard errors.
 
