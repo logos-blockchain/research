@@ -47,7 +47,7 @@ RUNS.mkdir(exist_ok=True)
 
 EPOCHS = 16
 REPS = 8
-N_JOBS = 6
+N_JOBS = 12
 
 BASE = dict(n_nodes=1000, stake_dist="pareto", topology="blend", degree=6,
             link_latency_mean=0.5, link_latency_dist="geo", blend_hops=3,
