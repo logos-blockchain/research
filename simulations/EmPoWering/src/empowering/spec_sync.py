@@ -108,6 +108,41 @@ def run(config: str, lips: str) -> int:
           grab(rewards, r"A_SCALE = ([\d_]+)", "a scale"),
           str(int(0.3 * p.S_tge * p.I_max * 4)))
 
+    # --- derived margins the specifications state in prose ------------------------
+    # These are the sentences no constant-level gate covers: each is recomputed from
+    # the config and asserted against the exact wording, so a parameter change that
+    # invalidates a margin fails here instead of leaving stale prose behind.
+    import math
+
+    def margin(fname: str, phrase: str, value: float, lo: float, hi: float):
+        nonlocal checks
+        checks += 1
+        text = (raw / fname).read_text()
+        if phrase not in text:
+            failures.append(f"margin phrase missing from {fname}: {phrase!r}")
+        elif not (lo <= value <= hi):
+            failures.append(f"margin {phrase!r}: recomputed {value:.3g}, "
+                            f"outside [{lo:.3g}, {hi:.3g}] — prose is stale")
+
+    phi_over_S = p.phi / p.S_tge
+    sigma0 = p.rho * p.R0 / (p.T * p.N_b)
+    ceiling = (sigma0 / 2) / p.S_tge                       # the stated 1.157e-10 form
+    margin(mantle, "factor of five in hand", ceiling / phi_over_S, 4.5, 5.5)
+    margin(mantle, "about ten times the fee", sigma0 / p.phi, 9.0, 11.0)
+    R_min = p.phi * p.T * p.N_b / p.rho
+    no_traffic_years = math.log(p.R0 / R_min) / -math.log(1 - p.rho) / p.epochs_per_year
+    margin(mantle, "close to five years", no_traffic_years, 4.2, 5.3)
+    from .core import min_endowment_for_ramp
+    margin(mantle, "ten years several times over",
+           p.R0 / min_endowment_for_ramp(p, 10.0), 2.5, 8.0)
+    margin(mantle, "margin of about sixty thousand",
+           (2 ** 64 - 1) / (p.S_tge * p.base_units_per_lgo) / 1000, 55, 65)
+    r_max = p.I_max * p.S_tge / p.blocks_per_year
+    margin(mantle, "one part in ten million",
+           (r_max - int(r_max)) / r_max * 1e7, 0.8, 1.2)
+    margin(rewards, "begins at the fee market's target utilisation",
+           r_max / p.transfer_fee() / p.blend_target_txs, 0.98, 1.02)
+
     print(f"{checks} checks against {raw}")
     if failures:
         for f in failures:

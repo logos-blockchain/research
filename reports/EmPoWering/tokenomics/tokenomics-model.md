@@ -29,7 +29,7 @@ EmPoWering lets someone earn their first Logos tokens by mining — running a co
 
 **Sequencing.** This proposal merges *after* the in-flight fee-market change, so that change's findings are treated as the baseline here — in particular the resting price of 7 used throughout §4.3. The two touch no file in common.
 
-**Sync is checked, not asserted.** `make check LIPS=<path-to-logos-lips>` in `simulations/EmPoWering/` reads nineteen constants back out of the specification tree and compares them against the config the simulations run from; it exits non-zero on any drift. Run it after every specification change.
+**Sync is checked, not asserted.** `make check LIPS=<path-to-logos-lips>` in `simulations/EmPoWering/` reads the constants back out of the specification tree — and recomputes the derived margins the specifications state in prose — comparing both against the config the simulations run from; it exits non-zero on any drift. Run it after every specification change.
 
 **In sync with PR #400** as of 2026-08-11, at commit `05ea6638`. Where the specification has been decided since the proposal was written, this document follows the specification — the differences are listed in *What changed since the proposal* below.
 

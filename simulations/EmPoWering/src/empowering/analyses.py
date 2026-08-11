@@ -6,6 +6,9 @@ assert on them.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+from math import sqrt
+
 from . import core
 from .params import P_FIELD, Params
 
@@ -124,5 +127,78 @@ def security(p: Params) -> dict:
     return dict(peak=out[(p.adversary_h, 1.0, 0.30)])
 
 
+def sweep_target(p: Params) -> dict:
+    """Report 4.4.1: the claim target is overhead, not throughput."""
+    print("=== Sweep: TARGET_CLAIMS_PER_BLOCK (report 4.4.1) ===\n")
+    print(f"  at beta = {p.beta:.0%}, {p.n_tx_ref} tx/block. The epoch's distribution is")
+    print("  fixed by the refill; T divides it and each claim pays a fee out of its share.\n")
+    print(f"  {'T':>5} {'sigma*/phi':>11} {'fee eaten':>10} {'to miners':>10}"
+          f" {'edge':>8} {'noise':>7} {'R0 5y ramp':>12}")
+    print("  " + "-" * 68)
+    out = {}
+    for T in (1, 5, 10, 25, 50, 100):
+        q = replace(p, T=T)
+        r = core.sigma_over_phi(q)
+        R0 = core.min_endowment_for_ramp(q, 5.0)
+        R0s = "never" if R0 == float("inf") else f"{R0 / p.S_tge:.3%}"
+        e = core.builder_edge(q)
+        es = "n/a" if e == float("inf") else f"{e:.2f}x"
+        star = " <-" if T == p.T else ""
+        print(f"  {T:>5} {r:>11.2f} {min(1, 1 / r):>9.0%} {max(0, 1 - 1 / r):>10.0%}"
+              f" {es:>8} {1 / sqrt(T):>6.0%} {R0s:>12}{star}")
+        out[T] = r
+    print("\n  T enters the delivered amount with a minus sign; lower is better until")
+    print("  variance (1/sqrt(T)) dominates. The specified value is arrowed.")
+    return out
+
+
+def sweep_share(p: Params) -> dict:
+    """Report 4.4.2: the share against self-funding below and subordination above."""
+    print("=== Sweep: POW_SHARE (report 4.4.2) ===\n")
+    print(f"  at T = {p.T}, {p.n_tx_ref} tx/block. Bounded below by headroom over the")
+    print("  fee, above by mining staying subordinate to the leader path (A_t = 0).\n")
+    print(f"  {'beta':>7} {'sigma*/phi':>11} {'edge':>8} {'reaches claimants':>18}"
+          f" {'PoW/leader':>12}")
+    print("  " + "-" * 62)
+    out = {}
+    for num in (2, 5, 10, 20, 33):
+        q = replace(p, beta_num=num)
+        r = core.sigma_over_phi(q)
+        e = core.builder_edge(q)
+        es = "n/a" if e == float("inf") else f"{e:.3f}x"
+        beta = num / p.beta_den
+        pow_vs_leader = beta / (0.4 * (1 - beta))
+        star = " <-" if num == p.beta_num else ""
+        print(f"  {beta:>6.0%} {r:>11.2f} {es:>8} {max(0, 1 - 1 / r):>17.0%}"
+              f" {pow_vs_leader:>11.0%}{star}")
+        out[num] = r
+    print("\n  Subordination read as PoW <= a third of the leader share caps beta near")
+    print("  12%; the specified tenth sits under it with 5x fee headroom.")
+    return out
+
+
+def sweep_rho(p: Params) -> dict:
+    """Report 4.4.3: rho sets the standing reserve, never the reward."""
+    print("=== Sweep: EPOCH_POW_DISTRIBUTION_RATE (report 4.4.3) ===\n")
+    print(f"  {'rho':>7} {'reserve R*':>12} {'R_min':>9} {'lag (yr)':>9}"
+          f" {'drain claims/blk':>17}")
+    print("  " + "-" * 60)
+    out = {}
+    for den in (500, 200, 100, 50, 20):
+        q = replace(p, rho_den=den)
+        rs = core.r_star(q) / p.S_tge
+        rm = core.r_min(q) / p.S_tge
+        drain = p.T * den / p.rho_num
+        flag = "unreachable" if drain > p.max_block_txs else "reachable"
+        star = " <-" if den == p.rho_den else ""
+        print(f"  {1 / den:>6.1%} {rs:>11.2%} {rm:>8.3%} {den / p.epochs_per_year:>8.1f}"
+              f" {drain:>12,.0f} {flag}{star}")
+        out[den] = rs
+    print("\n  Three pressures push rho up (reserve, floor, lag, all 1/rho); the drain")
+    print("  margin pushes it down. The specified hundredth is where they meet.")
+    return out
+
+
 ALL = {"fee": fee, "emission": emission, "rewards": rewards,
-       "blend": blend, "exhaustion": exhaustion, "security": security}
+       "blend": blend, "exhaustion": exhaustion, "security": security,
+       "sweep-target": sweep_target, "sweep-share": sweep_share, "sweep-rho": sweep_rho}

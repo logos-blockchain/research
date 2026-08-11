@@ -13,8 +13,9 @@ moved.
 ```
 make all         # every analysis section
 make rewards     # one section (fee, emission, rewards, blend, exhaustion, security)
+make sweeps      # the parameter sweeps behind report sections 4.4.1-4.4.3
 make verify      # closed forms vs simulation, and the config's own invariants
-make check LIPS=~/Logos/logos-lips   # config vs the specification tree, 19 checks
+make check LIPS=~/Logos/logos-lips   # config vs the spec tree: constants AND prose margins
 make bench-poseidon2                 # measure the candidate rate (Rust; see below)
 ```
 
@@ -35,10 +36,16 @@ twice.
 
 ## Known gap
 
-The package evaluates the *specified* parameter point. The sweep tables that justified
-the choices — the claim-target sweep, the share sweep, the distribution-rate sweep —
-live in the report's sections 4.4.1–4.4.3 and in the flat scripts this package
-replaced (git history of logos-lips PR #400); they are not reproducible from here.
+The report's historical tables were computed before the TGE supply resize and are
+superseded by its addendum; `make sweeps` reproduces the three parameter sweeps at the
+current parameters, so the only figures not regenerable from here are the deliberately
+archival pre-resize ones (git history of logos-lips PR #400).
+
+`make check` guards two things: the config's constants against the specification tree,
+and the **derived margins the specifications state in prose** — sentences like "factor
+of five in hand" or "close to five years" are recomputed from the config and fail the
+gate if a parameter change leaves them stale. That gate exists because exactly that
+happened three times during drafting.
 
 ## The one measurement that still needs taking
 

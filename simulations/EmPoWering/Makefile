@@ -3,7 +3,7 @@ PY := $(VENV)/bin/python
 STAMP := $(VENV)/.installed
 CONFIG ?= configs/specified.toml
 
-.PHONY: install all fee emission rewards blend exhaustion security verify check bench-poseidon2 clean
+.PHONY: install all fee emission rewards blend exhaustion security sweeps verify check bench-poseidon2 clean
 
 # Stdlib-only package; the venv exists so `make` works identically here and in CI,
 # and re-installs whenever pyproject.toml changes.
@@ -35,6 +35,9 @@ exhaustion: $(STAMP) ## stopping conditions and their margins
 
 security: $(STAMP) ## adversarial stake accumulation during bootstrap
 	$(PY) -m empowering --config $(CONFIG) security
+
+sweeps: $(STAMP) ## the parameter sweeps behind report 4.4.1-4.4.3
+	$(PY) -m empowering --config $(CONFIG) sweep-target sweep-share sweep-rho
 
 verify: $(STAMP) ## closed forms vs simulation, and the config's invariants
 	$(PY) -m empowering.verify --config $(CONFIG)
