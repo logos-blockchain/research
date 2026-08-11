@@ -1,0 +1,76 @@
+# The parameter set as specified by the EmPoWering proposal.
+#
+# Every number the simulations use lives here. Nothing is hardcoded in the modules,
+# so a specification change is a one-line edit and `make check` will tell you which
+# results move.
+#
+# Source column: KNOWN = read from the specification tree with a citation.
+#                DERIVED = computed here from KNOWN values.
+#                MEASURED = benchmarked, see bench-poseidon2/.
+#                ASSUMED = a modelling choice, not stated by the specification.
+
+name = "specified"
+description = "The parameter set as specified in the EmPoWering RFC"
+
+[consensus]
+blocks_per_epoch      = 21_600        # KNOWN  blend-protocol.md:103
+block_seconds         = 30            # KNOWN  cryptarchia-v1-protocol.md
+epochs_per_year       = 48.667        # DERIVED
+blocks_per_year       = 1_051_200     # KNOWN  block-rewards.md (365 * 2880)
+max_block_txs         = 1_024         # KNOWN  bedrock-v1.1-mantle-specification.md
+
+[supply]
+tge                   = 3e14          # KNOWN  block-rewards.md, sized against the fee schedule
+base_units_per_lgo    = 1             # KNOWN  one LGO is the smallest representable amount
+max_emission_per_year = 0.01          # KNOWN  I_max, block-rewards.md
+min_stake_fraction    = 1e-5          # KNOWN  0.001% of S_tge, analysis-static-minimum-stake
+
+[fees]
+# Both markets floor at one unit per byte and per unit of gas, but neither rests there:
+# the downward step has fixed points across the first several units, so an idle market
+# settles at 7.  KNOWN, storage-markets.md / execution-market.md.
+price_floor           = 1
+price_resting         = 7
+claim_tx_bytes        = 306           # DERIVED  sim: fee.claim_tx_bytes()
+claim_tx_gas          = 646           # KNOWN    56 claim + 590 transfer
+transfer_tx_bytes     = 207           # DERIVED
+transfer_tx_gas       = 590           # KNOWN    analysis-gas-cost-determination.md
+
+[pow]
+target_claims_per_block = 10          # KNOWN  T
+pool_share_num          = 10          # KNOWN  POW_SHARE
+pool_share_den          = 100         # KNOWN  SHARE_DEN
+distribution_rate_num   = 1           # KNOWN  rho = 1/100
+distribution_rate_den   = 100
+genesis_pool_fraction   = 0.005       # KNOWN  POW_REWARD_POOL_GENESIS, 5/1000 of launch supply
+ema_smoothing_factor    = 9           # KNOWN  F
+ema_smoothing_precision = 10          # KNOWN  P
+reward_difficulty_exp   = 26          # KNOWN  genesis difficulty_reward = p / 2**26
+
+[blend]
+difficulty_base_exp     = 22          # KNOWN  BLEND_DIFFICULTY_BASE = p / 2**22
+target_txs_per_block    = 512         # KNOWN  TARGET_TXS_PER_BLOCK
+damping_num             = 1           # KNOWN  alpha = 1/2
+damping_den             = 2
+max_step                = 2           # KNOWN  BLEND_MAX_STEP
+beta_max                = 3           # KNOWN  blending ops per message; Q_W = beta_max
+
+[work]
+# MEASURED on an Apple M4 Pro performance core, release build with LTO. The deployment
+# target is a Raspberry Pi 5, estimated 4-8x slower per core -- NOT measured, and the
+# Blend threshold should be re-derived once it has been.
+seconds_per_candidate       = 23.346e-6   # naive: 6 Poseidon2 permutations
+seconds_per_candidate_opt   = 16.481e-6   # constant prefixes precomputed: 4
+seconds_per_permutation     = 3.350e-6
+pi5_slowdown                = 6.0         # ASSUMED  midpoint of the 4-8x band
+pi5_slowdown_low            = 4.0
+pi5_slowdown_high           = 8.0
+pi5_cores                   = 4
+
+[model]
+# ASSUMED. Traffic is exogenous here; section 4.4 of the report parameterises the ramp
+# rather than guessing a single value.
+reference_txs_per_block = 600
+adversary_hashrate      = 0.33
+honest_stake_fraction   = 1.0
+horizon_epochs          = 300
