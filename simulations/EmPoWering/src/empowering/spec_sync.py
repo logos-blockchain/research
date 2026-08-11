@@ -142,6 +142,13 @@ def run(config: str, lips: str) -> int:
            (r_max - int(r_max)) / r_max * 1e7, 0.8, 1.2)
     margin(rewards, "begins at the fee market's target utilisation",
            r_max / p.transfer_fee() / p.blend_target_txs, 0.98, 1.02)
+    reaches = 1 - p.T / (p.psi * p.beta * p.n_tx_ref)
+    margin(mantle, "about four fifths of the distribution reaching claimants",
+           reaches, 0.75, 0.85)
+    margin(mantle, "five times the fee at six hundred",
+           p.psi * p.beta * 600 / p.T, 4.5, 5.5)
+    margin(mantle, "a thousand claims in every block",
+           p.T * p.rho_den / p.rho_num / 1000, 0.99, 1.01)
 
     print(f"{checks} checks against {raw}")
     if failures:
