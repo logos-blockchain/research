@@ -37,9 +37,10 @@ twice.
 ## Known gap
 
 The report's historical tables were computed before the TGE supply resize and are
-superseded by its addendum; `make sweeps` reproduces the three parameter sweeps at the
-current parameters, so the only figures not regenerable from here are the deliberately
-archival pre-resize ones (git history of logos-lips PR #400).
+superseded by its addendum. `make sweeps` reproduces the three parameter sweeps and
+`make exhaustion` the genesis mis-set table at the current parameters, so the only
+figures not regenerable from here are the deliberately archival pre-resize ones
+(git history of logos-lips PR #400).
 
 `make check` guards two things: the config's constants against the specification tree,
 and the **derived margins the specifications state in prose** — sentences like "factor

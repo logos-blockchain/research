@@ -13,7 +13,7 @@ import re
 import sys
 from pathlib import Path
 
-from .params import load
+from .params import P_FIELD, load
 
 
 def run(config: str, lips: str) -> int:
@@ -149,6 +149,16 @@ def run(config: str, lips: str) -> int:
            p.psi * p.beta * 600 / p.T, 4.5, 5.5)
     margin(mantle, "a thousand claims in every block",
            p.T * p.rho_den / p.rho_num / 1000, 0.99, 1.01)
+    # excess of a 100x-too-permissive genesis target, as a fraction of the pool
+    from .core import next_reward_difficulty, sigma as _sigma
+    d_eq = P_FIELD >> p.reward_difficulty_exp
+    d, excess = int(d_eq * 100), 0
+    for _ in range(400):
+        c = min(max(0, round(p.T * d / d_eq)), p.max_block_txs)
+        excess += max(0, c - p.T)
+        d = next_reward_difficulty(d, c, p)
+    margin(mantle, "six thousandths of one percent of the genesis pool",
+           excess * _sigma(p.R0, p) / p.R0 * 1e5, 4.5, 7.5)
 
     print(f"{checks} checks against {raw}")
     if failures:

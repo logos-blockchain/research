@@ -91,7 +91,32 @@ def exhaustion(p: Params) -> dict:
           f"{2 ** p.reward_difficulty_exp * p.sec_per_candidate / 60:,.1f} core-min per solution")
     cores = (p.T * 2 ** p.reward_difficulty_exp * p.sec_per_candidate) / p.block_seconds
     print(f"  honest cores at target     {cores:,.0f}")
-    return dict(drain_claims_per_block=per_block, genesis_cores=cores)
+
+    # Report 4.6: the asymmetry of a mis-set genesis target. Arrivals modelled as
+    # proportional to the target; excess claims priced at the opening reward.
+    print("\n  Genesis target mis-set (report 4.6): excess claims before convergence")
+    sigma0 = core.sigma(p.R0, p)
+    d_eq = P_FIELD >> p.reward_difficulty_exp
+    print(f"\n  {'genesis vs correct':>22} {'blocks to ±10%':>15} {'excess claims':>14}"
+          f" {'cost (LGO)':>12}")
+    print("  " + "-" * 70)
+    table = {}
+    for mult, label in ((100, "100x too permissive"), (10, "10x too permissive"),
+                        (0.1, "10x too hard"), (0.01, "100x too hard")):
+        d = int(d_eq * mult)
+        excess, conv = 0, None
+        for n in range(400):
+            c = min(max(0, round(p.T * d / d_eq)), p.max_block_txs)
+            excess += max(0, c - p.T)
+            if conv is None and abs(c - p.T) <= 0.1 * p.T:
+                conv = n
+            d = core.next_reward_difficulty(d, c, p)
+        print(f"  {label:>22} {str(conv):>15} {excess:>14,} {excess * sigma0:>12,.0f}")
+        table[label] = excess
+    print(f"\n  Too permissive over-pays, bounded; too hard costs only time. The pool is")
+    print(f"  {p.R0:,.0f} LGO, so even the worst row is a rounding error against it.")
+    return dict(drain_claims_per_block=per_block, genesis_cores=cores,
+                genesis_error=table)
 
 
 def security(p: Params) -> dict:
