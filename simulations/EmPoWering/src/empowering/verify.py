@@ -64,11 +64,11 @@ def run(config: str) -> int:
     check("deflationary phase reachable", 0 < transition <= p.max_block_txs,
           f"transition at {transition:,.0f} tx/block")
 
-    # 8. Within-epoch exhaustion needs more claims than a block can carry, or if it
-    #    does not, the report must be treating it as reachable (T/rho vs cap).
-    check("exhaustion margin stated correctly",
-          p.T * p.rho_den / p.rho_num <= p.max_block_txs * 10,
-          f"{p.T * p.rho_den / p.rho_num:,.0f} claims/block")
+    # 8. Draining the pool inside one epoch must require exceeding the target rate by
+    #    a large factor (1/rho), so the difficulty controller has room to react.
+    check("within-epoch drain needs >= 50x the target rate",
+          p.rho_den / p.rho_num >= 50,
+          f"needs {p.T * p.rho_den / p.rho_num:,.0f} claims/block vs cap {p.max_block_txs}")
 
     # 9. Blend threshold arithmetic: exponent within the field.
     check("blend threshold inside the field", 0 < p.blend_base_exp < 254)

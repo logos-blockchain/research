@@ -34,7 +34,7 @@ def run(config: str, lips: str) -> int:
     def check(label: str, got, want):
         nonlocal checks
         checks += 1
-        if got is not None and str(got).replace(",", "") != str(want):
+        if got is not None and str(got).replace(",", "").replace("_", "") != str(want):
             failures.append(f"{label}: spec says {got!r}, config has {want!r}")
 
     mantle = "bedrock-v1.1-mantle-specification.md"
@@ -88,9 +88,25 @@ def run(config: str, lips: str) -> int:
     blendp = "blend-protocol.md"
     n_b = grab(blendp, r"which translates to \$`([\d,]+)`\$ blocks", "N_b")
     check("blocks per epoch", n_b, p.N_b)
-    check("beta_max",
-          grab(blendp, r"beta_\{max\} = (\d+)", "beta_max") or
-          grab(blendp, r"\\beta_\{max\} = (\d+)", "beta_max"), p.beta_max)
+    check("beta_max", grab(blendp, r"beta_\{max\} = (\d+)", "beta_max"), p.beta_max)
+
+    # The reference implementation's constants are all functions of the supply; guard
+    # them so a supply revision cannot leave the code behind again.
+    import math
+    check("STAKE_TARGET (reference code)",
+          grab(rewards, r"STAKE_TARGET = int\((\S+)\)", "stake target"),
+          f"{0.3 * p.S_tge:.0e}".replace("e+", "e"))
+    infl_num = int(p.I_max * p.S_tge)
+    g = math.gcd(infl_num, p.blocks_per_year)
+    check("INFLATION_NUMERATOR (reference code)",
+          grab(rewards, r"INFLATION_NUMERATOR = ([\d_]+)", "inflation num"),
+          str(infl_num // g))
+    check("INFLATION_DENOMINATOR (reference code)",
+          grab(rewards, r"INFLATION_DENOMINATOR = ([\d_]+)", "inflation den"),
+          str(p.blocks_per_year // g))
+    check("A_SCALE (reference code)",
+          grab(rewards, r"A_SCALE = ([\d_]+)", "a scale"),
+          str(int(0.3 * p.S_tge * p.I_max * 4)))
 
     print(f"{checks} checks against {raw}")
     if failures:

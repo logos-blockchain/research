@@ -33,6 +33,13 @@ twice.
 | `src/empowering/spec_sync.py` | drift gate against the logos-lips tree |
 | `bench-poseidon2/` | Rust benchmark of the puzzle candidate rate |
 
+## Known gap
+
+The package evaluates the *specified* parameter point. The sweep tables that justified
+the choices — the claim-target sweep, the share sweep, the distribution-rate sweep —
+live in the report's sections 4.4.1–4.4.3 and in the flat scripts this package
+replaced (git history of logos-lips PR #400); they are not reproducible from here.
+
 ## The one measurement that still needs taking
 
 `[work]` in the config was measured on an Apple M4 Pro. The deployment target is a

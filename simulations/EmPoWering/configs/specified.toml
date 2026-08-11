@@ -29,6 +29,8 @@ min_stake_fraction    = 1e-5          # KNOWN  0.001% of S_tge, analysis-static-
 # Both markets floor at one unit per byte and per unit of gas, but neither rests there:
 # the downward step has fixed points across the first several units, so an idle market
 # settles at 7.  KNOWN, storage-markets.md / execution-market.md.
+# One price stands in for both P_STR and b_exec; they are independent in the protocol
+# but share the floor and the resting level, and every ratio here uses them together.
 price_floor           = 1
 price_resting         = 7
 claim_tx_bytes        = 306           # DERIVED  sim: fee.claim_tx_bytes()
