@@ -110,9 +110,15 @@ class Params:
 
 
 def load(path: str | Path) -> Params:
-    cfg = tomllib.loads(Path(path).read_text())
-    c, s, f, w, b, m, p = (cfg["consensus"], cfg["supply"], cfg["fees"],
-                           cfg["work"], cfg["blend"], cfg["model"], cfg["pow"])
+    try:
+        cfg = tomllib.loads(Path(path).read_text())
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        raise SystemExit(f"config {path}: {e}") from e
+    try:
+        c, s, f, w, b, m, p = (cfg["consensus"], cfg["supply"], cfg["fees"],
+                               cfg["work"], cfg["blend"], cfg["model"], cfg["pow"])
+    except KeyError as e:
+        raise SystemExit(f"config {path}: missing section {e.args[0]!r}") from e
     return Params(
         name=cfg["name"], description=cfg["description"],
         N_b=c["blocks_per_epoch"], block_seconds=c["block_seconds"],

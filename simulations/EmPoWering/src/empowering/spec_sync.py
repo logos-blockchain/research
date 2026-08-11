@@ -24,8 +24,18 @@ def run(config: str, lips: str) -> int:
         return 2
     failures, checks = [], 0
 
+    def read(fname: str) -> str | None:
+        try:
+            return (raw / fname).read_text()
+        except OSError:
+            failures.append(f"specification file missing or unreadable: {fname}")
+            return None
+
     def grab(fname: str, pattern: str, label: str):
-        m = re.search(pattern, (raw / fname).read_text())
+        text = read(fname)
+        if text is None:
+            return None
+        m = re.search(pattern, text)
         if not m:
             failures.append(f"could not find {label} in {fname}")
             return None
@@ -117,7 +127,9 @@ def run(config: str, lips: str) -> int:
     def margin(fname: str, phrase: str, value: float, lo: float, hi: float):
         nonlocal checks
         checks += 1
-        text = (raw / fname).read_text()
+        text = read(fname)
+        if text is None:
+            return
         if phrase not in text:
             failures.append(f"margin phrase missing from {fname}: {phrase!r}")
         elif not (lo <= value <= hi):
@@ -159,6 +171,18 @@ def run(config: str, lips: str) -> int:
         d = next_reward_difficulty(d, c, p)
     margin(mantle, "six thousandths of one percent of the genesis pool",
            excess * _sigma(p.R0, p) / p.R0 * 1e5, 4.5, 7.5)
+
+    def require_phrase(fname: str, phrase: str):
+        nonlocal checks
+        checks += 1
+        text = read(fname)
+        if text is not None and phrase not in text:
+            failures.append(f"guarantee phrase missing from {fname}: {phrase!r}")
+
+    # robustness guarantees the specification must keep stating
+    require_phrase(mantle, "hi = min(previous * BLEND_MAX_STEP, p - 1)")
+    require_phrase(mantle, "return min(new_target, p - 1)")
+    require_phrase(mantle, "are specified over unbounded integers")
 
     print(f"{checks} checks against {raw}")
     if failures:
