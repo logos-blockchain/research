@@ -15,6 +15,13 @@
 # declined, the run still completes and the governor demerit is recorded
 # honestly (NOSUDO=1 skips the attempt entirely; same behavior).
 #
+# The prompt is also skipped when it would buy nothing: if every core already
+# runs the 'performance' governor (a measurement box that pins it at boot —
+# see reports/pqc/sudo-and-measurement-conditions.md), there is no privileged
+# step left in the run, so asking for a password would be theatre.
+# pqb_set_governor_performance makes the same check before escalating; this is
+# the front-door counterpart so the PROMPT disappears too, not just the write.
+#
 # macOS: no governor to set — no escalation of any kind.
 # =============================================================================
 set -euo pipefail
@@ -22,6 +29,13 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 
 if [ "$(uname -s)" = "Darwin" ] || [ "${NOSUDO:-0}" = "1" ] || [ "$(id -u)" -eq 0 ]; then
+  exec ./run.sh "$@"
+fi
+
+# shellcheck source=../setup/lib_platform.sh
+source "$HERE/setup/lib_platform.sh"
+if _pqb_effective_governor "${PQB_CPUFREQ_ROOT:-/sys/devices/system/cpu}" >/dev/null 2>&1; then
+  echo "[bench-run] governor already 'performance' on every core — no privilege needed, not asking for sudo" >&2
   exec ./run.sh "$@"
 fi
 
