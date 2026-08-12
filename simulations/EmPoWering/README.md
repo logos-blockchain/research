@@ -12,6 +12,7 @@ moved.
 
 ```
 make all         # every analysis section
+make lepta       # exact-integer confirmation at lepton granularity
 make rewards     # one section (fee, emission, rewards, blend, exhaustion, security)
 make sweeps      # the parameter sweeps behind report sections 4.4.1-4.4.3
 make verify      # closed forms vs simulation, and the config's own invariants
@@ -47,6 +48,17 @@ and the **derived margins the specifications state in prose** — sentences like
 of five in hand" or "close to five years" are recomputed from the config and fail the
 gate if a parameter change leaves them stale. That gate exists because exactly that
 happened three times during drafting.
+
+## Two engines, deliberately
+
+The analyses compute in float LGO, which is exact for every dimensionless ratio but
+cannot carry the ledger's integers: the pool is ~5×10¹⁶ lepta against float64's 2⁵³
+exact-integer ceiling, and the protocol floors where floats keep fractional lepta.
+`empowering/lepta.py` therefore re-runs the pool dynamics entirely in integer lepta —
+checked `uint64` throughout, exact conservation asserted at every step, the σ cliff
+pinned to its boundary, and the float engine's drift bounded at one lepton per claim
+and measured rather than assumed. The Units-and-Precision parse/format round-trip is
+fuzzed across the full range. `make verify` runs both engines.
 
 ## The one measurement that still needs taking
 
