@@ -177,6 +177,7 @@ def run(config: str, lips: str) -> int:
     # robustness guarantees the specification must keep stating
     require_phrase(mantle, "losing less than one lepton per block")
     require_phrase(mantle, "conservation bounds every such aggregate")
+    require_phrase(mantle, "validated against the target produced by the previous block")
     require_phrase(mantle, "one LGO is $`10^{9}`$ lepta")
     require_phrase(mantle, "hi = min(previous * BLEND_MAX_STEP, p - 1)")
     require_phrase(mantle, "return min(new_target, p - 1)")
