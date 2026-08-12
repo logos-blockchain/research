@@ -131,6 +131,13 @@ fn main() {
     println!("\n  v0.5.6 blend: naive {:.1} perms, opt {:.1};  reward: naive {:.1}, opt {:.1}",
              t_blend_naive / t_perm, t_blend_opt / t_perm,
              t_reward_naive / t_perm, t_reward_opt / t_perm);
+    // Machine-readable block for scripts/run_pi5.sh -- keep the format stable.
+    println!("\nMACHINE one_permutation_ns={:.0}", t_perm * 1e9);
+    println!("MACHINE blend_naive_ns={:.0}", t_blend_naive * 1e9);
+    println!("MACHINE blend_opt_ns={:.0}", t_blend_opt * 1e9);
+    println!("MACHINE reward_naive_ns={:.0}", t_reward_naive * 1e9);
+    println!("MACHINE reward_opt_ns={:.0}", t_reward_opt * 1e9);
+
     println!("\n  Blend threshold cost (naive basis), seconds per solution on ONE core:\n");
     println!("  {:>6} {:>18} {:>12} {:>12}", "k", "candidates", "naive", "optimised");
     println!("  {}", "-".repeat(54));

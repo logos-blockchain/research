@@ -3,7 +3,7 @@ PY := $(VENV)/bin/python
 STAMP := $(VENV)/.installed
 CONFIG ?= configs/specified.toml
 
-.PHONY: install all fee emission rewards blend exhaustion security sweeps lepta verify check bench-poseidon2 clean
+.PHONY: install all fee emission rewards blend exhaustion security sweeps lepta verify check pi5 bench-poseidon2 clean
 
 # Stdlib-only package; the venv exists so `make` works identically here and in CI,
 # and re-installs whenever pyproject.toml changes.
@@ -49,6 +49,9 @@ verify: $(STAMP) ## closed forms vs simulation, and the config's invariants
 LIPS ?= ../../../logos-lips
 check: $(STAMP) ## config vs the specification tree (set LIPS=path to logos-lips)
 	$(PY) -m empowering.spec_sync --config $(CONFIG) --lips $(LIPS)
+
+pi5: ## hands-off Pi 5 measurement: guarded runs, medians, pi5.toml, derivation table
+	./scripts/run_pi5.sh
 
 bench-poseidon2: ## measure the candidate rate (requires Rust and ../logos-blockchain)
 	cd bench-poseidon2 && cargo run --release

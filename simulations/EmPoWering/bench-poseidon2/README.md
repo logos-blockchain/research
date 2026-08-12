@@ -56,30 +56,35 @@ Pi 5**. Hitting the same target on a Pi 5 core would put the threshold near `p/2
 
 Re-run this benchmark on the target hardware before the value is fixed.
 
-## Running on the Raspberry Pi 5
+## Running on the Raspberry Pi 5 — one command
 
-64-bit OS required; the two repositories must be cloned as siblings (the path
-dependency points at `../logos-blockchain`).
+64-bit OS. Everything else — Rust, the sibling `logos-blockchain` clone, the
+pinned and thermally guarded triple run, median extraction, the generated
+`configs/pi5.toml`, the threshold re-derivation table, and a results commit on a
+dated branch — is handled by:
 
 ```bash
-sudo apt install -y git build-essential python3-venv
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-source "$HOME/.cargo/env"
-mkdir -p ~/Logos && cd ~/Logos
-git clone git@github.com:logos-blockchain/research.git
-git clone --depth 1 git@github.com:logos-blockchain/logos-blockchain.git
-cd research/simulations/EmPoWering
-taskset -c 3 make bench-poseidon2     # pin one core: this is a single-core reference
+sudo apt install -y git build-essential python3-venv curl
+git clone https://github.com/logos-blockchain/research.git ~/Logos/research
+cd ~/Logos/research && git checkout EmPoWering-tokenomics
+cd simulations/EmPoWering && make pi5
 ```
 
-Cautions, because this number calibrates a consensus parameter: cool the board
-(check `vcgencmd measure_temp` before and after — a run that crossed ~80 °C
-throttled and must be discarded), run on an otherwise idle machine, and repeat
-three times expecting a spread of a few percent. Transcribe the permutation line
-and all four candidate lines into `configs/specified.toml` `[work]`, retire the
-`pi5_slowdown` estimate band, then `make blend` and re-derive the threshold
-against the measured rate — including the open one-core-vs-whole-board question,
-which is a factor of four on its own.
+The script (`scripts/run_pi5.sh`) pins the benchmark to one core, waits for the
+board to cool below 65 °C before each run, discards any run that finishes above
+80 °C, takes the median of three valid runs and flags any metric whose spread
+exceeds five percent. It writes the raw runs and log under
+`bench-poseidon2/results/`, generates `configs/pi5.toml` with the measured
+`[work]` values (retiring the 4–8× estimate band), prints seconds-per-message
+and the suggested exponent for both reference bases — one core and the whole
+board — and commits the results on a `pi5-measurement-<date>` branch, pushing it
+if credentials allow. Knobs: `RUNS`, `CORE`, `TEMP_LIMIT_C`, `COOL_TO_C`;
+`PI5_DEV=1` runs the pipeline on a development machine without the Pi checks or
+the commit.
+
+What remains a human decision, printed at the end of the run: the reference
+basis (one core vs the whole board, a factor of four) and, from it, whether
+`BLEND_DIFFICULTY_BASE` moves in the Mantle specification.
  A Pi 5 has four
 cores, so a participant willing to use all of them divides the wall-clock figures by
 four; whether the reference should be one core or the whole board is itself a decision.
