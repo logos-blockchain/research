@@ -13,6 +13,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Never let git open an interactive credential prompt: every git operation here
+# must fail cleanly instead of hanging a hands-off run waiting for a login.
+export GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=true GCM_INTERACTIVE=never
+
 RUNS=${RUNS:-3}
 CORE=${CORE:-3}
 TEMP_LIMIT_C=${TEMP_LIMIT_C:-80}
@@ -141,6 +145,12 @@ BR="pi5-measurement-$STAMP"
 git add "$OUT" configs/pi5.toml
 git checkout -q -b "$BR" 2>/dev/null || git checkout -q "$BR"
 git commit -q -m "EmPoWering: Pi 5 measurement $STAMP (raw runs + generated config)" || true
-git push -u origin "$BR" >>"$LOG" 2>&1 && say "pushed branch $BR" \
-  || say "push failed (no credentials?): branch $BR is committed locally — push it when convenient"
+if git push -u origin "$BR" >>"$LOG" 2>&1; then
+  say "pushed branch $BR"
+else
+  say "push needs credentials (the repos are public, but pushing always does):"
+  say "  branch $BR is committed locally. Either push it later from another machine,"
+  say "  or authenticate once here:  gh auth login && gh auth setup-git  then:"
+  say "  git push -u origin $BR"
+fi
 say "== done: log at $LOG =="

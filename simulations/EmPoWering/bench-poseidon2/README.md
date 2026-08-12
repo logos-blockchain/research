@@ -77,8 +77,12 @@ exceeds five percent. It writes the raw runs and log under
 `bench-poseidon2/results/`, generates `configs/pi5.toml` with the measured
 `[work]` values (retiring the 4–8× estimate band), prints seconds-per-message
 and the suggested exponent for both reference bases — one core and the whole
-board — and commits the results on a `pi5-measurement-<date>` branch, pushing it
-if credentials allow. Knobs: `RUNS`, `CORE`, `TEMP_LIMIT_C`, `COOL_TO_C`;
+board — and commits the results on a `pi5-measurement-<date>` branch. All git steps are
+non-interactive: the repositories are public so nothing before the final push
+needs credentials, and the push — which always does — fails cleanly with
+instructions rather than prompting. To have it land in the same run,
+authenticate first with `gh auth login && gh auth setup-git` (device flow, no
+password typed on the Pi). Knobs: `RUNS`, `CORE`, `TEMP_LIMIT_C`, `COOL_TO_C`;
 `PI5_DEV=1` runs the pipeline on a development machine without the Pi checks or
 the commit.
 
