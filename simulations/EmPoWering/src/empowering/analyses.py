@@ -98,8 +98,9 @@ def exhaustion(p: Params) -> dict:
           f"   (cap {p.max_block_txs})")
     print(f"  cliff: refill below        {p.T * p.N_b:,} lepta/epoch")
     print(f"  reward genesis p/2^{p.reward_difficulty_exp}: "
-          f"{2 ** p.reward_difficulty_exp * p.sec_per_candidate / 60:,.1f} core-min per solution")
-    cores = (p.T * 2 ** p.reward_difficulty_exp * p.sec_per_candidate) / p.block_seconds
+          f"{2 ** p.reward_difficulty_exp * p.sec_per_candidate_reward / 60:,.1f} core-min per solution"
+          " (reward candidate keeps its key derivation)")
+    cores = (p.T * 2 ** p.reward_difficulty_exp * p.sec_per_candidate_reward) / p.block_seconds
     print(f"  honest cores at target     {cores:,.0f}")
 
     # Report 4.6: the asymmetry of a mis-set genesis target. Arrivals modelled as

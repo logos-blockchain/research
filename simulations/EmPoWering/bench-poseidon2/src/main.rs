@@ -86,16 +86,58 @@ fn main() {
     println!("  candidates/second, one core: naive {:>12.0}   optimised {:>12.0}",
              1.0 / t_naive, 1.0 / t_opt);
 
-    // What the difficulty exponents cost, using the optimised (adversary) rate.
-    println!("\n  Seconds per solution on ONE core, at target = p / 2^k:\n");
-    println!("  {:>6} {:>18} {:>14} {:>14}", "k", "candidates", "naive", "optimised");
-    println!("  {}", "-".repeat(56));
-    for k in [20u32, 22, 24, 26, 28] {
+    // ---- v0.5.6 (PR #3305): the blend candidate is ONE 3-input hash with a DST ----
+    //     pow_ticket = zkhash(BLEND_POW_V1, pol_epoch_nonce, pow_nonce)
+    // digest(3) = absorb x3 + pad = 4 permutations; the (dst, nonce_e) prefix is
+    // constant per epoch, so an optimising miner precomputes 2 of them.
+    let dst = Fr::from(0x424c454e445f504fu64); // stand-in for BLEND_POW_V1
+
+    let t_blend_naive = bench("blend candidate v0.5.6, naive (4 perms)", 300_000, |i| {
+        Poseidon2Hasher::digest(&[dst, nonce, Fr::from(i)])
+    });
+    let mut s_pre = [Fr::ZERO; 3];
+    s_pre[0] += dst; permute(&mut s_pre);
+    s_pre[0] += nonce; permute(&mut s_pre);
+    let t_blend_opt = bench("blend candidate v0.5.6, prefix precomputed (2)", 500_000, |i| {
+        let mut s = s_pre;
+        s[0] += Fr::from(i); permute(&mut s);
+        s[0] += Fr::ONE; permute(&mut s);
+        s[0]
+    });
+
+    // ---- the reward candidate keeps its key: derive pk, then 3-input ticket ----
+    //     pk = zkhash(KDF, sk); ticket = zkhash(nonce_e, block_hash, pk)  (no DST)
+    let bh = Fr::from(0xb10cb10cu64);
+    let t_reward_naive = bench("reward candidate, naive (kdf + ticket = 7 perms)", 200_000, |i| {
+        let pk = Poseidon2Hasher::digest(&[kdf_tag, Fr::from(i)]);
+        Poseidon2Hasher::digest(&[nonce, bh, pk])
+    });
+    let mut s_kdf2 = [Fr::ZERO; 3];
+    s_kdf2[0] += kdf_tag; permute(&mut s_kdf2);
+    let mut s_tk = [Fr::ZERO; 3];
+    s_tk[0] += nonce; permute(&mut s_tk);
+    s_tk[0] += bh; permute(&mut s_tk);
+    let t_reward_opt = bench("reward candidate, prefixes precomputed (4 perms)", 300_000, |i| {
+        let mut s = s_kdf2;
+        s[0] += Fr::from(i); permute(&mut s);
+        s[0] += Fr::ONE; permute(&mut s);
+        let pk = s[0];
+        let mut s2 = s_tk;
+        s2[0] += pk; permute(&mut s2);
+        s2[0] += Fr::ONE; permute(&mut s2);
+        s2[0]
+    });
+
+    println!("\n  v0.5.6 blend: naive {:.1} perms, opt {:.1};  reward: naive {:.1}, opt {:.1}",
+             t_blend_naive / t_perm, t_blend_opt / t_perm,
+             t_reward_naive / t_perm, t_reward_opt / t_perm);
+    println!("\n  Blend threshold cost (naive basis), seconds per solution on ONE core:\n");
+    println!("  {:>6} {:>18} {:>12} {:>12}", "k", "candidates", "naive", "optimised");
+    println!("  {}", "-".repeat(54));
+    for k in [21u32, 22, 23, 24, 25] {
         let n = 2f64.powi(k as i32);
-        let fmt = |s: f64| if s < 120.0 { format!("{s:.1} s") }
-                           else if s < 7200.0 { format!("{:.1} min", s / 60.0) }
-                           else { format!("{:.1} h", s / 3600.0) };
-        println!("  {:>6} {:>18.0} {:>14} {:>14}",
-                 format!("2^{k}"), n, fmt(n * t_naive), fmt(n * t_opt));
+        let fmt = |s: f64| if s < 120.0 { format!("{s:.1} s") } else { format!("{:.1} min", s / 60.0) };
+        println!("  {:>6} {:>18.0} {:>12} {:>12}",
+                 format!("2^{k}"), n, fmt(n * t_blend_naive), fmt(n * t_blend_opt));
     }
 }

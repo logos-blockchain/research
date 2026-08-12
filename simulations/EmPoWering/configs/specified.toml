@@ -63,9 +63,11 @@ beta_max                = 3           # KNOWN  blending ops per message; Q_W = b
 # MEASURED on an Apple M4 Pro performance core, release build with LTO. The deployment
 # target is a Raspberry Pi 5, estimated 4-8x slower per core -- NOT measured, and the
 # Blend threshold should be re-derived once it has been.
-seconds_per_candidate       = 23.346e-6   # naive: 6 Poseidon2 permutations
-seconds_per_candidate_opt   = 16.481e-6   # constant prefixes precomputed: 4
-seconds_per_permutation     = 3.350e-6
+# v0.5.6 (pow_nonce): the Blend candidate is one 3-input hash with a domain tag.
+seconds_per_candidate        = 14.855e-6  # blend, naive: 4 Poseidon2 permutations
+seconds_per_candidate_opt    = 8.203e-6   # blend, constant prefix precomputed: 2
+seconds_per_candidate_reward = 26.602e-6  # reward keeps its key derivation: 7 perms
+seconds_per_permutation      = 3.299e-6
 pi5_slowdown                = 6.0         # ASSUMED  midpoint of the 4-8x band
 pi5_slowdown_low            = 4.0
 pi5_slowdown_high           = 8.0

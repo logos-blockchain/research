@@ -14,18 +14,22 @@ absorbs every input *and* a padding element, so a two-input hash is three permut
 not one — six per candidate naive, four if the constant first input of each hash is
 precomputed.
 
-Result on an Apple M4 Pro performance core, release build with LTO:
+Result on an Apple M4 Pro performance core, release build with LTO. As of circuit
+v0.5.6 (`pow_nonce`), the Blend candidate is ONE 3-input hash with a domain tag, and
+only the reward candidate still derives a key:
 
 | | ns | per second |
 | --- | --- | --- |
-| one permutation | 3,350 | 298,536 |
-| `zkhash` of 2 inputs | 11,582 | 86,339 |
-| candidate, naive (6 perms) | 23,346 | 42,833 |
-| candidate, precomputed prefixes (4 perms) | 16,481 | 60,677 |
+| one permutation | 3,299 | 303,149 |
+| **blend candidate v0.5.6, naive (4 perms)** | **14,855** | **67,318** |
+| blend candidate v0.5.6, prefix precomputed (2 perms) | 8,203 | 121,910 |
+| reward candidate, naive (kdf + ticket, 7 perms) | 26,602 | 37,591 |
+| reward candidate, prefixes precomputed (4 perms) | 16,413 | 60,927 |
 
-The optimising miner's edge is only **1.40x**, but that is *algorithmic* headroom alone.
-Implementation headroom — assembly field arithmetic, batching, GPU — is not measured
-here and could be considerably larger.
+The blend optimiser's edge is now **1.81x** — the constant `(dst, epoch_nonce)` prefix
+is half the naive work — but that is *algorithmic* headroom alone. Implementation
+headroom — assembly field arithmetic, batching, GPU — is not measured here and could be
+considerably larger.
 
 ## The reference machine is not the target machine
 
