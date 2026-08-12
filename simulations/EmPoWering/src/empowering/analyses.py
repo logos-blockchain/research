@@ -15,12 +15,13 @@ from .params import P_FIELD, Params
 
 def fee(p: Params) -> dict:
     """The claim transaction's fee, built from the wire format and gas table."""
+    u = p.base_units_per_lgo
     print("=== The claim transaction, derived ===\n")
-    print(f"  encoded signed tx     {p.claim_tx_bytes:>7} bytes, {p.claim_tx_gas} gas")
-    print(f"  fee at the floor      {p.claim_fee(p.price_floor):>10,.0f} LGO")
-    print(f"  fee at rest           {p.phi:>10,.0f} LGO"
-          f"   ({p.phi / p.S_tge:.2e} of supply)")
-    print(f"  ordinary transfer     {p.transfer_fee():>10,.0f} LGO")
+    print(f"  encoded signed tx     {p.claim_tx_bytes:>10} bytes, {p.claim_tx_gas} gas")
+    print(f"  fee at the floor      {p.claim_fee(p.price_floor) * u:>10,.0f} lepta")
+    print(f"  fee at rest           {p.phi * u:>10,.0f} lepta  = {p.phi:.3e} LGO"
+          f"  ({p.phi / p.S_tge:.2e} of supply)")
+    print(f"  ordinary transfer     {p.transfer_fee() * u:>10,.0f} lepta")
     print(f"  psi = avg/claim       {p.psi:>10.3f}")
     return dict(phi=p.phi, psi=p.psi)
 
@@ -53,17 +54,19 @@ def rewards(p: Params) -> dict:
     r = core.sigma_over_phi(p)
     print(f"  sigma*/phi at {p.n_tx_ref} tx/block   {r:>8.2f}")
     print(f"  builder edge                 {core.builder_edge(p):>8.3f}x")
-    print(f"  R_min                        {core.r_min(p) / p.S_tge:>8.3%} of supply")
-    print(f"  R*  (fixed point)            {core.r_star(p) / p.S_tge:>8.3%} of supply")
-    print(f"  R0  (specified)              {p.genesis_pool_fraction:>8.3%} of supply")
+    print(f"  R_min                        {core.r_min(p) / p.S_tge:>10.2e} of supply")
+    print(f"  R*  (fixed point, at rest)   {core.r_star(p) / p.S_tge:>10.2e} of supply")
+    print(f"  R0  (specified)              {p.genesis_pool_fraction:>10.2e} of supply")
     s0 = core.sigma(p.R0, p)
-    print(f"  opening reward sigma_0       {s0:>8,.0f} LGO = {s0 / p.phi:.1f}x the fee")
-    print("\n  Endowment needed to hold sigma >= phi across an adoption ramp:")
+    print(f"  opening reward sigma_0       {s0 * p.base_units_per_lgo:>12,.0f} lepta"
+          f" = {s0:.3f} LGO = {s0 / p.phi:,.0f}x the resting fee")
+    print("\n  Endowment needed to hold sigma >= phi across an adoption ramp, at the")
+    print("  RESTING price level (higher discovered prices scale these in proportion):")
     ramp = {}
     for years in (1, 2, 5, 10):
         R0 = core.min_endowment_for_ramp(p, float(years))
         ramp[years] = R0 / p.S_tge
-        print(f"    {years:>2}-year ramp   {R0 / p.S_tge:>8.3%} of supply")
+        print(f"    {years:>2}-year ramp   {R0 / p.S_tge:>10.2e} of supply")
     return dict(sigma_over_phi=r, edge=core.builder_edge(p),
                 sigma0_over_phi=s0 / p.phi, ramp=ramp)
 
@@ -93,7 +96,7 @@ def exhaustion(p: Params) -> dict:
     per_block = p.T * p.rho_den / p.rho_num
     print(f"  within-epoch drain needs   {per_block:,.0f} claims/block"
           f"   (cap {p.max_block_txs})")
-    print(f"  cliff: refill below        {p.T * p.N_b:,} base units/epoch")
+    print(f"  cliff: refill below        {p.T * p.N_b:,} lepta/epoch")
     print(f"  reward genesis p/2^{p.reward_difficulty_exp}: "
           f"{2 ** p.reward_difficulty_exp * p.sec_per_candidate / 60:,.1f} core-min per solution")
     cores = (p.T * 2 ** p.reward_difficulty_exp * p.sec_per_candidate) / p.block_seconds
@@ -105,7 +108,7 @@ def exhaustion(p: Params) -> dict:
     sigma0 = core.sigma(p.R0, p)
     d_eq = P_FIELD >> p.reward_difficulty_exp
     print(f"\n  {'genesis vs correct':>22} {'blocks to ±10%':>15} {'excess claims':>14}"
-          f" {'cost (LGO)':>12}")
+          f" {'cost (LGO)':>12} {'of pool':>10}")
     print("  " + "-" * 70)
     table = {}
     for mult, label in ((100, "100x too permissive"), (10, "10x too permissive"),
@@ -118,7 +121,8 @@ def exhaustion(p: Params) -> dict:
             if conv is None and abs(c - p.T) <= 0.1 * p.T:
                 conv = n
             d = core.next_reward_difficulty(d, c, p)
-        print(f"  {label:>22} {str(conv):>15} {excess:>14,} {excess * sigma0:>12,.0f}")
+        print(f"  {label:>22} {str(conv):>15} {excess:>14,} {excess * sigma0:>12,.0f}"
+              f" {excess * sigma0 / p.R0:>10.2e}")
         table[label] = excess
     print(f"\n  Too permissive over-pays, bounded; too hard costs only time. The pool is")
     print(f"  {p.R0:,.0f} LGO, so even the worst row is a rounding error against it.")
@@ -172,7 +176,7 @@ def sweep_target(p: Params) -> dict:
         q = replace(p, T=T)
         r = core.sigma_over_phi(q)
         R0 = core.min_endowment_for_ramp(q, 5.0)
-        R0s = "never" if R0 == float("inf") else f"{R0 / p.S_tge:.3%}"
+        R0s = "never" if R0 == float("inf") else f"{R0 / p.S_tge:.2e}"
         e = core.builder_edge(q)
         es = "n/a" if e == float("inf") else f"{e:.2f}x"
         star = " <-" if T == p.T else ""
@@ -223,7 +227,7 @@ def sweep_rho(p: Params) -> dict:
         drain = p.T * den / p.rho_num
         flag = "unreachable" if drain > p.max_block_txs else "reachable"
         star = " <-" if den == p.rho_den else ""
-        print(f"  {1 / den:>6.1%} {rs:>11.2%} {rm:>8.3%} {den / p.epochs_per_year:>8.1f}"
+        print(f"  {1 / den:>6.1%} {rs:>11.2e} {rm:>8.2e} {den / p.epochs_per_year:>8.1f}"
               f" {drain:>12,.0f} {flag}{star}")
         out[den] = rs
     print("\n  Three pressures push rho up (reserve, floor, lag, all 1/rho); the drain")

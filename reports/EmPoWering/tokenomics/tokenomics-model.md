@@ -16,7 +16,7 @@ What this undoes and what it restores:
 - **Every ratio stands, again**: ψ = 0.837, σ*/φ = 5.02 at reference traffic, the 1.124× builder edge, `T`↔β, the 1,000-claims drain margin, the 5.75×10⁻⁵-of-pool genesis-error cost. The whole calibration of §§4.4.1–4.4.3 is untouched.
 - The open policy question sharpens into the Units doc's own terms: the storage floor exceeds $5/GiB once LOGOS trades above **$4.66**, and no admissible precision fixes that — the remedy lies in the Permanent Storage Gas unit, outside this proposal.
 
-`make all` in `simulations/EmPoWering/` regenerates everything at `d = 9`.
+`make all` in `simulations/EmPoWering/` regenerates everything at `d = 9`, printing lepta as the primary unit. **Terminology**: where the body says "base units", read *lepta*; where it prices in LGO, the figures are pre-resize/pre-lepton absolutes superseded per §0.2 and this section.
 
 ## 0.2 Addendum — the TGE supply resize (2026-08-11, superseded by §0.1 above)
 
@@ -46,7 +46,7 @@ EmPoWering lets someone earn their first Logos tokens by mining — running a co
 
 **Sync is checked, not asserted.** `make check LIPS=<path-to-logos-lips>` in `simulations/EmPoWering/` reads the constants back out of the specification tree — and recomputes the derived margins the specifications state in prose — comparing both against the config the simulations run from; it exits non-zero on any drift. Run it after every specification change.
 
-**In sync with PR #400** as of 2026-08-12, at commit `f989ae33`. Where the specification has been decided since the proposal was written, this document follows the specification — the differences are listed in *What changed since the proposal* below.
+**In sync with PR #400** as of 2026-08-12, at commit `20ef1cbc`. Where the specification has been decided since the proposal was written, this document follows the specification — the differences are listed in *What changed since the proposal* below.
 
 **Headline results.** Of the eight economic questions the proposal's §2.3 says must be answered, **seven have answers**: items 1, 2, 5 and 6 in closed form (§3), items 3, 4 and 7 by simulation and derivation (§3.5, §4.1, §4.2). Item 8, difficulty decoupling, is settled by the specification's construction rather than by analysis and is not modelled here. §4.4 additionally sizes the genesis endowment, which the proposal leaves `TBD`.
 
