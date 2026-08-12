@@ -54,6 +54,32 @@ The specification currently sets `p/2^22`, which meets the design target of roug
 minute per message on an M4 Pro core and **overshoots it by five to eight times on a
 Pi 5**. Hitting the same target on a Pi 5 core would put the threshold near `p/2^19`.
 
-Re-run this benchmark on the target hardware before the value is fixed. A Pi 5 has four
+Re-run this benchmark on the target hardware before the value is fixed.
+
+## Running on the Raspberry Pi 5
+
+64-bit OS required; the two repositories must be cloned as siblings (the path
+dependency points at `../logos-blockchain`).
+
+```bash
+sudo apt install -y git build-essential python3-venv
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source "$HOME/.cargo/env"
+mkdir -p ~/Logos && cd ~/Logos
+git clone git@github.com:logos-blockchain/research.git
+git clone --depth 1 git@github.com:logos-blockchain/logos-blockchain.git
+cd research/simulations/EmPoWering
+taskset -c 3 make bench-poseidon2     # pin one core: this is a single-core reference
+```
+
+Cautions, because this number calibrates a consensus parameter: cool the board
+(check `vcgencmd measure_temp` before and after — a run that crossed ~80 °C
+throttled and must be discarded), run on an otherwise idle machine, and repeat
+three times expecting a spread of a few percent. Transcribe the permutation line
+and all four candidate lines into `configs/specified.toml` `[work]`, retire the
+`pi5_slowdown` estimate band, then `make blend` and re-derive the threshold
+against the measured rate — including the open one-core-vs-whole-board question,
+which is a factor of four on its own.
+ A Pi 5 has four
 cores, so a participant willing to use all of them divides the wall-clock figures by
 four; whether the reference should be one core or the whole board is itself a decision.
