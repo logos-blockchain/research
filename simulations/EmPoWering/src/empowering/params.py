@@ -31,6 +31,7 @@ class Params:
     # fees
     price_floor: int
     price_resting: int
+    max_price: int
     claim_tx_bytes: int
     claim_tx_gas: int
     transfer_tx_bytes: int
@@ -127,6 +128,7 @@ def load(path: str | Path) -> Params:
         S_tge=s["tge"], base_units_per_lgo=s["base_units_per_lgo"],
         I_max=s["max_emission_per_year"], min_stake_fraction=s["min_stake_fraction"],
         price_floor=f["price_floor"], price_resting=f["price_resting"],
+        max_price=f["max_price"],
         claim_tx_bytes=f["claim_tx_bytes"], claim_tx_gas=f["claim_tx_gas"],
         transfer_tx_bytes=f["transfer_tx_bytes"], transfer_tx_gas=f["transfer_tx_gas"],
         T=p["target_claims_per_block"],

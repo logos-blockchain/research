@@ -4,7 +4,21 @@
 
 > **Location.** This report lives in `reports/EmPoWering/tokenomics/`; the simulations backing it live in `simulations/EmPoWering/` and regenerate every current number via `make all` (and `make verify`, `make check LIPS=…`). The report was authored alongside logos-lips PR #400 and moved here when that work closed.
 
-## 0. Addendum — the TGE supply resize (2026-08-11, after the body below was written)
+## 0.1 Addendum — Units and Precision (2026-08-12, superseding §0.2 below)
+
+The *Logos Token: Units and Precision* specification settles the unit system, and it settles it the other way from the interim position §0.2 records: **the indivisible unit is the lepton, with 1 LOGOS = 10⁹ lepta (`d = 9`), and the supply stays at the original 10¹⁰.** The precision is the unique value admitted by representability above (10¹⁹ lepta against `uint64`'s 1.84×10¹⁹) and price resolution below (a coarser unit prices permanent storage above a $5/GiB target inside the plausible token-price range; the derivation saturates at $4.66 per LOGOS).
+
+What this undoes and what it restores:
+
+- **The supply resize is withdrawn** — `block-rewards.md` is back at its published form. The resize's justification assumed one LGO was indivisible, which made the fee floor overwhelm the emission cap; with the floor at one *lepton* the original supply works, and the deflationary phase is reached through ordinary price discovery (a full block's burn matches the emission cap at ~116,562 lepta/gas, 16,652× the resting level and far under #393's `MAX_PRICE`).
+- **§0.2's trajectory-inversion bullet is void with it.** `R₀` vs `R*` again depends on the discovered price level: at floor prices `R₀` vastly exceeds `R*` and the reward decays from a generous opening, which is the body's original qualitative picture.
+- **The body's price-level framing is vindicated.** §4.4.4's correction — that the endowment turns on the *price level*, not the denomination — was right, and is now the operative frame: `φ` at the resting floor is 6,664 lepta ≈ 6.7×10⁻⁶ LGO, under 10⁻¹⁵ of supply, and the genesis fee ceiling of `1.157×10⁻¹⁰` of supply (unchanged, having been stated supply-relative) binds only if discovered prices rise about five orders of magnitude above the floor.
+- **Every ratio stands, again**: ψ = 0.837, σ*/φ = 5.02 at reference traffic, the 1.124× builder edge, `T`↔β, the 1,000-claims drain margin, the 5.75×10⁻⁵-of-pool genesis-error cost. The whole calibration of §§4.4.1–4.4.3 is untouched.
+- The open policy question sharpens into the Units doc's own terms: the storage floor exceeds $5/GiB once LOGOS trades above **$4.66**, and no admissible precision fixes that — the remedy lies in the Permanent Storage Gas unit, outside this proposal.
+
+`make all` in `simulations/EmPoWering/` regenerates everything at `d = 9`.
+
+## 0.2 Addendum — the TGE supply resize (2026-08-11, superseded by §0.1 above)
 
 After this report reached its present form, the analysis it contains led to one further specification change that **supersedes every LGO-denominated figure in the body**: `S_tge` was raised from 10¹⁰ to **3×10¹⁴ LGO**, sized so that the emission model's deflationary phase begins exactly at the fee market's target utilisation (see `block-rewards.md`, *Sizing the TGE supply*). One LGO is the smallest representable amount — the divisibility question §4.4.4 carries is thereby resolved the other way, by scaling the supply rather than subdividing the token.
 
@@ -32,7 +46,7 @@ EmPoWering lets someone earn their first Logos tokens by mining — running a co
 
 **Sync is checked, not asserted.** `make check LIPS=<path-to-logos-lips>` in `simulations/EmPoWering/` reads the constants back out of the specification tree — and recomputes the derived margins the specifications state in prose — comparing both against the config the simulations run from; it exits non-zero on any drift. Run it after every specification change.
 
-**In sync with PR #400** as of 2026-08-11, at commit `cbc0fe90`. Where the specification has been decided since the proposal was written, this document follows the specification — the differences are listed in *What changed since the proposal* below.
+**In sync with PR #400** as of 2026-08-12, at commit `f989ae33`. Where the specification has been decided since the proposal was written, this document follows the specification — the differences are listed in *What changed since the proposal* below.
 
 **Headline results.** Of the eight economic questions the proposal's §2.3 says must be answered, **seven have answers**: items 1, 2, 5 and 6 in closed form (§3), items 3, 4 and 7 by simulation and derivation (§3.5, §4.1, §4.2). Item 8, difficulty decoupling, is settled by the specification's construction rather than by analysis and is not modelled here. §4.4 additionally sizes the genesis endowment, which the proposal leaves `TBD`.
 

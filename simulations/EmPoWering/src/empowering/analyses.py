@@ -26,18 +26,25 @@ def fee(p: Params) -> dict:
 
 
 def emission(p: Params) -> dict:
-    """The supply against the fee schedule: where the deflationary phase begins."""
+    """The supply against the fee schedule: how the deflationary phase is reached.
+
+    With the lepton floor far below discovered prices, the phase is not reachable at
+    the floor; what matters is the price at which a full block's burn matches the
+    emission cap, and that it lies inside the representable price range.
+    """
     print("=== Supply vs the fee schedule ===\n")
-    burn_at_target = p.blend_target_txs * p.transfer_fee()
-    print(f"  max minted per block  {p.r_max:>14,.1f} LGO")
-    print(f"  burn at target load   {burn_at_target:>14,.1f} LGO"
-          f"   ({p.blend_target_txs} tx at rest)")
-    transition = p.r_max / p.transfer_fee()
-    print(f"  deflation begins at   {transition:>14,.0f} tx/block"
-          f"   (target {p.blend_target_txs}, cap {p.max_block_txs})")
-    ok = 0 < transition <= p.max_block_txs
-    print(f"  all three phases reachable: {'YES' if ok else 'NO'}")
-    return dict(transition_tx=transition, reachable=ok)
+    r_max_lepta = p.r_max * p.base_units_per_lgo
+    per_block_gas = p.max_block_txs * (p.transfer_tx_bytes + p.transfer_tx_gas)
+    p_needed = r_max_lepta / per_block_gas
+    print(f"  max minted per block   {r_max_lepta:>16,.0f} lepta  ({p.r_max:,.2f} LGO)")
+    print(f"  full-block burn @rest  {per_block_gas * p.price_resting:>16,.0f} lepta")
+    print(f"  deflation at price     {p_needed:>16,.0f} lepta/gas"
+          f"  = {p_needed / p.price_resting:,.0f}x the resting level")
+    ok = p.price_resting < p_needed < p.max_price
+    print(f"  inside (resting, MAX_PRICE={p.max_price:.2e}): {'YES' if ok else 'NO'}")
+    print("\n  The phase is reached through price discovery, not at the floor; the floor")
+    print("  exists to keep zero from being absorbing, not to carry the emission model.")
+    return dict(price_needed=p_needed, reachable=ok)
 
 
 def rewards(p: Params) -> dict:

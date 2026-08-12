@@ -92,8 +92,8 @@ def run(config: str, lips: str) -> int:
 
     rewards = "block-rewards.md"
     check("S_tge",
-          grab(rewards, r"Token supply at TGE \| (\d+) trillion LGO", "supply"),
-          int(p.S_tge / 1e12))
+          grab(rewards, r"Token supply at TGE \| (\d+) billion LGO", "supply"),
+          int(p.S_tge / 1e9))
 
     blendp = "blend-protocol.md"
     n_b = grab(blendp, r"which translates to \$`([\d,]+)`\$ blocks", "N_b")
@@ -105,7 +105,7 @@ def run(config: str, lips: str) -> int:
     import math
     check("STAKE_TARGET (reference code)",
           grab(rewards, r"STAKE_TARGET = int\((\S+)\)", "stake target"),
-          f"{0.3 * p.S_tge:.0e}".replace("e+", "e"))
+          f"{0.3 * p.S_tge:.0e}".replace("e+", "e").replace("e0", "e"))
     infl_num = int(p.I_max * p.S_tge)
     g = math.gcd(infl_num, p.blocks_per_year)
     check("INFLATION_NUMERATOR (reference code)",
@@ -139,21 +139,16 @@ def run(config: str, lips: str) -> int:
     phi_over_S = p.phi / p.S_tge
     sigma0 = p.rho * p.R0 / (p.T * p.N_b)
     ceiling = (sigma0 / 2) / p.S_tge                       # the stated 1.157e-10 form
-    margin(mantle, "factor of five in hand", ceiling / phi_over_S, 4.5, 5.5)
-    margin(mantle, "about ten times the fee", sigma0 / p.phi, 9.0, 11.0)
+    import math as _m
+    margin(mantle, "five orders of magnitude above the floor",
+           _m.log10(ceiling / phi_over_S), 4.5, 6.0)
+    margin(mantle, "6,664 lepta", p.phi * p.base_units_per_lgo, 6663, 6665)
     R_min = p.phi * p.T * p.N_b / p.rho
     no_traffic_years = math.log(p.R0 / R_min) / -math.log(1 - p.rho) / p.epochs_per_year
-    margin(mantle, "close to five years", no_traffic_years, 4.2, 5.3)
-    from .core import min_endowment_for_ramp
-    margin(mantle, "ten years several times over",
-           p.R0 / min_endowment_for_ramp(p, 10.0), 2.5, 8.0)
-    margin(mantle, "margin of about sixty thousand",
-           (2 ** 64 - 1) / (p.S_tge * p.base_units_per_lgo) / 1000, 55, 65)
-    r_max = p.I_max * p.S_tge / p.blocks_per_year
-    margin(mantle, "one part in ten million",
-           (r_max - int(r_max)) / r_max * 1e7, 0.8, 1.2)
-    margin(rewards, "begins at the fee market's target utilisation",
-           r_max / p.transfer_fee() / p.blend_target_txs, 0.98, 1.02)
+    margin(mantle, "for decades", no_traffic_years, 15, 40)
+    margin(mantle, "a factor of only $`1.84`$",
+           (2 ** 64 - 1) / (p.S_tge * p.base_units_per_lgo), 1.80, 1.89)
+
     reaches = 1 - p.T / (p.psi * p.beta * p.n_tx_ref)
     margin(mantle, "about four fifths of the distribution reaching claimants",
            reaches, 0.75, 0.85)
@@ -180,6 +175,8 @@ def run(config: str, lips: str) -> int:
             failures.append(f"guarantee phrase missing from {fname}: {phrase!r}")
 
     # robustness guarantees the specification must keep stating
+    require_phrase(mantle, "losing less than one lepton per block")
+    require_phrase(mantle, "one LGO is $`10^{9}`$ lepta")
     require_phrase(mantle, "hi = min(previous * BLEND_MAX_STEP, p - 1)")
     require_phrase(mantle, "return min(new_target, p - 1)")
     require_phrase(mantle, "are specified over unbounded integers")

@@ -20,8 +20,8 @@ blocks_per_year       = 1_051_200     # KNOWN  block-rewards.md (365 * 2880)
 max_block_txs         = 1_024         # KNOWN  bedrock-v1.1-mantle-specification.md
 
 [supply]
-tge                   = 3e14          # KNOWN  block-rewards.md, sized against the fee schedule
-base_units_per_lgo    = 1             # KNOWN  one LGO is the smallest representable amount
+tge                   = 1e10          # KNOWN  block-rewards.md, S_cap = 10^10 LOGOS
+base_units_per_lgo    = 1_000_000_000 # KNOWN  Units and Precision: 1 LOGOS = 10^9 LEPTA, d = 9
 max_emission_per_year = 0.01          # KNOWN  I_max, block-rewards.md
 min_stake_fraction    = 1e-5          # KNOWN  0.001% of S_tge, analysis-static-minimum-stake
 
@@ -31,8 +31,10 @@ min_stake_fraction    = 1e-5          # KNOWN  0.001% of S_tge, analysis-static-
 # settles at 7.  KNOWN, storage-markets.md / execution-market.md.
 # One price stands in for both P_STR and b_exec; they are independent in the protocol
 # but share the floor and the resting level, and every ratio here uses them together.
+# Prices are in LEPTA per gas unit (Units and Precision).
 price_floor           = 1
 price_resting         = 7
+max_price             = 5_776_413_067_240   # KNOWN  #393: largest price whose fee products fit u64
 claim_tx_bytes        = 306           # DERIVED  sim: fee.claim_tx_bytes()
 claim_tx_gas          = 646           # KNOWN    56 claim + 590 transfer
 transfer_tx_bytes     = 207           # DERIVED

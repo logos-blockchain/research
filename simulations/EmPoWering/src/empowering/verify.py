@@ -59,10 +59,13 @@ def run(config: str) -> int:
     check("R0 covers the 5-year ramp", p.R0 >= need,
           f"R0 {p.R0:.3e} vs needed {need:.3e}")
 
-    # 7. Emission-vs-burn: all three phases reachable, transition at or below the cap.
-    transition = p.r_max / p.transfer_fee()
-    check("deflationary phase reachable", 0 < transition <= p.max_block_txs,
-          f"transition at {transition:,.0f} tx/block")
+    # 7. Emission-vs-burn: the deflationary phase must be reachable through price
+    #    discovery -- the required price sits between the resting level and MAX_PRICE.
+    p_needed = (p.r_max * p.base_units_per_lgo) / (p.max_block_txs
+                * (p.transfer_tx_bytes + p.transfer_tx_gas))
+    check("deflationary phase reachable via price discovery",
+          p.price_resting < p_needed < p.max_price,
+          f"needs {p_needed:,.0f} lepta/gas vs MAX_PRICE {p.max_price:.2e}")
 
     # 8. Draining the pool inside one epoch must require exceeding the target rate by
     #    a large factor (1/rho), so the difficulty controller has room to react.
