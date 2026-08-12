@@ -17,6 +17,11 @@
 # ---- current published set (schema 2.0.0) ----------------------------------
 # Baseline-grade RPi5 reference run (narrowed-sudo runner).
 !rasberrypi5-20260730T212145Z.json
+# Reference-platform verification run of THIS tree (28-check gate):
+# reference-grade, zero warnings, medians within ±0.4% of the published
+# 20260730 baseline — third consecutive reproduction. Not yet swapped into
+# published_runs.txt (that rebuild of merged.json is a follow-up decision).
+!rasberrypi5-20260811T211615Z.json
 # Cross-platform runs: Apple M3, Apple M4 Pro, Fedora 44 x86_64.
 !mehmetmac-20260719T224937Z.json
 !Mac-20260730T134951Z.json
@@ -30,6 +35,16 @@
 # Three runs on a quiet machine (1-min load 1.66 / 1.99 / 1.64). The report
 # quotes their MEDIAN and states the spread; one run cannot tell a real
 # difference from the scheduler having a bad second.
+# Reference-platform sweep: RPi5, governor=performance, load 0.00 at start,
+# X25519 control 1.0004 — the file the report's reference-platform paragraph
+# rests on.
+!stress-rasberrypi5-20260812T043436Z.json
+# Apple M3 median-of-three (1-min loads 3.78/8.05/5.86 — an interactive
+# machine; ratios still within a few percent of the quiet-M4 medians, which is
+# the load-robustness claim exercised on a third platform).
+!stress-mehmetmac-20260812T111720Z.json
+!stress-mehmetmac-20260812T112638Z.json
+!stress-mehmetmac-20260812T113607Z.json
 !stress-Mac-20260807T163719Z.json
 !stress-Mac-20260807T165015Z.json
 !stress-Mac-20260807T171426Z.json

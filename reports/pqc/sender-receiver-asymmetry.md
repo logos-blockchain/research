@@ -232,12 +232,20 @@ is the figure to prefer. Nothing above ~100 µs is affected.
 against a full set of decoder threads on the same cores, so the single encoder
 is oversubscribed — the multiplier it reports is a floor, not a midpoint.
 
-**No reference-platform run yet.** These are Apple M4 Pro numbers. The ratios
-should be dominated by algorithm structure rather than microarchitecture, but
-that is a prediction until the same sweep runs on the reference platform. The
-per-byte figures scale with absolute speed and will be substantially larger on a
-Raspberry Pi 5 — meaning a Pi is proportionally *easier* to flood than these
-figures suggest.
+**Reference-platform run: prediction confirmed, with one nuance.** The same
+sweep on the Raspberry Pi 5 (`stress-rasberrypi5-20260812T043436Z`: governor
+`performance`, 1-min load 0.00 at start, X25519 control 1.0004) reproduces the
+structure-driven ratios: Ed25519 2.48 (vs 2.50 here), ML-KEM 1.16–1.17, ML-DSA
+0.28–0.37, Falcon 0.17–0.18, SLH-DSA 0.001–0.06, FrodoKEM 0.97–1.00. An Apple
+M3 median-of-three agrees as well — measured on an interactive machine at
+1-min loads 3.8–8.1, and still within a few percent of the quiet-M4 medians,
+which is the load-robustness claim above doing its job. The nuance is Classic
+McEliece: its decaps/encaps ratio is 2–3× smaller on the Pi (307–523× against
+690–1490× here), so for the table-heavy decoder the *exact* ratio is
+platform-dependent — what transfers is the magnitude class, a 2.5-order
+asymmetry that disqualifies it either way. The per-byte figures scale with
+absolute speed as expected: a Pi buys more receiver-CPU per attacker byte, so
+it remains proportionally easier to flood than these M4 figures suggest.
 
 ## Status and provenance
 
