@@ -26,10 +26,21 @@ only the reward candidate still derives a key:
 | reward candidate, naive (kdf + ticket, 7 perms) | 26,602 | 37,591 |
 | reward candidate, prefixes precomputed (4 perms) | 16,413 | 60,927 |
 
-The blend optimiser's edge is now **1.81x** — the constant `(dst, epoch_nonce)` prefix
-is half the naive work — but that is *algorithmic* headroom alone. Implementation
-headroom — assembly field arithmetic, batching, GPU — is not measured here and could be
-considerably larger.
+**Measured on the Raspberry Pi 5 target** (Model B Rev 1.1, one pinned core, six runs
+across two sessions, spreads ≤ 0.1 %, 46–57 °C — raw runs in `results/`):
+
+| | Pi 5 | M4 Pro | ratio |
+| --- | --- | --- | --- |
+| one permutation | 22,813 ns | 3,299 ns | 6.9× |
+| blend candidate, naive | 94,158 ns | 14,855 ns | 6.3× |
+| blend candidate, prefix precomputed | 48,472 ns | 8,203 ns | 5.9× |
+| reward candidate, naive | 165,658 ns | 26,602 ns | 6.2× |
+
+The estimate band (4–8×) held. **The reference basis is one core of the Pi 5**, and
+`BLEND_DIFFICULTY_BASE` is calibrated on it at `p/2¹⁹` — about 50 s per message,
+~1,750/day per core, four times that on the whole board. The blend optimiser's edge is
+**1.94×** on the Pi — algorithmic headroom alone; implementation headroom (assembly,
+batching, GPU) is not measured here and could be considerably larger.
 
 ## The reference machine is not the target machine
 

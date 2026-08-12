@@ -58,9 +58,6 @@ class Params:
     sec_per_candidate_opt: float
     sec_per_candidate_reward: float
     sec_per_permutation: float
-    pi5_slowdown: float
-    pi5_slowdown_low: float
-    pi5_slowdown_high: float
     pi5_cores: int
     # model assumptions
     n_tx_ref: int
@@ -145,8 +142,7 @@ def load(path: str | Path) -> Params:
         sec_per_candidate_opt=w["seconds_per_candidate_opt"],
         sec_per_candidate_reward=w["seconds_per_candidate_reward"],
         sec_per_permutation=w["seconds_per_permutation"],
-        pi5_slowdown=w["pi5_slowdown"], pi5_slowdown_low=w["pi5_slowdown_low"],
-        pi5_slowdown_high=w["pi5_slowdown_high"], pi5_cores=w["pi5_cores"],
+        pi5_cores=w["pi5_cores"],
         n_tx_ref=m["reference_txs_per_block"], adversary_h=m["adversary_hashrate"],
         honest_stake_fraction=m["honest_stake_fraction"],
         horizon_epochs=m["horizon_epochs"],

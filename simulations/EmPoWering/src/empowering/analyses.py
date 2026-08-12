@@ -72,22 +72,20 @@ def rewards(p: Params) -> dict:
 
 
 def blend(p: Params) -> dict:
-    """The admission threshold: message cost on the bench machine and the target one."""
-    print("=== Blend admission threshold ===\n")
+    """The admission threshold, on the measured target hardware (one-core basis)."""
+    print("=== Blend admission threshold (measured on the target) ===\n")
     d = P_FIELD >> p.blend_base_exp
     attempts = P_FIELD / d
-    s_m4 = attempts * p.sec_per_candidate
+    s1 = attempts * p.sec_per_candidate
     print(f"  threshold p/2^{p.blend_base_exp}: {attempts:,.0f} expected candidates")
-    print(f"  one M4 Pro core     {s_m4:>8.1f} s/solution   {86400 / s_m4:>8,.0f} msgs/day")
-    for r, label in ((p.pi5_slowdown_low, "Pi 5 @ low"),
-                     (p.pi5_slowdown, "Pi 5 @ mid"),
-                     (p.pi5_slowdown_high, "Pi 5 @ high")):
-        s = s_m4 * r
-        print(f"  {label:<18}  {s / 60:>8.1f} min       {86400 / s:>8,.0f} msgs/day"
-              f"   ({86400 * p.pi5_cores / s:,.0f} on all {p.pi5_cores} cores)")
-    print("\n  The Pi 5 rows are ESTIMATED from the M4 Pro measurement; re-derive the")
-    print("  threshold once bench-poseidon2 has been run on the target hardware.")
-    return dict(m4_seconds=s_m4, pi5_mid_seconds=s_m4 * p.pi5_slowdown)
+    print(f"  one target core     {s1:>8.1f} s/solution   {86400 / s1:>8,.0f} msgs/day")
+    print(f"  whole board ({p.pi5_cores})     {s1 / p.pi5_cores:>8.1f} s/solution"
+          f"   {86400 * p.pi5_cores / s1:>8,.0f} msgs/day")
+    print(f"  optimising miner    {attempts * p.sec_per_candidate_opt:>8.1f} s"
+          f"   (algorithmic edge {p.sec_per_candidate / p.sec_per_candidate_opt:.2f}x)")
+    print("\n  Basis: one core of a Raspberry Pi 5, measured; a desktop core is ~6x faster")
+    print("  and deliberately not the calibration basis.")
+    return dict(target_seconds=s1)
 
 
 def exhaustion(p: Params) -> dict:

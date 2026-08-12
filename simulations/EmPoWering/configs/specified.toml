@@ -52,7 +52,7 @@ ema_smoothing_precision = 10          # KNOWN  P
 reward_difficulty_exp   = 26          # KNOWN  genesis difficulty_reward = p / 2**26
 
 [blend]
-difficulty_base_exp     = 22          # KNOWN  BLEND_DIFFICULTY_BASE = p / 2**22
+difficulty_base_exp     = 19          # KNOWN  BLEND_DIFFICULTY_BASE = p / 2**19
 target_txs_per_block    = 512         # KNOWN  TARGET_TXS_PER_BLOCK
 damping_num             = 1           # KNOWN  alpha = 1/2
 damping_den             = 2
@@ -63,15 +63,15 @@ beta_max                = 3           # KNOWN  blending ops per message; Q_W = b
 # MEASURED on an Apple M4 Pro performance core, release build with LTO. The deployment
 # target is a Raspberry Pi 5, estimated 4-8x slower per core -- NOT measured, and the
 # Blend threshold should be re-derived once it has been.
-# v0.5.6 (pow_nonce): the Blend candidate is one 3-input hash with a domain tag.
-seconds_per_candidate        = 14.855e-6  # blend, naive: 4 Poseidon2 permutations
-seconds_per_candidate_opt    = 8.203e-6   # blend, constant prefix precomputed: 2
-seconds_per_candidate_reward = 26.602e-6  # reward keeps its key derivation: 7 perms
-seconds_per_permutation      = 3.299e-6
-pi5_slowdown                = 6.0         # ASSUMED  midpoint of the 4-8x band
-pi5_slowdown_low            = 4.0
-pi5_slowdown_high           = 8.0
-pi5_cores                   = 4
+# MEASURED on the deployment target itself: Raspberry Pi 5 Model B, one pinned core,
+# six runs across two sessions, spreads under 0.1%, no thermal throttling
+# (bench-poseidon2/results/pi5-20260812-*). The reference basis is ONE CORE of the
+# target; a desktop-class core runs ~6x faster and is deliberately not the basis.
+seconds_per_candidate        = 94.158e-6  # blend, naive: 4 Poseidon2 permutations
+seconds_per_candidate_opt    = 48.472e-6  # blend, constant prefix precomputed: 2
+seconds_per_candidate_reward = 165.658e-6 # reward keeps its key derivation: 7 perms
+seconds_per_permutation      = 22.813e-6
+pi5_cores                   = 4           # board-level figures divide by this
 
 [model]
 # ASSUMED. Traffic is exogenous here; section 4.4 of the report parameterises the ramp
