@@ -185,7 +185,7 @@ def run(config: str, lips: str) -> int:
     require_phrase(mantle, "one LGO is $`10^{9}`$ lepta")
     require_phrase(mantle, "hi = min(previous * BLEND_MAX_STEP, p - 1)")
     require_phrase(mantle, "return min(new_target, p - 1)")
-    require_phrase(mantle, "are specified over unbounded integers")
+    require_phrase(mantle, "specified over **arbitrary-precision integers**")
 
     print(f"{checks} checks against {raw}")
     if failures:
