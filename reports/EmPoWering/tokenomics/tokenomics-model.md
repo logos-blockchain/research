@@ -47,6 +47,8 @@ The reward opens at 347,361× the fee and decays to 5.02×, reaching within a fa
 
 The direction is favourable, and one specific warning lapses with it: §4.1 says that at `D₀ = 0.5 %` a one-third attacker "exceeds the safety threshold" within six years if honest miners stake only half their winnings. At 19.2 % it does not, and no cell in the table now crosses one third at that horizon. **§4.1's qualitative argument is otherwise unaffected**: the refill never stops, so these remain six-year figures rather than lifetime ones, and the asymptote `h/(h+(1−h)s)` contains no parameter that moved — it is still 33 % at `h = 0.33` with full honest staking, and still the artefact of fixed `D₀` that §4.1 correctly names.
 
+**§4.4.3's reserve column is stale in the same way.** Its table prices the standing reserve and the endowment floor as fractions of supply — 1.03 % and 0.21 % at the specified `ρ` — which are `R*/S_tge` and `R_min/S_tge` computed before the denomination moved. The model now gives **7.23×10⁻⁶ %** and **1.44×10⁻⁶ %**: the reserve is 723 LGO and the floor 144 LGO, not a hundredth of the supply. The ρ *comparison* the table exists to make is unaffected, because all three quantities go as `1/ρ` and the ratios between rows are unchanged; what has moved is only their absolute scale. The drain column is correct as written — the hard edge at `ρ < T/MAX_BLOCK_TXS = 0.977 %` is denomination-free, and `ρ = 1 %` does sit on the reachable side of it.
+
 **Why this was not caught by the gates.** `make check` ties the config to the specification and `make verify` ties the model to its closed forms; nothing tied this document's prose to either. The three sections above were arithmetically correct for the parameter set they were run against and simply went stale in place. A `report-numbers` gate — regenerating every quoted figure from the model, as the Blend report does — is the fix, and is not yet built.
 
 ## 0.0 Addendum — the nonce-based PoW branch, circuit v0.5.6 (2026-08-12)
@@ -684,6 +686,9 @@ Going to 20 % would halve the builder edge and double the onboarding rate, at th
 **What would change the answer.** A lower expected sustained traffic pushes the lower bound up quickly — at 300 transactions per block the 2× requirement is already 8 %, leaving almost no room under the subordination ceiling. If the network is expected to settle below about 250 transactions per block, `T` should come down further rather than β going up, because `T` and β trade one-for-one on this constraint (§4.4.1) and only β is bounded above.
 
 ### 4.4.3 Choosing the distribution rate and the genesis seed `DERIVED` + `SIMULATED`
+
+> **Reserve and floor columns superseded by §0.3.** They are fractions of supply computed before the denomination moved; the ρ comparison they support is unaffected.
+
 
 The last two, from `make sweeps`. **`ρ = 1/100` and `R₀ = 0.5 %` of the launch supply.**
 

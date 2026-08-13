@@ -3,8 +3,9 @@ PY := $(VENV)/bin/python
 STAMP := $(VENV)/.installed
 CONFIG ?= configs/specified.toml
 FIGURES ?= ../../reports/EmPoWering/tokenomics/figures
+REPORT  ?= ../../reports/EmPoWering/tokenomics/tokenomics-model.md
 
-.PHONY: install all fee emission rewards blend exhaustion security volume sweeps lepta verify check plots pi5 bench-poseidon2 clean
+.PHONY: install all fee emission rewards blend exhaustion security volume sweeps lepta verify check report-numbers plots pi5 bench-poseidon2 clean
 
 # Stdlib-only package; the venv exists so `make` works identically here and in CI,
 # and re-installs whenever pyproject.toml changes.
@@ -59,6 +60,9 @@ verify: $(STAMP) ## closed forms vs simulation, and the config's invariants
 	$(PY) -m empowering.lepta --config $(CONFIG)
 
 LIPS ?= ../../../logos-lips
+report-numbers: $(STAMP) ## every number the report quotes, against the model
+	$(PY) -m empowering.report_numbers --config $(CONFIG) --report $(REPORT)
+
 check: $(STAMP) ## config vs the specification tree (set LIPS=path to logos-lips)
 	$(PY) -m empowering.spec_sync --config $(CONFIG) --lips $(LIPS)
 

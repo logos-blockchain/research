@@ -17,6 +17,7 @@ make rewards     # one section (fee, emission, rewards, blend, exhaustion, secur
 make sweeps      # the parameter sweeps behind report sections 4.4.1-4.4.3
 make verify      # closed forms vs simulation, and the config's own invariants
 make check LIPS=~/Logos/logos-lips   # config vs the spec tree: constants AND prose margins
+make report-numbers                  # every number the report quotes, against the model
 make bench-poseidon2                 # measure the candidate rate (Rust; see below)
 ```
 
