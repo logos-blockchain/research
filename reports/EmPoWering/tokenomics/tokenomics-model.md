@@ -772,6 +772,17 @@ Eight figures from `make plots`, rendered from the same `Params` the tables use,
 
 **This is the figure to read before treating `σ*/φ = 5.02` as the operating number.** It is the number the system converges to, not the one it launches with.
 
+**The descent time is a property of the price level, not of the mechanism.** `σ*/φ` is price-independent — both fee markets scale together, so the ratio §4.3 derives is untouched — but `R₀` is a fraction of *supply* while `R*` scales with the *fee*, so the gap between them, and the time to close it, is not:
+
+| price level | vs resting | `R*` (LGO) | `R₀/R*` | years to within 2× of `R*` |
+| --- | --- | --- | --- | --- |
+| 7 (resting) | 1× | 723 | 69,153 | **22.8** |
+| 700 | 100× | 72,304 | 692 | 13.4 |
+| 7,000 | 1,000× | 723,038 | 69 | 8.6 |
+| 116,564 (deflation threshold, §3.4) | 16,652× | 12,040,035 | 4.2 | 2.3 |
+
+So "decades on the endowment" is the *resting-price* case, which is the conservative one and the one the figure plots. At discovered prices a few orders of magnitude above the floor the system reaches its fee-funded regime within a few years. Both readings share the same `σ*/φ`, so nothing about the self-funding margin depends on which obtains — only the shape of the approach does.
+
 ### 4.7.2 The claim share of traffic, and its ceiling
 
 ![claim share vs traffic](figures/02_claim_share_vs_traffic.png)
@@ -857,7 +868,7 @@ Re-run 2026-08-11 under fee-inflow funding, at the §3.7 parameter set.
 | `ρ` | 0.5 %, 1 %, 2 % | speed only, never destination — but it scales `R_min` inversely |
 | `D₀` | 0.5 %, 5 %, 30 % | honest stake at launch — **§4.1 shows this dominates security** |
 
-`T` is no longer a sweep axis: the specification sets it to 50. Its consequences are reported instead as the second table in §4.3.
+`T` is no longer a sweep axis: the specification sets it to 10. Its consequences are reported instead as the second table in §4.3.
 
 **Report per cell:** σ*/φ; whether the ramp is covered and with what margin; peak attacker share and the §4.1 asymptote; builder edge at steady state (§4.2); blocks to reconverge after a 10× hashrate step (§3.6 predicts ~22); the fraction of fee revenue diverted from the burn (§3.4).
 
