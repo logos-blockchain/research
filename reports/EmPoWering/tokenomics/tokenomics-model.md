@@ -1054,6 +1054,43 @@ The two `1/T` effects run the other way and are small: arrival noise falls from 
 
 And `D₀` still dominates everything: at `h = 0.33` the peak runs 16.08 % at a half-percent of supply staked against 0.51 % at the 30 % staking target — a factor of thirty, against the factor of sixteen `R₀` buys across its whole range.
 
+## 4.11 `T` and `β` are one dial, not two `DERIVED`
+
+**Intuition.** The claim target and the fee share look like independent knobs, and §4.4.1, §4.4.2 and §4.10 sweep them as if they were — each holding the other fixed. They are not. Halving how many winners share the pot and halving the pot are the same thing to a miner, so what the economics sees is only the *ratio*. Everything that decides whether mining pays is unchanged along that ratio. What is *not* unchanged is the two separate walls: the drain margin wants `T` large, and subordination wants `β` small. Those walls are what pick a point on the ray, and they leave a surprisingly short stretch of it.
+
+Every quantity in §4.3's constraint set contains the two only as `T/β`:
+
+$$
+\frac{\sigma^\ast}{\varphi} \;=\; \frac{\hat\Phi}{T/\beta_\text{PoW}},
+\qquad
+\text{break-even load} \;=\; \frac{T}{\beta_\text{PoW}},
+\qquad
+\text{builder edge} \;=\; 1 + \frac{\text{tip}}{\sigma^\ast/\varphi - 1}
+$$
+
+so along `T/β = 100` the margin is 5.02, the edge 1.124× and the break-even load 100 claim fees — at `T = 5, β = 5 %` exactly as at `T = 50, β = 50 %`.
+
+![the T–β plane](figures/11_T_beta_plane.png)
+
+**What breaks the degeneracy.** Three things bind `T` or `β` alone, and only one of them is not already comfortable at the specified point:
+
+| binds | quantity | at `T=10, β=10 %` |
+| --- | --- | --- |
+| `T` alone | within-epoch drain, `T/ρ` vs `MAX_BLOCK_TXS` | 1,000 vs 1,024 — **reachable** |
+| `T` alone | arrival noise `1/√T`, retarget overshoot `(P−F)/2PT` | 31.6 %, 0.50 % |
+| `β` alone | subordination, PoW ≤ ⅓ of the leader share | 27.8 % of the cap |
+| `β` alone | standing reserve `R*` ∝ `β`; floor `R_min` ∝ `T` | 723 and 144 LGO |
+
+Moving *up* the ray raises `T`, which is what pushes the drain out of reach — it becomes impossible by construction once `T > MAX_BLOCK_TXS · ρ = 10.24`. But it also raises `β`, which subordination caps at 11.76 %, i.e. `T ≤ 11.76` on this ray. So:
+
+> **The window that keeps the present economics *and* closes the drain is `T ∈ (10.24, 11.76]` — and the only whole number in it is `T = 11`.**
+
+**At `T = 11, β = 11 %` the economics is bit-for-bit the same** — `σ*/φ = 5.0231`, builder edge 1.1243×, break-even load 100 claim fees — while the drain needs **1,100 claims per block against a cap of 1,024**, so it stops depending on the difficulty controller at all. Arrival noise improves slightly (31.6 % → 30.2 %) and so does the retarget's overshoot (0.50 % → 0.45 %). The price is a 10 % larger reserve (723 → 795 LGO) and floor (144 → 158 LGO), both around 10⁻⁸ of supply and immaterial in absolute terms.
+
+**This is offered as an observation, not a recommendation.** §3.8 argues the drain is adequately prevented by the controller, and §4.8 confirms that arrival noise contributes nothing to reaching it — a burst would have to be 305 standard deviations. So nothing here says the specified set is unsafe. What it says is that the one structural gap the report flags twice (§3.8's "the margin is thin", §4.7.6's "a controller guarantee and not a structural one") appears to be closeable **for free**, by moving one unit along a direction the economics cannot see. That is worth knowing before the constants are frozen, and it is exactly the kind of thing sweeping `T` and `β` independently cannot reveal.
+
+The window is also a warning in the other direction: it is *short*. Any future change that raises `T` without raising `β`, or lowers `β` without lowering `T`, moves off the ray and costs margin directly. The two constants should be revisited together or not at all.
+
 ## 5. Simulator
 
 The `empowering` package in `simulations/EmPoWering/`, one module per concern and one `make` target per report section: `make fee` (the claim's fee, §4.3), `make emission` (§3.4), `make rewards` (§4.3–§4.4), `make blend` (§4.5), `make exhaustion` (§3.8, §4.6), `make security` (§4.1), `make volume` (§4.7.2), `make sweeps` (§4.4.1–§4.4.3) and `make plots` (§4.7). Every number lives in `configs/specified.toml`, annotated KNOWN / DERIVED / MEASURED / ASSUMED with citations into the specification tree; nothing is hardcoded in the modules, so a specification change is a one-line edit. `make lepta` re-runs the mechanism in exact integer arithmetic at lepton granularity; `make check LIPS=…` compares the config against the specification tree, constants and prose margins alike. Mirrors the merged code, not the proposal.

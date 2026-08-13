@@ -304,6 +304,67 @@ def fees(p: Params) -> dict:
                 min_bytes_for_break_even=floor_bytes)
 
 
+def ratio(p: Params) -> dict:
+    """T and beta are not separately identified by the economics -- only T/beta is.
+
+    Every quantity that decides whether mining pays contains the two only as a ratio, so the
+    parameter set has a one-dimensional degeneracy the sweeps in 4.4.1/4.4.2 and 4.10 do not
+    show, because each holds the other fixed. What breaks the tie is the constraints that
+    bind T and beta *separately*, and they pull in opposite directions along the ray.
+    """
+    from dataclasses import replace
+    print("=== T and beta: the ratio is what the economics sees ===\n")
+    print("  sigma*/phi = psi*beta*n_tx/T = Phi_hat/(T/beta). Along T/beta = const nothing")
+    print("  the economics cares about changes at all:\n")
+    print(f"  {'T':>5} {'beta':>7} {'T/beta':>8} {'sigma*/phi':>11} {'edge':>9}"
+          f" {'break-even load':>16}")
+    print("  " + "-" * 62)
+    def on_ray(T: int):
+        """The (T, beta) on the current ray T/beta, as a config."""
+        return replace(p, T=T, beta_num=int(round(p.beta_den * T * p.beta / p.T)))
+
+    for T in (5, 10, 11, 20, 50):
+        q = on_ray(T)
+        print(f"  {T:>5} {q.beta:>7.0%} {T / q.beta:>8.0f} {core.sigma_over_phi(q):>11.4f}"
+              f" {core.builder_edge(q):>8.4f}x {core.min_fee_load(q):>16,.0f}")
+
+    lo, hi = core.iso_margin_window(p)
+    cap = core.subordination_beta_cap()
+    print("\n  What breaks the degeneracy -- constraints on T and beta one at a time:\n")
+    print(f"  {'T':>5} {'beta':>7} {'drain T/rho':>12} {'vs cap':>14} {'subordination':>14}"
+          f" {'noise':>7} {'overshoot':>10}")
+    print("  " + "-" * 76)
+    for T in (10, 11, 12, 20, 50):
+        q = on_ray(T)
+        d = T * q.rho_den / q.rho_num
+        sub = q.beta / (0.4 * (1 - q.beta))
+        over = (q.P_ema - q.F_ema) / (2 * q.P_ema * T)
+        flag = "reachable" if d <= q.max_block_txs else "out of reach"
+        print(f"  {T:>5} {q.beta:>7.0%} {d:>12,.0f} {flag:>14} {sub:>13.1%}"
+              f"{'!' if sub > 1 / 3 else ' '} {1 / T ** 0.5:>6.1%} {over:>10.2%}")
+
+    print(f"\n  Raising T along the ray puts the drain out of reach at T > {lo:.2f};")
+    print(f"  subordination caps beta at {cap:.2%}, which on this ray is T <= {hi:.2f}.")
+    ints = [t for t in range(int(lo) + 1, int(hi) + 1)]
+    print(f"  The window is therefore T in ({lo:.2f}, {hi:.2f}] -- integer choices: {ints}.")
+    if ints:
+        t = ints[0]
+        q = on_ray(t)
+        print(f"\n  At T = {t}, beta = {q.beta:.0%} the economics is identical -- sigma*/phi"
+              f" {core.sigma_over_phi(q):.4f},")
+        print(f"  builder edge {core.builder_edge(q):.4f}x, break-even load"
+              f" {core.min_fee_load(q):,.0f} -- while the drain needs")
+        print(f"  {t * q.rho_den // q.rho_num:,} claims per block against a cap of"
+              f" {q.max_block_txs}, so it is impossible by")
+        print("  construction rather than prevented by the controller. The price is a"
+              f" {q.beta / p.beta - 1:.0%} larger")
+        print(f"  reserve ({core.r_star(p):,.0f} -> {core.r_star(q):,.0f} LGO) and floor"
+              f" ({core.r_min(p):,.0f} -> {core.r_min(q):,.0f} LGO), both negligible")
+        print("  in absolute terms, and arrival noise and the retarget overshoot both improve.")
+    return dict(window=(lo, hi), integers=ints, beta_cap=cap,
+                drain_safe_T=core.drain_safe_T(p))
+
+
 def sweeps_full(p: Params) -> dict:
     """Section 6's sweep programme: every axis, every per-cell metric it asks for."""
     from .sweeps import report as _report
@@ -390,4 +451,4 @@ def sampled(p: Params) -> dict:
 
 ALL = {"fee": fee, "emission": emission, "rewards": rewards,
        "blend": blend, "exhaustion": exhaustion, "security": security, "volume": volume, "sampled": sampled, "fees": fees,
-       "sweeps-full": sweeps_full, "sweep-target": sweep_target, "sweep-share": sweep_share, "sweep-rho": sweep_rho}
+       "ratio": ratio, "sweeps-full": sweeps_full, "sweep-target": sweep_target, "sweep-share": sweep_share, "sweep-rho": sweep_rho}

@@ -77,6 +77,40 @@ def min_fee_load(p: Params, ratio: float = 1.0) -> float:
     return ratio * p.T / p.beta
 
 
+def drain_safe_T(p: Params) -> float:
+    """Smallest ``T`` for which the within-epoch drain is impossible **by construction**.
+
+    Section 3.8's drain needs ``T/rho`` claims in every block for a whole epoch, so once
+    ``T/rho > MAX_BLOCK_TXS`` the block format forbids it outright and nothing rests on the
+    difficulty controller holding. Below it the drain is merely *prevented*, which is a
+    weaker guarantee -- see section 4.7.6.
+    """
+    return p.max_block_txs * p.rho_num / p.rho_den
+
+
+def subordination_beta_cap(leader_share: float = 0.4, ratio: float = 1 / 3) -> float:
+    """Largest ``beta`` keeping proof of work junior to the leader path.
+
+    Reading subordination as "PoW takes at most ``ratio`` of what leaders take", and leaders
+    taking ``leader_share`` of the fees not diverted, ``beta/(L(1-beta)) = r`` gives
+    ``beta = rL/(1+rL)`` -- about 11.8% at the values section 4.4.2 uses.
+    """
+    rl = ratio * leader_share
+    return rl / (1 + rl)
+
+
+def iso_margin_window(p: Params) -> tuple[float, float]:
+    """The span of ``T`` that holds the present margin *and* closes the drain.
+
+    ``sigma*/phi = psi*beta*n/T`` depends on ``T`` and ``beta`` only through ``T/beta``, so
+    the margin is unchanged along that ray. Moving up it raises ``T``, which is what puts
+    the drain out of reach; it also raises ``beta``, which subordination caps. The window is
+    where both hold. Empty if the ray clears no such span.
+    """
+    ratio = p.T / p.beta                      # the ray through the current setting
+    return drain_safe_T(p), ratio * subordination_beta_cap()
+
+
 def builder_edge(p: Params, n_tx: int | None = None, tip_frac: float = 0.5) -> float:
     """A builder's advantage from recovering the tip on its own claims."""
     r = sigma_over_phi(p, n_tx)

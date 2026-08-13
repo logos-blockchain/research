@@ -547,5 +547,72 @@ def fee_range(p: Params, out: Path) -> Path:
 
 ALL["fees"] = fee_range
 
+
+def t_beta_plane(p: Params, out: Path) -> Path:
+    """T and beta are one degree of freedom for the economics, and two for the constraints.
+
+    The margin depends only on T/beta, so it is constant along a ray from the origin. What
+    is *not* constant along that ray is the drain margin (which needs T large) and
+    subordination (which needs beta small) -- and between them they leave a short window.
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    _style()
+
+    T = np.linspace(4, 40, 500)
+    B = np.linspace(0.01, 0.25, 500)
+    TT, BB = np.meshgrid(T, B)
+    ratio = p.psi * BB * p.n_tx_ref / TT
+    cap = core.subordination_beta_cap()
+    t_drain = core.drain_safe_T(p)
+    lo, hi = core.iso_margin_window(p)
+
+    fig, ax = plt.subplots(figsize=(8.2, 5.4))
+    ok = (ratio >= 2.0) & (BB <= cap) & (TT > t_drain)
+    ax.contourf(TT, 100 * BB, ok.astype(float), levels=[0.5, 1.5], colors=[WORKS])
+    cs = ax.contour(TT, 100 * BB, ratio, levels=[1, 2, 5.02, 10],
+                    colors=[OKABE_ITO[1], OKABE_ITO[4], OKABE_ITO[0], OKABE_ITO[2]],
+                    linewidths=1.5)
+    ax.clabel(cs, fmt=lambda v: f"$\\sigma^*/\\varphi$ = {v:g}", fontsize=7.5)
+
+    ax.axvline(t_drain, color=OKABE_ITO[3], lw=2)
+    ax.annotate(f"drain impossible by construction\nonly right of $T$ = {t_drain:.2f}",
+                xy=(t_drain + 0.6, 3.0), fontsize=8, color="#7A4B63")
+    ax.axhline(100 * cap, color=OKABE_ITO[1], lw=2, ls="--")
+    ax.annotate(f"subordination cap  $\\beta$ = {100 * cap:.2f}%",
+                xy=(26, 100 * cap + 0.6), fontsize=8, color="#8A4B2A")
+
+    # the ray on which the economics is unchanged
+    ray_T = np.linspace(4, 40, 2)
+    ax.plot(ray_T, 100 * ray_T * p.beta / p.T, ":", color=MUTED, lw=1.6,
+            label=r"same economics: $T/\beta$ = const")
+    ax.plot([lo, hi], [100 * lo * p.beta / p.T, 100 * hi * p.beta / p.T], "-",
+            color=OKABE_ITO[7], lw=3.5, solid_capstyle="round", zorder=5,
+            label=f"window: $T \\in$ ({lo:.2f}, {hi:.2f}]")
+
+    ax.plot([p.T], [100 * p.beta], "o", ms=11, color=OKABE_ITO[7], zorder=6)
+    ax.annotate(f"specified\n$T$ = {p.T}, $\\beta$ = {p.beta:.0%}\n(drain reachable)",
+                xy=(p.T, 100 * p.beta), xytext=(-104, -46), textcoords="offset points",
+                fontsize=8.5, color=OKABE_ITO[7], zorder=6,
+                arrowprops=dict(arrowstyle="->", color=OKABE_ITO[7], lw=1.2))
+    ints = [t for t in range(int(lo) + 1, int(hi) + 1)]
+    if ints:
+        t = ints[0]
+        ax.plot([t], [100 * t * p.beta / p.T], "*", ms=18, color=OKABE_ITO[2], zorder=7)
+        ax.annotate(f"$T$ = {t}, $\\beta$ = {t * p.beta / p.T:.0%}\nsame economics,\n"
+                    "drain closed", xy=(t, 100 * t * p.beta / p.T), xytext=(20, -30),
+                    textcoords="offset points", fontsize=8.5, color="#2A6A55", zorder=7)
+
+    ax.set(xlabel="TARGET_CLAIMS_PER_BLOCK  $T$",
+           ylabel=r"$\beta_{PoW}$  (% of fees to the pool)", ylim=(1, 25),
+           title="$T$ and $\\beta$ are one degree of freedom for the economics,\n"
+                 "two for the constraints — and the window between them is short")
+    ax.legend(loc="lower right", fontsize=8)
+    fig.tight_layout()
+    return _save(fig, out, "11_T_beta_plane", p, "plane")
+
+
+ALL["plane"] = t_beta_plane
+
 if __name__ == "__main__":
     raise SystemExit(main())

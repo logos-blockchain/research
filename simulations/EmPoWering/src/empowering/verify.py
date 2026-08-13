@@ -171,6 +171,25 @@ def run(config: str) -> int:
           f"needs {need_each:.3f} claim fees each = ~{bytes_each:.0f} bytes,"
           " under a signature alone (128 B)")
 
+    # 25-26. T and beta enter the economics only as T/beta, and the window that keeps the
+    # margin while closing the drain is bounded by subordination above and the cap below.
+    from dataclasses import replace as _r
+    ray = [core.sigma_over_phi(_r(p, T=t, beta_num=int(round(p.beta_den * t * p.beta / p.T))))
+           for t in (5, 10, 11, 20, 50)]
+    check("T and beta enter only as T/beta", max(ray) - min(ray) < 1e-12,
+          f"sigma*/phi = {ray[0]:.4f} at every point on the ray")
+
+    lo, hi = core.iso_margin_window(p)
+    ints = [t for t in range(int(lo) + 1, int(hi) + 1)]
+    ok = lo < hi and bool(ints)
+    if ok:
+        q = _r(p, T=ints[0], beta_num=int(round(p.beta_den * ints[0] * p.beta / p.T)))
+        ok = (abs(core.sigma_over_phi(q) - core.sigma_over_phi(p)) < 1e-12
+              and q.T * q.rho_den / q.rho_num > q.max_block_txs
+              and q.beta <= core.subordination_beta_cap() + 1e-12)
+    check("a window exists that holds the margin and closes the drain", bool(ok),
+          f"T in ({lo:.2f}, {hi:.2f}], integers {ints}")
+
     print(f"\n{len(failures)} failure(s)" if failures else "\nall pass")
     return 1 if failures else 0
 
