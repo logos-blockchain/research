@@ -329,7 +329,7 @@ def ratio(p: Params) -> dict:
               f" {core.builder_edge(q):>8.4f}x {core.min_fee_load(q):>16,.0f}")
 
     lo, hi = core.iso_margin_window(p)
-    cap = core.subordination_beta_cap()
+    cap = core.subordination_beta_cap(p)
     print("\n  What breaks the degeneracy -- constraints on T and beta one at a time:\n")
     print(f"  {'T':>5} {'beta':>7} {'drain T/rho':>12} {'vs cap':>14} {'subordination':>14}"
           f" {'noise':>7} {'overshoot':>10}")
@@ -337,7 +337,7 @@ def ratio(p: Params) -> dict:
     for T in (10, 11, 12, 20, 50):
         q = on_ray(T)
         d = T * q.rho_den / q.rho_num
-        sub = q.beta / (0.4 * (1 - q.beta))
+        sub = q.beta / (q.leader_fee_share * (1 - q.beta))
         over = (q.P_ema - q.F_ema) / (2 * q.P_ema * T)
         flag = "reachable" if d <= q.max_block_txs else "out of reach"
         print(f"  {T:>5} {q.beta:>7.0%} {d:>12,.0f} {flag:>14} {sub:>13.1%}"
@@ -411,7 +411,7 @@ def sweep_share(p: Params) -> dict:
         e = core.builder_edge(q)
         es = "n/a" if e == float("inf") else f"{e:.3f}x"
         beta = num / p.beta_den
-        pow_vs_leader = beta / (0.4 * (1 - beta))
+        pow_vs_leader = beta / (p.leader_fee_share * (1 - beta))
         star = " <-" if num == p.beta_num else ""
         print(f"  {beta:>6.0%} {r:>11.2f} {es:>8} {max(0, 1 - 1 / r):>17.0%}"
               f" {pow_vs_leader:>11.0%}{star}")

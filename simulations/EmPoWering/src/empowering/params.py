@@ -64,6 +64,10 @@ class Params:
     inscribe_bytes: int
     sdp_declare_gas: int
     sdp_declare_bytes: int
+    # economics (ASSUMED; see configs/specified.toml [economics])
+    leader_fee_share: float
+    subordination_ratio: float
+    tip_fraction: float
     # model assumptions
     n_tx_ref: int
     adversary_h: float
@@ -122,6 +126,33 @@ class Params:
         return self.min_stake_fraction * self.S_tge
 
 
+def _validate(p: "Params") -> None:
+    """Refuse configurations the model cannot honestly evaluate.
+
+    The package treats the config as its single source of truth, so a malformed one should
+    fail loudly rather than produce numbers that look fine. The controller-stability check
+    is the substantive one: section 3.6 derives a pole of F/P, so F >= P is not a slower
+    controller but a non-convergent one, and every reconvergence figure would be silent
+    nonsense.
+    """
+    if not (0 < p.T):
+        raise SystemExit(f"config: target_claims_per_block must be > 0, got {p.T}")
+    if not (0 <= p.beta_num <= p.beta_den) or p.beta_den <= 0:
+        raise SystemExit(f"config: pool_share must be in [0, 1], got {p.beta_num}/{p.beta_den}")
+    if not (0 < p.rho_num <= p.rho_den):
+        raise SystemExit(f"config: distribution_rate must be in (0, 1], got "
+                         f"{p.rho_num}/{p.rho_den}")
+    if p.F_ema >= p.P_ema:
+        raise SystemExit(f"config: reward controller needs F < P for a pole below one "
+                         f"(section 3.6); got F={p.F_ema}, P={p.P_ema}")
+    if p.T * p.rho_den / p.rho_num > p.max_block_txs * 1e6:
+        raise SystemExit("config: T/rho is absurdly large; check rho")
+    if not (0 <= p.genesis_pool_fraction <= 1):
+        raise SystemExit(f"config: genesis_pool_fraction must be in [0, 1]")
+    if not (0 < p.leader_fee_share <= 1) or not (0 < p.subordination_ratio):
+        raise SystemExit("config: [economics] shares must be positive, leader share <= 1")
+
+
 def load(path: str | Path) -> Params:
     try:
         cfg = tomllib.loads(Path(path).read_text())
@@ -131,9 +162,10 @@ def load(path: str | Path) -> Params:
         c, s, f, w, b, m, p = (cfg["consensus"], cfg["supply"], cfg["fees"],
                                cfg["work"], cfg["blend"], cfg["model"], cfg["pow"])
         x = cfg.get("mixes", {})
+        ec = cfg.get("economics", {})
     except KeyError as e:
         raise SystemExit(f"config {path}: missing section {e.args[0]!r}") from e
-    return Params(
+    out = Params(
         name=cfg["name"], description=cfg["description"],
         N_b=c["blocks_per_epoch"], block_seconds=c["block_seconds"],
         epochs_per_year=c["epochs_per_year"], blocks_per_year=c["blocks_per_year"],
@@ -161,7 +193,12 @@ def load(path: str | Path) -> Params:
         inscribe_gas=x.get("inscribe_gas", 56), inscribe_bytes=x.get("inscribe_bytes", 130),
         sdp_declare_gas=x.get("sdp_declare_gas", 646),
         sdp_declare_bytes=x.get("sdp_declare_bytes", 250),
+        leader_fee_share=ec.get("leader_fee_share", 0.4),
+        subordination_ratio=ec.get("subordination_ratio", 1 / 3),
+        tip_fraction=ec.get("tip_fraction", 0.5),
         n_tx_ref=m["reference_txs_per_block"], adversary_h=m["adversary_hashrate"],
         honest_stake_fraction=m["honest_stake_fraction"],
         horizon_epochs=m["horizon_epochs"],
     )
+    _validate(out)
+    return out

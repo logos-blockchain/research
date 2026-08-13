@@ -236,6 +236,9 @@ The proposal and `block-rewards.md` both use **`T`** for different things. Here:
 | `φ` | — | — | **`DERIVED`** — 952 price units (§4.3), absolute value blocked on the denomination |
 | `ψ` | — | — | **`DERIVED`** — 0.837, average fee over claim fee (§4.3) |
 | `n_tx` | — | — | **`UNKNOWN`** — transactions per block, an adoption question; §4.9 collapses it and the price level into one axis |
+| leader fee share `L` | — | 0.4 | **`ASSUMED`** — share of undiverted fees reaching leaders; **not stated anywhere in the tree**. Sets the subordination cap (§4.4.2, §4.7.6, §4.11) |
+| subordination ratio `r` | — | 1/3 | **`ASSUMED`** — how "PoW stays junior to staking" is read. With `L` it gives `β ≤ rL/(1+rL)` = 11.76 % |
+| tip fraction | — | 0.5 | **`ASSUMED`** — share of a claim's surplus returning to a builder as tip. Scales the whole builder edge (§4.2c, §4.10.1) |
 | base units/LGO | — | — | **`OPEN`** — deferred to its own PR; EmPoWering's constraints on it are in §4.4.4 |
 
 **Every free parameter now has a value, `φ` is derived up to the denomination, and the feature ships switched off.** §3.7's numbers illustrate structure; §4.4's parameter set is an existence proof, not a recommendation.
@@ -1088,6 +1091,8 @@ Moving *up* the ray raises `T`, which is what pushes the drain out of reach — 
 **At `T = 11, β = 11 %` the economics is bit-for-bit the same** — `σ*/φ = 5.0231`, builder edge 1.1243×, break-even load 100 claim fees — while the drain needs **1,100 claims per block against a cap of 1,024**, so it stops depending on the difficulty controller at all. Arrival noise improves slightly (31.6 % → 30.2 %) and so does the retarget's overshoot (0.50 % → 0.45 %). The price is a 10 % larger reserve (723 → 795 LGO) and floor (144 → 158 LGO), both around 10⁻⁸ of supply and immaterial in absolute terms.
 
 **This is offered as an observation, not a recommendation.** §3.8 argues the drain is adequately prevented by the controller, and §4.8 confirms that arrival noise contributes nothing to reaching it — a burst would have to be 305 standard deviations. So nothing here says the specified set is unsafe. What it says is that the one structural gap the report flags twice (§3.8's "the margin is thin", §4.7.6's "a controller guarantee and not a structural one") appears to be closeable **for free**, by moving one unit along a direction the economics cannot see. That is worth knowing before the constants are frozen, and it is exactly the kind of thing sweeping `T` and `β` independently cannot reveal.
+
+**A caveat on the upper wall.** The subordination cap is `β ≤ rL/(1+rL)` where `L` is the share of undiverted fees reaching leaders and `r` is how junior PoW must stay. Both are **assumed** — neither appears anywhere in the specification tree — and until 2026-08-13 both were hardcoded in the simulator rather than configured. They are now in `[economics]`, because this window depends on them entirely: at `L = 0.5` the cap moves to 14.3 % and the window widens to `T ≤ 14.3`; at `L = 0.3` it tightens to 9.1 % and the window **closes altogether**, leaving no `T` that both holds the margin and clears the drain. So the finding above is real but conditional, and what it most argues for is pinning down the leader split before freezing `T` and `β`.
 
 The window is also a warning in the other direction: it is *short*. Any future change that raises `T` without raising `β`, or lowers `β` without lowering `T`, moves off the ray and costs margin directly. The two constants should be revisited together or not at all.
 

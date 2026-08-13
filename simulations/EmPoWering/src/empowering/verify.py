@@ -186,7 +186,7 @@ def run(config: str) -> int:
         q = _r(p, T=ints[0], beta_num=int(round(p.beta_den * ints[0] * p.beta / p.T)))
         ok = (abs(core.sigma_over_phi(q) - core.sigma_over_phi(p)) < 1e-12
               and q.T * q.rho_den / q.rho_num > q.max_block_txs
-              and q.beta <= core.subordination_beta_cap() + 1e-12)
+              and q.beta <= core.subordination_beta_cap(p) + 1e-12)
     check("a window exists that holds the margin and closes the drain", bool(ok),
           f"T in ({lo:.2f}, {hi:.2f}], integers {ints}")
 

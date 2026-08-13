@@ -316,7 +316,7 @@ def operating_envelope(p: Params, out: Path) -> Path:
     b = np.linspace(0.005, 0.33, 400)
     N, B = np.meshgrid(n, b)
     ratio = p.psi * B * N / p.T                       # sigma*/phi
-    cap = 0.4 / (3.0 + 0.4)                           # beta where PoW = 1/3 of the leader share
+    cap = core.subordination_beta_cap(p)              # beta where PoW = 1/3 of the leader share
 
     fig, ax = plt.subplots(figsize=(7.6, 5.0))
     ax.contourf(N, 100 * B, ratio, levels=[0, 1, 2, 1e9],
@@ -563,7 +563,7 @@ def t_beta_plane(p: Params, out: Path) -> Path:
     B = np.linspace(0.01, 0.25, 500)
     TT, BB = np.meshgrid(T, B)
     ratio = p.psi * BB * p.n_tx_ref / TT
-    cap = core.subordination_beta_cap()
+    cap = core.subordination_beta_cap(p)
     t_drain = core.drain_safe_T(p)
     lo, hi = core.iso_margin_window(p)
 

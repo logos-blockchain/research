@@ -196,7 +196,8 @@ def summary(p: Params, seeds: int = 4, epochs: int = 12,
     totals = [t for r in runs for t in r["epoch_totals"]]
     tm = sum(totals) / len(totals)
     agg["epoch_total_mean"] = tm
-    agg["epoch_total_sd"] = math.sqrt(sum((x - tm) ** 2 for x in totals) / (len(totals) - 1))
+    agg["epoch_total_sd"] = (math.sqrt(sum((x - tm) ** 2 for x in totals) / (len(totals) - 1))
+                             if len(totals) > 1 else 0.0)
     agg["epoch_rel_sd"] = agg["epoch_total_sd"] / tm
     agg["n_epochs"] = len(totals)
     agg["peak_block"] = max(r["peak_block"] for r in runs)

@@ -68,12 +68,14 @@ def sigma_over_phi_from_load(p: Params, load: float) -> float:
     return p.beta * load / p.T
 
 
-def min_fee_load(p: Params, ratio: float = 1.0) -> float:
+def min_fee_load(p: Params, ratio: float = 1.0) -> float:  # noqa: D401
     """Fee load a block must collect for ``sigma* >= ratio * phi``: ``ratio * T / beta``.
 
     At the specified set the break-even load is ``T/beta = 100`` claim fees per block --
     a statement that needs no traffic estimate and no price level.
     """
+    if p.beta <= 0:
+        return float("inf")                   # beta = 0 ships the feature off: never funds
     return ratio * p.T / p.beta
 
 
@@ -88,14 +90,19 @@ def drain_safe_T(p: Params) -> float:
     return p.max_block_txs * p.rho_num / p.rho_den
 
 
-def subordination_beta_cap(leader_share: float = 0.4, ratio: float = 1 / 3) -> float:
+def subordination_beta_cap(p: Params) -> float:
     """Largest ``beta`` keeping proof of work junior to the leader path.
 
-    Reading subordination as "PoW takes at most ``ratio`` of what leaders take", and leaders
-    taking ``leader_share`` of the fees not diverted, ``beta/(L(1-beta)) = r`` gives
-    ``beta = rL/(1+rL)`` -- about 11.8% at the values section 4.4.2 uses.
+    Reading subordination as "PoW takes at most ``subordination_ratio`` of what leaders
+    take", and leaders taking ``leader_fee_share`` of the fees not diverted,
+    ``beta/(L(1-beta)) = r`` gives ``beta = rL/(1+rL)`` -- about 11.8% at the configured
+    values.
+
+    **Both inputs are ASSUMED**, not specified anywhere in the tree, and this cap is
+    load-bearing: it is the upper wall of section 4.7.6's envelope and what makes section
+    4.11's window short. They live in the config so the sensitivity is visible.
     """
-    rl = ratio * leader_share
+    rl = p.subordination_ratio * p.leader_fee_share
     return rl / (1 + rl)
 
 
@@ -107,14 +114,22 @@ def iso_margin_window(p: Params) -> tuple[float, float]:
     the drain out of reach; it also raises ``beta``, which subordination caps. The window is
     where both hold. Empty if the ray clears no such span.
     """
+    if p.beta <= 0:
+        return float("nan"), float("nan")     # no ray: the feature is switched off
     ratio = p.T / p.beta                      # the ray through the current setting
-    return drain_safe_T(p), ratio * subordination_beta_cap()
+    return drain_safe_T(p), ratio * subordination_beta_cap(p)
 
 
-def builder_edge(p: Params, n_tx: int | None = None, tip_frac: float = 0.5) -> float:
-    """A builder's advantage from recovering the tip on its own claims."""
+def builder_edge(p: Params, n_tx: int | None = None, tip_frac: float | None = None) -> float:
+    """A builder's advantage from recovering the tip on its own claims.
+
+    ``tip_frac`` is ASSUMED and configured (``[economics] tip_fraction``); it scales the
+    whole edge, and near ``sigma*/phi = 1`` the edge has a pole, so section 4.10.1's
+    109x at ``T = 50`` is proportional to it.
+    """
+    t = p.tip_fraction if tip_frac is None else tip_frac
     r = sigma_over_phi(p, n_tx)
-    return float("inf") if r <= 1 else 1 + tip_frac / (r - 1)
+    return float("inf") if r <= 1 else 1 + t / (r - 1)
 
 
 def next_reward_difficulty(d: int, claims_in_block: int, p: Params) -> int:

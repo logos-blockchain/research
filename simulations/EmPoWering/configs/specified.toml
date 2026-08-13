@@ -90,3 +90,15 @@ inscribe_gas    = 56          # KNOWN  CHANNEL_INSCRIBE_GAS -- the cheapest Oper
 inscribe_bytes  = 130         # ASSUMED  a small signed tx; the claim's signature alone is 128 B
 sdp_declare_gas = 646         # KNOWN  SDP_DECLARE_GAS
 sdp_declare_bytes = 250       # ASSUMED
+
+[economics]
+# ASSUMED, and load-bearing -- these were hardcoded in the modules until 2026-08-13.
+# leader_fee_share sets the subordination cap that bounds beta from above (section 4.4.2,
+# 4.7.6, 4.11); subordination_ratio is how "PoW stays junior to staking" is read. Neither
+# is stated anywhere in the specification tree, so both are modelling choices, and the
+# 11.76 % cap they imply should be revisited if the leader split is ever pinned down.
+leader_fee_share      = 0.4   # ASSUMED  share of undiverted fees reaching block leaders
+subordination_ratio   = 0.333333333333  # ASSUMED  PoW <= this multiple of the leader share
+# tip_fraction sets the builder's self-dealing edge (section 4.2c): the share of a claim's
+# surplus that lands as an execution tip and so returns to a builder including its own claim.
+tip_fraction          = 0.5   # ASSUMED
