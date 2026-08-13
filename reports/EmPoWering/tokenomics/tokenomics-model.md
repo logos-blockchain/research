@@ -459,7 +459,7 @@ There is no bootstrap grace period any more. Whatever headroom is chosen is the 
 
 ## 4.3 Calibration — the constraint set `DERIVED`
 
-Two prices set every fee: `P_STR` per stored byte and `b_exec` per unit of execution gas. Both are controlled by markets that round their updates upward, which puts a hard floor of **one unit** under each (`storage-markets.md:224`, `execution-market.md:206`) — **but neither rests there.** An in-flight change to both market specifications documents that the downward step $`\lceil P \cdot 7/8 \rceil`$ has fixed points at every $`P \in \{1,\dots,7\}`$, so under sustained downward adjustment a price comes to rest at **7**, not 1. Figures below use the resting level. The unit itself is undefined tree-wide — see §5.1 — so everything is stated per unit of price, and converted only under an explicit assumption.
+Two prices set every fee: `P_STR` per stored byte and `b_exec` per unit of execution gas. Both are controlled by markets that round their updates upward, which puts a hard floor of **one unit** under each (`storage-markets.md:224`, `execution-market.md:206`) — **but neither rests there.** An in-flight change to both market specifications documents that the downward step `⌈P · 7/8⌉` has fixed points at every `P ∈ {1,…,7}`, so under sustained downward adjustment a price comes to rest at **7**, not 1. Figures below use the resting level. The unit itself is undefined tree-wide — see §5.1 — so everything is stated per unit of price, and converted only under an explicit assumption.
 
 ### What a claim actually costs `DERIVED`
 
@@ -821,9 +821,13 @@ The complete specified set, at `10³` base units per LGO: **`T = 10`, `β_PoW = 
 
 ## 4.7 Validation figures `SIMULATED`
 
+**What these are for.** A parameter set can be arithmetically correct and still behave badly. The reward could dip below what a claim costs somewhere along the way; the margin could be comfortable at the traffic we assumed and gone at half of it. Tables cannot show either, because both are questions about a *path* or about *how much room there is*. These eight pictures ask them: four trace what happens over time, three map where the set works and where it stops, and one re-reads an assumption against the right yardstick.
+
 Eight figures from `make plots`, rendered from the same `Params` the tables use, so a config edit moves them with everything else. Four trace behaviour over time; three map where the parameter set works and where it stops working; one re-reads an assumption.
 
 ### 4.7.1 The pool spends decades on its endowment
+
+**Intuition.** A bath filled at the start, with a tap running and a plug hole that drains a fixed share of whatever is in it. The starting water is vastly more than the tap delivers, so for a very long time the level is falling from where it began rather than rising to where the tap would hold it. The reward tracks the level, so it starts enormous and shrinks for decades.
 
 ![pool trajectory](figures/01_pool_trajectory.png)
 
@@ -844,19 +848,27 @@ So "decades on the endowment" is the *resting-price* case, which is the conserva
 
 ### 4.7.2 The claim share of traffic, and its ceiling
 
+**Intuition.** A claim is a transaction too, and pays a fee like any other. That makes two different questions, easily confused. *Do claims fit in a block?* — yes, easily. *Do they earn more than they cost?* — that depends on how much fee revenue there is to share out. If claims are too large a fraction of the traffic, they are mostly paying themselves, and the mechanism is running on its endowment rather than on fees.
+
 ![claim share vs traffic](figures/02_claim_share_vs_traffic.png)
 
 Assumption A10 checks the claim load against `MAX_BLOCK_TXS` and finds 1.0 %, "comfortable with room to spare". That is the right test for whether claims *fit*, and it passes. It is not the test for whether they *pay*, because the reward per claim is funded by the fees actual traffic collects, not by the fees capacity could collect.
 
 Against traffic the two quantities are one identity. With `v = T/n_tx` the claim share of a block's transactions,
 
-> **`v · (σ*/φ) = ψ·β`**
+$$
+v \;=\; \frac{T}{n_\text{tx}}
+\qquad\Longrightarrow\qquad
+\boxed{\ v \cdot \frac{\sigma^\ast}{\varphi} \;=\; \psi\,\beta_\text{PoW}\ }
+$$
 
 so at break-even the claim share is exactly `ψβ`, and that is the **ceiling**: if claims are more than `ψβ = 8.37 %` of transactions, a claim earns less than the fee it pays. It depends on `β` and nothing else — `T` cancels, and so does the traffic level. At the specified set the network operates at `v = 1.67 %`, a **5.02× margin** below the ceiling, and the break-even traffic is 119 tx/block.
 
 Both numbers are gated in `make verify`.
 
 ### 4.7.3 What `β_PoW` actually buys
+
+**Intuition.** `β` is the slice of fees the pool takes. Raising it does *not* mean more people mine: the difficulty controller holds the number of winners at `T` whatever happens. It means each winner is paid more — which is the same thing as saying the network can be quieter before mining stops being worth doing.
 
 ![beta relation](figures/03_beta_relation.png)
 
@@ -866,6 +878,8 @@ The sweep in §4.4.2 is worth re-reading against this. **At the proposal's origi
 
 ### 4.7.4 The endowment against an adoption ramp
 
+**Intuition.** The endowment exists to pay miners before there is enough fee income to pay them. So the test is simple: start with little traffic, grow it, and check the reward never falls below the claim's own fee along the way. The specified endowment turns out to be so much larger than that test needs that the test never binds.
+
 ![endowment ramp](figures/04_endowment_ramp.png)
 
 Each ramp is plotted at *its own* minimum endowment, where each just grazes the floor — which is what makes the test legible. At the specified `R₀` all four curves lie on top of one another, because the endowment is **209,043× the 5-year minimum** and the ramp shape disappears beneath it.
@@ -874,11 +888,15 @@ That ratio is itself a finding: `R₀ = 0.5 %` of supply is not sized by the σ 
 
 ### 4.7.5 The reward controller is asymmetric
 
+**Intuition.** If the opening puzzle is too easy, lots of people win immediately and the controller tightens fast, because every block tells it something. If it is too hard, almost nobody wins — and a block with no winners is nearly silent. Learning from silence is slow, so recovering from "too hard" takes two to three times as long as recovering from "too easy".
+
 ![reward controller](figures/05_reward_controller.png)
 
 A mis-set genesis target recovers in about 20 blocks when it is too permissive and in 38 to 60 when it is too hard, because a too-hard target produces blocks with **zero** claims, and a block with no claims carries no information beyond the fixed `P/F` loosening step. §4.6's asymmetry — "too permissive over-pays, bounded; too hard costs only time" — is right in direction, and the time is longer than the permissive side by a factor of two to three.
 
 ### 4.7.6 Where the parameter set works
+
+**Intuition.** Two things can go wrong, from opposite directions. Take too small a slice of fees and mining does not cover its own costs. Take too large a slice and mining stops being the junior earner alongside staking, which is not what this mechanism is for. A workable setting lives in the corridor between, and it is worth seeing how wide that corridor is.
 
 ![operating envelope](figures/06_operating_envelope.png)
 
@@ -893,6 +911,8 @@ Draining the pool inside one epoch needs `T/ρ` claims in every block for a whol
 The design target — about a minute of one core per message, of order a thousand messages a day — is met at `p/2¹⁹` **on the one-core basis the specification adopts**. On the whole-board basis the same threshold costs 12.3 s and falls out of the band; matching the target there would need `p/2²¹`. §10.1's open question "one core or the whole board?" is exactly those two exponents, and the figure is the argument for settling it explicitly rather than by default.
 
 ## 4.8 Sampled arrivals — A2, run `SIMULATED`
+
+**Intuition.** Winners arrive at random, like raindrops: a block that averages ten might get six, or fifteen. The model so far has used the average everywhere, which raises a fair objection — does the randomness matter? Two places it might. It could make the pool's income lumpy. And it could, on a bad day, land so many claims at once that the pool empties early. The way to find out is to stop averaging and actually roll the dice, with the difficulty controller reacting as it would in production.
 
 A2 replaces the arrival process with its mean and says so plainly: "the simulator uses the mean, not samples, so it understates variance." It also calls the `1/√T` spread — **32 % at `T = 10`** — "the whole quantitative case for a larger `T`". That left the case argued but never tested, against a margin that is live: §3.8's drain guard sits 2.4 % under the block cap.
 
@@ -918,7 +938,9 @@ A2 replaces the arrival process with its mean and says so plainly: "the simulato
 
 **One thing the mean-field model cannot see: the retarget overshoots its target.** The equilibrium claim rate is **10.05, not 10**. `T` is the fixed point of the retarget applied to the *mean*, but the map divides by the observed count and is therefore convex, so under Poisson arrivals the rate drifts up until log-stationarity holds. Expanding to second order,
 
-> **`λ* = T + (P − F)/(2P)`**
+$$
+\boxed{\ \lambda^\ast \;=\; T + \frac{P - F}{2P}\ }
+$$
 
 an **absolute** overshoot of 0.05 claims per block, so the relative one goes as `1/T`: **+0.50 % at `T = 10`, +0.10 % at `T = 50`**. Confirmed against simulation across `T ∈ {5, 10, 25, 50}` and `(P,F) ∈ {(10,9), (10,8), (100,99)}`.
 
@@ -926,11 +948,17 @@ The consequence is small and one-signed: the pool distributes about half a perce
 
 ## 4.9 The working fee range — one axis instead of two `DERIVED`
 
+**Intuition.** We have been describing traffic two ways at once: how many transactions a block carries, and how expensive each one is. But the pool takes a cut of the *money*, not of the count — and a claim's own cost rises with prices too. So doubling every price changes nothing real: the pool earns twice as much and the claim costs twice as much. The only thing that actually matters is **how much a block collects compared with what one claim costs**. That is one number instead of two, and it turns the question "is there enough traffic?" into a single threshold that needs no forecast of either prices or volumes.
+
 This document carries traffic as a transaction count (`n_tx`, `UNKNOWN`, an adoption question) and the fee level as a separate unknown (A9, §5.1). **Neither is identified on its own, and the model never needed both.**
 
 What the refill takes is a share of a block's fee *revenue*. What decides whether mining pays is that revenue against the claim's own fee — which moves with the price level too. The two scalings cancel, leaving one dimensionless quantity: a block's revenue counted in claim fees.
 
-> **`Φ̂ = Φ_b / φ`**, and **`σ*/φ = β·Φ̂ / T`**
+$$
+\hat\Phi \;=\; \frac{\Phi_b}{\varphi} \;=\; \psi\, n_\text{tx}
+\qquad\Longrightarrow\qquad
+\boxed{\ \frac{\sigma^\ast}{\varphi} \;=\; \frac{\beta_\text{PoW}\,\hat\Phi}{T}\ }
+$$
 
 Sweeping `Φ̂` says everything the `(n_tx, price)` plane says, on one axis, without committing to a price level. And the working range reduces to a single number:
 
@@ -957,6 +985,8 @@ Two things this axis does better than the count.
 **It is exact where the count form is not.** Pricing every transaction as an ordinary transfer understates the refill by 0.32 % (§4.7.2), because `T` of them are claims paying more. Revenue per block makes no assumption about composition, so that correction disappears rather than being carried and apologised for.
 
 ### 4.9.1 What a load looks like as transactions
+
+**Intuition.** The same amount of money in a block could be a handful of expensive transactions or a great many cheap ones. The natural worry is that a block full of the cheapest possible traffic would not raise enough. It turns out not to matter much: what moves the margin is how *full* blocks are, not what is in them.
 
 A fee load is a revenue figure, so it maps to many mixes. A few, to make it concrete — not an inventory. Gas is the specification's (`analysis-gas-cost-determination.md`); the byte counts for the last two shapes are **assumed and illustrative**, since the model does not otherwise carry them.
 
