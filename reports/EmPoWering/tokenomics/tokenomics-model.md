@@ -4,7 +4,52 @@
 
 > **Location.** This report lives in `reports/EmPoWering/tokenomics/`; the simulations backing it live in `simulations/EmPoWering/` and regenerate every current number via `make all` (and `make verify`, `make check LIPS=…`). The report was authored alongside logos-lips PR #400 and moved here when that work closed.
 
-## 0.0 Addendum — the nonce-based PoW branch, circuit v0.5.6 (2026-08-12, latest)
+## 0.3 Addendum — three conclusions the Units decision inverted (2026-08-13, latest)
+
+§0.1 settled the denomination at 1 LOGOS = 10⁹ lepta. That moved `φ`, and with it the pool's fixed point `R* = β·N_b·n_tx·φ̄/ρ`, down by six orders of magnitude — while `R₀` stayed a fraction of *supply* and did not move at all. §0.1 records the immediate consequence in one line ("at floor prices `R₀` vastly exceeds `R*` and the reward decays from a generous opening"). **This addendum works out what that does to three sections whose conclusions were computed when `R₀` sat at the fixed point.** All three now say the opposite of what the model gives. The mechanism is unchanged; only the parameter set moved beneath them.
+
+`R₀/R* = 69,153` at the resting price, against the `R₀ ≈ R*` §3.7 assumes.
+
+**§3.7's worked example is superseded.** Its conclusion — "no decay, no stranded residual worth remarking on, and a per-claim reward the same in year ten as in week one" — held when the endowment was sized at the fixed point. It is not:
+
+| epoch | years | σₑ (lepta) | × fee |
+| --- | --- | --- | --- |
+| 0 | 0.00 | 2,314,814,815 | 347,361× |
+| 100 | 2.05 | 847,318,308 | 127,149× |
+| 299 | 6.14 | 114,699,077 | 17,212× |
+| 973 | 19.99 | 164,559 | 24.7× |
+| 1460 | 30.00 | 34,456 | 5.17× |
+| ∞ | — | 33,474 | **5.02×** |
+
+The reward opens at 347,361× the fee and decays to 5.02×, reaching within a factor of two of the fixed point after about 23 years (§4.7.1, which also shows the descent is a property of the *price level* — 2.3 years at the deflation-threshold price — rather than of the mechanism). §3.7's structural results are untouched and still hold: `T` and `N_b` vanish from the pool dynamics, `σ*` contains no ρ, and ρ sets the speed and never the destination.
+
+**§4.2's builder-edge shape is inverted.** §4.2(c) reasons that the endowment "sits below" the fixed point, so the reward climbs and the edge *falls* — 1.349× at launch to 1.124× at steady state — concluding that "the worst moment is therefore the first epoch" and that this "improves rather than degrades as the network matures". With `R₀` above the fixed point the reward falls and the edge **rises**:
+
+| | σₑ/φ | builder edge |
+| --- | --- | --- |
+| launch | 347,361× | **1.0000×** |
+| 10 years | 2,632× | 1.0002× |
+| 20 years | 24.7× | 1.0211× |
+| 30 years | 5.2× | 1.1199× |
+| steady state | 5.02× | **1.1243×** |
+
+**The worst moment is the steady state, not the first epoch**, and the shape is the slow-onset one §4.2 credits fee funding with removing. What does *not* change is the magnitude: the edge is bounded by 1.124× on either reading, because that bound is set by `σ*/φ`, which the denomination decision left alone. So this is a correction to when the advantage peaks and to §4.2's comparative argument, not to how large it gets. §4.2(a) and (b) are unaffected — the reward pays a key the builder does not hold, and at 1 % of block capacity censorship still buys nothing.
+
+**§4.1's security figures move down by a factor of two to five.** The pool distributes **0.48 %** of supply over 6.1 years, not the 2.59 % §4.1 states, and every cell of its table moves with it:
+
+| `D₀` (% of supply) | h=0.10 | h=0.33 | h=0.50 |
+| --- | --- | --- | --- |
+| **0.5 %** | 4.9–6.2 % | 16.1–19.2 % | 24.4–27.7 % |
+| **5 %** | 0.9 % | 2.9–3.0 % | 4.3–4.4 % |
+| **30 %** (the staking target) | 0.2 % | 0.5 % | 0.8 % |
+
+(ranges span honest miners staking 100 % vs 50 % of winnings)
+
+The direction is favourable, and one specific warning lapses with it: §4.1 says that at `D₀ = 0.5 %` a one-third attacker "exceeds the safety threshold" within six years if honest miners stake only half their winnings. At 19.2 % it does not, and no cell in the table now crosses one third at that horizon. **§4.1's qualitative argument is otherwise unaffected**: the refill never stops, so these remain six-year figures rather than lifetime ones, and the asymptote `h/(h+(1−h)s)` contains no parameter that moved — it is still 33 % at `h = 0.33` with full honest staking, and still the artefact of fixed `D₀` that §4.1 correctly names.
+
+**Why this was not caught by the gates.** `make check` ties the config to the specification and `make verify` ties the model to its closed forms; nothing tied this document's prose to either. The three sections above were arithmetically correct for the parameter set they were run against and simply went stale in place. A `report-numbers` gate — regenerating every quoted figure from the model, as the Blend report does — is the fix, and is not yet built.
+
+## 0.0 Addendum — the nonce-based PoW branch, circuit v0.5.6 (2026-08-12)
 
 Implementation PR #3305 replaces the Blend puzzle's secret key and key derivation with a single private **`pow_nonce`**, and gives the ticket its own domain separation tag: `ticket = zkhash(BLEND_POW_V1, pol_epoch_nonce, pow_nonce)`. The specifications now match circuit v0.5.6. Consequences for this report:
 
@@ -296,6 +341,9 @@ Substituting `x = H·Δ_b·d/p` gives `x_{n+1} = T·P·x/((P−F)x + F·T)`, ind
 
 ### 3.7 Worked example
 
+> **Superseded in its conclusion by §0.3.** The endowment is no longer at the pool's fixed point, so the reward decays rather than staying flat. The structural results below still hold.
+
+
 ρ=1 %, T=10, β_PoW=10 %, R₀=1.03×10⁸ LGO (1.03 % of supply), 600 tx/block, φ=0.952 LGO at 10³ base units per LGO — the specified parameter set, with `R₀` placed at the pool's fixed point.
 
 **Refill** `0.10 × 21,600 × 600 × 0.837 × 0.952 = 1,032,684` LGO/epoch — note it contains no `T`. **Steady state** R* = 1.033×10⁸ LGO, likewise independent of `T`, so the endowment is sized almost exactly at the fixed point and σₑ is flat rather than decaying:
@@ -337,9 +385,12 @@ which is `1/ρ` times the epoch's target claim count — **21,600,000 claims aga
 
 ## 4. Simulation results
 
-Run against `empowering_sim.py`, whose four self-checks pass (tracks §3.1 to 5.4×10⁻⁴; target is an exact fixed point; pool never negative; steady state matches).
+Run against the `empowering` package (`make all`), whose self-checks pass: **20 gates** in `make verify` — the trajectory tracks §3.1's closed form to 3.5×10⁻¹¹, the target is an exact controller fixed point, the pool never goes negative, the claim-share identity of §4.7.2 holds across traffic and β — plus **8 exact-integer confirmations** in `make lepta`, which the float engine structurally cannot provide.
 
 ### 4.1 Bootstrap security — item 3 ✅ `SIMULATED`
+
+> **Figures superseded by §0.3.** The distributed share is 0.48 % of supply, not 2.59 %, and every cell of the table below moves down by a factor of two to five. The qualitative argument and the asymptote are unaffected.
+
 
 An adversary with hashrate share `h` captures `h` of claims (A8) and stakes them; honest miners stake a fraction. Mined coins age one epoch before counting (`cryptarchia-v1-protocol.md:157`). `D₀` is the honest stake already securing the chain.
 
@@ -366,6 +417,9 @@ where `s` is the fraction of winnings honest miners stake — **33 % at h=0.33 w
 The near-term condition is unchanged: at `D₀ = 0.5 %` a one-third attacker **exceeds the safety threshold** within six years if honest miners stake only half their winnings; at the 30 % staking target the same attacker reaches 2.7 %. §4.4.2 shows this bound does not select `β_PoW` — the share sets how fast the limit is approached, not the limit.
 
 ### 4.2 Builder self-dealing — item 7 ✅ `SIMULATED`
+
+> **Part (c) superseded by §0.3.** The edge rises from 1.0000× to 1.1243× rather than falling; the worst moment is the steady state, not the first epoch. The 1.124× bound and parts (a) and (b) are unchanged.
+
 
 Three candidate advantages:
 
@@ -407,7 +461,7 @@ Two prices set every fee: `P_STR` per stored byte and `b_exec` per unit of execu
 
 ### What a claim actually costs `DERIVED`
 
-Nothing in the specification tree states this, so `sim_fee.py` builds it from the payload definitions, the bincode wire format (`network-wire-format.md:82`) and the gas table (`analysis-gas-cost-determination.md:69-79`).
+Nothing in the specification tree states this, so `make fee` builds it from the payload definitions, the bincode wire format (`network-wire-format.md:82`) and the gas table (`analysis-gas-cost-determination.md:69-79`).
 
 A claim transaction is **not** a bare `CLAIM_POW_REWARD`. A bare claim mints σₑ into the transaction balance, pays the fee out of it, and — by the Mantle rule that any leftover balance becomes an execution tip — hands the entire remainder to the block leader. To keep the reward, a miner must attach a `TRANSFER` that spends the reward note into one of their own. The gas analysis assumes exactly this composition.
 
@@ -439,7 +493,7 @@ $$
 
 **Both prices cancel**, and with them the denomination: the condition is a transaction count and nothing else. The distribution rate ρ cancels too — it governs how fast the pool converges, never where it converges to (§3.1).
 
-At the specified `T = 10` (`sim_endowment.py`, §4):
+At the specified `T = 10` (`make rewards`, §4):
 
 | `β_PoW` | `n_tx` for `σ* = φ` | `n_tx` for `σ* = 2φ` |
 | --- | --- | --- |
@@ -498,7 +552,7 @@ $$
 
 ### Sized against an adoption ramp `SIMULATED`
 
-The single-point view answers "what opens at *m* fees". The question the endowment exists to answer is different: **how large must the pool be so that claiming stays worthwhile for the whole time it takes the network to grow into self-funding?** `sim_endowment.py` ramps traffic logistically from 20 to 1024 transactions per block over a stated horizon and binary-searches the smallest `R₀` keeping `σₑ ≥ φ` throughout, at `T = 10`, `ρ = 1 %` and `10³` base units per LGO.
+The single-point view answers "what opens at *m* fees". The question the endowment exists to answer is different: **how large must the pool be so that claiming stays worthwhile for the whole time it takes the network to grow into self-funding?** `make rewards` ramps traffic logistically from 20 to 1024 transactions per block over a stated horizon and binary-searches the smallest `R₀` keeping `σₑ ≥ φ` throughout, at `T = 10`, `ρ = 1 %` and `10³` base units per LGO.
 
 | `β_PoW` | 1-year ramp | 2-year | 5-year | 10-year |
 | --- | --- | --- | --- | --- |
@@ -520,7 +574,7 @@ Three things fall out.
 
 ### 4.4.1 Choosing the target claim rate `DERIVED` + `SIMULATED`
 
-`T` was 50 in an earlier revision of the specification, chosen as roughly one twentieth of a full block on the reasoning that a larger count is a less noisy count. That reasoning is sound but it prices only one side. `sim_target_rate.py` prices the other, and the specification now sets `T = 10`.
+`T` was 50 in an earlier revision of the specification, chosen as roughly one twentieth of a full block on the reasoning that a larger count is a less noisy count. That reasoning is sound but it prices only one side. `make sweeps` prices the other, and the specification now sets `T = 10`.
 
 **The identity everything follows from.** §3.1 showed that an epoch running at the target rate distributes the fraction ρ of the pool *whatever `T` is* — `T` and `N_b` cancel out of the pool dynamics. So `T` does not decide how much is distributed. It decides how many parts it is divided into, and therefore how much of it survives being divided, because **each claim pays a fee out of its own reward**. Writing the epoch's refill as `F = β·N_b·n_tx·ψ·φ`, the amount actually delivered net of the claims' own fees is
 
@@ -562,7 +616,7 @@ Cutting β to 4 % shrinks the refill fivefold, and since the fee overhead stays 
 
 ### 4.4.2 Choosing the share `DERIVED` + `SIMULATED`
 
-`β_PoW` was the last free parameter. `sim_beta.py` fixes it at **a tenth**, and the reasoning turns on a fact about incidence that this model had wrong until now.
+`β_PoW` was the last free parameter. `make sweeps` fixes it at **a tenth**, and the reasoning turns on a fact about incidence that this model had wrong until now.
 
 #### Who actually pays — and it is not the burn, at least not forever
 
@@ -631,7 +685,7 @@ Going to 20 % would halve the builder edge and double the onboarding rate, at th
 
 ### 4.4.3 Choosing the distribution rate and the genesis seed `DERIVED` + `SIMULATED`
 
-The last two, from `sim_rho_genesis.py`. **`ρ = 1/100` and `R₀ = 0.5 %` of the launch supply.**
+The last two, from `make sweeps`. **`ρ = 1/100` and `R₀ = 0.5 %` of the launch supply.**
 
 #### ρ sets the reserve, not the reward
 
@@ -835,11 +889,11 @@ The design target — about a minute of one core per message, of order a thousan
 
 ## 5. Simulator
 
-`empowering_sim.py` (module), plus `sim_fee.py` (the claim's fee, §4.3), `sim_endowment.py` (§4.4), `sim_claim_rate.py` (§4.3's second table), `sim_item3_bootstrap.py` (§4.1) and `sim_item7_selfdealing.py` (§4.2). Exact integer arithmetic where the protocol uses it; floats only for exogenous economics. Mirrors the merged code, not the proposal.
+The `empowering` package in `simulations/EmPoWering/`, one module per concern and one `make` target per report section: `make fee` (the claim's fee, §4.3), `make emission` (§3.4), `make rewards` (§4.3–§4.4), `make blend` (§4.5), `make exhaustion` (§3.8, §4.6), `make security` (§4.1), `make volume` (§4.7.2), `make sweeps` (§4.4.1–§4.4.3) and `make plots` (§4.7). Every number lives in `configs/specified.toml`, annotated KNOWN / DERIVED / MEASURED / ASSUMED with citations into the specification tree; nothing is hardcoded in the modules, so a specification change is a one-line edit. `make lepta` re-runs the mechanism in exact integer arithmetic at lepton granularity; `make check LIPS=…` compares the config against the specification tree, constants and prose margins alike. Mirrors the merged code, not the proposal.
 
 ### 5.1 The denomination, and what it is not `OPEN`
 
-Still undecided, and deliberately so: deferred to a dedicated PR that has not been opened (§4.4.4). `uint64` caps it at `1.84×10⁹` against a `10¹⁰` LGO supply. What EmPoWering needs from it is in §4.4.4 and in the specification: the bound above, and that one LGO cannot itself be the smallest unit.
+**Settled by §0.1** at 1 LOGOS = 10⁹ lepta; this section records the reasoning from when it was open. `uint64` caps it at `1.84×10¹⁹` lepta against a `10¹⁰` LGO supply, which is the bound the settled value respects. What EmPoWering needs from it is in §4.4.4 and in the specification: the bound above, and that one LGO cannot itself be the smallest unit.
 
 **An earlier revision of this section, and of §4.4, called the undefined denomination "the single quantity standing between the model and a numeric recommendation". That was wrong**, and §4.4.4 sets out why. The denomination fixes representability and granularity; what a transaction *costs* is the price level the two fee markets are initialised at and then discover. Every figure this document states in LGO is unaffected by the denomination. The quantity that was actually missing is the **launch fee level**, which remains a genesis governance decision — now expressed as a target it must hit rather than an unknown blocking everything (§4.4.4).
 
@@ -861,7 +915,7 @@ Re-run 2026-08-11 under fee-inflow funding, at the §3.7 parameter set.
 
 | Axis | Values | Why |
 | --- | --- | --- |
-| base units per LGO | 1, 10³, 10⁶, 10⁹ | **§4.4 shows this dominates everything absolute** |
+| ~~base units per LGO~~ | ~~1, 10³, 10⁶, 10⁹~~ | settled at 10⁹ by §0.1; no longer an axis |
 | `β_PoW` | 5 %, 10 %, 20 %, 33 %, 50 % | sets σ*/φ, hence self-funding, the endowment and the builder edge |
 | `n_tx` ramp | 1, 2, 5, 10-year horizons | the endowment must cover the ramp, superlinearly (§4.4) |
 | `R₀`/supply | 1 %, 2 %, 5 %, 10 % | generosity vs **§4.1's security bound** |
@@ -916,7 +970,7 @@ Not used in §§1–8. Held above the line until the base is approved.
 
 ## 4.5 The Blend admission threshold `DERIVED` + `OPEN`
 
-The four constants of the Blend difficulty controller, from `sim_blend_difficulty.py`. This governs admission to the privacy layer rather than minting, so nothing here touches §§3–4.4; it is the other half of what EmPoWering does.
+The four constants of the Blend difficulty controller, from `make blend`. This governs admission to the privacy layer rather than minting, so nothing here touches §§3–4.4; it is the other half of what EmPoWering does.
 
 $$
 \text{target} \;=\; \frac{\texttt{BLEND\_DIFFICULTY\_BASE}}{\text{load}^{\alpha}},
