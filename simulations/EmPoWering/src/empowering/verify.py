@@ -113,6 +113,34 @@ def run(config: str) -> int:
     check("refill approximation is conservative and under 1%", 0 < under < 0.01,
           f"understated by {under:.2%}")
 
+    # 17-20. Sampled arrivals (section 4.8): the assumption A2 replaces with its mean.
+    from . import sampled as _s
+    a = _s.summary(p, seeds=2, epochs=2)
+
+    check("sampled per-block spread matches the AR(1) closed form",
+          abs(a["rel_sd"] - _s.predicted_relative_sd(p)) < 0.01,
+          f"measured {a['rel_sd']:.1%} vs predicted {_s.predicted_relative_sd(p):.1%}")
+
+    # The retarget overshoots T by (P-F)/(2P) under Poisson arrivals -- Jensen on a convex
+    # map, one-signed, and invisible to the mean-field model.
+    check("retarget overshoots T by (P-F)/(2P)",
+          abs((a["mean_per_block"] - p.T) - _s.predicted_rate_bias(p)) < 0.02,
+          f"measured +{a['mean_per_block'] - p.T:.4f} vs predicted +{_s.predicted_rate_bias(p):.4f}")
+
+    # The epoch total is far tighter than an uncorrelated Poisson sum, because the
+    # controller corrects rather than accumulates. This is what justifies section 3.1.
+    naive = 1 / (p.T * p.N_b) ** 0.5
+    check("epoch total is much tighter than uncorrelated Poisson",
+          a["epoch_rel_sd"] < naive / 10,
+          f"{a['epoch_rel_sd']:.4%} vs naive {naive:.4%}")
+
+    # Poisson bursts come nowhere near the within-epoch drain: it is a controller
+    # guarantee, not a probabilistic one.
+    check("Poisson arrivals never approach the drain requirement",
+          a["peak_sd_from_drain"] > 50 and a["guard_blocks"] == 0,
+          f"busiest block {a['peak_block']}, drain needs {p.T * p.rho_den // p.rho_num},"
+          f" {a['peak_sd_from_drain']:,.0f} sd away")
+
     print(f"\n{len(failures)} failure(s)" if failures else "\nall pass")
     return 1 if failures else 0
 

@@ -21,6 +21,7 @@ a banner without removing the stale numbers under it is itself a failure.
 from __future__ import annotations
 
 import argparse
+import math
 import re
 import sys
 from dataclasses import dataclass
@@ -153,6 +154,24 @@ def build(p: Params) -> list[Claim]:
         Claim("0.3", r"the reserve is (" + NUM + r") LGO", r_star, 5e-3),
         Claim("0.3", r"and the floor (" + NUM + r") LGO", r_min, 5e-3),
 
+        # --- section 4.8: sampled arrivals ---
+        Claim("4.8", r"\| claims per block, mean \| \*\*(" + NUM + r")\*\*", _sampled_mean(p), 2e-3),
+        Claim("4.8", r"\| claims per block, mean \| \*\*[\d.]+\*\* \| (" + NUM + r") \|",
+              p.T + (p.P_ema - p.F_ema) / (2 * p.P_ema), 1e-4),
+        Claim("4.8", r"\| relative spread \| \*\*(" + NUM + r") ?%\*\*",
+              100 * _sampled_rel(p), 2e-2),
+        Claim("4.8", r"\| relative spread \| \*\*[\d.]+ ?%\*\* \| (" + NUM + r") ?%",
+              100 * _pred_rel(p), 5e-3),
+        Claim("4.8", r"bare Poisson, what A2 quotes \| \| (" + NUM + r") ?%",
+              100 / math.sqrt(p.T), 5e-3),
+        Claim("4.8", r"controller amplification \| \*\*[\d.]+×\*\* \| (" + NUM + r")×",
+              _pred_amp(p), 5e-3),
+        Claim("4.8", r"if arrivals were uncorrelated \| \| (" + NUM + r") ?%",
+              100 / math.sqrt(p.T * p.N_b), 5e-3),
+        Claim("4.8", r"drain needs (" + NUM + r") \|", p.T * p.rho_den / p.rho_num, 0),
+        Claim("4.8", r"\*\*\+(" + NUM + r") ?% at `T = 10`",
+              100 * (p.P_ema - p.F_ema) / (2 * p.P_ema * p.T), 1e-2),
+
         # --- blend admission (section 0.0 / 4.5) ---
         Claim("0.0", r"~50 s and ~(" + NUM + r") messages/day per core",
               86400 / blend_secs, 2e-2),
@@ -165,6 +184,29 @@ def build(p: Params) -> list[Claim]:
         Claim("4.7.1", r"`R\*` \((" + NUM + r")\) sits above `R_min`", r_star, 5e-3),
         Claim("4.7.1", r"sits above `R_min` \((" + NUM + r")\)", r_min, 5e-3),
     ]
+
+
+def _sampled(p: Params):
+    from . import sampled as smp
+    return smp.summary(p, seeds=4, epochs=12)
+
+
+def _sampled_mean(p: Params) -> float:
+    return _sampled(p)["mean_per_block"]
+
+
+def _sampled_rel(p: Params) -> float:
+    return _sampled(p)["rel_sd"]
+
+
+def _pred_rel(p: Params) -> float:
+    from . import sampled as smp
+    return smp.predicted_relative_sd(p)
+
+
+def _pred_amp(p: Params) -> float:
+    from . import sampled as smp
+    return smp.predicted_amplification(p)
 
 
 def _distributed_pct(p: Params) -> float:

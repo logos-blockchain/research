@@ -262,7 +262,7 @@ Transcribed from merged code. All `KNOWN`.
 
 **A1 — Ticket outputs are evenly spread.** `ASSUMED` The hash behaves as a fair lottery. Reasonable: the protocol already relies on this for its leader lottery. **Risk: low** — bias would be absorbed by the difficulty controller.
 
-**A2 — Wins arrive randomly and independently (Poisson).** `ASSUMED` Spread around the average is its square root, so relative noise is `1/√T`: **32 % at the specified `T = 10`**, against 14 % at `T = 50`. This is the whole quantitative case for a larger `T`, and §4.4.1 prices what that case costs. **The simulator uses the mean, not samples, so it understates variance.** **Risk: medium.**
+**A2 — Wins arrive randomly and independently (Poisson).** `ASSUMED` Spread around the average is its square root, so relative noise is `1/√T`: **32 % at the specified `T = 10`**, against 14 % at `T = 50`. This is the whole quantitative case for a larger `T`, and §4.4.1 prices what that case costs. **The simulator uses the mean, not samples**, which is why §4.8 runs the arrivals: sampled, the per-block spread is 32.3 % as this assumption says, it is corrected rather than merely averaged away before it reaches the pool, and it never approaches §3.8's drain margin. Sampling also exposes one thing the mean hides — the retarget settles at `T + (P−F)/(2P)`, half a percent above target at `T = 10`. **Risk: low, and now measured.**
 
 **A3 — Competition drives the marginal miner's profit to zero.** `ASSUMED` If mining pays, more people mine; difficulty rises; profit erodes. The standard model for permissionless mining. **It fails during bootstrap** — when rewards are large and few people have heard of the scheme, profits are real. **Risk: high, in a known direction:** slower entry means lower hashrate, real early profits, and *worse* attacker numbers than modelled.
 
@@ -891,6 +891,38 @@ Draining the pool inside one epoch needs `T/ρ` claims in every block for a whol
 ![blend envelope](figures/08_blend_envelope.png)
 
 The design target — about a minute of one core per message, of order a thousand messages a day — is met at `p/2¹⁹` **on the one-core basis the specification adopts**. On the whole-board basis the same threshold costs 12.3 s and falls out of the band; matching the target there would need `p/2²¹`. §10.1's open question "one core or the whole board?" is exactly those two exponents, and the figure is the argument for settling it explicitly rather than by default.
+
+## 4.8 Sampled arrivals — A2, run `SIMULATED`
+
+A2 replaces the arrival process with its mean and says so plainly: "the simulator uses the mean, not samples, so it understates variance." It also calls the `1/√T` spread — **32 % at `T = 10`** — "the whole quantitative case for a larger `T`". That left the case argued but never tested, against a margin that is live: §3.8's drain guard sits 2.4 % under the block cap.
+
+`make sampled` runs the mechanism block by block with Poisson arrivals and the **real memoryless retarget in the loop**, so the controller reacts to noise as it would in production. 1,036,800 blocks, four seeds × twelve epochs.
+
+![sampled arrivals](figures/09_sampled_arrivals.png)
+
+| | measured | predicted | |
+| --- | --- | --- | --- |
+| claims per block, mean | **10.0525** | 10.0500 | `T + (P−F)/(2P)` |
+| relative spread | **32.3 %** | 32.4 % | `√(2P/((P+F)T))` |
+| — bare Poisson, what A2 quotes | | 31.6 % | `1/√T` |
+| controller amplification | **1.023×** | 1.026× | `√(2P/(P+F))` |
+| epoch total, relative spread | **0.0070 %** | | over 48 epochs |
+| — if arrivals were uncorrelated | | 0.2152 % | `1/√(T·N_b)` |
+| busiest block in 1.04 M | **31** | | drain needs 1,000 |
+
+**A2's number is right, and it does not reach the pool.** The per-block spread is 32.3 % against the 31.6 % A2 quotes; the controller widens it by 2.3 %, which is the AR(1) the retarget introduces on top of the arrival noise and is negligible.
+
+**What stops it reaching the pool is not averaging, it is correction.** The retarget is an *integrator* on the cumulative claim count: a block that runs hot is answered by the blocks after it. Substituting the AR(1) into the epoch total, the arrival noise and the controller's response to it cancel term by term, leaving a spread that is **independent of epoch length**. Measured, an epoch's total lands within **0.0070 %** of its mean — **31× tighter than an uncorrelated Poisson sum of the same blocks**. So §3.1's mean-field pool model is on firmer ground than A2's caveat implies: the noise is not averaged away over 21,600 blocks, it is actively removed.
+
+**The drain margin is not a sampling question.** The busiest block in 1.04 million was 31 claims, against the 1,000 per block the within-epoch drain needs, sustained for 7.5 days — **305 standard deviations away**. The pool guard never bound once. §3.8 is right that what keeps the drain out of reach is the difficulty controller; this confirms that chance contributes nothing either way, which is what a 2.4 % static margin needed checking for.
+
+**One thing the mean-field model cannot see: the retarget overshoots its target.** The equilibrium claim rate is **10.05, not 10**. `T` is the fixed point of the retarget applied to the *mean*, but the map divides by the observed count and is therefore convex, so under Poisson arrivals the rate drifts up until log-stationarity holds. Expanding to second order,
+
+> **`λ* = T + (P − F)/(2P)`**
+
+an **absolute** overshoot of 0.05 claims per block, so the relative one goes as `1/T`: **+0.50 % at `T = 10`, +0.10 % at `T = 50`**. Confirmed against simulation across `T ∈ {5, 10, 25, 50}` and `(P,F) ∈ {(10,9), (10,8), (100,99)}`.
+
+The consequence is small and one-signed: the pool distributes about half a percent more than §3.1 says, and every figure derived from the mean-field rate is high by that much at `T = 10`. It is well inside the tolerances this document quotes. But it belongs on the ledger with the other costs of a small `T` — the per-block variance A2 names, the builder edge of §4.2, and the drain margin of §3.8 — because like them it is a `1/T` effect, and unlike them it was invisible until the arrivals were sampled.
 
 ## 5. Simulator
 

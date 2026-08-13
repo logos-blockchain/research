@@ -291,6 +291,12 @@ def sweep_rho(p: Params) -> dict:
     return out
 
 
+def sampled(p: Params) -> dict:
+    """Section 4.8: A2's Poisson arrivals, run rather than replaced by their mean."""
+    from .sampled import report as _report
+    return _report(p)
+
+
 ALL = {"fee": fee, "emission": emission, "rewards": rewards,
-       "blend": blend, "exhaustion": exhaustion, "security": security, "volume": volume,
+       "blend": blend, "exhaustion": exhaustion, "security": security, "volume": volume, "sampled": sampled,
        "sweep-target": sweep_target, "sweep-share": sweep_share, "sweep-rho": sweep_rho}

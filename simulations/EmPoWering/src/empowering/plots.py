@@ -424,5 +424,52 @@ def blend_envelope(p: Params, out: Path) -> Path:
 
 ALL.update({"envelope": operating_envelope, "drain": drain_margin, "blendmap": blend_envelope})
 
+
+def sampled_arrivals(p: Params, out: Path) -> Path:
+    """A2's Poisson arrivals, run: the per-block spread, and what survives to the epoch.
+
+    Two panels because two scales tell opposite stories. Per block the spread is the 32 %
+    A2 names. Per epoch the controller has corrected it, and what is left is three orders
+    of magnitude smaller than an uncorrelated Poisson sum would give.
+    """
+    import matplotlib.pyplot as plt
+
+    from . import sampled as smp
+    _style()
+
+    runs = [smp.simulate(p, 3_000 + s, 12) for s in range(4)]
+    per_block = [c for r in runs for c in r["per_block"]] if "per_block" in runs[0] else None
+    totals = [t for r in runs for t in r["epoch_totals"]]
+
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4))
+    if per_block is not None:
+        lo, hi = 0, max(per_block)
+        counts = [per_block.count(k) for k in range(lo, hi + 1)]
+        ax.bar(range(lo, hi + 1), counts, color=OKABE_ITO[0], width=0.86,
+               label="sampled claims per block")
+    ax.axvline(p.T, color=OKABE_ITO[1], ls="--", lw=1.6, label=f"target T = {p.T}")
+    mean = sum(r["mean_per_block"] for r in runs) / len(runs)
+    ax.axvline(mean, color=OKABE_ITO[2], ls="-", lw=1.6,
+               label=f"equilibrium rate {mean:.3f}  (+{mean - p.T:.3f})")
+    ax.set(xlabel="claims in a block", ylabel="blocks",
+           title=f"Per block: spread {runs[0]['rel_sd']:.0%}, and the rate sits above $T$")
+    ax.legend(loc="upper right")
+
+    m = sum(totals) / len(totals)
+    ax2.plot(range(len(totals)), totals, "o-", color=OKABE_ITO[0], ms=4,
+             label="epoch totals, sampled")
+    ax2.axhline(m, color=OKABE_ITO[2], lw=1.4, label=f"mean {m:,.0f}")
+    naive = (p.T * p.N_b) ** 0.5
+    ax2.fill_between(range(len(totals)), m - naive, m + naive, color=OKABE_ITO[1],
+                     alpha=0.18, label=f"±1 sd if arrivals were uncorrelated (±{naive:,.0f})")
+    ax2.set(xlabel="epoch", ylabel="claims in the epoch",
+            title="Per epoch: the retarget has corrected almost all of it")
+    ax2.legend(loc="lower right", fontsize=7.5)
+    fig.tight_layout()
+    return _save(fig, out, "09_sampled_arrivals", f"empowering · {p.name}")
+
+
+ALL["sampled"] = sampled_arrivals
+
 if __name__ == "__main__":
     raise SystemExit(main())
