@@ -40,9 +40,22 @@ def _style():
     })
 
 
-def _save(fig, out: Path, stem: str, provenance: str) -> Path:
+# Set by main() so the caption names the config actually used, not an assumed one.
+_CONFIG = "configs/specified.toml"
+
+
+def _save(fig, out: Path, stem: str, p: Params, key: str) -> Path:
+    """Save at 300 dpi with a caption saying exactly how to regenerate this figure.
+
+    The caption is built from the dispatch key the CLI accepts, so it cannot name a
+    command that does not work: if a figure is renamed or re-registered, the caption
+    moves with it.
+    """
     out.mkdir(parents=True, exist_ok=True)
-    fig.text(0.99, 0.005, provenance, fontsize=6, alpha=0.5, va="bottom", ha="right")
+    caption = (f"reproduce: cd simulations/EmPoWering && "
+               f"python -m empowering.plots --config {_CONFIG} {key}"
+               f"   (all figures: make plots)   ·   parameter set: {p.name}")
+    fig.text(0.005, 0.005, caption, fontsize=5.8, alpha=0.55, va="bottom", ha="left")
     path = out / f"{stem}.png"
     fig.savefig(path)
     import matplotlib.pyplot as plt
@@ -94,7 +107,7 @@ def pool_trajectory(p: Params, out: Path, horizon_years: float = 40.0) -> Path:
                   f"{horizon_years:.0f} years, never through the floor")
     ax2.legend(loc="upper right")
     fig.tight_layout()
-    return _save(fig, out, "01_pool_trajectory", f"empowering · {p.name}")
+    return _save(fig, out, "01_pool_trajectory", p, "pool")
 
 
 def claim_share_vs_traffic(p: Params, out: Path) -> Path:
@@ -137,7 +150,7 @@ def claim_share_vs_traffic(p: Params, out: Path) -> Path:
                  f"is {ceiling:.1f}%")
     ax.legend(loc="lower left")
     fig.tight_layout()
-    return _save(fig, out, "02_claim_share_vs_traffic", f"empowering · {p.name}")
+    return _save(fig, out, "02_claim_share_vs_traffic", p, "share")
 
 
 def beta_relation(p: Params, out: Path) -> Path:
@@ -185,7 +198,7 @@ def beta_relation(p: Params, out: Path) -> Path:
                   "\n(log axis, so proportionality reads as a shift, not a straight line)")
     ax2.legend(loc="lower right", title="traffic", title_fontsize=8)
     fig.tight_layout()
-    return _save(fig, out, "03_beta_relation", f"empowering · {p.name}")
+    return _save(fig, out, "03_beta_relation", p, "beta")
 
 
 def endowment_ramp(p: Params, out: Path) -> Path:
@@ -220,7 +233,7 @@ def endowment_ramp(p: Params, out: Path) -> Path:
                   f"(the specified $R_0$ is {ratio:,.0f}x the 5-year minimum)")
     ax2.legend(loc="upper right")
     fig.tight_layout()
-    return _save(fig, out, "04_endowment_ramp", f"empowering · {p.name}")
+    return _save(fig, out, "04_endowment_ramp", p, "ramp")
 
 
 def reward_controller(p: Params, out: Path) -> Path:
@@ -252,7 +265,7 @@ def reward_controller(p: Params, out: Path) -> Path:
            title="Recovery is asymmetric: fast when too permissive, slow when too hard")
     ax.legend(loc="upper right")
     fig.tight_layout()
-    return _save(fig, out, "05_reward_controller", f"empowering · {p.name}")
+    return _save(fig, out, "05_reward_controller", p, "controller")
 
 
 ALL = {"pool": pool_trajectory, "share": claim_share_vs_traffic, "beta": beta_relation,
@@ -269,6 +282,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", default="figures")
     ap.add_argument("which", nargs="?", choices=sorted(ALL), help="one figure (default: all)")
     a = ap.parse_args(argv)
+    global _CONFIG
+    _CONFIG = a.config              # so the caption names the config actually rendered
     p = params.load(a.config)
     out = Path(a.out)
     todo = {a.which: ALL[a.which]} if a.which else ALL
@@ -331,7 +346,7 @@ def operating_envelope(p: Params, out: Path) -> Path:
            ylabel=r"$\beta_{PoW}$  (% of fees to the pool)", ylim=(0.5, 33),
            title="Operating envelope: the corridor between self-funding and subordination")
     fig.tight_layout()
-    return _save(fig, out, "06_operating_envelope", f"empowering · {p.name}")
+    return _save(fig, out, "06_operating_envelope", p, "envelope")
 
 
 def drain_margin(p: Params, out: Path) -> Path:
@@ -375,7 +390,7 @@ def drain_margin(p: Params, out: Path) -> Path:
            ylabel=r"$1/\rho$   (epochs of reserve; $\rho$ = 1/this)",
            title="Within-epoch drain: the specified point sits just inside the reachable side")
     fig.tight_layout()
-    return _save(fig, out, "07_drain_margin", f"empowering · {p.name}")
+    return _save(fig, out, "07_drain_margin", p, "drain")
 
 
 def blend_envelope(p: Params, out: Path) -> Path:
@@ -419,7 +434,7 @@ def blend_envelope(p: Params, out: Path) -> Path:
                  "the board at $2^{21}$")
     ax.legend(loc="lower right")
     fig.tight_layout()
-    return _save(fig, out, "08_blend_envelope", f"empowering · {p.name}")
+    return _save(fig, out, "08_blend_envelope", p, "blendmap")
 
 
 ALL.update({"envelope": operating_envelope, "drain": drain_margin, "blendmap": blend_envelope})
@@ -466,7 +481,7 @@ def sampled_arrivals(p: Params, out: Path) -> Path:
             title="Per epoch: the retarget has corrected almost all of it")
     ax2.legend(loc="lower right", fontsize=7.5)
     fig.tight_layout()
-    return _save(fig, out, "09_sampled_arrivals", f"empowering · {p.name}")
+    return _save(fig, out, "09_sampled_arrivals", p, "sampled")
 
 
 ALL["sampled"] = sampled_arrivals
@@ -521,11 +536,13 @@ def fee_range(p: Params, out: Path) -> Path:
             title="The absolute window slides with the market;\nthe verdict above does not")
     ax2.legend(loc="upper left")
     ax2.annotate(f"at rest ({p.price_resting}): break-even\nis {be * p.phi * u:,.0f} lepta/block",
-                 xy=(p.price_resting, be * p.phi * u), xytext=(26, 30),
-                 textcoords="offset points", fontsize=8, color=MUTED,
-                 arrowprops=dict(arrowstyle="->", color=MUTED, lw=1))
+                 xy=(p.price_resting, be * p.phi * u), xycoords="data",
+                 xytext=(0.42, 0.10), textcoords="axes fraction",
+                 fontsize=8, color=MUTED,
+                 arrowprops=dict(arrowstyle="->", color=MUTED, lw=1,
+                                 connectionstyle="arc3,rad=-0.2"))
     fig.tight_layout()
-    return _save(fig, out, "10_fee_range", f"empowering · {p.name}")
+    return _save(fig, out, "10_fee_range", p, "fees")
 
 
 ALL["fees"] = fee_range
