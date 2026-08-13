@@ -97,7 +97,10 @@ def run(config: str, lips: str) -> int:
 
     blendp = "blend-protocol.md"
     n_b = grab(blendp, r"which translates to \$`([\d,]+)`\$ blocks", "N_b")
-    check("blocks per epoch", n_b, p.N_b)
+    check("blocks per epoch (blend)", n_b, p.N_b)
+    crypt = "cryptarchia-v1-protocol.md"
+    check("blocks per epoch defined in Cryptarchia",
+          grab(crypt, r"= 10k = ([\d,]+)`\$ blocks", "10k"), p.N_b)
     check("beta_max", grab(blendp, r"beta_\{max\} = (\d+)", "beta_max"), p.beta_max)
 
     # The reference implementation's constants are all functions of the supply; guard
