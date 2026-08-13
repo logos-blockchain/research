@@ -201,6 +201,16 @@ def build(p: Params) -> list[Claim]:
         Claim("4.10.2", r"\(0\.51 % → (" + NUM + r") %",
               100 * _peak_at_R0(p, 0.10), 2e-2),
 
+        # --- body sections corrected in place 2026-08-13 ---
+        Claim("3.7", r"\| ∞ \| — \| (" + NUM + r") \|",
+              core.sigma_over_phi(p) * p.phi * p.base_units_per_lgo, 5e-3),
+        Claim("3.7", r"endowment is \*\*(" + NUM + r")×\*\* that", p.R0 / core.r_star(p), 5e-3),
+        Claim("4.1", r"distributes \*\*(" + NUM + r") %\*\* of supply", _distributed_pct(p), 2e-2),
+        Claim("4.4", r"floor is `R_min` = (" + NUM + r")×10⁻⁸",
+              1e8 * core.r_min(p) / p.S_tge, 5e-3),
+        Claim("4.4.3", r"\| `R\*` at the reference traffic \| (" + NUM + r")×10⁻⁸",
+              1e8 * core.r_star(p) / p.S_tge, 5e-3),
+
         # --- blend admission (section 0.0 / 4.5) ---
         Claim("0.0", r"~50 s and ~(" + NUM + r") messages/day per core",
               86400 / blend_secs, 2e-2),
@@ -277,10 +287,14 @@ def _distributed_pct(p: Params) -> float:
 
 # Sections the body deliberately keeps as written, each flagged from 0.3. The banner must
 # stay: dropping it without dropping the stale numbers beneath it is the failure mode.
+# Sections corrected in place on 2026-08-13, with §0.3 kept as the record of what moved.
+# The pointer must stay: a reader landing mid-document needs to know the section was revised
+# and where the history is, and dropping the pointer while leaving the prose is the failure
+# mode this guards.
 SUPERSEDED = {
-    "3.7": "Superseded in its conclusion by §0.3",
-    "4.1": "Figures superseded by §0.3",
-    "4.2": "Part (c) superseded by §0.3",
+    "3.7": "Corrected in place 2026-08-13; §0.3 records what moved",
+    "4.1": "Corrected in place 2026-08-13; §0.3 records what moved",
+    "4.2": "Part (c) corrected in place 2026-08-13; §0.3 records what moved",
 }
 
 
