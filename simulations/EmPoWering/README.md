@@ -18,6 +18,7 @@ make fees        # the working fee range on one axis, and example tx mixes
 make rewards     # one section (fee, emission, rewards, blend, exhaustion, security)
 make sweeps      # the parameter sweeps behind report sections 4.4.1-4.4.3
 make sweeps-full # section 6's full programme: T, beta, rho, R0, ramp, D0
+make web         # regenerate the browser panel's data, cross-check the JS model
 make verify      # closed forms vs simulation, and the config's own invariants
 make check LIPS=~/Logos/logos-lips   # config vs the spec tree: constants AND prose margins
 make report-numbers                  # every number the report quotes, against the model

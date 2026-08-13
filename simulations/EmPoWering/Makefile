@@ -5,7 +5,7 @@ CONFIG ?= configs/specified.toml
 FIGURES ?= ../../reports/EmPoWering/tokenomics/figures
 REPORT  ?= ../../reports/EmPoWering/tokenomics/tokenomics-model.md
 
-.PHONY: install all fee emission rewards blend exhaustion security volume sampled fees sweeps sweeps-full lepta verify check report-numbers plots pi5 bench-poseidon2 clean
+.PHONY: install all fee emission rewards blend exhaustion security volume sampled fees sweeps sweeps-full web lepta verify check report-numbers plots pi5 bench-poseidon2 clean
 
 # Stdlib-only package; the venv exists so `make` works identically here and in CI,
 # and re-installs whenever pyproject.toml changes.
@@ -80,6 +80,13 @@ pi5: ## hands-off Pi 5 measurement: guarded runs, medians, pi5.toml, derivation 
 
 bench-poseidon2: ## measure the candidate rate (requires Rust and ../logos-blockchain)
 	cd bench-poseidon2 && cargo run --release
+
+# The panel re-implements the model in JS, so `web` regenerates its inputs from the
+# same config AND fails if the two implementations disagree on the golden grid.
+web: $(STAMP) ## regenerate the browser panel's data and cross-check the JS model
+	$(PY) -m empowering.webexport --config $(CONFIG) --out web
+	@command -v node >/dev/null && (cd web && node selfcheck.mjs) \
+	  || echo '  (node not found: JS/Python cross-check skipped)'
 
 clean:
 	rm -rf $(VENV) src/*.egg-info $(shell find . -name __pycache__)

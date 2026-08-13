@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EmPoWering — tokenomics panel</title>
+<link rel="stylesheet" href="style.css">
+<header>
+  <h1>EmPoWering — tokenomics panel</h1>
+  <p class="sub">The proof-of-work reward pool, its two difficulty controllers, the claim fee and
+    the endowment — every parameter live, computed in the browser. Backs
+    <a href="https://github.com/logos-blockchain/research/blob/master/reports/EmPoWering/tokenomics/tokenomics-model.md">the
+    tokenomics report</a> and <code>simulations/EmPoWering</code>.</p>
+  <div id="selfcheck" class="badge">checking against the Python model…</div>
+</header>
+
+<main>
+  <aside>
+    <div class="actions">
+      <button id="reset">reset to specified</button>
+      <button id="t11">try T = 11, β = 11 %</button>
+    </div>
+    <div id="controls"></div>
+    <p class="note">Every control is a parameter of the model. The panel recomputes the closed
+      forms exactly as the Python does; the badge above reports whether the two agree on a grid
+      of inputs, so a divergence shows up here rather than in a reader's conclusions.</p>
+  </aside>
+
+  <section>
+    <h2>Where this parameter set stands</h2>
+    <table id="readoutTable"><thead><tr><th>quantity</th><th class="v">value</th><th></th>
+      <th class="n">against</th></tr></thead><tbody id="readouts"></tbody></table>
+
+    <h2>Trajectories</h2>
+    <div class="grid">
+      <canvas id="pool"></canvas>
+      <canvas id="reward"></canvas>
+    </div>
+
+    <h2>Where it works, and where it stops</h2>
+    <div class="grid">
+      <canvas id="fee"></canvas>
+      <canvas id="plane"></canvas>
+    </div>
+
+    <h2>Controllers and arrivals</h2>
+    <div class="grid">
+      <canvas id="controller"></canvas>
+      <canvas id="arrivals"></canvas>
+    </div>
+
+    <h2>Sweep <select id="sweepAxis">
+      <option value="T">TARGET_CLAIMS_PER_BLOCK</option>
+      <option value="beta_num">POW_SHARE</option>
+      <option value="rho_den">1/ρ</option>
+      <option value="n_tx_ref">transactions per block</option>
+      <option value="genesis_pool_fraction">R₀ / supply</option>
+    </select></h2>
+    <div class="grid one"><canvas id="sweep"></canvas></div>
+
+    <p class="note">Arrivals are sampled with the real memoryless retarget in the loop, so the
+      histogram shows the controller's own contribution to the spread as well as the Poisson
+      noise — including the overshoot that puts the equilibrium rate slightly above <em>T</em>.</p>
+  </section>
+</main>
+<script type="module" src="app.js"></script>
