@@ -145,15 +145,9 @@ def security(p: Params) -> dict:
         for sf in (1.0, 0.5):
             row = f"  {h:>6.2f} {sf:>13.0%}"
             for D0f in (0.005, 0.05, 0.30):
-                adv = pend_a = honest = pend_h = 0.0
-                peak = 0.0
-                for r in rows:
-                    adv += pend_a
-                    honest += pend_h
-                    d = p.T * p.N_b * r["sigma"] if r["enabled"] else 0.0
-                    pend_a, pend_h = d * h, d * (1 - h) * sf
-                    tot = D0f * p.S_tge + adv + honest
-                    peak = max(peak, adv / tot if tot else 0.0)
+                # one definition, shared with the section 6 sweeps and the panel's golden
+                # grid (core.peak_adversary_share), so the three cannot drift apart
+                peak = core.peak_adversary_share(p, h, sf, D0f, rows)
                 row += f"{peak:>11.1%}" + ("!" if peak >= 1 / 3 else " ")
                 out[(h, sf, D0f)] = peak
             print(row)
