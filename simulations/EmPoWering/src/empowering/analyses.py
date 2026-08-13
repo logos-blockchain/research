@@ -219,6 +219,91 @@ def volume(p: Params) -> dict:
                 refill_understated=understated, by_beta=out)
 
 
+def fees(p: Params) -> dict:
+    """The working fee range, on the model's one real axis.
+
+    Traffic count and price level are not separately identified: what the refill takes is a
+    share of a block's fee *revenue*, and what decides whether mining pays is that revenue
+    against the claim's own fee, which moves with the price too. The two scalings cancel, so
+    the whole (n_tx, price) plane collapses to
+
+        Phi_hat = Phi_b / phi   (a block's revenue counted in claim fees)
+
+    with `sigma*/phi = beta * Phi_hat / T`. Every verdict below is therefore price-free.
+    """
+    print("=== Working fee range (revenue per block, in claim fees) ===\n")
+    u, be = p.base_units_per_lgo, core.min_fee_load(p)
+    print(f"  the axis    Phi_hat = Phi_b/phi = psi*n_tx     sigma*/phi = beta*Phi_hat/T")
+    print(f"  break-even  Phi_hat = T/beta                 = {be:,.0f} claim fees per block")
+    print(f"  at the resting price that is {be * p.phi * u:,.0f} lepta/block, but the")
+    print("  threshold itself does not depend on the price level -- both sides scale.\n")
+    print(f"  {'Phi_hat':>10} {'sigma*/phi':>11} {'verdict':<22}"
+          f" {'lepta/blk @rest':>16} {'~n_tx @any price':>17}")
+    print("  " + "-" * 82)
+    out = {}
+    rows = [(25, ""), (50, ""), (100, "break-even"), (200, "2x margin"),
+            (round(core.fee_load(p)), "SPECIFIED"), (857, "full block"), (2000, "")]
+    for load, tag in sorted(set(rows), key=lambda r: r[0]):
+        r = core.sigma_over_phi_from_load(p, load)
+        verdict = ("under water" if r < 1 else "thin" if r < 2
+                   else "works" if r < 10 else "ample")
+        if tag:
+            verdict = f"{verdict} <- {tag}"
+        print(f"  {load:>10,} {r:>11.2f} {verdict:<22}"
+              f" {load * p.phi * u:>16,.0f} {load / p.psi:>17,.0f}")
+        out[load] = r
+    print(f"\n  The specified set collects {core.fee_load(p):,.1f} claim fees per block against a")
+    print(f"  break-even of {be:,.0f} -- a {core.sigma_over_phi(p):.2f}x margin. Read as a traffic count that is")
+    print(f"  {p.n_tx_ref} ordinary transfers; read as a price level it is anything at all, which is")
+    print("  the point: the margin is set by how much revenue a block collects relative to")
+    print("  what a claim costs, and both move together when the market reprices.")
+    print(f"\n  This axis is also exact where the count form is not: pricing all {p.n_tx_ref}")
+    print(f"  transactions as transfers understates the refill by {p.T * (1 / p.psi - 1) / p.n_tx_ref:.2%},")
+    print("  because T of them are claims paying more. Revenue per block makes no assumption")
+    print("  about composition, so that correction disappears.")
+    # --- what mixes produce a given load. Illustrative, not exhaustive. ---
+    shapes = [("ordinary transfer", p.transfer_tx_bytes, p.transfer_tx_gas, "KNOWN"),
+              ("PoW claim (+transfer)", p.claim_tx_bytes, p.claim_tx_gas, "KNOWN"),
+              ("SDP declare", p.sdp_declare_bytes, p.sdp_declare_gas, "gas KNOWN"),
+              ("channel inscribe", p.inscribe_bytes, p.inscribe_gas, "gas KNOWN")]
+    print("\n  --- which transaction mixes produce a load ---\n")
+    print(f"  {'shape':<24} {'bytes':>7} {'gas':>6} {'claim fees each':>16}"
+          f" {'to break even':>14} {'fills a block to':>17}")
+    print("  " + "-" * 90)
+    for name, nb, g, tag in shapes:
+        each = p.shape_load(nb, g)
+        print(f"  {name:<24} {nb:>7} {g:>6} {each:>16.4f} {be / each:>14,.0f}"
+              f" {each * p.max_block_txs:>17,.0f}")
+    print(f"\n  (byte counts for the last two are ASSUMED and illustrative; their gas is the"
+          f"\n   specification's. The first two are the shapes the model already carries.)\n")
+    mixes = [("600 transfers - the reference", [(p.n_tx_ref, p.transfer_tx_bytes, p.transfer_tx_gas)]),
+             (f"{p.T} claims + {p.n_tx_ref - p.T} transfers - the realistic block",
+              [(p.T, p.claim_tx_bytes, p.claim_tx_gas),
+               (p.n_tx_ref - p.T, p.transfer_tx_bytes, p.transfer_tx_gas)]),
+             ("a full block of transfers", [(p.max_block_txs, p.transfer_tx_bytes, p.transfer_tx_gas)]),
+             ("a full block of the cheapest shape",
+              [(p.max_block_txs, p.inscribe_bytes, p.inscribe_gas)]),
+             ("half a block, half inscribes",
+              [(256, p.transfer_tx_bytes, p.transfer_tx_gas), (256, p.inscribe_bytes, p.inscribe_gas)])]
+    print(f"  {'mix':<44} {'load':>8} {'sigma*/phi':>11} {'verdict':<12}")
+    print("  " + "-" * 80)
+    for name, parts in mixes:
+        load = sum(k * p.shape_load(nb, g) for k, nb, g in parts)
+        r = core.sigma_over_phi_from_load(p, load)
+        print(f"  {name:<44} {load:>8,.0f} {r:>11.2f}"
+              f" {'under water' if r < 1 else 'thin' if r < 2 else 'works':<12}")
+        out[name] = load
+    floor_bytes = be / p.max_block_txs * (p.claim_tx_bytes + p.claim_tx_gas) - p.inscribe_gas
+    print(f"\n  A full block clears break-even on almost any mix: with {p.max_block_txs} slots it needs")
+    print(f"  only {be / p.max_block_txs:.3f} claim fees per transaction, which at the cheapest Operation's")
+    print(f"  {p.inscribe_gas} gas means about {floor_bytes:.0f} encoded bytes each. A signed transaction cannot be")
+    print("  that small -- the claim's signature alone is 128 B -- so what decides the margin is")
+    print("  how FULL blocks are, not what is in them.")
+    return dict(break_even_load=be, specified_load=core.fee_load(p),
+                margin=core.sigma_over_phi(p), by_load=out,
+                min_bytes_for_break_even=floor_bytes)
+
+
 def sweep_target(p: Params) -> dict:
     """Report 4.4.1: the claim target is overhead, not throughput."""
     print("=== Sweep: TARGET_CLAIMS_PER_BLOCK (report 4.4.1) ===\n")
@@ -298,5 +383,5 @@ def sampled(p: Params) -> dict:
 
 
 ALL = {"fee": fee, "emission": emission, "rewards": rewards,
-       "blend": blend, "exhaustion": exhaustion, "security": security, "volume": volume, "sampled": sampled,
+       "blend": blend, "exhaustion": exhaustion, "security": security, "volume": volume, "sampled": sampled, "fees": fees,
        "sweep-target": sweep_target, "sweep-share": sweep_share, "sweep-rho": sweep_rho}

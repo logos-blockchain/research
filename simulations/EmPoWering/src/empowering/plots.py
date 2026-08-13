@@ -471,5 +471,64 @@ def sampled_arrivals(p: Params, out: Path) -> Path:
 
 ALL["sampled"] = sampled_arrivals
 
+
+def fee_range(p: Params, out: Path) -> Path:
+    """The working fee range on the model's one axis, and what it is in absolute terms.
+
+    Left: the verdict as a function of a block's revenue counted in claim fees. Right: the
+    same three thresholds in lepta, against the price level -- the absolute window slides
+    with the market, the verdict does not.
+    """
+    import matplotlib.pyplot as plt
+    _style()
+
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.6))
+
+    loads = [10 * 1.03 ** i for i in range(220)]
+    ratio = [core.sigma_over_phi_from_load(p, x) for x in loads]
+    be, two = core.min_fee_load(p, 1.0), core.min_fee_load(p, 2.0)
+    spec = core.fee_load(p)
+
+    ax.axvspan(loads[0], be, color=FAIL, alpha=0.85)
+    ax.axvspan(be, two, color=MARGINAL, alpha=0.85)
+    ax.axvspan(two, loads[-1], color=WORKS, alpha=0.85)
+    ax.plot(loads, ratio, color=OKABE_ITO[0], lw=2.2, zorder=4,
+            label=r"$\sigma^*/\varphi = \beta\hat\Phi/T$")
+    ax.axhline(1.0, color=MUTED, ls=":", lw=1.2, zorder=3)
+    ax.annotate("under water", xy=(13, 12), fontsize=8.5, color="#8A4B2A", zorder=5)
+    ax.annotate("thin", xy=(108, 12), fontsize=8.5, color="#8A6A2A", zorder=5)
+    ax.annotate("works", xy=(320, 12), fontsize=11, color="#2A6A55", zorder=5, weight="bold")
+    for x, lab in ((be, f"break-even\n$T/\\beta$ = {be:,.0f}"), (spec, f"specified\n{spec:,.0f}"),
+                   (p.psi * p.max_block_txs, f"full block\n{p.psi * p.max_block_txs:,.0f}")):
+        ax.plot([x], [core.sigma_over_phi_from_load(p, x)], "o", ms=8,
+                color=OKABE_ITO[7], zorder=6)
+        ax.annotate(lab, xy=(x, core.sigma_over_phi_from_load(p, x)), xytext=(6, -26),
+                    textcoords="offset points", fontsize=8, color=OKABE_ITO[7], zorder=6)
+    ax.set(xscale="log", yscale="log", xlim=(loads[0], loads[-1]),
+           xlabel=r"fee load $\hat\Phi$ = block revenue $\div$ claim fee",
+           ylabel=r"$\sigma^*/\varphi$",
+           title="One axis: does a block collect $T/\\beta$ claim fees?")
+    ax.legend(loc="lower right")
+
+    mults = [10 ** k for k in range(0, 6)]
+    prices = [p.price_resting * m for m in mults]
+    u = p.base_units_per_lgo
+    for i, (load, lab) in enumerate(((be, "break-even"), (two, "2x margin"), (spec, "specified"))):
+        ax2.plot(prices, [load * p.claim_fee(pr) * u for pr in prices], "o-",
+                 color=OKABE_ITO[i], lw=2, label=lab)
+    ax2.set(xscale="log", yscale="log", xlabel="price level (lepta per unit of gas)",
+            ylabel="block fee revenue (lepta)",
+            title="The absolute window slides with the market;\nthe verdict above does not")
+    ax2.legend(loc="upper left")
+    ax2.annotate(f"at rest ({p.price_resting}): break-even\nis {be * p.phi * u:,.0f} lepta/block",
+                 xy=(p.price_resting, be * p.phi * u), xytext=(26, 30),
+                 textcoords="offset points", fontsize=8, color=MUTED,
+                 arrowprops=dict(arrowstyle="->", color=MUTED, lw=1))
+    fig.tight_layout()
+    return _save(fig, out, "10_fee_range", f"empowering · {p.name}")
+
+
+ALL["fees"] = fee_range
+
 if __name__ == "__main__":
     raise SystemExit(main())

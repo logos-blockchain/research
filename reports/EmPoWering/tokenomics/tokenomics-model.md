@@ -235,7 +235,7 @@ The proposal and `block-rewards.md` both use **`T`** for different things. Here:
 | `κ` | — | — | **`UNKNOWN`** cost per guess |
 | `φ` | — | — | **`DERIVED`** — 952 price units (§4.3), absolute value blocked on the denomination |
 | `ψ` | — | — | **`DERIVED`** — 0.837, average fee over claim fee (§4.3) |
-| `n_tx` | — | — | **`UNKNOWN`** — transactions per block, an adoption question |
+| `n_tx` | — | — | **`UNKNOWN`** — transactions per block, an adoption question; §4.9 collapses it and the price level into one axis |
 | base units/LGO | — | — | **`OPEN`** — deferred to its own PR; EmPoWering's constraints on it are in §4.4.4 |
 
 **Every free parameter now has a value, `φ` is derived up to the denomination, and the feature ships switched off.** §3.7's numbers illustrate structure; §4.4's parameter set is an existence proof, not a recommendation.
@@ -923,6 +923,65 @@ A2 replaces the arrival process with its mean and says so plainly: "the simulato
 an **absolute** overshoot of 0.05 claims per block, so the relative one goes as `1/T`: **+0.50 % at `T = 10`, +0.10 % at `T = 50`**. Confirmed against simulation across `T ∈ {5, 10, 25, 50}` and `(P,F) ∈ {(10,9), (10,8), (100,99)}`.
 
 The consequence is small and one-signed: the pool distributes about half a percent more than §3.1 says, and every figure derived from the mean-field rate is high by that much at `T = 10`. It is well inside the tolerances this document quotes. But it belongs on the ledger with the other costs of a small `T` — the per-block variance A2 names, the builder edge of §4.2, and the drain margin of §3.8 — because like them it is a `1/T` effect, and unlike them it was invisible until the arrivals were sampled.
+
+## 4.9 The working fee range — one axis instead of two `DERIVED`
+
+This document carries traffic as a transaction count (`n_tx`, `UNKNOWN`, an adoption question) and the fee level as a separate unknown (A9, §5.1). **Neither is identified on its own, and the model never needed both.**
+
+What the refill takes is a share of a block's fee *revenue*. What decides whether mining pays is that revenue against the claim's own fee — which moves with the price level too. The two scalings cancel, leaving one dimensionless quantity: a block's revenue counted in claim fees.
+
+> **`Φ̂ = Φ_b / φ`**, and **`σ*/φ = β·Φ̂ / T`**
+
+Sweeping `Φ̂` says everything the `(n_tx, price)` plane says, on one axis, without committing to a price level. And the working range reduces to a single number:
+
+> **A block must collect `T/β` claim fees for mining to fund itself — 100 at the specified set.**
+
+![working fee range](figures/10_fee_range.png)
+
+| `Φ̂` (claim fees/block) | `σ*/φ` | verdict | lepta/block at rest | ≈ `n_tx` at any price |
+| --- | --- | --- | --- | --- |
+| 25 | 0.25 | under water | 166,600 | 30 |
+| 50 | 0.50 | under water | 333,200 | 60 |
+| **100** | **1.00** | **break-even** `T/β` | 666,400 | 119 |
+| 200 | 2.00 | works, 2× margin | 1,332,800 | 239 |
+| **502** | **5.02** | **specified** | 3,345,328 | 600 |
+| 857 | 8.57 | full block | 5,711,048 | 1,024 |
+| 2,000 | 20.00 | ample | 13,328,000 | 2,389 |
+
+The specified set collects **502 claim fees per block against a break-even of 100** — the same 5.02× margin §4.3 derives, reached without an estimate of either traffic or price. Read as a count that is 600 ordinary transfers at the resting level; read as a price level it is anything at all. **That invariance is the substance, not a presentational convenience**: it is why §4.3's ratios survive a repricing, and why the "the on-ramp closes when the network is busiest" failure mode does not exist under fee funding. `make verify` checks it across five decades of price.
+
+Two things this axis does better than the count.
+
+**It removes a constant.** `ψ` exists only to convert a transaction count into units of the claim fee. On the fee axis it is gone: `σ*/φ = βΦ̂/T` needs `β`, `T` and nothing else. `ψ` reappears only when a reader wants the last column of the table above.
+
+**It is exact where the count form is not.** Pricing every transaction as an ordinary transfer understates the refill by 0.32 % (§4.7.2), because `T` of them are claims paying more. Revenue per block makes no assumption about composition, so that correction disappears rather than being carried and apologised for.
+
+### 4.9.1 What a load looks like as transactions
+
+A fee load is a revenue figure, so it maps to many mixes. A few, to make it concrete — not an inventory. Gas is the specification's (`analysis-gas-cost-determination.md`); the byte counts for the last two shapes are **assumed and illustrative**, since the model does not otherwise carry them.
+
+| shape | bytes | gas | claim fees each | to break even | a full block of them |
+| --- | --- | --- | --- | --- | --- |
+| ordinary transfer | 207 | 590 | 0.837 | 119 | 857 |
+| PoW claim (+ transfer) | 306 | 646 | 1.000 | 100 | 1,024 |
+| SDP declare | *250* | 646 | 0.941 | 106 | 964 |
+| channel inscribe (cheapest Operation) | *130* | 56 | 0.195 | 512 | 200 |
+
+and some blocks:
+
+| mix | load | `σ*/φ` | |
+| --- | --- | --- | --- |
+| 600 transfers | 502 | 5.02 | the reference |
+| 10 claims + 590 transfers | 504 | 5.04 | the realistic block — and the 0.32 % §4.7.2 flags, made concrete |
+| a full block of transfers | 857 | 8.57 | |
+| a full block of the cheapest Operation | 200 | 2.00 | |
+| half a block, half inscribes | 264 | 2.64 | |
+
+**The composition barely matters; the fill does.** A full block needs only `T/β ÷ MAX_BLOCK_TXS` = **0.098 claim fees per transaction** to break even, which at the cheapest Operation's 56 gas is about **37 encoded bytes each** — smaller than any signed transaction can be, since the claim's signature alone is 128 B. So every full block clears break-even whatever is in it, and even a block filled entirely with the cheapest Operation lands at twice the floor. What moves the margin is how *full* blocks are, and the specified 5.02× corresponds to blocks a little under 60 % full of transfers.
+
+That is the useful form of the answer to "what traffic does this need?": not a transaction count, and not a price, but **roughly half-full blocks**.
+
+What the axis does *not* decide is `β`, which is still walled from above by subordination (§4.7.6) — that constraint is on the share, not on the revenue, and no amount of fee income relaxes it.
 
 ## 5. Simulator
 

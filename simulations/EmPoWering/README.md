@@ -14,6 +14,7 @@ moved.
 make all         # every analysis section
 make lepta       # exact-integer confirmation at lepton granularity
 make sampled     # A2 run: Poisson arrivals with the retarget in the loop
+make fees        # the working fee range on one axis, and example tx mixes
 make rewards     # one section (fee, emission, rewards, blend, exhaustion, security)
 make sweeps      # the parameter sweeps behind report sections 4.4.1-4.4.3
 make verify      # closed forms vs simulation, and the config's own invariants

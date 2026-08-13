@@ -59,6 +59,11 @@ class Params:
     sec_per_candidate_reward: float
     sec_per_permutation: float
     pi5_cores: int
+    # illustrative transaction shapes (section 4.9)
+    inscribe_gas: int
+    inscribe_bytes: int
+    sdp_declare_gas: int
+    sdp_declare_bytes: int
     # model assumptions
     n_tx_ref: int
     adversary_h: float
@@ -82,6 +87,15 @@ class Params:
     def transfer_fee(self, price: int | None = None) -> float:
         p = self.price_resting if price is None else price
         return (self.transfer_tx_bytes + self.transfer_tx_gas) * p / self.base_units_per_lgo
+
+    def shape_fee(self, nbytes: int, gas: int, price: int | None = None) -> float:
+        """Fee of an arbitrary transaction shape, in LGO, at the given price level."""
+        pr = self.price_resting if price is None else price
+        return (nbytes + gas) * pr / self.base_units_per_lgo
+
+    def shape_load(self, nbytes: int, gas: int) -> float:
+        """That shape's cost counted in claim fees -- price-free, like the axis itself."""
+        return (nbytes + gas) / (self.claim_tx_bytes + self.claim_tx_gas)
 
     @property
     def phi(self) -> float:
@@ -116,6 +130,7 @@ def load(path: str | Path) -> Params:
     try:
         c, s, f, w, b, m, p = (cfg["consensus"], cfg["supply"], cfg["fees"],
                                cfg["work"], cfg["blend"], cfg["model"], cfg["pow"])
+        x = cfg.get("mixes", {})
     except KeyError as e:
         raise SystemExit(f"config {path}: missing section {e.args[0]!r}") from e
     return Params(
@@ -143,6 +158,9 @@ def load(path: str | Path) -> Params:
         sec_per_candidate_reward=w["seconds_per_candidate_reward"],
         sec_per_permutation=w["seconds_per_permutation"],
         pi5_cores=w["pi5_cores"],
+        inscribe_gas=x.get("inscribe_gas", 56), inscribe_bytes=x.get("inscribe_bytes", 130),
+        sdp_declare_gas=x.get("sdp_declare_gas", 646),
+        sdp_declare_bytes=x.get("sdp_declare_bytes", 250),
         n_tx_ref=m["reference_txs_per_block"], adversary_h=m["adversary_hashrate"],
         honest_stake_fraction=m["honest_stake_fraction"],
         horizon_epochs=m["horizon_epochs"],

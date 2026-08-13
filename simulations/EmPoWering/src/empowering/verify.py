@@ -141,6 +141,36 @@ def run(config: str) -> int:
           f"busiest block {a['peak_block']}, drain needs {p.T * p.rho_den // p.rho_num},"
           f" {a['peak_sd_from_drain']:,.0f} sd away")
 
+    # 21-23. The fee-load formulation (section 4.9): one axis in place of (n_tx, price).
+    worst_eq = max(abs(core.sigma_over_phi(p, n)
+                       - core.sigma_over_phi_from_load(p, core.fee_load(p, n)))
+                   for n in (25, 50, 119, 300, 600, 1024))
+    check("fee load reproduces the count form exactly", worst_eq < 1e-12,
+          f"worst abs err {worst_eq:.1e}")
+
+    # The verdict must not move with the price level: both the refill and the claim's own
+    # fee scale with it, so sigma*/phi is invariant. This is what makes the axis the right one.
+    from dataclasses import replace as _rep
+    ratios = [core.sigma_over_phi(_rep(p, price_resting=p.price_resting * m), p.n_tx_ref)
+              for m in (1, 10, 1_000, 100_000)]
+    check("fee-load verdict is price-invariant",
+          max(ratios) - min(ratios) < 1e-9,
+          f"sigma*/phi = {ratios[0]:.4f} across 5 decades of price")
+
+    # Break-even is T/beta claim fees per block -- no traffic estimate, no price level.
+    check("break-even load is T/beta",
+          abs(core.min_fee_load(p) - p.T / p.beta) < 1e-12
+          and abs(core.sigma_over_phi_from_load(p, core.min_fee_load(p)) - 1.0) < 1e-12,
+          f"{core.min_fee_load(p):,.0f} claim fees per block")
+
+    # 24. Composition barely matters: a full block clears break-even on any realistic shape,
+    # because the per-transaction requirement is smaller than a signed transaction can be.
+    need_each = core.min_fee_load(p) / p.max_block_txs
+    bytes_each = need_each * (p.claim_tx_bytes + p.claim_tx_gas) - p.inscribe_gas
+    check("a full block breaks even on any realistic shape", bytes_each < 128,
+          f"needs {need_each:.3f} claim fees each = ~{bytes_each:.0f} bytes,"
+          " under a signature alone (128 B)")
+
     print(f"\n{len(failures)} failure(s)" if failures else "\nall pass")
     return 1 if failures else 0
 

@@ -172,6 +172,20 @@ def build(p: Params) -> list[Claim]:
         Claim("4.8", r"\*\*\+(" + NUM + r") ?% at `T = 10`",
               100 * (p.P_ema - p.F_ema) / (2 * p.P_ema * p.T), 1e-2),
 
+        # --- section 4.9: the fee-load axis ---
+        Claim("4.9", r"\| \*\*100\*\* \| \*\*(" + NUM + r")\*\* \|", 1.0, 1e-9),
+        Claim("4.9", r"\| \*\*502\*\* \| \*\*(" + NUM + r")\*\* \|",
+              _core_load_ratio(p), 5e-3),
+        Claim("4.9", r"break-even of 100\*\* — the same (" + NUM + r")× margin",
+              _core_load_ratio(p), 5e-3, note="optional: phrasing"),
+        Claim("4.9", r"collect \*\*(" + NUM + r")/β\*\*", 0, 0, note="optional"),
+        Claim("4.9.1", r"\*\*(" + NUM + r") claim fees per transaction\*\*",
+              _need_each(p), 5e-3),
+        Claim("4.9.1", r"about \*\*(" + NUM + r") encoded bytes each\*\*", _bytes_each(p), 2e-2),
+        Claim("4.9.1", r"\| 600 transfers \| (" + NUM + r") \|", _load_of(p, "ref"), 5e-3),
+        Claim("4.9.1", r"\| a full block of transfers \| (" + NUM + r") \|",
+              _load_of(p, "full"), 5e-3),
+
         # --- blend admission (section 0.0 / 4.5) ---
         Claim("0.0", r"~50 s and ~(" + NUM + r") messages/day per core",
               86400 / blend_secs, 2e-2),
@@ -184,6 +198,23 @@ def build(p: Params) -> list[Claim]:
         Claim("4.7.1", r"`R\*` \((" + NUM + r")\) sits above `R_min`", r_star, 5e-3),
         Claim("4.7.1", r"sits above `R_min` \((" + NUM + r")\)", r_min, 5e-3),
     ]
+
+
+def _core_load_ratio(p: Params) -> float:
+    return core.sigma_over_phi(p)
+
+
+def _need_each(p: Params) -> float:
+    return core.min_fee_load(p) / p.max_block_txs
+
+
+def _bytes_each(p: Params) -> float:
+    return _need_each(p) * (p.claim_tx_bytes + p.claim_tx_gas) - p.inscribe_gas
+
+
+def _load_of(p: Params, which: str) -> float:
+    n = p.n_tx_ref if which == "ref" else p.max_block_txs
+    return core.fee_load(p, n)
 
 
 def _sampled(p: Params):

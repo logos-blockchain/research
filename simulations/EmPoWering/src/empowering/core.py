@@ -39,6 +39,44 @@ def sigma_over_phi(p: Params, n_tx: int | None = None) -> float:
     return p.psi * p.beta * n / p.T
 
 
+def fee_load(p: Params, n_tx: int | None = None) -> float:
+    """A block's fee revenue counted in claim fees: ``Phi_b / phi``. The model's one axis.
+
+    The report parameterises traffic by a transaction count and, separately, by a price
+    level. Neither is identified on its own. The refill takes a share of what a block
+    collects, so what enters is the *revenue*; and the test of whether mining pays compares
+    that revenue against the claim's own fee, which moves with the price level too. The two
+    scalings cancel, leaving one dimensionless quantity:
+
+        Phi_hat = Phi_b / phi = psi * n_tx        and        sigma*/phi = beta * Phi_hat / T
+
+    Sweeping ``Phi_hat`` therefore says everything the (n_tx, price) plane says, with one
+    axis instead of two, and says it without committing to a price level -- the verdict is
+    identical at the resting floor and a thousand times above it.
+
+    It is also *exact* where the count-based form is not: the count form prices every
+    transaction as an ordinary transfer, but T of them are claims paying more, so it
+    understates the refill by ``T(1/psi - 1)/n_tx``. Revenue per block carries no such
+    assumption, because it does not care how the revenue was composed.
+    """
+    n = p.n_tx_ref if n_tx is None else n_tx
+    return p.transfer_fee() * n / p.phi
+
+
+def sigma_over_phi_from_load(p: Params, load: float) -> float:
+    """Steady-state reward over the claim fee, from the fee load alone: ``beta*load/T``."""
+    return p.beta * load / p.T
+
+
+def min_fee_load(p: Params, ratio: float = 1.0) -> float:
+    """Fee load a block must collect for ``sigma* >= ratio * phi``: ``ratio * T / beta``.
+
+    At the specified set the break-even load is ``T/beta = 100`` claim fees per block --
+    a statement that needs no traffic estimate and no price level.
+    """
+    return ratio * p.T / p.beta
+
+
 def builder_edge(p: Params, n_tx: int | None = None, tip_frac: float = 0.5) -> float:
     """A builder's advantage from recovering the tip on its own claims."""
     r = sigma_over_phi(p, n_tx)

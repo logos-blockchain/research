@@ -80,3 +80,13 @@ reference_txs_per_block = 600
 adversary_hashrate      = 0.33
 honest_stake_fraction   = 1.0
 horizon_epochs          = 300
+
+[mixes]
+# Illustrative transaction shapes for report section 4.9's mapping from a fee load to the
+# mixes that produce it. Gas is KNOWN from analysis-gas-cost-determination.md's table of
+# Operation gas. Byte counts for shapes the simulator does not already carry are ASSUMED,
+# and the report says so; they are illustrative, not a claim about the wire format.
+inscribe_gas    = 56          # KNOWN  CHANNEL_INSCRIBE_GAS -- the cheapest Operation
+inscribe_bytes  = 130         # ASSUMED  a small signed tx; the claim's signature alone is 128 B
+sdp_declare_gas = 646         # KNOWN  SDP_DECLARE_GAS
+sdp_declare_bytes = 250       # ASSUMED
