@@ -180,7 +180,14 @@ const PLOTS = {
     line(g, [[a.X(0), a.Y(M.sigmaOverPhi(P))], [a.X(40), a.Y(M.sigmaOverPhi(P))]], C.green, 1.5, [6, 4]);
   },
   fee: (g, b) => {
-    const be = M.minFeeLoad(P), hi = Math.max(be * 20, M.feeLoad(P) * 3, 100);
+    const be = M.minFeeLoad(P);
+    if (!Number.isFinite(be)) {                       // beta = 0: the pool takes nothing
+      g.fillStyle = C.muted; g.font = "12px system-ui"; g.textAlign = "center";
+      g.fillText("β = 0: the pool takes no fees, so no load funds a claim — break-even is ∞",
+                 b.w / 2, b.pad.t + b.ih / 2);
+      return;
+    }
+    const hi = Math.max(be * 20, M.feeLoad(P) * 3, 100);
     const a = axes(g, b, { xlab: "fee load Φ̂ (claim fees per block)", ylab: "σ*/φ",
       xs: [1, hi], ys: [0.02, 60], xlog: true, ylog: true, title: "Working fee range" });
     for (const [x0, x1, col] of [[1, be, C.fail], [be, 2 * be, C.marginal], [2 * be, hi, C.works]]) {
@@ -210,6 +217,12 @@ const PLOTS = {
     }
     line(g, [[a.X(tD), b.pad.t], [a.X(tD), b.pad.t + b.ih]], C.pink, 2);
     line(g, [[b.pad.l, a.Y(cap)], [b.pad.l + b.iw, a.Y(cap)]], C.verm, 2, [7, 4]);
+    if (M.beta(P) <= 0) {                              // beta = 0: no ray, no window
+      g.fillStyle = C.muted; g.font = "12px system-ui"; g.textAlign = "center";
+      g.fillText("β = 0: no iso-margin ray exists — the feature is switched off",
+                 b.w / 2, b.pad.t + b.ih / 2);
+      return;
+    }
     const ray = P.T / M.beta(P);
     line(g, [[a.X(1), a.Y(100 * 1 / ray)], [a.X(60), a.Y(100 * 60 / ray)]], C.muted, 1.5, [3, 3]);
     g.fillStyle = C.ink; g.beginPath();
