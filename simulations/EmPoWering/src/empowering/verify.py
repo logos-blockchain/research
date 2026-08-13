@@ -81,6 +81,38 @@ def run(config: str) -> int:
     # 10. uint64 holds the supply in base units.
     check("supply fits TokenValue", p.S_tge * p.base_units_per_lgo < 2 ** 64 - 1)
 
+    # 13. The claim-volume identity: v * (sigma*/phi) = psi*beta, with v = T/n_tx the claim
+    # share of a block's transactions. Checked across traffic AND beta, since it is the
+    # relation A10 needs and the one the report's section 4.8 quotes.
+    worst_id = 0.0
+    from dataclasses import replace as _replace
+    for num in (2, 5, 10, 20, 33):
+        q = _replace(p, beta_num=num)
+        for n in (50, 119, 300, 600, 1024):
+            v = q.T / n
+            worst_id = max(worst_id, abs(v * core.sigma_over_phi(q, n) - q.psi * q.beta))
+    check("claim share identity v*(sigma*/phi) = psi*beta", worst_id < 1e-12,
+          f"worst abs err {worst_id:.1e}")
+
+    # 14. Break-even traffic is exactly where the reward equals the fee, so the ceiling on
+    # the claim share of traffic is psi*beta and nothing else.
+    n_be = p.T / (p.psi * p.beta)
+    check("break-even traffic is where sigma* = phi",
+          abs(core.sigma_over_phi(p, n_be) - 1.0) < 1e-12,
+          f"{n_be:,.0f} tx/block, claim share {p.T / n_be:.2%} = psi*beta")
+
+    # 15. The specified point sits below that ceiling -- mining funds itself from fees at
+    # the reference traffic rather than out of the endowment.
+    check("claims pay for themselves at reference traffic",
+          p.T / p.n_tx_ref < p.psi * p.beta,
+          f"share {p.T / p.n_tx_ref:.2%} vs ceiling {p.psi * p.beta:.2%}")
+
+    # 16. The refill prices every transaction as a transfer, but T of them are claims paying
+    # more, so the model understates the refill. Assert the error is one-signed and small.
+    under = p.T * (1 / p.psi - 1) / p.n_tx_ref
+    check("refill approximation is conservative and under 1%", 0 < under < 0.01,
+          f"understated by {under:.2%}")
+
     print(f"\n{len(failures)} failure(s)" if failures else "\nall pass")
     return 1 if failures else 0
 

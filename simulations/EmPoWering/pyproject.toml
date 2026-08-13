@@ -5,6 +5,12 @@ description = "Tokenomics simulations for the EmPoWering proposal (logos-lips PR
 requires-python = ">=3.11"
 dependencies = []
 
+# The analysis package is stdlib-only on purpose: `make verify` and `make check` must
+# run anywhere with a bare interpreter. Plotting is the one thing that needs a wheel,
+# so it is an extra rather than a dependency.
+[project.optional-dependencies]
+plots = ["matplotlib>=3.8"]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"

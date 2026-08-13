@@ -162,6 +162,63 @@ def security(p: Params) -> dict:
     return dict(peak=out[(p.adversary_h, 1.0, 0.30)])
 
 
+def volume(p: Params) -> dict:
+    """What share of a block's transactions are claims, and what beta ties it to.
+
+    Assumption A10 reads the claim load against block *capacity* -- T/MAX_BLOCK_TXS, about
+    one percent, "comfortable with room to spare". That is the right check for whether claims
+    fit. It is not the check for whether they pay, because the reward per claim is set by the
+    fees the *actual* traffic collects, not by the capacity it could have collected.
+
+    Against actual traffic the two quantities are one identity. With v = T/n_tx the claim
+    share of transactions and sigma*/phi = psi*beta*n_tx/T the steady-state reward over the
+    fee,
+
+        v * (sigma*/phi) = psi * beta
+
+    so at the point where a claim exactly pays its own fee the claim share is psi*beta, and
+    that is the *ceiling* on how much of a block's traffic claims may be while mining still
+    funds itself from fees. It depends on beta and on nothing else -- not on T, which cancels,
+    and not on the traffic level.
+    """
+    print("=== PoW claim share of transaction volume (A10, against traffic) ===\n")
+    v_cap = p.T / p.max_block_txs
+    v_ref = p.T / p.n_tx_ref
+    v_be = p.psi * p.beta
+    n_min = p.T / v_be
+    print(f"  A10, against capacity      T/MAX_BLOCK_TXS = {v_cap:.2%}")
+    print(f"  against reference traffic  T/n_tx          = {v_ref:.2%}  (n_tx = {p.n_tx_ref})")
+    print(f"  identity                   v * sigma*/phi  = psi*beta = {v_be:.4%}")
+    print(f"  break-even claim share     psi*beta        = {v_be:.2%}")
+    print(f"  break-even traffic         T/(psi*beta)    = {n_min:,.0f} tx/block")
+    print(f"  margin at reference        {p.n_tx_ref / n_min:.2f}x the break-even traffic\n")
+    print(f"  {'beta':>7} {'break-even n_tx':>16} {'ceiling on v':>13}"
+          f" {'sigma*/phi @' + str(p.n_tx_ref):>15} {'v @' + str(p.n_tx_ref):>10}")
+    print("  " + "-" * 66)
+    out = {}
+    for num in (2, 5, 10, 20, 33):
+        q = replace(p, beta_num=num)
+        vb = q.psi * q.beta
+        r = core.sigma_over_phi(q)
+        star = " <-" if num == p.beta_num else ""
+        print(f"  {q.beta:>6.0%} {q.T / vb:>16,.0f} {vb:>12.2%} {r:>15.2f}"
+              f" {v_ref:>10.2%}{star}")
+        out[num] = dict(break_even_n=q.T / vb, ceiling=vb, sigma_over_phi=r)
+    print("\n  Raising beta does not change how many claims a block carries -- the difficulty")
+    print("  controller holds that at T regardless. What it moves is the traffic floor: below")
+    print("  T/(psi*beta) transactions per block a claim earns less than it pays, and the")
+    print("  shortfall comes out of the endowment rather than out of fees.")
+
+    # The refill treats every transaction as an ordinary transfer, but T of them are claims,
+    # which pay more. Small, one-signed, and worth stating rather than leaving implicit.
+    understated = p.T * (1 / p.psi - 1) / p.n_tx_ref
+    print(f"\n  Refill approximation: the model prices all {p.n_tx_ref} transactions as transfers,")
+    print(f"  but {p.T} of them are claims paying 1/psi = {1 / p.psi:.3f}x more. The refill is")
+    print(f"  understated by {understated:.2%} -- one-signed, and conservative.")
+    return dict(v_cap=v_cap, v_ref=v_ref, v_break_even=v_be, n_min=n_min,
+                refill_understated=understated, by_beta=out)
+
+
 def sweep_target(p: Params) -> dict:
     """Report 4.4.1: the claim target is overhead, not throughput."""
     print("=== Sweep: TARGET_CLAIMS_PER_BLOCK (report 4.4.1) ===\n")
@@ -235,5 +292,5 @@ def sweep_rho(p: Params) -> dict:
 
 
 ALL = {"fee": fee, "emission": emission, "rewards": rewards,
-       "blend": blend, "exhaustion": exhaustion, "security": security,
+       "blend": blend, "exhaustion": exhaustion, "security": security, "volume": volume,
        "sweep-target": sweep_target, "sweep-share": sweep_share, "sweep-rho": sweep_rho}

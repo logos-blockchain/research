@@ -74,6 +74,37 @@ def simulate_pool(p: Params, epochs: int | None = None, n_tx: int | None = None)
     return rows
 
 
+def logistic_traffic(p: Params, e: int, years: float, n0: int = 20) -> float:
+    """Transactions per block at epoch ``e`` on a logistic ramp from ``n0`` to capacity.
+
+    One definition, shared by the endowment sizing and by the plots, so the two cannot
+    drift apart. Maturity is reached at ``years``; the 12.0 puts the ramp's ends near its
+    asymptotes rather than cutting them off mid-rise.
+    """
+    import math
+
+    n_max = p.max_block_txs
+    epochs_to_mature = years * p.epochs_per_year
+    if epochs_to_mature <= 0:
+        return float(n_max)
+    x = 12.0 * (e - epochs_to_mature / 2) / epochs_to_mature
+    return n0 + (n_max - n0) / (1 + math.exp(-x))
+
+
+def ramp_trajectory(p: Params, R0: float, years: float, n0: int = 20,
+                    horizon_years: float = 20.0) -> list[dict]:
+    """Pool and reward across a logistic adoption ramp, at a fixed endowment."""
+    horizon = int(horizon_years * p.epochs_per_year)
+    R, rows = R0, []
+    for e in range(horizon):
+        n = logistic_traffic(p, e, years, n0)
+        s = sigma(R, p)
+        rows.append(dict(epoch=e, years=e / p.epochs_per_year, pool=R, n_tx=n,
+                         sigma=s, sigma_over_phi=s / p.phi))
+        R = (1 - p.rho) * R + p.beta * p.N_b * n * p.transfer_fee()
+    return rows
+
+
 def min_endowment_for_ramp(p: Params, years: float,
                            n0: int = 20, horizon_years: float = 20.0) -> float:
     """Smallest R0 (LGO) keeping sigma_e >= phi across a logistic traffic ramp.
@@ -81,27 +112,18 @@ def min_endowment_for_ramp(p: Params, years: float,
     Traffic grows from n0 to max_block_txs, reaching maturity at `years`. inf when the
     steady state itself sits below the fee, in which case no endowment suffices.
     """
-    import math
-
     n_max = p.max_block_txs
     if sigma_over_phi(p, n_max) < 1.0:
         return float("inf")
     R_floor = r_min(p)
-    epochs_to_mature = years * p.epochs_per_year
     horizon = int(horizon_years * p.epochs_per_year)
-
-    def traffic(e: int) -> float:
-        if epochs_to_mature <= 0:
-            return n_max
-        x = 12.0 * (e - epochs_to_mature / 2) / epochs_to_mature
-        return n0 + (n_max - n0) / (1 + math.exp(-x))
 
     def survives(R0: float) -> bool:
         R = R0
         for e in range(horizon):
             if R < R_floor:
                 return False
-            F = p.beta * p.N_b * traffic(e) * p.transfer_fee()
+            F = p.beta * p.N_b * logistic_traffic(p, e, years, n0) * p.transfer_fee()
             R = (1 - p.rho) * R + F
         return True
 

@@ -181,7 +181,7 @@ The proposal and `block-rewards.md` both use **`T`** for different things. Here:
 | Symbol | Code | Proposal | Tag |
 | --- | --- | --- | --- |
 | `ρ` | disabled | 1/100 per epoch | **`KNOWN`** — specification sets **1/100** (§4.4.3) |
-| `T` | 100 | 10 | **`KNOWN`** — specification sets **50** |
+| `T` | 100 | 10 | **`KNOWN`** — specification sets **10** (`TARGET_CLAIMS_PER_BLOCK`, Mantle spec) |
 | `β_PoW` | 0 | 2 % example | **`KNOWN`** — specification sets **10 %** (§4.4.2) |
 | `R₀` | placeholder | TBD | **`KNOWN`** — specification sets **0.5 % of launch supply** (§4.4.3) |
 | `q` | 9/10 | 9/10 | **`KNOWN`** |
@@ -759,6 +759,68 @@ kept deliberately as an exact fraction, with `block_rewards()` returning a `floa
 6. **Noise.** Relative variation in claims per block is `1/√T` (A2), which argues for larger `T` — directly against constraint 1.
 
 The complete specified set, at `10³` base units per LGO: **`T = 10`, `β_PoW = 10 %`, `ρ = 1/100`, `R₀ = 0.5 %` of launch supply.** It opens at `σ₀ = 2.31` LGO against a `0.952` LGO fee — 2.4× — and settles at `σ* = 4.78` LGO, 5×, at 600 transactions per block, with a 1.124× builder edge throughout. Nothing in the mechanism is now unparameterised.
+
+## 4.7 Validation figures `SIMULATED`
+
+Eight figures from `make plots`, rendered from the same `Params` the tables use, so a config edit moves them with everything else. Four trace behaviour over time; three map where the parameter set works and where it stops working; one re-reads an assumption.
+
+### 4.7.1 The pool spends decades on its endowment
+
+![pool trajectory](figures/01_pool_trajectory.png)
+
+`R₀` is 5×10⁷ LGO and `R*` is 723 LGO — five orders of magnitude apart — so the fixed point that §4.4.3 solves for is not a description of the near term. The gap closes at `(1−ρ)^e`, which puts the pool **within a factor of two of `R*` only after about 23 years**. For the whole of that descent the reward per claim is set by the decaying endowment, not by the fee refill, and it falls about 69,000× along the way. It never crosses the floor: `R*` (723) sits above `R_min` (144), so the steady state clears break-even by design and every point on the path to it clears it by more.
+
+**This is the figure to read before treating `σ*/φ = 5.02` as the operating number.** It is the number the system converges to, not the one it launches with.
+
+### 4.7.2 The claim share of traffic, and its ceiling
+
+![claim share vs traffic](figures/02_claim_share_vs_traffic.png)
+
+Assumption A10 checks the claim load against `MAX_BLOCK_TXS` and finds 1.0 %, "comfortable with room to spare". That is the right test for whether claims *fit*, and it passes. It is not the test for whether they *pay*, because the reward per claim is funded by the fees actual traffic collects, not by the fees capacity could collect.
+
+Against traffic the two quantities are one identity. With `v = T/n_tx` the claim share of a block's transactions,
+
+> **`v · (σ*/φ) = ψ·β`**
+
+so at break-even the claim share is exactly `ψβ`, and that is the **ceiling**: if claims are more than `ψβ = 8.37 %` of transactions, a claim earns less than the fee it pays. It depends on `β` and nothing else — `T` cancels, and so does the traffic level. At the specified set the network operates at `v = 1.67 %`, a **5.02× margin** below the ceiling, and the break-even traffic is 119 tx/block.
+
+Both numbers are gated in `make verify`.
+
+### 4.7.3 What `β_PoW` actually buys
+
+![beta relation](figures/03_beta_relation.png)
+
+**Raising `β` does not put more claims in a block.** The difficulty controller holds the claim count at `T` whatever `β` is, so the claim share of transaction volume is invariant in `β` — the identity above moves the *ceiling*, not the operating point. What `β` buys is traffic headroom: the floor below which mining stops funding itself is `T/(ψβ)`, which the specified tenth puts at 119 tx/block.
+
+The sweep in §4.4.2 is worth re-reading against this. **At the proposal's original 2 % example the break-even traffic is 597 tx/block against a reference of 600** — `σ*/φ = 1.00`, no headroom at all. The move to a tenth is what converts the mechanism from marginal to funded.
+
+### 4.7.4 The endowment against an adoption ramp
+
+![endowment ramp](figures/04_endowment_ramp.png)
+
+Each ramp is plotted at *its own* minimum endowment, where each just grazes the floor — which is what makes the test legible. At the specified `R₀` all four curves lie on top of one another, because the endowment is **209,043× the 5-year minimum** and the ramp shape disappears beneath it.
+
+That ratio is itself a finding: `R₀ = 0.5 %` of supply is not sized by the σ ≥ φ constraint, which 2.4×10⁻⁸ of supply would satisfy. Whatever justifies half a percent, it is not this floor, and §10.2's standing-reserve question is really a question about `R₀` and its multi-decade decay rather than about `R*`.
+
+### 4.7.5 The reward controller is asymmetric
+
+![reward controller](figures/05_reward_controller.png)
+
+A mis-set genesis target recovers in about 20 blocks when it is too permissive and in 38 to 60 when it is too hard, because a too-hard target produces blocks with **zero** claims, and a block with no claims carries no information beyond the fixed `P/F` loosening step. §4.6's asymmetry — "too permissive over-pays, bounded; too hard costs only time" — is right in direction, and the time is longer than the permissive side by a factor of two to three.
+
+### 4.7.6 Where the parameter set works
+
+![operating envelope](figures/06_operating_envelope.png)
+
+Two independent walls bound `β` from opposite sides, and the specified point sits between them. Below, `σ*/φ < 1` and a claim earns less than its own fee. Above, `β > 11.8 %` and mining stops being subordinate to the leader path. At the reference traffic the admissible band is **`β ∈ [4.0 %, 11.8 %]`** for a 2× fee margin, and the specified tenth sits in it — nearer the subordination wall than the funding one.
+
+![drain margin](figures/07_drain_margin.png)
+
+Draining the pool inside one epoch needs `T/ρ` claims in every block for a whole epoch: 1,000 against a `MAX_BLOCK_TXS` of 1,024. **The specified point is on the reachable side of that boundary, by 2.4 %.** Nothing in the block format prevents the drain; what prevents it is the reward difficulty controller, which would have to be defeated by two orders of magnitude and held there for seven and a half days. The specification says as much, and the consequence of failure is graceful — claiming stops rather than the pool going negative. It is worth being explicit that this is a controller guarantee and not a structural one.
+
+![blend envelope](figures/08_blend_envelope.png)
+
+The design target — about a minute of one core per message, of order a thousand messages a day — is met at `p/2¹⁹` **on the one-core basis the specification adopts**. On the whole-board basis the same threshold costs 12.3 s and falls out of the band; matching the target there would need `p/2²¹`. §10.1's open question "one core or the whole board?" is exactly those two exponents, and the figure is the argument for settling it explicitly rather than by default.
 
 ## 5. Simulator
 

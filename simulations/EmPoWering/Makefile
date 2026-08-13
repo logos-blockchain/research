@@ -2,8 +2,9 @@ VENV ?= .venv
 PY := $(VENV)/bin/python
 STAMP := $(VENV)/.installed
 CONFIG ?= configs/specified.toml
+FIGURES ?= ../../reports/EmPoWering/tokenomics/figures
 
-.PHONY: install all fee emission rewards blend exhaustion security sweeps lepta verify check pi5 bench-poseidon2 clean
+.PHONY: install all fee emission rewards blend exhaustion security volume sweeps lepta verify check plots pi5 bench-poseidon2 clean
 
 # Stdlib-only package; the venv exists so `make` works identically here and in CI,
 # and re-installs whenever pyproject.toml changes.
@@ -14,6 +15,14 @@ $(STAMP): pyproject.toml
 	@touch $(STAMP)
 
 install: $(STAMP)
+
+# Plotting pulls matplotlib; kept out of the base install so the analyses stay stdlib-only.
+$(VENV)/.plots: pyproject.toml | $(STAMP)
+	$(PY) -m pip install -q -e '.[plots]'
+	@touch $@
+
+plots: $(VENV)/.plots ## the validation figures behind report section 4.7
+	$(PY) -m empowering.plots --config $(CONFIG) --out $(FIGURES)
 
 all: $(STAMP) ## every analysis section against $(CONFIG)
 	$(PY) -m empowering --config $(CONFIG)
@@ -35,6 +44,9 @@ exhaustion: $(STAMP) ## stopping conditions and their margins
 
 security: $(STAMP) ## adversarial stake accumulation during bootstrap
 	$(PY) -m empowering --config $(CONFIG) security
+
+volume: $(STAMP) ## PoW claim share of transaction volume against beta_PoW
+	$(PY) -m empowering --config $(CONFIG) volume
 
 sweeps: $(STAMP) ## the parameter sweeps behind report 4.4.1-4.4.3
 	$(PY) -m empowering --config $(CONFIG) sweep-target sweep-share sweep-rho
