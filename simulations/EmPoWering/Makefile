@@ -5,7 +5,7 @@ CONFIG ?= configs/specified.toml
 FIGURES ?= ../../reports/EmPoWering/tokenomics/figures
 REPORT  ?= ../../reports/EmPoWering/tokenomics/tokenomics-model.md
 
-.PHONY: install all fee emission rewards blend exhaustion security volume sampled fees sweeps lepta verify check report-numbers plots pi5 bench-poseidon2 clean
+.PHONY: install all fee emission rewards blend exhaustion security volume sampled fees sweeps sweeps-full lepta verify check report-numbers plots pi5 bench-poseidon2 clean
 
 # Stdlib-only package; the venv exists so `make` works identically here and in CI,
 # and re-installs whenever pyproject.toml changes.
@@ -57,6 +57,9 @@ fees: $(STAMP) ## the working fee range, and the mixes that produce it
 
 sweeps: $(STAMP) ## the parameter sweeps behind report 4.4.1-4.4.3
 	$(PY) -m empowering --config $(CONFIG) sweep-target sweep-share sweep-rho
+
+sweeps-full: $(STAMP) ## section 6's full sweep programme, all axes
+	$(PY) -m empowering --config $(CONFIG) sweeps-full
 
 lepta: $(STAMP) ## exact-integer confirmation at lepton granularity
 	$(PY) -m empowering.lepta --config $(CONFIG)

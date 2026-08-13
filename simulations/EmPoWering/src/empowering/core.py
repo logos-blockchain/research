@@ -143,6 +143,51 @@ def ramp_trajectory(p: Params, R0: float, years: float, n0: int = 20,
     return rows
 
 
+def peak_adversary_share(p: Params, h: float, honest_stake_frac: float,
+                         d0_frac: float, rows: list[dict] | None = None) -> float:
+    """Highest share of total stake an adversary with hashrate ``h`` reaches over the horizon.
+
+    Mined coins age one epoch before they count, honest miners stake ``honest_stake_frac`` of
+    their winnings, and ``d0_frac`` of supply is already staked at launch. One definition,
+    used by both the section 4.1 table and the section 6 sweeps.
+    """
+    rows = simulate_pool(p) if rows is None else rows
+    adv = pend_a = honest = pend_h = peak = 0.0
+    for r in rows:
+        adv += pend_a
+        honest += pend_h
+        d = p.T * p.N_b * r["sigma"] if r["enabled"] else 0.0
+        pend_a, pend_h = d * h, d * (1 - h) * honest_stake_frac
+        tot = d0_frac * p.S_tge + adv + honest
+        peak = max(peak, adv / tot if tot else 0.0)
+    return peak
+
+
+def adversary_asymptote(h: float, honest_stake_frac: float) -> float:
+    """The limit section 4.1 names: ``h / (h + (1-h)s)``, independent of share and supply."""
+    den = h + (1 - h) * honest_stake_frac
+    return h / den if den else 0.0
+
+
+def reconvergence_blocks(p: Params, step: float = 10.0, tol: float = 0.1,
+                         limit: int = 400) -> int | None:
+    """Blocks for the reward difficulty to recover after the hashrate jumps by ``step``.
+
+    Section 3.6 derives a pole of ``F/P`` and predicts about 22 blocks for a tenfold step.
+    Mean-field, matching that derivation: arrivals are taken at their expectation, so this
+    is the controller's own response and not an arrival-noise measurement (see
+    :mod:`empowering.sampled` for the noisy version).
+    """
+    d_eq = P_FIELD >> p.reward_difficulty_exp
+    d = d_eq
+    for n in range(limit):
+        lam = step * p.T * d / d_eq          # hashrate is `step` times its equilibrium level
+        if abs(lam - p.T) <= tol * p.T:
+            return n
+        d = next_reward_difficulty(d, lam, p)
+    return None
+
+
 def min_endowment_for_ramp(p: Params, years: float,
                            n0: int = 20, horizon_years: float = 20.0) -> float:
     """Smallest R0 (LGO) keeping sigma_e >= phi across a logistic traffic ramp.

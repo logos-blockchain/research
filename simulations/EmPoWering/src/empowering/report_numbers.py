@@ -186,6 +186,21 @@ def build(p: Params) -> list[Claim]:
         Claim("4.9.1", r"\| a full block of transfers \| (" + NUM + r") \|",
               _load_of(p, "full"), 5e-3),
 
+        # --- section 4.10: the sweep programme ---
+        Claim("4.10.1", r"\| \*\*10\*\* \(specified\) \| \*\*(" + NUM + r")\*\*",
+              core.sigma_over_phi(p), 5e-3),
+        Claim("4.10.1", r"\| 50 \| (" + NUM + r") \|", _at_T(p, 50, "ratio"), 5e-3),
+        Claim("4.10.1", r"\| 500 \| (" + NUM + r") \|", _at_T(p, 500, "ratio"), 5e-2),
+        Claim("4.10.1", r"it goes to \*\*(" + NUM + r")×\*\*", _at_T(p, 50, "edge"), 2e-2),
+        Claim("4.10.1", r"claims would need to be \*\*(" + NUM + r") % of every block\*\*",
+              100 * 500 / p.n_tx_ref, 1e-2),
+        Claim("4.10.1", r"noise falls from (" + NUM + r") % to",
+              100 / p.T ** 0.5, 5e-3),
+        Claim("4.10", r"simulation gives exactly (" + NUM + r")", _recon(p), 0),
+        Claim("4.10", r"step \*down\* takes (" + NUM + r") blocks", _recon(p, 0.1), 0),
+        Claim("4.10.2", r"\(0\.51 % → (" + NUM + r") %",
+              100 * _peak_at_R0(p, 0.10), 2e-2),
+
         # --- blend admission (section 0.0 / 4.5) ---
         Claim("0.0", r"~50 s and ~(" + NUM + r") messages/day per core",
               86400 / blend_secs, 2e-2),
@@ -215,6 +230,21 @@ def _bytes_each(p: Params) -> float:
 def _load_of(p: Params, which: str) -> float:
     n = p.n_tx_ref if which == "ref" else p.max_block_txs
     return core.fee_load(p, n)
+
+
+def _at_T(p: Params, T: int, what: str) -> float:
+    from dataclasses import replace
+    q = replace(p, T=T)
+    return core.sigma_over_phi(q) if what == "ratio" else core.builder_edge(q)
+
+
+def _recon(p: Params, step: float = 10.0) -> float:
+    return float(core.reconvergence_blocks(p, step))
+
+
+def _peak_at_R0(p: Params, frac: float) -> float:
+    from dataclasses import replace
+    return core.peak_adversary_share(replace(p, genesis_pool_fraction=frac), 0.33, 1.0, 0.30)
 
 
 def _sampled(p: Params):

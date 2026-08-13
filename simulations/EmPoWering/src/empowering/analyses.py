@@ -304,6 +304,12 @@ def fees(p: Params) -> dict:
                 min_bytes_for_break_even=floor_bytes)
 
 
+def sweeps_full(p: Params) -> dict:
+    """Section 6's sweep programme: every axis, every per-cell metric it asks for."""
+    from .sweeps import report as _report
+    return _report(p)
+
+
 def sweep_target(p: Params) -> dict:
     """Report 4.4.1: the claim target is overhead, not throughput."""
     print("=== Sweep: TARGET_CLAIMS_PER_BLOCK (report 4.4.1) ===\n")
@@ -384,4 +390,4 @@ def sampled(p: Params) -> dict:
 
 ALL = {"fee": fee, "emission": emission, "rewards": rewards,
        "blend": blend, "exhaustion": exhaustion, "security": security, "volume": volume, "sampled": sampled, "fees": fees,
-       "sweep-target": sweep_target, "sweep-share": sweep_share, "sweep-rho": sweep_rho}
+       "sweeps-full": sweeps_full, "sweep-target": sweep_target, "sweep-share": sweep_share, "sweep-rho": sweep_rho}

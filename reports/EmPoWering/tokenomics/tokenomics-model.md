@@ -1013,6 +1013,47 @@ That is the useful form of the answer to "what traffic does this need?": not a t
 
 What the axis does *not* decide is `β`, which is still walled from above by subordination (§4.7.6) — that constraint is on the share, not on the revenue, and no amount of fee income relaxes it.
 
+## 4.10 The sweep programme, run `SIMULATED`
+
+**Intuition.** Everything so far describes one parameter set. The natural next question is how much of it was luck: change a dial and does the picture hold, or was the specified point sitting on a knife edge? This runs §6's list — every axis, and in every cell the six things §6 asks for — so the answer is a table rather than an argument. `make sweeps-full`.
+
+Three columns turn out to be **flat everywhere**, and that is a result rather than an absence of one:
+
+- **Reconvergence is 22 blocks in every cell.** §3.6 predicted "~22" for a tenfold hashrate step from the pole `F/P`; the simulation gives exactly 22, and it does not move with `T`, `β`, `ρ` or `R₀`, because the controller's normalised dynamics contain none of them. (Recovery is asymmetric, as §4.7.5 shows: a tenfold step *down* takes 42 blocks.)
+- **The security column does not move with `T`.** An epoch distributes `ρR` whatever `T` is — `T` cancels out of `T·N_b·σₑ` — so the attacker's share is a property of the pool and the horizon, not of the claim target. This is §3.1's identity showing up where it should.
+- **`σ*/φ` does not move with `ρ` or `R₀`.** The steady state is `F/(T·N_b)`, which contains neither. §3.1's "ρ sets the speed, never the destination" holds numerically.
+
+### 4.10.1 The claim target
+
+| `T` | `σ*/φ` | ramp cover | peak adv | builder edge | drain/block | break-even load | claim share |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **10** (specified) | **5.02** | 209,043× | 0.51 % | **1.124×** | 1,000 ⚠ | 100 | 1.7 % |
+| 50 | 1.00 | 25,764× | 0.51 % | **109×** | 5,000 | 500 | 8.3 % |
+| 100 | 0.50 | never | 0.51 % | n/a | 10,000 | 1,000 | 16.7 % |
+| 500 | 0.10 | never | 0.51 % | n/a | 50,000 | 5,000 | 83.3 % |
+
+⚠ drain reachable inside one epoch (`T/ρ ≤ MAX_BLOCK_TXS`).
+
+**`T = 50` lands almost exactly on break-even at the reference load, and that is where the builder edge explodes.** `σ*/φ = 1.00`, and since the edge is `1 + tip/(σ*/φ − 1)` it goes to **109×** — a builder recovering the tip on its own claims earns two orders of magnitude more than an outside miner. The edge is not a smooth cost of a larger `T`; it is a pole, and `T = 50` sits next to it. That is a sharper argument for the move to 10 than §4.2's, which put the earlier value's edge at 2.5× on a traffic assumption the current set does not carry.
+
+Above 100 the mechanism is simply under water: `σ*/φ < 1` at the reference load, no endowment covers an adoption ramp, and at 500 claims would need to be **83 % of every block**. Raising `T` does buy the one thing the specified set lacks — `T/ρ` passes `MAX_BLOCK_TXS` between 10 and 50, putting the within-epoch drain structurally out of reach — but it buys it at the cost of everything else. **The specified 10 takes margin everywhere and leaves the drain to the controller**, which §3.8 argues is the right trade and §4.8 confirms is not a chance event.
+
+The two `1/T` effects run the other way and are small: arrival noise falls from 31.6 % to 4.5 % (§4.8's A2 case), and the retarget's overshoot from 0.50 % to 0.01 %.
+
+### 4.10.2 The other axes
+
+| axis | `σ*/φ` | peak adv | builder edge | note |
+| --- | --- | --- | --- | --- |
+| `β` 5 → 50 % | 2.51 → 25.12 | 0.51 % flat | 1.331 → 1.021× | linear in `β`; the burn diversion *is* `β` |
+| `ρ` 1/200 → 1/50 | 5.02 flat | 0.42 → 0.54 % | 1.124× flat | only the drain moves: 2,000 → 500 per block |
+| `R₀` 0.5 → 10 % | 5.02 flat | **0.51 → 7.94 %** | 1.124× flat | the one axis where generosity costs security |
+| ramp 1 → 10 yr | — | — | — | endowment needed 1.59 → 4.19 ×10⁻⁸ of supply |
+| `D₀` 0.5 → 30 % | — | **16.08 → 0.51 %** at `h=0.33` | — | dominates the security answer, as §4.1 says |
+
+**`R₀` is the only dial that trades generosity against security**, and §6 anticipated exactly that. Ten times the endowment is roughly sixteen times the attacker's peak share (0.51 % → 7.94 % at `h = 0.33`, `D₀ = 30 %`), because a larger pool is distributed faster in absolute terms and so more of it can be mined inside the horizon. Nothing else on the list moves it. That sharpens §10.2's open question about the size of `R₀`: the cost of a larger endowment is not dilution, it is bootstrap security.
+
+And `D₀` still dominates everything: at `h = 0.33` the peak runs 16.08 % at a half-percent of supply staked against 0.51 % at the 30 % staking target — a factor of thirty, against the factor of sixteen `R₀` buys across its whole range.
+
 ## 5. Simulator
 
 The `empowering` package in `simulations/EmPoWering/`, one module per concern and one `make` target per report section: `make fee` (the claim's fee, §4.3), `make emission` (§3.4), `make rewards` (§4.3–§4.4), `make blend` (§4.5), `make exhaustion` (§3.8, §4.6), `make security` (§4.1), `make volume` (§4.7.2), `make sweeps` (§4.4.1–§4.4.3) and `make plots` (§4.7). Every number lives in `configs/specified.toml`, annotated KNOWN / DERIVED / MEASURED / ASSUMED with citations into the specification tree; nothing is hardcoded in the modules, so a specification change is a one-line edit. `make lepta` re-runs the mechanism in exact integer arithmetic at lepton granularity; `make check LIPS=…` compares the config against the specification tree, constants and prose margins alike. Mirrors the merged code, not the proposal.
@@ -1048,7 +1089,7 @@ Re-run 2026-08-11 under fee-inflow funding, at the §3.7 parameter set.
 | `ρ` | 0.5 %, 1 %, 2 % | speed only, never destination — but it scales `R_min` inversely |
 | `D₀` | 0.5 %, 5 %, 30 % | honest stake at launch — **§4.1 shows this dominates security** |
 
-`T` is no longer a sweep axis: the specification sets it to 10. Its consequences are reported instead as the second table in §4.3.
+**This programme is now run — see §4.10** (`make sweeps-full`), which reports every cell on every axis. `T` is swept there too, over {10, 50, 100, 500}: the specification sets 10, but the consequences of the earlier values are worth seeing rather than asserting, and §4.10.1 finds a pole in the builder edge next to `T = 50` that the prose estimate had missed.
 
 **Report per cell:** σ*/φ; whether the ramp is covered and with what margin; peak attacker share and the §4.1 asymptote; builder edge at steady state (§4.2); blocks to reconverge after a 10× hashrate step (§3.6 predicts ~22); the fraction of fee revenue diverted from the burn (§3.4).
 
