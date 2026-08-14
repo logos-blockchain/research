@@ -85,7 +85,7 @@ def build(p: Params) -> list[Claim]:
               p.claim_tx_bytes, 0),
         Claim("4.3", r"\*\*encoded `SignedMantleTx`\*\* \| \*\*\d+ B\*\* \| \*\*(" + NUM + r")\*\*",
               p.claim_tx_gas, 0),
-        Claim("4.3", r"`306 · 7 \+ 646 · 7 = (" + NUM + r")` price units",
+        Claim("4.3", r"`306 \* 7 \+ 646 \* 7 = (" + NUM + r")` price units",
               p.phi * p.base_units_per_lgo, 0),
         Claim("4.3", r"or (" + NUM + r") at the bare floor",
               p.claim_fee(p.price_floor) * p.base_units_per_lgo, 0),
@@ -104,7 +104,7 @@ def build(p: Params) -> list[Claim]:
         Claim("3.8", r"that is `target_claims_per_block/distribution_rate = (" + NUM + r")` claims",
               p.T * p.rho_den / p.rho_num, 0),
         # the hard edge is on rho itself: drain is reachable once rho >= T/MAX_BLOCK_TXS
-        Claim("4.4.3", r"`ρ < T/MAX_BLOCK_TXS = (" + NUM + r") ?%`",
+        Claim("4.4.3", r"`distribution_rate < target_claims_per_block / MAX_BLOCK_TXS = (" + NUM + r") ?%`",
               100 * p.T / p.max_block_txs, 5e-3),
 
         # --- emission (section 3.4 / 0.1) ---
@@ -120,19 +120,19 @@ def build(p: Params) -> list[Claim]:
         Claim("4.7.1", r"\| 7 \(resting\) \| 1× \| (" + NUM + r") \|", r_star, 5e-3),
         Claim("4.7.1", r"\| 7 \(resting\) \| 1× \| [\d,]+ \| [\d,]+ \| \*\*(" + NUM + r")\*\*",
               yrs_to_2x, 1e-2),
-        Claim("4.7.2", r"`ψβ = (" + NUM + r") ?%` of transactions", 100 * p.psi * p.beta, 5e-3),
+        Claim("4.7.2", r"`fee_ratio \* pow_share = (" + NUM + r") ?%` of transactions", 100 * p.psi * p.beta, 5e-3),
         Claim("4.7.2", r"the break-even traffic is (" + NUM + r") tx/block",
               p.T / (p.psi * p.beta), 5e-3),
-        Claim("4.7.2", r"the network operates at `v = (" + NUM + r") ?%`",
+        Claim("4.7.2", r"the network operates at `claim_share = (" + NUM + r") ?%`",
               100 * p.T / p.n_tx_ref, 5e-3),
         Claim("4.7.2", r"a \*\*(" + NUM + r")× margin\*\* below the ceiling",
               core.sigma_over_phi(p), 5e-3),
         Claim("4.7.3", r"break-even traffic is 597 tx/block against a reference of (" + NUM + r")",
               p.n_tx_ref, 0),
         Claim("4.7.4", r"\*\*(" + NUM + r")× the 5-year minimum\*\*", p.R0 / ramp5, 1e-2),
-        Claim("4.7.6", r"admissible band is \*\*`β ∈ \[(" + NUM + r") ?%",
+        Claim("4.7.6", r"admissible band is \*\*`pow_share in \[(" + NUM + r") ?%",
               100 * 2 * p.T / (p.psi * p.n_tx_ref), 1e-2),
-        Claim("4.7.6", r"needs `T/ρ` claims in every block for a whole epoch: (" + NUM + r")",
+        Claim("4.7.6", r"claims in every block for a whole epoch: (" + NUM + r")",
               p.T * p.rho_den / p.rho_num, 0),
 
 
@@ -203,7 +203,7 @@ def build(p: Params) -> list[Claim]:
               1e7 * core.r_star(p) / p.S_tge, 5e-3),
 
         # --- section 4.4.2: subordination flows at genesis vs steady state ---
-        Claim("4.4.2", r"epoch-0 distribution is `ρR₀` = \*\*(" + NUM + r") LGO\*\*",
+        Claim("4.4.2", r"epoch-0 distribution is `distribution_rate \* genesis_pool` = \*\*(" + NUM + r") LGO\*\*",
               p.rho_num / p.rho_den * p.genesis_pool_fraction * p.S_tge, 1e-6),
         Claim("4.4.2", r"about \*\*(" + NUM + r") LGO\*\*\. On fees alone", _leader_fees(p), 2e-2),
         Claim("4.4.2", r"out-earns the leader path \*\*(" + NUM + r")-fold\*\*",
