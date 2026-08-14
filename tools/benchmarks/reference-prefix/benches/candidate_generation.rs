@@ -18,7 +18,8 @@
 
 use criterion::{Criterion, Throughput, criterion_group, criterion_main};
 use reference_prefix_bench::{
-    AttackerHasher, mantle_txhash, minimal_transfer_tx, sample_preimage_len, sample_tx_encoded_len,
+    AttackerHasher, admit_tx, mantle_txhash, minimal_transfer_tx, sample_preimage_len,
+    sample_tx_encoded_len, signature_verification_inputs, verify_signature, wire_encoded_tx,
 };
 use std::hint::black_box;
 
@@ -66,5 +67,34 @@ fn candidate_generation(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, candidate_generation);
+/// What a validator actually pays to admit one transaction to its mempool.
+///
+/// This exists to test a specific claim rather than to set the parameter: an
+/// earlier experiment measured mempool flooding at ~0.3 tx/s, and it is worth
+/// knowing whether the protocol's own per-transaction cost can account for
+/// that. It cannot be a reproduction of that experiment — no node, network or
+/// harness is involved here — but it does bound the CPU side of it.
+fn mempool_admission(c: &mut Criterion) {
+    let bytes = wire_encoded_tx();
+    eprintln!("wire-encoded SignedMantleTx: {} bytes", bytes.len());
+
+    let mut group = c.benchmark_group("mempool_admission");
+    group.throughput(Throughput::Elements(1));
+
+    group.bench_function("deserialize_and_preverify", |b| {
+        b.iter(|| black_box(admit_tx(black_box(&bytes))));
+    });
+
+    // Not on the admission path — this runs at block application — but it is
+    // the most expensive per-transaction cryptography in the pipeline, so it
+    // bounds the protocol's per-transaction cost from above.
+    let (pks, hash, sig) = signature_verification_inputs();
+    group.bench_function("zk_multisig_verify", |b| {
+        b.iter(|| black_box(verify_signature(black_box(&pks), &hash, &sig)));
+    });
+
+    group.finish();
+}
+
+criterion_group!(benches, candidate_generation, mempool_admission);
 criterion_main!(benches);

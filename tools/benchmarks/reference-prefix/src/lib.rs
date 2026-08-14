@@ -25,6 +25,7 @@ use std::{sync::LazyLock, time::Duration};
 use lb_codec::{BinaryDecode as _, BinaryEncode as _};
 use lb_core::{
     block::{Block, BlockTransactions, Proposal},
+    codec::{DeserializeOp as _, SerializeOp as _},
     crypto::{Digest as _, Hasher},
     header::Header,
     mantle::{
@@ -37,7 +38,9 @@ use lb_core::{
     proofs::leader_proof::Groth16LeaderProof,
 };
 use lb_cryptarchia_engine::Slot;
-use lb_key_management_system_keys::keys::{Ed25519Key, Ed25519Signature, ZkKey, ZkPublicKey};
+use lb_key_management_system_keys::keys::{
+    Ed25519Key, Ed25519Signature, ZkKey, ZkPublicKey, ZkSignature,
+};
 
 /// `COMPRESSED_PROOF_SIZE` — the compressed Groth16 proof inside a
 /// `Groth16LeaderProof`.
@@ -358,6 +361,70 @@ pub fn honest_block_and_proposal(n: usize) -> (Vec<Tx>, Proposal, Header) {
     let proposal = block.to_proposal();
 
     (transactions, proposal, header)
+}
+
+// ---------------------------------------------------------------------------
+// Mempool admission — what a node pays per incoming transaction
+// ---------------------------------------------------------------------------
+
+/// One sample transaction serialized exactly as it crosses the wire.
+///
+/// # Panics
+///
+/// If serialization fails.
+#[must_use]
+pub fn wire_encoded_tx() -> Vec<u8> {
+    let tx = signed_tx(0, &sample_op_proof());
+    tx.to_bytes()
+        .expect("a sample transaction must serialize")
+        .to_vec()
+}
+
+/// The pieces needed to verify the sample transaction's ZK multi-signature.
+///
+/// # Panics
+///
+/// If signing fails.
+#[must_use]
+pub fn signature_verification_inputs() -> (Vec<ZkPublicKey>, lb_groth16::Fr, ZkSignature) {
+    let tx = minimal_transfer_tx(0);
+    let signature = ZkKey::multi_sign(&[input_key()], &tx.hash().to_fr())
+        .expect("signing the sample transaction must succeed");
+    (vec![input_key().to_public_key()], tx.hash().to_fr(), signature)
+}
+
+/// Verify the sample transaction's ZK multi-signature — the most expensive
+/// per-transaction cryptography in the pipeline.
+///
+/// This is what `TransferOp::verify` calls
+/// (`ZkPublicKey::verify_multi`). It runs at block application rather than at
+/// mempool admission, so it is not part of [`admit_tx`]; it is measured
+/// separately so that the *upper* bound on per-transaction protocol cost is
+/// known, not just the admission cost.
+#[must_use]
+pub fn verify_signature(pks: &[ZkPublicKey], hash: &lb_groth16::Fr, sig: &ZkSignature) -> bool {
+    ZkPublicKey::verify_multi(pks, hash, sig)
+}
+
+/// Admit one transaction to the mempool, from wire bytes.
+///
+/// This is the real ingest path: the mempool's item type is
+/// `SignedMantleTx<Preverified>`, and that type's `Deserialize` impl decodes the
+/// transaction and then runs `preverify()` — which checks proof/op arity,
+/// computes `mantle_txhash`, and runs each operation's stateless checks.
+///
+/// Worth being precise about what this does *not* include, because it bounds
+/// what the number can be used to argue. Signature verification is **not** on
+/// this path: for a `Transfer`, `preverify` only validates structure, and the
+/// ZK multi-signature is checked later by the stateful `verify`
+/// (`ZkPublicKey::verify_multi`), which needs the UTXO set and runs at block
+/// application. So this measures admission cost, not total validation cost.
+///
+/// # Panics
+///
+/// If the bytes do not deserialize, which would mean the wire format changed.
+pub fn admit_tx(bytes: &[u8]) -> Tx {
+    Tx::from_bytes(bytes).expect("a sample transaction must deserialize and preverify")
 }
 
 // ---------------------------------------------------------------------------

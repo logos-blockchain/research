@@ -1,47 +1,73 @@
-    Finished `bench` profile [optimized] target(s) in 0.26s
+    Finished `bench` profile [optimized] target(s) in 0.22s
      Running benches/candidate_generation.rs (target/release/deps/candidate_generation-4dc49b8274b424c2)
 Gnuplot not found, using plotters backend
 sample MantleTx: 76 bytes encoded, 92 bytes hashed (b"MANTLE_TXHASH_V1" || encode(tx))
 Benchmarking candidate_generation/node_path
 Benchmarking candidate_generation/node_path: Warming up for 3.0000 s
-Benchmarking candidate_generation/node_path: Collecting 100 samples in estimated 5.0014 s (12M iterations)
+Benchmarking candidate_generation/node_path: Collecting 100 samples in estimated 5.0004 s (12M iterations)
 Benchmarking candidate_generation/node_path: Analyzing
 candidate_generation/node_path
-                        time:   [411.21 ns 412.83 ns 414.38 ns]
-                        thrpt:  [2.4132 Melem/s 2.4223 Melem/s 2.4318 Melem/s]
+                        time:   [416.19 ns 417.37 ns 418.48 ns]
+                        thrpt:  [2.3896 Melem/s 2.3960 Melem/s 2.4028 Melem/s]
                  change:
-                        time:   [-0.6505% -0.2152% +0.1394%] (p = 0.31 > 0.05)
-                        thrpt:  [-0.1392% +0.2157% +0.6548%]
-                        No change in performance detected.
-Found 15 outliers among 100 measurements (15.00%)
-  2 (2.00%) high mild
-  13 (13.00%) high severe
+                        time:   [+0.8332% +1.1710% +1.5005%] (p = 0.00 < 0.05)
+                        thrpt:  [-1.4784% -1.1575% -0.8264%]
+                        Change within noise threshold.
 Benchmarking candidate_generation/attacker_patched
 Benchmarking candidate_generation/attacker_patched: Warming up for 3.0000 s
-Benchmarking candidate_generation/attacker_patched: Collecting 100 samples in estimated 5.0006 s (30M iterations)
+Benchmarking candidate_generation/attacker_patched: Collecting 100 samples in estimated 5.0001 s (31M iterations)
 Benchmarking candidate_generation/attacker_patched: Analyzing
 candidate_generation/attacker_patched
-                        time:   [161.37 ns 161.48 ns 161.65 ns]
-                        thrpt:  [6.1863 Melem/s 6.1926 Melem/s 6.1968 Melem/s]
+                        time:   [160.84 ns 160.87 ns 160.90 ns]
+                        thrpt:  [6.2152 Melem/s 6.2163 Melem/s 6.2174 Melem/s]
                  change:
-                        time:   [-0.0152% +1.1831% +4.3122%] (p = 0.27 > 0.05)
-                        thrpt:  [-4.1340% -1.1693% +0.0152%]
+                        time:   [-3.6911% -1.5381% -0.3568%] (p = 0.10 > 0.05)
+                        thrpt:  [+0.3581% +1.5621% +3.8326%]
                         No change in performance detected.
-Found 7 outliers among 100 measurements (7.00%)
-  2 (2.00%) high mild
-  5 (5.00%) high severe
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low mild
+  6 (6.00%) high mild
+  2 (2.00%) high severe
 Benchmarking candidate_generation/blake2b_only
 Benchmarking candidate_generation/blake2b_only: Warming up for 3.0000 s
-Benchmarking candidate_generation/blake2b_only: Collecting 100 samples in estimated 5.0002 s (30M iterations)
+Benchmarking candidate_generation/blake2b_only: Collecting 100 samples in estimated 5.0003 s (30M iterations)
 Benchmarking candidate_generation/blake2b_only: Analyzing
 candidate_generation/blake2b_only
-                        time:   [167.21 ns 169.93 ns 174.40 ns]
-                        thrpt:  [5.7339 Melem/s 5.8847 Melem/s 5.9805 Melem/s]
+                        time:   [166.21 ns 166.27 ns 166.36 ns]
+                        thrpt:  [6.0111 Melem/s 6.0143 Melem/s 6.0166 Melem/s]
                  change:
-                        time:   [-0.0079% +0.6494% +1.6811%] (p = 0.21 > 0.05)
-                        thrpt:  [-1.6533% -0.6452% +0.0079%]
-                        No change in performance detected.
-Found 11 outliers among 100 measurements (11.00%)
-  2 (2.00%) high mild
-  9 (9.00%) high severe
+                        time:   [-2.0247% -0.9269% -0.2714%] (p = 0.02 < 0.05)
+                        thrpt:  [+0.2722% +0.9356% +2.0666%]
+                        Change within noise threshold.
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) low mild
+  2 (2.00%) high severe
+
+wire-encoded SignedMantleTx: 212 bytes
+Benchmarking mempool_admission/deserialize_and_preverify
+Benchmarking mempool_admission/deserialize_and_preverify: Warming up for 3.0000 s
+Benchmarking mempool_admission/deserialize_and_preverify: Collecting 100 samples in estimated 5.0024 s (3.5M iterations)
+Benchmarking mempool_admission/deserialize_and_preverify: Analyzing
+mempool_admission/deserialize_and_preverify
+                        time:   [1.4409 µs 1.4431 µs 1.4450 µs]
+                        thrpt:  [692.03 Kelem/s 692.97 Kelem/s 693.99 Kelem/s]
+                 change:
+                        time:   [-1.5532% -1.3170% -1.0839%] (p = 0.00 < 0.05)
+                        thrpt:  [+1.0958% +1.3345% +1.5777%]
+                        Performance has improved.
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) low mild
+Benchmarking mempool_admission/zk_multisig_verify
+Benchmarking mempool_admission/zk_multisig_verify: Warming up for 3.0000 s
+Benchmarking mempool_admission/zk_multisig_verify: Collecting 100 samples in estimated 5.2969 s (1100 iterations)
+Benchmarking mempool_admission/zk_multisig_verify: Analyzing
+mempool_admission/zk_multisig_verify
+                        time:   [4.5831 ms 4.6866 ms 4.8594 ms]
+                        thrpt:  [205.79  elem/s 213.37  elem/s 218.19  elem/s]
+                 change:
+                        time:   [+2.2500% +4.9189% +8.6080%] (p = 0.00 < 0.05)
+                        thrpt:  [-7.9258% -4.6883% -2.2005%]
+                        Performance has regressed.
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
 

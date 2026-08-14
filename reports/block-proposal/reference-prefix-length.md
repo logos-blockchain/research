@@ -32,7 +32,7 @@ and every number in this report can be re-derived by running it.
 | Review point | Where | Status |
 |---|---|---|
 | "Set a threat model and start the analysis from there" | [§1](#1-threat-model) | Done — stated before any measurement, with generation and propagation priced separately |
-| Hansie's mempool flood reached ~0.3 tx/s | [§1b](#1b-propagation-and-why-hansies-03-txs-does-not-bound-this) | Addressed directly: the attack needs **20 transactions**, not volume, so 0.3 tx/s is ~67 seconds of injection, not a bound |
+| Hansie's mempool flood reached ~0.3 tx/s | [§1b](#1b-propagation-and-why-hansies-03-txs-does-not-bound-this) | Addressed directly: the attack needs **20 transactions**, not volume, so 0.3 tx/s is ~67 seconds of injection, not a bound. Also measured against the current code — admission costs **1.44 µs/tx**, so 0.3 tx/s is ~2 million× off and cannot be a protocol limit |
 | "How many valid transactions we can generate locally per second on a single core" | [§4](#4-candidate-generation-rate-r_gen) | Measured: **6.19 × 10⁶ /s** on one M3 core, via the real encode + Blake2b path |
 | "How many cores (or GPUs) one needs to make the reconstruction fail" | [§7](#how-much-hardware-in-the-units-the-question-was-asked-in) | Table in cores and GPUs, against a 1-hour and 1-day deadline |
 | "Show how reconstruction time grows on a single machine with the number of colliding transactions" | [§6](#6-reconstruction-latency--the-defenders-side) | Measured curve + plot, k = 0…15, at two block sizes |
@@ -117,6 +117,43 @@ parallelises across nodes, applied to a payload of 20 transactions rather than
 to the grinding. **Generation is the binding constraint, and this report prices
 it on its own.** Propagation only ever makes the attack easier than generation
 alone implies.
+
+#### Can 0.3 tx/s be reproduced against the current code?
+
+Not the experiment itself — that needed a node, a network and a harness, none of
+which are reconstructable from the figure alone, and it is not known whether it
+measured submission, admission, or inclusion. What *can* be measured is the
+protocol's own per-transaction cost, which bounds any explanation of it. On the
+same M3, against the same pinned commit:
+
+| step | where it runs | cost | single-core ceiling |
+|---|---|---|---|
+| mempool admission — decode + `preverify` | on every incoming tx | **1.44 µs** | ~693,000 tx/s |
+| ZK multi-signature verify | block application, **not** admission | **4.69 ms** | ~213 tx/s |
+
+Admission is cheap because signature verification is not on that path: the
+mempool's item type is `SignedMantleTx<Preverified>`, whose `Deserialize` runs
+`preverify()`, and for a `Transfer` that only checks structure. The ZK proof is
+checked later by the stateful `verify` (`ZkPublicKey::verify_multi`, a Groth16
+verification via `lb_zksign::verify`), which needs the UTXO set.
+
+So the observed 0.3 tx/s sits **~700× below** even the most expensive
+per-transaction cryptography in the pipeline, and **~2 million× below** the
+admission path it would most naturally be attributed to. Whatever produced that
+figure, it was not the protocol's CPU cost — it points at the harness or the
+transport (sequential submission round-trips, an RPC path, rate limiting, or
+input funding), not at a limit an adversary would inherit. That is the concrete
+reason it cannot be carried into a security argument.
+
+> **A finding outside this study's scope, worth raising separately.** At 4.69 ms
+> per transaction, verifying a *full* 1024-transaction block costs ~4.8 s of
+> single-core work against a 1 s slot. Whatever that implies for throughput, it
+> also means realistic blocks are likely far smaller than `MAX_BLOCK_TXS` — which
+> makes the **n = 128** reconstruction curve in [§6](#6-reconstruction-latency--the-defenders-side)
+> the more representative one (crossover k = 13, not k = 10), and correspondingly
+> raises the attacker's bar. This is stated as an observation, not folded into
+> the recommendation: it is single-core and the node may parallelise or batch,
+> which was not investigated here.
 
 **The decisive reason, though, is not that propagation is fast — it is that `L`
 does not affect it.** Whatever the prefix length, a colliding pair is still two
