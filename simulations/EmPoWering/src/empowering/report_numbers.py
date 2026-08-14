@@ -170,7 +170,7 @@ def build(p: Params) -> list[Claim]:
         # --- section 0.4: the adopted rho = 1/200, and section 3.7's launch row ---
         Claim("0.4", r"falls from 0\.51 % to \*\*(" + NUM + r") ?%\*\*",
               100 * core.peak_adversary_share(p, p.adversary_h, 1.0, 0.30), 2e-2),
-        Claim("0.4", r"\$\\sigma_0\$ = (" + NUM + r")× the fee",
+        Claim("0.4", r"`opening_reward` = (" + NUM + r")× the fee",
               core.sigma(p.R0, p) / p.phi, 5e-3),
         Claim("0.4", r"half-life is (" + NUM + r") epochs",
               math.log(2) / -math.log(1 - p.rho_num / p.rho_den), 1e-2),

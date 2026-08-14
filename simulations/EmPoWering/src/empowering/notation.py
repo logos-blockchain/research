@@ -12,7 +12,11 @@ So it is checked rather than trusted. Three directions, all of which must hold:
 A. no symbol -- Greek, or a lone Latin letter -- inside a code span;
 B. no symbol loose in prose, outside math;
 C. every name used in a code span traceable to section 1.0, the config, the model, or
-   the specification's own identifier inventory.
+   the specification's own identifier inventory;
+D. no *bare* symbol in prose even when wrapped in math -- ``$\rho$`` mid-sentence beside
+   ``distribution_rate`` is the mixing this contract exists to prevent. Inline
+   *relations* are welcome, and each is paired with its code sibling; a lone symbol is
+   not a relation.
 
 Run as ``make notation``. Failure prints the offending spans, not just a count, because
 the fix is always to rewrite one of them.
@@ -67,6 +71,31 @@ def declared_names(text: str) -> set[str]:
     return names
 
 
+def prose_math(text: str) -> list[tuple[int, str]]:
+    """Every inline ``$…$`` span in running prose, with its line number.
+
+    Skips fences, table rows and display equations -- all of which may legitimately hold
+    symbols -- and section 1.0 itself, which is the mapping. Currency is not math: an
+    unescaped ``$5`` would otherwise pair with the next dollar sign and read as a formula,
+    so the report escapes those and this skips what is left.
+    """
+    lines = text.split("\n")
+    lo = next(i for i, l in enumerate(lines) if l.startswith("### 1.0 Notation"))
+    hi = next(i for i in range(lo + 1, len(lines)) if lines[i].startswith("### "))
+    out, in_fence = [], False
+    for i, line in enumerate(lines):
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence or line.lstrip().startswith("|") or line.strip().startswith("$$"):
+            continue
+        if lo <= i < hi:
+            continue
+        for m in re.finditer(r"(?<!\\)\$([^$\n]+?)(?<!\\)\$", line):
+            out.append((i + 1, m.group(1)))
+    return out
+
+
 def prose_only(text: str) -> str:
     """The document with code spans, math, fences and tables removed."""
     body = re.sub(r"```.*?```", "", text, flags=re.S)
@@ -119,6 +148,31 @@ def run(report: Path, config: Path) -> int:
         )
     else:
         print(f"  PASS  all {len(used)} names traceable ({len(declared)} declared in §1.0)")
+
+    # --- D. inline math in prose must be a relation, never a lone symbol ---------------
+    RELATION = re.compile(r"[=<>≤≥]|\\iff|\\Longrightarrow|\\ast\s*=|[+\-/]")
+    bare = [(ln, x) for ln, x in prose_math(text) if not RELATION.search(x)]
+    checks += 1
+    if bare:
+        for ln, x in bare:
+            failures.append(f"line {ln}: bare symbol ${x}$ in prose -- use its name")
+    else:
+        total = len(prose_math(text))
+        print(f"  PASS  all {total} inline math spans in prose are relations, not lone symbols")
+
+    # A dollar amount left unescaped pairs with the next dollar sign and renders the prose
+    # between them as a formula. Cheap to check, and invisible until someone reads the page.
+    money = [
+        m.group(0)
+        for line in text.split("\n")
+        if not line.lstrip().startswith("|")
+        for m in re.finditer(r"(?<!\\)\$\d[\d.,]*", line)
+    ]
+    checks += 1
+    if money:
+        failures.append(f"unescaped currency would render as math: {money} -- write \\$")
+    else:
+        print("  PASS  every dollar amount escaped, so none of it renders as math")
 
     print()
     if failures:
