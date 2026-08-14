@@ -494,10 +494,38 @@ Two independent checks that the size column is right: at L = 8 it reproduces
 The pending cells move the argument in one direction only. The RPi5's
 per-combination cost is higher than the M3's, so its slot crossover `k` is
 **lower**, so the `$ to stall rpi5` column will be **lower** than the mac
-column at every `L` — the attack gets *cheaper*, never dearer. The RPi5 data can
-therefore strengthen the case for a longer prefix but cannot weaken it. The
-recommendation below is safe to act on now and should be re-checked, not
-re-derived, once the Pi numbers land.
+column at every `L` — the attack gets *cheaper*, never dearer.
+
+**But it moves the numbers very little, and the reason is worth stating because
+it is what makes this recommendation robust.** The two axes scale completely
+differently:
+
+* Attacker cost grows as **√k** in the number of colliding pairs. Even if the
+  Pi's crossover came out at k = 5 — half the M3's — the attack would get only
+  √(10/5) ≈ 1.41× cheaper. A drop to k = 8, which is the more likely outcome,
+  is worth about **11%**.
+* Attacker cost grows as **2^(8L/2)** in the prefix length. Every 2-byte step in
+  `L` is a factor of **256**.
+
+So one step in `L` outweighs any plausible change in `k` by more than two orders
+of magnitude. The Pi cannot move the decision between 14 and 16; it would take a
+machine roughly 65,000× slower than the M3 at reconstruction to shift the
+crossover by a single 2-byte step. The RPi5 run is therefore a **confirmation
+and a completeness requirement, not a derivation** — the recommendation is safe
+to act on now.
+
+What the Pi run is genuinely for: it is the target validator class, so it
+establishes the *absolute* headroom in normal operation (k = 0), it satisfies
+the review's explicit "on a single machine RPi5" condition, and it is where a
+surprise would show up if there is one — a far worse than expected slowdown, or
+thermal throttling under the longer runs.
+
+One cross-check to apply when the data lands: **`birthday.csv` should be
+identical between `mac/` and `rpi5/` except for the rate column.** The nonce
+sequence and the hashes are deterministic, so the number of candidates drawn
+before each collision cannot legitimately differ between machines. If it does,
+the harness is misbehaving on one of them and no other number from that run
+should be trusted.
 
 ---
 
