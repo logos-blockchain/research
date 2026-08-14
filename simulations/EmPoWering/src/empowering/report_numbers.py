@@ -112,7 +112,7 @@ def build(p: Params) -> list[Claim]:
         Claim("0.1", r"emission cap at ~(" + NUM + r") lepta/gas", deflation, 5e-3),
         Claim("0.1", r"lepta/gas, (" + NUM + r")× the resting level",
               deflation / p.price_resting, 5e-3),
-        Claim("0.1", r"`φ` at the resting floor is (" + NUM + r") lepta",
+        Claim("0.1", r"`claim_fee` at the resting floor is (" + NUM + r") lepta",
               p.phi * p.base_units_per_lgo, 0),
 
         # --- section 0.3: the corrected figures for the superseded sections ---
@@ -199,9 +199,9 @@ def build(p: Params) -> list[Claim]:
               core.sigma_over_phi(p) * p.phi * p.base_units_per_lgo, 5e-3),
         Claim("3.7", r"endowment is \*\*(" + NUM + r")×\*\* that", p.R0 / core.r_star(p), 5e-3),
         Claim("4.1", r"distributes \*\*(" + NUM + r") %\*\* of supply", _distributed_pct(p), 2e-2),
-        Claim("4.4", r"floor is `R_min` = (" + NUM + r")×10⁻⁸",
+        Claim("4.4", r"floor is `pool_floor` = (" + NUM + r")×10⁻⁸",
               1e8 * core.r_min(p) / p.S_tge, 5e-3),
-        Claim("4.4.3", r"\| `R\*` at the reference traffic \| (" + NUM + r")×10⁻⁷",
+        Claim("4.4.3", r"\| `steady_pool` at the reference traffic \| (" + NUM + r")×10⁻⁷",
               1e7 * core.r_star(p) / p.S_tge, 5e-3),
 
         # --- section 4.4.2: subordination flows at genesis vs steady state ---
@@ -226,8 +226,8 @@ def build(p: Params) -> list[Claim]:
               blend_attempts, 5e-3, note="optional: phrasing varies"),
 
         # --- the pieces section 4.7.1 quotes about the floor ---
-        Claim("4.7.1", r"`R\*` \((" + NUM + r")\) sits above `R_min`", r_star, 5e-3),
-        Claim("4.7.1", r"sits above `R_min` \((" + NUM + r")\)", r_min, 5e-3),
+        Claim("4.7.1", r"`steady_pool` \((" + NUM + r")\) sits above `pool_floor`", r_star, 5e-3),
+        Claim("4.7.1", r"sits above `pool_floor` \((" + NUM + r")\)", r_min, 5e-3),
     ]
 
 

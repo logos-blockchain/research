@@ -10,14 +10,14 @@ The specification adopts **ρ = 1/200** (was 1/100), on this document's own anal
 
 - **It closes §3.8's within-epoch drain by construction** — 2,000 claims per block against a `MAX_BLOCK_TXS` of 1,024 — and stays closed up to a doubling of block capacity, where the (11, 11 %) route reopens at 1,101. What was the one controller-dependent guarantee in the design is now structural.
 - **It improves bootstrap security**: the same endowment distributes at half the rate, so the peak adversarial stake share falls from 0.51 % to **0.42 %** (`h = 0.33`, `D₀ = 30 %`), and the opening over-payment halves (σ₀ = 173,681× the fee, was 347,361×).
-- **It spends no live margin**: `σ*/φ` = 5.02, the builder edge, the break-even load and the claim-share ceiling are all `ρ`-free; β stays at 10 %, keeping the subordination headroom and no reliance on the unset leader share; `T` stays at 10, keeping every §4.4.1 argument.
+- **It spends no live margin**: `reward_over_fee` = 5.02, the builder edge, the break-even load and the claim-share ceiling are all `distribution_rate`-free; β stays at 10 %, keeping the subordination headroom and no reliance on the unset leader share; `target_claims_per_block` stays at 10, keeping every §4.4.1 argument.
 - **Its one cost is the response lag**, 2.1 → 4.1 years — and the lag binds only once the pool is fee-funded, which at the specified endowment and resting prices is ~43 years out (§4.7.1). The spec's other two stated costs of a smaller ρ (reserve and floor, once ~1 % of supply) were voided by the Units decision: both are now ~10⁻⁷ of supply at either value.
 
-Consequences worth naming: the pool's half-life is 138 epochs ≈ 2.8 years (was 69 ≈ 1.4); the reserve `R*` is 1,446 LGO and the floor `R_min` 288; the descent to the fee-funded regime takes ~43 years at the resting price (0.3 at the deflation threshold); the endowment sustains claiming for ~49 years with no traffic at all; and §4.11's window becomes (5.12, 11.76], which **contains the specified T = 10** — the (11, 11 %) observation is discharged rather than adopted. Figures in §§0.0–0.3 are at the pre-change 1/100 and are kept as the historical record.
+Consequences worth naming: the pool's half-life is 138 epochs ≈ 2.8 years (was 69 ≈ 1.4); the reserve `steady_pool` is 1,446 LGO and the floor `pool_floor` 288; the descent to the fee-funded regime takes ~43 years at the resting price (0.3 at the deflation threshold); the endowment sustains claiming for ~49 years with no traffic at all; and §4.11's window becomes (5.12, 11.76], which **contains the specified T = 10** — the (11, 11 %) observation is discharged rather than adopted. Figures in §§0.0–0.3 are at the pre-change 1/100 and are kept as the historical record.
 
 ## 0.3 Addendum — three conclusions the Units decision inverted (2026-08-13; figures herein at the then-specified ρ = 1/100)
 
-§0.1 settled the denomination at 1 LOGOS = 10⁹ lepta. That moved `φ`, and with it the pool's fixed point `R* = β·N_b·n_tx·φ̄/ρ`, down by six orders of magnitude — while `R₀` stayed a fraction of *supply* and did not move at all. §0.1 records the immediate consequence in one line ("at floor prices `R₀` vastly exceeds `R*` and the reward decays from a generous opening"). **This addendum works out what that does to three sections whose conclusions were computed when `R₀` sat at the fixed point.** All three now say the opposite of what the model gives. The mechanism is unchanged; only the parameter set moved beneath them.
+§0.1 settled the denomination at 1 LOGOS = 10⁹ lepta. That moved `claim_fee`, and with it the pool's fixed point `R* = β·N_b·n_tx·φ̄/ρ`, down by six orders of magnitude — while `genesis_pool` stayed a fraction of *supply* and did not move at all. §0.1 records the immediate consequence in one line ("at floor prices `genesis_pool` vastly exceeds `steady_pool` and the reward decays from a generous opening"). **This addendum works out what that does to three sections whose conclusions were computed when `genesis_pool` sat at the fixed point.** All three now say the opposite of what the model gives. The mechanism is unchanged; only the parameter set moved beneath them.
 
 `R₀/R* = 69,153` at the resting price, against the `R₀ ≈ R*` §3.7 assumes.
 
@@ -32,9 +32,9 @@ Consequences worth naming: the pool's half-life is 138 epochs ≈ 2.8 years (was
 | 1460 | 30.00 | 34,456 | 5.17× |
 | ∞ | — | 33,474 | **5.02×** |
 
-The reward opens at 347,361× the fee and decays to 5.02×, reaching within a factor of two of the fixed point after about 23 years (§4.7.1, which also shows the descent is a property of the *price level* — 2.3 years at the deflation-threshold price — rather than of the mechanism). §3.7's structural results are untouched and still hold: `T` and `N_b` vanish from the pool dynamics, `σ*` contains no ρ, and ρ sets the speed and never the destination.
+The reward opens at 347,361× the fee and decays to 5.02×, reaching within a factor of two of the fixed point after about 23 years (§4.7.1, which also shows the descent is a property of the *price level* — 2.3 years at the deflation-threshold price — rather than of the mechanism). §3.7's structural results are untouched and still hold: `target_claims_per_block` and `blocks_per_epoch` vanish from the pool dynamics, `steady_reward` contains no ρ, and ρ sets the speed and never the destination.
 
-**§4.2's builder-edge shape is inverted.** §4.2(c) reasons that the endowment "sits below" the fixed point, so the reward climbs and the edge *falls* — 1.349× at launch to 1.124× at steady state — concluding that "the worst moment is therefore the first epoch" and that this "improves rather than degrades as the network matures". With `R₀` above the fixed point the reward falls and the edge **rises**:
+**§4.2's builder-edge shape is inverted.** §4.2(c) reasons that the endowment "sits below" the fixed point, so the reward climbs and the edge *falls* — 1.349× at launch to 1.124× at steady state — concluding that "the worst moment is therefore the first epoch" and that this "improves rather than degrades as the network matures". With `genesis_pool` above the fixed point the reward falls and the edge **rises**:
 
 | | σₑ/φ | builder edge |
 | --- | --- | --- |
@@ -44,11 +44,11 @@ The reward opens at 347,361× the fee and decays to 5.02×, reaching within a fa
 | 30 years | 5.2× | 1.1199× |
 | steady state | 5.02× | **1.1243×** |
 
-**The worst moment is the steady state, not the first epoch**, and the shape is the slow-onset one §4.2 credits fee funding with removing. What does *not* change is the magnitude: the edge is bounded by 1.124× on either reading, because that bound is set by `σ*/φ`, which the denomination decision left alone. So this is a correction to when the advantage peaks and to §4.2's comparative argument, not to how large it gets. §4.2(a) and (b) are unaffected — the reward pays a key the builder does not hold, and at 1 % of block capacity censorship still buys nothing.
+**The worst moment is the steady state, not the first epoch**, and the shape is the slow-onset one §4.2 credits fee funding with removing. What does *not* change is the magnitude: the edge is bounded by 1.124× on either reading, because that bound is set by `reward_over_fee`, which the denomination decision left alone. So this is a correction to when the advantage peaks and to §4.2's comparative argument, not to how large it gets. §4.2(a) and (b) are unaffected — the reward pays a key the builder does not hold, and at 1 % of block capacity censorship still buys nothing.
 
 **§4.1's security figures move down by a factor of two to five.** The pool distributes **0.48 %** of supply over 6.1 years, not the 2.59 % §4.1 carried, and every cell of its table moved with it (§4.1 is now corrected in place):
 
-| `D₀` (% of supply) | h=0.10 | h=0.33 | h=0.50 |
+| `initial_stake` (% of supply) | h=0.10 | h=0.33 | h=0.50 |
 | --- | --- | --- | --- |
 | **0.5 %** | 4.9–6.2 % | 16.1–19.2 % | 24.4–27.7 % |
 | **5 %** | 0.9 % | 2.9–3.0 % | 4.3–4.4 % |
@@ -56,9 +56,9 @@ The reward opens at 347,361× the fee and decays to 5.02×, reaching within a fa
 
 (ranges span honest miners staking 100 % vs 50 % of winnings)
 
-The direction is favourable, and one specific warning lapses with it: §4.1 says that at `D₀ = 0.5 %` a one-third attacker "exceeds the safety threshold" within six years if honest miners stake only half their winnings. At 19.2 % it does not, and no cell in the table now crosses one third at that horizon. **§4.1's qualitative argument is otherwise unaffected**: the refill never stops, so these remain six-year figures rather than lifetime ones, and the asymptote `h/(h+(1−h)s)` contains no parameter that moved — it is still 33 % at `h = 0.33` with full honest staking, and still the artefact of fixed `D₀` that §4.1 correctly names.
+The direction is favourable, and one specific warning lapses with it: §4.1 says that at `D₀ = 0.5 %` a one-third attacker "exceeds the safety threshold" within six years if honest miners stake only half their winnings. At 19.2 % it does not, and no cell in the table now crosses one third at that horizon. **§4.1's qualitative argument is otherwise unaffected**: the refill never stops, so these remain six-year figures rather than lifetime ones, and the asymptote `h/(h+(1−h)s)` contains no parameter that moved — it is still 33 % at `h = 0.33` with full honest staking, and still the artefact of fixed `initial_stake` that §4.1 correctly names.
 
-**§4.4.3's reserve column is stale in the same way.** Its table priced the standing reserve and the endowment floor as fractions of supply — 1.03 % and 0.21 % at the specified `ρ` — which were `R*/S_tge` and `R_min/S_tge` computed before the denomination moved (§4.4.3 is now corrected in place). The model now gives **7.23×10⁻⁶ %** and **1.44×10⁻⁶ %**: the reserve is 723 LGO and the floor 144 LGO, not a hundredth of the supply. The ρ *comparison* the table exists to make is unaffected, because all three quantities go as `1/ρ` and the ratios between rows are unchanged; what has moved is only their absolute scale. The drain column is correct as written — the hard edge at `ρ < T/MAX_BLOCK_TXS = 0.977 %` is denomination-free, and `ρ = 1 %` does sit on the reachable side of it.
+**§4.4.3's reserve column is stale in the same way.** Its table priced the standing reserve and the endowment floor as fractions of supply — 1.03 % and 0.21 % at the specified `distribution_rate` — which were `R*/S_tge` and `R_min/S_tge` computed before the denomination moved (§4.4.3 is now corrected in place). The model now gives **7.23×10⁻⁶ %** and **1.44×10⁻⁶ %**: the reserve is 723 LGO and the floor 144 LGO, not a hundredth of the supply. The ρ *comparison* the table exists to make is unaffected, because all three quantities go as `1/ρ` and the ratios between rows are unchanged; what has moved is only their absolute scale. The drain column is correct as written — the hard edge at `ρ < T/MAX_BLOCK_TXS = 0.977 %` is denomination-free, and `ρ = 1 %` does sit on the reachable side of it.
 
 **Why this was not caught by the gates.** `make check` ties the config to the specification and `make verify` ties the model to its closed forms; nothing tied this document's prose to either. The three sections above were arithmetically correct for the parameter set they were run against and simply went stale in place. A `report-numbers` gate — regenerating every quoted figure from the model, as the Blend report does — is the fix, and is not yet built.
 
@@ -80,9 +80,9 @@ The *Logos Token: Units and Precision* specification settles the unit system, an
 What this undoes and what it restores:
 
 - **The supply resize is withdrawn** — `block-rewards.md` is back at its published form. The resize's justification assumed one LGO was indivisible, which made the fee floor overwhelm the emission cap; with the floor at one *lepton* the original supply works, and the deflationary phase is reached through ordinary price discovery (a full block's burn matches the emission cap at ~116,562 lepta/gas, 16,652× the resting level and far under #393's `MAX_PRICE`).
-- **§0.2's trajectory-inversion bullet is void with it.** `R₀` vs `R*` again depends on the discovered price level: at floor prices `R₀` vastly exceeds `R*` and the reward decays from a generous opening, which is the body's original qualitative picture.
-- **The body's price-level framing is vindicated.** §4.4.4's correction — that the endowment turns on the *price level*, not the denomination — was right, and is now the operative frame: `φ` at the resting floor is 6,664 lepta ≈ 6.7×10⁻⁶ LGO, under 10⁻¹⁵ of supply, and the genesis fee ceiling of `1.157×10⁻¹⁰` of supply (unchanged, having been stated supply-relative) binds only if discovered prices rise about five orders of magnitude above the floor.
-- **Every ratio stands, again**: ψ = 0.837, σ*/φ = 5.02 at reference traffic, the 1.124× builder edge, `T`↔β, the 1,000-claims drain margin, the 5.75×10⁻⁵-of-pool genesis-error cost. The whole calibration of §§4.4.1–4.4.3 is untouched.
+- **§0.2's trajectory-inversion bullet is void with it.** `genesis_pool` vs `steady_pool` again depends on the discovered price level: at floor prices `genesis_pool` vastly exceeds `steady_pool` and the reward decays from a generous opening, which is the body's original qualitative picture.
+- **The body's price-level framing is vindicated.** §4.4.4's correction — that the endowment turns on the *price level*, not the denomination — was right, and is now the operative frame: `claim_fee` at the resting floor is 6,664 lepta ≈ 6.7×10⁻⁶ LGO, under 10⁻¹⁵ of supply, and the genesis fee ceiling of `1.157×10⁻¹⁰` of supply (unchanged, having been stated supply-relative) binds only if discovered prices rise about five orders of magnitude above the floor.
+- **Every ratio stands, again**: ψ = 0.837, σ*/φ = 5.02 at reference traffic, the 1.124× builder edge, `target_claims_per_block`↔β, the 1,000-claims drain margin, the 5.75×10⁻⁵-of-pool genesis-error cost. The whole calibration of §§4.4.1–4.4.3 is untouched.
 - The open policy question sharpens into the Units doc's own terms: the storage floor exceeds $5/GiB once LOGOS trades above **$4.66**, and no admissible precision fixes that — the remedy lies in the Permanent Storage Gas unit, outside this proposal.
 
 `make all` in `simulations/EmPoWering/` regenerates everything at `d = 9`, printing lepta as the primary unit, and `make lepta` confirms the mechanism at lepton granularity in exact integer arithmetic — conservation to the lepton, checked `uint64` throughout, the σ cliff at its exact boundary, and the canonical parse/format round-trip — something the float engine structurally cannot do. **Terminology**: where the body says "base units", read *lepta*; where it prices in LGO, the figures are pre-resize/pre-lepton absolutes superseded per §0.2 and this section.
@@ -93,13 +93,13 @@ After this report reached its present form, the analysis it contains led to one 
 
 Consequences for reading this document:
 
-- **Every ratio stands.** ψ = 0.837, σ*/φ = 5.02 at the reference traffic, the 1.124× builder edge, the `T`↔β trade, the fee-overhead identity, the stopping conditions, and every argument built on them are supply-free and unchanged.
+- **Every ratio stands.** ψ = 0.837, σ*/φ = 5.02 at the reference traffic, the 1.124× builder edge, the `target_claims_per_block`↔β trade, the fee-overhead identity, the stopping conditions, and every argument built on them are supply-free and unchanged.
 - **The fee is now determined, not assumed.** The body treats φ = 0.952 LGO as a price-level assumption (§5.1). It is now `(306 + 646) × 7 = 6,664 LGO` at the resting price — a consequence of the fee schedule and the indivisible LGO, with no free parameter left.
-- **Supply-relative figures scale by ×0.233** (φ/S fell from 9.52×10⁻¹¹ to 2.22×10⁻¹¹): `R_min` 0.206 % → **0.048 %**, `R*` 1.03 % → **0.241 %**, the 5-year ramp 0.34 % → **0.080 %**, the 10-year ramp 0.60 % → **0.140 %** of supply.
+- **Supply-relative figures scale by ×0.233** (φ/S fell from 9.52×10⁻¹¹ to 2.22×10⁻¹¹): `pool_floor` 0.206 % → **0.048 %**, `steady_pool` 1.03 % → **0.241 %**, the 5-year ramp 0.34 % → **0.080 %**, the 10-year ramp 0.60 % → **0.140 %** of supply.
 - **The specified `R₀ = 0.5 %` now opens at 10.4× the fee** (was 2.4×) and covers the 10-year ramp several times over. It is over-provisioned by about 4×; reducing it toward 0.2 % is an open token-allocation question, not a viability one.
 - `make all` in `simulations/EmPoWering/` prints all of the above from `configs/specified.toml`.
 - The resize also closes items the body leaves open: §4.4.4's denomination question is settled (one LGO is the smallest unit, workable at the sized supply), and §10's "launch fee level" ceiling is now met with a factor of five in hand rather than being a target for governance to hit. §10.2's standing-reserve question is now about a reserve of ~0.24 % of supply at the reference traffic, not ~1 %.
-- **The trajectory direction in §3.7 and §4.2 is inverted at the current parameters.** Those sections describe the endowment sitting *below* the pool's fixed point, the reward climbing, and the builder edge shrinking — so the worst moment for self-dealing was the first epoch. After the resize, `R₀` (0.5 % of supply) sits *above* `R*` (0.241 % at the reference traffic): the reward **decays** from 10.4× the fee toward 5.0×, and the edge **grows** from 1.05× toward 1.12×. Both endpoints are comfortably inside the design margins, but the qualitative conclusion flips — the worst moment for self-dealing is the steady state again, at a still-benign 1.124×, and the open allocation question (trimming `R₀` toward `R*`) would flatten the trajectory rather than raise it.
+- **The trajectory direction in §3.7 and §4.2 is inverted at the current parameters.** Those sections describe the endowment sitting *below* the pool's fixed point, the reward climbing, and the builder edge shrinking — so the worst moment for self-dealing was the first epoch. After the resize, `genesis_pool` (0.5 % of supply) sits *above* `steady_pool` (0.241 % at the reference traffic): the reward **decays** from 10.4× the fee toward 5.0×, and the edge **grows** from 1.05× toward 1.12×. Both endpoints are comfortably inside the design margins, but the qualitative conclusion flips — the worst moment for self-dealing is the steady state again, at a still-benign 1.124×, and the open allocation question (trimming `genesis_pool` toward `steady_pool`) would flatten the trajectory rather than raise it.
 
 The body below is retained as written, including its §4.4.4 treatment of the denomination as an open question, because the reasoning there is what produced the resolution.
 
@@ -121,9 +121,9 @@ EmPoWering lets someone earn their first Logos tokens by mining — running a co
 
 **The condition self-funding turns on** is a transaction count, not a price. The pool is refilled from a share of the fees a block collects, and the fee a claim pays is set by the same prices, so those prices appear on both sides of the comparison and cancel: a claim pays for itself iff `n_tx > T / (ψ·β_PoW)`, where ψ ≈ 0.837 is the average transaction's fee over a claim's (§4.3). At the specified `T = 10` that needs about 120 transactions per block at a 10 % share, or 60 at 20 %, comfortably inside what a block can carry at every share worth considering. Before that point the genesis endowment carries the reward.
 
-**The endowment reduces to one unknown, and it is not the one it looked like.** `R₀/S = m·(φ/S)·T·N_b/ρ` — everything but the claim fee as a fraction of supply is fixed by the specification. That fraction turns on the **price level the fee markets are initialised at**, not on the denomination, which §4.4.4 separates out after an earlier revision of this document conflated them. `R₀` is specified at **0.5 % of the launch supply**, and the constraint it hands to genesis governance is a ceiling on the launch fee of **`1.157×10⁻¹⁰` of supply — about 34,700 LGO at the sized supply** — for the opening reward to be twice it; the fee markets' resting prices meet it with a factor of five in hand.
+**The endowment reduces to one unknown, and it is not the one it looked like.** `R₀/S = m·(φ/S)·T·N_b/ρ` — everything but the claim fee as a fraction of supply is fixed by the specification. That fraction turns on the **price level the fee markets are initialised at**, not on the denomination, which §4.4.4 separates out after an earlier revision of this document conflated them. `genesis_pool` is specified at **0.5 % of the launch supply**, and the constraint it hands to genesis governance is a ceiling on the launch fee of **`1.157×10⁻¹⁰` of supply — about 34,700 LGO at the sized supply** — for the opening reward to be twice it; the fee markets' resting prices meet it with a factor of five in hand.
 
-**The claim target is overhead, not throughput.** Each claim pays a fee out of its own reward, so an epoch delivers `N_b·φ·(ψ·β_PoW·n_tx − T)` net — `T` enters with a minus sign. At the earlier `T = 50` half of everything the pool distributed was returned as fees on the claims themselves. `T = 10` cuts that to a tenth at the same share, and §4.4.1 works through why the intuition that a higher target onboards more people is backwards.
+**The claim target is overhead, not throughput.** Each claim pays a fee out of its own reward, so an epoch delivers `N_b·φ·(ψ·β_PoW·n_tx − T)` net — `target_claims_per_block` enters with a minus sign. At the earlier `T = 50` half of everything the pool distributed was returned as fees on the claims themselves. `T = 10` cuts that to a tenth at the same share, and §4.4.1 works through why the intuition that a higher target onboards more people is backwards.
 
 ## What changed since the proposal
 
@@ -184,13 +184,13 @@ EmPoWering adds proof of work in two roles. Only the second has economics.
 
 The refill `F` is the most important quantity here: §3.1 shows the long-run reward depends on it alone.
 
-Every transaction pays two fees — one for the bytes it stores forever, one for the computation it costs — and both are normally burnt. EmPoWering diverts a fixed share `β_PoW` of that flow into the mining pool before it is burnt. So
+Every transaction pays two fees — one for the bytes it stores forever, one for the computation it costs — and both are normally burnt. EmPoWering diverts a fixed share `pow_share` of that flow into the mining pool before it is burnt. So
 
 $$
 F = \beta_\text{PoW}\cdot N_b\cdot n_\text{tx}\cdot \bar{\varphi}
 $$
 
-for `N_b` blocks in an epoch, `n_tx` transactions in a block and `φ̄` the average fee one pays. **Nothing in that expression is the block reward**, and nothing in it involves the protocol's emission controller. That is the point of the choice, and it is worth spelling out why the alternative fails.
+for `blocks_per_epoch` blocks in an epoch, `txs_per_block` transactions in a block and `φ̄` the average fee one pays. **Nothing in that expression is the block reward**, and nothing in it involves the protocol's emission controller. That is the point of the choice, and it is worth spelling out why the alternative fails.
 
 The block reward is capped: the protocol will not mint faster than `I_max` a year, which works out at `62500/657 ≈ 95.13` LGO per block. Fees are not capped — they rise with congestion, without limit. Had the pool been funded from a share of the block reward, the reward per claim would have sat near a fixed ceiling however busy the network became, while the fee a claim itself must pay kept climbing. Past some level of usage a claim would cost more than it pays, and the mechanism would switch itself off precisely when the network was most valuable to join. Funding from the fee flow puts the same quantity on both sides, so their ratio depends on the parameters rather than on how busy the day is.
 
@@ -215,9 +215,38 @@ The cost is borne by the burn, not by issuance: the tokens the pool distributes 
 
 ## 0. A warning about the letter T
 
-The proposal and `block-rewards.md` both use **`T`** for different things. Here: `T` is the target claims **per block**; `W` is the fee-average look-back window (120 blocks), which `block-rewards.md` calls `T`.
+The proposal and `block-rewards.md` both use **`target_claims_per_block`** for different things. Here: `target_claims_per_block` is the target claims **per block**; `W` is the fee-average look-back window (120 blocks), which `block-rewards.md` calls `target_claims_per_block`.
 
 ## 1. Parameters
+
+### 1.0 Notation
+
+Prose and tables in this document use **self-describing names**; display equations use the conventional symbols, because a formula wants short ones. This table is the mapping, and it is the only translation a reader should ever need. Where the specification names a constant, that name is authoritative and the row says so.
+
+| name used here | symbol | specification constant | what it is |
+| --- | --- | --- | --- |
+| `target_claims_per_block` | `T` | `TARGET_CLAIMS_PER_BLOCK` | claims per block the difficulty controller steers toward |
+| `pow_share` | `β` | `POW_SHARE` / `SHARE_DEN` | fraction of collected fees diverted into the reward pool |
+| `distribution_rate` | `ρ` | `EPOCH_POW_DISTRIBUTION_RATE` | fraction of the pool an epoch's reward is sized from |
+| `genesis_pool` | `R₀` | `POW_REWARD_POOL_GENESIS` | the pool's endowment at launch |
+| `blocks_per_epoch` | `N_b` | — (21,600) | blocks in one epoch |
+| `smoothing_factor` / `smoothing_precision` | `F` / `P` | `EMA_SMOOTHING_FACTOR` / `_PRECISION` | the retarget's EMA weight, as the ratio `F/P` (§3.6) |
+| `pool` | `R` | `pow_reward_pool` | the reserve claims are paid from, at a given moment |
+| `reward_per_claim` | `σₑ` | `epoch_pow_reward` | what one successful claim mints, fixed for the epoch |
+| `claim_fee` | `φ` | — | what a claim transaction costs to submit |
+| `steady_reward` / `steady_pool` | `σ*` / `R*` | — | where reward and pool settle once fee refill balances payout |
+| `pool_floor` | `R_min` | — | pool below which a claim no longer beats its own fee |
+| `reward_over_fee` | `σ*/φ` | — | **the margin that decides whether mining pays at all** |
+| `txs_per_block` | `n_tx` | — | transactions a block carries (exogenous; §4.9 removes it) |
+| `fee_ratio` | `ψ` | — | average transaction's fee over a claim's (§4.3) |
+| `fee_load` | `Φ̂` | — | a block's fee revenue counted in claim fees (§4.9) |
+| `adversary_hashrate` | `h` | — | share of mining power an attacker holds |
+| `initial_stake` | `D₀` | — | stake already securing the chain at launch |
+| `leader_fee_share` | `L` | — (**unset**, §10.1) | share of undiverted fees reaching block leaders |
+
+**Four of these are not free.** §4.9 shows `txs_per_block` and the price level enter only through `fee_load`; §4.11 shows `target_claims_per_block` and `pow_share` enter only through their ratio; §3.6 shows `smoothing_factor` and `smoothing_precision` enter only through `F/P`. What is left free is that ratio, the `target_claims_per_block`-to-`pow_share` ray, `distribution_rate`, and `genesis_pool` — plus the measured work costs and the fee constants.
+
+
 
 **Fixed by existing specifications.** `KNOWN`
 
@@ -226,7 +255,7 @@ The proposal and `block-rewards.md` both use **`T`** for different things. Here:
 | `S_tge` | 10¹⁰ LGO | `block-rewards.md:160` |
 | `I_max` | 1 %/yr | `block-rewards.md:167` |
 | `Δ_b` | 30 s expected block time | `cryptarchia-v1-protocol.md:91-97` |
-| `N_b` | **21,600** blocks/epoch | `blend-protocol.md:621` |
+| `blocks_per_epoch` | **21,600** blocks/epoch | `blend-protocol.md:621` |
 | epoch | 648,000 slots = **7.5 days** | `cryptarchia-v1-protocol.md:143` |
 | epochs/yr | **48.667** | derived |
 | `MAX_BLOCK_TXS` | **1024** transactions/block | `bedrock-v1.1-mantle-specification.md` |
@@ -238,21 +267,21 @@ The proposal and `block-rewards.md` both use **`T`** for different things. Here:
 
 | Symbol | Code | Proposal | Tag |
 | --- | --- | --- | --- |
-| `ρ` | disabled | 1/100 per epoch | **`KNOWN`** — specification sets **1/200** (§0.4; was 1/100) |
-| `T` | 100 | 10 | **`KNOWN`** — specification sets **10** (`TARGET_CLAIMS_PER_BLOCK`, Mantle spec) |
-| `β_PoW` | 0 | 2 % example | **`KNOWN`** — specification sets **10 %** (§4.4.2) |
-| `R₀` | placeholder | TBD | **`KNOWN`** — specification sets **0.5 % of launch supply** (§4.4.3) |
+| `distribution_rate` | disabled | 1/100 per epoch | **`KNOWN`** — specification sets **1/200** (§0.4; was 1/100) |
+| `target_claims_per_block` | 100 | 10 | **`KNOWN`** — specification sets **10** (`TARGET_CLAIMS_PER_BLOCK`, Mantle spec) |
+| `pow_share` | 0 | 2 % example | **`KNOWN`** — specification sets **10 %** (§4.4.2) |
+| `genesis_pool` | placeholder | TBD | **`KNOWN`** — specification sets **0.5 % of launch supply** (§4.4.3) |
 | `q` | 9/10 | 9/10 | **`KNOWN`** |
 | `κ` | — | — | **`UNKNOWN`** cost per guess |
-| `φ` | — | — | **`DERIVED`** — 952 price units (§4.3), absolute value blocked on the denomination |
-| `ψ` | — | — | **`DERIVED`** — 0.837, average fee over claim fee (§4.3) |
-| `n_tx` | — | — | **`UNKNOWN`** — transactions per block, an adoption question; §4.9 collapses it and the price level into one axis |
+| `claim_fee` | — | — | **`DERIVED`** — 952 price units (§4.3), absolute value blocked on the denomination |
+| `fee_ratio` | — | — | **`DERIVED`** — 0.837, average fee over claim fee (§4.3) |
+| `txs_per_block` | — | — | **`UNKNOWN`** — transactions per block, an adoption question; §4.9 collapses it and the price level into one axis |
 | leader fee share `L` | — | 0.4 | **`ASSUMED`** — share of undiverted fees reaching leaders; **not stated anywhere in the tree**. Sets the subordination cap (§4.4.2, §4.7.6, §4.11) |
 | subordination ratio `r` | — | 1/3 | **`ASSUMED`** — how "PoW stays junior to staking" is read. With `L` it gives `β ≤ rL/(1+rL)` = 11.76 % |
 | tip fraction | — | 0.5 | **`ASSUMED`** — share of a claim's surplus returning to a builder as tip. Scales the whole builder edge (§4.2c, §4.10.1) |
 | base units/LGO | — | — | **`OPEN`** — deferred to its own PR; EmPoWering's constraints on it are in §4.4.4 |
 
-**Every free parameter now has a value, `φ` is derived up to the denomination, and the feature ships switched off.** §3.7's numbers illustrate structure; §4.4's parameter set is an existence proof, not a recommendation.
+**Every free parameter now has a value, `claim_fee` is derived up to the denomination, and the feature ships switched off.** §3.7's numbers illustrate structure; §4.4's parameter set is an existence proof, not a recommendation.
 
 ## 2. How it works, precisely
 
@@ -276,7 +305,7 @@ Transcribed from merged code. All `KNOWN`.
 
 **A1 — Ticket outputs are evenly spread.** `ASSUMED` The hash behaves as a fair lottery. Reasonable: the protocol already relies on this for its leader lottery. **Risk: low** — bias would be absorbed by the difficulty controller.
 
-**A2 — Wins arrive randomly and independently (Poisson).** `ASSUMED` Spread around the average is its square root, so relative noise is `1/√T`: **32 % at the specified `T = 10`**, against 14 % at `T = 50`. This is the whole quantitative case for a larger `T`, and §4.4.1 prices what that case costs. **The simulator uses the mean, not samples**, which is why §4.8 runs the arrivals: sampled, the per-block spread is 32.3 % as this assumption says, it is corrected rather than merely averaged away before it reaches the pool, and it never approaches §3.8's drain margin. Sampling also exposes one thing the mean hides — the retarget settles at `T + (P−F)/(2P)`, half a percent above target at `T = 10`. **Risk: low, and now measured.**
+**A2 — Wins arrive randomly and independently (Poisson).** `ASSUMED` Spread around the average is its square root, so relative noise is `1/√T`: **32 % at the specified `T = 10`**, against 14 % at `T = 50`. This is the whole quantitative case for a larger `target_claims_per_block`, and §4.4.1 prices what that case costs. **The simulator uses the mean, not samples**, which is why §4.8 runs the arrivals: sampled, the per-block spread is 32.3 % as this assumption says, it is corrected rather than merely averaged away before it reaches the pool, and it never approaches §3.8's drain margin. Sampling also exposes one thing the mean hides — the retarget settles at `T + (P−F)/(2P)`, half a percent above target at `T = 10`. **Risk: low, and now measured.**
 
 **A3 — Competition drives the marginal miner's profit to zero.** `ASSUMED` If mining pays, more people mine; difficulty rises; profit erodes. The standard model for permissionless mining. **It fails during bootstrap** — when rewards are large and few people have heard of the scheme, profits are real. **Risk: high, in a known direction:** slower entry means lower hashrate, real early profits, and *worse* attacker numbers than modelled.
 
@@ -302,7 +331,7 @@ Transcribed from merged code. All `KNOWN`.
 
 **Intuition.** A bucket with a hole proportional to how full it is, plus a hose adding a fixed amount. It empties fast, then slower, and settles where the two balance.
 
-**Step 1 — the payout is a fixed fraction.** At the target rate, `c_e·σₑ = T·N_b · Rρ/(T·N_b) = ρR`. The central identity: **`T` and `N_b` vanish from the pool dynamics entirely.**
+**Step 1 — the payout is a fixed fraction.** At the target rate, `c_e·σₑ = T·N_b · Rρ/(T·N_b) = ρR`. The central identity: **`target_claims_per_block` and `blocks_per_epoch` vanish from the pool dynamics entirely.**
 
 **Step 2 — solve.** `R_{e+1} = (1−ρ)R_e + F`, an affine map with fixed point `R* = F/ρ`, giving
 
@@ -312,7 +341,7 @@ $$
 
 At ρ = 0.5 %: half-life **138 epochs ≈ 2.84 years**; annual decay **−21.6 %**. That is the rate at which any gap between the opening reward and the settled one closes — and under fee funding the endowment can be sized so there is no gap to close (§3.7), in which case the trajectory is flat and the half-life never comes into play.
 
-**The counterintuitive part.** `σ*` contains no ρ. **The payout rate sets how fast you reach the destination, never the destination.** Drain 1 % and the pool settles at 100× the refill, paying out exactly the refill; drain 2 % and it settles at 50×, still paying the refill. In the long run the scheme distributes only what flows in. ρ does have one lasting effect, though it is not on the reward: it sets `R_min = φ·T·N_b/ρ`, the pool size below which claiming stops being worthwhile at all (§4.3), so a slower payout rate demands a proportionately larger pool to sustain the same per-claim reward.
+**The counterintuitive part.** `steady_reward` contains no ρ. **The payout rate sets how fast you reach the destination, never the destination.** Drain 1 % and the pool settles at 100× the refill, paying out exactly the refill; drain 2 % and it settles at 50×, still paying the refill. In the long run the scheme distributes only what flows in. ρ does have one lasting effect, though it is not on the reward: it sets `R_min = φ·T·N_b/ρ`, the pool size below which claiming stops being worthwhile at all (§4.3), so a slower payout rate demands a proportionately larger pool to sustain the same per-claim reward.
 
 ### 3.2 Pool stability — item 2 ✅ `DERIVED`
 
@@ -322,7 +351,7 @@ This is the *across-epochs* stopping condition. There is a second, *within-epoch
 
 ### 3.3 Where the endowment ends up `DERIVED`
 
-`Cum(E) = E·F + (R₀ − R*)(1 − (1−ρ)^E)`. Under block-reward funding, where `R₀ ≫ R*`, this read as "the endowment is fully distributed except `R* = F/ρ`, held forever". Under fee funding the first term dominates instead: **the pool distributes the fee inflow indefinitely**, and the endowment's contribution is the second term, positive or negative according to whether `R₀` was set above or below the fixed point. At the §3.7 parameter set `R₀ ≈ R*`, so the endowment contributes essentially nothing to what is distributed — its whole job is to be *present*, keeping the pool above `R_min` from the first epoch rather than waiting for the inflow to build it. §4.1 revisits what an unbounded distribution means for security.
+`Cum(E) = E·F + (R₀ − R*)(1 − (1−ρ)^E)`. Under block-reward funding, where `R₀ ≫ R*`, this read as "the endowment is fully distributed except `R* = F/ρ`, held forever". Under fee funding the first term dominates instead: **the pool distributes the fee inflow indefinitely**, and the endowment's contribution is the second term, positive or negative according to whether `genesis_pool` was set above or below the fixed point. At the §3.7 parameter set `R₀ ≈ R*`, so the endowment contributes essentially nothing to what is distributed — its whole job is to be *present*, keeping the pool above `pool_floor` from the first epoch rather than waiting for the inflow to build it. §4.1 revisits what an unbounded distribution means for security.
 
 ### 3.4 Inflation — item 5 ✅ `DERIVED`, conditionally
 
@@ -330,14 +359,13 @@ Two sources, easily conflated. The **refill** is a slice of fees that would othe
 
 **So mining adds no inflation — provided the endowment comes from existing supply rather than being printed.** That proviso does all the work; the specification states it. The emission cap is untouched in every regime.
 
-What mining changes is either the *burn* or the *block reward*, depending on where the emission controller sits, and §4.4.2 works this out in full because it is what bounds `β_PoW`. In brief: the controller mints against the fees actually burnt, so diverting a share before the burn lowers that measurement. Early, when emission is minting-dominated, the burn does not feed back into the block reward, so the diversion shows up purely as a smaller burn and the supply ends up higher than it would have been — a reduction in deflationary pressure, not an increase in issuance. Later, when emission is recycling-dominated, the block reward *is* the burn, so the diversion lowers the block reward by the same share and the supply is untouched.
+What mining changes is either the *burn* or the *block reward*, depending on where the emission controller sits, and §4.4.2 works this out in full because it is what bounds `pow_share`. In brief: the controller mints against the fees actually burnt, so diverting a share before the burn lowers that measurement. Early, when emission is minting-dominated, the burn does not feed back into the block reward, so the diversion shows up purely as a smaller burn and the supply ends up higher than it would have been — a reduction in deflationary pressure, not an increase in issuance. Later, when emission is recycling-dominated, the block reward *is* the burn, so the diversion lowers the block reward by the same share and the supply is untouched.
 
 **The earlier version of this section said the pool "distributes tokens that were already on their way to being destroyed" without qualification. That is the first regime only.** In the second the tokens would have been destroyed *and reminted*, so what the pool takes comes out of Blend and leader rewards rather than out of the burn.
 
 ### 3.5 Miner entry — item 4 ✅ `DERIVED` from A3
 
-**Protocol side:** the thermostat holds claims at `T` whatever hashrate appears: `H·Δ_b·d*/p = T`.
-**Miner side:** expected cost per win is `(p/d)κ`; free entry drives margin to zero: `σₑ − φ = (p/d*)κ`.
+Two sides have to agree. **Protocol side:** the thermostat holds claims at `target_claims_per_block` whatever hashrate appears, so `H·Δ_b·d*/p = T`. **Miner side:** the expected cost of one win is `(p/d)κ` for a cost-per-guess `κ`, and free entry drives the marginal miner's margin to zero, so `σₑ − φ = (p/d*)κ`.
 
 Combining, the field order cancels:
 
@@ -356,9 +384,9 @@ Substituting the refill, `σ* > φ` becomes `ψ·β_PoW·n_tx/T > 1` — §4.3's
 Substituting `x = H·Δ_b·d/p` gives `x_{n+1} = T·P·x/((P−F)x + F·T)`, independent of `H` and `p`. Fixed points solve `x(x−T)=0`. Derivatives: `g'(T) = F/P = 0.9` (**stable**, ~10-block time constant); `g'(0) = P/F = 1.11` (**repelling** — the no-claims state pushes away). The deadlock concern is unfounded.
 
 ![retarget return map](figures/14_retarget_map.png)
-*Fig 14 — the same argument as a picture. The return map is concave with slope > 1 at the origin and < 1 at `T`, so cobwebs from either side walk monotonically home: overshoot decays, silence escapes, and oscillation has nowhere to come from.*
+*Fig 14 — the same argument as a picture. The return map is concave with slope > 1 at the origin and < 1 at `target_claims_per_block`, so cobwebs from either side walk monotonically home: overshoot decays, silence escapes, and oscillation has nowhere to come from.*
 
-**The retarget in EMA form — and why there is nothing left to simplify.** The natural "clean" controller one would design from scratch is: normalize each block's count by the target that produced it (a hashrate estimate), smooth that with an EMA, and set the next target so the smoothed demand yields `T`:
+**The retarget in EMA form — and why there is nothing left to simplify.** The natural "clean" controller one would design from scratch is: normalize each block's count by the target that produced it (a hashrate estimate), smooth that with an EMA, and set the next target so the smoothed demand yields `target_claims_per_block`:
 
 $$
 \widehat{\text{dem}}_{n+1} \;=\; (1-q)\,\frac{c_n}{d_n} \;+\; q\,\widehat{\text{dem}}_n,
@@ -370,12 +398,12 @@ $$
 
 ### 3.7 Worked example
 
-> **Corrected in place 2026-08-13; §0.3 records what moved and why.** This section was computed when `R₀` sat at the pool's fixed point; it now sits far above it, so the reward decays.
+> **Corrected in place 2026-08-13; §0.3 records what moved and why.** This section was computed when `genesis_pool` sat at the pool's fixed point; it now sits far above it, so the reward decays.
 
 
-ρ=0.5 %, T=10, β_PoW=10 %, R₀=5×10⁷ LGO (0.5 % of supply), 600 tx/block, φ=6,664 lepta — the specified parameter set. `R₀` sits **far above** the pool's fixed point, which is what makes the trajectory a decay rather than a plateau.
+ρ=0.5 %, T=10, β_PoW=10 %, R₀=5×10⁷ LGO (0.5 % of supply), 600 tx/block, φ=6,664 lepta — the specified parameter set. `genesis_pool` sits **far above** the pool's fixed point, which is what makes the trajectory a decay rather than a plateau.
 
-**Refill** `0.10 × 21,600 × 600 × 5,579 = 7,230,384,000` lepta/epoch = 7.23 LGO — note it contains no `T`. **Steady state** R* = 1,446 LGO, likewise independent of `T`. The endowment is **34,576×** that, so σₑ decays across decades rather than sitting flat:
+**Refill** `0.10 × 21,600 × 600 × 5,579 = 7,230,384,000` lepta/epoch = 7.23 LGO — note it contains no `target_claims_per_block`. **Steady state** R* = 1,446 LGO, likewise independent of `target_claims_per_block`. The endowment is **34,576×** that, so σₑ decays across decades rather than sitting flat:
 
 | epoch | years | σₑ (lepta) | × fee |
 | --- | --- | --- | --- |
@@ -386,9 +414,9 @@ $$
 | 2433 | 49.99 | 39,322 | 5.90× |
 | ∞ | — | 33,474 | **5.02×** |
 
-Fee funding *could* size the endowment at the fixed point and hold the reward flat from the first epoch. The specified set does not: `R₀` is a distribution budget (§4.12), five orders of magnitude above anything the reward economics needs, so the reward opens at 173,681× the fee and decays toward 5.02× over about 43 years at the resting price (§4.7.1). **The steady state is what the system converges to, not what it launches with.**
+Fee funding *could* size the endowment at the fixed point and hold the reward flat from the first epoch. The specified set does not: `genesis_pool` is a distribution budget (§4.12), five orders of magnitude above anything the reward economics needs, so the reward opens at 173,681× the fee and decays toward 5.02× over about 43 years at the resting price (§4.7.1). **The steady state is what the system converges to, not what it launches with.**
 
-The flip side is that a decaying `σₑ/φ` means the builder's self-dealing edge **grows** rather than shrinking (§4.2): 1.0000× at genesis, where the reward dwarfs the fee, approaching **1.124×** as the reward settles. **The two properties are the same fact seen twice** — a reward that decays is a margin that widens. The endpoint is benign, and it is the worst moment, not the first epoch.
+The flip side is that a decaying `reward_over_fee` means the builder's self-dealing edge **grows** rather than shrinking (§4.2): 1.0000× at genesis, where the reward dwarfs the fee, approaching **1.124×** as the reward settles. **The two properties are the same fact seen twice** — a reward that decays is a margin that widens. The endpoint is benign, and it is the worst moment, not the first epoch.
 
 **Cost to the network.** In the steady state the pool distributes `ρ·R* = F = 7.23` LGO per epoch, which is 10 % of the fee revenue by construction (far more than that while the endowment is still draining). Of that, a fifth returns immediately as the claims' own transaction fees and four fifths reaches claimants — at `T = 50` the split would have been all and nothing (§4.4.1). It is a permanent transfer, not a taper, and §4.4.2 sets out who bears it: the supply early, Blend and the leaders once emission is recycling-dominated.
 
@@ -406,11 +434,11 @@ $$
 
 which is `1/ρ` times the epoch's target claim count — **43,200,000 claims against a target of 216,000** at the specified values. Per block that is `T/ρ = 2000` claims, against `MAX_BLOCK_TXS = 1024`.
 
-**That is 195 % of block capacity — impossible by construction.** No sequence of valid blocks can carry the required rate, whatever happens to the difficulty controller, and it stays impossible up to a doubling of `MAX_BLOCK_TXS`. It was not always so: at ρ = 1/100 the figure was 1,000 against 1,024 — 97.7 % of capacity, thin, and resting entirely on the controller — and at the earlier `T = 50` it was 5,000, unreachable for the other reason. Lowering `T` to 10 had quietly moved the drain from impossible to merely very hard; **moving ρ to a two-hundredth (§0.4) restored the structural guarantee without giving back any of what the smaller `T` bought.** The controller still holds the actual rate two orders of magnitude below even the old threshold, now as defence in depth; the guard remains what makes any future re-opening degrade gracefully rather than catastrophically.
+**That is 195 % of block capacity — impossible by construction.** No sequence of valid blocks can carry the required rate, whatever happens to the difficulty controller, and it stays impossible up to a doubling of `MAX_BLOCK_TXS`. It was not always so: at ρ = 1/100 the figure was 1,000 against 1,024 — 97.7 % of capacity, thin, and resting entirely on the controller — and at the earlier `T = 50` it was 5,000, unreachable for the other reason. Lowering `target_claims_per_block` to 10 had quietly moved the drain from impossible to merely very hard; **moving ρ to a two-hundredth (§0.4) restored the structural guarantee without giving back any of what the smaller `target_claims_per_block` bought.** The controller still holds the actual rate two orders of magnitude below even the old threshold, now as defence in depth; the guard remains what makes any future re-opening degrade gracefully rather than catastrophically.
 
 **Condition 2 — across epochs: `σₑ = 0`.** The pool decays over many epochs until `ρR/(T·N_b)` floors to zero, at `R < T·N_b/ρ` base units. This is §3.2's cliff, and it is the permanent one.
 
-**Semantics, confirmed (2026-08-14).** To pin what the paragraphs above imply, since it decides how the pool must be modelled: the reward `σₑ` is computed **per epoch**, but there is **no per-epoch pool, budget, or claim quota** — each epoch draws on the *whole* pool, claim by claim, until it cannot cover the next full reward. That claim is rejected (the transaction is invalid whole), the sub-`σₑ` remainder **stays in the pool** rather than being paid or lost, and at the boundary the refill is credited and `σₑ` recomputed from what stands. Rewarding halts within an epoch when `R < σₑ` — not at literally zero — and halts *permanently* only at condition 2's cliff. Both engines implement this: the sampled engine pays `min(c, ⌊R/σ⌋)` per block, and the mean-field engines may use an epoch-level guard only because at the target rate the epoch's drain is `⌊ρR⌋ ≤ R`, so the per-claim guard cannot bind there — both facts are gated in `make verify`.
+**Semantics, confirmed (2026-08-14).** To pin what the paragraphs above imply, since it decides how the pool must be modelled: the reward `reward_per_claim` is computed **per epoch**, but there is **no per-epoch pool, budget, or claim quota** — each epoch draws on the *whole* pool, claim by claim, until it cannot cover the next full reward. That claim is rejected (the transaction is invalid whole), the sub-`reward_per_claim` remainder **stays in the pool** rather than being paid or lost, and at the boundary the refill is credited and `reward_per_claim` recomputed from what stands. Rewarding halts within an epoch when `R < σₑ` — not at literally zero — and halts *permanently* only at condition 2's cliff. Both engines implement this: the sampled engine pays `min(c, ⌊R/σ⌋)` per block, and the mean-field engines may use an epoch-level guard only because at the target rate the epoch's drain is `⌊ρR⌋ ≤ R`, so the per-claim guard cannot bind there — both facts are gated in `make verify`.
 
 **Recovery.** Condition 1 is self-healing and condition 2 is not. If the pool is drained mid-epoch, claiming stops for the remainder of that epoch; at the next boundary the refill is credited and σₑ is recomputed from the refilled pool, so a drained pool yields a proportionately smaller reward and claiming resumes at that lower value. **The mechanism degrades to a smaller reward rather than stopping.** It stops for good only under condition 2, when the recomputed reward rounds down to zero — and because that is a floor rather than a taper, it stops abruptly.
 
@@ -425,11 +453,11 @@ Run against the `empowering` package (`make all`), whose self-checks pass: **20 
 > **Corrected in place 2026-08-13; §0.3 records what moved and why.** The figures below are recomputed; the qualitative argument and the asymptote are unchanged.
 
 
-An adversary with hashrate share `h` captures `h` of claims (A8) and stakes them; honest miners stake a fraction. Mined coins age one epoch before counting (`cryptarchia-v1-protocol.md:157`). `D₀` is the honest stake already securing the chain.
+An adversary with hashrate share `h` captures `h` of claims (A8) and stakes them; honest miners stake a fraction. Mined coins age one epoch before counting (`cryptarchia-v1-protocol.md:157`). `initial_stake` is the honest stake already securing the chain.
 
 Adversarial share of total stake **after 6.14 years** at the §3.7 parameters, over which the pool distributes **0.39 %** of supply:
 
-| `D₀` (% of supply) | h=0.10 | h=0.33 | h=0.50 |
+| `initial_stake` (% of supply) | h=0.10 | h=0.33 | h=0.50 |
 | --- | --- | --- | --- |
 | **0.5 %** | 4.4–5.4 % | 14.4–16.9 % | 21.9–24.5 % |
 | **5 %** | 0.7 % | 2.4 % | 3.6–3.7 % |
@@ -438,9 +466,9 @@ Adversarial share of total stake **after 6.14 years** at the §3.7 parameters, o
 (ranges span honest miners staking 100 % vs 50 % of winnings)
 
 ![adversary share over time](figures/13_adversary_over_time.png)
-*Fig 13 — the same answer as a trajectory: the share rises while the endowment drains, then flattens once the refill (tiny against the stake base) is all that remains. The "peak" is a horizon figure; the fixed-`D₀` asymptote is centuries away, which is why this section calls it an artefact rather than a prediction.*
+*Fig 13 — the same answer as a trajectory: the share rises while the endowment drains, then flattens once the refill (tiny against the stake base) is all that remains. The "peak" is a horizon figure; the fixed-`initial_stake` asymptote is centuries away, which is why this section calls it an artefact rather than a prediction.*
 
-**Fee funding changes the shape of this result, and not for the better.** Under block-reward funding the pool held a fixed endowment, distributed it, and stopped: there was a genuine *peak*, and the answer was "risk is a function of the endowment relative to pre-existing stake". Under fee funding **the refill never stops**, so the amount distributed grows linearly with the horizon and the figures above are six-year numbers rather than lifetime ones. With `D₀` held fixed the adversary's share rises without bound toward
+**Fee funding changes the shape of this result, and not for the better.** Under block-reward funding the pool held a fixed endowment, distributed it, and stopped: there was a genuine *peak*, and the answer was "risk is a function of the endowment relative to pre-existing stake". Under fee funding **the refill never stops**, so the amount distributed grows linearly with the horizon and the figures above are six-year numbers rather than lifetime ones. With `initial_stake` held fixed the adversary's share rises without bound toward
 
 $$
 \frac{h}{h + (1-h)\,s}
@@ -448,9 +476,9 @@ $$
 
 where `s` is the fraction of winnings honest miners stake — **33 % at h=0.33 with full honest staking, 49.6 % if honest miners stake only half**. There is no horizon at which it turns around.
 
-**That asymptote is an artefact worth naming, not a prediction.** It follows from holding `D₀` fixed forever while mining accumulates, and that double counts: the tokens the pool pays out were paid *as fees* by holders, so mining shifts ownership rather than creating stake. A model that let `D₀` decline by the fees paid and grow by ordinary staking would not produce it. But the model does not have that, so the honest statement is: **the six-year figures are sound, the asymptote is a modelling artefact, and the long-run security question is genuinely open under fee funding in a way it was not under block-reward funding.**
+**That asymptote is an artefact worth naming, not a prediction.** It follows from holding `initial_stake` fixed forever while mining accumulates, and that double counts: the tokens the pool pays out were paid *as fees* by holders, so mining shifts ownership rather than creating stake. A model that let `initial_stake` decline by the fees paid and grow by ordinary staking would not produce it. But the model does not have that, so the honest statement is: **the six-year figures are sound, the asymptote is a modelling artefact, and the long-run security question is genuinely open under fee funding in a way it was not under block-reward funding.**
 
-The near-term condition is comfortable at the specified endowment: **no cell crosses one third** at the six-year horizon. The worst is `D₀ = 0.5 %` with a one-half attacker at 24.5 %, and at the 30 % staking target a one-third attacker reaches 0.4 %. That headroom is a consequence of `R₀`, not of the reward parameters — §4.12 shows the endowment is what sets the distributed amount, and §4.10.2 prices the trade across its range. §4.4.2 shows this bound does not select `β_PoW` — the share sets how fast the limit is approached, not the limit.
+The near-term condition is comfortable at the specified endowment: **no cell crosses one third** at the six-year horizon. The worst is `D₀ = 0.5 %` with a one-half attacker at 24.5 %, and at the 30 % staking target a one-third attacker reaches 0.4 %. That headroom is a consequence of `genesis_pool`, not of the reward parameters — §4.12 shows the endowment is what sets the distributed amount, and §4.10.2 prices the trade across its range. §4.4.2 shows this bound does not select `pow_share` — the share sets how fast the limit is approached, not the limit.
 
 ### 4.2 Builder self-dealing — item 7 ✅ `SIMULATED`
 
@@ -463,14 +491,14 @@ Three candidate advantages:
 
 **(b) Censoring rivals in its own blocks — worthless unless block space is contested.**
 
-| `T` | claims as % of block | advantage (h=β=0.33) |
+| `target_claims_per_block` | claims as % of block | advantage (h=β=0.33) |
 | --- | --- | --- |
 | **10** (specified) | **1.0 %** | **1.00×** |
 | 50 | 4.9 % | **1.00×** |
 | 100 | 9.8 % | **1.00×** |
 | 1024 | 100 % | 1.67× |
 
-At `T = 10` claims occupy one percent of a block, so every valid solution is included somewhere and censorship yields nothing. **A10 is what makes this safe**, and it would stop being safe if `T` approached block capacity.
+At `T = 10` claims occupy one percent of a block, so every valid solution is included somewhere and censorship yields nothing. **A10 is what makes this safe**, and it would stop being safe if `target_claims_per_block` approached block capacity.
 
 **(c) Recovering the tip on its own claims — real, and it grows as the reward decays.** Fees are burnt but tips go to the leader, so a builder including its own claim pays itself the tip.
 
@@ -486,11 +514,11 @@ At `T = 10` claims occupy one percent of a block, so every valid solution is inc
 
 **The trajectory depends on where the endowment sits relative to the pool's fixed point**, and at the specified parameters it sits far *above* it (`R₀/R* = 34,576`, §4.12), so the reward decays and **the edge grows**: 1.0000× at launch, 1.0211× at twenty years, 1.124× at the steady state (§3.7, §4.7.1).
 
-**The worst moment is therefore the steady state, decades out — not the first epoch.** What makes this benign is not the shape but the bound: the edge is capped by `1 + tip/(σ*/φ − 1)` at the settled margin, and 1.124× is small. The shape does mean the concern arrives slowly and cannot be checked against launch behaviour, which is the argument for treating `σ*/φ` rather than `σ₀/φ` as the number that matters.
+**The worst moment is therefore the steady state, decades out — not the first epoch.** What makes this benign is not the shape but the bound: the edge is capped by `1 + tip/(σ*/φ − 1)` at the settled margin, and 1.124× is small. The shape does mean the concern arrives slowly and cannot be checked against launch behaviour, which is the argument for treating `reward_over_fee` rather than `opening_reward_over_fee` as the number that matters.
 
-There is no bootstrap grace period any more. Whatever headroom is chosen is the headroom the network lives with, so the choice of `β_PoW` and `T` together is directly a choice about how much of an advantage block builders hold over other miners.
+There is no bootstrap grace period any more. Whatever headroom is chosen is the headroom the network lives with, so the choice of `pow_share` and `target_claims_per_block` together is directly a choice about how much of an advantage block builders hold over other miners.
 
-**Design implication, and where it landed.** `σ*/φ` at 2 gives a 1.5× edge; bringing it below 1.1× needs `σ*/φ ≳ 6`. At the earlier `T = 50` that would have required `β_PoW ≈ 60 %` — implausibly large — so a permanent 1.5× edge looked unavoidable and was recorded here as a cost of the high claim target. **Lowering `T` to 10 largely removes it**: at the specified 10 % share the headroom is 5× and the edge **1.124×**. The 1.1× aspiration is missed by a whisker, and §4.4.2 explains why it is not chased further — reaching it needs β ≥ 11.9 %, above the ceiling that keeping mining subordinate to staking imposes.
+**Design implication, and where it landed.** `reward_over_fee` at 2 gives a 1.5× edge; bringing it below 1.1× needs `σ*/φ ≳ 6`. At the earlier `T = 50` that would have required `β_PoW ≈ 60 %` — implausibly large — so a permanent 1.5× edge looked unavoidable and was recorded here as a cost of the high claim target. **Lowering `target_claims_per_block` to 10 largely removes it**: at the specified 10 % share the headroom is 5× and the edge **1.124×**. The 1.1× aspiration is missed by a whisker, and §4.4.2 explains why it is not chased further — reaching it needs β ≥ 11.9 %, above the ceiling that keeping mining subordinate to staking imposes.
 
 ## 4.3 Calibration — the constraint set `DERIVED`
 
@@ -532,7 +560,7 @@ $$
 
 At the specified `T = 10` (`make rewards`, §4):
 
-| `β_PoW` | `n_tx` for `σ* = φ` | `n_tx` for `σ* = 2φ` |
+| `pow_share` | `txs_per_block` for `σ* = φ` | `txs_per_block` for `σ* = 2φ` |
 | --- | --- | --- |
 | 5 % | 239 | 478 |
 | 10 % | 119 | 239 |
@@ -544,7 +572,7 @@ Nothing here is out of reach: every share from 5 % up self-funds with 2× headro
 
 Read the other way, at the specified 10 % share and 600 transactions per block:
 
-| `T` | claims as % of a full block | `σ*/φ` | noise, `1/√T` |
+| `target_claims_per_block` | claims as % of a full block | `reward_over_fee` | noise, `1/√T` |
 | --- | --- | --- | --- |
 | 1 | 0.1 % | 50.2 | 100 % |
 | **10** | **1.0 %** | **5.02** | **32 %** |
@@ -552,11 +580,11 @@ Read the other way, at the specified 10 % share and 600 transactions per block:
 | 100 | 9.8 % | 0.50 | 10 % |
 | 500 | 48.8 % | 0.10 | 4.5 % |
 
-`T` buys precision in the claim count and pays for it in self-funding headroom, one for one.
+`target_claims_per_block` buys precision in the claim count and pays for it in self-funding headroom, one for one.
 
 ### Why the endowment exists
 
-The condition above is about the *steady state*. During bootstrap the network is quiet — twenty or a hundred transactions a block, not six hundred — so the fee inflow is small, `σ*` is far below the fee, and no one would claim. The endowment is what holds `σₑ` above the fee until traffic grows into the condition.
+The condition above is about the *steady state*. During bootstrap the network is quiet — twenty or a hundred transactions a block, not six hundred — so the fee inflow is small, `steady_reward` is far below the fee, and no one would claim. The endowment is what holds `reward_per_claim` above the fee until traffic grows into the condition.
 
 Its floor follows directly. Claiming is worth doing while `σₑ ≥ φ`, and `σₑ = ρR/(T·N_b)`, so
 
@@ -564,7 +592,7 @@ $$
 R \;\ge\; R_\text{min} \;=\; \frac{\varphi\, T\, N_b}{\rho}
 $$
 
-At `T = 10`, `N_b = 21,600`, `ρ = 1 %` this is `2.16×10⁷ · φ`. **The pool must hold 21.6 million times a single claim's fee** for one claim to be worth submitting — because it pays out only 1 % of itself per epoch, spread over 216,000 claims. It scales linearly with `T`, so this floor was five times higher before.
+At `T = 10`, `N_b = 21,600`, `ρ = 1 %` this is `2.16×10⁷ · φ`. **The pool must hold 21.6 million times a single claim's fee** for one claim to be worth submitting — because it pays out only 1 % of itself per epoch, spread over 216,000 claims. It scales linearly with `target_claims_per_block`, so this floor was five times higher before.
 
 ## 4.4 Sizing the endowment `DERIVED` + `SIMULATED`
 
@@ -585,13 +613,13 @@ $$
 | 10⁶ | 9.5×10⁻⁴ | 9.5×10⁻¹⁴ | 0.0004 % | negligible |
 | 10⁹ | 9.5×10⁻⁷ | 9.5×10⁻¹⁷ | ~0 | negligible |
 
-**Nine orders of magnitude in the fee, and therefore in the endowment.** What the table really shows is how sharply the sizing depends on the launch fee level, whatever sets it. Every entry scales linearly with `T`, so the move to `T = 10` divided this table by five without changing its shape, and the top row — a fee of 952 LGO — remains impossible at any endowment. §4.4.4 restates this as the constraint it actually is: a ceiling of about 1.157 LGO on the launch fee, for the specified endowment to open at twice it.
+**Nine orders of magnitude in the fee, and therefore in the endowment.** What the table really shows is how sharply the sizing depends on the launch fee level, whatever sets it. Every entry scales linearly with `target_claims_per_block`, so the move to `T = 10` divided this table by five without changing its shape, and the top row — a fee of 952 LGO — remains impossible at any endowment. §4.4.4 restates this as the constraint it actually is: a ceiling of about 1.157 LGO on the launch fee, for the specified endowment to open at twice it.
 
 ### Sized against an adoption ramp `SIMULATED`
 
-The single-point view answers "what opens at *m* fees". The question the endowment exists to answer is different: **how large must the pool be so that claiming stays worthwhile for the whole time it takes the network to grow into self-funding?** `make rewards` ramps traffic logistically from 20 to 1024 transactions per block over a stated horizon and binary-searches the smallest `R₀` keeping `σₑ ≥ φ` throughout, at `T = 10`, `ρ = 1 %` and the settled denomination of 10⁹ lepta per LGO (§0.1).
+The single-point view answers "what opens at *m* fees". The question the endowment exists to answer is different: **how large must the pool be so that claiming stays worthwhile for the whole time it takes the network to grow into self-funding?** `make rewards` ramps traffic logistically from 20 to 1024 transactions per block over a stated horizon and binary-searches the smallest `genesis_pool` keeping `σₑ ≥ φ` throughout, at `T = 10`, `ρ = 1 %` and the settled denomination of 10⁹ lepta per LGO (§0.1).
 
-| `β_PoW` | 1-year ramp | 2-year | 5-year | 10-year |
+| `pow_share` | 1-year ramp | 2-year | 5-year | 10-year |
 | --- | --- | --- | --- | --- |
 | 5 % | 3.09×10⁻⁸ | 3.31×10⁻⁸ | 4.08×10⁻⁸ | 5.85×10⁻⁸ |
 | **10 %** | **3.02×10⁻⁸** | **3.17×10⁻⁸** | **3.68×10⁻⁸** | **4.77×10⁻⁸** |
@@ -603,29 +631,29 @@ The single-point view answers "what opens at *m* fees". The question the endowme
 
 Three things fall out.
 
-**The floor is `R_min` = 2.88×10⁻⁸ of supply**, shared by every column — the pool must hold that much for a claim to beat its own fee at all, whatever the traffic. Nothing below it is a viable endowment.
+**The floor is `pool_floor` = 2.88×10⁻⁸ of supply**, shared by every column — the pool must hold that much for a claim to beat its own fee at all, whatever the traffic. Nothing below it is a viable endowment.
 
-**Slower adoption costs more, and superlinearly.** Doubling the ramp from five years to ten roughly doubles the excess over the floor at a 5 % share, because the pool drains at ρ for the whole time the fee inflow is short. A larger `β_PoW` is not merely a bigger subsidy, it is insurance against adoption being slower than hoped.
+**Slower adoption costs more, and superlinearly.** Doubling the ramp from five years to ten roughly doubles the excess over the floor at a 5 % share, because the pool drains at ρ for the whole time the fee inflow is short. A larger `pow_share` is not merely a bigger subsidy, it is insurance against adoption being slower than hoped.
 
 **Every share now works.** The previous `T = 50` produced *never* across the whole 5 % row — no endowment of any size kept claiming alive — and required 1.14–7.88 % of supply elsewhere. At `T = 10` the entire table fits between 2.88×10⁻⁸ and 5.85×10⁻⁸ of supply, and the choice of share is a preference about robustness to slow adoption rather than a viability constraint.
 
 ### 4.4.1 Choosing the target claim rate `DERIVED` + `SIMULATED`
 
-`T` was 50 in an earlier revision of the specification, chosen as roughly one twentieth of a full block on the reasoning that a larger count is a less noisy count. That reasoning is sound but it prices only one side. `make sweeps` prices the other, and the specification now sets `T = 10`.
+`target_claims_per_block` was 50 in an earlier revision of the specification, chosen as roughly one twentieth of a full block on the reasoning that a larger count is a less noisy count. That reasoning is sound but it prices only one side. `make sweeps` prices the other, and the specification now sets `T = 10`.
 
-**The identity everything follows from.** §3.1 showed that an epoch running at the target rate distributes the fraction ρ of the pool *whatever `T` is* — `T` and `N_b` cancel out of the pool dynamics. So `T` does not decide how much is distributed. It decides how many parts it is divided into, and therefore how much of it survives being divided, because **each claim pays a fee out of its own reward**. Writing the epoch's refill as `F = β·N_b·n_tx·ψ·φ`, the amount actually delivered net of the claims' own fees is
+**The identity everything follows from.** §3.1 showed that an epoch running at the target rate distributes the fraction ρ of the pool *whatever `target_claims_per_block` is* — `target_claims_per_block` and `blocks_per_epoch` cancel out of the pool dynamics. So `target_claims_per_block` does not decide how much is distributed. It decides how many parts it is divided into, and therefore how much of it survives being divided, because **each claim pays a fee out of its own reward**. Writing the epoch's refill as `F = β·N_b·n_tx·ψ·φ`, the amount actually delivered net of the claims' own fees is
 
 $$
 \text{net per epoch} \;=\; F - T\,N_b\,\varphi \;=\; N_b\,\varphi\,\bigl(\psi\,\beta\, n_\text{tx} - T\bigr)
 $$
 
-**`T` enters with a minus sign.** At a chosen share it is pure overhead: every unit of `T` subtracts `N_b·φ` from what reaches claimants. And the same expression gives the ceiling — at `T = ψ·β·n_tx` the reward equals the fee, delivery is zero, and claiming stops.
+**`target_claims_per_block` enters with a minus sign.** At a chosen share it is pure overhead: every unit of `target_claims_per_block` subtracts `N_b·φ` from what reaches claimants. And the same expression gives the ceiling — at `T = ψ·β·n_tx` the reward equals the fee, delivery is zero, and claiming stops.
 
 **Where `T = 50` sat.** At β = 20 % on 600-transaction blocks the ceiling with the 2× headroom §4.2 wants is exactly `ψ·β·n_tx/2 = 50`. `T = 50` was not near the ceiling; it *was* the ceiling, which is why §4.3's table found β = 20 % to be the minimum viable share. Half of everything the pool distributed was being returned as fees on the claims themselves.
 
-**Holding the share fixed at 20 %, lowering `T`:**
+**Holding the share fixed at 20 %, lowering `target_claims_per_block`:**
 
-| `T` | σ*/φ | eaten by fees | reaches miners | builder edge | noise | `R₀` (5-yr ramp) | nodes onboarded/epoch |
+| `target_claims_per_block` | σ*/φ | eaten by fees | reaches miners | builder edge | noise | `genesis_pool` (5-yr ramp) | nodes onboarded/epoch |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 100.5 | 1 % | 99 % | 1.01× | 100 % | 0.02 % | 20.5 |
 | 5 | 20.1 | 5 % | 95 % | 1.03× | 45 % | 0.11 % | 19.6 |
@@ -636,24 +664,24 @@ $$
 
 The onboarding column is measured against the thing being onboarded *to*: the minimum stake for a Blend service node is `0.001 % · S_tge = 100,000` LGO (`analysis-static-minimum-stake-estimation-for-service-declaration-protocol.md:57-62`), and the column is the epoch's net delivery divided by it. **Claim count is a bad proxy for onboarding.** `T = 50` pays 1,080,000 claims an epoch, but at 0.96 LGO net each it takes 104,000 of them to reach minimum stake; `T = 10` pays a fifth as many claims and onboards nearly twice as many participants.
 
-**A correction against an intermediate reading of this result.** Because §4.3 showed `T` and β locked together at fixed headroom — `β = 2T/(ψ·n_tx)` — it is tempting to read the move to `T = 10` as also licensing β = 4 %, cutting the fee diversion fivefold at no cost. **It does not.** Those are two different policies and they cannot be combined:
+**A correction against an intermediate reading of this result.** Because §4.3 showed `target_claims_per_block` and β locked together at fixed headroom — `β = 2T/(ψ·n_tx)` — it is tempting to read the move to `T = 10` as also licensing β = 4 %, cutting the fee diversion fivefold at no cost. **It does not.** Those are two different policies and they cannot be combined:
 
-| policy | `T` | β | σ*/φ | fee overhead | nodes onboarded/epoch |
+| policy | `target_claims_per_block` | β | σ*/φ | fee overhead | nodes onboarded/epoch |
 | --- | --- | --- | --- | --- | --- |
 | the earlier base | 50 | 20 % | 2.01 | 50 % | 10.4 |
-| **lower `T`, hold the share** | **10** | **20 %** | **10.05** | **10 %** | **18.6** |
-| lower `T`, hold the headroom | 10 | 4 % | 2.00 | 50 % | 2.1 |
-| lower `T`, hold the headroom | 5 | 2 % | 2.00 | 50 % | 1.0 |
+| **lower `target_claims_per_block`, hold the share** | **10** | **20 %** | **10.05** | **10 %** | **18.6** |
+| lower `target_claims_per_block`, hold the headroom | 10 | 4 % | 2.00 | 50 % | 2.1 |
+| lower `target_claims_per_block`, hold the headroom | 5 | 2 % | 2.00 | 50 % | 1.0 |
 
-Cutting β to 4 % shrinks the refill fivefold, and since the fee overhead stays at 50 % the delivered amount shrinks fivefold too. That row is not `T = 10` done more cheaply; it is a fifth-sized programme. **β is the budget and `T` is overhead against it.** Lowering `T` is a free efficiency gain at a fixed budget; it is not a way to reduce the budget while keeping the benefit.
+Cutting β to 4 % shrinks the refill fivefold, and since the fee overhead stays at 50 % the delivered amount shrinks fivefold too. That row is not `T = 10` done more cheaply; it is a fifth-sized programme. **β is the budget and `target_claims_per_block` is overhead against it.** Lowering `target_claims_per_block` is a free efficiency gain at a fixed budget; it is not a way to reduce the budget while keeping the benefit.
 
-**What lowering `T` costs.** Only variance, `1/√T` — 32 % at `T = 10` against 14 % at 50. Worth being precise about what that does and does not affect. The memoryless controller's step is scale-free: it moves the target by `+11 %` on a block with no claims and `−9 %` on a block with twice the target, at every `T`. What changes with `T` is how often a large *relative* deviation is sampled. The resulting jitter changes **which blocks carry claims and when a given miner wins**, not what a win is worth — σₑ is fixed for the whole epoch and is independent of any block's realised count. Nothing else degrades: claims fall from 4.9 % to 1.0 % of a full block, so §4.2's censorship result and assumption A10 both get *safer*, and §3.2's cliff threshold `T·N_b` falls with `T`.
+**What lowering `target_claims_per_block` costs.** Only variance, `1/√T` — 32 % at `T = 10` against 14 % at 50. Worth being precise about what that does and does not affect. The memoryless controller's step is scale-free: it moves the target by `+11 %` on a block with no claims and `−9 %` on a block with twice the target, at every `target_claims_per_block`. What changes with `target_claims_per_block` is how often a large *relative* deviation is sampled. The resulting jitter changes **which blocks carry claims and when a given miner wins**, not what a win is worth — σₑ is fixed for the whole epoch and is independent of any block's realised count. Nothing else degrades: claims fall from 4.9 % to 1.0 % of a full block, so §4.2's censorship result and assumption A10 both get *safer*, and §3.2's cliff threshold `T·N_b` falls with `target_claims_per_block`.
 
-**Robustness.** The `T`↔β relation and the fee-overhead expression are both ratios in which `P_STR` and `b_exec` cancel, so they are independent of the denomination (§5.1). The endowment column is not, and assumes 10³ base units per LGO.
+**Robustness.** The `target_claims_per_block`↔β relation and the fee-overhead expression are both ratios in which `P_STR` and `b_exec` cancel, so they are independent of the denomination (§5.1). The endowment column is not, and assumes 10³ base units per LGO.
 
 ### 4.4.2 Choosing the share `DERIVED` + `SIMULATED`
 
-`β_PoW` was the last free parameter. `make sweeps` fixes it at **a tenth**, and the reasoning turns on a fact about incidence that this model had wrong until now.
+`pow_share` was the last free parameter. `make sweeps` fixes it at **a tenth**, and the reasoning turns on a fact about incidence that this model had wrong until now.
 
 #### Who actually pays — and it is not the burn, at least not forever
 
@@ -674,7 +702,7 @@ The incidence therefore **migrates over the network's life**, from the supply to
 
 **From below — self-funding**, `β ≥ headroom·T/(ψ·n_tx)`:
 
-| `n_tx` | break-even | 2× headroom | 6× (builder edge ≤ 1.1×) |
+| `txs_per_block` | break-even | 2× headroom | 6× (builder edge ≤ 1.1×) |
 | --- | --- | --- | --- |
 | 100 | 11.9 % | 23.9 % | 71.7 % |
 | 300 | 4.0 % | 8.0 % | 23.9 % |
@@ -685,7 +713,7 @@ The endowment covers the low-traffic rows during bootstrap (§4.4), so the row t
 
 **From above — PoS must remain the better path.** The proposal is explicit: EmPoWering *"is not a PoS replacement"* and *"PoS participation remains the most strongly incentivized path"* (§1.5). At `A_t = 0` that becomes checkable, because the mature fee flow splits three ways:
 
-| `β_PoW` | PoW | Blend | leaders | PoW as % of the leader share |
+| `pow_share` | PoW | Blend | leaders | PoW as % of the leader share |
 | --- | --- | --- | --- | --- |
 | 2 % | 2 % | 58.8 % | 39.2 % | 5 % |
 | 5 % | 5 % | 57.0 % | 38.0 % | 13 % |
@@ -700,7 +728,7 @@ Reading "clearly subordinate" as the mining share staying at or below a third of
 
 #### Subordination is a share cap; the flows take decades to match it
 
-The cap above is stated on *fee shares*, and in the steady state that is the whole story. At genesis it is not, because both sides live on non-fee income (**Fig 12**). The pool's epoch-0 distribution is `ρR₀` = **250,000 LGO**, against leader *fee* income of `L(1−β)` of an epoch's fees — about **26 LGO**. On fees alone, mining out-earns the leader path **9,605-fold**, and its flow stays above a third of leader fee income for roughly **42 years** of the endowment's decay. What keeps the launch-era flows in proportion is the leaders' *minted* income: at the emission cap they receive ≈ 2.05 M LGO per epoch, against which the pool's 250,000 is **12.2 %** — under the one-third reading, but on the strength of block rewards, not fees. **The fee-share cap is therefore a statement about the mature network**; during bootstrap, subordination in flow terms is underwritten by the emission schedule, and would need re-examining if the block reward were ever much smaller at launch. (This is the flow-level counterpart of §4.12: `R₀` is a distribution budget, and while it drains, *both* sides' fee arithmetic is dwarfed by their non-fee income.)
+The cap above is stated on *fee shares*, and in the steady state that is the whole story. At genesis it is not, because both sides live on non-fee income (**Fig 12**). The pool's epoch-0 distribution is `ρR₀` = **250,000 LGO**, against leader *fee* income of `L(1−β)` of an epoch's fees — about **26 LGO**. On fees alone, mining out-earns the leader path **9,605-fold**, and its flow stays above a third of leader fee income for roughly **42 years** of the endowment's decay. What keeps the launch-era flows in proportion is the leaders' *minted* income: at the emission cap they receive ≈ 2.05 M LGO per epoch, against which the pool's 250,000 is **12.2 %** — under the one-third reading, but on the strength of block rewards, not fees. **The fee-share cap is therefore a statement about the mature network**; during bootstrap, subordination in flow terms is underwritten by the emission schedule, and would need re-examining if the block reward were ever much smaller at launch. (This is the flow-level counterpart of §4.12: `genesis_pool` is a distribution budget, and while it drains, *both* sides' fee arithmetic is dwarfed by their non-fee income.)
 
 ![funding flows](figures/12_funding_flows.png)
 
@@ -708,7 +736,7 @@ The cap above is stated on *fee shares*, and in the steady state that is the who
 
 #### What each share buys, at 600 transactions per block
 
-| `β_PoW` | σ*/φ | builder edge | reaching claimants | nodes onboarded/epoch | `R₀` (5-yr ramp) |
+| `pow_share` | σ*/φ | builder edge | reaching claimants | nodes onboarded/epoch | `genesis_pool` (5-yr ramp) |
 | --- | --- | --- | --- | --- | --- |
 | 2 % | 1.00 | 109× | 0 % | 0.0 | 0.55 % |
 | 5 % | 2.51 | 1.331× | 60 % | 3.1 | 0.42 % |
@@ -724,7 +752,7 @@ Note the top row: **the proposal's illustrative 2 % lands exactly on break-even*
 
 Going to 20 % would halve the builder edge and double the onboarding rate, at the cost of taking mining to 62 % of the leader share — which is no longer "clearly subordinate", and is the reading of the proposal's §1.5 that decides this.
 
-**What would change the answer.** A lower expected sustained traffic pushes the lower bound up quickly — at 300 transactions per block the 2× requirement is already 8 %, leaving almost no room under the subordination ceiling. If the network is expected to settle below about 250 transactions per block, `T` should come down further rather than β going up, because `T` and β trade one-for-one on this constraint (§4.4.1) and only β is bounded above.
+**What would change the answer.** A lower expected sustained traffic pushes the lower bound up quickly — at 300 transactions per block the 2× requirement is already 8 %, leaving almost no room under the subordination ceiling. If the network is expected to settle below about 250 transactions per block, `target_claims_per_block` should come down further rather than β going up, because `target_claims_per_block` and β trade one-for-one on this constraint (§4.4.1) and only β is bounded above.
 
 ### 4.4.3 Choosing the distribution rate and the genesis seed `DERIVED` + `SIMULATED`
 
@@ -734,7 +762,7 @@ The last two, from `make sweeps`. **`ρ = 1/100` and `R₀ = 0.5 %` of the launc
 
 §3.1's result is easy to misread: `σ* = F/(T·N_b)` contains **no ρ**. The distribution rate does not set what a claim pays. What it sets is the **size of the standing reserve**, because the pool settles at `R* = F/ρ` — that is, at `1/ρ` epochs' worth of distribution. Everything else follows from that one fact.
 
-| `ρ` | reserve `R*`/supply | epochs held | `R_min`/supply | response lag | exhaustion, claims/block |
+| `distribution_rate` | reserve `steady_pool`/supply | epochs held | `pool_floor`/supply | response lag | exhaustion, claims/block |
 | --- | --- | --- | --- | --- | --- |
 | 0.2 % | 3.62×10⁻⁷ | 500 | 7.20×10⁻⁸ | 10.3 yr | 5,000 — unreachable |
 | 0.5 % | 1.45×10⁻⁷ | 200 | 2.88×10⁻⁸ | 4.1 yr | 2,000 — unreachable |
@@ -756,30 +784,30 @@ Two floors and one landmark:
 
 | | as a fraction of launch supply |
 | --- | --- |
-| `R_min` — below this a claim no longer beats its own fee | 2.88×10⁻⁸ |
+| `pool_floor` — below this a claim no longer beats its own fee | 2.88×10⁻⁸ |
 | covers a 1-year adoption ramp | 3.02×10⁻⁸ |
 | covers a 2-year ramp | 3.17×10⁻⁸ |
 | covers a 5-year ramp | 3.68×10⁻⁸ |
 | covers a 10-year ramp | 4.77×10⁻⁸ |
-| `R*` at the reference traffic | 1.45×10⁻⁷ |
-| **the specified `R₀`** | **5.00×10⁻³** — 135,949× the 5-year ramp (§4.12) |
+| `steady_pool` at the reference traffic | 1.45×10⁻⁷ |
+| **the specified `genesis_pool`** | **5.00×10⁻³** — 135,949× the 5-year ramp (§4.12) |
 
-| `R₀` | in LGO | `σ₀` | × fee | epochs to `R_min` with **no traffic at all** |
+| `genesis_pool` | in LGO | `opening_reward` | × fee | epochs to `pool_floor` with **no traffic at all** |
 | --- | --- | --- | --- | --- |
 | 0.2 % | 2.0×10⁷ | 462,962,963 | 69,472× | 2,224 ≈ 46 yr |
 | **0.5 %** | **5.0×10⁷** | **1,157,407,407** | **173,681×** | **2,407 ≈ 49 yr** |
 | 1.0 % | 1.0×10⁸ | 2,314,814,815 | 347,361× | 2,545 ≈ 52 yr |
 | 2.0 % | 2.0×10⁸ | 4,629,629,630 | 694,722× | 2,684 ≈ 55 yr |
 
-**`R₀ = 0.5 %`.** At the settled denomination this is not a marginal choice against the ramp — it clears a five-year ramp by 135,949× and opens at 173,681× the fee, sustaining claiming for about 49 years on the endowment alone even with no traffic at all. **The reward-economics constraints do not select it; §4.12 shows what does.** Matching `R*` for elegance, so the reward would be flat from the first epoch, would mean an endowment of 1.45×10⁻⁷ of supply — four to five orders of magnitude smaller, and a mechanism with no bootstrap subsidy at all. The gap between those two readings is the whole of the allocation question.
+**`R₀ = 0.5 %`.** At the settled denomination this is not a marginal choice against the ramp — it clears a five-year ramp by 135,949× and opens at 173,681× the fee, sustaining claiming for about 49 years on the endowment alone even with no traffic at all. **The reward-economics constraints do not select it; §4.12 shows what does.** Matching `steady_pool` for elegance, so the reward would be flat from the first epoch, would mean an endowment of 1.45×10⁻⁷ of supply — four to five orders of magnitude smaller, and a mechanism with no bootstrap subsidy at all. The gap between those two readings is the whole of the allocation question.
 
 For scale: the minimum-stake analysis sizes staking around 1,000 nodes at 0.001 % of supply each, i.e. 1 % of supply. A 0.5 % onboarding endowment is proportionate to that rather than large against it.
 
 #### The denomination constraint this finally makes actionable
 
-§4.4 found the endowment undeterminable without the denomination. Stating `R₀` as a *fraction of supply* inverts the problem into something useful. `σ₀ = ρ·R₀/(T·N_b)` depends only on denomination-free quantities; the fee `φ` is a fixed **952 base units**. So a chosen `R₀` implies a **floor under the denomination**:
+§4.4 found the endowment undeterminable without the denomination. Stating `genesis_pool` as a *fraction of supply* inverts the problem into something useful. `σ₀ = ρ·R₀/(T·N_b)` depends only on denomination-free quantities; the fee `claim_fee` is a fixed **952 base units**. So a chosen `genesis_pool` implies a **floor under the denomination**:
 
-| `R₀` | min base units per LGO for `σ₀ ≥ φ` | for `σ₀ ≥ 2φ` |
+| `genesis_pool` | min base units per LGO for `σ₀ ≥ φ` | for `σ₀ ≥ 2φ` |
 | --- | --- | --- |
 | 0.2 % | 7,197 | 14,394 |
 | **0.5 %** | **2,879** | **5,758** |
@@ -803,9 +831,9 @@ The fee is `φ = 306·P_STR + 646·b_exec` **base units**, where `P_STR` and `b_
 - the **denomination** fixes how finely a price can be expressed and how large a value can be represented;
 - the **price level** fixes what a transaction costs.
 
-Everything this document computes in LGO — `σ*`, `σ₀`, `R_min`, `R₀`, the ramp table, `R*` — is unaffected by `u`. What §4.4's nine-orders-of-magnitude table actually varied was the *fee level*, by holding both prices pinned at their floor of one base unit and sliding `u` underneath. That is a legitimate scenario (it is what a quiet market does) but it is not "the denomination decides the endowment". **Defining `u` does not unblock the endowment; initialising the prices does.**
+Everything this document computes in LGO — `steady_reward`, `opening_reward`, `pool_floor`, `genesis_pool`, the ramp table, `steady_pool` — is unaffected by `u`. What §4.4's nine-orders-of-magnitude table actually varied was the *fee level*, by holding both prices pinned at their floor of one base unit and sliding `u` underneath. That is a legitimate scenario (it is what a quiet market does) but it is not "the denomination decides the endowment". **Defining `u` does not unblock the endowment; initialising the prices does.**
 
-The constraint is therefore restated: the specified `R₀` opens at twice the fee for as long as the **launch fee is at most `σ₀/2 = 1.157` LGO**, or `1.157×10⁻¹⁰` of the launch supply. That is a target for genesis governance to hit with `P_STR(0)` and `b_exec(0)`, and it is checkable on the day. It is now stated in both the Mantle and genesis specifications in that form.
+The constraint is therefore restated: the specified `genesis_pool` opens at twice the fee for as long as the **launch fee is at most `σ₀/2 = 1.157` LGO**, or `1.157×10⁻¹⁰` of the launch supply. That is a target for genesis governance to hit with `P_STR(0)` and `b_exec(0)`, and it is checkable on the day. It is now stated in both the Mantle and genesis specifications in that form.
 
 #### What EmPoWering requires of it
 
@@ -849,11 +877,11 @@ kept deliberately as an exact fraction, with `block_rewards()` returning a `floa
 ### The constraints, symbolically
 
 1. **Steady-state self-funding, with headroom.** `ψ·β_PoW·n_tx/T > 2`. At the specified `T = 10` and `β_PoW = 10 %` this holds from 240 transactions per block up, and the realised headroom at the reference 600 is 5× with a builder edge of 1.124×. The factor of two is §4.2's.
-2. **Solvency across the ramp.** `R₀` at least the ramp table's entry for the adoption horizon being planned for — and never below `R_min = φ·T·N_b/ρ`.
-3. **No cliff.** `F > T·N_b` base units, so `σₑ` never floors to zero (§3.2). Implied by constraint 2 whenever `φ ≥ 1` base unit.
-4. **Bootstrap security.** `R₀` small relative to the honest stake securing the chain while it is distributed (§4.1).
-5. **Denomination.** `R₀` is now fixed as a *fraction of supply*, which turns this from a blocker into a constraint running the other way: the chosen `R₀` puts a **floor of ~823 base units per LGO** under the denomination for the opening reward to be twice the fee (§4.4.3).
-6. **Noise.** Relative variation in claims per block is `1/√T` (A2), which argues for larger `T` — directly against constraint 1.
+2. **Solvency across the ramp.** `genesis_pool` at least the ramp table's entry for the adoption horizon being planned for — and never below `R_min = φ·T·N_b/ρ`.
+3. **No cliff.** `F > T·N_b` base units, so `reward_per_claim` never floors to zero (§3.2). Implied by constraint 2 whenever `φ ≥ 1` base unit.
+4. **Bootstrap security.** `genesis_pool` small relative to the honest stake securing the chain while it is distributed (§4.1).
+5. **Denomination.** `genesis_pool` is now fixed as a *fraction of supply*, which turns this from a blocker into a constraint running the other way: the chosen `genesis_pool` puts a **floor of ~823 base units per LGO** under the denomination for the opening reward to be twice the fee (§4.4.3).
+6. **Noise.** Relative variation in claims per block is `1/√T` (A2), which argues for larger `target_claims_per_block` — directly against constraint 1.
 
 The complete specified set, at `10³` base units per LGO: **`T = 10`, `β_PoW = 10 %`, `ρ = 1/100`, `R₀ = 0.5 %` of launch supply.** It opens at `σ₀ = 2.31` LGO against a `0.952` LGO fee — 2.4× — and settles at `σ* = 4.78` LGO, 5×, at 600 transactions per block, with a 1.124× builder edge throughout. Nothing in the mechanism is now unparameterised.
 
@@ -869,20 +897,20 @@ Eight figures from `make plots`, rendered from the same `Params` the tables use,
 
 ![pool trajectory](figures/01_pool_trajectory.png)
 
-`R₀` is 5×10⁷ LGO and `R*` is 1,446 LGO — more than four orders of magnitude apart — so the fixed point that §4.4.3 solves for is not a description of the near term. The gap closes at `(1−ρ)^e`, which puts the pool **within a factor of two of `R*` only after about 43 years**. For the whole of that descent the reward per claim is set by the decaying endowment, not by the fee refill, and it falls about 34,600× along the way. It never crosses the floor: `R*` (1,446) sits above `R_min` (288), so the steady state clears break-even by design and every point on the path to it clears it by more.
+`genesis_pool` is 5×10⁷ LGO and `steady_pool` is 1,446 LGO — more than four orders of magnitude apart — so the fixed point that §4.4.3 solves for is not a description of the near term. The gap closes at `(1−ρ)^e`, which puts the pool **within a factor of two of `steady_pool` only after about 43 years**. For the whole of that descent the reward per claim is set by the decaying endowment, not by the fee refill, and it falls about 34,600× along the way. It never crosses the floor: `steady_pool` (1,446) sits above `pool_floor` (288), so the steady state clears break-even by design and every point on the path to it clears it by more.
 
 **This is the figure to read before treating `σ*/φ = 5.02` as the operating number.** It is the number the system converges to, not the one it launches with.
 
-**The descent time is a property of the price level, not of the mechanism.** `σ*/φ` is price-independent — both fee markets scale together, so the ratio §4.3 derives is untouched — but `R₀` is a fraction of *supply* while `R*` scales with the *fee*, so the gap between them, and the time to close it, is not:
+**The descent time is a property of the price level, not of the mechanism.** `reward_over_fee` is price-independent — both fee markets scale together, so the ratio §4.3 derives is untouched — but `genesis_pool` is a fraction of *supply* while `steady_pool` scales with the *fee*, so the gap between them, and the time to close it, is not:
 
-| price level | vs resting | `R*` (LGO) | `R₀/R*` | years to within 2× of `R*` |
+| price level | vs resting | `steady_pool` (LGO) | `R₀/R*` | years to within 2× of `steady_pool` |
 | --- | --- | --- | --- | --- |
 | 7 (resting) | 1× | 1,446 | 34,576 | **42.8** |
 | 700 | 100× | 144,608 | 346 | 24.0 |
 | 7,000 | 1,000× | 1,446,077 | 34.6 | 14.4 |
 | 116,564 (deflation threshold, §3.4) | 16,652× | 24,080,071 | 2.1 | 0.3 |
 
-So "decades on the endowment" is the *resting-price* case, which is the conservative one and the one the figure plots. At discovered prices a few orders of magnitude above the floor the system reaches its fee-funded regime within a decade and a half, and almost immediately at the deflation threshold. Both readings share the same `σ*/φ`, so nothing about the self-funding margin depends on which obtains — only the shape of the approach does.
+So "decades on the endowment" is the *resting-price* case, which is the conservative one and the one the figure plots. At discovered prices a few orders of magnitude above the floor the system reaches its fee-funded regime within a decade and a half, and almost immediately at the deflation threshold. Both readings share the same `reward_over_fee`, so nothing about the self-funding margin depends on which obtains — only the shape of the approach does.
 
 ### 4.7.2 The claim share of traffic, and its ceiling
 
@@ -900,17 +928,17 @@ v \;=\; \frac{T}{n_\text{tx}}
 \boxed{\ v \cdot \frac{\sigma^\ast}{\varphi} \;=\; \psi\,\beta_\text{PoW}\ }
 $$
 
-so at break-even the claim share is exactly `ψβ`, and that is the **ceiling**: if claims are more than `ψβ = 8.37 %` of transactions, a claim earns less than the fee it pays. It depends on `β` and nothing else — `T` cancels, and so does the traffic level. At the specified set the network operates at `v = 1.67 %`, a **5.02× margin** below the ceiling, and the break-even traffic is 119 tx/block.
+so at break-even the claim share is exactly `ψβ`, and that is the **ceiling**: if claims are more than `ψβ = 8.37 %` of transactions, a claim earns less than the fee it pays. It depends on `pow_share` and nothing else — `target_claims_per_block` cancels, and so does the traffic level. At the specified set the network operates at `v = 1.67 %`, a **5.02× margin** below the ceiling, and the break-even traffic is 119 tx/block.
 
 Both numbers are gated in `make verify`.
 
-### 4.7.3 What `β_PoW` actually buys
+### 4.7.3 What `pow_share` actually buys
 
-**Intuition.** `β` is the slice of fees the pool takes. Raising it does *not* mean more people mine: the difficulty controller holds the number of winners at `T` whatever happens. It means each winner is paid more — which is the same thing as saying the network can be quieter before mining stops being worth doing.
+**Intuition.** `pow_share` is the slice of fees the pool takes. Raising it does *not* mean more people mine: the difficulty controller holds the number of winners at `target_claims_per_block` whatever happens. It means each winner is paid more — which is the same thing as saying the network can be quieter before mining stops being worth doing.
 
 ![beta relation](figures/03_beta_relation.png)
 
-**Raising `β` does not put more claims in a block.** The difficulty controller holds the claim count at `T` whatever `β` is, so the claim share of transaction volume is invariant in `β` — the identity above moves the *ceiling*, not the operating point. What `β` buys is traffic headroom: the floor below which mining stops funding itself is `T/(ψβ)`, which the specified tenth puts at 119 tx/block.
+**Raising `pow_share` does not put more claims in a block.** The difficulty controller holds the claim count at `target_claims_per_block` whatever `pow_share` is, so the claim share of transaction volume is invariant in `pow_share` — the identity above moves the *ceiling*, not the operating point. What `pow_share` buys is traffic headroom: the floor below which mining stops funding itself is `T/(ψβ)`, which the specified tenth puts at 119 tx/block.
 
 The sweep in §4.4.2 is worth re-reading against this. **At the proposal's original 2 % example the break-even traffic is 597 tx/block against a reference of 600** — `σ*/φ = 1.00`, no headroom at all. The move to a tenth is what converts the mechanism from marginal to funded.
 
@@ -920,9 +948,9 @@ The sweep in §4.4.2 is worth re-reading against this. **At the proposal's origi
 
 ![endowment ramp](figures/04_endowment_ramp.png)
 
-Each ramp is plotted at *its own* minimum endowment, where each just grazes the floor — which is what makes the test legible. At the specified `R₀` all four curves lie on top of one another, because the endowment is **135,949× the 5-year minimum** and the ramp shape disappears beneath it.
+Each ramp is plotted at *its own* minimum endowment, where each just grazes the floor — which is what makes the test legible. At the specified `genesis_pool` all four curves lie on top of one another, because the endowment is **135,949× the 5-year minimum** and the ramp shape disappears beneath it.
 
-That ratio is itself a finding: `R₀ = 0.5 %` of supply is not sized by the σ ≥ φ constraint, which 3.7×10⁻⁸ of supply would satisfy. Whatever justifies half a percent, it is not this floor, and §10.2's standing-reserve question is really a question about `R₀` and its multi-decade decay rather than about `R*`.
+That ratio is itself a finding: `R₀ = 0.5 %` of supply is not sized by the σ ≥ φ constraint, which 3.7×10⁻⁸ of supply would satisfy. Whatever justifies half a percent, it is not this floor, and §10.2's standing-reserve question is really a question about `genesis_pool` and its multi-decade decay rather than about `steady_pool`.
 
 ### 4.7.5 The reward controller is asymmetric
 
@@ -938,7 +966,7 @@ A mis-set genesis target recovers in about 20 blocks when it is too permissive a
 
 ![operating envelope](figures/06_operating_envelope.png)
 
-Two independent walls bound `β` from opposite sides, and the specified point sits between them. Below, `σ*/φ < 1` and a claim earns less than its own fee. Above, `β > 11.8 %` and mining stops being subordinate to the leader path. At the reference traffic the admissible band is **`β ∈ [4.0 %, 11.8 %]`** for a 2× fee margin, and the specified tenth sits in it — nearer the subordination wall than the funding one.
+Two independent walls bound `pow_share` from opposite sides, and the specified point sits between them. Below, `σ*/φ < 1` and a claim earns less than its own fee. Above, `β > 11.8 %` and mining stops being subordinate to the leader path. At the reference traffic the admissible band is **`β ∈ [4.0 %, 11.8 %]`** for a 2× fee margin, and the specified tenth sits in it — nearer the subordination wall than the funding one.
 
 ![drain margin](figures/07_drain_margin.png)
 
@@ -952,7 +980,7 @@ The design target — about a minute of one core per message, of order a thousan
 
 **Intuition.** Winners arrive at random, like raindrops: a block that averages ten might get six, or fifteen. The model so far has used the average everywhere, which raises a fair objection — does the randomness matter? Two places it might. It could make the pool's income lumpy. And it could, on a bad day, land so many claims at once that the pool empties early. The way to find out is to stop averaging and actually roll the dice, with the difficulty controller reacting as it would in production.
 
-A2 replaces the arrival process with its mean and says so plainly: "the simulator uses the mean, not samples, so it understates variance." It also calls the `1/√T` spread — **32 % at `T = 10`** — "the whole quantitative case for a larger `T`". That left the case argued but never tested, against a margin that is live: §3.8's drain guard sits 2.4 % under the block cap.
+A2 replaces the arrival process with its mean and says so plainly: "the simulator uses the mean, not samples, so it understates variance." It also calls the `1/√T` spread — **32 % at `T = 10`** — "the whole quantitative case for a larger `target_claims_per_block`". That left the case argued but never tested, against a margin that is live: §3.8's drain guard sits 2.4 % under the block cap.
 
 `make sampled` runs the mechanism block by block with Poisson arrivals and the **real memoryless retarget in the loop**, so the controller reacts to noise as it would in production. 1,036,800 blocks, four seeds × twelve epochs.
 
@@ -974,7 +1002,7 @@ A2 replaces the arrival process with its mean and says so plainly: "the simulato
 
 **The drain margin is not a sampling question.** The busiest block in 1.04 million was 31 claims, against the 2,000 per block the within-epoch drain needs, sustained for 7.5 days — **613 standard deviations away**. The pool guard never bound once. Since §0.4 the drain is impossible by construction, so this measurement is no longer load-bearing — but it was run when the margin was 2.4 % and controller-dependent, and it established that chance contributed nothing even then.
 
-**One thing the mean-field model cannot see: the retarget overshoots its target.** The equilibrium claim rate is **10.05, not 10**. `T` is the fixed point of the retarget applied to the *mean*, but the map divides by the observed count and is therefore convex, so under Poisson arrivals the rate drifts up until log-stationarity holds. Expanding to second order,
+**One thing the mean-field model cannot see: the retarget overshoots its target.** The equilibrium claim rate is **10.05, not 10**. `target_claims_per_block` is the fixed point of the retarget applied to the *mean*, but the map divides by the observed count and is therefore convex, so under Poisson arrivals the rate drifts up until log-stationarity holds. Expanding to second order,
 
 $$
 \boxed{\ \lambda^\ast \;=\; T + \frac{P - F}{2P}\ }
@@ -982,13 +1010,13 @@ $$
 
 an **absolute** overshoot of 0.05 claims per block, so the relative one goes as `1/T`: **+0.50 % at `T = 10`, +0.10 % at `T = 50`**. Confirmed against simulation across `T ∈ {5, 10, 25, 50}` and `(P,F) ∈ {(10,9), (10,8), (100,99)}`.
 
-The consequence is small and one-signed: the pool distributes about half a percent more than §3.1 says, and every figure derived from the mean-field rate is high by that much at `T = 10`. It is well inside the tolerances this document quotes. But it belongs on the ledger with the other costs of a small `T` — the per-block variance A2 names, the builder edge of §4.2, and the drain margin of §3.8 — because like them it is a `1/T` effect, and unlike them it was invisible until the arrivals were sampled.
+The consequence is small and one-signed: the pool distributes about half a percent more than §3.1 says, and every figure derived from the mean-field rate is high by that much at `T = 10`. It is well inside the tolerances this document quotes. But it belongs on the ledger with the other costs of a small `target_claims_per_block` — the per-block variance A2 names, the builder edge of §4.2, and the drain margin of §3.8 — because like them it is a `1/T` effect, and unlike them it was invisible until the arrivals were sampled.
 
 ## 4.9 The working fee range — one axis instead of two `DERIVED`
 
 **Intuition.** We have been describing traffic two ways at once: how many transactions a block carries, and how expensive each one is. But the pool takes a cut of the *money*, not of the count — and a claim's own cost rises with prices too. So doubling every price changes nothing real: the pool earns twice as much and the claim costs twice as much. The only thing that actually matters is **how much a block collects compared with what one claim costs**. That is one number instead of two, and it turns the question "is there enough traffic?" into a single threshold that needs no forecast of either prices or volumes.
 
-This document carries traffic as a transaction count (`n_tx`, `UNKNOWN`, an adoption question) and the fee level as a separate unknown (A9, §5.1). **Neither is identified on its own, and the model never needed both.**
+This document carries traffic as a transaction count (`txs_per_block`, `UNKNOWN`, an adoption question) and the fee level as a separate unknown (A9, §5.1). **Neither is identified on its own, and the model never needed both.**
 
 What the refill takes is a share of a block's fee *revenue*. What decides whether mining pays is that revenue against the claim's own fee — which moves with the price level too. The two scalings cancel, leaving one dimensionless quantity: a block's revenue counted in claim fees.
 
@@ -998,13 +1026,13 @@ $$
 \boxed{\ \frac{\sigma^\ast}{\varphi} \;=\; \frac{\beta_\text{PoW}\,\hat\Phi}{T}\ }
 $$
 
-Sweeping `Φ̂` says everything the `(n_tx, price)` plane says, on one axis, without committing to a price level. And the working range reduces to a single number:
+Sweeping `fee_load` says everything the `(n_tx, price)` plane says, on one axis, without committing to a price level. And the working range reduces to a single number:
 
 > **A block must collect `T/β` claim fees for mining to fund itself — 100 at the specified set.**
 
 ![working fee range](figures/10_fee_range.png)
 
-| `Φ̂` (claim fees/block) | `σ*/φ` | verdict | lepta/block at rest | ≈ `n_tx` at any price |
+| `fee_load` (claim fees/block) | `reward_over_fee` | verdict | lepta/block at rest | ≈ `txs_per_block` at any price |
 | --- | --- | --- | --- | --- |
 | 25 | 0.25 | under water | 166,600 | 30 |
 | 50 | 0.50 | under water | 333,200 | 60 |
@@ -1018,9 +1046,9 @@ The specified set collects **502 claim fees per block against a break-even of 10
 
 Two things this axis does better than the count.
 
-**It removes a constant.** `ψ` exists only to convert a transaction count into units of the claim fee. On the fee axis it is gone: `σ*/φ = βΦ̂/T` needs `β`, `T` and nothing else. `ψ` reappears only when a reader wants the last column of the table above.
+**It removes a constant.** `fee_ratio` exists only to convert a transaction count into units of the claim fee. On the fee axis it is gone: `σ*/φ = βΦ̂/T` needs `pow_share`, `target_claims_per_block` and nothing else. `fee_ratio` reappears only when a reader wants the last column of the table above.
 
-**It is exact where the count form is not.** Pricing every transaction as an ordinary transfer understates the refill by 0.32 % (§4.7.2), because `T` of them are claims paying more. Revenue per block makes no assumption about composition, so that correction disappears rather than being carried and apologised for.
+**It is exact where the count form is not.** Pricing every transaction as an ordinary transfer understates the refill by 0.32 % (§4.7.2), because `target_claims_per_block` of them are claims paying more. Revenue per block makes no assumption about composition, so that correction disappears rather than being carried and apologised for.
 
 ### 4.9.1 What a load looks like as transactions
 
@@ -1037,7 +1065,7 @@ A fee load is a revenue figure, so it maps to many mixes. A few, to make it conc
 
 and some blocks:
 
-| mix | load | `σ*/φ` | |
+| mix | load | `reward_over_fee` | |
 | --- | --- | --- | --- |
 | 600 transfers | 502 | 5.02 | the reference |
 | 10 claims + 590 transfers | 504 | 5.04 | the realistic block — and the 0.32 % §4.7.2 flags, made concrete |
@@ -1049,7 +1077,7 @@ and some blocks:
 
 That is the useful form of the answer to "what traffic does this need?": not a transaction count, and not a price, but **roughly half-full blocks**.
 
-What the axis does *not* decide is `β`, which is still walled from above by subordination (§4.7.6) — that constraint is on the share, not on the revenue, and no amount of fee income relaxes it.
+What the axis does *not* decide is `pow_share`, which is still walled from above by subordination (§4.7.6) — that constraint is on the share, not on the revenue, and no amount of fee income relaxes it.
 
 ## 4.10 The sweep programme, run `SIMULATED`
 
@@ -1057,44 +1085,44 @@ What the axis does *not* decide is `β`, which is still walled from above by sub
 
 Three columns turn out to be **flat everywhere**, and that is a result rather than an absence of one:
 
-- **Reconvergence is 22 blocks in every cell.** §3.6 predicted "~22" for a tenfold hashrate step from the pole `F/P`; the simulation gives exactly 22, and it does not move with `T`, `β`, `ρ` or `R₀`, because the controller's normalised dynamics contain none of them. (Recovery is asymmetric, as §4.7.5 shows: a tenfold step *down* takes 42 blocks.)
-- **The security column does not move with `T`.** An epoch distributes `ρR` whatever `T` is — `T` cancels out of `T·N_b·σₑ` — so the attacker's share is a property of the pool and the horizon, not of the claim target. This is §3.1's identity showing up where it should.
-- **`σ*/φ` does not move with `ρ` or `R₀`.** The steady state is `F/(T·N_b)`, which contains neither. §3.1's "ρ sets the speed, never the destination" holds numerically.
+- **Reconvergence is 22 blocks in every cell.** §3.6 predicted "~22" for a tenfold hashrate step from the pole `F/P`; the simulation gives exactly 22, and it does not move with `target_claims_per_block`, `pow_share`, `distribution_rate` or `genesis_pool`, because the controller's normalised dynamics contain none of them. (Recovery is asymmetric, as §4.7.5 shows: a tenfold step *down* takes 42 blocks.)
+- **The security column does not move with `target_claims_per_block`.** An epoch distributes `ρR` whatever `target_claims_per_block` is — `target_claims_per_block` cancels out of `T·N_b·σₑ` — so the attacker's share is a property of the pool and the horizon, not of the claim target. This is §3.1's identity showing up where it should.
+- **`reward_over_fee` does not move with `distribution_rate` or `genesis_pool`.** The steady state is `F/(T·N_b)`, which contains neither. §3.1's "ρ sets the speed, never the destination" holds numerically.
 
 ### 4.10.1 The claim target
 
-| `T` | `σ*/φ` | ramp cover | peak adv | builder edge | drain/block | break-even load | claim share |
+| `target_claims_per_block` | `reward_over_fee` | ramp cover | peak adv | builder edge | drain/block | break-even load | claim share |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **10** (specified) | **5.02** | 135,949× | 0.42 % | **1.124×** | 2,000 | 100 | 1.7 % |
 | 50 | 1.00 | 16,377× | 0.42 % | **109×** | 10,000 | 500 | 8.3 % |
 | 100 | 0.50 | never | 0.42 % | n/a | 20,000 | 1,000 | 16.7 % |
 | 500 | 0.10 | never | 0.42 % | n/a | 100,000 | 5,000 | 83.3 % |
 
-(Since §0.4 the drain is out of reach at every `T` shown: `T/ρ > MAX_BLOCK_TXS` from `T = 6` up.)
+(Since §0.4 the drain is out of reach at every `target_claims_per_block` shown: `T/ρ > MAX_BLOCK_TXS` from `T = 6` up.)
 
-**`T = 50` lands almost exactly on break-even at the reference load, and that is where the builder edge explodes.** `σ*/φ = 1.00`, and since the edge is `1 + tip/(σ*/φ − 1)` it goes to **109×** — a builder recovering the tip on its own claims earns two orders of magnitude more than an outside miner. The edge is not a smooth cost of a larger `T`; it is a pole, and `T = 50` sits next to it. That is a sharper argument for the move to 10 than §4.2's, which put the earlier value's edge at 2.5× on a traffic assumption the current set does not carry.
+**`T = 50` lands almost exactly on break-even at the reference load, and that is where the builder edge explodes.** `σ*/φ = 1.00`, and since the edge is `1 + tip/(σ*/φ − 1)` it goes to **109×** — a builder recovering the tip on its own claims earns two orders of magnitude more than an outside miner. The edge is not a smooth cost of a larger `target_claims_per_block`; it is a pole, and `T = 50` sits next to it. That is a sharper argument for the move to 10 than §4.2's, which put the earlier value's edge at 2.5× on a traffic assumption the current set does not carry.
 
-Above 100 the mechanism is simply under water: `σ*/φ < 1` at the reference load, no endowment covers an adoption ramp, and at 500 claims would need to be **83 % of every block**. When this sweep was first run at `ρ = 1/100`, raising `T` bought the one thing the specified set then lacked — `T/ρ` passed `MAX_BLOCK_TXS` between 10 and 50, closing the within-epoch drain structurally — at the cost of everything else. **§0.4 took the other route to the same guarantee**: ρ = 1/200 closes the drain at `T = 10`, so a larger `T` now buys nothing at all, and the specified 10 keeps its margin everywhere.
+Above 100 the mechanism is simply under water: `σ*/φ < 1` at the reference load, no endowment covers an adoption ramp, and at 500 claims would need to be **83 % of every block**. When this sweep was first run at `ρ = 1/100`, raising `target_claims_per_block` bought the one thing the specified set then lacked — `T/ρ` passed `MAX_BLOCK_TXS` between 10 and 50, closing the within-epoch drain structurally — at the cost of everything else. **§0.4 took the other route to the same guarantee**: ρ = 1/200 closes the drain at `T = 10`, so a larger `target_claims_per_block` now buys nothing at all, and the specified 10 keeps its margin everywhere.
 
 The two `1/T` effects run the other way and are small: arrival noise falls from 31.6 % to 4.5 % (§4.8's A2 case), and the retarget's overshoot from 0.50 % to 0.01 %.
 
 ### 4.10.2 The other axes
 
-| axis | `σ*/φ` | peak adv | builder edge | note |
+| axis | `reward_over_fee` | peak adv | builder edge | note |
 | --- | --- | --- | --- | --- |
-| `β` 5 → 50 % | 2.51 → 25.12 | 0.42 % flat | 1.331 → 1.021× | linear in `β`; the burn diversion *is* `β` |
-| `ρ` 1/500 → 1/50 | 5.02 flat | 0.35 → 0.54 % | 1.124× flat | only the drain moves: 5,000 → 500 per block; **1/200 specified** |
-| `R₀` 0.5 → 10 % | 5.02 flat | **0.42 → 6.79 %** | 1.124× flat | the one axis where generosity costs security |
+| `pow_share` 5 → 50 % | 2.51 → 25.12 | 0.42 % flat | 1.331 → 1.021× | linear in `pow_share`; the burn diversion *is* `pow_share` |
+| `distribution_rate` 1/500 → 1/50 | 5.02 flat | 0.35 → 0.54 % | 1.124× flat | only the drain moves: 5,000 → 500 per block; **1/200 specified** |
+| `genesis_pool` 0.5 → 10 % | 5.02 flat | **0.42 → 6.79 %** | 1.124× flat | the one axis where generosity costs security |
 | ramp 1 → 10 yr | — | — | — | endowment needed 1.59 → 4.19 ×10⁻⁸ of supply |
-| `D₀` 0.5 → 30 % | — | **14.4 → 0.42 %** at `h=0.33` | — | dominates the security answer, as §4.1 says |
+| `initial_stake` 0.5 → 30 % | — | **14.4 → 0.42 %** at `h=0.33` | — | dominates the security answer, as §4.1 says |
 
-**`R₀` is the only dial that trades generosity against security**, and §6 anticipated exactly that. Ten times the endowment is roughly sixteen times the attacker's peak share (0.42 % → 6.79 % at `h = 0.33`, `D₀ = 30 %`), because a larger pool is distributed faster in absolute terms and so more of it can be mined inside the horizon. Nothing else on the list moves it. That sharpens §10.2's open question about the size of `R₀`: the cost of a larger endowment is not dilution, it is bootstrap security.
+**`genesis_pool` is the only dial that trades generosity against security**, and §6 anticipated exactly that. Ten times the endowment is roughly sixteen times the attacker's peak share (0.42 % → 6.79 % at `h = 0.33`, `D₀ = 30 %`), because a larger pool is distributed faster in absolute terms and so more of it can be mined inside the horizon. Nothing else on the list moves it. That sharpens §10.2's open question about the size of `genesis_pool`: the cost of a larger endowment is not dilution, it is bootstrap security.
 
-And `D₀` still dominates everything: at `h = 0.33` the peak runs 14.4 % at a half-percent of supply staked against 0.42 % at the 30 % staking target — a factor of thirty, against the factor of sixteen `R₀` buys across its whole range.
+And `initial_stake` still dominates everything: at `h = 0.33` the peak runs 14.4 % at a half-percent of supply staked against 0.42 % at the 30 % staking target — a factor of thirty, against the factor of sixteen `genesis_pool` buys across its whole range.
 
-## 4.11 `T` and `β` are one dial, not two `DERIVED`
+## 4.11 `target_claims_per_block` and `pow_share` are one dial, not two `DERIVED`
 
-**Intuition.** The claim target and the fee share look like independent knobs, and §4.4.1, §4.4.2 and §4.10 sweep them as if they were — each holding the other fixed. They are not. Halving how many winners share the pot and halving the pot are the same thing to a miner, so what the economics sees is only the *ratio*. Everything that decides whether mining pays is unchanged along that ratio. What is *not* unchanged is the two separate walls: the drain margin wants `T` large, and subordination wants `β` small. Those walls are what pick a point on the ray, and they leave a surprisingly short stretch of it.
+**Intuition.** The claim target and the fee share look like independent knobs, and §4.4.1, §4.4.2 and §4.10 sweep them as if they were — each holding the other fixed. They are not. Halving how many winners share the pot and halving the pot are the same thing to a miner, so what the economics sees is only the *ratio*. Everything that decides whether mining pays is unchanged along that ratio. What is *not* unchanged is the two separate walls: the drain margin wants `target_claims_per_block` large, and subordination wants `pow_share` small. Those walls are what pick a point on the ray, and they leave a surprisingly short stretch of it.
 
 Every quantity in §4.3's constraint set contains the two only as `T/β`:
 
@@ -1110,22 +1138,22 @@ so along `T/β = 100` the margin is 5.02, the edge 1.124× and the break-even lo
 
 ![the T–β plane](figures/11_T_beta_plane.png)
 
-**What breaks the degeneracy.** Three things bind `T` or `β` alone, and only one of them is not already comfortable at the specified point:
+**What breaks the degeneracy.** Three things bind `target_claims_per_block` or `pow_share` alone, and only one of them is not already comfortable at the specified point:
 
 | binds | quantity | at `T=10, β=10 %` |
 | --- | --- | --- |
-| `T` alone | within-epoch drain, `T/ρ` vs `MAX_BLOCK_TXS` | 1,000 vs 1,024 — **reachable** |
-| `T` alone | arrival noise `1/√T`, retarget overshoot `(P−F)/2PT` | 31.6 %, 0.50 % |
-| `β` alone | subordination, PoW ≤ ⅓ of the leader share | 27.8 % of the cap |
-| `β` alone | standing reserve `R*` ∝ `β`; floor `R_min` ∝ `T` | 1,446 and 288 LGO |
+| `target_claims_per_block` alone | within-epoch drain, `T/ρ` vs `MAX_BLOCK_TXS` | 1,000 vs 1,024 — **reachable** |
+| `target_claims_per_block` alone | arrival noise `1/√T`, retarget overshoot `(P−F)/2PT` | 31.6 %, 0.50 % |
+| `pow_share` alone | subordination, PoW ≤ ⅓ of the leader share | 27.8 % of the cap |
+| `pow_share` alone | standing reserve `steady_pool` ∝ `pow_share`; floor `pool_floor` ∝ `target_claims_per_block` | 1,446 and 288 LGO |
 
-Moving *up* the ray raises `T`, which is what pushes the drain out of reach — it becomes impossible by construction once `T > MAX_BLOCK_TXS · ρ`. At the original `ρ = 1/100` that threshold was 10.24, just above the specified `T = 10`; subordination capped the ray at `T ≤ 11.76`. So, as first found:
+Moving *up* the ray raises `target_claims_per_block`, which is what pushes the drain out of reach — it becomes impossible by construction once `T > MAX_BLOCK_TXS · ρ`. At the original `ρ = 1/100` that threshold was 10.24, just above the specified `T = 10`; subordination capped the ray at `T ≤ 11.76`. So, as first found:
 
 > **At ρ = 1/100 the window that kept the economics *and* closed the drain was `T ∈ (10.24, 11.76]` — one whole number, `T = 11`.** §0.4 discharged it from the other side: at ρ = 1/200 the drain-safe threshold falls to `T > 5.12`, the window becomes `(5.12, 11.76]`, **and the specified `T = 10` already sits inside it.** The (11, 11 %) move is moot rather than rejected.
 
 The route mattered even so. At `T = 11, β = 11 %` the economics would have been bit-for-bit the same while the drain needed 1,100 against 1,024 — closed, but by 7.5 %, and re-opening at any block-capacity increase past 1,100. The ρ route closes it at 2,000, holds to a full doubling of capacity, spends no subordination headroom, and improves bootstrap security besides (§0.4). Choosing between two routes to the same structural guarantee is exactly what this section's degeneracy analysis exists for.
 
-**This is offered as an observation, not a recommendation.** §3.8 argues the drain is adequately prevented by the controller, and §4.8 confirms that arrival noise contributes nothing to reaching it — a burst would have to be 305 standard deviations. So nothing here says the specified set is unsafe. What it says is that the one structural gap the report flags twice (§3.8's "the margin is thin", §4.7.6's "a controller guarantee and not a structural one") appears to be closeable **for free**, by moving one unit along a direction the economics cannot see. That is worth knowing before the constants are frozen, and it is exactly the kind of thing sweeping `T` and `β` independently cannot reveal.
+**This is offered as an observation, not a recommendation.** §3.8 argues the drain is adequately prevented by the controller, and §4.8 confirms that arrival noise contributes nothing to reaching it — a burst would have to be 305 standard deviations. So nothing here says the specified set is unsafe. What it says is that the one structural gap the report flags twice (§3.8's "the margin is thin", §4.7.6's "a controller guarantee and not a structural one") appears to be closeable **for free**, by moving one unit along a direction the economics cannot see. That is worth knowing before the constants are frozen, and it is exactly the kind of thing sweeping `target_claims_per_block` and `pow_share` independently cannot reveal.
 
 **The upper wall, stated without the assumption.** The subordination cap is `β ≤ rL/(1+rL)` for a leader fee share `L` and a juniority ratio `r`. A search of the specification tree finds **no leader-share constant anywhere** — `POW_SHARE`/`SHARE_DEN` are the only fee-share constants it defines — so `L` cannot be grounded, and the 11.76 % cap it implies is a modelling choice rather than a derived bound.
 
@@ -1137,35 +1165,35 @@ That is a one-percentage-point policy question about a constant the specificatio
 
 This is also why `L` belongs in §10.1's list of unset constants rather than buried in a simulator default. (And note the cap is a steady-state statement in a second sense too — §4.4.2's flow comparison: during the endowment's decay, PoW out-earns the leader *fee* flow by four orders of magnitude, and launch-era proportionality rests on the leaders' minted income.)
 
-The window is also a warning in the other direction: it is *short*. Any future change that raises `T` without raising `β`, or lowers `β` without lowering `T`, moves off the ray and costs margin directly. The two constants should be revisited together or not at all.
+The window is also a warning in the other direction: it is *short*. Any future change that raises `target_claims_per_block` without raising `pow_share`, or lowers `pow_share` without lowering `target_claims_per_block`, moves off the ray and costs margin directly. The two constants should be revisited together or not at all.
 
-## 4.12 What sizes `R₀` `DERIVED`
+## 4.12 What sizes `genesis_pool` `DERIVED`
 
-**Intuition.** §4.4 sizes the endowment by asking "is it big enough to keep mining worth doing while traffic grows?" — and the answer is yes by a factor of two hundred thousand, which means that question did not choose the number. Something else did. Inverting each candidate objective for the `R₀` it would imply says which.
+**Intuition.** §4.4 sizes the endowment by asking "is it big enough to keep mining worth doing while traffic grows?" — and the answer is yes by a factor of two hundred thousand, which means that question did not choose the number. Something else did. Inverting each candidate objective for the `genesis_pool` it would imply says which.
 
-| objective | implied `R₀`/supply | vs the specified 0.5 % |
+| objective | implied `genesis_pool`/supply | vs the specified 0.5 % |
 | --- | --- | --- |
 | hold `σ ≥ φ` across a 5-year ramp (§4.4) | 2.39×10⁻⁸ | 0.0000× |
 | hold `σ ≥ φ` across a 10-year ramp | 4.19×10⁻⁸ | 0.0000× |
-| sit at the fee-funded fixed point `R*` | 7.23×10⁻⁸ | 0.0000× |
-| keep the pool above `R_min` from epoch 0 | 1.44×10⁻⁸ | 0.0000× |
-| open at `σ₀/φ` = 100 | 1.44×10⁻⁶ | 0.0003× |
+| sit at the fee-funded fixed point `steady_pool` | 7.23×10⁻⁸ | 0.0000× |
+| keep the pool above `pool_floor` from epoch 0 | 1.44×10⁻⁸ | 0.0000× |
+| open at `opening_reward_over_fee` = 100 | 1.44×10⁻⁶ | 0.0003× |
 | **distribute ~0.5 % of supply over the 6.2-year horizon** | **6.4×10⁻³** | **1.29×** |
 | **cap the peak adversary share at 0.5 %** (`h=0.33`, `D₀=30 %`) | **5.94×10⁻³** | **1.19×** |
 | cap the peak adversary share at 1.0 % | 1.19×10⁻² | 2.38× |
 
 **Every reward-economics objective misses by five or six orders of magnitude.** The floor, the ramp, the fixed point and any plausible opening reward all sit near 10⁻⁸ of supply. None of them chose 0.5 %.
 
-**The two that land on it are the same constraint seen twice.** Over the 300-epoch horizon the pool pays out `(1−(1−ρ)^E)` of its endowment — 78 % of it at the adopted ρ = 1/200 — so "distribute half a percent of supply to miners over six years" and "`R₀` = 0.5 % of supply" are nearly the same statement. And the peak adversary share follows directly: an attacker with hashrate `h` takes `h` of what is distributed, against the stake already securing the chain, so
+**The two that land on it are the same constraint seen twice.** Over the 300-epoch horizon the pool pays out `(1−(1−ρ)^E)` of its endowment — 78 % of it at the adopted ρ = 1/200 — so "distribute half a percent of supply to miners over six years" and "`genesis_pool` = 0.5 % of supply" are nearly the same statement. And the peak adversary share follows directly: an attacker with hashrate `h` takes `h` of what is distributed, against the stake already securing the chain, so
 
 $$
 \text{peak} \;\approx\; \frac{h \cdot (\text{distributed}/S)}{D_0}
 \;=\; \frac{0.33 \times 0.39\,\%}{30\,\%} \;\approx\; 0.43\,\%
 $$
 
-which is the 0.42 % §4.1 measures. **So `R₀` is a distribution budget, and its binding consequence is a security one.** The right question about it is not "is it large enough for the mechanism to work" — it is enormously large enough — but "is half a percent of supply the intended bootstrap subsidy, given that it lands a one-third attacker at ~0.4 % of stake?"
+which is the 0.42 % §4.1 measures. **So `genesis_pool` is a distribution budget, and its binding consequence is a security one.** The right question about it is not "is it large enough for the mechanism to work" — it is enormously large enough — but "is half a percent of supply the intended bootstrap subsidy, given that it lands a one-third attacker at ~0.4 % of stake?"
 
-That is a policy question, and §10.2 should ask it in those terms. It also explains §4.10.2's finding that `R₀` is the only dial trading generosity against security: it is the *only* one of the six axes that moves the distributed amount at all, because §3.1's identity removes `T` and `N_b` from the pool dynamics and `ρ` sets only the speed.
+That is a policy question, and §10.2 should ask it in those terms. It also explains §4.10.2's finding that `genesis_pool` is the only dial trading generosity against security: it is the *only* one of the six axes that moves the distributed amount at all, because §3.1's identity removes `target_claims_per_block` and `blocks_per_epoch` from the pool dynamics and `distribution_rate` sets only the speed.
 
 **What this does not settle.** Whether 0.5 % is right depends on the token allocation as a whole, which is outside this model. What the model can say is the exchange rate: **each additional 0.5 % of supply in the endowment adds about 0.4 % to a one-third attacker's peak share of stake at the 30 % staking target**, and roughly ten times that if only 5 % of supply is staked. §4.10.2's table is that trade priced across the range.
 
@@ -1198,19 +1226,19 @@ Re-run 2026-08-11 under fee-inflow funding, at the §3.7 parameter set.
 | Axis | Values | Why |
 | --- | --- | --- |
 | ~~base units per LGO~~ | ~~1, 10³, 10⁶, 10⁹~~ | settled at 10⁹ by §0.1; no longer an axis |
-| `β_PoW` | 5 %, 10 %, 20 %, 33 %, 50 % | sets σ*/φ, hence self-funding, the endowment and the builder edge |
-| `n_tx` ramp | 1, 2, 5, 10-year horizons | the endowment must cover the ramp, superlinearly (§4.4) |
-| `R₀`/supply | 1 %, 2 %, 5 %, 10 % | generosity vs **§4.1's security bound** |
-| `ρ` | 0.5 %, 1 %, 2 % | speed only, never destination — but it scales `R_min` inversely |
-| `D₀` | 0.5 %, 5 %, 30 % | honest stake at launch — **§4.1 shows this dominates security** |
+| `pow_share` | 5 %, 10 %, 20 %, 33 %, 50 % | sets σ*/φ, hence self-funding, the endowment and the builder edge |
+| `txs_per_block` ramp | 1, 2, 5, 10-year horizons | the endowment must cover the ramp, superlinearly (§4.4) |
+| `genesis_pool`/supply | 1 %, 2 %, 5 %, 10 % | generosity vs **§4.1's security bound** |
+| `distribution_rate` | 0.5 %, 1 %, 2 % | speed only, never destination — but it scales `pool_floor` inversely |
+| `initial_stake` | 0.5 %, 5 %, 30 % | honest stake at launch — **§4.1 shows this dominates security** |
 
-**This programme is now run — see §4.10** (`make sweeps-full`), which reports every cell on every axis. `T` is swept there too, over {10, 50, 100, 500}: the specification sets 10, but the consequences of the earlier values are worth seeing rather than asserting, and §4.10.1 finds a pole in the builder edge next to `T = 50` that the prose estimate had missed.
+**This programme is now run — see §4.10** (`make sweeps-full`), which reports every cell on every axis. `target_claims_per_block` is swept there too, over {10, 50, 100, 500}: the specification sets 10, but the consequences of the earlier values are worth seeing rather than asserting, and §4.10.1 finds a pole in the builder edge next to `T = 50` that the prose estimate had missed.
 
 **Report per cell:** σ*/φ; whether the ramp is covered and with what margin; peak attacker share and the §4.1 asymptote; builder edge at steady state (§4.2); blocks to reconverge after a 10× hashrate step (§3.6 predicts ~22); the fraction of fee revenue diverted from the burn (§3.4).
 
 ## 7. What this model does not capture
 
-Traffic and the fee level are exogenous (A5, A9), so the model cannot say when adoption arrives — only what happens at each level of it, which is why §4.4 has to be read as a family of answers indexed by the ramp. Free entry with one cost (A3, A4) makes hashrate a floor. Randomness is replaced by its mean, understating variance. `D₀` is held fixed while mining accumulates, which is what produces §4.1's spurious asymptote. And **the feature ships switched off**, so every number is counterfactual.
+Traffic and the fee level are exogenous (A5, A9), so the model cannot say when adoption arrives — only what happens at each level of it, which is why §4.4 has to be read as a family of answers indexed by the ramp. Free entry with one cost (A3, A4) makes hashrate a floor. Randomness is replaced by its mean, understating variance. `initial_stake` is held fixed while mining accumulates, which is what produces §4.1's spurious asymptote. And **the feature ships switched off**, so every number is counterfactual.
 
 ## 8. Epistemic register
 
@@ -1222,7 +1250,7 @@ Traffic and the fee level are exogenous (A5, A9), so the model cannot say when a
 
 **Unknown.** The launch fee level, i.e. what genesis governance initialises the two market prices to — this is what §4.4's table was really varying, and §4.4.4 restates it as a ceiling governance must hit rather than an open unknown. κ. The adoption rate, which §4.4 handles by parameterising rather than guessing.
 
-**Open.** Whether a tenth of fee revenue is the intended scale of the programme, given that in the mature network it comes out of Blend and leader funding rather than out of the burn (§4.4.2) — a policy judgement the model can frame but not make. Whether a standing reserve of about 1 % of supply, held permanently out of circulation, is acceptable (§4.4.3). And the denomination, which `R₀` now constrains from below rather than merely depending on.
+**Open.** Whether a tenth of fee revenue is the intended scale of the programme, given that in the mature network it comes out of Blend and leader funding rather than out of the burn (§4.4.2) — a policy judgement the model can frame but not make. Whether a standing reserve of about 1 % of supply, held permanently out of circulation, is acceptable (§4.4.3). And the denomination, which `genesis_pool` now constrains from below rather than merely depending on.
 
 **Settled.** `T = 10`, `β_PoW = 10 %`, `ρ = 1/100`, `R₀ = 0.5 %` of launch supply (§4.4.1–§4.4.3); the four Blend controller constants and its genesis value (§4.5); the reward controller's smoothing and genesis target (§4.6). **Every parameter EmPoWering introduces now has a value.** What remains is listed in §10. §3.1, §3.2, §3.4, §3.6 in closed form; §4.1, §4.2 and §4.4 by simulation; φ up to the denomination (§4.3).
 
@@ -1230,8 +1258,8 @@ Traffic and the fee level are exogenous (A5, A9), so the model cannot say when a
 
 Not used in §§1–8. Held above the line until the base is approved.
 
-1. **Align the implementation's `T`.** The specification now says 50; the merged code ships 100 and the proposal said 10.
-2. **The stranded reserve** `R* = F/ρ`, never distributed (§3.3). Much less pressing under fee funding, where the endowment can be sized *at* `R*` rather than far above it (§3.7), so nothing is stranded in the first place.
+1. **Align the implementation's `target_claims_per_block`.** The specification now says 50; the merged code ships 100 and the proposal said 10.
+2. **The stranded reserve** `R* = F/ρ`, never distributed (§3.3). Much less pressing under fee funding, where the endowment can be sized *at* `steady_pool` rather than far above it (§3.7), so nothing is stranded in the first place.
 3. **The `σₑ = 0` cliff** — claiming stops dead rather than degrading (§2.3).
 4. **Make "the endowment comes from existing supply" enforceable**; §3.4 depends on it entirely and it is currently only prose.
 5. **A difficulty floor of 1** — closes the absorbing state at zero (§3.6). Unreachable in practice; free.
@@ -1243,10 +1271,10 @@ Not used in §§1–8. Held above the line until the base is approved.
 
    **Against.** §3.1's clean drain result is lost, since the pool becomes sensitive to the *rate of change* of usage. A zero target is an absorbing state needing a floor. §3.6's fixed-point analysis assumes a fixed reference. And it couples issuance to congestion, since claims compete for the space that sets their own allowance.
 
-   **If adopted**, the ratio and `β_PoW` are locked together by `σ*/φ = ψ·β_PoW/ratio`: a 5 % ratio needs `β_PoW ≈ 12 %` for the §4.2 headroom.
-9. **Keep `σ*/φ` above ~2** (§4.2) — below that the builder edge grows sharply while the on-ramp margin thins. Under fee funding this is a permanent property rather than an end-state one, so it binds from launch.
+   **If adopted**, the ratio and `pow_share` are locked together by `σ*/φ = ψ·β_PoW/ratio`: a 5 % ratio needs `β_PoW ≈ 12 %` for the §4.2 headroom.
+9. **Keep `reward_over_fee` above ~2** (§4.2) — below that the builder edge grows sharply while the on-ramp margin thins. Under fee funding this is a permanent property rather than an end-state one, so it binds from launch.
 
-10. *(resolved 2026-08-11 — `T` was moved from 50 to 10; the analysis is now §4.4.1 rather than a candidate change.)*
+10. *(resolved 2026-08-11 — `target_claims_per_block` was moved from 50 to 10; the analysis is now §4.4.1 rather than a candidate change.)*
 
 11. *(resolved 2026-08-11 — the denomination is specified at `10⁸`, and §4.4.4 shows it was not in fact the blocker this item claimed. What remains is the launch fee level, which is a genesis governance decision with a stated ceiling rather than an open question.)*
 
