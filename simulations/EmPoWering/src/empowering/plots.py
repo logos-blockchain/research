@@ -614,5 +614,123 @@ def t_beta_plane(p: Params, out: Path) -> Path:
 
 ALL["plane"] = t_beta_plane
 
+
+def funding_flows(p: Params, out: Path, horizon_years: float = 40.0) -> Path:
+    """Where the distribution comes from, and how it compares with what leaders earn.
+
+    Left: each epoch's payout split into the part fees refill and the part drawn down from
+    the endowment -- the fee-funded fraction crosses one half only when the pool nears R*.
+    Right: the same payout against leader income, fee and minted separately. This is the
+    flow picture behind section 4.4.2's caveat: the fee-share subordination cap describes
+    the mature network, and launch-era proportionality rests on minted block rewards.
+    """
+    import matplotlib.pyplot as plt
+    _style()
+
+    rows = core.simulate_pool(p, epochs=int(horizon_years * p.epochs_per_year))
+    yrs = [r["years"] for r in rows]
+    F = core.epoch_refill(p)
+    dist = [p.T * p.N_b * r["sigma"] if r["enabled"] else 0.0 for r in rows]
+    from_endow = [max(d - F, 0.0) for d in dist]
+    leader_fees = p.leader_fee_share * (1 - p.beta) * p.N_b * p.n_tx_ref * p.transfer_fee()
+    leader_mint = p.r_max * p.N_b
+
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(11.0, 4.4))
+    ax.stackplot(yrs, [min(d, F) for d in dist], from_endow,
+                 colors=[OKABE_ITO[2], OKABE_ITO[0]], labels=["refilled by fees", "drawn from the endowment"])
+    ax.set(yscale="log", ylim=(1, dist[0] * 2), xlabel="years from genesis",
+           ylabel="distributed per epoch (LGO)",
+           title="What funds the payout: endowment first, fees eventually")
+    ax.legend(loc="upper right", fontsize=8)
+
+    ax2.plot(yrs, dist, color=OKABE_ITO[0], lw=2, label="PoW distribution")
+    ax2.axhline(leader_mint, color=OKABE_ITO[4], ls="--", lw=1.6,
+                label=f"leader minted income (emission cap) = {leader_mint:,.0f}")
+    ax2.axhline(leader_fees, color=OKABE_ITO[2], ls="-", lw=1.6,
+                label=f"leader fee income = {leader_fees:,.1f}")
+    ax2.axhline(leader_fees * p.subordination_ratio, color=OKABE_ITO[1], ls=":", lw=1.4,
+                label="one third of leader fee income")
+    ax2.set(yscale="log", ylim=(1, max(dist[0], leader_mint) * 3),
+            xlabel="years from genesis", ylabel="LGO per epoch",
+            title="PoW flow vs leader income: fees vs minted")
+    ax2.legend(loc="upper right", fontsize=7.5)
+    fig.tight_layout()
+    return _save(fig, out, "12_funding_flows", p, "flows")
+
+
+def adversary_over_time(p: Params, out: Path, horizon_years: float = 40.0) -> Path:
+    """Section 4.1's answer as a trajectory rather than a single peak number.
+
+    The share rises while the endowment drains, then flattens once the refill (tiny against
+    the stake base) is all that is left -- which is why the 'peak' is a horizon figure and
+    the fixed-D0 asymptote is centuries away, exactly as 4.1 says.
+    """
+    import matplotlib.pyplot as plt
+    _style()
+
+    rows = core.simulate_pool(p, epochs=int(horizon_years * p.epochs_per_year))
+    h = p.adversary_h
+    fig, ax = plt.subplots(figsize=(7.6, 4.6))
+    for i, d0 in enumerate((0.005, 0.05, 0.30)):
+        adv = pend_a = honest = pend_h = 0.0
+        series = []
+        for r in rows:
+            adv += pend_a; honest += pend_h
+            d = p.T * p.N_b * r["sigma"] if r["enabled"] else 0.0
+            pend_a, pend_h = d * h, d * (1 - h)
+            tot = d0 * p.S_tge + adv + honest
+            series.append(adv / tot if tot else 0.0)
+        ax.plot([r["years"] for r in rows], [100 * v for v in series], color=OKABE_ITO[i],
+                lw=2, label=f"$D_0$ = {d0:.1%} of supply staked")
+    ax.axhline(100 / 3, color=OKABE_ITO[1], ls="--", lw=1.4, label="one third")
+    ax.axhline(100 * core.adversary_asymptote(h, 1.0), color=MUTED, ls=":", lw=1.2,
+               label=f"fixed-$D_0$ asymptote {core.adversary_asymptote(h, 1.0):.0%} (artefact)")
+    ax.set(xlabel="years from genesis", ylabel="adversary share of total stake (%)",
+           title=f"Adversary at h = {h:.0%}: rises with the endowment, then flattens")
+    ax.legend(loc="center right", bbox_to_anchor=(0.98, 0.42), fontsize=8)
+    fig.tight_layout()
+    return _save(fig, out, "13_adversary_over_time", p, "advtime")
+
+
+def retarget_map(p: Params, out: Path) -> Path:
+    """Section 3.6's stability argument as a picture: the retarget's return map.
+
+    One stable fixed point at T (slope F/P < 1), a repelling one at zero (slope P/F > 1),
+    no way to oscillate -- the cobwebs from either side walk monotonically home.
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    _style()
+
+    g = lambda x: p.T * p.P_ema * x / np.maximum(1e-12, (p.P_ema - p.F_ema) * x + p.F_ema * p.T)
+    hi = 3 * p.T
+    xs = np.linspace(0.0, hi, 600)
+    fig, ax = plt.subplots(figsize=(7.6, 4.6))
+    ax.plot(xs, g(xs), color=OKABE_ITO[0], lw=2.2, label=r"$g(\lambda)$: next-block rate")
+    ax.plot(xs, xs, color=MUTED, lw=1.2, ls="--", label="identity")
+    for x0, col in ((2.6 * p.T, OKABE_ITO[1]), (0.05 * p.T, OKABE_ITO[2])):
+        x = x0
+        for _ in range(30):
+            y = float(g(np.array([x]))[0])
+            ax.plot([x, x], [x, y], color=col, lw=1.0, alpha=0.8)
+            ax.plot([x, y], [y, y], color=col, lw=1.0, alpha=0.8)
+            x = y
+        ax.plot([x0], [x0], "o", ms=6, color=col, label=f"cobweb from λ = {x0:g}")
+    ax.plot([p.T], [p.T], "o", ms=9, color=OKABE_ITO[7], zorder=6)
+    ax.annotate(f"stable fixed point λ = T = {p.T}\nslope F/P = {p.F_ema / p.P_ema:.2f} < 1",
+                xy=(p.T, p.T), xytext=(12, -38), textcoords="offset points", fontsize=8.5)
+    ax.annotate(f"repelling at 0: slope P/F = {p.P_ema / p.F_ema:.2f} > 1\n"
+                "(the no-claims state pushes away)", xy=(0, 0),
+                xytext=(10, 46), textcoords="offset points", fontsize=8.5, color=MUTED)
+    ax.set(xlim=(0, hi), ylim=(0, hi),
+           xlabel=r"claims per block $\lambda_n$", ylabel=r"$\lambda_{n+1}$",
+           title="The memoryless retarget: one stable point, no oscillation")
+    ax.legend(loc="lower right", fontsize=8)
+    fig.tight_layout()
+    return _save(fig, out, "14_retarget_map", p, "map")
+
+
+ALL.update({"flows": funding_flows, "advtime": adversary_over_time, "map": retarget_map})
+
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -211,6 +211,19 @@ def build(p: Params) -> list[Claim]:
         Claim("4.4.3", r"\| `R\*` at the reference traffic \| (" + NUM + r")×10⁻⁸",
               1e8 * core.r_star(p) / p.S_tge, 5e-3),
 
+        # --- section 4.4.2: subordination flows at genesis vs steady state ---
+        Claim("4.4.2", r"epoch-0 distribution is `ρR₀` = \*\*(" + NUM + r") LGO\*\*",
+              p.rho_num / p.rho_den * p.genesis_pool_fraction * p.S_tge, 1e-6),
+        Claim("4.4.2", r"about \*\*(" + NUM + r") LGO\*\*\. On fees alone", _leader_fees(p), 2e-2),
+        Claim("4.4.2", r"out-earns the leader path \*\*(" + NUM + r")-fold\*\*",
+              (p.rho_num / p.rho_den * p.R0) / _leader_fees(p), 1e-2),
+        Claim("4.4.2", r"receive ≈ (" + NUM + r") M LGO per epoch",
+              p.r_max * p.N_b / 1e6, 1e-2),
+        Claim("4.4.2", r"the pool's 500,000 is \*\*(" + NUM + r") ?%\*\*",
+              100 * (p.rho_num / p.rho_den * p.R0) / (_leader_fees(p) + p.r_max * p.N_b), 1e-2),
+        Claim("4.4.2", r"a third of leader fee income for roughly \*\*(" + NUM + r") years\*\*",
+              _years_above_third(p), 5e-2),
+
         # --- blend admission (section 0.0 / 4.5) ---
         Claim("0.0", r"~50 s and ~(" + NUM + r") messages/day per core",
               86400 / blend_secs, 2e-2),
@@ -255,6 +268,16 @@ def _recon(p: Params, step: float = 10.0) -> float:
 def _peak_at_R0(p: Params, frac: float) -> float:
     from dataclasses import replace
     return core.peak_adversary_share(replace(p, genesis_pool_fraction=frac), 0.33, 1.0, 0.30)
+
+
+def _leader_fees(p: Params) -> float:
+    return p.leader_fee_share * (1 - p.beta) * p.N_b * p.n_tx_ref * p.transfer_fee()
+
+
+def _years_above_third(p: Params) -> float:
+    import math
+    return (math.log((_leader_fees(p) / 3) / (p.rho_num / p.rho_den * p.R0))
+            / math.log(1 - p.rho)) / p.epochs_per_year
 
 
 def _sampled(p: Params):

@@ -410,6 +410,9 @@ Adversarial share of total stake **after 6.14 years** at the §3.7 parameters, o
 
 (ranges span honest miners staking 100 % vs 50 % of winnings)
 
+![adversary share over time](figures/13_adversary_over_time.png)
+*Fig 13 — the same answer as a trajectory: the share rises while the endowment drains, then flattens once the refill (tiny against the stake base) is all that remains. The "peak" is a horizon figure; the fixed-`D₀` asymptote is centuries away, which is why this section calls it an artefact rather than a prediction.*
+
 **Fee funding changes the shape of this result, and not for the better.** Under block-reward funding the pool held a fixed endowment, distributed it, and stopped: there was a genuine *peak*, and the answer was "risk is a function of the endowment relative to pre-existing stake". Under fee funding **the refill never stops**, so the amount distributed grows linearly with the horizon and the figures above are six-year numbers rather than lifetime ones. With `D₀` held fixed the adversary's share rises without bound toward
 
 $$
@@ -667,6 +670,12 @@ The endowment covers the low-traffic rows during bootstrap (§4.4), so the row t
 Reading "clearly subordinate" as the mining share staying at or below a third of the leader share gives **β ≤ 11.8 %**; at or below half gives 16.7 %.
 
 **The two bounds nearly touch.** At the reference traffic the builder-edge target wants β ≥ 11.9 % and subordination wants β ≤ 11.8 %. There is no value satisfying both, so one has to give, and it is the builder edge — it is a preference about margin, whereas subordination is a stated design goal of the proposal.
+
+#### Subordination is a share cap; the flows take decades to match it
+
+The cap above is stated on *fee shares*, and in the steady state that is the whole story. At genesis it is not, because both sides live on non-fee income (**Fig 12**). The pool's epoch-0 distribution is `ρR₀` = **500,000 LGO**, against leader *fee* income of `L(1−β)` of an epoch's fees — about **26 LGO**. On fees alone, mining out-earns the leader path **19,209-fold**, and its flow stays above a third of leader fee income for roughly **22 years** of the endowment's decay. What keeps the launch-era flows in proportion is the leaders' *minted* income: at the emission cap they receive ≈ 2.05 M LGO per epoch, against which the pool's 500,000 is **24.3 %** — under the one-third reading, but on the strength of block rewards, not fees. **The fee-share cap is therefore a statement about the mature network**; during bootstrap, subordination in flow terms is underwritten by the emission schedule, and would need re-examining if the block reward were ever much smaller at launch. (This is the flow-level counterpart of §4.12: `R₀` is a distribution budget, and while it drains, *both* sides' fee arithmetic is dwarfed by their non-fee income.)
+
+![funding flows](figures/12_funding_flows.png)
 
 **Security does not select a β.** §4.1's construction gives an adversary with hashrate share `h` exactly `h` of whatever the pool paid out, so its share of total stake converges to `h/(h + (1−h)s)` **whatever β is**. β sets how fast that limit is approached, not the limit. At `h = 1/3` with honest miners staking their winnings the limit is 33 % and the threshold is never crossed at any β; it is crossed only when honest miners largely do not stake, and there β merely changes the date. This is a genuine finding and a slightly disappointing one: the parameter that looked like it should be bounded by security is not.
 
@@ -1099,7 +1108,7 @@ That is worth stating, but it does not leave the finding conditional, because th
 
 That is a one-percentage-point policy question about a constant the specification already defines, not a question about an unspecified fee split. Whatever `L` turns out to be, it enters only by deciding whether 11 % is still "junior" — and at the assumed `L = 0.4` it is (30.9 % of the leader share, against a ⅓ cap). The `[economics]` values are configured so that reading can be re-tested when the split is pinned down: at `L = 0.5` the cap is 14.3 %, at `L = 0.3` it is 9.1 % and 11 % would be too much.
 
-This is also why `L` belongs in §10.1's list of unset constants rather than buried in a simulator default.
+This is also why `L` belongs in §10.1's list of unset constants rather than buried in a simulator default. (And note the cap is a steady-state statement in a second sense too — §4.4.2's flow comparison: during the endowment's decay, PoW out-earns the leader *fee* flow by four orders of magnitude, and launch-era proportionality rests on the leaders' minted income.)
 
 The window is also a warning in the other direction: it is *short*. Any future change that raises `T` without raising `β`, or lowers `β` without lowering `T`, moves off the ray and costs margin directly. The two constants should be revisited together or not at all.
 
