@@ -52,6 +52,8 @@ def simulate_exact(p: Params, epochs: int, n_tx: int | None = None):
     rows, burnt_total, diverted_total, minted_notes = [], 0, 0, 0
     for e in range(epochs):
         sigma = checked_u64(pool * p.rho_num) // (p.rho_den * p.T * p.N_b)
+        # epoch-level form of the per-claim guard; exact at the target rate since
+        # drain = claims*sigma = floor-rho(pool) <= pool (verify gate 29)
         enabled = sigma > 0 and pool >= sigma
         drain = checked_u64(claims_per_epoch * sigma) if enabled else 0
         # refill: per-block flooring, residue explicitly to the burn

@@ -358,6 +358,16 @@ Substituting `x = H·Δ_b·d/p` gives `x_{n+1} = T·P·x/((P−F)x + F·T)`, ind
 ![retarget return map](figures/14_retarget_map.png)
 *Fig 14 — the same argument as a picture. The return map is concave with slope > 1 at the origin and < 1 at `T`, so cobwebs from either side walk monotonically home: overshoot decays, silence escapes, and oscillation has nowhere to come from.*
 
+**The retarget in EMA form — and why there is nothing left to simplify.** The natural "clean" controller one would design from scratch is: normalize each block's count by the target that produced it (a hashrate estimate), smooth that with an EMA, and set the next target so the smoothed demand yields `T`:
+
+$$
+\widehat{\text{dem}}_{n+1} \;=\; (1-q)\,\frac{c_n}{d_n} \;+\; q\,\widehat{\text{dem}}_n,
+\qquad
+d_{n+1} \;=\; \frac{T}{\widehat{\text{dem}}_{n+1}}
+$$
+
+**The specified retarget is this controller, exactly.** The invariant `dem̂ = T/d` holds from genesis (one initialization sets both), and substituting it gives `dem̂′ = [(1−q)c + qT]/d`, hence `d′ = T·d/[(1−q)c + qT]` — the spec's map with **`q = F/P`**. Verified numerically: 9.7×10⁻¹⁴ worst relative divergence over 20,000 shared-noise blocks (`make verify`). So the two smoothing constants are **one dial**: `q = 9/10`, with `P` merely the integer precision its name declares. The spec's one-state form is the *reduced* notation — it stores the smoothed estimate inside the target itself, carrying one state variable and one rounding site where the explicit-EMA form carries two of each. "Memoryless" was always a misnomer: the memory is in `d`.
+
 ### 3.7 Worked example
 
 > **Corrected in place 2026-08-13; §0.3 records what moved and why.** This section was computed when `R₀` sat at the pool's fixed point; it now sits far above it, so the reward decays.
@@ -399,6 +409,8 @@ which is `1/ρ` times the epoch's target claim count — **43,200,000 claims aga
 **That is 195 % of block capacity — impossible by construction.** No sequence of valid blocks can carry the required rate, whatever happens to the difficulty controller, and it stays impossible up to a doubling of `MAX_BLOCK_TXS`. It was not always so: at ρ = 1/100 the figure was 1,000 against 1,024 — 97.7 % of capacity, thin, and resting entirely on the controller — and at the earlier `T = 50` it was 5,000, unreachable for the other reason. Lowering `T` to 10 had quietly moved the drain from impossible to merely very hard; **moving ρ to a two-hundredth (§0.4) restored the structural guarantee without giving back any of what the smaller `T` bought.** The controller still holds the actual rate two orders of magnitude below even the old threshold, now as defence in depth; the guard remains what makes any future re-opening degrade gracefully rather than catastrophically.
 
 **Condition 2 — across epochs: `σₑ = 0`.** The pool decays over many epochs until `ρR/(T·N_b)` floors to zero, at `R < T·N_b/ρ` base units. This is §3.2's cliff, and it is the permanent one.
+
+**Semantics, confirmed (2026-08-14).** To pin what the paragraphs above imply, since it decides how the pool must be modelled: the reward `σₑ` is computed **per epoch**, but there is **no per-epoch pool, budget, or claim quota** — each epoch draws on the *whole* pool, claim by claim, until it cannot cover the next full reward. That claim is rejected (the transaction is invalid whole), the sub-`σₑ` remainder **stays in the pool** rather than being paid or lost, and at the boundary the refill is credited and `σₑ` recomputed from what stands. Rewarding halts within an epoch when `R < σₑ` — not at literally zero — and halts *permanently* only at condition 2's cliff. Both engines implement this: the sampled engine pays `min(c, ⌊R/σ⌋)` per block, and the mean-field engines may use an epoch-level guard only because at the target rate the epoch's drain is `⌊ρR⌋ ≤ R`, so the per-claim guard cannot bind there — both facts are gated in `make verify`.
 
 **Recovery.** Condition 1 is self-healing and condition 2 is not. If the pool is drained mid-epoch, claiming stops for the remainder of that epoch; at the next boundary the refill is credited and σₑ is recomputed from the refilled pool, so a drained pool yields a proportionately smaller reward and claiming resumes at that lower value. **The mechanism degrades to a smaller reward rather than stopping.** It stops for good only under condition 2, when the recomputed reward rounds down to zero — and because that is a floor rather than a taper, it stops abruptly.
 

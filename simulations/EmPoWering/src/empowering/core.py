@@ -144,6 +144,11 @@ def simulate_pool(p: Params, epochs: int | None = None, n_tx: int | None = None)
     Returns a list of dicts, one per epoch. The controller holds the rate at T, so the
     drain each epoch is T * N_b * sigma_e; arrivals noise is deliberately not modelled
     (the report's A2 discusses what that omits).
+
+    The epoch-level ``enabled`` guard is NOT a per-epoch budget -- the protocol has none
+    (report 3.8, confirmed): claims draw on the whole pool one by one until R < sigma.
+    At the target rate the two are equivalent, because the epoch's drain is floor(rho*R),
+    which never exceeds R; ``sampled.simulate`` carries the true per-claim guard.
     """
     E = p.horizon_epochs if epochs is None else epochs
     R = p.R0

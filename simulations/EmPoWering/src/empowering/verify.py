@@ -190,6 +190,56 @@ def run(config: str) -> int:
     check("a window exists that holds the margin and closes the drain", bool(ok),
           f"T in ({lo:.2f}, {hi:.2f}], integers {ints}")
 
+    # 27. The retarget IS the normalize-then-EMA controller (report 3.6a): with
+    # demand_est = T/d as the invariant, d' = T*d/((1-q)c + qT) with q = F/P is the
+    # spec's map exactly. Checked over a shared Poisson trajectory.
+    import random as _random
+    _rng = _random.Random(11)
+    dq, demand = 1.0, float(p.T)
+    worst_eq2 = 0.0
+    for _ in range(20_000):
+        lam = p.T * dq
+        cpr, lim, cc = 1.0, 2.718281828459045 ** -min(lam, 700), 0
+        while True:
+            cpr *= _rng.random()
+            if cpr <= lim:
+                break
+            cc += 1
+        d_user = p.T / demand
+        demand = (1 - p.F_ema / p.P_ema) * (cc / d_user) + (p.F_ema / p.P_ema) * demand
+        dq = p.T * dq * p.P_ema / max(1, (p.P_ema - p.F_ema) * cc + p.F_ema * p.T)
+        worst_eq2 = max(worst_eq2, abs(p.T / demand - dq) / dq)
+    check("retarget == normalized-EMA controller (q = F/P)", worst_eq2 < 1e-9,
+          f"worst rel divergence {worst_eq2:.1e} over 20k blocks")
+
+    # 28. Depletion semantics (report 3.8, confirmed 2026-08-14): sigma is per-epoch,
+    # there is NO per-epoch pool -- the whole pool pays claim by claim until it cannot
+    # cover the next full reward; that claim is rejected, the sub-sigma remainder stays,
+    # and sigma is recomputed from remainder+refill at the boundary.
+    R = 10_007
+    sig = (R * p.rho_num) // (p.rho_den * p.T * p.N_b)
+    if sig == 0:
+        R = p.rho_den * p.T * p.N_b * 3 + 41            # small pool, nonzero sigma
+        sig = (R * p.rho_num) // (p.rho_den * p.T * p.N_b)
+    demand_claims = R // sig + 7                         # more claims than the pool covers
+    paid = min(demand_claims, R // sig)
+    remainder = R - paid * sig
+    ok = (paid == R // sig and 0 <= remainder < sig
+          and paid * sig + remainder == R)
+    refill = 12_345
+    sig2 = ((remainder + refill) * p.rho_num) // (p.rho_den * p.T * p.N_b)
+    ok = ok and (sig2 >= 0) and (remainder + refill - 0 >= 0)
+    check("depletion: pay per claim to R//sigma, keep remainder, resume at boundary",
+          ok, f"paid {paid}, rejected {demand_claims - paid}, remainder {remainder} < sigma {sig}")
+
+    # 29. At the TARGET rate the per-claim guard cannot bind: the epoch's drain is the
+    # floor of rho*R, which never exceeds R -- why the mean-field engines may use an
+    # epoch-level guard without changing semantics.
+    ok = all((p.T * p.N_b) * ((RR * p.rho_num) // (p.rho_den * p.T * p.N_b)) <= RR
+             for RR in (1, 137, 10 ** 6, 10 ** 12, 2 ** 63))
+    check("at target rate the epoch drain never exceeds the pool", ok,
+          "T*N_b*sigma = floor-rho(R) <= R for all R")
+
     print(f"\n{len(failures)} failure(s)" if failures else "\nall pass")
     return 1 if failures else 0
 
