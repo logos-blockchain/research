@@ -1,0 +1,38 @@
+[package]
+name = "reference-prefix-bench"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Security-margin measurements for REFERENCE_PREFIX_LENGTH in the compressed block proposal (logos-lips#389)"
+
+# Every measurement below runs the real logos-blockchain code. The pin is a
+# commit on `master`, not a branch, so the Mac and the RPi5 build byte-identical
+# sources however far apart in time they are run.
+[dependencies]
+lb-core = { package = "logos-blockchain-core", git = "https://github.com/logos-blockchain/logos-blockchain.git", rev = "40e76c8e32934f14c3370621db9bda9f14d50dc7" }
+lb-codec = { package = "logos-blockchain-codec", git = "https://github.com/logos-blockchain/logos-blockchain.git", rev = "40e76c8e32934f14c3370621db9bda9f14d50dc7" }
+lb-cryptarchia-engine = { package = "logos-blockchain-cryptarchia-engine", git = "https://github.com/logos-blockchain/logos-blockchain.git", rev = "40e76c8e32934f14c3370621db9bda9f14d50dc7" }
+lb-groth16 = { package = "logos-blockchain-groth16", git = "https://github.com/logos-blockchain/logos-blockchain.git", rev = "40e76c8e32934f14c3370621db9bda9f14d50dc7" }
+lb-key-management-system-keys = { package = "logos-blockchain-key-management-system-keys", git = "https://github.com/logos-blockchain/logos-blockchain.git", rev = "40e76c8e32934f14c3370621db9bda9f14d50dc7" }
+lb-pol = { package = "logos-blockchain-pol", git = "https://github.com/logos-blockchain/logos-blockchain.git", rev = "40e76c8e32934f14c3370621db9bda9f14d50dc7" }
+
+blake2 = "0.10"
+itertools = "0.14"
+num-bigint = "0.4"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+harness = false
+name = "candidate_generation"
+
+# `release` is what both `cargo bench` and `cargo run --release` use here. The
+# settings mirror logos-blockchain's own release profile so the code under
+# measurement is compiled the way a validator would ship it.
+[profile.release]
+codegen-units = 1
+lto = "fat"
+
+[profile.bench]
+inherits = "release"
