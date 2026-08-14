@@ -21,7 +21,7 @@
   "beta_num": 10,
   "beta_den": 100,
   "rho_num": 1,
-  "rho_den": 100,
+  "rho_den": 200,
   "genesis_pool_fraction": 0.005,
   "F_ema": 9,
   "P_ema": 10,
