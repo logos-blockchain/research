@@ -362,7 +362,27 @@ def run(config: str, report: Path) -> int:
                 failures.append((Claim("figures", f.name, 0), 0))
             print(f"  {'PASS' if ok else 'FAIL'}  figure {f.name} referenced in the report")
 
+    # Every section the report cites must exist. This catches the failure a number gate
+    # cannot see: a section deleted wholesale takes its numbers with it, so nothing is left
+    # to mismatch. Section 2 was lost that way -- an edit that meant to replace section 1.0
+    # cut to the next heading of the same depth and took sections 2.1-2.6 with it, and every
+    # gate still passed because the claims that would have caught it had gone too.
     print()
+    # Sections 2.1-2.5 are bold run-in headings rather than ATX ones, so the inventory has to
+    # look for both. split_sections itself is left alone -- it scopes claims, and widening it
+    # would silently move where each claim is matched.
+    sections = set(split_sections(text)) | set(re.findall(r"^\*\*(\d+\.\d+) ", text, re.M))
+    cited = {m.group(1) for m in re.finditer(r"§(\d+(?:\.\d+)*)", text)}
+    # These name sections of the *proposal*, not of this report, and always will.
+    ELSEWHERE = {"1.5", "5.7", "5.8", "2.3.1"}
+    dangling = sorted(c for c in cited - ELSEWHERE if c not in sections)
+    if dangling:
+        for d in dangling:
+            failures.append((Claim("structure", f"§{d} cited but no such section", 0), 0))
+        print(f"  FAIL  {len(dangling)} cited section(s) missing: {', '.join('§'+d for d in dangling)}")
+    else:
+        print(f"  PASS  all {len(cited & sections)} cited sections resolve; {len(sections)} present")
+
     for sec, banner in SUPERSEDED.items():
         ok = banner in text
         print(f"  {'PASS' if ok else 'FAIL'}  §{sec:<6} supersession banner present")

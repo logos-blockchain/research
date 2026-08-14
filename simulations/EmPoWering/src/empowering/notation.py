@@ -35,8 +35,11 @@ LONE_LETTER = r"(?<![\w.\-])[A-Za-z](?![\w])"
 
 # Spans that are not model notation at all: spec constants, file paths, make targets.
 SPEC_CONST = re.compile(r"^[A-Z_0-9]+$")
+# A path needs a real extension or a known directory -- matching any `a/b` shape once let
+# `p/2²²` through as if it were a file, hiding a bare field-modulus symbol for months.
 NOT_NOTATION = re.compile(
-    r"\.py\b|\.toml\b|\.json\b|\.md\b|^make |^\w+/[\w./]+$|^--|^\w+\.\w+:\d+$"
+    r"\.py\b|\.toml\b|\.json\b|\.md\b|\.png\b|^make |^--|^\w+\.\w+:\d+$"
+    r"|^(?:simulations|reports|tools|src|web|configs|figures)/"
 )
 
 # Identifiers quoted from the proposal's own inventory (report section 1.5). They belong
@@ -82,8 +85,14 @@ def prose_math(text: str) -> list[tuple[int, str]]:
     lines = text.split("\n")
     lo = next(i for i, l in enumerate(lines) if l.startswith("### 1.0 Notation"))
     hi = next(i for i in range(lo + 1, len(lines)) if lines[i].startswith("### "))
+    # Section 0 warns that two documents write the same letter for different quantities.
+    # It is the one place where the letter itself is the subject, so it must show it.
+    w0 = next(i for i, l in enumerate(lines) if l.startswith("## 0. A warning about the letter"))
+    w1 = next(i for i in range(w0 + 1, len(lines)) if lines[i].startswith("## "))
     out, in_fence = [], False
     for i, line in enumerate(lines):
+        if w0 <= i < w1:
+            continue
         if line.startswith("```"):
             in_fence = not in_fence
             continue
@@ -130,6 +139,32 @@ def run(report: Path, config: Path) -> int:
     else:
         print("  PASS  no symbols loose in prose -- every one is wrapped in math")
 
+    # A Latin symbol is harder to spot than a Greek one, because a lone letter in English
+    # is usually not notation: "128 B", "(a) and (b)", "i.e.", and every possessive. So this
+    # looks only where a letter is doing an equation's work -- beside a relational operator,
+    # or inside a tuple next to a name. That is where `(T, `pow_share`) = (11, 11 %)` hid.
+    latin = []
+    for ln, line in enumerate(text.split("\n"), 1):
+        stripped = re.sub(r"`[^`\n]*`", "⟦⟧", line)
+        stripped = re.sub(r"(?<!\\)\$[^$\n]+?(?<!\\)\$", "⟦⟧", stripped)
+        if stripped.lstrip().startswith("|") or stripped.startswith("```"):
+            continue
+        for m in re.finditer(r"(?<![\w`$\\/§#.\-–—’'*])([A-Za-z])(?![\w’'])", stripped):
+            if m.group(1) not in "TRFPHNLSvhdqspmxcEek":
+                continue
+            head, tail = stripped[max(0, m.start() - 3):m.start()], stripped[m.end():m.end() + 4]
+            if re.match(r"^\s*(LGO|of|per|$)", tail) and re.search(r"[\d.,]\s*$", head):
+                continue                                   # a unit: "128 B", "2.05 M LGO"
+            if head.endswith("(") and tail.startswith(")"):
+                continue                                   # an enumeration label: "(a)"
+            if re.match(r"^\s*[=<>≈≤≥,)]", tail) or re.search(r"[=(,]\s*$", head):
+                latin.append(f"line {ln}: bare `{m.group(1)}` doing an equation's work -- use its name")
+    checks += 1
+    if latin:
+        failures.extend(latin)
+    else:
+        print("  PASS  no bare Latin symbol standing in for a name in prose")
+
     # --- C. every name must be traceable ----------------------------------------------
     declared = declared_names(text)
     cfg = set(re.findall(r"^\s*([a-z_]+)\s*=", config.read_text(), re.M))
@@ -173,6 +208,20 @@ def run(report: Path, config: Path) -> int:
         failures.append(f"unescaped currency would render as math: {money} -- write \\$")
     else:
         print("  PASS  every dollar amount escaped, so none of it renders as math")
+
+    # LaTeX outside math delimiters renders as literal backslashes. Easy to introduce when
+    # building an equation table programmatically, and invisible in the source.
+    naked = []
+    for ln, line in enumerate(text.split("\n"), 1):
+        body = re.sub(r"(?<!\\)\$[^$\n]+?(?<!\\)\$", "", line)
+        body = re.sub(r"`[^`\n]*`", "", body)
+        if re.search(r"\\(varphi|sigma|rho|beta|psi|Phi|lambda|kappa|Delta|dfrac|ast|text)\b", body):
+            naked.append(f"line {ln}: LaTeX outside math -- {body.strip()[:60]}")
+    checks += 1
+    if naked:
+        failures.extend(naked)
+    else:
+        print("  PASS  no LaTeX left outside math delimiters")
 
     print()
     if failures:
