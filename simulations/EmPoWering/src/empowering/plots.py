@@ -63,7 +63,7 @@ def _save(fig, out: Path, stem: str, p: Params, key: str) -> Path:
     return path
 
 
-def pool_trajectory(p: Params, out: Path, horizon_years: float = 40.0) -> Path:
+def pool_trajectory(p: Params, out: Path, horizon_years: float = 55.0) -> Path:
     """The pool from genesis to its fixed point, and what the reward does on the way.
 
     The question this answers: the endowment is five orders of magnitude above the fixed
@@ -91,7 +91,7 @@ def pool_trajectory(p: Params, out: Path, horizon_years: float = 40.0) -> Path:
     ax.annotate(f"within 2x of $R^*$\nafter {e_half / p.epochs_per_year:.0f} years",
                 xy=(e_half / p.epochs_per_year, R_star * 30), fontsize=8,
                 color=MUTED, ha="right", xytext=(-6, 0), textcoords="offset points")
-    ax.set(yscale="log", ylabel="reward pool (LGO)",
+    ax.set(yscale="log", ylabel="reward pool (LGO)", xlim=(0, horizon_years),
            title="The pool spends decades on its genesis endowment, not on fee refill")
     ax.legend(loc="upper right")
 
@@ -378,17 +378,20 @@ def drain_margin(p: Params, out: Path) -> Path:
                 xy=(30, 330), fontsize=9, color="#2A6A55", zorder=4)
 
     ax.plot([p.T], [p.rho_den], "o", ms=10, color=OKABE_ITO[7], zorder=6)
-    margin = p.max_block_txs / (p.T * p.rho_den)
-    ax.annotate(f"specified\nT = {p.T}, $\\rho$ = 1/{p.rho_den}\n"
-                f"needs {p.T * p.rho_den:,}/block; cap is {p.max_block_txs}\n"
-                f"reachable, by {margin - 1:.1%}",
+    need = p.T * p.rho_den
+    closed = need > p.max_block_txs
+    verdict = (f"impossible by construction\n({need:,} > cap {p.max_block_txs})" if closed
+               else f"reachable, by {p.max_block_txs / need - 1:.1%}")
+    ax.annotate(f"specified\nT = {p.T}, $\\rho$ = 1/{p.rho_den}\n{verdict}",
                 xy=(p.T, p.rho_den), xytext=(24, 40), textcoords="offset points",
                 fontsize=8.5, color=OKABE_ITO[7], zorder=6,
                 arrowprops=dict(arrowstyle="->", color=OKABE_ITO[7], lw=1.2))
 
     ax.set(xlabel="TARGET_CLAIMS_PER_BLOCK  $T$",
            ylabel=r"$1/\rho$   (epochs of reserve; $\rho$ = 1/this)",
-           title="Within-epoch drain: the specified point sits just inside the reachable side")
+           title="Within-epoch drain: "
+                 + ("the specified point is on the impossible side" if closed
+                    else "the specified point sits just inside the reachable side"))
     fig.tight_layout()
     return _save(fig, out, "07_drain_margin", p, "drain")
 
@@ -591,7 +594,8 @@ def t_beta_plane(p: Params, out: Path) -> Path:
             label=f"window: $T \\in$ ({lo:.2f}, {hi:.2f}]")
 
     ax.plot([p.T], [100 * p.beta], "o", ms=11, color=OKABE_ITO[7], zorder=6)
-    ax.annotate(f"specified\n$T$ = {p.T}, $\\beta$ = {p.beta:.0%}\n(drain reachable)",
+    drain_note = ("drain closed" if p.T * p.rho_den > p.max_block_txs else "drain reachable")
+    ax.annotate(f"specified\n$T$ = {p.T}, $\\beta$ = {p.beta:.0%}\n({drain_note})",
                 xy=(p.T, 100 * p.beta), xytext=(-104, -46), textcoords="offset points",
                 fontsize=8.5, color=OKABE_ITO[7], zorder=6,
                 arrowprops=dict(arrowstyle="->", color=OKABE_ITO[7], lw=1.2))
@@ -615,7 +619,7 @@ def t_beta_plane(p: Params, out: Path) -> Path:
 ALL["plane"] = t_beta_plane
 
 
-def funding_flows(p: Params, out: Path, horizon_years: float = 40.0) -> Path:
+def funding_flows(p: Params, out: Path, horizon_years: float = 55.0) -> Path:
     """Where the distribution comes from, and how it compares with what leaders earn.
 
     Left: each epoch's payout split into the part fees refill and the part drawn down from
@@ -658,7 +662,7 @@ def funding_flows(p: Params, out: Path, horizon_years: float = 40.0) -> Path:
     return _save(fig, out, "12_funding_flows", p, "flows")
 
 
-def adversary_over_time(p: Params, out: Path, horizon_years: float = 40.0) -> Path:
+def adversary_over_time(p: Params, out: Path, horizon_years: float = 55.0) -> Path:
     """Section 4.1's answer as a trajectory rather than a single peak number.
 
     The share rises while the endowment drains, then flattens once the refill (tiny against

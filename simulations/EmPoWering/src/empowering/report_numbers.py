@@ -100,7 +100,7 @@ def build(p: Params) -> list[Claim]:
               half_life / p.epochs_per_year, 5e-3),
         Claim("3.1", r"annual decay \*\*−(" + NUM + r") ?%", annual * 100, 5e-3),
         Claim("3.2", r"— (" + NUM + r") base units at `T = 10`", p.T * p.N_b, 0),
-        Claim("4.4.3", r"(" + NUM + r") claims per block against a capacity",
+        Claim("4.4.3", r"sits the right side: (" + NUM + r") against 1,024",
               p.T * p.rho_den / p.rho_num, 0),
         Claim("3.8", r"that is `T/ρ = (" + NUM + r")` claims", p.T * p.rho_den / p.rho_num, 0,
               note="optional: 3.8 phrasing"),
@@ -116,17 +116,6 @@ def build(p: Params) -> list[Claim]:
               p.phi * p.base_units_per_lgo, 0),
 
         # --- section 0.3: the corrected figures for the superseded sections ---
-        Claim("0.3", r"`R₀/R\* = (" + NUM + r")` at the resting price", ratio, 5e-3),
-        Claim("0.3", r"\| 0 \| 0\.00 \| (" + NUM + r") \|",
-              core.sigma(p.R0, p) * p.base_units_per_lgo, 5e-3),
-        Claim("0.3", r"\| 0 \| 0\.00 \| [\d,]+ \| (" + NUM + r")× \|", s0_over_phi, 5e-3),
-        Claim("0.3", r"\| ∞ \| — \| (" + NUM + r") \|",
-              core.sigma_over_phi(p) * p.phi * p.base_units_per_lgo, 5e-3),
-        Claim("0.3", r"\| launch \| [\d,]+× \| \*\*(" + NUM + r")×\*\*", edge_launch, 1e-4),
-        Claim("0.3", r"\| steady state \| [\d.]+× \| \*\*(" + NUM + r")×\*\*",
-              core.builder_edge(p), 1e-4),
-        Claim("0.3", r"pool distributes \*\*(" + NUM + r") ?%\*\* of supply over",
-              _distributed_pct(p), 2e-2),
 
         # --- section 4.7: the figures added with the validation plots ---
         Claim("4.7.1", r"\| 7 \(resting\) \| 1× \| (" + NUM + r") \|", r_star, 5e-3),
@@ -147,12 +136,6 @@ def build(p: Params) -> list[Claim]:
         Claim("4.7.6", r"needs `T/ρ` claims in every block for a whole epoch: (" + NUM + r")",
               p.T * p.rho_den / p.rho_num, 0),
 
-        Claim("0.3", r"model now gives \*\*(" + NUM + r")×10⁻⁶ ?%\*\*",
-              100 * r_star / p.S_tge * 1e6, 5e-3),
-        Claim("0.3", r"and \*\*(" + NUM + r")×10⁻⁶ ?%\*\*: the reserve",
-              100 * r_min / p.S_tge * 1e6, 5e-3),
-        Claim("0.3", r"the reserve is (" + NUM + r") LGO", r_star, 5e-3),
-        Claim("0.3", r"and the floor (" + NUM + r") LGO", r_min, 5e-3),
 
         # --- section 4.8: sampled arrivals ---
         Claim("4.8", r"\| claims per block, mean \| \*\*(" + NUM + r")\*\*", _sampled_mean(p), 2e-3),
@@ -186,6 +169,16 @@ def build(p: Params) -> list[Claim]:
         Claim("4.9.1", r"\| a full block of transfers \| (" + NUM + r") \|",
               _load_of(p, "full"), 5e-3),
 
+        # --- section 0.4: the adopted rho = 1/200, and section 3.7's launch row ---
+        Claim("0.4", r"falls from 0\.51 % to \*\*(" + NUM + r") ?%\*\*",
+              100 * core.peak_adversary_share(p, p.adversary_h, 1.0, 0.30), 2e-2),
+        Claim("0.4", r"σ₀ = (" + NUM + r")× the fee",
+              core.sigma(p.R0, p) / p.phi, 5e-3),
+        Claim("0.4", r"half-life is (" + NUM + r") epochs",
+              math.log(2) / -math.log(1 - p.rho_num / p.rho_den), 1e-2),
+        Claim("3.7", r"\| 0 \| 0\.00 \| (" + NUM + r") \| ",
+              core.sigma(p.R0, p) * p.base_units_per_lgo, 5e-3),
+
         # --- section 4.10: the sweep programme ---
         Claim("4.10.1", r"\| \*\*10\*\* \(specified\) \| \*\*(" + NUM + r")\*\*",
               core.sigma_over_phi(p), 5e-3),
@@ -198,7 +191,7 @@ def build(p: Params) -> list[Claim]:
               100 / p.T ** 0.5, 5e-3),
         Claim("4.10", r"simulation gives exactly (" + NUM + r")", _recon(p), 0),
         Claim("4.10", r"step \*down\* takes (" + NUM + r") blocks", _recon(p, 0.1), 0),
-        Claim("4.10.2", r"\(0\.51 % → (" + NUM + r") %",
+        Claim("4.10.2", r"\(0\.42 % → (" + NUM + r") %",
               100 * _peak_at_R0(p, 0.10), 2e-2),
 
         # --- body sections corrected in place 2026-08-13 ---
@@ -208,8 +201,8 @@ def build(p: Params) -> list[Claim]:
         Claim("4.1", r"distributes \*\*(" + NUM + r") %\*\* of supply", _distributed_pct(p), 2e-2),
         Claim("4.4", r"floor is `R_min` = (" + NUM + r")×10⁻⁸",
               1e8 * core.r_min(p) / p.S_tge, 5e-3),
-        Claim("4.4.3", r"\| `R\*` at the reference traffic \| (" + NUM + r")×10⁻⁸",
-              1e8 * core.r_star(p) / p.S_tge, 5e-3),
+        Claim("4.4.3", r"\| `R\*` at the reference traffic \| (" + NUM + r")×10⁻⁷",
+              1e7 * core.r_star(p) / p.S_tge, 5e-3),
 
         # --- section 4.4.2: subordination flows at genesis vs steady state ---
         Claim("4.4.2", r"epoch-0 distribution is `ρR₀` = \*\*(" + NUM + r") LGO\*\*",
@@ -219,7 +212,7 @@ def build(p: Params) -> list[Claim]:
               (p.rho_num / p.rho_den * p.R0) / _leader_fees(p), 1e-2),
         Claim("4.4.2", r"receive ≈ (" + NUM + r") M LGO per epoch",
               p.r_max * p.N_b / 1e6, 1e-2),
-        Claim("4.4.2", r"the pool's 500,000 is \*\*(" + NUM + r") ?%\*\*",
+        Claim("4.4.2", r"the pool's 250,000 is \*\*(" + NUM + r") ?%\*\*",
               100 * (p.rho_num / p.rho_den * p.R0) / (_leader_fees(p) + p.r_max * p.N_b), 1e-2),
         Claim("4.4.2", r"a third of leader fee income for roughly \*\*(" + NUM + r") years\*\*",
               _years_above_third(p), 5e-2),

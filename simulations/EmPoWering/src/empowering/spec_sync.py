@@ -149,7 +149,7 @@ def run(config: str, lips: str) -> int:
     margin(mantle, "6,664 lepta", p.phi * p.base_units_per_lgo, 6663, 6665)
     R_min = p.phi * p.T * p.N_b / p.rho
     no_traffic_years = math.log(p.R0 / R_min) / -math.log(1 - p.rho) / p.epochs_per_year
-    margin(mantle, "for decades", no_traffic_years, 15, 40)
+    margin(mantle, "for decades", no_traffic_years, 15, 80)
     margin(mantle, "a factor of only $`1.84`$",
            (2 ** 64 - 1) / (p.S_tge * p.base_units_per_lgo), 1.80, 1.89)
 
@@ -158,8 +158,8 @@ def run(config: str, lips: str) -> int:
            reaches, 0.75, 0.85)
     margin(mantle, "five times the fee at six hundred",
            p.psi * p.beta * 600 / p.T, 4.5, 5.5)
-    margin(mantle, "a thousand claims in every block",
-           p.T * p.rho_den / p.rho_num / 1000, 0.99, 1.01)
+    margin(mantle, "two thousand claims in every block",
+           p.T * p.rho_den / p.rho_num / 1000, 1.99, 2.01)
     # excess of a 100x-too-permissive genesis target, as a fraction of the pool
     from .core import next_reward_difficulty, sigma as _sigma
     d_eq = P_FIELD >> p.reward_difficulty_exp
@@ -168,8 +168,8 @@ def run(config: str, lips: str) -> int:
         c = min(max(0, round(p.T * d / d_eq)), p.max_block_txs)
         excess += max(0, c - p.T)
         d = next_reward_difficulty(d, c, p)
-    margin(mantle, "six thousandths of one percent of the genesis pool",
-           excess * _sigma(p.R0, p) / p.R0 * 1e5, 4.5, 7.5)
+    margin(mantle, "three thousandths of one percent of the genesis pool",
+           excess * _sigma(p.R0, p) / p.R0 * 1e5, 2.2, 3.8)
 
     def require_phrase(fname: str, phrase: str):
         nonlocal checks

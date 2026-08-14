@@ -9,8 +9,8 @@
 #                MEASURED = benchmarked, see bench-poseidon2/.
 #                ASSUMED = a modelling choice, not stated by the specification.
 
-name = "specified"
-description = "The parameter set as specified in the EmPoWering RFC"
+name = "superseded-rho100"
+description = "The pre-2026-08-14 set (rho = 1/100), kept for comparison runs"
 
 [consensus]
 blocks_per_epoch      = 21_600        # KNOWN  blend-protocol.md:103
@@ -44,8 +44,8 @@ transfer_tx_gas       = 590           # KNOWN    analysis-gas-cost-determination
 target_claims_per_block = 10          # KNOWN  T
 pool_share_num          = 10          # KNOWN  POW_SHARE
 pool_share_den          = 100         # KNOWN  SHARE_DEN
-distribution_rate_num   = 1           # KNOWN  rho = 1/200 (2026-08-14: closes the within-epoch
-distribution_rate_den   = 200         #        drain by construction; see report section 0.4)
+distribution_rate_num   = 1           # KNOWN  rho = 1/100
+distribution_rate_den   = 100
 genesis_pool_fraction   = 0.005       # KNOWN  POW_REWARD_POOL_GENESIS, 5/1000 of launch supply
 ema_smoothing_factor    = 9           # KNOWN  F
 ema_smoothing_precision = 10          # KNOWN  P
