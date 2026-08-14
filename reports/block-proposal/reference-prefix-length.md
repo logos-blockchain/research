@@ -118,6 +118,15 @@ to the grinding. **Generation is the binding constraint, and this report prices
 it on its own.** Propagation only ever makes the attack easier than generation
 alone implies.
 
+**The decisive reason, though, is not that propagation is fast — it is that `L`
+does not affect it.** Whatever the prefix length, a colliding pair is still two
+transactions and `k` pairs are still `2k` transactions to inject. Doubling `L`
+multiplies the *generation* cost by 2^(8L/2) and leaves the *distribution* cost
+exactly where it was. Distribution is therefore not a lever this parameter can
+pull, at any value. Generation is the only axis `L` buys anything on, which is
+why it has to be the axis the parameter is chosen on — and why a propagation
+measurement, however carefully taken, cannot substitute for one.
+
 ### 1c. Success condition
 
 Cause reconstruction ambiguity on an **honest** proposal: place two
@@ -486,9 +495,26 @@ exploitability:
 2. **Lifetime.** This is a consensus constant that will outlive several hardware
    generations. Every 4× in hash rate divides the attacker's cost by four; L = 14
    spends its margin against hardware that does not exist yet, L = 16 does not.
-3. **Asymmetric cost of being wrong.** Shortening `L` later is a clean parameter
-   change. Lengthening it after mainnet is a breaking wire-format change made
-   under adversarial pressure.
+3. **Asymmetric cost of being wrong — but not for the usual reason.** It is
+   tempting to say "ship 16, shorten it later if the data allows". Be precise
+   about what that costs: `L` sets the `References` layout, so changing it in
+   *either* direction is a breaking wire-format change requiring a coordinated
+   upgrade, exactly as #389 says of the original change. Shortening is not a
+   free knob.
+
+   The real asymmetry is **urgency and information, not cost**. Discovering that
+   16 was generous is something you learn at leisure, from analysis, and can
+   bundle into a scheduled upgrade. Discovering that 14 was thin is something you
+   learn while someone is stalling the chain — and you then have to ship a hard
+   fork under pressure, against a mempool already seeded with colliding
+   transactions that do not expire on their own. Same mechanism, very different
+   conditions.
+
+   The corollary cuts against over-relying on revisability: since shortening is
+   a hard fork for a 2 KB saving, realistically nobody will ever spend one on
+   it. **The value shipped is, in practice, the value forever.** That is an
+   argument for getting it right now, not for treating it as easily revisable
+   later.
 
 **And the price of that margin is small:** 16,747 bytes versus 14,699 — **2 KB
 on the maximum proposal**, still a 1.98× reduction against master's 33,129. Two
