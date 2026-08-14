@@ -241,6 +241,38 @@ def format_pairs(count: float) -> str:
     return f"{count:.2e}"
 
 
+def table_sustained(pairs_per_slot: int) -> str:
+    """Cost of a one-off stalled slot vs. sustaining the stall.
+
+    A colliding pair buys ambiguity only while BOTH of its transactions sit in
+    the mempool. Once the proposer includes one, the block is applied and that
+    transaction is removed, leaving the other unambiguous. So a pair is spent
+    after roughly one slot, and stalling N consecutive slots needs
+    pairs_per_slot * N pairs in total.
+
+    Cost still grows as sqrt of the total, so bulk is discounted -- but the
+    discount does not keep up with a 1-second slot.
+    """
+    horizons = [
+        ("one slot", 1),
+        ("one hour", 3600),
+        ("one day", 86_400),
+    ]
+    out = [
+        "| L (bytes) | " + " | ".join(name for name, _ in horizons) + " |",
+        "|---" * (1 + len(horizons)) + "|",
+    ]
+    for prefix_len in PREFIX_LENGTHS:
+        cells = []
+        for _, slots in horizons:
+            total_pairs = pairs_per_slot * slots
+            need = candidates_for_pairs(prefix_len, total_pairs)
+            usd = need / GPU_HASH_RATE / 3600.0 * GPU_USD_PER_HOUR
+            cells.append(human_usd(usd))
+        out.append(f"| {prefix_len} | " + " | ".join(cells) + " |")
+    return "\n".join(out) + "\n"
+
+
 def table_summary(machines: list[str], pairs_needed: dict[str, int]) -> str:
     """The decision table: what it costs to stall each machine, per L."""
     out = [
@@ -454,6 +486,18 @@ def main() -> None:
         print(f"_Stalling **{machine}** needs k = {k} colliding pairs (measured)._")
     print()
     print(table_summary(machines, pairs_needed))
+
+    if pairs_needed:
+        k = max(pairs_needed.values())
+        print(
+            f"\n### Cost of sustaining the stall (k = {k} pairs per slot, "
+            "1 s slots)\n"
+        )
+        print(
+            "A pair is spent once the proposer includes one of its two "
+            "transactions, so holding a stall open costs pairs *per slot*.\n"
+        )
+        print(table_sustained(k))
 
     plot(machines)
 

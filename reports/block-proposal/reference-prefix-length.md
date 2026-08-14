@@ -2,7 +2,15 @@
 
 **Subject:** the reference prefix length for the compressed block proposal, [logos-lips#389].
 **Question:** is 16 bytes too conservative, and what does the measured data say the parameter should be?
-**Answer in one line:** the data supports **16 bytes**; the crossover where the attack stops being economically rational sits between 14 and 16, and 14 is affordable at roughly $4k of rented GPU time.
+**Answer in one line:** the data rules out 8, 10 and 12 outright; **14 is defensible but thin, 16 is comfortable, and the difference costs 2 KB** — so 16 is recommended as insurance, not because 14 is broken.
+
+> **Where this is a measurement and where it is a judgement.** That 8, 10 and 12
+> fail is not a judgement call: at those lengths a *day* of sustained disruption
+> costs between $0.07 and $4,554. The choice between **14 and 16 is a
+> judgement**, and the report says so rather than dressing it up — see
+> [§8](#8-recommendation). The reviewer's instinct that 16 looks conservative is
+> not wrong; the argument for 16 is about margin over the parameter's lifetime,
+> not about 14 being exploitable today.
 
 Everything below is measured against the real `logos-blockchain` code at commit
 [`40e76c8`], not a model of it. The benchmark suite is in
@@ -81,15 +89,31 @@ Both are liveness failures. Neither is a safety failure: `header.block_root`
 commits to the **full** 32-byte hashes, so a wrong resolution cannot be accepted
 as a valid block — it can only waste time or fail.
 
-One step is required that the cost tables below do not price. A self-collision
-gives the adversary two transactions, A and B, sharing a prefix; both go into
-mempools, and the reference only becomes ambiguous once an honest proposer
-includes **one of them** in a block. So the adversary must also get their
-transactions selected, which means paying fees and competing for block space.
-This is a **linear** overhead — generate somewhat more than `k` pairs, pay `k`
-transactions' worth of fees — against an attack whose generation cost is
-exponential in `L`. It shifts none of the conclusions, and it is omitted from
-the tables precisely so the generation bound stands unaided.
+### 1d. A colliding pair is spent after one slot
+
+This mechanic matters more than anything else in the cost model, and it is easy
+to miss.
+
+A self-collision gives the adversary two transactions, A and B, sharing a
+prefix. Both go into mempools. The reference only becomes ambiguous once an
+honest proposer includes **one of them** in a block — a reference is just a
+prefix, so ambiguity requires that prefix to be *referenced*. Say the proposer
+includes A. The reference now matches both A and B, and reconstruction has two
+candidates to try.
+
+But once that block is applied, **A is removed from the mempool**. B is left
+alone, and every later reference to B resolves to exactly one transaction. The
+pair is consumed.
+
+So `k` colliding pairs buy **one stalled slot**, not a stalled chain. Holding a
+stall open across `N` slots needs `k · N` pairs. Cost still grows only as the
+square root of the total — bulk collisions are discounted — but at a 1-second
+slot the discount does not keep up, and this is what separates "annoying" from
+"unaffordable" at the lengths in question ([§7](#7-decision-table)).
+
+The adversary must also get those transactions *selected* by the proposer,
+paying fees and competing for block space. That is a further linear overhead,
+and it is deliberately left unpriced so the generation bound stands unaided.
 
 ---
 
@@ -318,12 +342,35 @@ far less than the choice of `L` does.
 | **14** | 14,699 B | 2.25× | 2,509 | $1,254 | **$3,966** | _(pending)_ | **64** |
 | **16** | 16,747 B | 1.98× | 642,210 | $321,105 | **$1.0M** | _(pending)_ | **0.001 — not even one** |
 
-The last column is the clearest statement of the margin: how many colliding
-pairs a $10,000 adversary can afford, against the **10** they need. It is the
-same data as the `$ to stall` column, inverted, and it locates the crossover
-without needing a judgement call — **L = 16 is the first row where a serious
-budget cannot buy even a single collision**, and L = 14 is the last row where it
-buys six times more than the attack requires.
+The last column is the clearest statement of the single-event margin: how many
+colliding pairs a $10,000 adversary can afford, against the **10** they need.
+L = 16 is the first row where a serious budget cannot buy even a single
+collision; L = 14 is the last row where it buys six times more than one stalled
+slot requires.
+
+### Sustaining the stall is the number that decides it
+
+Because a pair is spent after one slot ([§1d](#1d-a-colliding-pair-is-spent-after-one-slot)),
+the honest question is not "what does one missed slot cost" but "what does
+holding the chain down cost". At k = 10 pairs per slot and 1-second slots:
+
+| L (bytes) | one slot | one hour | one day |
+|---|---|---|---|
+| **8** | <$0.01 | $0.01 | **$0.07** |
+| **10** | $0.06 | $3.63 | **$17.79** |
+| **12** | $15.49 | $929.65 | **$4,554** |
+| **14** | $3,966 | $237,990 | **$1.2M** |
+| **16** | $1.0M | $60.9M | **$298.5M** |
+
+This table is what makes 8, 10 and 12 indefensible and it is not a close call:
+**a full day of stalled block production costs seven cents at L = 8** and under
+$5,000 at L = 12. It is also the table that makes L = 14 arguable — $1.2M/day is
+a genuine deterrent, and anyone claiming 14 is broken has to explain away that
+figure.
+
+What L = 14 does *not* survive well is the one-off case: $3,966 to burn a slot
+network-wide is cheap enough for intermittent griefing, and unlike the sustained
+case it does not benefit the defender that pairs are consumed.
 
 Two independent checks that the size column is right: at L = 8 it reproduces
 **8,555 bytes**, the value pinned in the implementation's own
@@ -345,42 +392,57 @@ re-derived, once the Pi numbers land.
 
 ## 8. Recommendation
 
-**Keep `REFERENCE_PREFIX_LENGTH = 16`, and raise the implementation from 8 to
-match.**
+**Recommended: `REFERENCE_PREFIX_LENGTH = 16`. Required regardless: raise the
+implementation off 8.** These are two different strengths of claim and should
+not be conflated.
 
-The crossover sits between 14 and 16:
+**What the data proves.** L ≤ 12 is indefensible, and not marginally so. A full
+day of stalled block production costs **$0.07 at L = 8** — the value merged
+today — **$17.79 at L = 10, and $4,554 at L = 12**. No assumption in this report
+has to hold very tightly for those to be disqualifying; they would survive a GPU
+rate ten times slower and a price ten times higher.
 
-* **L ≤ 12 is not defensible.** At 12 bytes, stalling a validator costs about
-  **$15** of rented GPU time. At 8 bytes — *what is merged today* — it costs
-  less than a cent and takes under a second per pair.
-* **L = 14 is affordable to a motivated adversary.** ~$4k for a sustained stall
-  is within reach of anyone with a reason to censor, and a $10k budget buys 64
-  colliding pairs where 10 suffice — a 6× surplus, not a margin. It also has no
-  headroom against hardware improvement: this parameter is a consensus constant
-  that will outlive several GPU generations, and every 4× improvement in hash
-  rate cuts that figure fourfold.
-* **L = 16 is where the attack stops being rational.** 73 GPU-years for a single
-  pair, ~$1M for a sustained stall, and 268 days even for a 100-GPU adversary.
+**What the data leaves open.** The choice between 14 and 16 is a judgement, and
+the measurements do not settle it:
 
-The cost of that choice is modest and bounded: 16,747 bytes versus 14,699 at
-L = 14 — **2 KB on the maximum proposal**, still a 1.98× reduction against
-master's 33,129 bytes. Trading a further 12% of compression for a ~250× increase
-in attack cost is the right side of that curve.
+* At **L = 14** a one-off network-wide missed slot costs ~$4k, but *sustaining*
+  the stall costs **$1.2M/day**. That is a real deterrent. Anyone arguing 14 is
+  broken has to get past that number, and it cannot be done with this data.
+* At **L = 16** even a single missed slot costs ~$1M, and one colliding pair is
+  73 GPU-years.
+
+So the case for 16 rests on three things that are about *margin*, not
+exploitability:
+
+1. **Assumption risk.** The whole table pivots on one unmeasured input, the GPU
+   hash rate. At 14 the one-off cost is a few thousand dollars, so a factor of a
+   few in that assumption moves it across the line that matters. At 16 a factor
+   of a few changes nothing.
+2. **Lifetime.** This is a consensus constant that will outlive several hardware
+   generations. Every 4× in hash rate divides the attacker's cost by four; L = 14
+   spends its margin against hardware that does not exist yet, L = 16 does not.
+3. **Asymmetric cost of being wrong.** Shortening `L` later is a clean parameter
+   change. Lengthening it after mainnet is a breaking wire-format change made
+   under adversarial pressure.
+
+**And the price of that margin is small:** 16,747 bytes versus 14,699 — **2 KB
+on the maximum proposal**, still a 1.98× reduction against master's 33,129. Two
+kilobytes is cheap insurance against re-litigating this every time GPUs get
+faster.
 
 ### On "16 is too conservative"
 
-The reviewer's instinct is reasonable and the measurements do partly support it:
-the *targeted* 2^128 framing does overstate the threat, and 14 bytes is not
-absurd. But the birthday cost is the one that binds, and at 14 bytes it lands at
-a few thousand dollars — close enough to the affordable range that it leaves no
-headroom for a better GPU, a cheaper spot price, or a smarter grinding loop. The
-margin at 16 costs 2 KB; the margin at 14 costs a re-run of this analysis every
-time hardware moves.
+The reviewer is right that the *targeted* 2^128 framing overstates the threat,
+and right that 14 is not absurd — this report should not be read as saying
+otherwise. Where the disagreement actually lands is on how much margin a
+consensus constant deserves when the margin costs 2 KB and the downside is a
+breaking change under pressure.
 
-**`L` can always be shortened later** if the analysis supports it — shortening
-is a clean parameter change. Lengthening it after mainnet is a breaking wire
-change under adversarial pressure. Being conservative now is cheap; being wrong
-later is not.
+If the team prefers 14, that is a defensible position and this data supports it
+against a *sustained* adversary. It should then be adopted deliberately, with
+the one-off griefing cost (~$4k per burned slot) and the hardware-lifetime
+exposure written down as accepted risks, rather than arrived at by treating 16
+as merely over-cautious.
 
 ### Action items
 
