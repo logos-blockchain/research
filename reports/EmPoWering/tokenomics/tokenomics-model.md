@@ -27,7 +27,7 @@ down by six orders of magnitude — while `genesis_pool` stayed a fraction of *s
 
 **§3.7's worked example is superseded.** Its conclusion — "no decay, no stranded residual worth remarking on, and a per-claim reward the same in year ten as in week one" — held when the endowment was sized at the fixed point. It is not:
 
-| epoch | years | $\sigma_e$ (lepta) | × fee |
+| epoch | years | `reward_per_claim` (lepta) | × fee |
 | --- | --- | --- | --- |
 | 0 | 0.00 | 2,314,814,815 | 347,361× |
 | 100 | 2.05 | 847,318,308 | 127,149× |
@@ -40,7 +40,7 @@ The reward opens at 347,361× the fee and decays to 5.02×, reaching within a fa
 
 **§4.2's builder-edge shape is inverted.** §4.2(c) reasons that the endowment "sits below" the fixed point, so the reward climbs and the edge *falls* — 1.349× at launch to 1.124× at steady state — concluding that "the worst moment is therefore the first epoch" and that this "improves rather than degrades as the network matures". With `genesis_pool` above the fixed point the reward falls and the edge **rises**
 
-| | $\sigma_e/\varphi$ | builder edge |
+| | `reward_over_fee` | builder edge |
 | --- | --- | --- |
 | launch | 347,361× | **1.0000×** |
 | 10 years | 2,632× | 1.0002× |
@@ -52,7 +52,7 @@ The reward opens at 347,361× the fee and decays to 5.02×, reaching within a fa
 
 **§4.1's security figures move down by a factor of two to five.** The pool distributes **0.48 %** of supply over 6.1 years, not the 2.59 % §4.1 carried, and every cell of its table moved with it (§4.1 is now corrected in place):
 
-| `initial_stake` (% of supply) | h=0.10 | h=0.33 | h=0.50 |
+| `initial_stake` (% of supply) | `adversary_hashrate` 0.10 | `adversary_hashrate` 0.33 | `adversary_hashrate` 0.50 |
 | --- | --- | --- | --- |
 | **0.5 %** | 4.9–6.2 % | 16.1–19.2 % | 24.4–27.7 % |
 | **5 %** | 0.9 % | 2.9–3.0 % | 4.3–4.4 % |
@@ -235,7 +235,7 @@ The cost is borne by the burn, not by issuance: the tokens the pool distributes 
 | **block** | Produced in ~1 slot in 30, so ~30 s apart. |
 | **epoch** | 648,000 slots = **7.5 days** ≈ 21,600 blocks. |
 | **note** | A coin: a value and an owner. Minting a reward creates one. |
-| **claim** | One successful payout; mints exactly $\sigma_e$. |
+| **claim** | One successful payout; mints exactly `reward_per_claim`. |
 | **ticket** | The puzzle output. You win if it comes out small enough. |
 | **difficulty / target** | The threshold a ticket must fall below. **Smaller = harder.** Win chance is target ÷ number-space. |
 | **pool** | The reserve claims are paid from. |
@@ -266,7 +266,7 @@ Prose and code spans in this document use **self-describing names**; equations u
 | `claim_fee` | $\varphi$ | — | what a claim transaction costs to submit |
 | `steady_reward` / `steady_pool` | $\sigma^\ast$ / $R^\ast$ | — | where reward and pool settle once fee refill balances payout |
 | `pool_floor` | $R_\text{min}$ | — | pool below which a claim no longer beats its own fee |
-| `reward_over_fee` | $\sigma^\ast/\varphi$ | — | **the margin that decides whether mining pays at all** |
+| `reward_over_fee` | `reward_over_fee` | — | **the margin that decides whether mining pays at all** |
 | `txs_per_block` | $n_\text{tx}$ | — | transactions a block carries (exogenous; §4.9 removes it) |
 | `fee_ratio` | $\psi$ | — | average transaction's fee over a claim's (§4.3) |
 | `fee_load` | $\hat\Phi$ | — | a block's fee revenue counted in claim fees (§4.9) |
@@ -583,7 +583,7 @@ Verified numerically: 9.7×10⁻¹⁴ worst relative divergence over 20,000 shar
 
 **Refill** `0.10 × 21,600 × 600 × 5,579 = 7,230,384,000` lepta/epoch = 7.23 LGO — note it contains no `target_claims_per_block`. **Steady state** `steady_pool` = 1,446 LGO, likewise independent of `target_claims_per_block`. The endowment is **34,576×** that, so `reward_per_claim` decays across decades rather than sitting flat:
 
-| epoch | years | $\sigma_e$ (lepta) | × fee |
+| epoch | years | `reward_per_claim` (lepta) | × fee |
 | --- | --- | --- | --- |
 | 0 | 0.00 | 1,157,407,407 | 173,681× |
 | 100 | 2.05 | 701,136,387 | 105,213× |
@@ -651,7 +651,7 @@ An adversary with hashrate share `adversary_hashrate` captures `adversary_hashra
 
 Adversarial share of total stake **after 6.14 years** at the §3.7 parameters, over which the pool distributes **0.39 %** of supply:
 
-| `initial_stake` (% of supply) | h=0.10 | h=0.33 | h=0.50 |
+| `initial_stake` (% of supply) | `adversary_hashrate` 0.10 | `adversary_hashrate` 0.33 | `adversary_hashrate` 0.50 |
 | --- | --- | --- | --- |
 | **0.5 %** | 4.4–5.4 % | 14.4–16.9 % | 21.9–24.5 % |
 | **5 %** | 0.7 % | 2.4 % | 3.6–3.7 % |
@@ -685,7 +685,7 @@ Three candidate advantages:
 
 **(b) Censoring rivals in its own blocks — worthless unless block space is contested.**
 
-| `target_claims_per_block` | claims as % of block | advantage (h=$\beta$=0.33) |
+| `target_claims_per_block` | claims as % of block | advantage (`adversary_hashrate` = `pow_share` = 0.33) |
 | --- | --- | --- |
 | **10** (specified) | **1.0 %** | **1.00×** |
 | 50 | 4.9 % | **1.00×** |
@@ -696,7 +696,7 @@ At `target_claims_per_block = 10` claims occupy one percent of a block, so every
 
 **(c) Recovering the tip on its own claims — real, and it grows as the reward decays.** Fees are burnt but tips go to the leader, so a builder including its own claim pays itself the tip.
 
-| $\sigma_e$ relative to fee | builder edge |
+| `reward_per_claim` relative to fee | builder edge |
 | --- | --- |
 | **173,681× — the specified launch value** | **1.0000×** |
 | 100× | 1.005× |
@@ -823,7 +823,7 @@ Everything on the right except `claim_fee` is fixed by the specification, so as 
 
 **and the whole question reduces to one number: the claim fee as a fraction of total supply.** That number is a *price-level* question rather than a *denomination* question — §4.4.4 corrects an earlier reading of this table that conflated the two. The table below slides the fee across nine orders of magnitude by holding both market prices pinned at their floor of one base unit and varying the denomination underneath, which is a legitimate scenario but not the only way the fee can move. At `target_claims_per_block = 10`, `distribution_rate = 1 %`, opening at twice the fee:
 
-| base units per LGO | $\varphi$ (LGO) | $\varphi$/S | `genesis_pool / launch_supply` | verdict |
+| base units per LGO | `claim_fee` (LGO) | `claim_fee / launch_supply` | `genesis_pool / launch_supply` | verdict |
 | --- | --- | --- | --- | --- |
 | 1 | 952 | 9.5×10⁻⁸ | **411 %** | impossible |
 | 10³ | 0.952 | 9.5×10⁻¹¹ | **0.41 %** | affordable |
@@ -883,7 +883,7 @@ the reward equals the fee, delivery is zero, and claiming stops.
 
 **Holding the share fixed at 20 %, lowering `target_claims_per_block`:**
 
-| `target_claims_per_block` | $\sigma^\ast/\varphi$ | eaten by fees | reaches miners | builder edge | noise | `genesis_pool` (5-yr ramp) | nodes onboarded/epoch |
+| `target_claims_per_block` | `reward_over_fee` | eaten by fees | reaches miners | builder edge | noise | `genesis_pool` (5-yr ramp) | nodes onboarded/epoch |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 100.5 | 1 % | 99 % | 1.01× | 100 % | 0.02 % | 20.5 |
 | 5 | 20.1 | 5 % | 95 % | 1.03× | 45 % | 0.11 % | 19.6 |
@@ -900,7 +900,7 @@ The onboarding column is measured against the thing being onboarded *to*: the mi
 
 it is tempting to read the move to `target_claims_per_block = 10` as also licensing `pow_share` = 4 %, cutting the fee diversion fivefold at no cost. **It does not.** Those are two different policies and they cannot be combined:
 
-| policy | `target_claims_per_block` | $\beta$ | $\sigma^\ast/\varphi$ | fee overhead | nodes onboarded/epoch |
+| policy | `target_claims_per_block` | `pow_share` | `reward_over_fee` | fee overhead | nodes onboarded/epoch |
 | --- | --- | --- | --- | --- | --- |
 | the earlier base | 50 | 20 % | 2.01 | 50 % | 10.4 |
 | **lower `target_claims_per_block`, hold the share** | **10** | **20 %** | **10.05** | **10 %** | **18.6** |
@@ -928,7 +928,7 @@ Diverting `pow_share` of the fees **before** the burn therefore lowers `R_block`
 | regime | block reward | Blend and leaders | supply | **who pays** |
 | --- | --- | --- | --- | --- |
 | `A_t → 1` — bootstrap, staking far below target | minting-capped, unaffected by the burn | **unaffected** | higher than it would have been | **the supply** |
-| `A_t → 0` — the design's stated long-run target | equals `R_block`, so falls by $\beta$ | **fall by $\beta$**, in the 60/40 proportion | **unaffected** | **Blend and the leaders** |
+| `A_t → 0` — the design's stated long-run target | equals `R_block`, so falls by `pow_share` | **fall by `pow_share`**, in the 60/40 proportion | **unaffected** | **Blend and the leaders** |
 
 The first row is `block-rewards.md:178` verbatim: *"The amount of tokens burned does not impact the block rewards in this situation."* The second follows from `α_a = 1`, documented as *"It must be one-to-one"* (`:162`), and from the design goal that *"in the long run, Logos Blockchain should mint only enough tokens to compensate for the burned transaction fees"* (`:367`).
 
@@ -980,7 +980,7 @@ The cap above is stated on *fee shares*, and in the steady state that is the who
 
 #### What each share buys, at 600 transactions per block
 
-| `pow_share` | $\sigma^\ast/\varphi$ | builder edge | reaching claimants | nodes onboarded/epoch | `genesis_pool` (5-yr ramp) |
+| `pow_share` | `reward_over_fee` | builder edge | reaching claimants | nodes onboarded/epoch | `genesis_pool` (5-yr ramp) |
 | --- | --- | --- | --- | --- | --- |
 | 2 % | 1.00 | 109× | 0 % | 0.0 | 0.55 % |
 | 5 % | 2.51 | 1.331× | 60 % | 3.1 | 0.42 % |
@@ -1437,7 +1437,7 @@ And `initial_stake` still dominates everything: at `adversary_hashrate = 0.33` t
 
 Every quantity in §4.3's constraint set contains the two only as `target_claims_per_block / pow_share`:
 
-| **what the ratio T/β fixes** |
+| **what the ratio `target_claims_per_block / pow_share` fixes** |
 | --- |
 | $\dfrac{\sigma^\ast}{\varphi} = \dfrac{\hat\Phi}{T/\beta}$ |
 | `reward_over_fee = fee_load / (target_claims_per_block / pow_share)` |
@@ -1538,8 +1538,8 @@ Re-run 2026-08-11 under fee-inflow funding, at the §3.7 parameter set.
 | Tracks the §3.1 closed form | ✅ worst error **2.2×10⁻⁴** (win-count rounding, not currency flooring) |
 | At target, difficulty unchanged | ✅ exact |
 | Pool never negative | ✅ min 205,960,458 LGO over 300 epochs |
-| Steady state matches the closed form | ✅ R\*=206,536,781 LGO, $\sigma$\*=1.9124 LGO |
-| Self-funding holds | ✅ $\sigma$\*/$\varphi$ = 2.009 |
+| Steady state matches the closed form | ✅ `steady_pool = 206,536,781 LGO`, `steady_reward = 1.9124 LGO` |
+| Self-funding holds | ✅ `reward_over_fee = 2.009` |
 
 ## 6. What to sweep
 

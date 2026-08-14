@@ -299,6 +299,38 @@ def run(report: Path, config: Path) -> int:
     else:
         print("  PASS  no markup damaged by an equation split")
 
+    # Tables were exempted wholesale from the prose scan, because two kinds of row are meant
+    # to hold symbols: section 1.0's mapping, and the math row of an equation table. Every
+    # other cell is prose and takes a name -- a column header least of all should read
+    # `$\sigma^\ast/\varphi$` when the column beneath it is `reward_over_fee`.
+    tl = text.split("\n")
+    n_lo = next(i for i, l in enumerate(tl) if l.startswith("### 1.0 Notation"))
+    n_hi = next(i for i in range(n_lo + 1, len(tl)) if tl[i].startswith("### "))
+    # a math row is one immediately followed by its code sibling
+    paired = {
+        i for i, l in enumerate(tl)
+        if l.lstrip().startswith("|") and "$" in l and i + 1 < len(tl)
+        and tl[i + 1].lstrip().startswith("|") and "`" in tl[i + 1] and "$" not in tl[i + 1]
+    }
+    # symbols quoted from another document's notation, flagged as such where they appear
+    FOREIGN = re.compile(r"Q_[CL]|\\beta_[CD]|R_[CD]|F_C")
+    table_syms = []
+    for i, line in enumerate(tl):
+        if not line.lstrip().startswith("|") or n_lo <= i < n_hi or i in paired:
+            continue
+        if FOREIGN.search(line):
+            continue
+        if re.search(GREEK + r"|\\varphi|\\sigma|\\psi|\\beta|\\rho|\\Phi|\\lambda|\\kappa"
+                     r"|\\Delta|R₀|σₑ|Φ̂|S_tge|\bN_b\b|n_tx", line):
+            header = i + 1 < len(tl) and re.match(r"^\s*\|[\s:-]+\|", tl[i + 1])
+            what = "column header" if header else "table cell"
+            table_syms.append(f"line {i+1}: symbol in a {what} -- {line.strip()[:60]}")
+    checks += 1
+    if table_syms:
+        failures.extend(table_syms)
+    else:
+        print("  PASS  no symbols in table headers or cells outside the mapping")
+
     print()
     if failures:
         for f in failures:
