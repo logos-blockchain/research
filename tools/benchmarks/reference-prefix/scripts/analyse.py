@@ -241,6 +241,37 @@ def format_pairs(count: float) -> str:
     return f"{count:.2e}"
 
 
+def table_machines_needed(pairs: int, rgen_single_core: float | None) -> str:
+    """How many GPUs / cores it takes to manufacture `pairs` within a deadline.
+
+    This is the question in the review as asked -- "how many cores (or GPUs) one
+    needs" -- rather than a wall-clock or a dollar figure.
+    """
+    horizons = [("within 1 hour", 3600.0), ("within 1 day", 86_400.0)]
+    header = "| L (bytes) | " + " | ".join(
+        f"GPUs {name}" for name, _ in horizons
+    )
+    if rgen_single_core:
+        header += " | " + " | ".join(f"cores {name}" for name, _ in horizons)
+    out = [header + " |", "|---" * (1 + len(horizons) * (2 if rgen_single_core else 1)) + "|"]
+
+    def count(need: float, rate: float, seconds: float) -> str:
+        units = need / (rate * seconds)
+        if units < 1:
+            return f"<1 ({units:.2g})"
+        if units < 1e6:
+            return f"{units:,.0f}"
+        return f"{units:.2e}"
+
+    for prefix_len in PREFIX_LENGTHS:
+        need = candidates_for_pairs(prefix_len, pairs)
+        cells = [count(need, GPU_HASH_RATE, seconds) for _, seconds in horizons]
+        if rgen_single_core:
+            cells += [count(need, rgen_single_core, seconds) for _, seconds in horizons]
+        out.append(f"| {prefix_len} | " + " | ".join(cells) + " |")
+    return "\n".join(out) + "\n"
+
+
 def table_sustained(pairs_per_slot: int) -> str:
     """Cost of a one-off stalled slot vs. sustaining the stall.
 
@@ -489,6 +520,12 @@ def main() -> None:
 
     if pairs_needed:
         k = max(pairs_needed.values())
+        rates = load_rgen(machines[0]) if machines else None
+        one_core = rates.get("attacker_patched") if rates else None
+        print(
+            f"\n### Hardware needed to manufacture k = {k} colliding pairs\n"
+        )
+        print(table_machines_needed(k, one_core))
         print(
             f"\n### Cost of sustaining the stall (k = {k} pairs per slot, "
             "1 s slots)\n"

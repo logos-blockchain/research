@@ -27,6 +27,21 @@ and every number in this report can be re-derived by running it.
 
 ---
 
+## 0. What the review asked for, and where it is answered
+
+| Review point | Where | Status |
+|---|---|---|
+| "Set a threat model and start the analysis from there" | [§1](#1-threat-model) | Done — stated before any measurement, with generation and propagation priced separately |
+| Hansie's mempool flood reached ~0.3 tx/s | [§1b](#1b-propagation-and-why-hansies-03-txs-does-not-bound-this) | Addressed directly: the attack needs **20 transactions**, not volume, so 0.3 tx/s is ~67 seconds of injection, not a bound |
+| "How many valid transactions we can generate locally per second on a single core" | [§4](#4-candidate-generation-rate-r_gen) | Measured: **6.19 × 10⁶ /s** on one M3 core, via the real encode + Blake2b path |
+| "How many cores (or GPUs) one needs to make the reconstruction fail" | [§7](#how-much-hardware-in-the-units-the-question-was-asked-in) | Table in cores and GPUs, against a 1-hour and 1-day deadline |
+| "Show how reconstruction time grows on a single machine with the number of colliding transactions" | [§6](#6-reconstruction-latency--the-defenders-side) | Measured curve + plot, k = 0…15, at two block sizes |
+| "Hard stop when we define the max number of permutations" | [§6](#the-two-policies-differ-in-failure-mode-not-in-whether-they-fail) | Both policies measured; the merged cap refuses at **k = 6** |
+| "…or the reconstruction time exceeds the block production time on a single machine (RPi5)" | [§6](#6-reconstruction-latency--the-defenders-side) | Slot = 1 s; M3 crosses at **k = 10**. **RPi5 run outstanding** |
+| "The decision is too cautious" | [§8](#8-recommendation) | Partly conceded: L ≤ 12 is ruled out by measurement, but 14-vs-16 is a judgement about margin, not a demonstration that 14 is broken |
+
+---
+
 ## 1. Threat model
 
 Two costs set this parameter and they must be priced separately, because they
@@ -64,17 +79,44 @@ own candidates sharing a prefix. They need no fixed target, so this costs
 `L`, and [§3](#3-the-birthday-model-is-measured-not-assumed) measures that the
 model is correct rather than assuming it.
 
-### 1b. Propagation — noted, then set aside
+### 1b. Propagation, and why Hansie's 0.3 tx/s does not bound this
 
-To do damage, the colliding candidates must reach validators' mempools. It is
-tempting to treat mempool ingest throughput as a protective bound. **We
-deliberately do not**, because it is not one: an adversary can precompute
-candidates offline and inject them from many nodes in parallel, so the ceiling
-is their node count and bandwidth, not any single node's ingest rate. Treating
-a per-node figure as a global bound would overstate the margin.
+Hansie's mempool-flood experiment reached **~0.3 tx/s**, and it is reasonable to
+ask whether that already caps the attack. It does not, and the reason is the
+single most important structural point in this report.
 
-The generation argument in this report therefore stands **on its own**.
-Propagation only makes the attack easier than generation alone implies.
+**The attack does not need volume. It needs 20 specific transactions.**
+
+Grinding is offline. To manufacture k = 10 colliding pairs at L = 16 the
+adversary hashes ~10¹⁹ candidates — but they never transmit them. They discard
+every candidate except the ones that collide, and what has to reach a mempool is
+just **2 transactions per pair, 20 in total**. The 10¹⁹ figure is a *local
+compute* cost; the propagation requirement is 20 transactions of ~76 bytes.
+
+Put the two rates side by side and the mismatch is the point:
+
+| quantity | rate | what it applies to |
+|---|---|---|
+| candidate generation | 6.19 × 10⁶ /s (one core) | ~10¹⁹ candidates, never transmitted |
+| mempool ingest (Hansie) | ~0.3 tx/s | **20** transactions |
+
+At 0.3 tx/s, injecting those 20 transactions from a **single** node takes
+**~67 seconds**. That is not a barrier — it is comfortably inside any mempool
+retention window, and it has to happen once per stalled slot, not once per
+candidate.
+
+For a *sustained* stall the arithmetic is barely worse. Holding a stall open
+needs k = 10 pairs per 1-second slot, i.e. 20 tx/s of injection. At 0.3 tx/s per
+node that is **~67 nodes** — a trivial number of rented VMs, and an adversary
+who can afford the grinding cost in [§5](#5-the-cost-of-manufacturing-a-collision)
+can certainly afford 67 VMs.
+
+So 0.3 tx/s is a real measurement of one node under one set of conditions, but
+it composes into nothing: it is a *per-node* figure against an adversary who
+parallelises across nodes, applied to a payload of 20 transactions rather than
+to the grinding. **Generation is the binding constraint, and this report prices
+it on its own.** Propagation only ever makes the attack easier than generation
+alone implies.
 
 ### 1c. Success condition
 
@@ -347,6 +389,29 @@ colliding pairs a $10,000 adversary can afford, against the **10** they need.
 L = 16 is the first row where a serious budget cannot buy even a single
 collision; L = 14 is the last row where it buys six times more than one stalled
 slot requires.
+
+### How much hardware, in the units the question was asked in
+
+Cost in dollars is one way to read the margin; "how many machines do I need to
+point at this" is the other, and it is the one the review asked for. To
+manufacture the k = 10 pairs that stall one slot, within a fixed deadline:
+
+| L (bytes) | GPUs in 1 hour | GPUs in 1 day | cores in 1 hour | cores in 1 day |
+|---|---|---|---|---|
+| **8** | <1 | <1 | <1 | <1 |
+| **10** | <1 | <1 | 195 | 8 |
+| **12** | 31 | **1** | 50,040 | 2,085 |
+| **14** | 7,933 | **331** | 1.3 × 10⁷ | 533,758 |
+| **16** | 2.0 × 10⁶ | **84,619** | 3.3 × 10⁹ | 1.4 × 10⁸ |
+
+Read the "GPUs in 1 day" column as the headline. At L = 12 **one** GPU does it
+overnight. At L = 14 it takes a **331-GPU** farm — large, but a real datacentre
+rents that. At L = 16 it takes **84,619 GPUs**, which is not a rental, it is a
+hyperscaler.
+
+Core counts assume the measured 6.19 × 10⁶ candidates/s per M3 core; they are
+included because the review asked in cores, though no serious adversary would
+grind Blake2b on CPUs when GPUs are ~1,600× more cost-effective per hash here.
 
 ### Sustaining the stall is the number that decides it
 
