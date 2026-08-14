@@ -12,8 +12,9 @@ import sys
 
 import numpy as np
 
-from . import economics, engine, work
+from . import consensus, economics, engine, graduation, work
 from .config import FIELD_MODULUS, Config, load
+from .nodes import NOT_GRADUATED, Population
 
 FAILURES: list[str] = []
 
@@ -201,6 +202,67 @@ def gate_report_decay_table(cfg: Config) -> None:
         check(f"epoch {e}", rows[e].reward_per_claim, want, rel=2e-3)
 
 
+def gate_population(cfg: Config) -> None:
+    """Crediting conserves claims and value, and graduation is marked exactly once.
+
+    The conservation checks are not ceremony. Crediting writes through a sliced view with a
+    boolean mask, which is the classic place for an update to land in a copy and vanish; a
+    silent loss there would depress every graduation figure without failing anything else.
+    """
+    print("\nThe population: conservation and graduation marking")
+    rng = np.random.default_rng(3)
+    pop = Population.empty(100)
+    pop.arrive(100, 0, 1.0)
+
+    net = 1_000_000_000
+    claims_each_epoch, epochs = 1_000, 50
+    # 50,000 claims over 100 nodes is 500 each, with a multinomial spread near 22, so a
+    # threshold at the mean splits the cohort and the check below actually discriminates.
+    threshold = 500 * net
+    for e in range(epochs):
+        pop.credit(rng, claims_each_epoch, net, e, threshold)
+
+    total = claims_each_epoch * epochs
+    check("claims conserved", int(pop.claims[:pop.count].sum()), total)
+    check("value conserved", int(pop.balance[:pop.count].sum()), total * net)
+
+    at_or_above = pop.balance[:pop.count] >= threshold
+    marked = pop.graduated_epoch[:pop.count] != NOT_GRADUATED
+    check("everyone above the threshold is marked", int((at_or_above & ~marked).sum()), 0,
+          note="a mask write that landed in a copy would fail here")
+    check("nobody below the threshold is marked", int((~at_or_above & marked).sum()), 0)
+    check("some but not all graduated", 0 < int(marked.sum()) < pop.count, True,
+          note=f"{int(marked.sum())} of {pop.count}, so the check has teeth")
+
+
+def gate_ceiling(cfg: Config) -> None:
+    """The on-ramp's arithmetic ceiling, and the emission cap it sits beside."""
+    print("\nThe on-ramp ceiling")
+    ceiling = graduation.graduate_ceiling(cfg)
+    check("min_stake in LGO", ceiling["min_stake_lgo"], 100_000.0, rel=1e-12)
+    check("genesis_pool in LGO", ceiling["genesis_pool_lgo"], 50_000_000.0, rel=1e-12)
+    check("graduates the endowment can ever fund", ceiling["endowment_graduates"], 500.0,
+          rel=1e-12, note="endowment over the threshold, and nothing else enters it")
+    check("years per fee-funded graduate thereafter",
+          ceiling["years_per_fee_funded_graduate"], 284.2, rel=1e-3)
+    check("emission cap, LGO per block", consensus.max_block_reward(cfg), 95.1293, rel=1e-4)
+
+
+def gate_study_conservation(cfg: Config) -> None:
+    """A short run cannot distribute more than the pool ever held."""
+    print("\nThe study conserves value")
+    rng = np.random.default_rng(5)
+    pop, out = graduation.run(cfg, joiners_per_epoch=2.0, epochs=40, rng=rng)
+    credited = int(pop.balance[:pop.count].sum())
+    paid_out = sum(o.claims_paid * o.net_per_claim for o in out)
+    check("credited equals paid out", credited, paid_out)
+
+    available = cfg.genesis_pool + sum(o.claims_paid for o in out) * 0  # endowment only
+    check("never pays out more than the pool held", paid_out <= available, True,
+          note=f"{cfg.to_lgo(paid_out):,.0f} of {cfg.to_lgo(available):,.0f} LGO")
+    check("every miner seated", pop.count, 80, note="2 per epoch over 40 epochs")
+
+
 def main() -> int:
     cfg = load()
     print(f"config: {cfg.label}  (snapshot: {cfg.snapshot_path})")
@@ -217,6 +279,9 @@ def main() -> int:
     gate_reference_cores(cfg)
     gate_trajectory(cfg)
     gate_report_decay_table(cfg)
+    gate_population(cfg)
+    gate_ceiling(cfg)
+    gate_study_conservation(cfg)
 
     print()
     if FAILURES:

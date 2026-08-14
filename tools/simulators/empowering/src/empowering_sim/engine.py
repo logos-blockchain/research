@@ -8,15 +8,28 @@ One epoch is 21,600 blocks and a full trajectory at the specified distribution r
 2,085 epochs, so a complete horizon is roughly 45 million sequential steps. Sequential is not
 an implementation choice: each target depends on the previous block's count, so the loop
 cannot be vectorised, only compiled.
+
+The epoch is the unit the loop is exposed at, because the reward is constant across one and
+so anything that depends on the reward -- crediting miners, deciding who can afford to mine --
+can advance one epoch at a time without losing anything. See :mod:`empowering_sim.nodes` for
+why per-epoch attribution is exact rather than a convenience.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
 from . import economics, work
 from .config import FIELD_MODULUS, Config
+
+
+@dataclass(frozen=True)
+class State:
+    """Everything the loop carries across an epoch boundary."""
+
+    pool: int
+    difficulty_target: int
 
 
 @dataclass
@@ -33,6 +46,7 @@ class EpochRow:
     refill: int
     difficulty_target_open: int
     difficulty_target_close: int
+    hashrate: float
     paying: bool
 
     @property
@@ -41,10 +55,66 @@ class EpochRow:
         return self.claims_found - self.claims_paid - self.claims_dropped
 
 
+def genesis_state(cfg: Config) -> State:
+    return State(pool=cfg.genesis_pool, difficulty_target=cfg.genesis_difficulty_target)
+
+
+def step_epoch(cfg: Config, state: State, hashrate: float, epoch: int,
+               rng: np.random.Generator, deterministic: bool = False,
+               txs_per_block: int | None = None) -> tuple[EpochRow, State]:
+    """Run one epoch, block by block, and report it.
+
+    The reward is computed once from the pool as the epoch opens and held fixed for the whole
+    epoch, which is what the protocol does and what makes per-epoch crediting exact.
+    """
+    reward = economics.reward_per_claim(state.pool, cfg)
+    pool, target = state.pool, state.difficulty_target
+    pool_open, target_open = pool, target
+    found = paid = dropped = refilled = 0
+
+    per_block_refill = economics.block_refill(cfg, txs_per_block)
+    per_epoch_refill = economics.epoch_refill(cfg, txs_per_block)
+
+    for _ in range(cfg.blocks_per_epoch):
+        expected = work.expected_claims(hashrate, target, cfg)
+        n = int(round(expected)) if deterministic else int(rng.poisson(expected))
+        found += n
+
+        # Claims are transactions and compete for block space like any other.
+        included = min(n, cfg.max_block_txs)
+        dropped += n - included
+
+        pool, settled = economics.pay_claims(pool, reward, included)
+        paid += settled
+
+        # The controller sees what the block carried, not what was found: a claim that never
+        # lands is invisible to it. This matters only once the block cap binds.
+        target = work.next_difficulty_target(target, included, cfg)
+
+        if cfg.refill_timing == "block":
+            pool += per_block_refill
+            refilled += per_block_refill
+
+    if cfg.refill_timing == "epoch":
+        pool += per_epoch_refill
+        refilled = per_epoch_refill
+
+    row = EpochRow(
+        epoch=epoch, years=epoch / cfg.epochs_per_year,
+        pool_open=pool_open, reward_per_claim=reward,
+        claims_found=found, claims_paid=paid, claims_dropped=dropped,
+        refill=refilled,
+        difficulty_target_open=target_open, difficulty_target_close=target,
+        hashrate=hashrate,
+        paying=reward > 0 and pool_open >= reward,
+    )
+    return row, replace(state, pool=pool, difficulty_target=target)
+
+
 def run(cfg: Config, hashrate: float, epochs: int | None = None,
         rng: np.random.Generator | None = None,
         deterministic: bool = False) -> list[EpochRow]:
-    """Simulate the pool and the retarget block by block, reporting once per epoch.
+    """Simulate the pool and the retarget at a fixed hashrate, reporting once per epoch.
 
     ``deterministic`` replaces each block's Poisson draw by its mean, which is what the
     closed forms assume; it exists so the stochastic engine and the analytic one can be
@@ -52,51 +122,11 @@ def run(cfg: Config, hashrate: float, epochs: int | None = None,
     """
     horizon = cfg.horizon_epochs if epochs is None else epochs
     rng = np.random.default_rng(cfg.seed) if rng is None else rng
-
-    pool = cfg.genesis_pool
-    target = cfg.genesis_difficulty_target
-    per_block_refill = economics.block_refill(cfg)
-    per_epoch_refill = economics.epoch_refill(cfg)
-
-    rows: list[EpochRow] = []
+    state = genesis_state(cfg)
+    rows = []
     for epoch in range(horizon):
-        # The reward is fixed for the epoch, computed from the pool as the epoch opens.
-        reward = economics.reward_per_claim(pool, cfg)
-        pool_open, target_open = pool, target
-        found = paid = dropped = refilled = 0
-
-        for _ in range(cfg.blocks_per_epoch):
-            expected = work.expected_claims(hashrate, target, cfg)
-            n = int(round(expected)) if deterministic else int(rng.poisson(expected))
-            found += n
-
-            # Claims are transactions and compete for block space like any other.
-            included = min(n, cfg.max_block_txs)
-            dropped += n - included
-
-            pool, settled = economics.pay_claims(pool, reward, included)
-            paid += settled
-
-            # The controller sees what the block carried, not what was found: a claim that
-            # never lands is invisible to it. This matters only once the block cap binds.
-            target = work.next_difficulty_target(target, included, cfg)
-
-            if cfg.refill_timing == "block":
-                pool += per_block_refill
-                refilled += per_block_refill
-
-        if cfg.refill_timing == "epoch":
-            pool += per_epoch_refill
-            refilled = per_epoch_refill
-
-        rows.append(EpochRow(
-            epoch=epoch, years=epoch / cfg.epochs_per_year,
-            pool_open=pool_open, reward_per_claim=reward,
-            claims_found=found, claims_paid=paid, claims_dropped=dropped,
-            refill=refilled,
-            difficulty_target_open=target_open, difficulty_target_close=target,
-            paying=reward > 0 and pool_open >= reward,
-        ))
+        row, state = step_epoch(cfg, state, hashrate, epoch, rng, deterministic)
+        rows.append(row)
     return rows
 
 

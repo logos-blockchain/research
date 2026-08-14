@@ -53,6 +53,15 @@ class Config:
     smoothing_precision: int
     reward_difficulty_exp: int
 
+    # ---- emission and the leader's take ----
+    # max_emission_per_year is specified. The two shares are NOT: the report records the
+    # leader fee share as unset and nowhere in the specification tree, and carries 0.4 as a
+    # modelling choice. Anything downstream of them is conditional on that choice, and the
+    # crossover study is entirely downstream of them.
+    max_emission_per_year: float = 0.01
+    leader_fee_share: float = 0.4
+    leader_reward_share: float = 1.0
+
     # ---- measured device data ----
     # Not protocol constants: these are benchmark results, and they belong in the cost
     # estimator once it exists. They live here meanwhile so the engine's hashrate
@@ -181,6 +190,7 @@ def load(path: str | Path | None = None, **overrides) -> Config:
     except KeyError as e:
         raise SystemExit(f"config {src}: missing section {e.args[0]!r}") from e
     work_ = cfg.get("work", {})
+    econ = cfg.get("economics", {})
 
     protocol = dict(
         blocks_per_epoch=consensus["blocks_per_epoch"],
@@ -207,6 +217,8 @@ def load(path: str | Path | None = None, **overrides) -> Config:
         reward_difficulty_exp=pow_["reward_difficulty_exp"],
         seconds_per_candidate_reward=work_.get("seconds_per_candidate_reward", 0.0),
         reference_cores=work_.get("pi5_cores", 1),
+        max_emission_per_year=supply["max_emission_per_year"],
+        leader_fee_share=econ.get("leader_fee_share", 0.4),
     )
     unknown = set(overrides) - set(Config.__dataclass_fields__)
     if unknown:
