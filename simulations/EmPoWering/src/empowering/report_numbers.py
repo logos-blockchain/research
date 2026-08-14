@@ -349,6 +349,17 @@ def run(config: str, report: Path) -> int:
         detail = f"report {got:,.6g} vs model {c.expected:,.6g}"
         print(f"  {flag}  §{c.section:<6} {detail}")
 
+    # Every committed figure must be embedded somewhere in the report -- an unreferenced
+    # figure is a section that lost its picture in an edit, which is exactly how fig 14
+    # went missing for two commits.
+    fig_dir = report.parent / "figures"
+    if fig_dir.is_dir():
+        for f in sorted(fig_dir.glob("*.png")):
+            ok = f"figures/{f.name}" in text
+            if not ok:
+                failures.append((Claim("figures", f.name, 0), 0))
+            print(f"  {'PASS' if ok else 'FAIL'}  figure {f.name} referenced in the report")
+
     print()
     for sec, banner in SUPERSEDED.items():
         ok = banner in text

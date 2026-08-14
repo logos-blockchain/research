@@ -355,6 +355,9 @@ Substituting the refill, `σ* > φ` becomes `ψ·β_PoW·n_tx/T > 1` — §4.3's
 
 Substituting `x = H·Δ_b·d/p` gives `x_{n+1} = T·P·x/((P−F)x + F·T)`, independent of `H` and `p`. Fixed points solve `x(x−T)=0`. Derivatives: `g'(T) = F/P = 0.9` (**stable**, ~10-block time constant); `g'(0) = P/F = 1.11` (**repelling** — the no-claims state pushes away). The deadlock concern is unfounded.
 
+![retarget return map](figures/14_retarget_map.png)
+*Fig 14 — the same argument as a picture. The return map is concave with slope > 1 at the origin and < 1 at `T`, so cobwebs from either side walk monotonically home: overshoot decays, silence escapes, and oscillation has nowhere to come from.*
+
 ### 3.7 Worked example
 
 > **Corrected in place 2026-08-13; §0.3 records what moved and why.** This section was computed when `R₀` sat at the pool's fixed point; it now sits far above it, so the reward decays.
