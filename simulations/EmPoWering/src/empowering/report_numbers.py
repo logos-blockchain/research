@@ -91,8 +91,7 @@ def build(p: Params) -> list[Claim]:
               p.claim_fee(p.price_floor) * p.base_units_per_lgo, 0),
         Claim("4.3", r"comes to 207 B and 590 gas, or (" + NUM + r") units at rest",
               p.transfer_fee() * p.base_units_per_lgo, 0),
-        Claim("4.3", r"\\psi \\;=\\; \\frac\{\\bar\\varphi\}\{\\varphi_\\text\{claim\}\} "
-                     r"\\;\\approx\\; (" + NUM + r")", p.psi, 2e-3),
+        Claim("4.3", r"\\varphi_\\text\{claim\}\} \\approx (" + NUM + r")\$", p.psi, 2e-3),
 
         # --- pool dynamics (section 3) ---
         Claim("3.1", r"half-life \*\*(" + NUM + r") epochs", half_life, 5e-3),
