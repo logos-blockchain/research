@@ -223,6 +223,38 @@ def run(report: Path, config: Path) -> int:
     else:
         print("  PASS  no LaTeX left outside math delimiters")
 
+    # An equation buried mid-sentence is hard to see. A defining relation -- one whose right
+    # side is an expression rather than a bare value -- gets its own line, the same treatment
+    # the math forms get. Two contexts legitimately keep one inline: a relation quoted from
+    # elsewhere, and one used as a paragraph's bold label, where it is already prominent.
+    def is_equation(sp: str) -> bool:
+        rel = re.search(r"(<=|>=|==|=|<|>)", sp)
+        return bool(rel and re.search(r"[*/+]|sqrt|ceil|min\(|max\(", sp[rel.end():])
+                    and len(sp) > 30)
+
+    buried = []
+    for ln, line in enumerate(text.split("\n"), 1):
+        if line.lstrip().startswith("|") or line.startswith(("#", "*Fig")):
+            continue
+        stripped = line.strip()
+        if stripped.startswith("`") and stripped.endswith("`") and stripped.count("`") == 2:
+            continue                                          # already on its own line
+        for m in re.finditer(r"`([^`\n]+)`", line):
+            if not is_equation(m.group(1)):
+                continue
+            before = line[:m.start()]
+            if before.count('"') % 2 == 1:
+                continue                                      # quoted from elsewhere
+            if before.strip() in ("**", ""):
+                continue                                      # the paragraph's bold label
+            buried.append(f"line {ln}: equation buried in prose -- give it its own line: "
+                          f"`{m.group(1)[:56]}`")
+    checks += 1
+    if buried:
+        failures.extend(buried)
+    else:
+        print("  PASS  every defining equation sits on its own line")
+
     print()
     if failures:
         for f in failures:
