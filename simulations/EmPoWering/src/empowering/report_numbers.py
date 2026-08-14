@@ -101,7 +101,7 @@ def build(p: Params) -> list[Claim]:
         Claim("3.2", r"— (" + NUM + r") base units at `target_claims_per_block = 10`", p.T * p.N_b, 0),
         Claim("4.4.3", r"sits the right side: (" + NUM + r") against 1,024",
               p.T * p.rho_den / p.rho_num, 0),
-        Claim("3.8", r"that is `target_claims_per_block/distribution_rate = (" + NUM + r")` claims",
+        Claim("3.8", r"that is `target_claims_per_block / distribution_rate = (" + NUM + r")` claims",
               p.T * p.rho_den / p.rho_num, 0),
         # the hard edge is on rho itself: drain is reachable once rho >= T/MAX_BLOCK_TXS
         Claim("4.4.3", r"`distribution_rate < target_claims_per_block / MAX_BLOCK_TXS = (" + NUM + r") ?%`",

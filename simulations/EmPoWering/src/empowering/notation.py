@@ -227,10 +227,27 @@ def run(report: Path, config: Path) -> int:
     # side is an expression rather than a bare value -- gets its own line, the same treatment
     # the math forms get. Two contexts legitimately keep one inline: a relation quoted from
     # elsewhere, and one used as a paragraph's bold label, where it is already prominent.
+    # A formula need not carry an `=` to be a formula: `blocks_per_epoch * claim_fee *
+    # (fee_ratio * pow_share * txs_per_block - target_claims_per_block)` is one, and an
+    # earlier version of this check required a relation and so never saw it. What separates
+    # a formula from a compound *name* -- `target_claims_per_block * blocks_per_epoch`, which
+    # prose uses as a noun -- is how much structure it carries, not whether it asserts.
+    FUNCS = {"min", "max", "sqrt", "ceil", "floor", "sum"}
+
     def is_equation(sp: str) -> bool:
+        if SPEC_CONST.match(sp):
+            return False
+        if re.search(r"\.(py|toml|md|json|rs|png)\b|^make ", sp) or (
+                "/" in sp and not re.search(r"[*+=<>]| - | / ", sp)):
+            return False                                   # a path, not arithmetic
+        names = {w for w in re.findall(r"\b[a-z][a-z0-9_]{2,}\b", sp) if w not in FUNCS}
+        ops = re.findall(r"\*\*|//|[*/+]|(?<= )-(?= )", sp)
         rel = re.search(r"(<=|>=|==|=|<|>)", sp)
-        return bool(rel and re.search(r"[*/+]|sqrt|ceil|min\(|max\(", sp[rel.end():])
-                    and len(sp) > 30)
+        if rel and re.search(r"[*/+]|sqrt|ceil|min\(|max\(", sp[rel.end():]) and len(sp) > 30:
+            return True
+        if len(names) >= 3 and len(ops) >= 2:
+            return True
+        return len(sp) >= 60 and len(names) >= 2 and len(ops) >= 1
 
     buried = []
     for ln, line in enumerate(text.split("\n"), 1):
@@ -254,6 +271,33 @@ def run(report: Path, config: Path) -> int:
         failures.extend(buried)
     else:
         print("  PASS  every defining equation sits on its own line")
+
+    # Splitting a sentence around an equation damages the markup in three ways that every
+    # mechanical pass over this document has managed to introduce at least once: bold that
+    # opens on one side of the split and closes on the other, the previous sentence's full
+    # stop stranded at the head of the continuation, and a list continuation that loses its
+    # indent and escapes the list. All three are invisible in source and obvious when read.
+    damage, in_list = [], False
+    for ln, line in enumerate(text.split("\n"), 1):
+        bare = re.sub(r"`[^`\n]*`", "", line)
+        bare = re.sub(r"(?<!\\)\$[^$\n]+?(?<!\\)\$", "", bare)
+        if bare.count("**") % 2:
+            damage.append(f"line {ln}: bold opens or closes across a split -- {line.strip()[:50]}")
+        if re.match(r"^\s*[.,;:]\S?", line) and line.strip():
+            damage.append(f"line {ln}: stranded punctuation -- {line.strip()[:50]}")
+        if re.match(r"^(\s*)(?:[-*]|\d+\.)\s", line):
+            in_list = True
+        elif line.strip() and not line.startswith(" "):
+            in_list = False
+        stripped = line.strip()
+        if (in_list and stripped.startswith("`") and stripped.endswith("`")
+                and not line.startswith("   ")):
+            damage.append(f"line {ln}: list continuation lost its indent -- {stripped[:40]}")
+    checks += 1
+    if damage:
+        failures.extend(damage)
+    else:
+        print("  PASS  no markup damaged by an equation split")
 
     print()
     if failures:
