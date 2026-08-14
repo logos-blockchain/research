@@ -98,11 +98,11 @@ def build(p: Params) -> list[Claim]:
         Claim("3.1", r"half-life \*\*\d+ epochs ≈ (" + NUM + r") years",
               half_life / p.epochs_per_year, 5e-3),
         Claim("3.1", r"annual decay \*\*−(" + NUM + r") ?%", annual * 100, 5e-3),
-        Claim("3.2", r"— (" + NUM + r") base units at `T = 10`", p.T * p.N_b, 0),
+        Claim("3.2", r"— (" + NUM + r") base units at `target_claims_per_block = 10`", p.T * p.N_b, 0),
         Claim("4.4.3", r"sits the right side: (" + NUM + r") against 1,024",
               p.T * p.rho_den / p.rho_num, 0),
-        Claim("3.8", r"that is `T/ρ = (" + NUM + r")` claims", p.T * p.rho_den / p.rho_num, 0,
-              note="optional: 3.8 phrasing"),
+        Claim("3.8", r"that is `target_claims_per_block/distribution_rate = (" + NUM + r")` claims",
+              p.T * p.rho_den / p.rho_num, 0),
         # the hard edge is on rho itself: drain is reachable once rho >= T/MAX_BLOCK_TXS
         Claim("4.4.3", r"`ρ < T/MAX_BLOCK_TXS = (" + NUM + r") ?%`",
               100 * p.T / p.max_block_txs, 5e-3),
@@ -151,7 +151,7 @@ def build(p: Params) -> list[Claim]:
         Claim("4.8", r"if arrivals were uncorrelated \| \| (" + NUM + r") ?%",
               100 / math.sqrt(p.T * p.N_b), 5e-3),
         Claim("4.8", r"drain needs (" + NUM + r") \|", p.T * p.rho_den / p.rho_num, 0),
-        Claim("4.8", r"\*\*\+(" + NUM + r") ?% at `T = 10`",
+        Claim("4.8", r"\*\*\+(" + NUM + r") ?% at `target_claims_per_block = 10`",
               100 * (p.P_ema - p.F_ema) / (2 * p.P_ema * p.T), 1e-2),
 
         # --- section 4.9: the fee-load axis ---
@@ -160,7 +160,6 @@ def build(p: Params) -> list[Claim]:
               _core_load_ratio(p), 5e-3),
         Claim("4.9", r"break-even of 100\*\* — the same (" + NUM + r")× margin",
               _core_load_ratio(p), 5e-3, note="optional: phrasing"),
-        Claim("4.9", r"collect \*\*(" + NUM + r")/β\*\*", 0, 0, note="optional"),
         Claim("4.9.1", r"\*\*(" + NUM + r") claim fees per transaction\*\*",
               _need_each(p), 5e-3),
         Claim("4.9.1", r"about \*\*(" + NUM + r") encoded bytes each\*\*", _bytes_each(p), 2e-2),
@@ -171,7 +170,7 @@ def build(p: Params) -> list[Claim]:
         # --- section 0.4: the adopted rho = 1/200, and section 3.7's launch row ---
         Claim("0.4", r"falls from 0\.51 % to \*\*(" + NUM + r") ?%\*\*",
               100 * core.peak_adversary_share(p, p.adversary_h, 1.0, 0.30), 2e-2),
-        Claim("0.4", r"σ₀ = (" + NUM + r")× the fee",
+        Claim("0.4", r"\$\\sigma_0\$ = (" + NUM + r")× the fee",
               core.sigma(p.R0, p) / p.phi, 5e-3),
         Claim("0.4", r"half-life is (" + NUM + r") epochs",
               math.log(2) / -math.log(1 - p.rho_num / p.rho_den), 1e-2),
@@ -221,8 +220,8 @@ def build(p: Params) -> list[Claim]:
               86400 / blend_secs, 2e-2),
         Claim("0.0", r"optimiser's edge (" + NUM + r")×",
               p.sec_per_candidate / p.sec_per_candidate_opt, 5e-3),
-        Claim("4.5", r"threshold `p/2\^\{?19\}?`?: ?(" + NUM + r") expected candidates",
-              blend_attempts, 5e-3, note="optional: phrasing varies"),
+        # (No 4.5 candidate-count claim: "expected candidates" is a table header there, and the
+        # section's blend figures are superseded by 0.0, whose numbers ARE gated above.)
 
         # --- the pieces section 4.7.1 quotes about the floor ---
         Claim("4.7.1", r"`steady_pool` \((" + NUM + r")\) sits above `pool_floor`", r_star, 5e-3),
@@ -321,7 +320,7 @@ def run(config: str, report: Path) -> int:
         print(f"cannot read report: {e}", file=sys.stderr)
         return 2
 
-    failures, missing, checked = [], [], 0
+    failures, missing, checked, skipped = [], [], 0, []
     sections = split_sections(text)
     print(f"report numbers: {report}\nagainst config: {p.name}\n")
 
@@ -334,6 +333,10 @@ def run(config: str, report: Path) -> int:
         found = re.findall(c.pattern, scope)
         if len(found) != 1:
             if "optional" in c.note:
+                # An optional claim that stops matching is a silent loss of coverage --
+                # exactly how a renamed anchor can drop a number from the gate unnoticed.
+                skipped.append(c)
+                print(f"  SKIP  §{c.section:<6} optional claim no longer matches: {c.pattern[:46]}")
                 continue
             missing.append((c, len(found)))
             print(f"  MISS  §{c.section:<6} pattern matched {len(found)}x (want 1): {c.pattern[:58]}")
@@ -372,8 +375,11 @@ def run(config: str, report: Path) -> int:
         print("so the gate can no longer find the number. Re-anchor the pattern or fix the text.")
     if failures:
         print(f"{len(failures)} number(s) drifted from the model.")
+    if skipped:
+        print(f"{len(skipped)} optional claim(s) skipped -- re-anchor or delete them.")
     if not missing and not failures:
-        print(f"all {checked} quoted numbers match the model")
+        print(f"all {checked} quoted numbers match the model"
+              + (f" ({len(skipped)} skipped)" if skipped else ""))
     return 1 if (failures or missing) else 0
 
 
