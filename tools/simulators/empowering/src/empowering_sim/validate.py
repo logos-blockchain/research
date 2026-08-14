@@ -1,0 +1,230 @@
+"""Gates: the simulator against the closed forms the tokenomics report derives.
+
+Every check here restates a published result independently and demands the engine reproduce
+it. They are cheap, they run from the first commit rather than being retrofitted, and they
+are the reason a number out of this simulator can be quoted at all.
+
+Run as ``python -m empowering_sim.validate``.
+"""
+from __future__ import annotations
+
+import sys
+
+import numpy as np
+
+from . import economics, engine, work
+from .config import FIELD_MODULUS, Config, load
+
+FAILURES: list[str] = []
+
+
+def check(name: str, got, want, rel: float = 0.0, note: str = "") -> None:
+    """Record one comparison. ``rel`` is a relative tolerance; zero demands exactness."""
+    if isinstance(want, bool) or isinstance(got, bool):
+        ok = got == want
+    elif rel:
+        ok = abs(got - want) <= rel * max(abs(want), 1e-300)
+    else:
+        ok = got == want
+    mark = "ok  " if ok else "FAIL"
+    detail = f"{got!r} vs {want!r}" if not ok else f"{got!r}"
+    print(f"  [{mark}] {name}: {detail}" + (f"   -- {note}" if note else ""))
+    if not ok:
+        FAILURES.append(name)
+
+
+# ------------------------------------------------------------------ the fee and the pool
+
+def gate_fees(cfg: Config) -> None:
+    """The claim's own fee, and the average transaction's, from bytes and gas."""
+    print("\nFees, at the resting price")
+    check("claim_fee", cfg.claim_fee, 6_664,
+          note="306 bytes and 646 gas, both at 7")
+    check("avg_tx_fee", cfg.avg_tx_fee, 5_579,
+          note="an ordinary one-in one-out transfer")
+    check("fee_ratio", cfg.fee_ratio, 0.837, rel=1e-3,
+          note="a claim costs slightly more than the average transaction")
+
+
+def gate_pool_closed_forms(cfg: Config) -> None:
+    """Opening reward, refill, and where both settle."""
+    print("\nThe pool's closed forms")
+    opening = economics.reward_per_claim(cfg.genesis_pool, cfg)
+    check("genesis_pool", cfg.genesis_pool, 50_000_000_000_000_000,
+          note="half a percent of a ten-billion supply, in base units")
+    check("opening reward_per_claim", opening, 1_157_407_407,
+          note="report section 3.7, epoch 0")
+    check("epoch_refill", economics.epoch_refill(cfg), 7_230_384_000,
+          note="7.23 LGO per epoch, and it carries no target")
+    check("steady_pool", economics.steady_pool(cfg), 1_446_076_800_000.0, rel=1e-12,
+          note="1,446 LGO, independent of the target")
+    check("steady_reward", economics.steady_reward(cfg), 33_474.0, rel=1e-9)
+    check("reward_over_fee", economics.reward_over_fee(cfg), 5.023, rel=1e-3,
+          note="the margin the steady state settles at")
+    check("steady_reward / claim_fee agrees",
+          economics.steady_reward(cfg) / cfg.claim_fee,
+          economics.reward_over_fee(cfg), rel=1e-9,
+          note="the two routes to the margin must meet")
+
+
+def gate_self_funding(cfg: Config) -> None:
+    """The self-funding condition, reached from the pool's side and the miner's."""
+    print("\nSelf-funding")
+    need = economics.self_funding_txs(cfg)
+    check("txs for reward = fee", need, 119.4, rel=1e-2,
+          note="report section 4.3, at a tenth share")
+    check("the specified traffic clears it", cfg.txs_per_block > need, True)
+
+
+# ------------------------------------------------------------------ the controller
+
+def gate_retarget_is_an_ema(cfg: Config) -> None:
+    """The one-state retarget is exactly a normalised EMA of demand.
+
+    The report proves the specified map stores the smoothed estimate inside the target
+    itself. Restated here: run both forms on the same claim sequence and demand they agree.
+    """
+    print("\nThe retarget, against its explicit EMA form")
+    rng = np.random.default_rng(11)
+    q = cfg.smoothing
+    target = cfg.genesis_difficulty_target
+    demand_est = cfg.target_claims_per_block / target      # the invariant, from genesis
+    worst = 0.0
+    for _ in range(20_000):
+        claims = int(rng.poisson(cfg.target_claims_per_block))
+        target = work.next_difficulty_target(target, claims, cfg)
+        demand_est = (1 - q) * (claims / (cfg.target_claims_per_block / demand_est)) \
+            + q * demand_est
+        implied = cfg.target_claims_per_block / demand_est
+        worst = max(worst, abs(implied - target) / target)
+    check("worst relative divergence over 20,000 blocks", worst < 1e-9, True,
+          note=f"{worst:.2e}; the two notations are one controller")
+
+
+def gate_controller_fixed_point(cfg: Config) -> None:
+    """At the target rate the target is stationary; off it, the controller walks home."""
+    print("\nThe controller's fixed point and response")
+    d = cfg.genesis_difficulty_target
+    stationary = work.next_difficulty_target(d, cfg.target_claims_per_block, cfg)
+    check("stationary at the target rate", abs(stationary - d) <= 1, True,
+          note=f"moved by {stationary - d} of {d}")
+    blocks = engine.reconvergence_blocks(cfg, step=10.0)
+    check("blocks to recover a tenfold hashrate step", blocks, 22, rel=0.25,
+          note="report section 3.6 predicts about 22")
+
+
+# ------------------------------------------------------------------ the work process
+
+def gate_poisson_superposition(cfg: Config) -> None:
+    """One aggregate draw plus a multinomial equals a million per-node draws.
+
+    The engine's central shortcut. Checked rather than asserted: the per-node counts it
+    produces must match direct per-node Poisson sampling in mean and in variance.
+    """
+    print("\nAggregate draw and multinomial attribution")
+    rng = np.random.default_rng(7)
+    shares = np.array([0.5, 0.3, 0.15, 0.05])
+    rate_total = 40.0
+    trials = 40_000
+
+    direct = rng.poisson(rate_total * shares, size=(trials, shares.size))
+    agg = np.empty_like(direct)
+    for i in range(trials):
+        total = rng.poisson(rate_total)
+        agg[i] = work.attribute(rng, int(total), shares)
+
+    for j, share in enumerate(shares):
+        want_mean = rate_total * share
+        # Both estimators carry sampling error; the tolerance is a few standard errors.
+        se = np.sqrt(want_mean / trials)
+        check(f"node {j} mean", agg[:, j].mean(), want_mean, rel=6 * se / want_mean)
+        check(f"node {j} variance", agg[:, j].var(), want_mean, rel=0.05,
+              note="Poisson, so variance equals the mean")
+
+
+# ------------------------------------------------------------------ the engine itself
+
+def gate_reference_cores(cfg: Config) -> None:
+    """How many target cores the genesis reward target implies, at the target rate.
+
+    The first check that ties the engine to the work side rather than to the money side. The
+    report puts the genesis target at about three hours per solution on one core of the
+    deployment target, and about 3,700 such cores at the target claim rate. Both fall out of
+    the hashrate calibration, so agreeing with them tests that calibration end to end.
+    """
+    print("\nWhat the genesis target costs, in target cores")
+    if cfg.seconds_per_candidate_reward <= 0:
+        print("  [skip] no measured candidate cost in the snapshot")
+        return
+    rate = engine.hashrate_for_target_rate(cfg)
+    per_core = 1.0 / cfg.seconds_per_candidate_reward
+    cores = rate / per_core
+    hours = FIELD_MODULUS / cfg.genesis_difficulty_target * cfg.seconds_per_candidate_reward / 3600
+
+    check("hours per solution on one target core", hours, 3.07, rel=0.05,
+          note="the report calls this about three hours")
+    check("target cores at the target claim rate", cores, 3_700, rel=0.05,
+          note="the report's figure for the genesis target")
+
+
+def gate_trajectory(cfg: Config) -> None:
+    """The simulated reward trajectory against its closed form.
+
+    Run deterministically at the equilibrium hashrate, which is what the closed form assumes:
+    every claim paid, arrivals exactly at the target. Any divergence is the engine's, not
+    sampling noise.
+    """
+    print("\nThe reward trajectory, simulated against closed form")
+    rate = engine.hashrate_for_target_rate(cfg)
+    rows = engine.run(cfg, hashrate=rate, epochs=120, deterministic=True)
+
+    check("claims paid in epoch 0", rows[0].claims_paid,
+          cfg.target_claims_per_block * cfg.blocks_per_epoch,
+          note="the controller opens at the target rate and holds it")
+    check("nothing dropped to the block cap", sum(r.claims_dropped for r in rows), 0)
+    check("nothing left unpaid", sum(r.unpaid for r in rows), 0)
+
+    for e in (0, 1, 10, 50, 100):
+        want = economics.reward_at_epoch(cfg, e)
+        check(f"reward_per_claim at epoch {e}", rows[e].reward_per_claim, want, rel=2e-3)
+
+    check("reward decays", rows[100].reward_per_claim < rows[0].reward_per_claim, True,
+          note="the endowment opens far above the pool's fixed point")
+
+
+def gate_report_decay_table(cfg: Config) -> None:
+    """Section 3.7's published trajectory, epoch by epoch."""
+    print("\nReport section 3.7's decay table")
+    rate = engine.hashrate_for_target_rate(cfg)
+    rows = engine.run(cfg, hashrate=rate, epochs=301, deterministic=True)
+    for e, want in ((0, 1_157_407_407), (100, 701_136_387), (299, 258_601_512)):
+        check(f"epoch {e}", rows[e].reward_per_claim, want, rel=2e-3)
+
+
+def main() -> int:
+    cfg = load()
+    print(f"config: {cfg.label}  (snapshot: {cfg.snapshot_path})")
+    print(f"target {cfg.target_claims_per_block} claims/block, "
+          f"share {cfg.pow_share:.0%}, rate 1/{cfg.distribution_rate_den}, "
+          f"endowment {cfg.genesis_pool_fraction:.1%} of supply")
+
+    gate_fees(cfg)
+    gate_pool_closed_forms(cfg)
+    gate_self_funding(cfg)
+    gate_retarget_is_an_ema(cfg)
+    gate_controller_fixed_point(cfg)
+    gate_poisson_superposition(cfg)
+    gate_reference_cores(cfg)
+    gate_trajectory(cfg)
+    gate_report_decay_table(cfg)
+
+    print()
+    if FAILURES:
+        print(f"{len(FAILURES)} gate(s) failed: {', '.join(FAILURES)}")
+        return 1
+    print("all gates pass")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
