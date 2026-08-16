@@ -1,0 +1,5 @@
+machine,threads,candidates_per_second,per_thread_candidates_per_second,scaling_vs_one_thread,seconds
+rpi5,1,4336610.6,4336610.6,1.000,5
+rpi5,2,8638303.8,4319151.9,1.992,5
+rpi5,3,12939790.5,4313263.5,2.984,5
+rpi5,4,17245129.1,4311282.3,3.977,5
