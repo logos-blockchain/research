@@ -17,13 +17,13 @@ Everything below is measured against the real `logos-blockchain` code at commit
 [`tools/benchmarks/reference-prefix`](../../tools/benchmarks/reference-prefix/),
 and every number in this report can be re-derived by running it.
 
-> **Status of the RPi5 columns.** macOS (Apple M3) is the development baseline
-> and is complete. The Raspberry Pi 5 is the target validator class and its
-> numbers are what the recommendation must ultimately rest on; those cells are
-> marked **_(pending)_** and are filled by running the identical suite on the
-> Pi. The conclusion below is stated in a form that the RPi5 data can only
-> **strengthen**, because the Pi is slower than the M3 on the defending side —
-> see [what the RPi5 data will change](#what-the-rpi5-data-will-change).
+> **Status of the RPi5 columns: complete.** macOS (Apple M3) is the development
+> baseline; the Raspberry Pi 5 is the target validator class, and its numbers
+> are now measured and filled in below (run of 2026-08-15, byte-identical code,
+> same pinned toolchain, no throttling). The headline: the RPi5 changes **no
+> conclusion**. Its reconstruction is ~1.7× slower than the M3's, but its slot
+> crossover is the **same k = 10**, so the cost tables are identical between
+> the two machines — see [what the RPi5 data changed](#what-the-rpi5-data-changed).
 
 ---
 
@@ -37,7 +37,7 @@ and every number in this report can be re-derived by running it.
 | "How many cores (or GPUs) one needs to make the reconstruction fail" | [§7](#how-much-hardware-in-the-units-the-question-was-asked-in) | Table in cores and GPUs, against a 1-hour and 1-day deadline |
 | "Show how reconstruction time grows on a single machine with the number of colliding transactions" | [§6](#6-reconstruction-latency--the-defenders-side) | Measured curve + plot, k = 0…15, at two block sizes |
 | "Hard stop when we define the max number of permutations" | [§6](#the-two-policies-differ-in-failure-mode-not-in-whether-they-fail) | Both policies measured; the merged cap refuses at **k = 6** |
-| "…or the reconstruction time exceeds the block production time on a single machine (RPi5)" | [§6](#6-reconstruction-latency--the-defenders-side) | Slot = 1 s; M3 crosses at **k = 10**. **RPi5 run outstanding** |
+| "…or the reconstruction time exceeds the block production time on a single machine (RPi5)" | [§6](#6-reconstruction-latency--the-defenders-side) | Slot = 1 s; **both** the M3 and the RPi5 cross at **k = 10** (measured) |
 | "The decision is too cautious" | [§8](#8-recommendation) | Partly conceded: L ≤ 12 is ruled out by measurement, but 14-vs-16 is a judgement about margin, not a demonstration that 14 is broken |
 
 ---
@@ -286,8 +286,11 @@ spread is expected; the standard error is what matters, and it is reported
 rather than hidden. **The 2^(b/2) model holds on real transaction hashes**, so
 extrapolating to b = 64 and b = 128 needs only the grinding rate.
 
-_(RPi5 rows: **_(pending)_** — the model is hardware-independent, so these are a
-cross-check, not an input to the decision.)_
+**rpi5** — the measured-N column is **identical to the mac run at every prefix
+length** (349 / 4,948 / 84,013 / 1,104,775), as it must be: the nonce sequence
+and the hashes are deterministic, so only the rate column may differ between
+machines. The cross-check called for in [§7](#what-the-rpi5-data-changed)
+therefore passes — the harness behaves identically on both machines.
 
 ---
 
@@ -298,7 +301,7 @@ Three rates, because the difference between them is itself the point.
 | machine | node path | attacker (patched) | raw Blake2b | aggregate (all cores) |
 |---|---|---|---|---|
 | **mac** (Apple M3, 4P+4E) | 2.42 × 10⁶ /s | **6.19 × 10⁶ /s** | 5.89 × 10⁶ /s | **3.34 × 10⁷ /s** (8 threads, 5.39×) |
-| **rpi5** | _(pending)_ | _(pending)_ | _(pending)_ | _(pending)_ |
+| **rpi5** (Cortex-A76, 4 cores) | 1.77 × 10⁶ /s | **4.31 × 10⁶ /s** | 4.10 × 10⁶ /s | **1.72 × 10⁷ /s** (4 threads, 4.00×) |
 
 Sample transaction: the smallest valid `MantleTx` — a single `Transfer`, one
 input, one output — **76 bytes encoded, 92 bytes hashed** including the
@@ -323,7 +326,10 @@ Aggregate scaling is **measured, not multiplied**: 8 threads on the M3 give
 **5.39×**, not 8×, because four of those cores are efficiency cores. Assuming
 linear scaling would have understated the time an adversary needs by about 48%
 — in the direction that flatters the defender, which is the wrong way to be
-wrong.
+wrong. The RPi5's four identical cores, by contrast, scale essentially
+perfectly (4.00×), and its attacker path is again within ~5% of its raw
+Blake2b rate — the "grinding is pure hashing" result holds on both
+architectures, with one Pi core running at ~70% of one M3 core.
 
 ---
 
@@ -393,8 +399,30 @@ isolation: with no ambiguity at all, reconstruction costs 1.4 ms against a
 entire risk is in how fast that headroom is consumed — one doubling per
 colliding pair.
 
-**rpi5**: **_(pending)_** — paste the `results/rpi5/reconstruction.csv` rows here.
-Expect the crossover at a **lower** k, since the per-combination cost is higher.
+**rpi5** (Cortex-A76), full block of 1024 transactions, uncapped policy:
+
+| k | combinations | median | vs. 1 s slot |
+|---|---|---|---|
+| 0 | 1 | 2.6 ms | within |
+| 4 | 16 | 30 ms | within |
+| 6 | 64 | 116 ms | within |
+| 8 | 256 | 462 ms | within |
+| 9 | 512 | 925 ms | within |
+| **10** | **1,024** | **1.87 s** | **over slot** |
+| 12 | 4,096 | 7.7 s | over slot |
+| 15 | 32,768 | 62.7 s | over slot |
+
+Per-combination cost ≈ **1.8 ms** at n = 1024 and ≈ **210 µs** at n = 128. The
+expectation above the run was a crossover at a *lower* k — that did not happen:
+**the crossover is unchanged at k = 10** (and at **k = 13** for n = 128, also
+matching the M3). The reason is visible in the k = 9 row: the Pi lands at
+925 ms, 1.65× the M3's 559 ms, and pushing k = 9 over the slot would have
+required a slowdown of 1.79×. The Pi is slower by almost exactly one
+doubling-step less than that, so it crosses at the same k and the attacker
+gains nothing. At k = 0 the Pi reconstructs in 2.6 ms against the 1,000 ms
+budget — **~380× of headroom** in normal operation on the target validator
+class. (Run conditions: governor `performance`, 56 °C, `get_throttled=0x0`
+before and after — no thermal throttling.)
 
 ### The two policies differ in failure mode, not in whether they fail
 
@@ -422,13 +450,17 @@ $0.50/GPU-hour on the RTX 4090 assumption above. `k` is taken from the measured
 crossover in §6; the sqrt(k) scaling means the choice of `k` moves these numbers
 far less than the choice of `L` does.
 
-| L (bytes) | proposal max | vs. master | GPU-hours, 1 pair | $ for 1 pair | $ to stall **mac** (k=10) | $ to stall **rpi5** | pairs $10k buys |
+| L (bytes) | proposal max | vs. master | GPU-hours, 1 pair | $ for 1 pair | $ to stall **mac** (k=10) | $ to stall **rpi5** (k=10) | pairs $10k buys |
 |---|---|---|---|---|---|---|---|
-| **8** | 8,555 B | 3.87× | ~0 | <$0.01 | **<$0.01** | _(pending)_ | 1.8 × 10¹⁶ |
-| **10** | 10,603 B | 3.12× | 0.04 | $0.02 | **$0.06** | _(pending)_ | 2.7 × 10¹¹ |
-| **12** | 12,651 B | 2.62× | 9.8 | $4.90 | **$15.49** | _(pending)_ | 4.2 × 10⁶ |
-| **14** | 14,699 B | 2.25× | 2,509 | $1,254 | **$3,966** | _(pending)_ | **64** |
-| **16** | 16,747 B | 1.98× | 642,210 | $321,105 | **$1.0M** | _(pending)_ | **0.001 — not even one** |
+| **8** | 8,555 B | 3.87× | ~0 | <$0.01 | **<$0.01** | **<$0.01** | 1.8 × 10¹⁶ |
+| **10** | 10,603 B | 3.12× | 0.04 | $0.02 | **$0.06** | **$0.06** | 2.7 × 10¹¹ |
+| **12** | 12,651 B | 2.62× | 9.8 | $4.90 | **$15.49** | **$15.49** | 4.2 × 10⁶ |
+| **14** | 14,699 B | 2.25× | 2,509 | $1,254 | **$3,966** | **$3,966** | **64** |
+| **16** | 16,747 B | 1.98× | 642,210 | $321,105 | **$1.0M** | **$1.0M** | **0.001 — not even one** |
+
+_The two stall columns are identical because the measured crossover is the same
+k = 10 on both machines ([§6](#6-reconstruction-latency--the-defenders-side)) —
+the attacker's cost depends only on k and L, not on the defender's hash rate._
 
 The last column is the clearest statement of the single-event margin: how many
 colliding pairs a $10,000 adversary can afford, against the **10** they need.
@@ -489,43 +521,36 @@ Two independent checks that the size column is right: at L = 8 it reproduces
 **16,747 bytes**, the figure in #389. The compression ratio is against master's
 33,129-byte fixed proposal.
 
-### What the RPi5 data will change
+### What the RPi5 data changed
 
-The pending cells move the argument in one direction only. The RPi5's
-per-combination cost is higher than the M3's, so its slot crossover `k` is
-**lower**, so the `$ to stall rpi5` column will be **lower** than the mac
-column at every `L` — the attack gets *cheaper*, never dearer.
+Before the run, this section argued the pending cells could move the numbers
+only slightly and only in the attacker's favour: a lower crossover `k` shrinks
+the attacker's cost as √k, while every 2-byte step in `L` multiplies it by 256,
+so even a crossover at k = 5 would have made the attack just 1.41× cheaper and
+could not move the decision between 14 and 16.
 
-**But it moves the numbers very little, and the reason is worth stating because
-it is what makes this recommendation robust.** The two axes scale completely
-differently:
+**The measured outcome is at the conservative end of that range: the crossover
+did not move at all.** The Pi's reconstruction is ~1.7× slower than the M3's
+row-for-row, but pushing k = 9 over the 1 s slot would have required 1.79×
+(559 ms → >1 s), so the Pi's k = 9 lands at 925 ms and the first over-slot k is
+the **same k = 10** as on the M3 (and the same k = 13 at n = 128). The
+`$ to stall rpi5` column is therefore *identical* to the mac column at every
+`L`, and the attack got no cheaper on the target validator class than on the
+development baseline. The √k-vs-256× argument above stands, but it turned out
+not even to be needed.
 
-* Attacker cost grows as **√k** in the number of colliding pairs. Even if the
-  Pi's crossover came out at k = 5 — half the M3's — the attack would get only
-  √(10/5) ≈ 1.41× cheaper. A drop to k = 8, which is the more likely outcome,
-  is worth about **11%**.
-* Attacker cost grows as **2^(8L/2)** in the prefix length. Every 2-byte step in
-  `L` is a factor of **256**.
+What the Pi run establishes positively: normal-operation headroom on the target
+validator class is **2.6 ms against the 1,000 ms slot (~380×)** at a full
+1024-transaction block; the run satisfied the review's explicit "on a single
+machine RPi5" condition; and neither anticipated surprise materialised — the
+slowdown was mild (~1.7×, where even ~10× would not have shifted the
+conclusion) and there was no thermal throttling (`performance` governor,
+~56 °C, `get_throttled=0x0` before and after).
 
-So one step in `L` outweighs any plausible change in `k` by more than two orders
-of magnitude. The Pi cannot move the decision between 14 and 16; it would take a
-machine roughly 65,000× slower than the M3 at reconstruction to shift the
-crossover by a single 2-byte step. The RPi5 run is therefore a **confirmation
-and a completeness requirement, not a derivation** — the recommendation is safe
-to act on now.
-
-What the Pi run is genuinely for: it is the target validator class, so it
-establishes the *absolute* headroom in normal operation (k = 0), it satisfies
-the review's explicit "on a single machine RPi5" condition, and it is where a
-surprise would show up if there is one — a far worse than expected slowdown, or
-thermal throttling under the longer runs.
-
-One cross-check to apply when the data lands: **`birthday.csv` should be
-identical between `mac/` and `rpi5/` except for the rate column.** The nonce
-sequence and the hashes are deterministic, so the number of candidates drawn
-before each collision cannot legitimately differ between machines. If it does,
-the harness is misbehaving on one of them and no other number from that run
-should be trusted.
+The pre-registered cross-check also passed: **`birthday.csv` is identical
+between `mac/` and `rpi5/` except for the rate column**, exactly as the
+deterministic nonce sequence requires ([§3](#3-the-birthday-model-is-measured-not-assumed)).
+Had it differed, no other number from the run could have been trusted.
 
 ---
 
@@ -615,8 +640,10 @@ as merely over-cautious.
    means a `k = 6` collision set drops honest proposals, which is *cheaper* to
    provoke than the `k = 10` stall — so if they stay, they should be documented
    as a liveness trade rather than a DoS defence.
-4. **Re-run on the RPi5** and fill the pending columns before this is treated as
-   final.
+4. **Re-run on the RPi5** — **done** (2026-08-15, `results/rpi5/`). All pending
+   columns above are filled from that run: crossover unchanged at k = 10, the
+   birthday cross-check passed, and no deviation from the pinned code or
+   toolchain was needed. On this point the report can now be treated as final.
 
 ---
 
@@ -633,7 +660,10 @@ hash rate (`RTX 4090`, 10¹⁰ H/s), GPU price ($0.50/hour), and the proposal
 layout constants. Hardware and toolchain for each run are recorded in
 `results/<machine>/machine.txt` and `toolchain.txt`.
 
-Measured on: Apple M3, 8 cores (4P + 4E), 16 GB, macOS 25.3.0, rustc 1.97.1.
+Measured on: Apple M3, 8 cores (4P + 4E), 16 GB, macOS 25.3.0, rustc 1.97.1;
+and Raspberry Pi 5 Model B Rev 1.1 (Cortex-A76, 4 cores, 8 GB), Debian, kernel
+6.18.34+rpt-rpi-2712, rustc 1.97.1, governor `performance`, no thermal
+throttling (`get_throttled=0x0`).
 
 [logos-lips#389]: https://github.com/logos-co/logos-lips/pull/389
 [`40e76c8`]: https://github.com/logos-blockchain/logos-blockchain/commit/40e76c8e32934f14c3370621db9bda9f14d50dc7
