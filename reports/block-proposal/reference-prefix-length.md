@@ -539,6 +539,17 @@ the **same k = 10** as on the M3 (and the same k = 13 at n = 128). The
 development baseline. The √k-vs-256× argument above stands, but it turned out
 not even to be needed.
 
+**Do not over-read the coincidence, though.** The Pi's k = 9 sits at 925 ms
+against a 1,000 ms slot — **93% of the deadline, a margin of 7.5%**. The
+crossovers match, but they match narrowly: a marginally slower board, a
+validator doing anything else at the same time, a cooler-limited unit that
+throttles, or a slightly larger block would all report **k = 9** instead. That
+would be a correct measurement, not a contradiction of this one. It is also
+immaterial to the decision — k = 9 makes the attack √(9/10) ≈ 5% cheaper, which
+is invisible next to the 256× per 2-byte step of `L` — but anyone reproducing
+this should expect the crossover to sit at 9 or 10 depending on the machine, and
+should not treat a k = 9 result as a failure to replicate.
+
 What the Pi run establishes positively: normal-operation headroom on the target
 validator class is **2.6 ms against the 1,000 ms slot (~380×)** at a full
 1024-transaction block; the run satisfied the review's explicit "on a single
