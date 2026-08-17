@@ -474,6 +474,25 @@ def gate_conservation(cfg: Config) -> None:
     check("the minimal reward target, a transfer plus a 1 kB inscription",
           minimal, 13_139, note=f"{minimal / cfg.claim_fee:.2f} claim fees")
 
+    # The proposal's two routes out, both costed. The boost needed is the reciprocal of the
+    # graduation time and carries no base yield, which is why its cost is invariant.
+    check("the boost that equalises staking with mining is 1 over the graduation time",
+          crossover.boosted_apy_for_dominance(4.11), 0.243, rel=0.01,
+          note="24.3% a year at the design point, at either reading of the emission")
+    for share in (1.0, 0.39):
+        base = share * cfg.max_emission_per_year / cfg.stake_target
+        cost = 500 * 1e5 * crossover.boosted_apy_for_dominance(4.11) * 4.11
+        check(f"cost of that boost at a {base:.2%} base yield",
+              cost, cfg.to_lgo(cfg.genesis_pool), rel=1e-9,
+              note="exactly the endowment, because it replaces the same income stream")
+
+    # Goal 2 has a home already, and it is mis-sized.
+    want = crossover.pow_share_of_block_reward_for(cfg, minimal)
+    check("block reward leg that would pay the minimal bundle", want, 1.381e-6, rel=1e-3,
+          note=f"{want * 1e6:.2f} parts per million, against the 2% the proposal illustrates")
+    check("the illustrated 2% leg overshoots goal 2 by four orders of magnitude",
+          0.02 / want > 10_000, True, note=f"{0.02 / want:,.0f}x")
+
 
 def gate_alternative_is_neutral(cfg: Config) -> None:
     """VARIANT GATE -- the joiner-responsive target, not the base mechanism.

@@ -1,5 +1,9 @@
 # Making EmPoWering do what it is for — a plan
 
+*Revised after grounding the staking side in `block-rewards.md`. The obstacle is larger than
+the first draft said, one of the three options is cheaper than it said, and the second goal
+turns out to have a mechanism for it already in the proposal.*
+
 Two goals, stated by the design:
 
 1. **Proof of work is an on-ramp to proof of stake during bootstrap**, and once a node has
@@ -9,8 +13,8 @@ Two goals, stated by the design:
    transfer plus a one-kilobyte inscription.
 
 The current mechanism achieves neither, and the reason it fails the first is structural
-rather than a matter of tuning. That has to be established before any change is proposed,
-because it rules out most of the obvious ones.
+rather than a matter of tuning. That has to be established first, because it rules out most
+of the obvious changes.
 
 ---
 
@@ -24,178 +28,194 @@ Write `hashrate_share` for a miner's share of the field. Then
 | `graduation_epochs = min_stake / (hashrate_share * distribution_rate * pool)` |
 | `mining_dominance = mining_income_per_epoch / staking_income_per_epoch` |
 
-Multiply the last two:
+Multiplying the last two,
 
 $$
-G \cdot X \;=\; \frac{\text{staked\_total}}{\text{minted\_per\_epoch}}
+G \cdot X \;=\; \frac{\text{staked\_total}}{\text{minted\_per\_epoch}} \;=\; \frac{1}{\text{validation\_apy}}
 $$
 
-| `graduation_epochs * mining_dominance = staked_total / minted_per_epoch` |
+| `graduation_epochs * mining_dominance = 1 / validation_apy` |
 | --- |
 
 **`hashrate_share`, `pool`, `distribution_rate` and `min_stake` all cancel.** The product is
-one over the staking yield, and nothing else. Measured, it is 1,460 epochs — thirty years:
+one over the staking yield and nothing else — gated across a ten-thousandfold range of field
+share and of pool, a hundredfold range of threshold, and a tenfold change of distribution
+rate, with a relative spread of three parts in ten thousand billion.
 
-| miners | share each | graduation | mining dominance | product |
-| --- | --- | --- | --- | --- |
-| 100 | 1% | 0.82 yr | 36.5× | 1,460 |
-| 500 | 0.2% | 4.11 yr | 7.3× | 1,460 |
-| 5,000 | 0.02% | 41.1 yr | 0.73× | 1,460 |
-| 80,000 | 0.00125% | 658 yr | 0.046× | 1,460 |
+### Its size depends on an unresolved question in the specifications
 
-So **staking can only dominate at graduation if graduation takes longer than thirty years.**
-Fast onboarding and a staking-favoured endpoint are the same dial pulled in opposite
-directions, and no choice of endowment size, distribution rate, claim target or minimum
-stake escapes it. The mechanism cannot be tuned into its own goal; a term in that product
-has to be broken.
+`block-rewards.md` calibrates `I_max = 1%` so that the validation yield lands near **3.33%**
+once inferred total stake reaches its 30% target. That figure is the yield on the *whole*
+emission. The EmPoWering proposal separately splits the block reward three ways between
+Blend, leaders and proof of work, illustrated at **59/39/2**. The two cannot both hold.
 
-### What this says about the current design
+| who receives the emission | validation APY | product | dominance at a 4.11-year graduation |
+| --- | --- | --- | --- |
+| whole emission (`block-rewards.md`'s calibration) | 3.33% | 30.0 yr | **7.3×** |
+| leaders' 39% leg (proposal §5.8's illustration) | 1.30% | 76.9 yr | **18.7×** |
+
+So staking can only pay more than mining at graduation if graduation takes longer than thirty
+years — or seventy-seven, if the split lands. **Every other figure in this document is quoted
+at the favourable reading.** Which of the two is intended is a question for the specifications
+and it changes the answer by a factor of two and a half.
 
 At the parameter set's own design point — about five hundred miners, which is also the most
-the endowment can seat — mining pays **7.3×** what the resulting stake pays. A graduate has
-every reason to keep mining, and the design's intended hand-off never happens on its own.
+the endowment can seat — mining pays between seven and nineteen times what the resulting
+stake pays. The intended hand-off never happens on its own.
 
 ---
 
 ## 2. What can break it
 
-The product is fixed because mining income and graduation time are both proportional to the
-same quantity, `hashrate_share * distribution_rate * pool`. Three families of change break
-different terms; each is a real mechanism, not a parameter.
+### A. Raise the graduate's yield — and it costs exactly the endowment
 
-### A. Raise the graduate's yield, not the miner's income
+Give proof-of-work-onboarded stake a **yield boost** that decays. Graduation time is
+untouched; mining dominance falls by the multiplier.
 
-Give proof-of-work-onboarded stake a **bootstrap yield multiplier** that decays. Graduation
-time is untouched; mining dominance falls by the multiplier.
+The requirement has a clean closed form. To bring dominance to one at a graduation time of
+$G$ years, the boosted yield must satisfy
 
-To make staking dominate at a four-year graduation needs roughly a **7.5× boost**, so about
-25% a year against the base 3.33%. Costing it: 500 graduates × 100,000 LGO × 25% × 4 years
-is **50 million LGO — exactly the endowment**. The same 0.5% of supply, spent as a yield
-subsidy rather than as mining rewards, buys precisely the missing factor.
+| `boosted_apy = 1 / graduation_years` |
+| --- |
 
-*Against:* it is a second mechanism bolted beside the first, and it is circular — a miner
-still has to accumulate the minimum stake by mining before the boost can apply to anything.
+— **independent of the base yield**, because the boost multiplies out whatever the base was.
+At the design point's 4.11 years that is **24.3% a year**, whether the base is 3.33% or
+1.30%. And the cost is the same either way:
+
+| base APY | boost needed | boosted APY | cost | endowment |
+| --- | --- | --- | --- | --- |
+| 3.33% | 7.3× | 24.3%/yr | **50.0M LGO** | 50M |
+| 1.30% | 18.7× | 24.3%/yr | **50.0M LGO** | 50M |
+
+The cost lands on the endowment exactly, at both readings, because the boost is replacing the
+same income stream it is competing with. **This is a pure reallocation, not a new subsidy** —
+the first draft called it a second mechanism bolted on, and that was wrong about the cost.
+
+*Against:* it is circular in *funding*, not in logic. The endowment can pay for the
+accumulation that gets a miner to the threshold, or for the boost that makes the threshold
+worth reaching, but not for both. Something else must fund whichever leg it does not.
 
 ### B. Let proof of work substitute for stake, rather than buy it
 
-The minimum stake exists to bound who may validate. Proof of work is another way to
-demonstrate commitment. Let a node that sustains work **validate with less than the minimum
-stake**, with the work standing in for the missing capital.
+The minimum stake bounds who may validate. Work is another way to demonstrate commitment.
+Let a node that sustains work **validate with less than the minimum stake**.
 
-This dissolves the conservation entirely, because graduation stops being an accumulation
-problem: the on-ramp's duration becomes a difficulty choice, independent of what the pool
-pays. And the endpoint follows by construction — holding stake costs nothing to maintain
-while work costs electricity continuously, so any node that can stake outright prefers to.
+This dissolves the conservation rather than paying to overcome it: graduation stops being an
+accumulation problem, so the on-ramp's duration becomes a difficulty choice independent of
+what any pool pays. The endpoint follows by construction — stake costs nothing to hold and
+work costs electricity continuously, so a node that can stake outright prefers to.
 
-The natural calibration anchor already exists: work should cost about what the stake it
-replaces costs to hold. The minimum stake's opportunity cost is 3,333 LGO a year; a
-Raspberry Pi's electricity is roughly 77 kWh a year. At the same token and electricity
-prices those meet at **about twenty Pi-equivalents of continuous work per minimum stake
-replaced** — a number the cost estimator produces and that can be re-derived whenever
-prices move.
+**It is also the only option indifferent to the unresolved split**, since it never references
+the staking yield. Given that the split moves every other answer by 2.5×, that robustness is
+worth a great deal.
 
-*Against:* the largest specification change of the three, and it touches consensus
-security directly. The share of validating weight that work may substitute for has to be
-capped, or the sybil bound the minimum stake provides is lost.
+Calibration should be stated as a ratio rather than a number, because the number moves with
+both the token price and the unresolved split:
 
-### C. Pay in stake rather than in liquid tokens
+| `work_substitution: annual electricity cost of the work == annual opportunity cost of the stake it replaces` |
+| --- |
 
-Claims mint **locked, staking-eligible** balance instead of spendable tokens. Mining and
-staking stop being alternatives and become one position that grows two ways.
+Evaluated, that ratio spans **8 to 216 Raspberry Pi equivalents** per minimum stake replaced
+across the plausible range of token price and yield — which is exactly why the rule belongs
+in the specification as a ratio the protocol can re-derive, not as a constant.
 
-*Against:* it changes what a claim *is* without changing the arithmetic. The conservation
-still binds, because a locked token earns the same yield as an unlocked one. It improves the
-framing and the incentives at the margin, and it does not by itself deliver goal 1.
+*Against:* the largest specification change, and it touches consensus security directly. The
+share of validating weight that work may substitute for has to be capped, or the sybil bound
+the minimum stake provides is lost. **This is the open question, and it is the reason B is a
+proposal rather than a recommendation to adopt.**
+
+### C. Pay in locked, staking-eligible balance
+
+Claims mint locked stake instead of spendable tokens, so mining and staking stop being
+alternatives. *Against:* a locked token earns the same yield as an unlocked one, so the
+conservation still binds exactly. It improves the framing and does not deliver goal 1.
 
 ---
 
-## 3. Goal 2, and where it unifies with goal 1
+## 3. Goal 2 already has a mechanism, and it is mis-sized by four orders of magnitude
 
 The target is a transfer plus a one-kilobyte inscription:
 
 | `minimal_reward = transfer_fee + inscription_fee = 5,579 + 7,560 = 13,139 base units` |
 | --- |
 
-which is **1.97 claim fees**. The current steady reward is 33,474 base units, or 5.02 claim
-fees — only 2.55× the target, so the *level* is nearly right already. What is wrong is the
-*definition*: the steady reward is `pow_share * fee_revenue / target_claims_per_block`, so it
-floats with traffic and with the fee market, where goal 2 asks for it to be pinned to a
-stated bundle of transactions.
+The proposal's §5.8 already gives proof of work a leg of the block reward,
+`block_reward_pow_share`, illustrated at 2%. **That leg is the natural home for goal 2** — it
+is permanent, it needs no endowment, and it tracks the emission schedule rather than floating
+with fee revenue as the current pool-funded reward does.
 
-**This is where a single mechanism becomes possible.** Under change B the endowment is no
-longer spent buying anyone their minimum stake, because work substitutes for it directly. Its
-only remaining job is to pay the minimal reward — and at 13,139 base units a claim, fifty
-million LGO funds **about 3.8 billion claims, some 360 years** of it. So one pool, one
-payment rule, no bootstrap regime and no steady-state regime:
+But the illustrated size is wrong for this purpose by a wide margin:
 
-> A claim always pays the cost of a reference transaction bundle. Sustained work substitutes
-> for stake up to a capped share of validating weight. The endowment exists to fund the
-> payment, and it is large enough to do so for centuries.
+| | per claim |
+| --- | --- |
+| goal 2's target | 13,139 base units = 1.97 claim fees |
+| what a **2%** leg would pay | 190,258,752 base units = **28,550 claim fees** |
+| ratio | **14,480×** |
 
-Goal 1 holds because staking is free to maintain and work is not. Goal 2 holds because the
-payment is the bundle, by definition, in every era. There is no decaying reward, no
-crossover to arrange, and no second mechanism.
+The share that delivers goal 2 is **1.38 parts per million** of the block reward, not two
+percent. So §5.8's split is calibrated for some other purpose, and if goal 2 is what the
+proof-of-work leg is for, that leg is four orders of magnitude too large.
 
 ---
 
-## 4. What to build, and in what order
+## 4. The single coherent mechanism
 
-Each step answers something the step after it depends on.
+Changes B and §3 compose into one rule with no bootstrap regime and no steady-state regime:
 
-**4.1 Gate the conservation law.** It is the load-bearing claim and it should fail loudly if a
-future change makes it false. One test: vary share, pool, distribution rate and minimum stake
-independently and demand the product does not move.
+> **A claim always pays a fixed leg of the block reward, sized to a reference transaction
+> bundle. Sustained work substitutes for stake in validating weight, up to a capped share.**
 
-**4.2 Price the three changes on the same axes.** Extend the existing sweep so each candidate
-is run through the same working-region tests as the base — graduation time, mining dominance
-at graduation, participants seated, and which device classes stay in the field. Nothing here
-should be argued that can be measured.
+- **Goal 1** holds by construction: work costs electricity continuously and stake costs
+  nothing to hold, so any node able to stake outright prefers to. No crossover has to be
+  arranged and no yield has to be subsidised.
+- **Goal 2** holds by definition: the payment *is* the bundle, in every era.
+- **The endowment is no longer needed.** It was funding an accumulation race to a threshold
+  that work now substitutes for directly. Half a percent of supply is freed, and §10.2's
+  question about whether that is the right size dissolves rather than being answered.
 
-**4.3 Model change B properly**, since it is the recommendation. Three things it needs that
-the simulator does not yet have:
-- a validating-weight model in which work and stake both contribute, with a cap on the work
-  share;
-- the sybil question, which is now the binding security question rather than an aside: the
-  cap must be shown to bound an attacker who splits across identities;
-- a calibration for how much work substitutes for how much stake, from the cost estimator
-  rather than assumed.
-
-**4.4 Re-derive the minimal reward against the specification's own fee schedule.** The 13,139
-figure uses the resting price and an assumed inscription size. Both should come from the
-specification tree, and the reward should be defined in terms of the bundle so it tracks the
-fee market instead of being restated whenever prices move.
-
-**4.5 Re-run the endowment sizing.** Under B the endowment stops being a bootstrap subsidy and
-becomes a very long-lived payment fund, so the question "is half a percent of supply the right
-size?" changes meaning completely and should be asked again in the new terms.
-
-**4.6 Check what B does to the affordability frontier.** If sustained work substitutes for
-stake, the incentive to mine becomes continuous rather than decaying, which changes who is
-priced out and for how long. The frontier study should be re-run, not assumed to carry over.
+One mechanism, one payment rule, one parameter with a stated derivation. If B's security
+question cannot be closed, the fallback is A for goal 1 plus the resized block-reward leg for
+goal 2 — two mechanisms, both fully costed above, with the endowment paying for the yield
+boost rather than for mining rewards.
 
 ---
 
-## 5. What is uncertain
+## 5. What to build, in order
 
-- **The reading of goal 1.** "Staking must be the more affordable path" is taken here to mean
-  staking should be economically preferable once onboarded, not merely cheaper to operate. If
-  the weaker reading is intended, it holds already — staking burns no electricity — and only
-  goal 2 needs work.
-- **The staking yield is grounded, and the split is not.** The 3.33% a year is the
-  specification's own figure: `block-rewards.md` calibrates `I_max = 1%` precisely so that the
-  validation yield lands near 3.33% when inferred total stake reaches its 30% target, and
-  `analysis-block-reward-parameter-calibration.md` sets that target. This simulator computes
-  3.33% independently from those two constants and the agreement is gated.
+**5.1 Settle the emission question first.** Whether validators receive the whole emission or
+a 39% leg changes every number here by 2.5×, and it is a reading of the specifications rather
+than a simulation. Nothing downstream is worth refining until it is answered.
 
-  Two qualifications on it, both stated by the source material. The specification's block
-  reward is `A_t * I_max * S_tge * dt / f + (1 - A_t) * R_block`, so the figure above is the
-  `A_t = 1` case -- maximum emission, which the specification calls the bootstrap phase and
-  which is exactly the regime the on-ramp operates in. And the yield is on the *whole*
-  emission, whereas the EmPoWering proposal separately splits the block reward three ways
-  between Blend, leaders and proof of work, illustrated at 59/39/2. If that split lands a
-  validator receives only its leg and the yield falls to roughly 1.3%, which raises the
-  conservation product from thirty years to about seventy-seven. **The obstacle gets worse,
-  not better** -- so the figures here are the favourable case for the current design.
-- **The security bound on change B** is unquantified and is the reason it is a proposal rather
-  than a recommendation to adopt. The minimum stake is a sybil bound; anything that lets work
-  stand in for it must show the bound survives.
+**5.2 The sybil bound on B.** Now the binding question. A validating-weight model in which
+work and stake both contribute, with a cap on the work share, and a demonstration that the
+bound survives an attacker splitting across identities. Until this exists B is not
+recommendable.
+
+**5.3 Re-derive the minimal reward from the specification's own fee schedule.** The 13,139
+figure uses the resting price and an assumed inscription size; both should come from the tree,
+and the reward should be *defined* as the bundle so it tracks the fee market.
+
+**5.4 Price A and B on the same axes** as the base, through the existing working-region
+sweep: graduation time, dominance at graduation, participants seated, and which device classes
+stay in the field.
+
+**5.5 Re-run the affordability frontier under B.** If work substitutes for stake the incentive
+to mine becomes continuous rather than decaying, which changes who is priced out and for how
+long. It should not be assumed to carry over.
+
+**5.6 Retire the endowment sizing study, or re-pose it.** Under the unified mechanism the
+endowment has no job. That is a larger change to the proposal than anything else here and
+should be stated plainly rather than discovered later.
+
+---
+
+## 6. What is uncertain
+
+- **The reading of goal 1.** "Staking must be the more affordable path" is taken to mean
+  economically preferable once onboarded. Under the weaker reading — merely cheaper to
+  operate — it already holds, and only goal 2 needs work.
+- **Who receives the emission**, per §1. The single largest uncertainty, and the one that
+  makes every figure here a favourable case.
+- **B's security bound**, per §5.2. Unquantified.
+- **The token price**, which sets B's calibration in absolute terms. Handled by stating the
+  rule as a ratio, but the ratio still has to be evaluated somewhere to be checked.

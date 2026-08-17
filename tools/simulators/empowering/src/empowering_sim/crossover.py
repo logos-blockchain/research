@@ -213,6 +213,37 @@ def minimal_reward_base_units(cfg: Config, inscription_bytes: int = 1024) -> int
     return transfer + inscription
 
 
+def boosted_apy_for_dominance(graduation_years: float) -> float:
+    """Yield an onboarded staker needs for staking to match mining at graduation.
+
+    | ``boosted_apy = 1 / graduation_years``
+
+    Independent of the base yield, because the boost multiplies out whatever the base was --
+    which is why the cost of supplying it lands on the same figure at every reading of who
+    receives the emission. At the design point's 4.11 years it is 24.3% a year.
+    """
+    return 1.0 / graduation_years if graduation_years > 0 else float("inf")
+
+
+def pow_share_of_block_reward_for(cfg: Config, reward_per_claim_base_units: int,
+                                  emission_factor: float = 1.0) -> float:
+    """Leg of the block reward that would pay a stated reward per claim.
+
+    | ``pow_share = claims_per_epoch * reward_per_claim / block_reward_per_epoch``
+
+    The proposal already gives proof of work a leg of the block reward. Sizing that leg to
+    the minimal transaction bundle is what delivers the second design goal without an
+    endowment and without floating with fee revenue -- and it comes out at about 1.4 parts
+    per million, against the 2% the proposal illustrates.
+    """
+    per_epoch = (consensus.max_block_reward(cfg) * emission_factor
+                 * cfg.blocks_per_epoch * cfg.base_units_per_lgo)
+    if per_epoch <= 0:
+        return float("inf")
+    claims = cfg.target_claims_per_block * cfg.blocks_per_epoch
+    return claims * reward_per_claim_base_units / per_epoch
+
+
 def min_stake_for_participants(cfg: Config, participants: int) -> float:
     """The threshold that would let the endowment seat exactly ``participants``, in LGO.
 
