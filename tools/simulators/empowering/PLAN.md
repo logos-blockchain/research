@@ -401,35 +401,57 @@ tools/simulators/empowering/
 
 ---
 
-## Phases
+## Phases — status
 
-| # | phase | depends on |
+| # | phase | state |
 | --- | --- | --- |
-| 0 | device profiles: source rated power, calibrate `utilization`, close the Intel Poseidon2 gap | external input |
-| 1 | simulator skeleton: consensus, work process, economics — validated against the closed forms | — |
-| 2 | `powcost` kernel and puzzles, coverage matrix, propagation rule enforced | 0 |
-| 3 | `powcost` vector layer and per-node bucket assignment | 2 |
-| 4 | node population, graduation, the crossover | 1, 3 |
-| 5 | scenarios, sweeps, working-region maps | 4 |
-| 6 | affordability against the difficulty floor | 4 |
-| 7 | ALTERNATIVE, section 2.7, separated | 5 |
-| 8 | duration derate measurement, folded back into profiles | hardware access |
+| 0 | device profiles: rated power, `utilization`, the Intel Poseidon2 gap | **partial** — four buckets sourced with citations, two audited; Pi 5 and Intel audits never ran, Intel and accelerator rates still absent |
+| 1 | simulator skeleton: work process, economics, gated against the closed forms | **done** — reproduces the report's decay table digit for digit |
+| 2 | `powcost` kernel, puzzles, rates, coverage matrix, propagation rule | **done** |
+| 3 | `powcost` vector layer and per-node bucket assignment | **done differently** — bucket assignment landed in the simulator; the vector layer was never needed, because participation turned out to depend only on the target and the token price, so it is decided per device class rather than per node |
+| 4 | node population, graduation, the crossover | **two thirds** — population and graduation done and gated; the mining-against-staking crossover has its arithmetic in `consensus.py` and has never been run |
+| 5 | scenarios, sweeps, working-region maps | **done** |
+| 6 | affordability against the difficulty floor | **done** — subsumed by the frontier: the exclusion band came out of phase 5 rather than needing its own study |
+| 7 | ALTERNATIVE, separated | **done** — the claim target is neutral to the on-ramp; block space and the steady margin are what it costs |
+| 8 | duration derate measurement | **blocked** — needs an hour of Raspberry Pi hardware |
 
-Phase 1 leads because it is fully unblocked: it takes a per-node candidate rate as an input, so the
-estimator plugs in behind that interface once its numbers are sourced.
+## What is next
+
+Ordered by what would change a conclusion, not by what is easiest.
+
+**A. The mining-against-staking crossover.** The one explicit requirement still unmeasured:
+at what point does a graduated node stop mining and simply stake? `consensus.py` carries the
+arithmetic and says honestly that it is a lower bound, since mining pays an electricity cost
+staking does not and the two are a return on operating expense against a return on capital.
+It has never been exercised. Everything it needs now exists.
+
+**B. Ground the minimum stake in the specification.** The whole ceiling result rests on
+`min_stake` being the threshold a miner must actually reach, and on whether providing service
+carries a different one. This has been flagged since the finding appeared and is still open;
+the specification tree is available locally, so it is a reading task rather than a blocked one.
+
+**C. Run a full horizon.** Everything measured so far spans 40 to 600 epochs of a trajectory
+that takes about 2,085 to drain. The window-closing and near-saturation claims are consistent
+across the runs done but are extrapolations, and the fee-funded era — where the steady margin
+binds and the ALTERNATIVE actually bites — has never been simulated at all.
+
+**D. The compiled inner loop.** Pure Python runs about 3.5 seconds per forty epochs, so a full
+horizon is roughly three minutes and a sweep over it is hours. C is uncomfortable without this
+and cheap with it. The plain-Python engine stays as the oracle either way.
+
+**E. Figures, then a written document.** Nothing here is legible to anyone who has not read the
+code. The repo convention is that every figure carries the command that regenerates it.
 
 ## Open inputs
 
-- Rated power per bucket, with citations.
-- A power-counter reading per bucket to calibrate `utilization`. Both available machines need
-  root for this, so they are the user's runs to make.
-- The Intel Poseidon2 rate, from the existing benchmark on the Fedora machine.
+- Power-counter readings to calibrate `utilization`: `powermetrics` on the Mac, RAPL on the
+  Fedora box. Both need root, so they are the user's runs to make. This is what would let the
+  Apple bucket report a marginal draw at all.
+- The Intel Poseidon2 rate, from the existing benchmark on the Fedora machine. The rate table
+  refuses to infer it from the Equi-X figure and will keep refusing.
+- An accelerator rate for any puzzle. The largest single gap, and the class most likely to
+  dominate an arithmetic hash. Inverted for now into a break-even efficiency.
 - Sustained-load derate: an hour of pinned Raspberry Pi 5 grinding with rate logged over time.
-  This matters more for mining, which is fully duty-cycled by construction, than for admission,
-  and the benchmark data tops out at 29 seconds against a reward puzzle that runs for hours at
-  the genesis target.
+  It matters more for mining, which is fully duty-cycled by construction, than for admission,
+  and the benchmark data tops out at 29 seconds against a reward puzzle that runs for hours.
 - Whether service provision carries stake thresholds distinct from the staking minimum.
-- Whether the tokenomics branch's revised candidate costs (a Blend candidate at 14.9 μs
-  naive, a reward candidate at 26.6 μs, and an algorithmic edge of 1.81×) supersede the
-  snapshot's work section. They postdate the snapshot and they move the estimator's rate
-  table, though not the protocol constants this simulator runs on.
