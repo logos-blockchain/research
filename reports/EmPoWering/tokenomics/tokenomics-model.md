@@ -160,7 +160,7 @@ The specification has moved. This document models the specification, not the pro
 | Pool arithmetic | unstated | **checked** — must not saturate |
 | Pool funding | **the proposal says both** — see below | **a share of the fees collected**, diverted from the burn |
 | Genesis per-claim reward | separate constant | **derived** from the seeded pool |
-| Blend quota | `pow_quota`, 20-bit, TBD | **$Q_W$ = `blend_ops_per_message`** — one solution buys one message |
+| Blend quota | `pow_quota`, 20-bit | **`pow_quota = blend_ops_per_message = 3`** — one solution buys exactly one message |
 | Target claim rate | `target_claims_per_block = 10` (code ships 100) | **`target_claims_per_block = 10`** — agrees with the proposal; §4.4.1 gives the reasoning |
 
 **The funding source is the one place the proposal contradicts itself**, and it is worth setting out because the specification had to pick a side.
@@ -175,7 +175,7 @@ and `distribute_block_reward(block)` taking `reward = get_block_rewards(block)`,
 
 These are not the same mechanism. A share of the block reward is bounded by the emission cap; a slice of the fee flow is not. §4.3 shows the difference decides whether a claim can ever pay its own fee. **The specification follows §1.5**, and §5.8's construction is not adopted.
 
-Only the first four and the last touch this model. `blend_ops_per_message` governs Blend admission, not minting, so it does not enter the reward economics; it is noted because it was an open item and is now closed.
+Only the first four and the last touch this model. `pow_quota` governs Blend admission, not minting, so it does not enter the reward economics; it is noted because it was an open item and is now settled: the specification fixes it at the number of blending operations one message carries, `blend_ops_per_message = 3`, so a single solution buys exactly one message and the Blend threshold prices one message rather than a batch. A smaller value could not assemble a message from one solution at all.
 
 The target claim rate remains an **absolute count per block**, as in both the proposal and the implementation. A transaction-relative alternative is analysed in §4.3 and carried in §9; it is not part of the base.
 
@@ -289,6 +289,7 @@ Quantities that appear only inside equations, for completeness of the mapping:
 | `smoothing` | $q$ | the EMA weight, `smoothing_factor / smoothing_precision` |
 | `hashrate` / `equilibrium_hashrate` | $H$ / $H^\ast$ | mining power; the level free entry drives it to |
 | `equilibrium_difficulty` | $d^\ast$ | the target free entry settles on (§3.5) |
+| `blend_ops_per_message` | $\beta_\text{max}$ | blending operations one message carries; `pow_quota` equals it (§1.5) |
 | `opening_multiple` | $m$ | how many claim fees the endowment's first reward is worth (§4.12) |
 | `claims_so_far` / `claims_to_exhaust` | $k$ | claims paid since the epoch opened; the count that empties the pool (§3.8) |
 | `epoch` / `epochs` | $e$ / $E$ | an epoch index; a count of epochs |

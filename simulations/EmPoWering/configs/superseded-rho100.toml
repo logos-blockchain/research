@@ -57,7 +57,7 @@ target_txs_per_block    = 512         # KNOWN  TARGET_TXS_PER_BLOCK
 damping_num             = 1           # KNOWN  alpha = 1/2
 damping_den             = 2
 max_step                = 2           # KNOWN  BLEND_MAX_STEP
-beta_max                = 3           # KNOWN  blending ops per message; Q_W = beta_max
+blend_ops_per_message   = 3           # KNOWN  beta_max; pow_quota = blend_ops_per_message
 
 [work]
 # MEASURED on an Apple M4 Pro performance core, release build with LTO. The deployment

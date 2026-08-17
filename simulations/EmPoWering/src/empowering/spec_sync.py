@@ -102,7 +102,9 @@ def run(config: str, lips: str) -> int:
     raw_nb = grab(crypt, r"= 10k = ([0-9{},]+)`\$ blocks", "10k")
     check("blocks per epoch defined in Cryptarchia",
           raw_nb and raw_nb.replace("{", "").replace("}", ""), p.N_b)
-    check("beta_max", grab(blendp, r"beta_\{max\} = (\d+)", "beta_max"), p.beta_max)
+    check("blend_ops_per_message",
+          grab(blendp, r"beta_\{max\} = (\d+)", "blend ops per message"),
+          p.blend_ops_per_message)
 
     # The reference implementation's constants are all functions of the supply; guard
     # them so a supply revision cannot leave the code behind again.

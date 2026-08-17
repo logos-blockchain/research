@@ -31,7 +31,7 @@
   "blend_damping_num": 1,
   "blend_damping_den": 2,
   "blend_max_step": 2,
-  "beta_max": 3,
+  "blend_ops_per_message": 3,
   "sec_per_candidate": 9.4158e-05,
   "sec_per_candidate_opt": 4.8472e-05,
   "sec_per_candidate_reward": 0.000165658,

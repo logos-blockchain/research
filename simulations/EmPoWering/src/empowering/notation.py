@@ -7,16 +7,27 @@ state and easy to erode -- one substitution that leaves ``T`` inside a code span
 new quantity named in prose but never declared, and a reader can no longer follow one
 form into the other.
 
-So it is checked rather than trusted. Three directions, all of which must hold:
+So it is checked rather than trusted. Each check below was added because the document
+had already broken that way -- the list is a record of real failures, not a wishlist:
 
 A. no symbol -- Greek, or a lone Latin letter -- inside a code span;
 B. no symbol loose in prose, outside math;
-C. every name used in a code span traceable to section 1.0, the config, the model, or
+C. no bare *Latin* symbol standing in for a name, which check B could not see because a
+   lone letter in English prose is usually not notation. ``(T, `pow_share`)`` hid here;
+D. every name used in a code span traceable to section 1.0, the config, the model, or
    the specification's own identifier inventory;
-D. no *bare* symbol in prose even when wrapped in math -- ``$\rho$`` mid-sentence beside
+E. no *bare* symbol in prose even when wrapped in math -- ``$\rho$`` mid-sentence beside
    ``distribution_rate`` is the mixing this contract exists to prevent. Inline
-   *relations* are welcome, and each is paired with its code sibling; a lone symbol is
-   not a relation.
+   *relations* are welcome; a lone symbol is not a relation;
+F. every dollar amount escaped, or it pairs with the next one and renders as math;
+G. no LaTeX outside math delimiters, which renders as literal backslashes;
+H. every defining equation on its own line, including the ones carrying no ``=`` at all --
+   structure, not assertion, is what makes a span a formula rather than a compound name;
+I. no markup damaged by an equation split: bold opening on one side and closing on the
+   other, punctuation stranded at the head of a continuation, a list continuation that
+   lost its indent;
+J. no symbols in table headers or cells, outside section 1.0's mapping and the math row
+   of an equation table.
 
 Run as ``make notation``. Failure prints the offending spans, not just a count, because
 the fix is always to rewrite one of them.
@@ -49,7 +60,7 @@ SPEC_IDENTIFIERS = {
     "pol_epoch_nonce", "epoch_nonce", "pow_nonce", "public_key", "difficulty_blend",
     "difficulty_reward", "pow_quota", "b_exec", "r_b", "r_max", "d_blend", "blend_target",
     "block_reward_blend_share", "block_reward_leader_share", "block_reward_pow_share",
-    "blend_ops_per_message", "block_rewards", "unwired_placeholder",
+    "block_rewards", "unwired_placeholder",
 }
 
 

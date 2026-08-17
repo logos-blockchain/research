@@ -216,6 +216,13 @@ def build(p: Params) -> list[Claim]:
               _years_above_third(p), 5e-2),
 
         # --- blend admission (section 0.0 / 4.5) ---
+        # pow_quota is settled at the per-message blending count. spec_sync ties the config to
+        # the specification; this ties the report to the config, so the value cannot go stale in
+        # one place only -- which is exactly how it sat as "TBD" here after the spec fixed it.
+        Claim("*", r"`pow_quota = blend_ops_per_message = (" + NUM + r")`",
+              p.blend_ops_per_message, 0),
+        Claim("*", r"one message carries, `blend_ops_per_message = (" + NUM + r")`",
+              p.blend_ops_per_message, 0),
         Claim("0.0", r"~50 s and ~(" + NUM + r") messages/day per core",
               86400 / blend_secs, 2e-2),
         Claim("0.0", r"optimiser's edge (" + NUM + r")×",
@@ -325,7 +332,10 @@ def run(config: str, report: Path) -> int:
     print(f"report numbers: {report}\nagainst config: {p.name}\n")
 
     for c in build(p):
-        scope = sections.get(c.section)
+        # "*" scopes a claim to the whole document, for a value that must read the same
+        # wherever it appears -- and for the handful of numbers stated in the report's
+        # unnumbered front sections, which have no key to scope to.
+        scope = text if c.section == "*" else sections.get(c.section)
         if scope is None:
             missing.append((c, 0))
             print(f"  MISS  §{c.section:<6} no such section in the report")
