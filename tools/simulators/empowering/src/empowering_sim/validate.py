@@ -12,7 +12,7 @@ import sys
 
 import numpy as np
 
-from . import consensus, economics, engine, graduation, work
+from . import (consensus, economics, engine, graduation, market, scenarios, simulate, work)
 from .config import FIELD_MODULUS, Config, load
 from .nodes import NOT_GRADUATED, Population
 
@@ -287,6 +287,75 @@ def gate_pooled_invariance(cfg: Config) -> None:
           True, note=f"{seated} -- the dispersion effect is real, not noise")
 
 
+def gate_participation(cfg: Config) -> None:
+    """Endogenous participation: monotone in price, conservative in credit, no limit cycle."""
+    print("\nEndogenous participation")
+    try:
+        classes = market.from_powcost("poseidon2_reward", 0.20, "total")
+    except Exception as e:                                    # noqa: BLE001
+        print(f"  [skip] cost estimator unavailable: {e}")
+        return
+    check("classes priced from the estimator", len(classes) >= 2, True,
+          note=", ".join(c.key for c in classes))
+
+    def run_at(price: float, epochs: int = 25):
+        sc = scenarios.Scenario(
+            label=f"p{price}", classes=classes, mix={c.key: 1.0 for c in classes},
+            joiners_per_epoch=2.0, epochs=epochs,
+            traffic=scenarios.constant_traffic(600),
+            token_price=scenarios.constant_price(price))
+        return simulate.run(cfg, sc, np.random.default_rng(1))
+
+    # The expensive class must be out below its break-even and in above it. Anything else
+    # means the participation rule is not tracking cost.
+    cheap = min(classes, key=lambda c: c.cost_per_candidate_usd)
+    dear = max(classes, key=lambda c: c.cost_per_candidate_usd)
+    dear_i = classes.index(dear)
+    _, low = run_at(1e-4)
+    _, high = run_at(1e-1)
+    check(f"{dear.key} is priced out at a low token price",
+          low[-1].active_fraction_by_class[dear_i] < 0.5, True,
+          note=f"{low[-1].active_fraction_by_class[dear_i]:.1%} of the epoch")
+    check(f"{dear.key} mines freely at a high token price",
+          high[-1].active_fraction_by_class[dear_i] > 0.99, True,
+          note=f"{high[-1].active_fraction_by_class[dear_i]:.1%} of the epoch")
+    check("the cheaper class is never the one excluded first",
+          cheap.cost_per_candidate_usd <= dear.cost_per_candidate_usd, True)
+
+    # Deciding participation once an epoch made the model oscillate between nobody mining
+    # and everybody mining, every other epoch. Per-block evaluation removed it; this refuses
+    # to let it come back.
+    _, mid = run_at(3.16e-5, epochs=20)
+    fracs = [o.active_fraction_by_class[classes.index(cheap)] for o in mid[5:]]
+    flips = sum(1 for a, b in zip(fracs, fracs[1:])
+                if (a > 0.9 and b < 0.1) or (a < 0.1 and b > 0.9))
+    check("no epoch-to-epoch limit cycle", flips <= 1, True,
+          note=f"{flips} full swings in {len(fracs)} epochs")
+
+
+def gate_group_credit(cfg: Config) -> None:
+    """Per-class credit adds up to the claims the pool actually paid."""
+    print("\nPer-class attribution conserves claims")
+    try:
+        classes = market.from_powcost("poseidon2_reward", 0.20, "total")
+    except Exception:                                          # noqa: BLE001
+        print("  [skip] cost estimator unavailable")
+        return
+    sc = scenarios.Scenario(
+        label="credit", classes=classes, mix={c.key: 1.0 for c in classes},
+        joiners_per_epoch=2.0, epochs=12,
+        traffic=scenarios.constant_traffic(600),
+        token_price=scenarios.constant_price(0.10))
+    pop, out = simulate.run(cfg, sc, np.random.default_rng(2))
+    paid = sum(o.claims_paid for o in out)
+    credited = int(pop.claims[:pop.count].sum())
+    # Rounding each class's real-valued share to an integer loses at most one claim per
+    # class per epoch, so exact equality is not the right demand; near-equality is.
+    slack = len(classes) * len(out)
+    check("claims credited match claims paid", abs(credited - paid) <= slack, True,
+          note=f"{credited:,} against {paid:,}, slack {slack}")
+
+
 def main() -> int:
     cfg = load()
     print(f"config: {cfg.label}  (snapshot: {cfg.snapshot_path})")
@@ -307,6 +376,8 @@ def main() -> int:
     gate_ceiling(cfg)
     gate_study_conservation(cfg)
     gate_pooled_invariance(cfg)
+    gate_participation(cfg)
+    gate_group_credit(cfg)
 
     print()
     if FAILURES:

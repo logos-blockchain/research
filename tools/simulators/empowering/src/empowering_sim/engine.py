@@ -16,7 +16,8 @@ why per-epoch attribution is exact rather than a convenience.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from collections.abc import Callable
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
@@ -48,6 +49,10 @@ class EpochRow:
     difficulty_target_close: int
     hashrate: float
     paying: bool
+    # Present only when participation was evaluated per block: how many of the epoch's
+    # claims each device group earned, and how many blocks each spent able to mine.
+    group_credit: np.ndarray | None = None
+    active_blocks: np.ndarray | None = None
 
     @property
     def unpaid(self) -> int:
@@ -59,24 +64,47 @@ def genesis_state(cfg: Config) -> State:
     return State(pool=cfg.genesis_pool, difficulty_target=cfg.genesis_difficulty_target)
 
 
-def step_epoch(cfg: Config, state: State, hashrate: float, epoch: int,
+def step_epoch(cfg: Config, state: State, hashrate: float | Callable, epoch: int,
                rng: np.random.Generator, deterministic: bool = False,
                txs_per_block: int | None = None) -> tuple[EpochRow, State]:
     """Run one epoch, block by block, and report it.
 
     The reward is computed once from the pool as the epoch opens and held fixed for the whole
     epoch, which is what the protocol does and what makes per-epoch crediting exact.
+
+    ``hashrate`` is either a constant or a callable taking the current difficulty target and
+    returning ``(total, per_group)``. The callable form exists because **participation has to
+    be re-decided at the controller's own granularity**. The retarget acts every block; if
+    miners are allowed to react only once an epoch, they respond to a target 21,600 blocks
+    stale, and the model produces a two-epoch limit cycle between nobody mining and everybody
+    mining. That oscillation is entirely an artefact of the mismatch, and this is the fix for
+    it. It stays cheap because the participation rule depends only on the target and the
+    token price -- both scalars -- so it is evaluated per device class, not per node.
     """
     reward = economics.reward_per_claim(state.pool, cfg)
     pool, target = state.pool, state.difficulty_target
     pool_open, target_open = pool, target
     found = paid = dropped = refilled = 0
 
+    callable_rate = callable(hashrate)
+    group_credit: np.ndarray | None = None
+    active_block_count: np.ndarray | None = None
+    last_total = 0.0
+
     per_block_refill = economics.block_refill(cfg, txs_per_block)
     per_epoch_refill = economics.epoch_refill(cfg, txs_per_block)
 
     for _ in range(cfg.blocks_per_epoch):
-        expected = work.expected_claims(hashrate, target, cfg)
+        if callable_rate:
+            rate_now, per_group = hashrate(target)
+            if group_credit is None:
+                group_credit = np.zeros(per_group.size, dtype=np.float64)
+                active_block_count = np.zeros(per_group.size, dtype=np.int64)
+            active_block_count += (per_group > 0)
+            last_total = rate_now
+        else:
+            rate_now, per_group = hashrate, None
+        expected = work.expected_claims(rate_now, target, cfg)
         n = int(round(expected)) if deterministic else int(rng.poisson(expected))
         found += n
 
@@ -86,6 +114,11 @@ def step_epoch(cfg: Config, state: State, hashrate: float, epoch: int,
 
         pool, settled = economics.pay_claims(pool, reward, included)
         paid += settled
+
+        # Credit each group in proportion to the power it was contributing at the moment the
+        # claims were found, not to what it contributes at the epoch boundary.
+        if settled and per_group is not None and rate_now > 0:
+            group_credit += settled * (per_group / rate_now)
 
         # The controller sees what the block carried, not what was found: a claim that never
         # lands is invisible to it. This matters only once the block cap binds.
@@ -105,8 +138,10 @@ def step_epoch(cfg: Config, state: State, hashrate: float, epoch: int,
         claims_found=found, claims_paid=paid, claims_dropped=dropped,
         refill=refilled,
         difficulty_target_open=target_open, difficulty_target_close=target,
-        hashrate=hashrate,
+        hashrate=last_total if callable_rate else hashrate,
         paying=reward > 0 and pool_open >= reward,
+        group_credit=group_credit,
+        active_blocks=active_block_count,
     )
     return row, replace(state, pool=pool, difficulty_target=target)
 
