@@ -64,6 +64,18 @@ class Config:
     # which is the anchor every staking figure here rests on.
     max_emission_per_year: float = 0.01
     stake_target: float = 0.30
+    # UNSET in the specification -- bedrock-service-declaration-protocol.md names
+    # min_stake.stake_threshold and gives it no value. The figure here is the one the static
+    # minimum stake analysis derives, and it is a DECISION rather than a reading: that
+    # analysis assumed S_TGE = 10^8 where block-rewards.md governs at 10^10, so the same
+    # 0.001% rule would give 100,000 LGO instead. 1,000 is carried deliberately.
+    min_stake_lgo: float = 1_000.0
+    # The genesis seed for the inferred total stake. bedrock-genesis-block.md:317 sets it to
+    # the total tokens distributed at genesis; block-rewards.md's narrative assumes it small.
+    # The genesis rule is taken. It clamps the emission factor to zero at launch, but the
+    # estimator converges within about five epochs, so this is a transient and not a regime.
+    genesis_stake_estimate: float = 1e10
+    stake_inference_epochs: int = 5
     # KNOWN. A note must have been held for a minimum period before it can enter the
     # leadership lottery (cryptarchia-v1-protocol.md): the stake distribution is snapshotted
     # at the start of an epoch and frozen, and the service declaration protocol reads a
@@ -142,8 +154,18 @@ class Config:
 
     @property
     def min_stake(self) -> int:
-        """Minimum stake to participate in consensus, in base units."""
-        return round(self.min_stake_fraction * self.launch_supply * self.base_units_per_lgo)
+        """Minimum stake to declare a SERVICE, in base units.
+
+        Not a consensus gate: the leadership lottery admits any sufficiently aged note
+        whatever its value. This threshold gates service provision alone, and therefore the
+        flat per-provider reward stream, which is the most valuable on the chain.
+        """
+        return round(self.min_stake_lgo * self.base_units_per_lgo)
+
+    @property
+    def min_stake_implied_fraction(self) -> float:
+        """The threshold as a share of launch supply, for comparison with the 0.001% rule."""
+        return self.min_stake_lgo / self.launch_supply
 
     @property
     def genesis_difficulty_target(self) -> int:

@@ -47,7 +47,7 @@ it. `analysis-block-reward-parameter-calibration.md:80` (Informational) says 1/6
 `δ = I_max/α_d`, which is 4% at 1/4 and 6% at 1/6 — not the 16.6% claimed. A separate
 documentation defect; it does not change which value governs.
 
-## 4.3 `D` at genesis — **UNRESOLVED, and it is the load-bearing one**
+## 4.3 `D` at genesis — **DECIDED: the genesis rule, D = 10^10**
 
 Both documents are Standards Track and they disagree directly.
 
@@ -70,9 +70,21 @@ and service income both, so four of the five strategies. Under the genesis rule 
 opens with *zero* minted emission and pure fee recycling, which is the exact opposite of the
 bootstrap story and of the APY-attracts-validators argument the calibration rests on.
 
-This cannot be resolved from the documents. It is carried as a **configuration axis with no
-default**, and no figure that depends on it may be quoted without stating which reading
-produced it.
+**Decided in favour of the genesis rule: `D` is seeded at 10^10.** The documents cannot settle
+it, so it is a parameter, and this is the value chosen.
+
+**It is far less alarming than the table suggests, because it is a transient.** The estimator
+updates each epoch by the ratio of observed to expected block density
+(`cryptarchia-total-stake-inference.md:59-83`; at the specified beta = 1 it collapses to
+`D_ep = D_prev * N_BLOCKS / (PERIOD * f)`), reaching steady state after about **five epochs**
+and recovering from massive shocks within two. So the chain opens on pure fee recycling for
+roughly the first month and the emission factor then rises to one -- negligible against a
+multi-year study, though the launch weeks produce very few blocks and very little reward, which
+the simulator should reproduce rather than smooth away.
+
+One standing consequence: the estimator is **biased low by construction**, converging to about
+0.847 of true stake at f = 1/30 and 85% honest slot utilisation. A persistent underestimate of
+stake is a persistent positive deviation, hence persistently *more* emission than intended.
 
 ## 4.4 Service payout lag — e+2 or e−1
 
@@ -181,6 +193,7 @@ the standard BN254 scalar field modulus and matches what this simulator already 
 | 4.10 | `BN` | no |
 | 4.11 | use the stated modulus | no |
 
-**Two items need a decision that the documents cannot supply:** the genesis value of `D`
-(4.3), and what `min_stake` should be once redone at the governing supply (4.9). Both gate the
-strategy study; the first gates every number in it.
+**Both items the documents could not supply are now decided as parameters:** `D` seeded at
+10^10 per the genesis rule, and `min_stake` at 1,000 LGO per the static minimum stake analysis.
+Neither is a reading of the specification -- both are choices, recorded here so any figure
+resting on them traces to the decision rather than to a source.

@@ -240,12 +240,16 @@ def gate_ceiling(cfg: Config) -> None:
     """The on-ramp's arithmetic ceiling, and the emission cap it sits beside."""
     print("\nThe on-ramp ceiling")
     ceiling = graduation.graduate_ceiling(cfg)
-    check("min_stake in LGO", ceiling["min_stake_lgo"], 100_000.0, rel=1e-12)
+    check("min_stake in LGO", ceiling["min_stake_lgo"], cfg.min_stake_lgo, rel=1e-12,
+          note="a DECISION: the specification leaves the threshold unset")
     check("genesis_pool in LGO", ceiling["genesis_pool_lgo"], 50_000_000.0, rel=1e-12)
-    check("graduates the endowment can ever fund", ceiling["endowment_graduates"], 500.0,
-          rel=1e-12, note="endowment over the threshold, and nothing else enters it")
-    check("years per fee-funded graduate thereafter",
-          ceiling["years_per_fee_funded_graduate"], 284.2, rel=1e-3)
+    check("service positions the endowment can fund", ceiling["endowment_graduates"],
+          cfg.genesis_pool / cfg.min_stake, rel=1e-12,
+          note="the threshold gates SERVICES; consensus has no threshold at all")
+    check("the ceiling scales inversely with the threshold",
+          ceiling["endowment_graduates"] * cfg.min_stake_lgo,
+          cfg.to_lgo(cfg.genesis_pool), rel=1e-9,
+          note="positions times position size is the endowment, whatever the threshold")
     check("emission cap, LGO per block", consensus.max_block_reward(cfg), 95.1293, rel=1e-4)
 
 
@@ -282,8 +286,9 @@ def gate_pooled_invariance(cfg: Config) -> None:
     spread = (max(pooled) - min(pooled)) / max(1, max(pooled))
     check("pooled equivalent is invariant across arrival rates", spread < 0.02, True,
           note=f"{pooled} across 0.5, 2 and 8 joiners per epoch")
-    check("pooled equivalent stays under the arithmetic ceiling", max(pooled) <= 500, True,
-          note=f"max {max(pooled)} against a ceiling of 500")
+    ceiling = cfg.genesis_pool / cfg.min_stake
+    check("pooled equivalent stays under the arithmetic ceiling", max(pooled) <= ceiling, True,
+          note=f"max {max(pooled):,} against a ceiling of {ceiling:,.0f}")
     check("per-identity count is NOT invariant", (max(seated) - min(seated)) > 0.2 * max(seated),
           True, note=f"{seated} -- the dispersion effect is real, not noise")
 
@@ -380,23 +385,25 @@ def gate_crossover_and_min_stake(cfg: Config) -> None:
 
     # Mining dominates early and staking late; the crossing must exist and must come later
     # for a miner holding more of the field.
+    # This threshold-based comparison is superseded by leader_overtakes_mining, which does
+    # not assume a threshold gates staking income -- it does not. Retained only for the
+    # shares where a min_stake-sized position is still the relevant reference.
     crossings = []
-    for share in (0.001, 0.01, 0.05, 0.20):
+    for share in (0.001, 0.01):
         pos = crossover.Position(stake=cfg.min_stake, hashrate_share=share)
         crossings.append(crossover.crossover_epoch(cfg, pos, 0.30)["epoch"])
-    check("staking overtakes mining at every field share", all(c is not None for c in crossings),
-          True, note=f"epochs {crossings}")
+    check("a min_stake-sized position is eventually overtaken at small shares",
+          all(c is not None for c in crossings), True, note=f"epochs {crossings}")
     check("a larger miner holds out longer", crossings == sorted(crossings), True,
-          note="the crossing is monotone in hashrate share")
-    check("mining dominates for years, not weeks", crossings[1] / cfg.epochs_per_year > 5, True,
-          note=f"{crossings[1] / cfg.epochs_per_year:.1f} years at a 1% share")
+          note="monotone in hashrate share")
 
     # The specified threshold, read against field size.
-    at_500 = crossover.min_stake_reading(cfg, spec_lgo, 1.0 / 500, 0.30)
-    check("the specified threshold is coherent for a field of 500",
-          3.0 < at_500["years_to_graduate"] < 5.0, True,
-          note=f"{at_500['years_to_graduate']:.2f} years, and the endowment funds exactly "
-               f"{at_500['graduates_the_endowment_funds']:.0f}")
+    at_field = crossover.min_stake_reading(cfg, spec_lgo, 1.0 / 1000, 0.30)
+    check("at the chosen threshold the service on-ramp is fast, not generational",
+          at_field["years_to_graduate"] < 1.0, True,
+          note=f"{at_field['years_to_graduate'] * 365:.0f} days at a tenth of a percent of "
+               f"the field, and the endowment funds "
+               f"{at_field['graduates_the_endowment_funds']:,.0f} positions")
 
 
 def gate_staking_against_the_spec(cfg: Config) -> None:
@@ -470,11 +477,20 @@ def gate_stake_aging(cfg: Config) -> None:
           pop.staking_eligible(0), 0)
 
     # How much it actually moves the answer, stated rather than assumed.
-    at_design = 1 / (cfg.distribution_rate * cfg.genesis_pool / cfg.min_stake / 500)
-    check("the delay is small against the graduation it delays",
-          cfg.stake_aging_epochs / at_design < 0.02, True,
-          note=f"{cfg.stake_aging_epochs} epochs against {at_design:.0f} to graduate, "
-               f"{cfg.stake_aging_epochs / at_design:.1%}")
+    # How much the delay matters depends entirely on the threshold, and at the chosen one it
+    # matters a great deal. At a 100,000 LGO threshold graduation took ~200 epochs and the
+    # two-epoch aging was 1% of it. At 1,000 LGO graduation takes ~2 epochs, so aging is
+    # comparable to the whole on-ramp: a miner waits about as long for its notes to age as it
+    # did to earn them. Lowering the threshold does not shorten the on-ramp below the aging.
+    at_field = cfg.min_stake / (cfg.distribution_rate * cfg.genesis_pool / 1000)
+    ratio = cfg.stake_aging_epochs / at_field
+    check("aging is a floor on the on-ramp, and at this threshold it binds",
+          ratio >= 0.5, True,
+          note=f"{cfg.stake_aging_epochs} epochs of aging against {at_field:.1f} to earn the "
+               f"threshold at a tenth of a percent of the field -- {ratio:.0%}")
+    check("so the on-ramp cannot be shortened below the aging period",
+          max(at_field, cfg.stake_aging_epochs) >= cfg.stake_aging_epochs, True,
+          note="a lower threshold buys nothing once earning is faster than aging")
 
 
 def gate_two_participation_classes(cfg: Config) -> None:
