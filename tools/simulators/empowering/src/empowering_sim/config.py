@@ -58,6 +58,7 @@ class Config:
     # leader fee share as unset and nowhere in the specification tree, and carries 0.4 as a
     # modelling choice. Anything downstream of them is conditional on that choice, and the
     # crossover study is entirely downstream of them.
+    inscribe_gas: int = 56
     max_emission_per_year: float = 0.01
     leader_fee_share: float = 0.4
     leader_reward_share: float = 1.0
@@ -218,6 +219,7 @@ def load(path: str | Path | None = None, **overrides) -> Config:
         seconds_per_candidate_reward=work_.get("seconds_per_candidate_reward", 0.0),
         reference_cores=work_.get("pi5_cores", 1),
         max_emission_per_year=supply["max_emission_per_year"],
+        inscribe_gas=cfg.get("mixes", {}).get("inscribe_gas", 56),
         leader_fee_share=econ.get("leader_fee_share", 0.4),
     )
     unknown = set(overrides) - set(Config.__dataclass_fields__)

@@ -163,6 +163,56 @@ def min_stake_reading(cfg: Config, min_stake_lgo: float, hashrate_share: float,
     )
 
 
+def conservation_product(cfg: Config, pool: int, hashrate_share: float, min_stake: int,
+                         staked_fraction: float, txs_per_block: int | None = None) -> dict:
+    """Graduation time times mining dominance -- a constant, and the design's obstacle.
+
+    | ``graduation_epochs * mining_dominance = staked_total / minted_per_epoch``
+
+    Both factors are proportional to ``hashrate_share * distribution_rate * pool``, one in a
+    numerator and one in a denominator, so it cancels -- and so does the threshold. The
+    product is one over the staking yield and nothing else.
+
+    Its consequence is that **fast onboarding and a staking-favoured endpoint are the same
+    dial pulled in opposite directions**. Staking can only pay more than mining at the moment
+    of graduation if graduation takes longer than the reciprocal of the staking yield, which
+    at the specified parameters is thirty years. No endowment size, distribution rate, claim
+    target or minimum stake escapes it; only a change of mechanism does.
+    """
+    staked_total = staked_fraction * cfg.launch_supply * cfg.base_units_per_lgo
+    minted = consensus.max_block_reward_base_units(cfg) * cfg.blocks_per_epoch \
+        * cfg.leader_reward_share
+    payout = cfg.distribution_rate * pool                     # base units the pool pays/epoch
+    if hashrate_share <= 0 or payout <= 0 or minted <= 0 or staked_total <= 0:
+        return dict(graduation_epochs=float("inf"), mining_dominance=0.0, product=float("nan"))
+
+    graduation = min_stake / (hashrate_share * payout)
+    dominance = (hashrate_share * payout) * staked_total / (min_stake * minted)
+    return dict(
+        graduation_epochs=graduation,
+        graduation_years=graduation / cfg.epochs_per_year,
+        mining_dominance=dominance,
+        product=graduation * dominance,
+        expected=staked_total / minted,
+        staking_yield_per_year=minted / staked_total * cfg.epochs_per_year,
+    )
+
+
+def minimal_reward_base_units(cfg: Config, inscription_bytes: int = 1024) -> int:
+    """A transfer plus an inscription, at the resting price: the target for the steady reward.
+
+    | ``minimal_reward = transfer_fee + inscription_fee``
+
+    Defined as a bundle of transactions rather than as a share of fee revenue, so that it
+    tracks the fee market instead of floating with traffic. That distinction is the whole of
+    the second design goal: the current steady reward is close to this level by accident and
+    is not pinned to it by construction.
+    """
+    transfer = (cfg.transfer_tx_bytes + cfg.transfer_tx_gas) * cfg.price_resting
+    inscription = (inscription_bytes + cfg.inscribe_gas) * cfg.price_resting
+    return transfer + inscription
+
+
 def min_stake_for_participants(cfg: Config, participants: int) -> float:
     """The threshold that would let the endowment seat exactly ``participants``, in LGO.
 

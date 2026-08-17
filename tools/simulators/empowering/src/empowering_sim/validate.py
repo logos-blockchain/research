@@ -399,6 +399,52 @@ def gate_crossover_and_min_stake(cfg: Config) -> None:
                f"{at_500['graduates_the_endowment_funds']:.0f}")
 
 
+def gate_conservation(cfg: Config) -> None:
+    """The obstacle in PROPOSAL.md: graduation time times mining dominance is a constant.
+
+    Load-bearing, so it is gated rather than trusted. Vary the field share, the pool, the
+    distribution rate and the threshold independently; the product must not move. If it ever
+    does, a change has broken the conservation -- which is the point of the exercise, and
+    exactly the thing worth being told about immediately.
+    """
+    print("\nThe conservation law behind the proposal")
+    base = dict(pool=cfg.genesis_pool, hashrate_share=1 / 500,
+                min_stake=cfg.min_stake, staked_fraction=0.30)
+    ref = crossover.conservation_product(cfg, **base)
+    check("product equals staked_total over minted", ref["product"], ref["expected"], rel=1e-9,
+          note=f"{ref['product']:,.0f} epochs = {ref['product'] / cfg.epochs_per_year:.1f} years")
+
+    products = [ref["product"]]
+    for share in (1e-4, 1e-2, 0.5):
+        products.append(crossover.conservation_product(cfg, **{**base, "hashrate_share": share})["product"])
+    for pool_mult in (0.01, 100.0):
+        products.append(crossover.conservation_product(
+            cfg, **{**base, "pool": int(cfg.genesis_pool * pool_mult)})["product"])
+    for stake_mult in (0.01, 100.0):
+        products.append(crossover.conservation_product(
+            cfg, **{**base, "min_stake": int(cfg.min_stake * stake_mult)})["product"])
+    spread = (max(products) - min(products)) / max(products)
+    check("field share, pool and threshold all cancel out of it", spread < 1e-9, True,
+          note=f"{len(products)} settings, relative spread {spread:.1e}")
+
+    from dataclasses import replace as _replace                # noqa: PLC0415
+    faster = _replace(cfg, distribution_rate_den=20)
+    check("the distribution rate cancels too",
+          crossover.conservation_product(faster, **base)["product"], ref["product"], rel=1e-9,
+          note="a tenfold faster pool moves graduation and dominance, not their product")
+
+    # The consequence the proposal turns on.
+    at_design = crossover.conservation_product(cfg, **base)
+    check("at the design point mining pays several times what the stake does",
+          at_design["mining_dominance"] > 5, True,
+          note=f"{at_design['mining_dominance']:.1f}x at 500 miners, "
+               f"graduating in {at_design['graduation_years']:.1f} years")
+
+    minimal = crossover.minimal_reward_base_units(cfg)
+    check("the minimal reward target, a transfer plus a 1 kB inscription",
+          minimal, 13_139, note=f"{minimal / cfg.claim_fee:.2f} claim fees")
+
+
 def gate_alternative_is_neutral(cfg: Config) -> None:
     """VARIANT GATE -- the joiner-responsive target, not the base mechanism.
 
@@ -460,6 +506,7 @@ def main() -> int:
     gate_participation(cfg)
     gate_group_credit(cfg)
     gate_crossover_and_min_stake(cfg)
+    gate_conservation(cfg)
     gate_alternative_is_neutral(cfg)
 
     print()
