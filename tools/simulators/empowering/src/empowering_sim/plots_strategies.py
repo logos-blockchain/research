@@ -148,8 +148,9 @@ def per_node(cfg, pop, scfg, out: Path) -> Path:
         x = np.arange(1, v.size + 1)
         ax.plot(x, np.maximum(v, 1e-3), color=SERIES[s], linewidth=2, zorder=3,
                 label=st.LABELS[s], solid_capstyle="round")
-        ax.text(x[-1] * 1.01, max(v[-1], 1e-3), st.LABELS[s], color=INK_2, fontsize=8.5,
-                va="center")
+        # No direct labels here. Five series is past the point where they help: the two
+        # mining curves are within three percent of each other and their labels collide at
+        # the right edge. The legend carries identity instead.
     ax.set_yscale("log")
     ax.set_xlabel("node, ranked within its group", color=INK_2, fontsize=9.5)
     ax.set_ylabel("LGO accumulated", color=INK_2, fontsize=9.5)
