@@ -42,7 +42,75 @@ ACTIVE = np.array([0, 1, 2, 5, 6, 7, 10], np.int64)   # 7 distinct active slots 
 
 
 def test_countable_refs_oracle():
+    # Every canonical block of this fixture is inside the window, so scoping the reference
+    # source to [0, T) is a no-op here — the scoped/unscoped split is exercised below.
+    assert countable_refs(_tree(), CANONICAL, W, T) == {5, 7, 8}
     assert countable_refs(_tree(), CANONICAL, W) == {5, 7, 8}
+
+
+# --- reference source scoped to the window (spec rule) ------------------------------------
+# The fixture above extended past the window: canonical 1(s0) -> 2(s2) -> 3(s5) -> 4(s10) ->
+# 10(s22) -> 11(s25, tip), with orphan 9(s18, parent 4, first fork) referenced by block 10.
+# Uncle 9 sits INSIDE the window (18 < T) but its only referencer, block 10 (s22), sits past
+# the end. Under the spec rule that reference contributes nothing; under the earlier wording
+# it added slot 18 to a window that had already closed.
+CANONICAL_OVERHANG = [11, 10, 4, 3, 2, 1]
+
+
+def _tree_overhang() -> BlockTree:
+    tree = BlockTree(
+        slot=np.array([-1, 0, 2, 5, 10, 1, 6, 7, 7, 18, 22, 25], np.int64),
+        parent=np.array([-1, 0, 1, 2, 3, 1, 5, 1, 2, 4, 4, 10], np.int64),
+        height=np.array([0, 1, 2, 3, 4, 2, 3, 2, 3, 5, 5, 6], np.int64),
+        leader=np.array([-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], np.int64),
+        uncles=[() for _ in range(12)],
+    )
+    tree.uncles[2] = (5,)
+    tree.uncles[3] = (1,)
+    tree.uncles[4] = (6, 7, 8)
+    tree.uncles[10] = (9,)         # in-window uncle, referenced from past the window's end
+    return tree
+
+
+def test_countable_refs_scope_excludes_out_of_window_referrer():
+    tree = _tree_overhang()
+    assert countable_refs(tree, CANONICAL_OVERHANG, W, T) == {5, 7, 8}        # 9 dropped
+    assert countable_refs(tree, CANONICAL_OVERHANG, W) == {5, 7, 8, 9}       # 9 reaches back
+
+
+def test_density_m_scope_refs():
+    tree = _tree_overhang()
+    # honest slots {0,2,5,10}; recovered {1,7} scoped, {1,7,18} unscoped
+    assert density_m(tree, CANONICAL_OVERHANG, T, countable=True, w=W) == 6
+    assert density_m(tree, CANONICAL_OVERHANG, T, countable=True, w=W,
+                     scope_refs=False) == 7
+
+
+@pytest.mark.parametrize("use_numba", [False, True])
+def test_measure_scope_refs_matches_oracle(use_numba):
+    tree = _tree_overhang()
+    A = np.zeros((2, tree.n_blocks))               # both nodes received everything
+    active = np.array([0, 1, 2, 5, 6, 7, 10, 18], np.int64)
+    scoped = measure(tree, A, active, T, cutoff=30, use_numba=use_numba,
+                     countable=True, w=W)
+    unscoped = measure(tree, A, active, T, cutoff=30, use_numba=use_numba,
+                       countable=True, w=W, scope_refs=False)
+    np.testing.assert_array_equal(scoped.m, [6, 6])
+    np.testing.assert_array_equal(unscoped.m, [7, 7])
+    # the out-of-window referrer is not even examined under the spec rule
+    np.testing.assert_array_equal(scoped.ref_total, [5, 5])
+    np.testing.assert_array_equal(unscoped.ref_total, [6, 6])
+
+
+@pytest.mark.parametrize("use_numba", [False, True])
+def test_measure_old_model_ignores_scope(use_numba):
+    """``--old`` is a historical baseline: its unscoped reach must not move."""
+    tree = _tree_overhang()
+    A = np.zeros((2, tree.n_blocks))
+    active = np.array([0, 1, 2, 5, 6, 7, 10, 18], np.int64)
+    for scope in (True, False):
+        ms = measure(tree, A, active, T, cutoff=30, use_numba=use_numba, scope_refs=scope)
+        np.testing.assert_array_equal(ms.m, [8, 8])   # honest {0,2,5,10} + {1,6,7,18}
 
 
 def test_density_m_countable_and_old():

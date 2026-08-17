@@ -58,6 +58,12 @@ AdversarySelection = Literal["random", "whale"]
 #     strictly postdates its parent, the parent gap is never smaller than the uncle gap, so
 #     this is STRICTLY TIGHTER: it bounds both, and bounds how far back state must be reached.
 UncleWindowAnchor = Literal["uncle", "parent"]
+# Which referencing blocks the density count reads. "window" is the spec rule
+# (cryptarchia-v1-protocol.md, Epoch State Pseudocode): referenced_uncles is drawn from the
+# chain blocks that lie in the observation window, so a block past the window's end cannot add
+# occupied slots to a closed window. "chain" is the pre-2026-08-17 wording, which gated on the
+# uncle's own slot alone and let a block up to w_u slots past the window reach back into it.
+RefScope = Literal["window", "chain"]
 
 
 @dataclass(frozen=True)
@@ -150,6 +156,12 @@ class SimConfig:
     # this default is what keeps an --old run's key byte-identical to the pre-redesign key and
     # lets it bit-reproduce every historical run (§9).
     uncle_window_anchor: UncleWindowAnchor = "uncle"
+    # DEFAULT is the spec rule (see RefScope). Deliberately NOT in key(): the reference scope is a
+    # MEASUREMENT rule that consumes no RNG, so both arms of a comparison run on a bit-identical
+    # block tree and their difference carries no sampling noise at all — the same reasoning that
+    # keeps windowed_fork_choice out of the key. Like selfish_lead_cap, that makes this a knob
+    # where an unchanged key does NOT imply an unchanged number; §9 records what was re-measured.
+    ref_scope: RefScope = "window"
     # "random" is NOT a spec variant — it is the deviation probe: walk the same oldest-first
     # candidate order but include each candidate with probability uncle_random_p, so a lone
     # candidate is dropped half the time. Uncle selection is proposer-local and unvalidated, so a
@@ -323,6 +335,8 @@ class SimConfig:
         if self.uncle_window_anchor not in ("uncle", "parent"):
             raise ValueError(f"uncle_window_anchor must be uncle|parent, got "
                              f"{self.uncle_window_anchor!r}")
+        if self.ref_scope not in ("window", "chain"):
+            raise ValueError(f"ref_scope must be window|chain, got {self.ref_scope!r}")
         if self.adversary_selection not in ("random", "whale"):
             raise ValueError(f"adversary_selection must be random|whale, got "
                              f"{self.adversary_selection!r}")
@@ -472,6 +486,7 @@ class SimConfig:
 _SWEEP_AXES = (
     "n_nodes", "stake_dist", "latency", "max_uncles", "uncle_strategy", "uncle_window",
     "uncle_window_anchor",
+    "ref_scope",
     "window_absorption",
     "topology", "degree", "link_latency_mean", "link_latency_dist",
     "blend_hops", "blend_delay_max", "init_dest", "f",
@@ -489,6 +504,7 @@ class SweepConfig:
     uncle_strategy: list[UncleStrategy] = field(default_factory=lambda: ["oldest"])
     uncle_window: list[int] = field(default_factory=lambda: [constants.W_DEFAULT])
     uncle_window_anchor: list[UncleWindowAnchor] = field(default_factory=lambda: ["uncle"])
+    ref_scope: list[RefScope] = field(default_factory=lambda: ["window"])
     window_absorption: list[float] = field(default_factory=lambda: [constants.W_ABS_DEFAULT])
     topology: list[Topology] = field(default_factory=lambda: ["regular"])
     degree: list[int] = field(default_factory=lambda: [8])

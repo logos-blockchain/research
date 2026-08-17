@@ -12,6 +12,11 @@ Counting models (``countable`` flag; CLI ``--old`` clears it):
   (cryptarchia-v1-protocol.md): the reference must be within the window
   (``0 < slot_B - slot_U <= w``), the uncle must not lie on the counting chain, and its
   **parent must lie on the counting chain** (only the first block of a fork counts).
+  Under ``scope_refs`` (the spec rule, ``SimConfig.ref_scope="window"``) only the chain blocks
+  **inside** the measurement window contribute the uncles they carry, so a block past the
+  window's end cannot add occupied slots to a closed window; ``ref_scope="chain"`` restores the
+  earlier wording, where any chain block could reach back into the window. Scoping applies to
+  this model only — the **old** model below is a historical baseline and is left untouched.
   References failing the parent rule are tallied as ``deep``. On a real run that tally is
   always ZERO and is a defensive invariant, not a measured rate: countable *selection*
   already refuses non-first-fork candidates, and for a chain block ``B`` the producer's
@@ -57,7 +62,8 @@ class Measurement:
     q: np.ndarray          # (N,) honest active-slot fraction
     q_eff: np.ndarray      # (N,) uncle-recovered fraction
     orphan_rate: np.ndarray  # (N,)
-    ref_total: np.ndarray  # (N,) distinct referenced uncles examined (slot in [0,T); the
+    ref_total: np.ndarray  # (N,) distinct referenced uncles examined (slot in [0,T), carried by
+                           #      a chain block that is itself in [0,T) when scope_refs; the
                            #      per-reference window check is applied after this tally)
     ref_deep: np.ndarray   # (N,) of those, rejected by the parent-on-chain (first-fork) rule.
                            #      ALWAYS 0 on a real run under either model — a selection/
@@ -80,8 +86,10 @@ def _uncles_csr(tree: BlockTree) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _measure_tips_py(distinct_tips, parent, slot, uncle_flat, uncle_ptr, T, w, countable,
-                     uncle_stamp, honest_stamp, chain_stamp, parent_anchor=False):
+                     uncle_stamp, honest_stamp, chain_stamp, parent_anchor=False,
+                     scope_refs=True):
     """Pure-Python per-distinct-tip walk (fallback / reference for the kernel)."""
+    scope = scope_refs and countable     # the old model keeps its historical (unscoped) reach
     K = distinct_tips.shape[0]
     m = np.empty(K, np.int64)
     n_honest = np.empty(K, np.int64)
@@ -112,6 +120,10 @@ def _measure_tips_py(distinct_tips, parent, slot, uncle_flat, uncle_ptr, T, w, c
         deep = 0
         b = int(distinct_tips[ki])
         while b > 0:
+            sb = int(slot[b])
+            if scope and not (0 <= sb < T):
+                b = int(parent[b])       # outside the window: contributes no uncle slots
+                continue
             for j in range(int(uncle_ptr[b]), int(uncle_ptr[b + 1])):
                 u = int(uncle_flat[j])
                 su = int(slot[u])
@@ -165,7 +177,8 @@ if _HAVE_NUMBA:
 
     @njit(cache=True)
     def _measure_tips_nb(distinct_tips, parent, slot, uncle_flat, uncle_ptr, T, w, countable,
-                         uncle_stamp, honest_stamp, chain_stamp, parent_anchor):
+                         uncle_stamp, honest_stamp, chain_stamp, parent_anchor, scope_refs):
+        scope = scope_refs and countable   # the old model keeps its historical (unscoped) reach
         K = distinct_tips.shape[0]
         m = np.empty(K, np.int64)
         n_honest = np.empty(K, np.int64)
@@ -194,6 +207,10 @@ if _HAVE_NUMBA:
             deep = 0
             b = distinct_tips[ki]
             while b > 0:
+                sb = slot[b]
+                if scope and not (0 <= sb < T):
+                    b = parent[b]        # outside the window: contributes no uncle slots
+                    continue
                 for j in range(uncle_ptr[b], uncle_ptr[b + 1]):
                     u = uncle_flat[j]
                     su = slot[u]
@@ -231,12 +248,15 @@ if _HAVE_NUMBA:
 
 def measure(tree: BlockTree, A, active_slots: np.ndarray, T: int, cutoff: int,
             use_numba: bool = True, legacy_block_count: bool = False,
-            countable: bool = False, w: int = 0, parent_anchor: bool = False) -> Measurement:
+            countable: bool = False, w: int = 0, parent_anchor: bool = False,
+            scope_refs: bool = True) -> Measurement:
     """Per-node m/q/q_eff + agreement, deduped by tip and (optionally) numba-accelerated.
 
     ``countable`` applies the spec's per-reference counting rules (window ``w``,
     not-on-chain, parent-on-chain); ``countable=False`` reproduces the old model where every
-    baked reference counts. ``A`` is the full ``(N, n_blocks)`` arrival matrix or a pruned
+    baked reference counts. ``scope_refs`` (spec rule, countable only) reads references only
+    from the chain blocks inside ``[0, T)``, so a block past the window cannot add slots to it.
+    ``A`` is the full ``(N, n_blocks)`` arrival matrix or a pruned
     ``SlidingArrival`` — only ``tips_for_all_nodes`` reads it, so ``N`` is taken from the
     returned per-node tips.
     """
@@ -256,7 +276,7 @@ def measure(tree: BlockTree, A, active_slots: np.ndarray, T: int, cutoff: int,
     m_d, nh_d, nrec_d, nref_d, ndeep_d, clen_d, fp_d = kernel(
         distinct_tips.astype(np.int64), tree.parent, tree.slot,
         uncle_flat, uncle_ptr, np.int64(T), np.int64(w), bool(countable),
-        uncle_stamp, honest_stamp, chain_stamp, bool(parent_anchor))
+        uncle_stamp, honest_stamp, chain_stamp, bool(parent_anchor), bool(scope_refs))
 
     # correct slot counting: canonical slots + recovered (non-canonical, deduped) uncle slots.
     # legacy_block_count reproduces the earlier per-block-id count (kernel's m = honest + ucnt).

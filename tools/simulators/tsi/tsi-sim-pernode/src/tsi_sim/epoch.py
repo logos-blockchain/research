@@ -112,7 +112,8 @@ def simulate_epoch(
                  legacy_block_count=config.legacy_block_count,
                  countable=config.uncle_model != "old",
                  w=config.effective_uncle_window,
-                 parent_anchor=config.uncle_window_anchor == "parent")
+                 parent_anchor=config.uncle_window_anchor == "parent",
+                 scope_refs=config.ref_scope == "window")
     n_active_window = int((active_slots < T).sum())
 
     d_next = tsi.update_D_vec(d_est, ms.m, T, f, config.beta, config.fixed_point,
