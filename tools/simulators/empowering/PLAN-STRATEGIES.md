@@ -42,32 +42,58 @@ which is which.
 
 ---
 
-## 2. Ground the reward formulas first
+## 2. The reward model, now grounded — and it reorders the strategies
 
-Two of the four streams are not yet in the model at all, and a simulator that invents them is
-worse than none. A spec-extraction pass is running now over the specification tree, verified
-against the source, producing a **reward model of record**: formula, exact integer arithmetic,
-every parameter with its citation, eligibility, and timing.
+The extraction pass is complete and verified against the source. Two findings change the
+study before it is built.
 
-| stream | state |
+### Service rewards are FLAT per provider, with no stake term at all
+
+`blend-protocol.md:1106-1126`: the service income `I` is split `R = I/(B+P)` across providers
+with a true activity proof, doubled for those at minimal Hamming distance. **The formula
+contains no stake term.** Stake is a binary admission gate — `assert note.value >=
+min_stake.stake_threshold` — and nothing more. A provider at the bare minimum earns exactly
+what a whale earns.
+
+### What each stream actually pays one node, per epoch
+
+At maximum emission, the block reward is 62500/657 = 95.1294 LGO per block — 2,054,795 per
+epoch, split **60% Blend / 40% leaders** (`overview-cryptoeconomics.md:142-145`).
+
+| stream | per node, per epoch |
 | --- | --- |
-| proof-of-work claims | modelled and gated; confirm constant names against the Mantle spec |
-| leader reward | share now grounded at **0.4** of the block reward (`overview-cryptoeconomics.md`, as code); lottery, aging and slot-to-block rate to confirm |
-| emission rate factor | **missing** — the control function for `A_t` from the two KPIs |
-| service reward | **missing entirely** — formula, eligibility, timing, whether it scales with stake |
+| service provision, flat, 100 providers | **12,329 LGO** |
+| staking 5,000,000 LGO (of 10% of supply staked) | 4,110 LGO |
+| mining, one of 300 equal miners, at genesis | 833 LGO |
+| staking the bare minimum, 100,000 LGO | 82 LGO |
 
-Nothing downstream is worth building until that lands.
+**Service provision pays three times what a five-million-LGO stake pays, and it is flat.**
+So the ordering is 5 > 3 > 4 > 1,2 — and the entire value of the on-ramp is not the mining
+reward at all, it is *reaching the threshold that unlocks flat service income*. That reframes
+the earlier 500-position ceiling: it bounds access to the most lucrative stream on the chain.
 
-### A contradiction already found, and it is load-bearing
+### Consequences for the build
 
-`block-rewards.md` calibrates `I_max = 1%` so that "the APY for validation is ~3.33%", which
-holds only if validators receive the whole emission. `overview-cryptoeconomics.md` gives
-leaders `0.4 * get_block_rewards(b)`, with Blend taking the other 0.6. Both cannot be true.
+- **Service rewards must be modelled even though Blend must not be.** The only service type
+  is `ServiceType.BN`, so the service stream *is* the Blend stream. Its network mechanics —
+  mixing, cover traffic, delay — stay out; its reward does not, because it dominates.
+  On an honest chain every declared provider is active, so the Hamming lottery collapses to
+  "an active provider is paid", which is stated as a modelling assumption, not hidden.
+- **A hard gate at 32 unique providers**: below it, `blend-protocol.md:1110`, rewards *"are
+  not calculated"* at all and the service halts. Group sizes must clear it.
+- **Leader payment is not a function of the block proposed.** Winning mints a *voucher*;
+  the payment is `floor(leader_rewards / (voucher_cm - voucher_nf))` at claim time
+  (`bedrock-anonymous-leaders-reward.md:93-98`). The claiming policy is UNSET, so the
+  simulator assumes prompt honest claiming and says so.
+- **The emission control function is fully specified** in normative integer form,
+  `A_t' = min(12e7, max(0, 3e9 - D_0t + 10512 * sum_{119}(D_1)))` with `STAKE_TARGET = 3e9`
+  — confirming the 30% target and the 95.1294 LGO block reward independently.
+- **`min_stake.stake_threshold` is UNSET in the specification.** Only an analysis derives it.
+  It is therefore a sweep axis, not a constant — and since it gates the most valuable stream,
+  it is the most consequential axis in the study.
 
-Taking the stated 0.4, the validator yield at the 30% stake target is **1.33%**, not 3.33% —
-and the mining-to-leading hand-off moves from 8.05 years to **11.69 years**. The config now
-carries 0.4 with the tension recorded. Which document governs is a question for the
-specifications and it moves every result in this study.
+The extraction also lists eleven contradictions between documents, several load-bearing. The
+APY one is already gated here; the others need reading before they can be ranked.
 
 ---
 
