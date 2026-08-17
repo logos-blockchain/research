@@ -1,3 +1,23 @@
+> # SUPERSEDED — do not quote
+>
+> This document was written before three corrections that invalidate most of it. It is kept
+> because its *method* is still the right one and because the record of what was wrong is
+> worth more than a deletion. **Six of its seven load-bearing claims do not survive.**
+>
+> | claim | status |
+> | --- | --- |
+> | the minimum stake gates all staking income | **false** — it gates SERVICES only; the leadership lottery has no minimum, only note aging |
+> | the on-ramp ceiling is 500 positions | superseded — 50,000 at the settled threshold, and it bounds services rather than consensus |
+> | mining is out-earned by leading only after 20.8 years | superseded — 11.7 years, after a frozen-pool bug and with the leader share at 0.4 rather than 1.0 |
+> | the yield boost costs exactly the endowment | derived from that bug; its base case was a singular point |
+> | work should substitute for stake | moot for consensus — there is no threshold to substitute for |
+> | the permanent gap is 600× at a 2% block-reward leg | moot — that leg does not exist; funding is fee-based |
+> | goal 2's target is 13,139 base units | **stands** |
+>
+> What replaces it: `docs/CONTRADICTIONS.md` for the settled readings and decisions,
+> `docs/REWARD-MODEL.md` for the grounded formulas, and
+> `reports/EmPoWering/strategies/` for what the mechanism actually pays.
+
 # Making EmPoWering do what it is for — a plan
 
 *Revised after grounding the staking side in `block-rewards.md`. The obstacle is larger than
