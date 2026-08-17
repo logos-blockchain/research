@@ -213,7 +213,10 @@ def run(cfg: Config, scfg: StrategyConfig) -> tuple[Population, list[EpochRecord
 
         # ---- proof of work: the claim flow, block by block, with the retarget in the loop
         hashrate = float(pop.hashrate[pop.mask(*MINING)].sum())
-        claims_found = np.zeros(cfg.blocks_per_epoch, dtype=np.int32)
+        # int64, not int32: a block's reward is the claim count times a reward of order
+        # 10^9 base units, which overflows a 32-bit accumulator at ten claims and wraps
+        # NEGATIVE. The histograms rendered symmetric about zero, which is what caught it.
+        claims_found = np.zeros(cfg.blocks_per_epoch, dtype=np.int64)
         target = state.difficulty_target
         pool, paid = state.pool, 0
         for b in range(cfg.blocks_per_epoch):
@@ -263,7 +266,7 @@ def run(cfg: Config, scfg: StrategyConfig) -> tuple[Population, list[EpochRecord
             providers=n_prov, service_per_provider_lgo=per_prov,
             claims_paid=paid, reward_per_claim=reward_per_claim,
             pool_lgo=cfg.to_lgo(state.pool),
-            pow_reward_per_block=claims_found * reward_per_claim,
+            pow_reward_per_block=claims_found * np.int64(reward_per_claim),
         ))
         est = est.update(blocks, cfg)
 

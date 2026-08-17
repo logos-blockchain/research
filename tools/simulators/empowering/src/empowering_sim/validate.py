@@ -12,8 +12,8 @@ import sys
 
 import numpy as np
 
-from . import (consensus, crossover, economics, engine, graduation, market, scenarios,
-               simulate, work)
+from . import (consensus, crossover, economics, emission, engine, graduation, market,
+               scenarios, services, simulate, work)
 from .config import FIELD_MODULUS, Config, load
 from .nodes import NOT_GRADUATED, Population
 
@@ -533,7 +533,8 @@ def gate_two_participation_classes(cfg: Config) -> None:
     check("the crossing at the 0.4 leader share",
           crossings[0] / cfg.epochs_per_year, 11.71, rel=0.02,
           note="8.05 years if validators instead take the whole emission")
-    whole2 = _r(cfg, leader_reward_share=1.0)
+    from dataclasses import replace as _r2                       # noqa: PLC0415
+    whole2 = _r2(cfg, leader_reward_share=1.0)
     check("the crossing if validators take the whole emission",
           crossover.leader_overtakes_mining_closed_form(whole2)["years"], 8.05, rel=0.02)
     check("the frozen-pool limit is the number a hoisted flow produces",
@@ -552,7 +553,8 @@ def gate_two_participation_classes(cfg: Config) -> None:
 
     ceiling = crossover.service_ceiling(cfg)
     check("the endowment ceiling binds services, not consensus",
-          ceiling["service_positions"], 500.0, rel=1e-9)
+          ceiling["service_positions"], cfg.genesis_pool / cfg.min_stake, rel=1e-9,
+          note=f"{cfg.genesis_pool / cfg.min_stake:,.0f} positions at the chosen threshold")
     check("consensus participation is unbounded",
           ceiling["consensus_positions"] == float("inf"), True,
           note="no threshold, so no ceiling and no on-ramp needed")
@@ -639,7 +641,10 @@ def gate_alternative_is_neutral(cfg: Config) -> None:
           max(epochs) - min(epochs) < 1e-9, True,
           note=f"{epochs[0]:.2f} epochs at targets {targets[0]} through {targets[-1]}")
     rate = alt.graduations_per_epoch(cfg, cfg.genesis_pool)
-    check("graduations per epoch carries no target", rate, 2.5, rel=1e-9)
+    check("graduations per epoch carries no target", rate,
+          cfg.distribution_rate * cfg.genesis_pool / cfg.min_stake, rel=1e-9,
+          note=f"{rate:,.0f} at the chosen threshold; it scales with 1/min_stake, not with "
+               f"the claim target")
 
     # ... while what it does cost moves a great deal.
     space = [alt.block_space_share(cfg, t) for t in targets]
@@ -659,6 +664,107 @@ def gate_alternative_is_neutral(cfg: Config) -> None:
     check("fabricated joiners do consume the whole block",
           s["block_space_attacked"] >= 0.99, True,
           note=f"{s['block_space_honest']:.1%} to {s['block_space_attacked']:.1%}")
+
+
+def gate_emission(cfg: Config) -> None:
+    """The KPI control function, at its limits and against the specification's own constants."""
+    print("\nThe emission control function")
+    check("block reward at maximum emission", emission.block_reward_lgo(0.0, [0.0]),
+          emission.INFLATION_NUMERATOR / emission.INFLATION_DENOMINATOR, rel=1e-12,
+          note="62500/657 LGO, block-rewards.md's own figure")
+    # Far above target with no burn: the factor clamps to zero and the reward is the burn.
+    at_genesis = emission.emission_factor(1e10, [0.0] * emission.BURN_WINDOW)
+    check("the genesis seed clamps the factor to zero", at_genesis, 0.0, rel=1e-12,
+          note="D = 10^10 against a 3e9 target")
+    check("and the reward is then exactly the block's own burn",
+          emission.block_reward_lgo(1e10, [0.0] * 119 + [12.0]), 12.0, rel=1e-12)
+    check("well below target the factor saturates at one",
+          emission.emission_factor(1e8, [0.0] * emission.BURN_WINDOW), 1.0, rel=1e-12)
+    check("the stake target is thirty percent of supply",
+          emission.STAKE_TARGET_LGO, 0.30 * cfg.launch_supply, rel=1e-12)
+
+    blend, leader = emission.split(100.0, cfg)
+    check("Blend takes sixty percent of a block", blend, 60.0, rel=1e-9)
+    check("the leader takes forty", leader, 40.0, rel=1e-9)
+    residue = emission.split_residue(95.1294, cfg)
+    check("the two floors leave under two base units behind",
+          0 <= residue * cfg.base_units_per_lgo < 2, True,
+          note=f"{residue * cfg.base_units_per_lgo:.2f} base units, retained in the pool")
+
+
+def gate_strategies(cfg: Config) -> None:
+    """The strategy study: paired draws, isolation, conservation and the service floor."""
+    print("\nThe strategy study")
+    from . import strategies as st                            # noqa: PLC0415
+
+    scfg = st.StrategyConfig(epochs=12)
+    pop = st.build_population(cfg, scfg)
+    check("every group seated", pop.n, 500, note="five groups of a hundred")
+
+    # Paired draws: the mining groups must share one hashrate vector, the endowed groups one
+    # stake vector. If they ever diverge, a difference between groups stops being a difference
+    # in strategy.
+    hs = [pop.hashrate[pop.mask(s)] for s in st.MINING]
+    check("all mining groups share one hashrate vector",
+          all(np.array_equal(hs[0], h) for h in hs[1:]), True)
+    ss = [pop.initial_stake[pop.mask(s)] for s in st.ENDOWED]
+    check("all endowed groups share one stake vector",
+          all(np.array_equal(ss[0], v) for v in ss[1:]), True)
+    check("each endowed group holds the configured share of supply",
+          cfg.to_lgo(float(ss[0].sum())), scfg.tge_stake_share * cfg.launch_supply, rel=1e-6)
+    check("no miner is slower than a Raspberry Pi 5", float(hs[0].min()) >= 24_146.0, True,
+          note=f"minimum {hs[0].min():,.0f} candidates/s")
+
+    # Isolation: disabling a group must not move anyone else's draw.
+    solo = st.StrategyConfig(epochs=12, enabled={s: s in (st.Strategy.MINER,
+                                                          st.Strategy.STAKER)
+                                                 for s in st.Strategy})
+    pop2 = st.build_population(cfg, solo)
+    check("disabling groups does not perturb the survivors' hashrate",
+          np.array_equal(pop2.hashrate[pop2.mask(st.Strategy.MINER)],
+                         pop.hashrate[pop.mask(st.Strategy.MINER)]), True)
+    check("nor their stake",
+          np.array_equal(pop2.initial_stake[pop2.mask(st.Strategy.STAKER)],
+                         pop.initial_stake[pop.mask(st.Strategy.STAKER)]), True)
+
+    # Every group must run alone.
+    for s in st.Strategy:
+        one = st.StrategyConfig(epochs=3, enabled={x: x is s for x in st.Strategy})
+        p1, o1 = st.run(cfg, one)
+        check(f"{st.LABELS[s]} runs alone", p1.n, 100)
+
+    # Conservation, on a full run.
+    ran, rows = st.run(cfg, scfg)
+    pow_paid = sum(r.claims_paid for r in rows)
+    credited_pow = int(ran.reward_pow.sum())
+    expected_pow = sum(r.claims_paid * max(0, r.reward_per_claim - cfg.claim_fee) for r in rows)
+    check("proof-of-work credited matches what the pool paid, net of claim fees",
+          credited_pow, expected_pow, note=f"{pow_paid:,} claims")
+    led = int(ran.blocks_led.sum())
+    check("blocks led equals blocks produced once the lottery has stake to draw on",
+          led, sum(r.blocks_produced for r in rows if r.true_staked_lgo > 0),
+          note="every produced block has exactly one leader")
+
+    # The per-block reward series must be non-negative and must reconcile with the claim
+    # count. A 32-bit accumulator wrapped here -- the reward is order 10^9 base units and ten
+    # claims overflow it -- and the histograms rendered symmetric about zero, which is how it
+    # was caught. Gated so it cannot return silently.
+    pb = np.concatenate([r.pow_reward_per_block for r in rows])
+    check("no block pays a negative proof-of-work reward", int((pb < 0).sum()), 0,
+          note="an int32 accumulator wraps at ten claims")
+    check("per-block rewards reconcile with the claims paid",
+          int(pb.sum()),
+          sum(r.claims_paid * r.reward_per_claim for r in rows))
+    check("the per-block series is wide enough to be a distribution",
+          len(np.unique(pb)) > 10, True, note=f"{len(np.unique(pb))} distinct values")
+
+    # The service floor is a cliff, not a taper.
+    check("below thirty-two providers the stream pays nothing",
+          services.reward_per_provider(1_000_000.0, 31), 0.0)
+    check("at thirty-two it pays", services.reward_per_provider(1_000_000.0, 32) > 0, True)
+    check("and it is flat in the provider count",
+          services.reward_per_provider(1_000_000.0, 100) * 100, 1_000_000.0, rel=1e-9,
+          note="no stake term anywhere in it")
 
 
 def main() -> int:
@@ -688,6 +794,8 @@ def main() -> int:
     gate_stake_aging(cfg)
     gate_two_participation_classes(cfg)
     gate_conservation(cfg)
+    gate_emission(cfg)
+    gate_strategies(cfg)
     gate_alternative_is_neutral(cfg)
 
     print()
