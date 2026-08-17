@@ -63,6 +63,10 @@ class StrategyConfig:
     stake_pareto_shape: float = 1.16       # tail index; lower is more concentrated
     hashrate_pareto_shape: float = 1.16
 
+    # New nodes seated each epoch, per group. Zero means the group is seated once at genesis
+    # and never grows, which is the static case the earlier studies used.
+    arrivals_per_epoch: dict[Strategy, float] = field(default_factory=dict)
+
     epochs: int = 120
     txs_per_block: int = 600
     seed_stake: int = 20_001
@@ -120,7 +124,9 @@ def _pareto(rng: np.random.Generator, n: int, shape: float, minimum: float) -> n
 
 
 def build_population(cfg: Config, scfg: StrategyConfig,
-                     pi5_candidates_per_second: float = 24_146.0) -> Population:
+                     pi5_candidates_per_second: float = 24_146.0,
+                     capacity_override: int | None = None,
+                     seat_initial: bool = True) -> Population:
     """Seat every enabled group, with the shared vectors drawn once and reused.
 
     The hashrate minimum is a Raspberry Pi 5's measured rate -- four cores at the measured
@@ -128,8 +134,13 @@ def build_population(cfg: Config, scfg: StrategyConfig,
     distribution that can fall below it would model machines the on-ramp is not for.
     """
     active = scfg.active()
-    biggest_mining = max((scfg.nodes_per_group[s] for s in active if s in MINING), default=0)
-    biggest_staking = max((scfg.nodes_per_group[s] for s in active if s in ENDOWED), default=0)
+    # Draw enough of each shared vector to cover every node that will EVER be seated, so an
+    # arrival at epoch 300 gets the same draw it would have got at epoch 0.
+    def eventual(s: Strategy) -> int:
+        return (scfg.nodes_per_group.get(s, 0)
+                + int(np.ceil(scfg.arrivals_per_epoch.get(s, 0.0) * scfg.epochs)))
+    biggest_mining = max((eventual(s) for s in active if s in MINING), default=0)
+    biggest_staking = max((eventual(s) for s in active if s in ENDOWED), default=0)
 
     # Drawn from their own seeds, so enabling or disabling a group cannot move them.
     rng_h = np.random.default_rng(scfg.seed_hashrate)
@@ -158,7 +169,8 @@ def build_population(cfg: Config, scfg: StrategyConfig,
             aged.append(np.full(k, NOT_SET, dtype=np.int32))
         declared.append(np.full(k, NOT_SET, dtype=np.int32))
 
-    n = sum(scfg.nodes_per_group[s] for s in active)
+    n = capacity_override if capacity_override is not None else sum(
+        eventual(s) for s in active)
     z = lambda: np.zeros(n, dtype=np.int64)          # noqa: E731
     return Population(
         strategy=np.concatenate(strat) if strat else np.array([], dtype=np.int8),

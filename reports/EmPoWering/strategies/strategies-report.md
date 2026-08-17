@@ -194,6 +194,58 @@ people to arrive together.
 
 ---
 
+## 5c. How many nodes can the mechanism actually elevate — and what the pool spends doing it
+
+A separate study, two strategies only: **endowed providers**, who arrive already above the
+bond, and **mining providers**, who arrive with hardware and must earn it. New nodes are
+seated every epoch, so the field grows and each miner's share of a fixed claim flow shrinks.
+Only the second group is *elevated by the mechanism*.
+
+![what the pool spends, and what that spending buys](figures/elevation_depletion.png)
+
+### The pool drains on a clock nobody can change
+
+The three curves on the left are miner populations differing **fiftyfold** — 1, 50 and 250
+arrivals an epoch — and they lie on top of one another. After 400 epochs each has spent
+**43,336,6xx LGO**, identical to six figures.
+
+That is not a coincidence, it is the mechanism. The difficulty controller holds the claim
+count at its target whatever the field size, so the pool pays `distribution_rate × pool` every
+epoch regardless of how many miners exist or what they do. **Depletion is a property of the
+pool, not of demand.** It follows a geometric decay with:
+
+| | |
+| --- | --- |
+| half-life | 138 epochs — **2.8 years** |
+| 90% depleted | 459 epochs — **9.4 years** |
+
+No arrival rate, no hashrate, no adoption scenario moves that curve.
+
+### What the spend buys is another matter entirely
+
+| bonded miners | elevated | of the 50,000 ceiling | spend stranded below the bond |
+| --- | --- | --- | --- |
+| keep mining | 5,682 | **11.4%** | 87% |
+| retire | 25,934 | **51.9%** | 40% |
+
+Out of the *same* 43.3M LGO. A bonded miner that keeps mining takes claims from miners still
+trying to cross, and it has no reason to: its service income is orders of magnitude larger
+than anything more mining will add. **Retiring bonded miners is worth four and a half times as
+many elevations, for free.** Nothing in the protocol makes them stop.
+
+Without retirement the arrival rate barely matters — elevation sits near 5,000 whether 2,000
+or 100,000 miners turn up. The pool's output is spread across everyone still mining, so more
+arrivals means thinner slices and the same number of crossings.
+
+### So the answer to "how many can we elevate"
+
+**Between about 5,700 and 26,000**, against an arithmetic ceiling of 50,000 — and which end
+depends on a behaviour the protocol does not specify. The rest of the pool ends up as
+sub-bond balances: real tokens, held by miners who mined for years and never reached the
+threshold that would have made them worth something.
+
+---
+
 ## 6. The launch transient
 
 The chain does not open in its steady state, and the reason is a decision recorded in
