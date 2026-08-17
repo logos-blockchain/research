@@ -199,6 +199,47 @@ fees"* — and it is designed behaviour, not a failure. But it means **every rew
 this report is a bootstrap-era figure**, and the mechanism's generosity is a phase rather
 than a property.
 
+## 6d. Does the equilibrium era pay anyone? — ask the markets
+
+§6b leaves an obvious worry: if the block reward falls to 0.023 LGO by year 25, nothing pays
+anyone to run a node. But that figure was computed at the **resting** fee price of 7, and the
+resting price is the floor of an *idle* market rather than a forecast. The right question is
+where the fee markets settle, and both update rules are specified.
+
+The execution market is EIP-1559 with an exponential moving average, chosen to blunt base-fee
+manipulation. Its consequence here is that **nothing bounds the base fee above**: at a full
+block it multiplies by 9/8, at an empty one by 7/8, and it is stationary exactly at the target
+of half capacity. Under sustained excess demand it compounds at 12.5% a block.
+
+| | |
+| --- | --- |
+| price at which a full block's burn equals the minting ceiling | **129,513** |
+| — as a multiple of the resting price | 18,502× |
+| — what it costs one transaction | **0.103 LGO** |
+| blocks of persistently full demand to reach it | **86** (43 minutes) |
+| blocks at 75% full | 154 (1.3 hours) |
+| demand at or below target | **never** — the price is stationary or falls |
+
+Read the other way round:
+
+| fee per transaction | full-block burn | against the minting ceiling |
+| --- | --- | --- |
+| 0.001 LGO | 0.92 LGO | 0.01× |
+| 0.010 LGO | 9.22 LGO | 0.10× |
+| **0.100 LGO** | **92.16 LGO** | **0.97×** |
+
+**So the equilibrium era is fundable, and at an entirely ordinary fee.** A tenth of a token per
+transaction replaces the whole of the minting ceiling. The 18,502× multiple sounds alarming
+only because it is measured against a price that exists when nobody is transacting.
+
+What it is *not* is guaranteed. The price is stationary at target, so the mechanism never
+drives the fee up on its own — it only tracks demand. The equilibrium therefore pays well if
+the network is busy enough to hold blocks above half full, and pays nothing if it is not.
+**The design's long-run incentive is a bet on adoption, not a property of the mechanism** — and
+that is a materially different concern from the one §6b appeared to raise.
+
+---
+
 ## 6c. Is the ordering robust?
 
 Three sweeps. The answer is that only one thing overturns it.

@@ -697,6 +697,46 @@ def gate_emission(cfg: Config) -> None:
           note=f"{residue * cfg.base_units_per_lgo:.2f} base units, retained in the pool")
 
 
+def gate_fee_markets(cfg: Config) -> None:
+    """The two fee markets, and what they say about the equilibrium era."""
+    print("\nThe fee markets")
+    from . import fee_market as fm                            # noqa: PLC0415
+
+    # Execution market: stationary at target, +12.5% full, -12.5% empty.
+    check("the base fee is stationary at exactly the target",
+          fm.next_base_fee(1_000_000, fm.G_TARGET), 1_000_000)
+    check("a full block raises it by an eighth",
+          fm.next_base_fee(1_000_000, fm.G_MAX), 1_125_000, rel=1e-6)
+    check("an empty block lowers it by an eighth",
+          fm.next_base_fee(1_000_000, 0), 875_000, rel=1e-6)
+    check("the usage average rounds down, the price up",
+          fm.update_g_avg(fm.G_TARGET, 0), (9 * fm.G_TARGET) // 10)
+
+    # Storage market clamps.
+    check("storage clamps down at an eighth", fm.next_storage_price(1_000_000, 0, 1_000), 875_000)
+    check("storage clamps up at an eighth",
+          fm.next_storage_price(1_000_000, 10_000, 1_000), 1_125_000)
+    check("a zero usage average holds the price",
+          fm.next_storage_price(1_000_000, 500, 0), 1_000_000)
+
+    # The equilibrium question. Nothing bounds the base fee above, so whether fee recycling
+    # can fund what minting funded is a question about DEMAND, not about the mechanism.
+    cap = round(consensus.max_block_reward(cfg) * cfg.base_units_per_lgo)
+    units = cfg.transfer_tx_bytes + cfg.transfer_tx_gas
+    need = fm.price_for_block_burn(cap, cfg.max_block_txs, units, cfg.pow_share)
+    check("price at which a full block's burn matches the minting ceiling", need, 129_513,
+          rel=1e-3, note=f"{need / cfg.price_resting:,.0f}x the RESTING price")
+    per_tx = units * need / cfg.base_units_per_lgo
+    check("what that costs one transaction", per_tx, 0.1032, rel=1e-2,
+          note="an ordinary fee, not an extreme one -- the resting price is an idle market")
+    check("sustained full blocks reach it within a working day",
+          fm.blocks_to_reach(int(need), 1.0) * cfg.block_seconds / 3600 < 24, True,
+          note=f"{fm.blocks_to_reach(int(need), 1.0)} blocks, EIP-1559 compounds")
+    check("but demand at or below target never gets there",
+          fm.blocks_to_reach(int(need), 0.5) is None, True,
+          note="stationary at target: the price is set by demand, not by the mechanism")
+
+
 def gate_strategies(cfg: Config) -> None:
     """The strategy study: paired draws, isolation, conservation and the service floor."""
     print("\nThe strategy study")
@@ -821,6 +861,7 @@ def main() -> int:
     gate_two_participation_classes(cfg)
     gate_conservation(cfg)
     gate_emission(cfg)
+    gate_fee_markets(cfg)
     gate_strategies(cfg)
     gate_alternative_is_neutral(cfg)
 
