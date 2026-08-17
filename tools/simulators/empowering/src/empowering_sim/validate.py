@@ -491,13 +491,31 @@ def gate_two_participation_classes(cfg: Config) -> None:
 
     # The corrected crossing, and its universality.
     crossings = [crossover.leader_overtakes_mining(cfg, s)["epoch"]
-                 for s in (0.001, 0.01, 0.20, 1.0)]
+                 for s in (0.0001, 0.001, 0.01, 0.20, 1.0)]
     check("leader income overtakes mining at the same epoch at every field share",
           len(set(crossings)), 1, note=f"epoch {crossings[0]:,}, "
-                                       f"{crossings[0] / cfg.epochs_per_year:.1f} years")
-    check("and that epoch is around one over the yield, pulled in by compounding",
-          crossings[0] / cfg.epochs_per_year, 20.8, rel=0.02,
-          note="30 years without compounding, 20.8 with")
+                                       f"{crossings[0] / cfg.epochs_per_year:.2f} years")
+    # The pool DECAYS, so the mining flow a miner is racing falls. Computing that flow once
+    # from the genesis pool solves the rho -> 0 case instead and returns 1,013; the closed
+    # form's own limit is that number, which is how the error was found.
+    cf = crossover.leader_overtakes_mining_closed_form(cfg)
+    check("simulation agrees with the closed form", crossings[0], cf["epochs"], rel=0.01,
+          note=f"{crossings[0]} against {cf['epochs']:.1f} epochs")
+    check("the crossing is about eight years, not twenty",
+          crossings[0] / cfg.epochs_per_year, 8.05, rel=0.02)
+    check("the frozen-pool limit is the number a hoisted flow produces",
+          cf["frozen_pool_limit_epochs"], 1013, rel=0.01,
+          note="ln(2)/ln(1+apy) -- the bug's signature")
+
+    # The permanent term: both mining and leading are shares of the same block reward, so
+    # their ratio carries no time, no pool and no yield.
+    for leader, want in ((1.0, 600.0), (0.39, 1538.0)):
+        check(f"permanent dominance at a 2% PoW leg, leader on {leader:.0%}",
+              crossover.permanent_mining_dominance(cfg, 0.02, leader), want, rel=0.01,
+              note="the whole field's mining income over one minimum stake's leader income")
+    check("sizing the PoW leg to the bundle removes the permanent gap",
+          crossover.permanent_mining_dominance(cfg, 1.381e-6, 1.0) < 0.05, True,
+          note=f"{crossover.permanent_mining_dominance(cfg, 1.381e-6, 1.0):.4f}x at 1.38 ppm")
 
     ceiling = crossover.service_ceiling(cfg)
     check("the endowment ceiling binds services, not consensus",

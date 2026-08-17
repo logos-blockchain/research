@@ -117,20 +117,70 @@ def leader_overtakes_mining(cfg: Config, hashrate_share: float, pool: int | None
     and **the field share, the distribution rate and the pool size all cancel**. Compounding
     pulls it in: measured at epoch 1,013, about 20.8 years, identical at every field share.
     """
-    pool = cfg.genesis_pool if pool is None else pool
+    pool = float(cfg.genesis_pool if pool is None else pool)
     apy_epoch = consensus.validation_apy(cfg, staked_fraction, emission_factor) \
         / cfg.epochs_per_year
-    flow = hashrate_share * cfg.distribution_rate * pool
-    if flow <= 0 or apy_epoch <= 0:
+    if pool <= 0 or hashrate_share <= 0 or apy_epoch <= 0:
         return dict(epoch=None, years=None)
+
+    refill = economics.epoch_refill(cfg)
     balance = 0.0
     for e in range(horizon):
+        # The mining flow must be recomputed from the CURRENT pool. An earlier version of
+        # this function hoisted it out of the loop and never decayed the pool, which silently
+        # solved the rho -> 0 case and returned 1,013 epochs instead of 392 -- see the closed
+        # form below, whose rho -> 0 limit is exactly ln(2)/ln(1+apy).
+        flow = hashrate_share * cfg.distribution_rate * pool
         if balance * apy_epoch > flow:
             return dict(epoch=e, years=e / cfg.epochs_per_year,
                         balance_lgo=cfg.to_lgo(balance),
                         mining_lgo=cfg.to_lgo(flow))
         balance += flow + balance * apy_epoch
+        pool += refill - cfg.distribution_rate * pool
     return dict(epoch=None, years=None, note="no crossing inside the horizon")
+
+
+def leader_overtakes_mining_closed_form(cfg: Config, staked_fraction: float | None = None,
+                                        emission_factor: float = 1.0) -> dict:
+    """The crossing in closed form, ignoring the fee refill.
+
+    With the pool decaying, a miner's balance solves
+    ``B(t) = flow_0 * [(1+a)^t - (1-rho)^t] / (a + rho)``, and setting ``B(t)*a`` equal to
+    the decayed flow gives
+
+    | ``crossing_epochs = ln(2 + distribution_rate / apy_per_epoch) / ln((1 + apy_per_epoch) / (1 - distribution_rate))``
+
+    The field share and the pool size cancel; the distribution rate does not. Its ``rho -> 0``
+    limit is ``ln(2)/ln(1 + apy)``, which is the frozen-pool answer -- a useful check, since
+    that is the number a hoisted flow silently produces.
+    """
+    import math
+    a = consensus.validation_apy(cfg, staked_fraction, emission_factor) / cfg.epochs_per_year
+    rho = cfg.distribution_rate
+    if a <= 0 or rho <= 0 or rho >= 1:
+        return dict(epochs=float("inf"), years=float("inf"))
+    epochs = math.log(2 + rho / a) / math.log((1 + a) / (1 - rho))
+    return dict(epochs=epochs, years=epochs / cfg.epochs_per_year,
+                frozen_pool_limit_epochs=math.log(2) / math.log(1 + a))
+
+
+def permanent_mining_dominance(cfg: Config, pow_share_of_block_reward: float,
+                               leader_share_of_block_reward: float = 1.0) -> float:
+    """The whole mining field's income over one minimum stake's leader income, forever.
+
+    | ``dominance = pow_share * stake_target / (leader_share * min_stake_fraction)``
+
+    Both legs are shares of the *same* block reward, so the emission factor, the maximum
+    emission rate, the traffic, the fee level and the token price all cancel. What is left is
+    a quotient of four protocol constants and no time at all -- which makes this the
+    **permanent** term of the goal-1 gap, where the pool's decay is only the transient one.
+
+    At the illustrated 2% proof-of-work leg this is 600, or 1,538 if leaders take 39%.
+    """
+    if leader_share_of_block_reward <= 0 or cfg.min_stake_fraction <= 0:
+        return float("inf")
+    return (pow_share_of_block_reward * cfg.stake_target
+            / (leader_share_of_block_reward * cfg.min_stake_fraction))
 
 
 def crossover_epoch(cfg: Config, position: Position, staked_fraction: float,
