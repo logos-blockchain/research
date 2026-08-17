@@ -76,6 +76,10 @@ class Config:
     # estimator converges within about five epochs, so this is a transient and not a regime.
     genesis_stake_estimate: float = 1e10
     stake_inference_epochs: int = 5
+    # A service declaration proves a LOCKED note. Whether a locked note still carries
+    # leadership weight is not stated anywhere, and it decides whether providing a service
+    # costs a staker its lottery income or is free on top of it. Carried as a switch.
+    service_bond_counts_for_lottery: bool = True
     # KNOWN. A note must have been held for a minimum period before it can enter the
     # leadership lottery (cryptarchia-v1-protocol.md): the stake distribution is snapshotted
     # at the start of an epoch and frozen, and the service declaration protocol reads a
