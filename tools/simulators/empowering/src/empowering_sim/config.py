@@ -71,7 +71,16 @@ class Config:
     # are NOT immediately staking-eligible, and this is that delay in epochs.
     stake_aging_epochs: int = 2
     leader_fee_share: float = 0.4
-    leader_reward_share: float = 1.0
+    # KNOWN, overview-cryptoeconomics.md: "leader_rewards += 0.4 * get_block_rewards(b)",
+    # and Blend and the leaders "continue to divide the block reward 60/40". So leaders take
+    # 0.4 of the block reward, NOT all of it.
+    #
+    # This contradicts block-rewards.md, which calibrates I_max so that "the APY for
+    # validation is ~3.33%" -- a figure that only holds if validators receive the WHOLE
+    # emission. At 0.4 the validator yield is 1.33% at the 30% stake target. Both cannot be
+    # right; the value here is the one stated as code, and the tension is recorded rather
+    # than resolved.
+    leader_reward_share: float = 0.4
 
     # ---- measured device data ----
     # Not protocol constants: these are benchmark results, and they belong in the cost

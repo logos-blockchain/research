@@ -412,8 +412,21 @@ def gate_staking_against_the_spec(cfg: Config) -> None:
           note="I_max, block-rewards.md parametrisation table")
     check("target for inferred total stake", cfg.stake_target, 0.30,
           note="D_0_target, analysis-block-reward-parameter-calibration.md")
-    check("validation APY at the target", consensus.validation_apy(cfg), 0.0333, rel=0.02,
-          note="the specification states ~3.33%, and calibrated I_max to hit it")
+    # The two documents disagree about who receives the emission, so BOTH readings are
+    # gated. block-rewards.md calibrates I_max so "the APY for validation is ~3.33%", which
+    # holds only if validators take the whole emission; overview-cryptoeconomics.md gives
+    # leaders 0.4 of the block reward, as code, with Blend taking 0.6.
+    from dataclasses import replace as _r                       # noqa: PLC0415
+    whole = _r(cfg, leader_reward_share=1.0)
+    check("APY if validators take the whole emission",
+          consensus.validation_apy(whole), 0.0333, rel=0.02,
+          note="block-rewards.md's calibration target")
+    check("APY at the 0.4 leader share stated as code",
+          consensus.validation_apy(cfg), 0.01333, rel=0.02,
+          note="overview-cryptoeconomics.md; the config carries this one")
+    check("the two readings differ by the leader share", 
+          consensus.validation_apy(whole) / consensus.validation_apy(cfg), 2.5, rel=0.01,
+          note="a contradiction in the specifications, not in this model")
 
     at_max = consensus.block_reward(cfg, 1.0, burnt_fees_per_block=12.0)
     at_min = consensus.block_reward(cfg, 0.0, burnt_fees_per_block=12.0)
@@ -501,11 +514,15 @@ def gate_two_participation_classes(cfg: Config) -> None:
     cf = crossover.leader_overtakes_mining_closed_form(cfg)
     check("simulation agrees with the closed form", crossings[0], cf["epochs"], rel=0.01,
           note=f"{crossings[0]} against {cf['epochs']:.1f} epochs")
-    check("the crossing is about eight years, not twenty",
-          crossings[0] / cfg.epochs_per_year, 8.05, rel=0.02)
+    check("the crossing at the 0.4 leader share",
+          crossings[0] / cfg.epochs_per_year, 11.71, rel=0.02,
+          note="8.05 years if validators instead take the whole emission")
+    whole2 = _r(cfg, leader_reward_share=1.0)
+    check("the crossing if validators take the whole emission",
+          crossover.leader_overtakes_mining_closed_form(whole2)["years"], 8.05, rel=0.02)
     check("the frozen-pool limit is the number a hoisted flow produces",
-          cf["frozen_pool_limit_epochs"], 1013, rel=0.01,
-          note="ln(2)/ln(1+apy) -- the bug's signature")
+          crossover.leader_overtakes_mining_closed_form(whole2)["frozen_pool_limit_epochs"],
+          1013, rel=0.01, note="ln(2)/ln(1+apy) -- the bug's signature, at the same reading")
 
     # The permanent term: both mining and leading are shares of the same block reward, so
     # their ratio carries no time, no pool and no yield.
