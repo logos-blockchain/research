@@ -184,6 +184,7 @@ class EpochRecord:
     blend_pool_lgo: float
     leader_pool_lgo: float
     providers: int
+    providers_by_strategy: tuple[int, ...]
     service_per_provider_lgo: float
     claims_paid: int
     reward_per_claim: int
@@ -267,6 +268,7 @@ def run(cfg: Config, scfg: StrategyConfig) -> tuple[Population, list[EpochRecord
         pop.declared_at[can] = e
         providing = services.eligible(pop.stake, cfg.min_stake, pop.declared_at, e) & wants
         n_prov = int(providing.sum())
+        prov_by = tuple(int((providing & pop.mask(x)).sum()) for x in Strategy)
         per_prov = services.reward_per_provider(blend_pool, n_prov)
         if per_prov > 0:
             paid_svc = round(per_prov * cfg.base_units_per_lgo)
@@ -278,7 +280,8 @@ def run(cfg: Config, scfg: StrategyConfig) -> tuple[Population, list[EpochRecord
             stake_estimate_lgo=est.value_lgo, true_staked_lgo=true_staked_lgo,
             emission_factor=a_t, block_reward_lgo=blk_lgo, blocks_produced=blocks,
             blend_pool_lgo=blend_pool, leader_pool_lgo=leader_pool,
-            providers=n_prov, service_per_provider_lgo=per_prov,
+            providers=n_prov, providers_by_strategy=prov_by,
+            service_per_provider_lgo=per_prov,
             claims_paid=paid, reward_per_claim=reward_per_claim,
             pool_lgo=cfg.to_lgo(state.pool),
             pow_reward_per_block=claims_found * np.int64(reward_per_claim),

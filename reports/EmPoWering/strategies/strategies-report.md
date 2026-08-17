@@ -157,6 +157,36 @@ congestible, and the two facts are the same fact.
 
 ---
 
+## 5b. When nodes actually become providers
+
+![how many nodes become service providers, and when](figures/provider_ramp.png)
+
+The two groups arrive at the bond by different routes. The endowed group holds far more than
+the threshold from genesis, so it is a provider as soon as its declaration clears the
+two-epoch snapshot lag — bonded at epoch 2 and never later. The miners have to earn theirs,
+and at the settled 1,000 LGO bond that takes **about 865 claims**: the group crosses from none
+to all of it between epochs 2 and 5, roughly five weeks.
+
+The right panel is the same question asked of the parameter nobody has settled:
+
+| bond | miners fully bonded by |
+| --- | --- |
+| 1,000 LGO | **epoch 5** (~5 weeks) |
+| 10,000 LGO | still climbing at epoch 40; ~90% of the way |
+| 100,000 LGO | essentially none of them inside 40 epochs |
+
+A hundredfold change in a threshold the specification leaves UNSET moves the on-ramp from
+five weeks to longer than this study runs. It is the single most consequential unset value in
+the mechanism.
+
+**And there is a bootstrapping dependency hiding in the left panel.** Both curves stay above
+the 32-provider floor throughout — but only because the endowed group alone is a hundred
+nodes. A network of miners *without* an already-endowed cohort would sit below the floor for
+the whole ramp, and the service stream would not exist during precisely the period the miners
+are working to join it. The on-ramp needs somebody already inside to be worth walking up.
+
+---
+
 ## 6. The launch transient
 
 The chain does not open in its steady state, and the reason is a decision recorded in

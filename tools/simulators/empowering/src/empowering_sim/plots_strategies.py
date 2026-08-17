@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from .config import load
-from . import strategies as st
+from . import services, strategies as st
 
 # Validated categorical palette, light surface. Fixed order: colour follows the strategy,
 # never its rank, so a run with fewer groups does not repaint the survivors.
@@ -167,6 +167,73 @@ def per_node(cfg, pop, scfg, out: Path) -> Path:
     return p
 
 
+def provider_ramp(cfg, out: Path, thresholds=(1_000.0, 10_000.0, 100_000.0),
+                  epochs: int = 40) -> Path:
+    """How many nodes become service providers, and when.
+
+    Two panels, because the answer has two halves. On the left, who crosses at the settled
+    threshold: the endowed group is bonded from the moment its declaration clears the two-epoch
+    snapshot lag, while the miners have to earn their bond first. On the right, how much later
+    that happens if the threshold is higher -- which is the one parameter nobody has settled.
+
+    The thirty-two-provider floor is drawn on both, because below it the stream does not pay
+    at all and the ramp is not merely slower but irrelevant.
+    """
+    import matplotlib.pyplot as plt
+    from dataclasses import replace
+
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.6))
+
+    # -- left: who crosses, at the settled threshold
+    _, rows = st.run(cfg, st.StrategyConfig(epochs=epochs))
+    x = [r.epoch for r in rows]
+    for k, sgroup in ((st.Strategy.STAKER_SERVICE, "stakeholder"),
+                      (st.Strategy.MINER_STAKER_SERVICE, "miner")):
+        y = [r.providers_by_strategy[int(k)] for r in rows]
+        axes[0].plot(x, y, color=SERIES[k], linewidth=2, zorder=3, label=st.LABELS[k],
+                     solid_capstyle="round")
+    axes[0].plot(x, [r.providers for r in rows], color=INK_2, linewidth=1.4, zorder=2,
+                 linestyle=(0, (5, 3)), label="total")
+    # Below the axes: both curves flatten at the same height, so any in-plot legend lands on
+    # one of them.
+    axes[0].legend(frameon=False, fontsize=9, ncol=3, loc="upper center",
+                   bbox_to_anchor=(0.5, -0.22), labelcolor=INK_2)
+    axes[0].set_xlabel("epoch", color=INK_2, fontsize=9.5)
+    axes[0].set_ylabel("service providers", color=INK_2, fontsize=9.5)
+    _style(axes[0], "Who becomes a provider, and when",
+           f"at the settled {cfg.min_stake_lgo:,.0f} LGO bond")
+
+    # -- right: how the threshold delays it
+    for i, thr in enumerate(thresholds):
+        c2 = replace(cfg, min_stake_lgo=thr)
+        _, r2 = st.run(c2, st.StrategyConfig(epochs=epochs))
+        axes[1].plot([r.epoch for r in r2], [r.providers for r in r2],
+                     color=list(SERIES.values())[i], linewidth=2, zorder=3,
+                     label=f"{thr:,.0f} LGO", solid_capstyle="round")
+    axes[1].legend(frameon=False, fontsize=9, ncol=3, loc="upper center",
+                   bbox_to_anchor=(0.5, -0.22), labelcolor=INK_2,
+                   title="bond", title_fontsize=9)
+    axes[1].set_xlabel("epoch", color=INK_2, fontsize=9.5)
+    axes[1].set_ylabel("service providers", color=INK_2, fontsize=9.5)
+    _style(axes[1], "How the bond delays it",
+           "the bond is UNSET in the specification — this is the decision")
+
+    for ax in axes:
+        ax.axhline(services.MIN_PROVIDERS, color="#e34948", linewidth=1.4, zorder=4,
+                   linestyle=(0, (2, 2)))
+        # Left-aligned and above the line: the legends sit on the right of both panels, and
+        # a right-aligned annotation landed on top of them.
+        ax.text(ax.get_xlim()[0], services.MIN_PROVIDERS * 1.06,
+                "  32 — below this the stream pays nothing",
+                color="#e34948", fontsize=8, va="bottom", ha="left")
+        _thousands(ax, "y")
+    fig.tight_layout(rect=(0, 0.10, 1, 0.88))
+    p = out / "provider_ramp.png"
+    fig.savefig(p, dpi=170, facecolor=SURFACE)
+    plt.close(fig)
+    return p
+
+
 def pow_distributions(cfg, rows, out: Path) -> Path:
     """The proof-of-work reward, per block and per epoch.
 
@@ -221,7 +288,7 @@ def main() -> int:
     pop, rows = st.run(cfg, scfg)
 
     for p in (composition(cfg, pop, scfg, out), per_node(cfg, pop, scfg, out),
-              pow_distributions(cfg, rows, out)):
+              provider_ramp(cfg, out), pow_distributions(cfg, rows, out)):
         print(f"  wrote {p}")
 
     print("\n  regenerate with:")
