@@ -62,15 +62,24 @@ def block_reward_lgo(total_stake_lgo: float, burnt_window_lgo: list[float]) -> f
 def split(reward_lgo: float, cfg: Config) -> tuple[float, float]:
     """Blend's and the leader's shares of one block's reward, floored per block.
 
-    | ``blend = reward * 6 // 10``  and  ``leader = reward * 4 // 10``
+    | ``leader = reward * leader_tenths // 10``  and  ``blend = reward * (10 - leader_tenths) // 10``
+
+    At the specified share this is exactly `block-rewards.md`'s `* 4 // 10` and `* 6 // 10`.
+    It is written against ``cfg.leader_reward_share`` rather than against the literals because
+    the split is CONTESTED -- `block-rewards.md` calibrates I_max for a validator yield that
+    only holds if leaders take the whole emission, while `overview-cryptoeconomics.md` gives
+    them four tenths. A first version hardcoded the literals here while the crossover module
+    read the config, so the two readings produced identical output and the contradiction was
+    untestable. It is one number in one place now.
 
     Per block rather than per epoch (contradiction 4.6). The two floors do not sum to the
     reward; where the residue goes is unspecified anywhere, so it is retained -- matching the
     leader pool's stated treatment of its own remainder -- and the caller is told how much.
     """
     units = round(reward_lgo * cfg.base_units_per_lgo)
-    blend = units * 6 // 10
-    leader = units * 4 // 10
+    leader_tenths = int(round(cfg.leader_reward_share * 10))
+    leader = units * leader_tenths // 10
+    blend = units * (10 - leader_tenths) // 10
     return blend / cfg.base_units_per_lgo, leader / cfg.base_units_per_lgo
 
 

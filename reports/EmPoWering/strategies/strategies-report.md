@@ -180,18 +180,34 @@ epoch 2 the mechanism is in the regime the rest of this report describes.
 
 Ranked by how much.
 
-**Whether a locked service bond still carries leadership weight.** Not stated anywhere. The
-simulator counts it, which is the favourable reading for strategies 3 and 5. If a bond is
-removed from the lottery, a service provider trades its leader income for its service income
-rather than adding one to the other — which would cut strategy 5 by roughly its leader share
-and leave the ordering intact but narrow the gap.
-
-**Who receives the emission.** `block-rewards.md` calibrates `I_max` so that "the APY for
-validation is ~3.33%", which requires validators to receive the whole emission;
+**Who receives the emission — and it does not adjust the answer, it decides whether the
+answer exists.** `block-rewards.md` calibrates `I_max` so that "the APY for validation is
+~3.33%", which requires validators to receive the whole emission;
 `overview-cryptoeconomics.md` gives leaders 0.4 of the block reward with Blend taking 0.6.
-Both cannot hold. This report takes the stated 0.4. Under the other reading every leadership
-figure here rises by two and a half times, which would roughly double a plain stakeholder's
-income and narrow service provision's lead from 5.2× to about 2×.
+Both cannot hold. This report takes the stated 0.4.
+
+The two are **complements of one split**, so the alternative reading does not merely raise
+leadership income — it sets the Blend share to zero, and service rewards *are* Blend rewards.
+Run both ways:
+
+| strategy | leaders take 0.4 | leaders take all |
+| --- | --- | --- |
+| miner | 0.29× | 0.12× |
+| miner and staker | 0.30× | 0.13× |
+| stakeholder | 1.00× | 1.00× |
+| miner, staker and service | 4.47× | 0.13× |
+| stakeholder and service | **5.22×** | **0.99×** |
+
+Under the other reading the service stream is unfunded, the dominant strategy of this report
+pays nothing at all, and **plain staking wins**. Everything in §1 through §5 is conditional on
+the 0.4 reading being the operative one. This is the single most consequential open item in
+the study, and it is a question for the specifications rather than for the simulator.
+
+**Settled: a locked service bond does carry leadership weight.** Not stated in the
+specification, and decided rather than read. A service provider therefore adds service income
+on top of its leader income rather than trading one for the other, and strategies 3 and 5
+dominate 2 and 4 outright rather than conditionally. Gated directly: a node bonded at exactly
+the minimum still carries its full stake into the lottery.
 
 **The minimal-Hamming doubling is not modelled.** Providers at minimal distance earn twice the
 base share. Every provider here earns the base share, so the service groups' dispersion is

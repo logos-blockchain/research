@@ -686,6 +686,11 @@ def gate_emission(cfg: Config) -> None:
     blend, leader = emission.split(100.0, cfg)
     check("Blend takes sixty percent of a block", blend, 60.0, rel=1e-9)
     check("the leader takes forty", leader, 40.0, rel=1e-9)
+    # The split must follow the config, or the contested reading cannot be tested at all.
+    from dataclasses import replace as _r3                    # noqa: PLC0415
+    b2, l2 = emission.split(100.0, _r3(cfg, leader_reward_share=1.0))
+    check("the split follows the config, not a literal", (b2, l2) == (0.0, 100.0), True,
+          note="a hardcoded 6//10 made both readings of the emission produce identical runs")
     residue = emission.split_residue(95.1294, cfg)
     check("the two floors leave under two base units behind",
           0 <= residue * cfg.base_units_per_lgo < 2, True,
@@ -744,6 +749,27 @@ def gate_strategies(cfg: Config) -> None:
     check("blocks led equals blocks produced once the lottery has stake to draw on",
           led, sum(r.blocks_produced for r in rows if r.true_staked_lgo > 0),
           note="every produced block has exactly one leader")
+
+    # A locked service bond carries leadership weight -- settled, and the whole reason
+    # strategies 3 and 5 dominate outright rather than trading one income for another. Tested
+    # directly rather than statistically: on the endowed groups the bond is two hundredths of
+    # a percent of a holding, so a population-level comparison cannot see it either way.
+    bonded = st.Population(
+        strategy=np.array([int(st.Strategy.STAKER_SERVICE)] * 2, dtype=np.int8),
+        hashrate=np.zeros(2), stake=np.array([cfg.min_stake, 3 * cfg.min_stake], dtype=np.int64),
+        initial_stake=np.array([cfg.min_stake, 3 * cfg.min_stake], dtype=np.int64),
+        stake_aged_at=np.zeros(2, dtype=np.int32),
+        declared_at=np.zeros(2, dtype=np.int32),
+        reward_pow=np.zeros(2, dtype=np.int64), reward_leader=np.zeros(2, dtype=np.int64),
+        reward_service=np.zeros(2, dtype=np.int64), claims=np.zeros(2, dtype=np.int64),
+        blocks_led=np.zeros(2, dtype=np.int64))
+    weight = bonded.aged_stake(5)
+    check("a node bonded at exactly the minimum still carries full lottery weight",
+          int(weight[0]), cfg.min_stake,
+          note="if the bond were excluded this would be zero, and the strategy would vanish")
+    check("and a larger holder carries all of its stake, bond included",
+          int(weight[1]), 3 * cfg.min_stake)
+    check("the switch records the decision", cfg.service_bond_counts_for_lottery, True)
 
     # The per-block reward series must be non-negative and must reconcile with the claim
     # count. A 32-bit accumulator wrapped here -- the reward is order 10^9 base units and ten
