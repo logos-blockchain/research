@@ -399,6 +399,36 @@ def gate_crossover_and_min_stake(cfg: Config) -> None:
                f"{at_500['graduates_the_endowment_funds']:.0f}")
 
 
+def gate_staking_against_the_spec(cfg: Config) -> None:
+    """The staking side, against block-rewards.md rather than against an assumption.
+
+    Every crossover and conservation figure is downstream of the validation yield, so it has
+    to come from the specification and not from this simulator's own reasoning. The
+    specification calibrates the maximum emission rate precisely so the yield lands near
+    3.33% when inferred total stake reaches its 30% target; reproducing that is the check.
+    """
+    print("\nThe staking side, against block-rewards.md")
+    check("maximum emission per year", cfg.max_emission_per_year, 0.01,
+          note="I_max, block-rewards.md parametrisation table")
+    check("target for inferred total stake", cfg.stake_target, 0.30,
+          note="D_0_target, analysis-block-reward-parameter-calibration.md")
+    check("validation APY at the target", consensus.validation_apy(cfg), 0.0333, rel=0.02,
+          note="the specification states ~3.33%, and calibrated I_max to hit it")
+
+    at_max = consensus.block_reward(cfg, 1.0, burnt_fees_per_block=12.0)
+    at_min = consensus.block_reward(cfg, 0.0, burnt_fees_per_block=12.0)
+    check("at maximum emission the reward is the minted term alone",
+          at_max, consensus.max_block_reward(cfg), rel=1e-12)
+    check("at minimum emission it is the recycled fees alone", at_min, 12.0, rel=1e-12,
+          note="specification: close to target, most of the burn is minted back")
+
+    from dataclasses import replace as _replace                # noqa: PLC0415
+    split = _replace(cfg, leader_reward_share=0.39)
+    check("the proposal's illustrated 39% leader leg would cut the yield",
+          consensus.validation_apy(split), 0.013, rel=0.02,
+          note="a lower yield makes the on-ramp obstacle worse, not better")
+
+
 def gate_conservation(cfg: Config) -> None:
     """The obstacle in PROPOSAL.md: graduation time times mining dominance is a constant.
 
@@ -506,6 +536,7 @@ def main() -> int:
     gate_participation(cfg)
     gate_group_credit(cfg)
     gate_crossover_and_min_stake(cfg)
+    gate_staking_against_the_spec(cfg)
     gate_conservation(cfg)
     gate_alternative_is_neutral(cfg)
 

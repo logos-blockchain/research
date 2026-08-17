@@ -181,9 +181,21 @@ priced out and for how long. The frontier study should be re-run, not assumed to
   staking should be economically preferable once onboarded, not merely cheaper to operate. If
   the weaker reading is intended, it holds already — staking burns no electricity — and only
   goal 2 needs work.
-- **The staking yield** used throughout is 3.33% a year, which assumes leaders take all of the
-  minted reward. The specification does not fix that share. A lower share lowers the yield and
-  makes the conservation product *larger*, so the obstacle gets worse, not better.
+- **The staking yield is grounded, and the split is not.** The 3.33% a year is the
+  specification's own figure: `block-rewards.md` calibrates `I_max = 1%` precisely so that the
+  validation yield lands near 3.33% when inferred total stake reaches its 30% target, and
+  `analysis-block-reward-parameter-calibration.md` sets that target. This simulator computes
+  3.33% independently from those two constants and the agreement is gated.
+
+  Two qualifications on it, both stated by the source material. The specification's block
+  reward is `A_t * I_max * S_tge * dt / f + (1 - A_t) * R_block`, so the figure above is the
+  `A_t = 1` case -- maximum emission, which the specification calls the bootstrap phase and
+  which is exactly the regime the on-ramp operates in. And the yield is on the *whole*
+  emission, whereas the EmPoWering proposal separately splits the block reward three ways
+  between Blend, leaders and proof of work, illustrated at 59/39/2. If that split lands a
+  validator receives only its leg and the yield falls to roughly 1.3%, which raises the
+  conservation product from thirty years to about seventy-seven. **The obstacle gets worse,
+  not better** -- so the figures here are the favourable case for the current design.
 - **The security bound on change B** is unquantified and is the reason it is a proposal rather
   than a recommendation to adopt. The minimum stake is a sybil bound; anything that lets work
   stand in for it must show the bound survives.

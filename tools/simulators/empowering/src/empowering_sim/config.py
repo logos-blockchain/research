@@ -59,7 +59,11 @@ class Config:
     # modelling choice. Anything downstream of them is conditional on that choice, and the
     # crossover study is entirely downstream of them.
     inscribe_gas: int = 56
+    # KNOWN, block-rewards.md: I_max = 1% a year, and the target for inferred total stake is
+    # 30%. The specification states these two together give a validation APY near 3.33%,
+    # which is the anchor every staking figure here rests on.
     max_emission_per_year: float = 0.01
+    stake_target: float = 0.30
     leader_fee_share: float = 0.4
     leader_reward_share: float = 1.0
 

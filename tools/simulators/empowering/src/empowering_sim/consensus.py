@@ -27,9 +27,59 @@ def max_block_reward(cfg: Config) -> float:
 
     | ``max_minted_per_block = max_emission_per_year * launch_supply / blocks_per_year``
 
-    A ceiling rather than a payment: the protocol mints at most this much per block.
+    A ceiling rather than a payment. The specification's block reward is
+
+        A_t * I_max * S_tge * dt / f  +  (1 - A_t) * R_block
+
+    (`block-rewards.md`), so this function is the first term at ``A_t = 1`` -- the emission
+    rate factor at its maximum. The second term recycles burnt fees and grows as ``A_t``
+    falls.
     """
     return cfg.max_emission_per_year * cfg.launch_supply / cfg.blocks_per_year
+
+
+def block_reward(cfg: Config, emission_factor: float, burnt_fees_per_block: float) -> float:
+    """The specification's block reward, both terms, in LGO per block.
+
+    | ``block_reward = emission_factor * max_minted_per_block + (1 - emission_factor) * burnt_fees``
+
+    ``emission_factor`` is the specification's ``A_t``, bounded in [0, 1] and driven by two
+    key performance indicators -- how far inferred total stake sits from its target, and the
+    moving average of the burn rate. The specification's own account of the regimes:
+
+    - **far from target**, ``A_t -> 1``: emission is maximised and burnt fees are not minted
+      back. This is the bootstrap phase, and it is the regime the on-ramp operates in, which
+      is why the analysis here runs at ``A_t = 1``.
+    - **close to target**, ``A_t -> 0``: emission from inflation is minimised and most of the
+      burnt fees are minted back instead.
+    """
+    factor = min(1.0, max(0.0, emission_factor))
+    return factor * max_block_reward(cfg) + (1 - factor) * burnt_fees_per_block
+
+
+def validation_apy(cfg: Config, staked_fraction: float | None = None,
+                   emission_factor: float = 1.0) -> float:
+    """Annual yield on staked tokens, at the maximum emission regime.
+
+    | ``validation_apy = emission_factor * max_emission_per_year / staked_fraction``
+
+    The specification calibrates ``I_max = 1%`` precisely so that this lands near **3.33%**
+    when inferred total stake reaches its 30% target (`block-rewards.md`, the ``I_max`` row,
+    and `analysis-block-reward-parameter-calibration.md`). Reproducing that figure is what
+    grounds every staking number in this simulator, and it is gated.
+
+    **What this does NOT account for.** The specification's APY is the yield on the *whole*
+    emission. The EmPoWering proposal separately splits the block reward three ways between
+    Blend, leaders and proof of work, illustrated at 59/39/2. If that split lands, a
+    validator receives only its leg and the yield falls with it -- to roughly 1.3% at the
+    illustrated 39%. Every figure downstream of this therefore has a stated upper-bound
+    quality, and the direction matters: a lower yield makes the on-ramp's obstacle worse,
+    not better.
+    """
+    frac = cfg.stake_target if staked_fraction is None else staked_fraction
+    if frac <= 0:
+        return float("inf")
+    return emission_factor * cfg.max_emission_per_year * cfg.leader_reward_share / frac
 
 
 def max_block_reward_base_units(cfg: Config) -> int:
