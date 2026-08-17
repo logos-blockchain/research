@@ -263,6 +263,30 @@ def gate_study_conservation(cfg: Config) -> None:
     check("every miner seated", pop.count, 80, note="2 per epoch over 40 epochs")
 
 
+def gate_pooled_invariance(cfg: Config) -> None:
+    """The distributed value is invariant to how many identities it is split across.
+
+    This is what separates the mechanism's behaviour from the population's. The pool pays
+    out the same amount however dispersed the field is, so the pooled equivalent must not
+    move with the arrival rate -- while the per-identity count moves a great deal. If this
+    gate ever fails, the two are entangled and every graduation figure is suspect.
+    """
+    print("\nPooled value is invariant to the arrival rate; per-identity count is not")
+    pooled, seated = [], []
+    for j in (0.5, 2.0, 8.0):
+        rng = np.random.default_rng(1)
+        pop, _ = graduation.run(cfg, joiners_per_epoch=j, epochs=200, rng=rng)
+        pooled.append(graduation.pooled_equivalent(pop, cfg))
+        seated.append(pop.graduated)
+    spread = (max(pooled) - min(pooled)) / max(1, max(pooled))
+    check("pooled equivalent is invariant across arrival rates", spread < 0.02, True,
+          note=f"{pooled} across 0.5, 2 and 8 joiners per epoch")
+    check("pooled equivalent stays under the arithmetic ceiling", max(pooled) <= 500, True,
+          note=f"max {max(pooled)} against a ceiling of 500")
+    check("per-identity count is NOT invariant", (max(seated) - min(seated)) > 0.2 * max(seated),
+          True, note=f"{seated} -- the dispersion effect is real, not noise")
+
+
 def main() -> int:
     cfg = load()
     print(f"config: {cfg.label}  (snapshot: {cfg.snapshot_path})")
@@ -282,6 +306,7 @@ def main() -> int:
     gate_population(cfg)
     gate_ceiling(cfg)
     gate_study_conservation(cfg)
+    gate_pooled_invariance(cfg)
 
     print()
     if FAILURES:

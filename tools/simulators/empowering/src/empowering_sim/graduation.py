@@ -142,13 +142,35 @@ def window_closes(pop: Population, cfg: Config, min_share: float = 0.5) -> dict:
     )
 
 
+def pooled_equivalent(pop: Population, cfg: Config) -> int:
+    """Minimum stakes the distributed value adds up to, ignoring who holds it.
+
+    The counterfactual in which balances can be combined -- one operator running many nodes,
+    or miners selling to each other. It is the upper bound on what the same distribution
+    could seat, and comparing it with the per-identity count is what separates a property of
+    the *mechanism* from a property of the *population* it happened to be paid to.
+    """
+    return int(pop.balance[:pop.count].sum()) // cfg.min_stake
+
+
 def summarise(pop: Population, out: list[EpochOutcome], cfg: Config) -> dict:
-    """The headline numbers from one run."""
+    """The headline numbers from one run.
+
+    Both counts are reported, always, because either alone misleads. The per-identity count
+    is what the on-ramp actually seated; the pooled equivalent is what the same money could
+    have seated had it landed in fewer hands. Their ratio is the conversion efficiency, and
+    it is the quantity worth looking at: it falls as the field disperses, which means the
+    mechanism converts value into participants *worse* the more participants it has.
+    """
     took = pop.time_to_graduate()
+    seated = pop.graduated
+    pooled = pooled_equivalent(pop, cfg)
     return dict(
         miners=pop.count,
-        graduated=pop.graduated,
-        graduated_share=pop.graduated / pop.count if pop.count else 0.0,
+        graduated=seated,
+        graduated_share=seated / pop.count if pop.count else 0.0,
+        pooled_equivalent=pooled,
+        conversion_efficiency=seated / pooled if pooled else float("nan"),
         median_epochs_to_graduate=float(np.median(took)) if took.size else float("nan"),
         median_years_to_graduate=float(np.median(took) / cfg.epochs_per_year)
         if took.size else float("nan"),
