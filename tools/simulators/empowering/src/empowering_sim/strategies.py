@@ -102,7 +102,14 @@ class Population:
         return np.isin(self.strategy, [int(s) for s in strategies])
 
     def aged_stake(self, epoch: int) -> np.ndarray:
-        """Holdings that have aged into the lottery. Any value counts; there is no minimum."""
+        """Holdings that have aged into the lottery. Any value counts; there is no minimum.
+
+        Aging is tracked per NODE rather than per note, so an increment credited to a node
+        that is already aged counts immediately rather than two epochs later. That is a
+        two-epoch optimism on income which is itself a small share of a holding, and it is
+        immaterial over the horizons this is run at -- but it is an approximation, not the
+        protocol.
+        """
         eligible = (self.stake_aged_at >= 0) & (self.stake_aged_at <= epoch)
         return np.where(eligible & self.mask(*STAKING), self.stake, 0)
 
@@ -246,7 +253,13 @@ def run(cfg: Config, scfg: StrategyConfig) -> tuple[Population, list[EpochRecord
             led = rng.multinomial(blocks, aged / aged.sum())
             pop.blocks_led += led
             per_block = leader_pool / blocks
-            pop.reward_leader += np.round(led * per_block * cfg.base_units_per_lgo).astype(np.int64)
+            paid_lead = np.round(led * per_block * cfg.base_units_per_lgo).astype(np.int64)
+            pop.reward_leader += paid_lead
+            # Leader income is tokens the node now holds, so it compounds into its stake and
+            # thence into its future lottery weight. Omitting this understates the long run
+            # badly: minted rewards are what drive total stake toward the 30% target, and
+            # reaching that target is what switches the emission off.
+            pop.stake[pop.mask(*STAKING)] += paid_lead[pop.mask(*STAKING)]
 
         # ---- services: declare when bonded, then a flat share of the Blend pool
         wants = pop.mask(*SERVING)
@@ -256,7 +269,9 @@ def run(cfg: Config, scfg: StrategyConfig) -> tuple[Population, list[EpochRecord
         n_prov = int(providing.sum())
         per_prov = services.reward_per_provider(blend_pool, n_prov)
         if per_prov > 0:
-            pop.reward_service[providing] += round(per_prov * cfg.base_units_per_lgo)
+            paid_svc = round(per_prov * cfg.base_units_per_lgo)
+            pop.reward_service[providing] += paid_svc
+            pop.stake[providing & pop.mask(*STAKING)] += paid_svc
 
         out.append(EpochRecord(
             epoch=e, years=e / cfg.epochs_per_year,

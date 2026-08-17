@@ -32,19 +32,19 @@ python3 -m empowering_sim.plots_strategies --out figures/strategies --epochs 120
 
 | strategy | median node, LGO | against a plain stakeholder |
 | --- | --- | --- |
-| miner | 50,055 | 0.29× |
-| miner and staker | 52,519 | 0.30× |
-| stakeholder | 173,573 | 1.00× |
-| miner, staker and service provider | 776,483 | **4.47×** |
-| stakeholder and service provider | 905,542 | **5.22×** |
+| miner | 50,151 | 0.31× |
+| miner and staker | 52,478 | 0.32× |
+| stakeholder | 163,851 | 1.00× |
+| miner, staker and service provider | 807,612 | **4.93×** |
+| stakeholder and service provider | 930,422 | **5.68×** |
 
 Three things fall out of that table, and only the first is obvious.
 
-**Service provision dominates, by a factor of five.** Adding a service declaration to a plain
-stake multiplies a node's income more than fivefold. Nothing else on the chain comes close.
+**Service provision dominates, by a factor of five and a half.** Adding a service declaration
+to a plain stake multiplies a node's income more than fivefold. Nothing else on the chain comes close.
 
-**Staking on top of mining is worth almost nothing — three percent.** A miner who stakes
-everything it mines earns 52,519 against a pure miner's 50,055. The reason is arithmetic: what
+**Staking on top of mining is worth almost nothing — five percent.** A miner who stakes
+everything it mines earns 52,478 against a pure miner's 50,151. The reason is arithmetic: what
 a miner accumulates over two and a half years is small against 5% of supply, so its share of
 the lottery is correspondingly small. The two curves are visually indistinguishable in §2.
 
@@ -73,17 +73,17 @@ The rank curves say more than the medians do.
 
 | strategy | p10 | median | p90 | max ÷ min |
 | --- | --- | --- | --- | --- |
-| miner | 25,933 | 50,055 | 152,848 | 22.7× |
-| miner and staker | 26,954 | 52,519 | 161,333 | 22.6× |
-| stakeholder | 105,845 | 173,573 | 747,785 | **113.3×** |
-| miner, staker and service | 736,251 | 776,483 | 894,908 | **1.8×** |
-| stakeholder and service | 838,027 | 905,542 | 1,491,706 | 13.8× |
+| miner | 25,831 | 50,151 | 153,028 | 22.4× |
+| miner and staker | 27,003 | 52,478 | 160,851 | 22.5× |
+| stakeholder | 98,805 | 163,851 | 713,482 | **109.5×** |
+| miner, staker and service | 766,820 | 807,612 | 928,856 | **1.7×** |
+| stakeholder and service | 863,938 | 930,422 | 1,466,001 | 12.6× |
 
 **The two service curves are nearly flat and the stakeholder curve is not.** A plain
-stakeholder's reward spans a hundred-and-thirteenfold range, because leadership income is
+stakeholder's reward spans a hundred-and-tenfold range, because leadership income is
 strictly proportional to stake and the stake draw is Pareto — the top tenth of that group
-holds 57.7% of it. The miner-staker-service curve spans **1.8×** across a hundred nodes whose
-hashrates differ by 22.6×.
+holds 57.7% of it. The miner-staker-service curve spans **1.7×** across a hundred nodes whose
+hashrates differ by 22.4×.
 
 So **service provision is the only stream on the chain that compresses inequality**, and it
 compresses it almost completely. Every other stream — mining, leadership — pays in proportion
@@ -176,19 +176,87 @@ epoch 2 the mechanism is in the regime the rest of this report describes.
 
 ---
 
+## 6b. The full horizon — the mechanism switches itself off
+
+Everything above is a 120-epoch run, which is the bootstrap era. Run to 2,085 epochs — the
+whole life of the endowment, about 43 years — and a dynamic appears that a short run
+structurally cannot show.
+
+Minted rewards compound into their holders' stake. That stake is the very KPI the emission
+control function steers on. So the rewards drive total stake toward its 3×10⁹ target, and on
+reaching it the control function does what it was built to do: it stops minting.
+
+| era | emission factor | block reward | service per provider | proof-of-work pool |
+| --- | --- | --- | --- | --- |
+| bootstrap, yr 0–10 | 1.00 | 95.13 LGO | 6,185 LGO/epoch | 18.1M LGO |
+| transition, yr 10–25 | 0.64 | 60.44 LGO | 3,920 LGO/epoch | 1.1M LGO |
+| equilibrium, yr 25–43 | **0.00** | **0.023 LGO** | **1 LGO/epoch** | 25.6k LGO |
+
+Stake reaches 99% of target at about **year 20**. By year 25 the block reward has fallen by
+more than three orders of magnitude and every stream it funds has fallen with it. This is the
+specification's own "Equilibrium Phase" — *"supply stabilises with issuance matching burned
+fees"* — and it is designed behaviour, not a failure. But it means **every reward figure in
+this report is a bootstrap-era figure**, and the mechanism's generosity is a phase rather
+than a property.
+
+## 6c. Is the ordering robust?
+
+Three sweeps. The answer is that only one thing overturns it.
+
+**Horizon — the lead grows rather than decays.** Even though the streams collapse after year
+20, accumulated reward is dominated by the bootstrap era, so a service provider's advantage is
+locked in early and never given back.
+
+| horizon | stakeholder and service | miner, staker and service |
+| --- | --- | --- |
+| 2.5 years | 5.68× | 4.93× |
+| 10 years | 7.04× | 6.23× |
+| 20 years | 8.33× | 7.46× |
+| 43 years | 8.36× | 7.49× |
+
+**Group size — the only thing that inverts the answer.** Below the 32-provider floor the
+service stream does not exist, and the two service strategies collapse onto the two without.
+
+| nodes per group | providers | stakeholder and service |
+| --- | --- | --- |
+| 10 | 20 | **1.00× — no service reward at all** |
+| 16 | 32 | 5.24× |
+| 20 | 40 | 4.87× |
+| 100 | 200 | 6.71× |
+
+**Stake concentration — it changes the size of the lead, not its direction.** The more
+concentrated the stake draw, the more valuable a flat per-provider payment is relative to the
+median stakeholder's proportional income.
+
+| Pareto tail index | stakeholder and service |
+| --- | --- |
+| 0.8 (very concentrated) | 18.41× |
+| 1.16 (default) | 6.71× |
+| 3.0 (fairly even) | 3.52× |
+
+So the ordering holds across a seventeen-fold range of horizon and a range of concentration
+that moves the lead between 3.5× and 18×. **The 32-provider floor is the only switch that
+turns the result over**, and it does so by removing the winning strategy from the chain rather
+than by beating it.
+
+---
+
 ## 7. What would change these conclusions
 
 Ranked by how much.
 
-**Who receives the emission — and it does not adjust the answer, it decides whether the
-answer exists.** `block-rewards.md` calibrates `I_max` so that "the APY for validation is
-~3.33%", which requires validators to receive the whole emission;
-`overview-cryptoeconomics.md` gives leaders 0.4 of the block reward with Blend taking 0.6.
-Both cannot hold. This report takes the stated 0.4.
+**Who receives the emission — SETTLED by the EmPoWering PR itself.** `block-rewards.md`
+calibrates `I_max` so that "the APY for validation is ~3.33%", which requires validators to
+receive the whole emission; `overview-cryptoeconomics.md` gives leaders 0.4 with Blend taking
+0.6. Both cannot hold — but the EmPoWering PR settles it in a sentence written for exactly
+this purpose: *"The split between the Blend service and the leader is itself unchanged: they
+continue to divide the block reward 60/40, on whatever the block reward turns out to be."*
+The PR does not touch `block-rewards.md` at all, so its 3.33% claim is inherited from master
+and is the stale one. **0.4 is operative and this report's figures stand.**
 
-The two are **complements of one split**, so the alternative reading does not merely raise
-leadership income — it sets the Blend share to zero, and service rewards *are* Blend rewards.
-Run both ways:
+The alternative is recorded because of how much it would have moved. The two shares are
+**complements of one split**, so giving leaders the whole emission sets the Blend share to
+zero — and service rewards *are* Blend rewards. Run both ways:
 
 | strategy | leaders take 0.4 | leaders take all |
 | --- | --- | --- |
@@ -198,10 +266,9 @@ Run both ways:
 | miner, staker and service | 4.47× | 0.13× |
 | stakeholder and service | **5.22×** | **0.99×** |
 
-Under the other reading the service stream is unfunded, the dominant strategy of this report
-pays nothing at all, and **plain staking wins**. Everything in §1 through §5 is conditional on
-the 0.4 reading being the operative one. This is the single most consequential open item in
-the study, and it is a question for the specifications rather than for the simulator.
+Under that reading the service stream would be unfunded, the dominant strategy of this report
+would pay nothing, and plain staking would win. It is not the operative reading — but the gap
+between 5.68× and 0.99× is the measure of how much a single contested sentence was worth.
 
 **Settled: a locked service bond does carry leadership weight.** Not stated in the
 specification, and decided rather than read. A service provider therefore adds service income
