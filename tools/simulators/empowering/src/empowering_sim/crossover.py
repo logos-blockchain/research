@@ -1,0 +1,176 @@
+"""Mining against staking: when does a node stop working and start merely holding?
+
+Two questions live here and they are not the same one.
+
+**Does adding mining to a position pay?** That is marginal, and it is already answered by the
+participation rule in :mod:`empowering_sim.market`: mine while the reward covers the
+electricity. A node with stake does not face a choice between mining and staking -- it can do
+both, and it should mine whenever mining alone is profitable.
+
+**Which income dominates?** That is the question this module answers, and it is the one that
+says what the on-ramp is *for*. Early, when the endowment is draining, a claim is worth more
+than a thousand times the fee and mining swamps staking. Late, when the reward has settled
+onto fee funding, a minimum stake earns more in a week than mining earns in years. Somewhere
+between, the two cross, and that crossing is the moment the mechanism stops being a way to
+earn and becomes a way to have earned.
+
+**A comparison that has to be made carefully.** Mining income is a return on operating
+expense; staking income is a return on capital already held. Collapsing them into one number
+needs a discount rate, and there is none here. So both are reported as tokens per epoch for a
+*specific node* -- one holding a given stake and running given hardware -- which is a
+comparison of two cash flows that node actually faces, and is meaningful without a discount
+rate. It says which stream is larger, not which is the better investment.
+
+**What is not specified.** The share of a block's minted reward reaching its leader is not
+fixed anywhere in the specification tree. Everything below scales linearly in it, and it is a
+parameter rather than a constant for that reason.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from . import consensus, economics
+from .config import Config
+
+
+@dataclass(frozen=True)
+class Position:
+    """One node's economic position: what it holds and what it runs."""
+
+    stake: int                    # base units held and staked
+    hashrate_share: float         # share of network mining power
+    cost_per_candidate_usd: float = 0.0
+    label: str = ""
+
+
+def staking_income_per_epoch(cfg: Config, stake: int, staked_fraction: float,
+                             txs_per_block: int | None = None) -> float:
+    """Base units a staker earns in one epoch, from minting and from leader fees.
+
+    | ``stake_share = stake / (staked_fraction * launch_supply)``
+
+    ``staked_fraction`` is the share of supply staked network-wide, which sets how thin the
+    competition is. The report treats it as an axis rather than a constant and so does this.
+    """
+    staked_total = staked_fraction * cfg.launch_supply * cfg.base_units_per_lgo
+    if staked_total <= 0:
+        return 0.0
+    return consensus.leader_income_per_epoch(cfg, stake / staked_total, txs_per_block)
+
+
+def mining_income_per_epoch(cfg: Config, hashrate_share: float,
+                            reward_per_claim: int) -> float:
+    """Base units a miner earns in one epoch, net of the fees it pays to claim."""
+    return consensus.mining_income_per_epoch(cfg, hashrate_share, reward_per_claim)
+
+
+def mining_cost_per_epoch_usd(cfg: Config, hashrate_share: float,
+                              difficulty_target: int,
+                              cost_per_candidate_usd: float) -> float:
+    """Electricity a miner burns in one epoch.
+
+    Cost follows the candidates tried, and at equilibrium the network tries
+    ``target_claims_per_block * blocks_per_epoch`` claims' worth of them, so a miner's share
+    of the spend is its share of the hashrate.
+    """
+    from .market import candidates_per_claim               # noqa: PLC0415
+    claims = cfg.target_claims_per_block * cfg.blocks_per_epoch
+    candidates = claims * candidates_per_claim(difficulty_target)
+    return hashrate_share * candidates * cost_per_candidate_usd
+
+
+def compare(cfg: Config, position: Position, pool: int, difficulty_target: int,
+            staked_fraction: float, token_price_usd: float,
+            txs_per_block: int | None = None) -> dict:
+    """Both income streams for one node at one moment, in tokens per epoch."""
+    reward = economics.reward_per_claim(pool, cfg)
+    mining = mining_income_per_epoch(cfg, position.hashrate_share, reward)
+    staking = staking_income_per_epoch(cfg, position.stake, staked_fraction, txs_per_block)
+    cost_usd = mining_cost_per_epoch_usd(cfg, position.hashrate_share, difficulty_target,
+                                         position.cost_per_candidate_usd)
+    cost_tokens = (cost_usd / token_price_usd * cfg.base_units_per_lgo
+                   if token_price_usd > 0 else float("inf"))
+    return dict(
+        reward_per_claim=reward,
+        mining_gross_lgo=cfg.to_lgo(mining),
+        mining_cost_lgo=cfg.to_lgo(cost_tokens),
+        mining_net_lgo=cfg.to_lgo(mining - cost_tokens),
+        staking_lgo=cfg.to_lgo(staking),
+        mining_over_staking=(mining - cost_tokens) / staking if staking > 0 else float("inf"),
+        mining_pays=(mining - cost_tokens) > 0,
+        staking_dominates=staking > (mining - cost_tokens),
+    )
+
+
+def crossover_epoch(cfg: Config, position: Position, staked_fraction: float,
+                    horizon: int = 3000, txs_per_block: int | None = None) -> dict:
+    """The epoch at which staking income first exceeds mining income.
+
+    Uses the pool's closed-form trajectory rather than a simulation, because the crossing is
+    driven by the reward decaying onto its steady state and that decay is exact while every
+    claim is paid. Electricity is excluded here: including it moves the crossing earlier, so
+    this is the *latest* the crossing can occur.
+    """
+    staking = staking_income_per_epoch(cfg, position.stake, staked_fraction, txs_per_block)
+    if staking <= 0:
+        return dict(epoch=None, years=None, staking_lgo=0.0)
+    for e in range(horizon):
+        reward = economics.reward_at_epoch(cfg, e, txs_per_block)
+        mining = position.hashrate_share * cfg.target_claims_per_block * cfg.blocks_per_epoch \
+            * max(0.0, reward - cfg.claim_fee)
+        if staking > mining:
+            return dict(epoch=e, years=e / cfg.epochs_per_year,
+                        staking_lgo=cfg.to_lgo(staking),
+                        mining_lgo=cfg.to_lgo(mining))
+    return dict(epoch=None, years=None, staking_lgo=cfg.to_lgo(staking),
+                note="staking never overtakes inside the horizon")
+
+
+# ------------------------------------------------------------------ interpreting min_stake
+
+def min_stake_reading(cfg: Config, min_stake_lgo: float, hashrate_share: float,
+                      staked_fraction: float, txs_per_block: int | None = None) -> dict:
+    """What one choice of minimum stake implies, on every axis it touches at once.
+
+    The specified value is a given; what it is not is self-evidently right, and it pulls in
+    two directions that have to be weighed together:
+
+    - **lower** seats more participants and seats them sooner, because the ceiling is the
+      endowment over the threshold and the wait is the threshold over the payout rate;
+    - **higher** makes graduating worth something, because a stake earns in proportion to its
+      size and a trivial stake earns trivially.
+
+    A threshold that seats a thousand people into positions that pay nothing has not built an
+    on-ramp, and neither has one that seats five people handsomely.
+    """
+    stake = round(min_stake_lgo * cfg.base_units_per_lgo)
+    ceiling = cfg.genesis_pool / stake if stake else float("inf")
+    # Time to reach it, from the closed form: threshold over what the pool pays this node.
+    epochs = (stake / (cfg.distribution_rate * cfg.genesis_pool * hashrate_share)
+              if hashrate_share > 0 else float("inf"))
+    staking = staking_income_per_epoch(cfg, stake, staked_fraction, txs_per_block)
+    return dict(
+        min_stake_lgo=min_stake_lgo,
+        fraction_of_supply=stake / (cfg.launch_supply * cfg.base_units_per_lgo),
+        graduates_the_endowment_funds=ceiling,
+        epochs_to_graduate=epochs,
+        years_to_graduate=epochs / cfg.epochs_per_year,
+        staking_lgo_per_epoch=cfg.to_lgo(staking),
+        staking_lgo_per_year=cfg.to_lgo(staking) * cfg.epochs_per_year,
+        # What the position yields annually against what it cost to reach it.
+        annual_yield_on_stake=(cfg.to_lgo(staking) * cfg.epochs_per_year / min_stake_lgo
+                               if min_stake_lgo else float("inf")),
+    )
+
+
+def min_stake_for_participants(cfg: Config, participants: int) -> float:
+    """The threshold that would let the endowment seat exactly ``participants``, in LGO.
+
+    | ``min_stake = genesis_pool / participants``
+
+    The inverse of the ceiling, and the form the policy question wants: choose how many
+    people the on-ramp is meant to carry and this is the threshold that carries them.
+    """
+    if participants <= 0:
+        return float("inf")
+    return cfg.to_lgo(cfg.genesis_pool / participants)

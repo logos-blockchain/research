@@ -12,7 +12,8 @@ import sys
 
 import numpy as np
 
-from . import (consensus, economics, engine, graduation, market, scenarios, simulate, work)
+from . import (consensus, crossover, economics, engine, graduation, market, scenarios,
+               simulate, work)
 from .config import FIELD_MODULUS, Config, load
 from .nodes import NOT_GRADUATED, Population
 
@@ -356,6 +357,48 @@ def gate_group_credit(cfg: Config) -> None:
           note=f"{credited:,} against {paid:,}, slack {slack}")
 
 
+def gate_crossover_and_min_stake(cfg: Config) -> None:
+    """Mining against staking, and what the minimum stake does on every axis at once."""
+    print("\nMining against staking, and reading the minimum stake")
+    spec_lgo = cfg.to_lgo(cfg.min_stake)
+
+    # Staking pays strictly in proportion to stake, so the RATE of return cannot depend on
+    # the threshold -- only the size of the position does. If this ever fails, staking has
+    # acquired a scale effect and every reading of the threshold below has to be redone.
+    yields = [crossover.min_stake_reading(cfg, ms, 0.01, 0.30)["annual_yield_on_stake"]
+              for ms in (1e2, 1e3, 1e4, 1e5, 1e6)]
+    check("annual yield does not depend on the threshold",
+          max(yields) - min(yields) < 1e-9, True,
+          note=f"{yields[0]:.2%} across four orders of magnitude of minimum stake")
+
+    # Participants times position size is the endowment. The conservation the whole on-ramp
+    # reading rests on.
+    for n in (100, 500, 10_000):
+        ms = crossover.min_stake_for_participants(cfg, n)
+        check(f"threshold for {n:,} participants inverts the ceiling",
+              ms * n, cfg.to_lgo(cfg.genesis_pool), rel=1e-9)
+
+    # Mining dominates early and staking late; the crossing must exist and must come later
+    # for a miner holding more of the field.
+    crossings = []
+    for share in (0.001, 0.01, 0.05, 0.20):
+        pos = crossover.Position(stake=cfg.min_stake, hashrate_share=share)
+        crossings.append(crossover.crossover_epoch(cfg, pos, 0.30)["epoch"])
+    check("staking overtakes mining at every field share", all(c is not None for c in crossings),
+          True, note=f"epochs {crossings}")
+    check("a larger miner holds out longer", crossings == sorted(crossings), True,
+          note="the crossing is monotone in hashrate share")
+    check("mining dominates for years, not weeks", crossings[1] / cfg.epochs_per_year > 5, True,
+          note=f"{crossings[1] / cfg.epochs_per_year:.1f} years at a 1% share")
+
+    # The specified threshold, read against field size.
+    at_500 = crossover.min_stake_reading(cfg, spec_lgo, 1.0 / 500, 0.30)
+    check("the specified threshold is coherent for a field of 500",
+          3.0 < at_500["years_to_graduate"] < 5.0, True,
+          note=f"{at_500['years_to_graduate']:.2f} years, and the endowment funds exactly "
+               f"{at_500['graduates_the_endowment_funds']:.0f}")
+
+
 def gate_alternative_is_neutral(cfg: Config) -> None:
     """VARIANT GATE -- the joiner-responsive target, not the base mechanism.
 
@@ -416,6 +459,7 @@ def main() -> int:
     gate_pooled_invariance(cfg)
     gate_participation(cfg)
     gate_group_credit(cfg)
+    gate_crossover_and_min_stake(cfg)
     gate_alternative_is_neutral(cfg)
 
     print()
