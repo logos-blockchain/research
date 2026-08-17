@@ -429,6 +429,41 @@ def gate_staking_against_the_spec(cfg: Config) -> None:
           note="a lower yield makes the on-ramp obstacle worse, not better")
 
 
+def gate_stake_aging(cfg: Config) -> None:
+    """Mined proceeds do not enter the lottery the moment they are mined.
+
+    A note must be held for a minimum period and appear in a frozen stake-distribution
+    snapshot before it can win a slot (`cryptarchia-v1-protocol.md`), and the service
+    declaration protocol reads `finalized_epoch = current_epoch - 2`. So reaching the
+    threshold and earning from it are separate moments, and the model has to carry both.
+    """
+    print("\nStake aging: reaching the threshold is not the same as earning from it")
+    check("aging period, in epochs", cfg.stake_aging_epochs, 2,
+          note=f"{cfg.stake_aging_epochs / cfg.epochs_per_year * 365:.1f} days")
+
+    rng = np.random.default_rng(4)
+    pop, out = graduation.run(cfg, joiners_per_epoch=4.0, epochs=30, rng=rng)
+    live = slice(0, pop.count)
+    grad = pop.graduated_epoch[live]
+    elig = pop.eligible_epoch[live]
+    made = grad != NOT_GRADUATED
+    check("everyone who graduated has an eligibility date",
+          int((made & (elig == NOT_GRADUATED)).sum()), 0)
+    lags = (elig[made] - grad[made])
+    check("eligibility lags graduation by exactly the aging period",
+          int(lags.min()) == int(lags.max()) == cfg.stake_aging_epochs, True,
+          note=f"{int(lags.min())} epochs for all {int(made.sum())} graduates")
+    check("nobody is staking-eligible before their own graduation",
+          pop.staking_eligible(0), 0)
+
+    # How much it actually moves the answer, stated rather than assumed.
+    at_design = 1 / (cfg.distribution_rate * cfg.genesis_pool / cfg.min_stake / 500)
+    check("the delay is small against the graduation it delays",
+          cfg.stake_aging_epochs / at_design < 0.02, True,
+          note=f"{cfg.stake_aging_epochs} epochs against {at_design:.0f} to graduate, "
+               f"{cfg.stake_aging_epochs / at_design:.1%}")
+
+
 def gate_conservation(cfg: Config) -> None:
     """The obstacle in PROPOSAL.md: graduation time times mining dominance is a constant.
 
@@ -556,6 +591,7 @@ def main() -> int:
     gate_group_credit(cfg)
     gate_crossover_and_min_stake(cfg)
     gate_staking_against_the_spec(cfg)
+    gate_stake_aging(cfg)
     gate_conservation(cfg)
     gate_alternative_is_neutral(cfg)
 

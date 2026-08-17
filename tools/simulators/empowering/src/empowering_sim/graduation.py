@@ -110,7 +110,8 @@ def run(cfg: Config, joiners_per_epoch: float, epochs: int,
 
         # What a miner keeps is the reward less the fee it paid to submit the claim.
         net = max(0, row.reward_per_claim - cfg.claim_fee)
-        new_grads = pop.credit(rng, row.claims_paid, net, e, cfg.min_stake)
+        new_grads = pop.credit(rng, row.claims_paid, net, e, cfg.min_stake,
+                               aging=cfg.stake_aging_epochs)
 
         out.append(EpochOutcome(
             epoch=e, years=e / cfg.epochs_per_year, miners=pop.count,

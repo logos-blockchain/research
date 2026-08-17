@@ -114,7 +114,10 @@ def crossover_epoch(cfg: Config, position: Position, staked_fraction: float,
     staking = staking_income_per_epoch(cfg, position.stake, staked_fraction, txs_per_block)
     if staking <= 0:
         return dict(epoch=None, years=None, staking_lgo=0.0)
-    for e in range(horizon):
+    # Staked proceeds do not earn from the moment they are mined: a note must be held for a
+    # minimum period and appear in a frozen stake-distribution snapshot before it can win a
+    # slot. So the comparison cannot begin before the aging has elapsed.
+    for e in range(cfg.stake_aging_epochs, horizon):
         reward = economics.reward_at_epoch(cfg, e, txs_per_block)
         mining = position.hashrate_share * cfg.target_claims_per_block * cfg.blocks_per_epoch \
             * max(0.0, reward - cfg.claim_fee)

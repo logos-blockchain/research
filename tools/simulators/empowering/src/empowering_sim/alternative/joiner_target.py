@@ -189,7 +189,7 @@ def run(cfg: Config, scenario: Scenario, target_policy,
 
         net = max(0, row.reward_per_claim - cfg.claim_fee)
         credit = row.group_credit if row.group_credit is not None else np.zeros(n_classes)
-        pop.credit_groups(rng, credit, net, e, cfg.min_stake)
+        pop.credit_groups(rng, credit, net, e, cfg.min_stake, aging=cfg.stake_aging_epochs)
 
         out.append(VariantOutcome(
             epoch=e, target=target, miners=pop.count,

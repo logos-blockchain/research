@@ -90,7 +90,7 @@ def run(cfg: Config, scenario: Scenario,
 
         net = max(0, row.reward_per_claim - cfg.claim_fee)
         credit = row.group_credit if row.group_credit is not None else np.zeros(n_classes)
-        pop.credit_groups(rng, credit, net, e, cfg.min_stake)
+        pop.credit_groups(rng, credit, net, e, cfg.min_stake, aging=cfg.stake_aging_epochs)
 
         # Report each class by the share of the epoch it was able to mine, which carries
         # more than a boolean: a class can be marginal and in the field only part of the time.

@@ -217,5 +217,15 @@ should be stated plainly rather than discovered later.
 - **Who receives the emission**, per §1. The single largest uncertainty, and the one that
   makes every figure here a favourable case.
 - **B's security bound**, per §5.2. Unquantified.
+- **Aging under B.** Mined proceeds are not staking-eligible on arrival: a note must be held
+  for a minimum period and appear in a frozen stake-distribution snapshot before it can win a
+  slot, and the service declaration protocol reads `finalized_epoch = current_epoch - 2`. That
+  is now modelled, at two epochs, and it is immaterial to everything above — one percent of a
+  two-hundred-epoch graduation. **But it is not immaterial to B.** If sustained work
+  substitutes for stake, work-derived weight needs its own eligibility rule, and it cannot
+  simply inherit the note's: work is continuous where a note is discrete, so "held for a
+  minimum period" has to be restated as something like a trailing window of demonstrated work.
+  Getting that wrong is a grinding surface — an attacker who can make weight count sooner than
+  honest participants can gains exactly the advantage the aging exists to deny.
 - **The token price**, which sets B's calibration in absolute terms. Handled by stating the
   rule as a ratio, but the ratio still has to be evaluated somewhere to be checked.

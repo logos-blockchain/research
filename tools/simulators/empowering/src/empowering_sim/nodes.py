@@ -35,6 +35,7 @@ class Population:
     balance: np.ndarray            # int64, base units, net of the fees paid to claim
     claims: np.ndarray             # int64
     graduated_epoch: np.ndarray    # int32, NOT_GRADUATED until the minimum stake is reached
+    eligible_epoch: np.ndarray     # int32, when that stake first enters the lottery
     device_class: np.ndarray       # int32, index into the scenario's device classes
     candidates_per_second: np.ndarray   # float64, one machine of that class
     cost_per_candidate_usd: np.ndarray  # float64, at the scenario's electricity price
@@ -49,6 +50,7 @@ class Population:
             balance=np.zeros(capacity, dtype=np.int64),
             claims=np.zeros(capacity, dtype=np.int64),
             graduated_epoch=np.full(capacity, NOT_GRADUATED, dtype=np.int32),
+            eligible_epoch=np.full(capacity, NOT_GRADUATED, dtype=np.int32),
             device_class=np.zeros(capacity, dtype=np.int32),
             candidates_per_second=np.zeros(capacity, dtype=np.float64),
             cost_per_candidate_usd=np.zeros(capacity, dtype=np.float64),
@@ -67,6 +69,12 @@ class Population:
     @property
     def graduated(self) -> int:
         return int((self.graduated_epoch[:self.count] != NOT_GRADUATED).sum())
+
+    def staking_eligible(self, epoch: int) -> int:
+        """Graduates whose stake has aged into the lottery by ``epoch``."""
+        live = slice(0, self.count)
+        el = self.eligible_epoch[live]
+        return int(((el != NOT_GRADUATED) & (el <= epoch)).sum())
 
     def arrive(self, n: int, epoch: int, units_each: float = 1.0) -> int:
         """Add ``n`` nodes at ``epoch``. Returns how many were actually seated."""
@@ -100,8 +108,20 @@ class Population:
         live = slice(0, self.count)
         return np.where(self.active[live], self.candidates_per_second[live], 0.0)
 
+    def _mark(self, newly: np.ndarray, epoch: int, aging: int) -> None:
+        """Record graduation, and when the resulting stake actually enters the lottery.
+
+        The two are not the same moment. A note must be held for a minimum period and appear
+        in a frozen stake-distribution snapshot before it can win a slot, so reaching the
+        threshold and earning from it are separated by the aging delay.
+        """
+        live = slice(0, self.count)
+        self.graduated_epoch[live][newly] = epoch
+        self.eligible_epoch[live][newly] = epoch + aging
+
     def credit(self, rng: np.random.Generator, claims_paid: int, net_per_claim: int,
-               epoch: int, min_stake: int, weights: np.ndarray | None = None) -> int:
+               epoch: int, min_stake: int, weights: np.ndarray | None = None,
+               aging: int = 0) -> int:
         """Deal an epoch's paid claims out to miners and record any graduations.
 
         ``net_per_claim`` is what a miner keeps: the reward less the fee it paid to submit
@@ -125,13 +145,14 @@ class Population:
         newly = pending & (self.balance[:self.count] >= min_stake)
         n_new = int(newly.sum())
         if n_new:
-            self.graduated_epoch[:self.count][newly] = epoch
+            self._mark(newly, epoch, aging)
         return n_new
 
     # ------------------------------------------------------------------ reporting
 
     def credit_groups(self, rng: np.random.Generator, group_claims: np.ndarray,
-                      net_per_claim: int, epoch: int, min_stake: int) -> int:
+                      net_per_claim: int, epoch: int, min_stake: int,
+                      aging: int = 0) -> int:
         """Credit each device class its own share, then split within the class.
 
         Two stages because participation is decided per class -- every member of a class
@@ -159,7 +180,7 @@ class Population:
         newly = pending & (self.balance[live] >= min_stake)
         n_new = int(newly.sum())
         if n_new:
-            self.graduated_epoch[live][newly] = epoch
+            self._mark(newly, epoch, aging)
         return n_new
 
     def time_to_graduate(self) -> np.ndarray:
