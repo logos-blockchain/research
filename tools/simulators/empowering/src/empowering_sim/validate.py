@@ -40,11 +40,11 @@ def check(name: str, got, want, rel: float = 0.0, note: str = "") -> None:
 def gate_fees(cfg: Config) -> None:
     """The claim's own fee, and the average transaction's, from bytes and gas."""
     print("\nFees, at the resting price")
-    check("claim_fee", cfg.claim_fee, 6_664,
-          note="306 bytes and 646 gas, both at 7")
-    check("avg_tx_fee", cfg.avg_tx_fee, 5_579,
+    check("claim_fee", cfg.claim_fee, 306_004_522,
+          note="306 bytes of storage at 1e-3 LGO, plus 646 gas at 7 lepta -- storage is 99.998%")
+    check("avg_tx_fee", cfg.avg_tx_fee, 207_004_130,
           note="an ordinary one-in one-out transfer")
-    check("fee_ratio", cfg.fee_ratio, 0.837, rel=1e-3,
+    check("fee_ratio", cfg.fee_ratio, 0.6765, rel=1e-3,
           note="a claim costs slightly more than the average transaction")
 
 
@@ -56,12 +56,12 @@ def gate_pool_closed_forms(cfg: Config) -> None:
           note="half a percent of a ten-billion supply, in base units")
     check("opening reward_per_claim", opening, 1_157_407_407,
           note="report section 3.7, epoch 0")
-    check("epoch_refill", economics.epoch_refill(cfg), 7_230_384_000,
+    check("epoch_refill", economics.epoch_refill(cfg), 268_277_352_480_000,
           note="7.23 LGO per epoch, and it carries no target")
-    check("steady_pool", economics.steady_pool(cfg), 1_446_076_800_000.0, rel=1e-12,
+    check("steady_pool", economics.steady_pool(cfg), 53_655_470_496_000_000.0, rel=1e-12,
           note="1,446 LGO, independent of the target")
-    check("steady_reward", economics.steady_reward(cfg), 33_474.0, rel=1e-9)
-    check("reward_over_fee", economics.reward_over_fee(cfg), 5.023, rel=1e-3,
+    check("steady_reward", economics.steady_reward(cfg), 1_242_024_780.0, rel=1e-9)
+    check("reward_over_fee", economics.reward_over_fee(cfg), 4.0588, rel=1e-3,
           note="the margin the steady state settles at")
     check("steady_reward / claim_fee agrees",
           economics.steady_reward(cfg) / cfg.claim_fee,
@@ -73,7 +73,7 @@ def gate_self_funding(cfg: Config) -> None:
     """The self-funding condition, reached from the pool's side and the miner's."""
     print("\nSelf-funding")
     need = economics.self_funding_txs(cfg)
-    check("txs for reward = fee", need, 119.4, rel=1e-2,
+    check("txs for reward = fee", need, 147.83, rel=1e-2,
           note="report section 4.3, at a tenth share")
     check("the specified traffic clears it", cfg.txs_per_block > need, True)
 
@@ -190,16 +190,25 @@ def gate_trajectory(cfg: Config) -> None:
         want = economics.reward_at_epoch(cfg, e)
         check(f"reward_per_claim at epoch {e}", rows[e].reward_per_claim, want, rel=2e-3)
 
-    check("reward decays", rows[100].reward_per_claim < rows[0].reward_per_claim, True,
-          note="the endowment opens far above the pool's fixed point")
+    # Under a correctly priced storage market the endowment opens BELOW the fee-funded fixed
+    # point rather than far above it, so the reward climbs to meet it instead of decaying. The
+    # depletion horizon this study used to report was an artefact of understating the fee.
+    check("the reward rises toward the fixed point rather than decaying",
+          rows[100].reward_per_claim > rows[0].reward_per_claim, True,
+          note=f"the endowment is {cfg.genesis_pool / economics.steady_pool(cfg):.2f}x the "
+               f"pool's fixed point")
 
 
 def gate_report_decay_table(cfg: Config) -> None:
-    """Section 3.7's published trajectory, epoch by epoch."""
-    print("\nReport section 3.7's decay table")
+    """Section 3.7's published trajectory, epoch by epoch.
+
+    No longer a decay. At a storage price the network can actually bear, the endowment sits
+    just under the pool's fee-funded fixed point, so the reward drifts gently UP.
+    """
+    print("\nReport section 3.7's trajectory (a drift up, not a decay)")
     rate = engine.hashrate_for_target_rate(cfg)
     rows = engine.run(cfg, hashrate=rate, epochs=301, deterministic=True)
-    for e, want in ((0, 1_157_407_407), (100, 701_136_387), (299, 258_601_512)):
+    for e, want in ((0, 1_157_407_407), (100, 1_190_766_077), (299, 1_223_120_476)):
         check(f"epoch {e}", rows[e].reward_per_claim, want, rel=2e-3)
 
 
@@ -392,10 +401,20 @@ def gate_crossover_and_min_stake(cfg: Config) -> None:
     for share in (0.001, 0.01):
         pos = crossover.Position(stake=cfg.min_stake, hashrate_share=share)
         crossings.append(crossover.crossover_epoch(cfg, pos, 0.30)["epoch"])
-    check("a min_stake-sized position is eventually overtaken at small shares",
-          all(c is not None for c in crossings), True, note=f"epochs {crossings}")
-    check("a larger miner holds out longer", crossings == sorted(crossings), True,
-          note="monotone in hashrate share")
+    # It no longer happens at all. The threshold comparison assumed a DECAYING mining reward;
+    # once the pool sits at its fee-funded fixed point the reward is flat, so a miner at these
+    # shares is never overtaken. Recorded as the finding it is rather than relaxed away.
+    check("a min_stake-sized position is no longer overtaken at small shares",
+          all(c is None for c in crossings), True,
+          note=f"epochs {crossings} -- the mining reward stopped decaying")
+    over = crossover.leader_overtakes_mining(cfg, 0.30)
+    check("and the threshold-free crossing moves out to decades",
+          round(over["years"]), 52,
+          note="8.05 years when the fee was understated by nine orders of magnitude")
+    # Monotonicity in hashrate share is only meaningful where a crossing exists at all.
+    finite = [c for c in crossings if c is not None]
+    check("a larger miner holds out longer", finite == sorted(finite), True,
+          note=f"monotone in hashrate share, over {len(finite)} finite crossings")
 
     # The specified threshold, read against field size.
     at_field = crossover.min_stake_reading(cfg, spec_lgo, 1.0 / 1000, 0.30)
@@ -471,7 +490,8 @@ def gate_stake_aging(cfg: Config) -> None:
           int((made & (elig == NOT_GRADUATED)).sum()), 0)
     lags = (elig[made] - grad[made])
     check("eligibility lags graduation by exactly the aging period",
-          int(lags.min()) == int(lags.max()) == cfg.stake_aging_epochs, True,
+          lags.size > 0 and int(lags.min()) == int(lags.max())
+          == cfg.stake_aging_epochs, True,
           note=f"{int(lags.min())} epochs for all {int(made.sum())} graduates")
     check("nobody is staking-eligible before their own graduation",
           pop.staking_eligible(0), 0)
@@ -524,15 +544,22 @@ def gate_two_participation_classes(cfg: Config) -> None:
     check("leader income overtakes mining at the same epoch at every field share",
           len(set(crossings)), 1, note=f"epoch {crossings[0]:,}, "
                                        f"{crossings[0] / cfg.epochs_per_year:.2f} years")
-    # The pool DECAYS, so the mining flow a miner is racing falls. Computing that flow once
-    # from the genesis pool solves the rho -> 0 case instead and returns 1,013; the closed
-    # form's own limit is that number, which is how the error was found.
-    cf = crossover.leader_overtakes_mining_closed_form(cfg)
-    check("simulation agrees with the closed form", crossings[0], cf["epochs"], rel=0.01,
+    # The closed form assumes a DECAYING pool -- that the mining flow a miner is racing falls
+    # geometrically at rho. At the operating storage price the pool sits at its fee-funded
+    # fixed point and the flow is flat instead, so the closed form no longer describes this
+    # configuration and the two legitimately disagree (2,544 epochs against 569). It is
+    # checked where its premise holds: a price low enough that the refill is negligible, which
+    # is what the single-price fee model amounted to.
+    from dataclasses import replace as _rp                     # noqa: PLC0415
+    decaying = _rp(cfg, storage_price_lgo=1e-9)
+    cf = crossover.leader_overtakes_mining_closed_form(decaying)
+    sim = crossover.leader_overtakes_mining(decaying, 0.30)["epoch"]
+    check("simulation agrees with the closed form where the pool decays", sim, cf["epochs"],
+          rel=0.01,
           note=f"{crossings[0]} against {cf['epochs']:.1f} epochs")
     check("the crossing at the 0.4 leader share",
-          crossings[0] / cfg.epochs_per_year, 11.71, rel=0.02,
-          note="8.05 years if validators instead take the whole emission")
+          crossings[0] / cfg.epochs_per_year, 52.27, rel=0.02,
+          note="11.71 years when the fee was understated by nine orders of magnitude")
     from dataclasses import replace as _r2                       # noqa: PLC0415
     whole2 = _r2(cfg, leader_reward_share=1.0)
     check("the crossing if validators take the whole emission",
@@ -651,9 +678,12 @@ def gate_alternative_is_neutral(cfg: Config) -> None:
     margin = [alt.self_funding_margin(cfg, t) for t in targets]
     check("block space consumed does move", space[-1] / space[0] > 100, True,
           note=f"{space[0]:.1%} at target 1 to {space[-1]:.1%} at target 1024")
-    check("the steady-state margin falls below one past target 50",
-          alt.self_funding_margin(cfg, 60) < 1 < alt.self_funding_margin(cfg, 50), True,
-          note=f"{margin[1]:.2f} at target 10, {alt.self_funding_margin(cfg, 60):.2f} at 60")
+    # The crossing moved in from 50-60 to 40-41: pricing storage separately makes the fee
+    # ratio the pure BYTE ratio (207/306) rather than a bytes-and-gas blend (797/952), and the
+    # steady-state margin falls with it.
+    check("the steady-state margin falls below one past target 40",
+          alt.self_funding_margin(cfg, 41) < 1 < alt.self_funding_margin(cfg, 40), True,
+          note=f"{margin[1]:.2f} at target 10, {alt.self_funding_margin(cfg, 41):.2f} at 41")
 
     # An attacker inflating the target takes block space, not treasury.
     s = alt.sybil_exposure(cfg, honest_joiners=4.0, fake_joiners=100.0,
@@ -735,6 +765,82 @@ def gate_fee_markets(cfg: Config) -> None:
     check("but demand at or below target never gets there",
           fm.blocks_to_reach(int(need), 0.5) is None, True,
           note="stationary at target: the price is set by demand, not by the mechanism")
+
+
+def gate_inscription(cfg: Config) -> None:
+    """The self-sustaining target: what a claim must be worth, and what it costs to make."""
+    print("\nThe inscription target, against the two fee markets")
+    from dataclasses import replace                           # noqa: PLC0415
+
+    from . import inscription as ins                          # noqa: PLC0415
+
+
+    # The two markets are priced independently and charged on different things.
+    spec = replace(cfg, storage_price_lgo=ins.SPECIFIED_PRICE_LGO)
+    check("execution gas is priced in lepta", cfg.price_resting, 7)
+    check("the specification prices storage in LGO per byte", ins.SPECIFIED_PRICE_LGO, 1.0,
+          note="storage-markets.md:126")
+    check("which outweighs execution by nine orders of magnitude",
+          spec.storage_price // spec.price_resting, 142_857_142)
+    check("so at the specified price a transfer's fee IS its byte count in LGO",
+          round(spec.to_lgo(spec.avg_tx_fee)), spec.transfer_tx_bytes)
+    check("and a claim's likewise", round(spec.to_lgo(spec.claim_fee)), spec.claim_tx_bytes)
+    check("this study runs an operating price three orders below that",
+          cfg.storage_price_lgo, 1e-3,
+          note="the specification requires the price be low enough not to suppress adoption")
+
+    # The ceiling on the inscription is set by the fee multiple, and the price cancels.
+    ceiling = ins.max_inscription_bytes(cfg)
+    check("the steady state carries an inscription of at most", round(ceiling), 1035)
+    check("which is the fee multiple less the transfer's own encoding",
+          round((cfg.pow_share * cfg.txs_per_block / cfg.target_claims_per_block - 1)
+                * cfg.transfer_tx_bytes), 1035)
+    for p in (1e-9, 1e-3, 1.0, 1e3):
+        c = replace(cfg, storage_price_lgo=p)
+        check(f"and does not move with the storage price at {p:g} LGO/byte",
+              round(ins.max_inscription_bytes(c)), 1035)
+
+    # Every size the study sweeps is covered; 1 kB only just.
+    rows = ins.sweep(cfg)
+    check("every swept inscription size is covered by the steady claim",
+          all(r.covered for r in rows), True,
+          note=f"{rows[0].margin:.2f}x at {rows[0].inscription_bytes} B down to "
+               f"{rows[-1].margin:.2f}x at {rows[-1].inscription_bytes} B")
+    check("the margin falls monotonically in the inscription size",
+          all(a.margin > b.margin for a, b in zip(rows, rows[1:])), True)
+    check("a 1 kB target sits just inside the ceiling", round(rows[-1].margin, 2), 1.01)
+    check("just past the ceiling it is not covered",
+          ins.sweep(cfg, sizes=(1036,))[0].covered, False)
+
+    # The bootstrap side is what the price decides, and the specified price fails it.
+    limit = ins.affordable_storage_price(cfg)
+    opening = economics.reward_per_claim(cfg.genesis_pool, cfg)
+    check("a genesis claim pays for itself only below a storage price of",
+          round(limit, 9), 3.782e-3, rel=1e-3)
+    check("at the operating price it does", opening > cfg.claim_fee, True,
+          note=f"reward {cfg.to_lgo(opening):,.2f} LGO clears a fee of "
+               f"{cfg.to_lgo(cfg.claim_fee):,.3f} LGO")
+    check("at the SPECIFIED price it does not",
+          economics.reward_per_claim(spec.genesis_pool, spec) > spec.claim_fee, False,
+          note=f"reward {spec.to_lgo(opening):,.2f} LGO against a fee of "
+               f"{spec.to_lgo(spec.claim_fee):,.0f} LGO -- no miner ever reaches the bond")
+    check("the specified price exceeds the affordable one by",
+          round(ins.SPECIFIED_PRICE_LGO / limit), 264)
+    burn = spec.to_lgo(spec.blocks_per_year * spec.txs_per_block * spec.avg_tx_fee)
+    check("and would burn a multiple of the entire supply every year",
+          round(burn / spec.launch_supply), 13,
+          note="which is why the specification calls the value adjustable at genesis")
+
+    # The operating price is chosen so the endowment is already the pool's fixed point.
+    check("the pool is self-funding at a storage price of",
+          round(ins.self_funding_storage_price(cfg), 7), 9.319e-4, rel=1e-3)
+    check("and the operating price sits within a tenth of it",
+          abs(cfg.storage_price_lgo / ins.self_funding_storage_price(cfg) - 1) < 0.1, True,
+          note=f"endowment is {cfg.genesis_pool / economics.steady_pool(cfg):.3f}x the "
+               f"fixed point, so the pool neither depletes nor accumulates")
+    check("fees alone fund this many bonds an epoch, indefinitely",
+          round(ins.elevations_per_epoch(cfg)), 268,
+          note="genesis_pool / min_stake = 50,000 is what the ENDOWMENT funds, not the ceiling")
 
 
 def gate_strategies(cfg: Config) -> None:
@@ -862,6 +968,7 @@ def main() -> int:
     gate_conservation(cfg)
     gate_emission(cfg)
     gate_fee_markets(cfg)
+    gate_inscription(cfg)
     gate_strategies(cfg)
     gate_alternative_is_neutral(cfg)
 

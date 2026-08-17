@@ -37,14 +37,35 @@ max_emission_per_year = 0.01          # KNOWN  I_max, block-rewards.md
 min_stake_fraction    = 1e-5          # KNOWN  0.001% of S_tge, analysis-static-minimum-stake
 
 [fees]
-# Both markets floor at one unit per byte and per unit of gas, but neither rests there:
-# the downward step has fixed points across the first several units, so an idle market
-# settles at 7.  KNOWN, storage-markets.md / execution-market.md.
-# One price stands in for both P_STR and b_exec; they are independent in the protocol
-# but share the floor and the resting level, and every ratio here uses them together.
+# The two markets are charged on different things and priced INDEPENDENTLY, and they do not
+# share a floor.  An earlier revision of this file applied one price to both; that understated
+# every fee by essentially its entire storage component, and every quantity downstream of a fee
+# with it.  mantle:71 -- execution gas is charged per Operation, permanent storage gas on the
+# encoded size of the whole signed transaction; mantle:148 -- one storage gas per encoded byte.
+#
+# Execution: floors at 1 lepton, and the downward step has fixed points across the first several
+# units, so an idle market settles at 7.  KNOWN, execution-market.md.
 # Prices are in LEPTA per gas unit (Units and Precision).
 price_floor           = 1
 price_resting         = 7
+# Storage: charged on the encoded size of the whole signed transaction, one gas per byte
+# (mantle:71, mantle:148).  storage-markets.md:126 sets P_STR(0) = 1 LGO per stored byte.
+#
+# That value is NOT used here, and the specification is why.  The same passage states the
+# requirement the price must meet -- "sufficiently low so as not to suppress early adoption"
+# -- calls the precise value "not critical", notes the market converges to the clearing price
+# from any start, and says genesis governance may adjust it.  At 1 LGO/byte a claim
+# transaction costs 306 LGO against a genesis reward of 1.16 LGO, so no miner can afford to
+# mine and none ever reaches the bond; and the network burns thirteen times the entire supply
+# in fees every year.  The stated value violates the stated requirement.
+#
+# So the study runs at the largest round price that satisfies it.  Mining stays profitable at
+# genesis up to 3.78e-3 LGO/byte; 1e-3 keeps a claim clearing its own fee by 0.85 LGO and
+# holds the annual fee burn near 1.3% of supply.  The steady-state margin does not depend on
+# this at all -- the price cancels out of it -- so only the bootstrap side is sensitive.
+# DECISION, not a reading.  inscription.SPECIFIED_PRICE_LGO carries the specified value and
+# the gates check what it would do.
+storage_price_lgo     = 0.001
 max_price             = 5_776_413_067_240   # KNOWN  #393: largest price whose fee products fit u64
 claim_tx_bytes        = 306           # DERIVED  sim: fee.claim_tx_bytes()
 claim_tx_gas          = 646           # KNOWN    56 claim + 590 transfer

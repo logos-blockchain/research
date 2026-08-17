@@ -37,6 +37,7 @@ class Config:
 
     # ---- fees, in base units per byte and per gas unit ----
     price_resting: int
+    storage_price_lgo: float
     claim_tx_bytes: int
     claim_tx_gas: int
     transfer_tx_bytes: int
@@ -143,14 +144,51 @@ class Config:
         return self.smoothing_factor / self.smoothing_precision
 
     @property
+    def storage_price(self) -> int:
+        """Price of one Permanent Storage Gas, in base units.
+
+        `storage-markets.md:124` sets `P_STR(0) = 1 LGO per Permanent Storage Gas`, and
+        `:224` makes that same value the market's effective FLOOR: the update rounds upwards
+        precisely so that 1 cannot decay to 0 and make permanent storage free. So this is not
+        merely the opening price, it is the cheapest storage ever gets.
+
+        A billion times the execution price. Charging both markets at one price -- which an
+        earlier version of this model did -- understates every fee by essentially its whole
+        storage component.
+        """
+        return round(self.storage_price_lgo * self.base_units_per_lgo)
+
+    def tx_fee(self, nbytes: int, gas: int) -> int:
+        """| ``fee = bytes * storage_price + gas * execution_price``
+
+        Transcribed from `mantle:141` and `mantle:148`. The two gas markets are charged on
+        different things and priced independently: execution gas per Operation, permanent
+        storage gas on the encoded size of the WHOLE signed transaction.
+
+        Storage dominates so completely that a transaction's fee is, to three figures, its
+        byte count in LGO.
+        """
+        return nbytes * self.storage_price + gas * self.price_resting
+
+    @property
     def claim_fee(self) -> int:
-        """What a claim transaction costs to submit, in base units, at the resting price."""
-        return (self.claim_tx_bytes + self.claim_tx_gas) * self.price_resting
+        """What a claim transaction costs to submit, in base units."""
+        return self.tx_fee(self.claim_tx_bytes, self.claim_tx_gas)
 
     @property
     def avg_tx_fee(self) -> int:
-        """The average transaction, taken as an ordinary transfer at the resting price."""
-        return (self.transfer_tx_bytes + self.transfer_tx_gas) * self.price_resting
+        """The average transaction, taken as an ordinary transfer."""
+        return self.tx_fee(self.transfer_tx_bytes, self.transfer_tx_gas)
+
+    def bundle_fee(self, inscription_bytes: int) -> int:
+        """A transfer carrying an inscription of a given size -- the self-sustaining target.
+
+        The inscription's bytes ride on the same signed transaction, so they are charged at the
+        storage price alongside the transfer's own encoding. That encoding is the floor: even a
+        four-byte inscription costs a transfer's worth of storage before it costs its own.
+        """
+        return self.tx_fee(self.transfer_tx_bytes + inscription_bytes,
+                           self.transfer_tx_gas + self.inscribe_gas)
 
     @property
     def fee_ratio(self) -> float:
@@ -254,6 +292,7 @@ def load(path: str | Path | None = None, **overrides) -> Config:
         base_units_per_lgo=supply["base_units_per_lgo"],
         min_stake_fraction=supply["min_stake_fraction"],
         price_resting=fees["price_resting"],
+        storage_price_lgo=fees["storage_price_lgo"],
         claim_tx_bytes=fees["claim_tx_bytes"],
         claim_tx_gas=fees["claim_tx_gas"],
         transfer_tx_bytes=fees["transfer_tx_bytes"],
