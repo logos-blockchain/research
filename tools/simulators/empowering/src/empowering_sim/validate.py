@@ -356,6 +356,44 @@ def gate_group_credit(cfg: Config) -> None:
           note=f"{credited:,} against {paid:,}, slack {slack}")
 
 
+def gate_alternative_is_neutral(cfg: Config) -> None:
+    """VARIANT GATE -- the joiner-responsive target, not the base mechanism.
+
+    Gated rather than argued, because the variant's whole case rests on the target being
+    able to move the on-ramp, and it cannot. If a future change ever made the target matter
+    for graduation, this would fail, and that would be worth knowing immediately.
+    """
+    print("\nALTERNATIVE (variant, not the base): is the claim target neutral?")
+    from .alternative import joiner_target as alt          # noqa: PLC0415
+
+    targets = (1, 10, 50, 100, 512, 1024)
+    epochs = [alt.epochs_to_graduate(cfg, cfg.genesis_pool, 0.01, t) for t in targets]
+    check("epochs to graduate is identical at every target",
+          max(epochs) - min(epochs) < 1e-9, True,
+          note=f"{epochs[0]:.2f} epochs at targets {targets[0]} through {targets[-1]}")
+    rate = alt.graduations_per_epoch(cfg, cfg.genesis_pool)
+    check("graduations per epoch carries no target", rate, 2.5, rel=1e-9)
+
+    # ... while what it does cost moves a great deal.
+    space = [alt.block_space_share(cfg, t) for t in targets]
+    margin = [alt.self_funding_margin(cfg, t) for t in targets]
+    check("block space consumed does move", space[-1] / space[0] > 100, True,
+          note=f"{space[0]:.1%} at target 1 to {space[-1]:.1%} at target 1024")
+    check("the steady-state margin falls below one past target 50",
+          alt.self_funding_margin(cfg, 60) < 1 < alt.self_funding_margin(cfg, 50), True,
+          note=f"{margin[1]:.2f} at target 10, {alt.self_funding_margin(cfg, 60):.2f} at 60")
+
+    # An attacker inflating the target takes block space, not treasury.
+    s = alt.sybil_exposure(cfg, honest_joiners=4.0, fake_joiners=100.0,
+                           claims_per_joiner=10.0)
+    check("fabricated joiners do not drain the pool faster", s["payout_changed"], False)
+    check("fabricated joiners do not change the graduation rate",
+          s["graduation_rate_changed"], False)
+    check("fabricated joiners do consume the whole block",
+          s["block_space_attacked"] >= 0.99, True,
+          note=f"{s['block_space_honest']:.1%} to {s['block_space_attacked']:.1%}")
+
+
 def main() -> int:
     cfg = load()
     print(f"config: {cfg.label}  (snapshot: {cfg.snapshot_path})")
@@ -378,6 +416,7 @@ def main() -> int:
     gate_pooled_invariance(cfg)
     gate_participation(cfg)
     gate_group_credit(cfg)
+    gate_alternative_is_neutral(cfg)
 
     print()
     if FAILURES:
