@@ -77,6 +77,9 @@ class ElevationRow:
     service_active: bool
     reward_per_claim: int
     pool_lgo: float
+    difficulty_target: int
+    hashrate: float
+    claims_paid: int
     elevated_this_epoch: int
     service_per_provider_lgo: float
 
@@ -197,6 +200,8 @@ def run(cfg: Config, ecfg: ElevationConfig) -> ElevationResult:
             endowed_seated=e_count, providers=providers,
             service_active=services.service_active(providers),
             reward_per_claim=reward, pool_lgo=cfg.to_lgo(state.pool),
+            difficulty_target=state.difficulty_target, hashrate=rate,
+            claims_paid=paid,
             elevated_this_epoch=elevated_now, service_per_provider_lgo=per_prov,
         ))
         est = est.update(cfg.blocks_per_epoch, cfg)

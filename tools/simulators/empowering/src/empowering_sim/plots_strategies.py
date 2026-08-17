@@ -297,6 +297,63 @@ def elevation_and_depletion(cfg, out: Path, epochs: int = 400) -> Path:
     return p
 
 
+def difficulty_control(cfg, out: Path, epochs: int = 200) -> Path:
+    """The difficulty controller, and why it makes the pool's drain unstoppable.
+
+    This is the causal link the other figures leave implicit. Left: the field's search power
+    and the work one claim costs, rising together over three orders of magnitude — the
+    controller tracking the load. Right: the consequence, which is that the claim count does
+    not move at all.
+
+    Because the pool pays a fixed reward per claim and the controller fixes the number of
+    claims, the pool's outflow is fixed too. That is the whole reason depletion turned out to
+    be independent of demand: the difficulty absorbs every bit of the load variation before it
+    can reach the pool.
+    """
+    import matplotlib.pyplot as plt
+    from . import elevation as el
+    from .config import FIELD_MODULUS
+
+    r = el.run(cfg, el.ElevationConfig(miners_per_epoch=50, epochs=epochs))
+    x = [q.epoch for q in r.rows]
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.6))
+
+    axes[0].plot(x, [q.hashrate for q in r.rows], color=SERIES[st.Strategy.MINER],
+                 linewidth=2, zorder=3, label="search power of the field", solid_capstyle="round")
+    axes[0].plot(x, [FIELD_MODULUS / q.difficulty_target for q in r.rows],
+                 color=SERIES[st.Strategy.MINER_STAKER], linewidth=2, zorder=3,
+                 label="candidates one claim costs", solid_capstyle="round")
+    axes[0].set_yscale("log")
+    axes[0].set_xlabel("epoch", color=INK_2, fontsize=9.5)
+    axes[0].set_ylabel("candidates", color=INK_2, fontsize=9.5)
+    axes[0].legend(frameon=False, fontsize=9, ncol=1, loc="upper center",
+                   bbox_to_anchor=(0.5, -0.22), labelcolor=INK_2)
+    _style(axes[0], "The difficulty follows the load",
+           "as miners arrive, the work a claim costs rises to match")
+
+    claims = [q.claims_paid for q in r.rows]
+    axes[1].plot(x, claims, color=SERIES[st.Strategy.MINER_STAKER_SERVICE], linewidth=2,
+                 zorder=3, label="claims actually paid", solid_capstyle="round")
+    tgt = cfg.target_claims_per_block * cfg.blocks_per_epoch
+    axes[1].axhline(tgt, color=INK_2, linewidth=1.4, linestyle=(0, (4, 3)), zorder=4)
+    axes[1].text(x[len(x) // 2], tgt * 1.001, "target: 10 claims a block", color=INK_2,
+                 fontsize=8.5, va="bottom", ha="center")
+    axes[1].set_ylim(tgt * 0.99, tgt * 1.01)
+    axes[1].set_xlabel("epoch", color=INK_2, fontsize=9.5)
+    axes[1].set_ylabel("claims paid per epoch", color=INK_2, fontsize=9.5)
+    axes[1].legend(frameon=False, fontsize=9, loc="upper center",
+                   bbox_to_anchor=(0.5, -0.22), labelcolor=INK_2)
+    _thousands(axes[1], "y")
+    _style(axes[1], "So the payout does not move",
+           "a 380-fold change in load, and the claim count is flat")
+
+    fig.tight_layout(rect=(0, 0.10, 1, 0.88), w_pad=4.0)
+    p = out / "difficulty_control.png"
+    fig.savefig(p, dpi=170, facecolor=SURFACE)
+    plt.close(fig)
+    return p
+
+
 def pow_distributions(cfg, rows, out: Path) -> Path:
     """The proof-of-work reward, per block and per epoch.
 
@@ -351,7 +408,8 @@ def main() -> int:
     pop, rows = st.run(cfg, scfg)
 
     for p in (composition(cfg, pop, scfg, out), per_node(cfg, pop, scfg, out),
-              provider_ramp(cfg, out), elevation_and_depletion(cfg, out),
+              provider_ramp(cfg, out), difficulty_control(cfg, out),
+              elevation_and_depletion(cfg, out),
               pow_distributions(cfg, rows, out)):
         print(f"  wrote {p}")
 
