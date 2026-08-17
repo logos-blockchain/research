@@ -105,13 +105,43 @@ def blocks_led(rng: np.random.Generator, stake: np.ndarray,
     return rng.multinomial(blocks, stake / total).astype(np.int64)
 
 
-def eligible_stake(balance: np.ndarray, min_stake: int) -> np.ndarray:
-    """Balances that clear the minimum, zeroed elsewhere.
+def lottery_weight(balance: np.ndarray, aged: np.ndarray) -> np.ndarray:
+    """Weight a holder brings to the leadership lottery: its aged balance, whatever the size.
 
-    Below the threshold a balance earns nothing from consensus however large the holder's
-    ambitions, and this is the line the on-ramp exists to get people across.
+    **There is no minimum.** The specification is explicit: a node must have held stake as a
+    note for a minimum *time* period, and "the weight of the coin is proportional to the value
+    of your note" (`cryptarchia-v1-protocol.md`). Aging is the gate, not size. So a miner is a
+    consensus participant from its very first aged note, with no threshold to cross and no
+    accumulation required.
+
+    This corrects an earlier model in this simulator which gated all staking income at the
+    minimum stake. That gate is real but it belongs to service provision, below.
+    """
+    return np.where(aged, balance, 0)
+
+
+def service_eligible(balance: np.ndarray, min_stake: int) -> np.ndarray:
+    """Balances that can be locked to declare a service. **This** is what the minimum gates.
+
+    `bedrock-service-declaration-protocol.md`: "The minimum stake is a global value that
+    defines the minimum stake a node must have to perform any service", proven by locking a
+    note. So the threshold, and the ceiling it implies on how many positions an endowment can
+    bootstrap, apply to the service layer alone -- not to consensus, which is unbounded.
     """
     return np.where(balance >= min_stake, balance, 0)
+
+
+def leader_income_from_balance(cfg: Config, balance: float, staked_fraction: float | None = None,
+                               emission_factor: float = 1.0) -> float:
+    """Leader income for an aged balance of any size, per epoch, in the same units.
+
+    | ``leader_income = balance * validation_apy / epochs_per_year``
+
+    Proportional to what is held, with no threshold, which is what makes the on-ramp into
+    consensus immediate rather than something to be earned.
+    """
+    apy = validation_apy(cfg, staked_fraction, emission_factor)
+    return balance * apy / cfg.epochs_per_year
 
 
 def leader_income_per_epoch(cfg: Config, stake_share: float,

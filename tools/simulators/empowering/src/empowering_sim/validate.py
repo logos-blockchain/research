@@ -464,6 +464,49 @@ def gate_stake_aging(cfg: Config) -> None:
                f"{cfg.stake_aging_epochs / at_design:.1%}")
 
 
+def gate_two_participation_classes(cfg: Config) -> None:
+    """Consensus and service provision are gated differently, and the difference decides much.
+
+    Leader rewards need an AGED note and nothing else -- "the weight of the coin is
+    proportional to the value of your note" -- so consensus participation has no threshold and
+    needs no on-ramp. Service provision needs a LOCKED minimum stake. An earlier version of
+    this model gated all staking income at the minimum, which is wrong for consensus and made
+    the on-ramp look like a problem it is not.
+    """
+    print("\nTwo participation classes, gated differently")
+    balances = np.array([1, 1_000, cfg.min_stake - 1, cfg.min_stake, 10 * cfg.min_stake])
+    aged = np.ones(balances.size, dtype=bool)
+
+    weight = consensus.lottery_weight(balances, aged)
+    check("every aged balance carries lottery weight, however small",
+          int((weight == 0).sum()), 0,
+          note="no minimum gates the leadership lottery")
+    check("lottery weight is the balance itself", list(weight), list(balances))
+
+    svc = consensus.service_eligible(balances, cfg.min_stake)
+    check("only balances at or above the minimum can declare a service",
+          int((svc > 0).sum()), 2, note="the threshold belongs to services, not consensus")
+    check("an unaged balance carries no weight",
+          int(consensus.lottery_weight(balances, np.zeros_like(aged)).sum()), 0)
+
+    # The corrected crossing, and its universality.
+    crossings = [crossover.leader_overtakes_mining(cfg, s)["epoch"]
+                 for s in (0.001, 0.01, 0.20, 1.0)]
+    check("leader income overtakes mining at the same epoch at every field share",
+          len(set(crossings)), 1, note=f"epoch {crossings[0]:,}, "
+                                       f"{crossings[0] / cfg.epochs_per_year:.1f} years")
+    check("and that epoch is around one over the yield, pulled in by compounding",
+          crossings[0] / cfg.epochs_per_year, 20.8, rel=0.02,
+          note="30 years without compounding, 20.8 with")
+
+    ceiling = crossover.service_ceiling(cfg)
+    check("the endowment ceiling binds services, not consensus",
+          ceiling["service_positions"], 500.0, rel=1e-9)
+    check("consensus participation is unbounded",
+          ceiling["consensus_positions"] == float("inf"), True,
+          note="no threshold, so no ceiling and no on-ramp needed")
+
+
 def gate_conservation(cfg: Config) -> None:
     """The obstacle in PROPOSAL.md: graduation time times mining dominance is a constant.
 
@@ -592,6 +635,7 @@ def main() -> int:
     gate_crossover_and_min_stake(cfg)
     gate_staking_against_the_spec(cfg)
     gate_stake_aging(cfg)
+    gate_two_participation_classes(cfg)
     gate_conservation(cfg)
     gate_alternative_is_neutral(cfg)
 

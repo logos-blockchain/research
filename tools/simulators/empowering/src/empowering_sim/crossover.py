@@ -102,6 +102,37 @@ def compare(cfg: Config, position: Position, pool: int, difficulty_target: int,
     )
 
 
+def leader_overtakes_mining(cfg: Config, hashrate_share: float, pool: int | None = None,
+                            staked_fraction: float | None = None,
+                            emission_factor: float = 1.0, horizon: int = 6000) -> dict:
+    """When a miner's LEADER income overtakes its mining income.
+
+    The corrected crossover, and the one that matters. Leader rewards carry no minimum: a
+    miner earns them on its whole aged balance from the first claim, so the comparison is
+    between a growing stock and the flow that builds it, not between a flow and a threshold.
+
+    | ``crossing when balance * apy_per_epoch > hashrate_share * distribution_rate * pool``
+
+    Since the balance grows at exactly that flow, the crossing time is ``1 / apy_per_epoch``
+    and **the field share, the distribution rate and the pool size all cancel**. Compounding
+    pulls it in: measured at epoch 1,013, about 20.8 years, identical at every field share.
+    """
+    pool = cfg.genesis_pool if pool is None else pool
+    apy_epoch = consensus.validation_apy(cfg, staked_fraction, emission_factor) \
+        / cfg.epochs_per_year
+    flow = hashrate_share * cfg.distribution_rate * pool
+    if flow <= 0 or apy_epoch <= 0:
+        return dict(epoch=None, years=None)
+    balance = 0.0
+    for e in range(horizon):
+        if balance * apy_epoch > flow:
+            return dict(epoch=e, years=e / cfg.epochs_per_year,
+                        balance_lgo=cfg.to_lgo(balance),
+                        mining_lgo=cfg.to_lgo(flow))
+        balance += flow + balance * apy_epoch
+    return dict(epoch=None, years=None, note="no crossing inside the horizon")
+
+
 def crossover_epoch(cfg: Config, position: Position, staked_fraction: float,
                     horizon: int = 3000, txs_per_block: int | None = None) -> dict:
     """The epoch at which staking income first exceeds mining income.
@@ -127,6 +158,22 @@ def crossover_epoch(cfg: Config, position: Position, staked_fraction: float,
                         mining_lgo=cfg.to_lgo(mining))
     return dict(epoch=None, years=None, staking_lgo=cfg.to_lgo(staking),
                 note="staking never overtakes inside the horizon")
+
+
+def service_ceiling(cfg: Config) -> dict:
+    """Positions the endowment can bootstrap into SERVICE provision.
+
+    The threshold, and therefore this ceiling, belong to the service layer. Consensus
+    participation has no threshold at all, so it is neither bounded by the endowment nor in
+    need of an on-ramp -- which is the single most important consequence of separating the
+    two participation classes.
+    """
+    return dict(
+        service_positions=cfg.genesis_pool / cfg.min_stake,
+        consensus_positions=float("inf"),
+        consensus_gate=f"{cfg.stake_aging_epochs} epochs of note aging, no minimum",
+        service_gate=f"{cfg.to_lgo(cfg.min_stake):,.0f} LGO locked",
+    )
 
 
 # ------------------------------------------------------------------ interpreting min_stake
