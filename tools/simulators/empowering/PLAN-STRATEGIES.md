@@ -88,9 +88,10 @@ the earlier 500-position ceiling: it bounds access to the most lucrative stream 
 - **The emission control function is fully specified** in normative integer form,
   `A_t' = min(12e7, max(0, 3e9 - D_0t + 10512 * sum_{119}(D_1)))` with `STAKE_TARGET = 3e9`
   — confirming the 30% target and the 95.1294 LGO block reward independently.
-- **`min_stake.stake_threshold` is UNSET in the specification.** Only an analysis derives it.
-  It is therefore a sweep axis, not a constant — and since it gates the most valuable stream,
-  it is the most consequential axis in the study.
+- **`min_stake.stake_threshold` is FIXED at 1,000 LGO** and is not a sweep axis. The
+  specification does not value it and an analysis derives it; the figure is settled. Its
+  consequence is that the service on-ramp costs about 865 claims — weeks, not years — so the
+  binding constraint on the stream is the thirty-two-provider floor rather than the bond.
 
 The extraction also lists eleven contradictions between documents, several load-bearing. The
 APY one is already gated here; the others need reading before they can be ranked.

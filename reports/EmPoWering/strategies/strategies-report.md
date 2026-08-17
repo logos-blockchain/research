@@ -161,29 +161,36 @@ congestible, and the two facts are the same fact.
 
 ![how many nodes become service providers, and when](figures/provider_ramp.png)
 
-The two groups arrive at the bond by different routes. The endowed group holds far more than
-the threshold from genesis, so it is a provider as soon as its declaration clears the
-two-epoch snapshot lag — bonded at epoch 2 and never later. The miners have to earn theirs,
-and at the settled 1,000 LGO bond that takes **about 865 claims**: the group crosses from none
-to all of it between epochs 2 and 5, roughly five weeks.
+The bond is **fixed at 1,000 LGO**. The two groups reach it by different routes. The endowed
+group holds far more than the bond from genesis, so it is a provider as soon as its
+declaration clears the two-epoch snapshot lag — bonded at epoch 2 and never later. The miners
+must earn theirs, which at this bond is about **865 claims**: the group crosses from none to
+all between epochs 2 and 5, roughly five weeks.
 
-The right panel is the same question asked of the parameter nobody has settled:
+So the on-ramp into the largest reward stream on the chain takes about a month, and note
+aging rather than the bond is what floors it — a miner waits nearly as long for its notes to
+age as it does to earn them.
 
-| bond | miners fully bonded by |
+**With the bond fixed, the live question is not how high the threshold is but who turns up.**
+The right panel drops the endowed cohort entirely and asks whether a network of miners can
+turn the service stream on by itself:
+
+| miner cohort, nobody already inside | outcome |
 | --- | --- |
-| 1,000 LGO | **epoch 5** (~5 weeks) |
-| 10,000 LGO | still climbing at epoch 40; ~90% of the way |
-| 100,000 LGO | essentially none of them inside 40 epochs |
+| 16 nodes | plateaus at 16 — **never reaches the floor, so the stream never pays** |
+| 32 nodes | exactly at the floor; marginal |
+| 64 nodes | clears it by epoch 4 |
+| 100 nodes | clears it by epoch 4 |
 
-A hundredfold change in a threshold the specification leaves UNSET moves the on-ramp from
-five weeks to longer than this study runs. It is the single most consequential unset value in
-the mechanism.
+**A cohort smaller than thirty-two never turns the stream on, however long it mines.** Its
+members can each cross the bond in a month and still earn nothing from it, because the reward
+is not calculated at all below that count.
 
-**And there is a bootstrapping dependency hiding in the left panel.** Both curves stay above
-the 32-provider floor throughout — but only because the endowed group alone is a hundred
-nodes. A network of miners *without* an already-endowed cohort would sit below the floor for
-the whole ramp, and the service stream would not exist during precisely the period the miners
-are working to join it. The on-ramp needs somebody already inside to be worth walking up.
+That is a real bootstrapping condition, and it is the reason the left panel looks so
+comfortable: both curves there sit above the floor throughout only because the endowed group
+alone is a hundred nodes. It carries the floor while the miners ramp. **The on-ramp needs
+somebody already inside for it to be worth walking up** — or it needs at least thirty-two
+people to arrive together.
 
 ---
 
@@ -351,11 +358,12 @@ the minimum still carries its full stake into the lottery.
 base share. Every provider here earns the base share, so the service groups' dispersion is
 understated — the flatness in §2 is the floor of the flatness, not the whole of it.
 
-**The bond itself is a decision, not a reading.** `min_stake.stake_threshold` is UNSET in the
-specification. This study uses 1,000 LGO, the figure the static minimum stake analysis derives
-— though that analysis assumed a supply a hundred times smaller than the one that governs. At
-100,000 LGO instead, reaching the bond takes 86,401 claims rather than 865, and strategy 3
-would not reach it inside this run at all.
+**The bond is fixed at 1,000 LGO and is not a study axis.** The specification names
+`min_stake.stake_threshold` without valuing it, and the static minimum stake analysis derives
+1,000 — under a supply a hundred times smaller than the one that governs, though the figure
+stands as settled regardless. What it leaves behind is that the service on-ramp is a matter of
+weeks, so **note aging rather than the bond is what floors it**, and the binding constraint on
+the stream is the thirty-two-provider count rather than the amount anyone must post.
 
 ---
 

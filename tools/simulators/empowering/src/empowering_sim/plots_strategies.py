@@ -167,20 +167,23 @@ def per_node(cfg, pop, scfg, out: Path) -> Path:
     return p
 
 
-def provider_ramp(cfg, out: Path, thresholds=(1_000.0, 10_000.0, 100_000.0),
-                  epochs: int = 40) -> Path:
+def provider_ramp(cfg, out: Path, cohort_sizes=(16, 32, 64, 100), epochs: int = 40) -> Path:
     """How many nodes become service providers, and when.
 
-    Two panels, because the answer has two halves. On the left, who crosses at the settled
-    threshold: the endowed group is bonded from the moment its declaration clears the two-epoch
-    snapshot lag, while the miners have to earn their bond first. On the right, how much later
-    that happens if the threshold is higher -- which is the one parameter nobody has settled.
+    Two panels. On the left, who crosses at the fixed 1,000 LGO bond: the endowed group is
+    bonded from the moment its declaration clears the two-epoch snapshot lag, while the miners
+    must earn theirs first.
 
-    The thirty-two-provider floor is drawn on both, because below it the stream does not pay
-    at all and the ramp is not merely slower but irrelevant.
+    On the right, the question the left panel raises. Both curves there sit above the floor
+    throughout -- but only because the endowed group alone is a hundred nodes. **With the bond
+    fixed, whether the stream exists at all comes down to how many nodes turn up.** A network
+    of miners with no already-endowed cohort has to reach thirty-two bonded providers on its
+    own, and a cohort smaller than that never does, at any bond and after any amount of work.
+
+    The floor is drawn on both, because below it the stream does not pay at all and a ramp
+    toward it is not merely slow but pointless.
     """
     import matplotlib.pyplot as plt
-    from dataclasses import replace
 
     fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.6))
 
@@ -203,20 +206,23 @@ def provider_ramp(cfg, out: Path, thresholds=(1_000.0, 10_000.0, 100_000.0),
     _style(axes[0], "Who becomes a provider, and when",
            f"at the settled {cfg.min_stake_lgo:,.0f} LGO bond")
 
-    # -- right: how the threshold delays it
-    for i, thr in enumerate(thresholds):
-        c2 = replace(cfg, min_stake_lgo=thr)
-        _, r2 = st.run(c2, st.StrategyConfig(epochs=epochs))
+    # -- right: miners alone, with no endowed cohort to carry the floor.
+    # The bond is fixed, so it is no longer a question. What is left is who turns up.
+    miners_only = {x: x in st.MINING for x in st.Strategy}
+    for i, k in enumerate(cohort_sizes):
+        _, r2 = st.run(cfg, st.StrategyConfig(
+            epochs=epochs, enabled=miners_only,
+            nodes_per_group={x: k for x in st.Strategy}))
         axes[1].plot([r.epoch for r in r2], [r.providers for r in r2],
                      color=list(SERIES.values())[i], linewidth=2, zorder=3,
-                     label=f"{thr:,.0f} LGO", solid_capstyle="round")
-    axes[1].legend(frameon=False, fontsize=9, ncol=3, loc="upper center",
+                     label=f"{k} nodes", solid_capstyle="round")
+    axes[1].legend(frameon=False, fontsize=9, ncol=4, loc="upper center",
                    bbox_to_anchor=(0.5, -0.22), labelcolor=INK_2,
-                   title="bond", title_fontsize=9)
+                   title="miner cohort, nobody already inside", title_fontsize=9)
     axes[1].set_xlabel("epoch", color=INK_2, fontsize=9.5)
     axes[1].set_ylabel("service providers", color=INK_2, fontsize=9.5)
-    _style(axes[1], "How the bond delays it",
-           "the bond is UNSET in the specification — this is the decision")
+    _style(axes[1], "Miners alone, with nobody already inside",
+           "a cohort under 32 never turns the stream on, however long it mines")
 
     for ax in axes:
         ax.axhline(services.MIN_PROVIDERS, color="#e34948", linewidth=1.4, zorder=4,

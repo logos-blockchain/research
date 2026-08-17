@@ -64,11 +64,14 @@ class Config:
     # which is the anchor every staking figure here rests on.
     max_emission_per_year: float = 0.01
     stake_target: float = 0.30
-    # UNSET in the specification -- bedrock-service-declaration-protocol.md names
-    # min_stake.stake_threshold and gives it no value. The figure here is the one the static
-    # minimum stake analysis derives, and it is a DECISION rather than a reading: that
-    # analysis assumed S_TGE = 10^8 where block-rewards.md governs at 10^10, so the same
-    # 0.001% rule would give 100,000 LGO instead. 1,000 is carried deliberately.
+    # FIXED at 1,000 LGO and not a study axis. The specification names
+    # min_stake.stake_threshold without valuing it, and the static minimum stake analysis
+    # derives 1,000 -- under an S_TGE of 10^8 where block-rewards.md governs at 10^10, so the
+    # same 0.001% rule would have given 100,000. The figure stands as settled regardless.
+    #
+    # Its consequence is that reaching the bond costs about 865 claims, days to weeks of
+    # mining, so the service on-ramp is fast and note aging rather than the bond is what
+    # floors it.
     min_stake_lgo: float = 1_000.0
     # The genesis seed for the inferred total stake. bedrock-genesis-block.md:317 sets it to
     # the total tokens distributed at genesis; block-rewards.md's narrative assumes it small.
