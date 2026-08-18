@@ -867,6 +867,59 @@ def gate_inscription(cfg: Config) -> None:
           note="genesis_pool / min_stake = 50,000 is what the ENDOWMENT funds, not the ceiling")
 
 
+def gate_targets(cfg: Config) -> None:
+    """The three inversions, and the bound the specification states on itself."""
+    print("\nParameterising by outcome: the three inversions")
+    from dataclasses import replace                          # noqa: PLC0415
+
+    from . import targets as tg                              # noqa: PLC0415
+
+    # A node target buys time, not budget -- the pool is not consumed.
+    o = tg.onboarding_schedule(cfg, 10_000)
+    check("bonds an epoch the refill alone funds", round(o.bonds_per_epoch_funded), 268)
+    check("years to onboard 10,000 if bonded miners retire", round(o.years_retiring, 1), 4.0)
+    check("and if they do not", round(o.years_persistent, 1), 8.6,
+          note="an unspecified behaviour, worth a factor of two in the schedule")
+    check("the schedule is linear in the node target",
+          round(tg.onboarding_schedule(cfg, 20_000).years_retiring
+                / o.years_retiring, 6), 2.0)
+
+    # A bootstrap period inverts onto distribution_rate, and carries a hard floor.
+    check("the current rate corresponds to this bootstrap period",
+          tg.distribution_rate_for(cfg, 9.4)["denominator"], 199,
+          note="against the specified 1/200")
+    check("drain safety floors the bootstrap period at", round(tg.min_bootstrap_years(cfg), 2),
+          4.82, note="below it the epoch's payout no longer fits in the blocks to carry it")
+    check("a two-year bootstrap is not drain-safe",
+          tg.distribution_rate_for(cfg, 2.0)["drain_safe"], False)
+    check("a five-year one is", tg.distribution_rate_for(cfg, 4.85)["drain_safe"], True)
+
+    # An inscription target inverts onto pow_share, and is capped whatever storage costs.
+    check("a 256-byte target needs this share", round(tg.pow_share_for(cfg, 256)["pow_share"],
+                                                      4), 0.0373)
+    check("a 1 kB target needs essentially the share already specified",
+          round(tg.pow_share_for(cfg, 1024)["against_current"], 2), 0.99,
+          note="so choosing 1 kB pins pow_share where it already is, with 1% of headroom")
+    check("past the ceiling the target is unreachable at any share",
+          tg.pow_share_for(cfg, 1200)["reachable"], False)
+    check("256 bytes is the swept size with real headroom",
+          round(tg.pow_share_for(cfg, 256)["headroom"], 2), 4.04)
+
+    # The one constraint the inversions cannot see, because they balance fees against fees.
+    a = tg.affordable(cfg)
+    check("the specification's own claim-fee ceiling, in LGO",
+          round(a["spec_ceiling_lgo"], 3), 1.157, note="mantle:1858, as a fraction of supply")
+    check("the operating price sits inside it", a["affordable"], True,
+          note=f"{a['ratio']:.2f}x the ceiling")
+    spec = replace(cfg, storage_price_lgo=1.0)
+    check("the SPECIFIED storage price violates it by",
+          round(tg.affordable(spec)["ratio"]), 264,
+          note="storage-markets.md:126 against mantle:1858 -- the two disagree by 10^9")
+    check("and mantle:1858 computes its own figure at one price for both markets",
+          (cfg.claim_tx_bytes + cfg.claim_tx_gas) * cfg.price_resting, 6_664,
+          note="which is where the single-price fee model came from")
+
+
 def gate_strategies(cfg: Config) -> None:
     """The strategy study: paired draws, isolation, conservation and the service floor."""
     print("\nThe strategy study")
@@ -993,6 +1046,7 @@ def main() -> int:
     gate_emission(cfg)
     gate_fee_markets(cfg)
     gate_inscription(cfg)
+    gate_targets(cfg)
     gate_strategies(cfg)
     gate_alternative_is_neutral(cfg)
 
