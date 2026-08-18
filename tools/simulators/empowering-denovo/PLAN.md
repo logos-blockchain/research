@@ -183,11 +183,18 @@ each requirement **by number**:
 
 ## 3. Design questions (to be settled one by one, before Phase A freezes)
 
-1. **The bootstrap reward rule** — the one free choice left. Candidates: (a) fixed subsidy
-   multiple `c × anchor` (one new parameter); (b) demand-indexed: `budget / claims_last_epoch`
-   floored at the anchor (zero new parameters, reward self-adjusts, spikes dilute per-claim
-   value); (c) anchored to time-to-bond for a reference device (no new parameter but couples
-   to the difficulty).
+1. **The bootstrap reward rule** — SETTLED 2026-08-18: **demand-indexed**,
+   `reward_e = max(anchor, epoch_budget / claims_seen_last_epoch)`. Zero new parameters; quiet
+   epochs pay big, spikes dilute per-claim value while everyone is still paid and the budget
+   borrows forward; cohorts arriving in different epochs earn at different rates, which the
+   report must show honestly. The alternatives are to be RECORDED IN THE REPORT as
+   alternatives, with short descriptions: (a) a fixed subsidy multiple `c × anchor` — one new
+   parameter, every cohort earns at the same rate for the whole phase, simplest to reason
+   about, but `c` needs defending and a badly sized `c` either exhausts the pool early or
+   onboards too slowly; (b) a time-to-bond anchor — the reward sized so a reference device
+   (Pi 5, from `powcost`) reaches `min_stake` in a target number of epochs, no free parameter
+   and the strongest onboarding story, but it couples the reward to the difficulty and field
+   size, which is the entanglement this redesign removes.
 2. **Borrow-forward semantics** on saturation: draw from the undivided remaining endowment, or
    from the next epoch's sub-pool explicitly (changes whether a spike shortens the phase at
    the end or dims the next epoch).
