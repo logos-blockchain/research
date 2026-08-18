@@ -77,15 +77,17 @@ consequence**: `capacity = epoch_budget / reward`. Nothing targets it.
 
 ### 1.4 The difficulty becomes a throttle, not an economic controller
 
-With no claim-count target, the retarget's job changes by regime:
+**One throttle, both phases** (settled at §3 Q4, superseding an earlier two-role sketch). The
+existing EMA retarget runs unchanged in both regimes against a derived per-epoch target:
 
-- **Bootstrap:** difficulty is a spam floor only. Claims are welcome at any rate; saturation
-  handles the economics. (The existing EMA machinery survives with a permissive target.)
-- **Post-bootstrap (R7b):** the difficulty *is* the even-spreading mechanism. Target the
-  saturation point at the epoch end: if the budget ran out early, tighten; if budget was left
-  over, relax. The existing EMA retarget maps onto this with a derived per-epoch target,
-  `capacity / blocks_per_epoch` — the machinery is reused, only the target stops being a
-  constant.
+| `claims_target_per_block(e) = capacity_e / blocks_per_epoch`  where  `capacity_e = epoch_budget_e / reward_e` |
+| --- |
+
+The machinery is reused; only the target stops being a constant. Its job is R7b's evenness --
+steering the saturation point toward the epoch end -- in *both* phases, and it is no longer an
+economic controller at all: the difficulty cannot change a node's share of claims, only their
+granularity, so spike absorption is carried entirely by the demand-indexed reward and the
+borrow-forward. The phases differ in nothing but budget source and reward level.
 
 ### 1.5 The transition is automatic (R2)
 
@@ -208,7 +210,16 @@ each requirement **by number**:
    reward already insulates claimants from within-epoch noise — a quiet epoch simply funds a
    small next one and the throttle absorbs the swing. The EMA variant is recorded as an
    alternative, to be revisited only if simulations show raw budgets whipsawing the throttle.
-4. **Bootstrap difficulty floor**: pure spam floor, or keep mild within-epoch smoothing.
+4. **The difficulty's role** — SETTLED 2026-08-18: **one throttle, both phases**, superseding
+   this plan's own two-role sketch in §1.4. The same EMA retarget runs in both regimes with
+   the derived target `capacity_e / blocks_per_epoch`, `capacity = budget / reward`. The
+   phases differ only in budget source and reward level; there is no per-phase difficulty
+   logic and no discontinuity at the transition. Spike absorption is fully economic
+   (demand-indexed reward + borrow-forward) — the difficulty never changes a node's SHARE of
+   claims, only their granularity — and claims spread evenly in both phases. The static spam
+   floor (spikes bunch the epoch's capacity into its first blocks, contending for block
+   space, plus a step at the transition) and the floor-with-mild-smoothing middle ground go
+   in the report as alternatives.
 5. **Epoch-fixed reward** (R6's revisitable clause): keep — it costs nothing in this design
    and preserves the wallet's self-funding claim. Recommend keep; confirm.
 6. **Transition hysteresis**: none (recommend), or a guard band so fee noise near the boundary
