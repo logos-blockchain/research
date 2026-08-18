@@ -195,9 +195,14 @@ each requirement **by number**:
    (Pi 5, from `powcost`) reaches `min_stake` in a target number of epochs, no free parameter
    and the strongest onboarding story, but it couples the reward to the difficulty and field
    size, which is the entanglement this redesign removes.
-2. **Borrow-forward semantics** on saturation: draw from the undivided remaining endowment, or
-   from the next epoch's sub-pool explicitly (changes whether a spike shortens the phase at
-   the end or dims the next epoch).
+2. **Borrow-forward semantics** — SETTLED 2026-08-18: **the undivided endowment**. On
+   saturation, payment continues from the remaining TGE endowment at large, and every later
+   sub-pool is recomputed as `remaining_endowment / remaining_epochs`. A spike therefore thins
+   all later epochs slightly and pulls the phase's end earlier — no cliff, no dim-epoch
+   oscillation incentive, and the budget formula stays one line. The explicit
+   next-epoch-first alternative (legible accounting, but a dim epoch after every bright one
+   and a wait-it-out incentive) and the hard cap (rationing — rejected by R5 outright) go in
+   the report as alternatives.
 3. **Post-phase budget source**: all of the previous epoch's diverted fees, or an EMA of them
    (smoother, one more state variable).
 4. **Bootstrap difficulty floor**: pure spam floor, or keep mild within-epoch smoothing.
