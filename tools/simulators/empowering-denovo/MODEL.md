@@ -63,6 +63,9 @@ only ever falls, so the transition fires once and cannot flap).
 def on_epoch_boundary(e):
     fee_bucket   = fee_bucket_remaining + fee_accrual      # unspent F rolls forward; see note
     fee_accrual  = 0
+    if 0 < endowment < anchor():                           # the dust fold; see note below
+        fee_bucket += endowment
+        endowment   = 0
 
     if endowment > 0:                                      # ---- bootstrap
         epochs_left  = max(1, BOOTSTRAP_EPOCHS - e)
@@ -94,6 +97,14 @@ at genesis); `max(anchor, ·)` keeps R8's ordering — the bootstrap reward is n
 post-phase one. The reference triple opens at `budget_0 // 21,600 ≈ 1.19e10` lepta ≈ **11.9
 LGO per claim** — about ten times the old design's opening, because a four-year linear spend
 is faster than a 1/200 geometric one.
+
+**The dust fold.** Payments draw the fee bucket first, so the endowment's last remainder is
+whatever the final borrow leaves -- strictly less than one reward. Without this rule that dust
+keeps `endowment > 0` true forever and the transition never fires (the simulator found the
+deadlock on its first full run: the regime froze one reward short of the end). Folding a
+remainder smaller than the anchor into the fee bucket ends the phase exactly when the
+endowment can no longer fund a single claim, conserves every lepton, and keeps the transition
+one-way -- the fold only ever moves value out of `endowment`.
 
 **Rollover note.** Q3 says the post-phase budget is the previous epoch's fees, *raw*. When an
 epoch under-spends (the throttle overshot), the unspent remainder stays in `fee_bucket` and
