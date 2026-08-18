@@ -345,7 +345,8 @@ def difficulty_control(cfg, out: Path, epochs: int = 200) -> Path:
                    bbox_to_anchor=(0.5, -0.22), labelcolor=INK_2)
     _thousands(axes[1], "y")
     _style(axes[1], "So the payout does not move",
-           "a 380-fold change in load, and the claim count is flat")
+           f"a {r.rows[-1].hashrate / r.rows[0].hashrate:,.0f}-fold change in load, "
+           f"and the claim count is flat")
 
     fig.tight_layout(rect=(0, 0.10, 1, 0.88), w_pad=4.0)
     p = out / "difficulty_control.png"

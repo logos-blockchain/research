@@ -87,7 +87,7 @@ To make the difficulty an onboarding controller it would have to retarget on som
 
 Little, and most of it is presentation:
 
-1. **A `targets.py` that inverts the three closed forms.** Trivial; they are the formulas above. Not yet built.
+1. **A `targets.py` that inverts the three closed forms.** Built, and gated: the validation suite asserts each inversion against the numbers in this note.
 2. **The config takes targets and derives the parameters.** A presentation change, not a model change — the simulator computes the same things afterwards.
 3. **Conversion efficiency becomes an explicit input**, because the first inversion cannot be stated without it. This is the substantive part: it forces a currently-invisible behaviour — worth a factor of four and a half in the budget — into the parameter set.
 4. **Only if the steady-state goal is to hold at every traffic level**: the reward gains a floor at the bundle. That one is a mechanism change and should be taken on its own merits.

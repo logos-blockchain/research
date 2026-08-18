@@ -8,10 +8,13 @@ Everything here runs on one honest chain. Every group is simulated at the same t
 
 Notation follows the tokenomics report's convention — prose and code spans carry self-describing names, so `reward_per_claim` here is the same quantity as `reward_per_claim` there and in the specification.
 
-Regenerate every figure with:
+Regenerate every figure with (from `tools/simulators/empowering`):
 
 ```
-python3 -m empowering_sim.plots_strategies --out figures/strategies --epochs 120 --nodes 100
+PYTHONPATH=src python3 -m empowering_sim.plots_strategies \
+    --out ../../../reports/EmPoWering/strategies/figures --epochs 120 --nodes 100
+PYTHONPATH=src python3 -m empowering_sim.plots_inscription \
+    --out ../../../reports/EmPoWering/strategies/figures
 ```
 
 ---
@@ -180,7 +183,7 @@ Without retirement the arrival rate barely matters: elevation sits near 5,000 wh
 
 ![proof-of-work reward per block and per epoch](figures/pow_distributions.png)
 
-Per block this is the arrival process at a fixed price: the reward per claim is frozen for the whole epoch, so the shape is just the Poisson count of claims, with a median of 8.4 LGO a block against a target of ten claims at the opening reward. Per epoch the picture also carries the reward's decay, which is why it is not the same distribution rescaled — the spread runs from about 250,000 LGO down through 140,000 across the run as the pool drains. Neither distribution has a tail worth worrying about.
+Per block this is the arrival process at a fixed price: the reward per claim is frozen for the whole epoch, so the shape is just the Poisson count of claims, with a median of 8.4 LGO a block over the whole run — ten claims at the mid-run price. At the opening price a target block pays 11.6 LGO; the pooled median sits below it because the reward decays across the run. Per epoch the picture also carries the reward's decay, which is why it is not the same distribution rescaled — the spread runs from about 250,000 LGO down through 140,000 across the run as the pool drains. Neither distribution has a tail worth worrying about.
 
 ---
 
@@ -239,7 +242,7 @@ The prices being equal is a fact about where the markets rest, not about how the
 
 ### The transfer's own encoding is most of the cost
 
-An inscription never pays only for itself: it rides on a transfer whose own 207 bytes and 590 gas are already on the meter. At 4 bytes the inscription is **0.4%** of what the bundle costs. Only past 512 bytes does the message reach even half of its own transaction. Anyone reasoning about "the cost of inscribing N bytes" should start from the fixed cost of one transfer and treat N as the increment.
+An inscription never pays only for itself: it rides on a transfer whose own 207 bytes and 590 gas are already on the meter. At 4 bytes the inscription is **0.5%** of what the bundle costs. Only past 512 bytes does the message reach even half of its own transaction. Anyone reasoning about "the cost of inscribing N bytes" should start from the fixed cost of one transfer and treat N as the increment.
 
 ### The ceiling is 3,929 bytes
 

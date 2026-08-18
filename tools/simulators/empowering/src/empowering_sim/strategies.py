@@ -63,8 +63,10 @@ class StrategyConfig:
     stake_pareto_shape: float = 1.16       # tail index; lower is more concentrated
     hashrate_pareto_shape: float = 1.16
 
-    # New nodes seated each epoch, per group. Zero means the group is seated once at genesis
-    # and never grows, which is the static case the earlier studies used.
+    # NOT IMPLEMENTED: only the array sizing was ever built, no seating code exists, and a
+    # nonzero value crashed in the first epoch's attribution step. Rejected explicitly below
+    # so the failure is a sentence rather than a shape error. Dynamic arrivals are the
+    # elevation study's axis -- `elevation.py` implements them properly.
     arrivals_per_epoch: dict[Strategy, float] = field(default_factory=dict)
 
     epochs: int = 120
@@ -136,6 +138,12 @@ def build_population(cfg: Config, scfg: StrategyConfig,
     active = scfg.active()
     # Draw enough of each shared vector to cover every node that will EVER be seated, so an
     # arrival at epoch 300 gets the same draw it would have got at epoch 0.
+    if any(v > 0 for v in scfg.arrivals_per_epoch.values()):
+        raise NotImplementedError(
+            "arrivals_per_epoch is not implemented in the strategy study -- run() has no "
+            "seating step, so the reward arrays outgrow the population arrays and the first "
+            "attribution crashes. Use elevation.py for dynamic arrivals.")
+
     def eventual(s: Strategy) -> int:
         return (scfg.nodes_per_group.get(s, 0)
                 + int(np.ceil(scfg.arrivals_per_epoch.get(s, 0.0) * scfg.epochs)))

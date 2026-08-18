@@ -37,8 +37,6 @@ from .config import Config
 
 SIZES = (4, 8, 16, 32, 64, 128, 256, 512, 1024)
 
-# What storage-markets.md:126 states. The config does not use it -- see that file.
-SPECIFIED_PRICE_LGO = 1.0
 
 
 def max_inscription_bytes(cfg: Config) -> float:
@@ -83,34 +81,6 @@ def affordable_storage_price(cfg: Config) -> float:
     opening = economics.reward_per_claim(cfg.genesis_pool, cfg)
     head = opening - cfg.claim_tx_gas * cfg.price_resting
     return max(0.0, head / cfg.claim_tx_bytes)
-
-
-def self_funding_storage_price(cfg: Config) -> float:
-    """The storage price at which the endowment IS the pool's fee-funded fixed point.
-
-    | ``P = (rho * genesis_pool / (blocks_per_epoch * txs_per_block * pow_share)
-             - transfer_tx_gas * price_resting) / transfer_tx_bytes``
-
-    Below it the pool drains toward a smaller fixed point, above it the pool grows. At it the
-    pool neither depletes nor accumulates, from genesis onwards -- so the depletion horizon
-    that dominates this study at a mispriced fee is not a property of the mechanism but of the
-    price it is run at.
-    """
-    per_epoch = (cfg.blocks_per_epoch * cfg.txs_per_block
-                 * cfg.pow_share_num / cfg.pow_share_den)
-    fee = cfg.distribution_rate * cfg.genesis_pool / per_epoch
-    return ((fee - cfg.transfer_tx_gas * cfg.price_resting)
-            / cfg.transfer_tx_bytes / cfg.base_units_per_lgo)
-
-
-def elevations_per_epoch(cfg: Config) -> float:
-    """How many bonds the refill alone funds each epoch, indefinitely.
-
-    With fees priced correctly this replaces ``genesis_pool / min_stake`` as the study's
-    ceiling: that quantity is what the ENDOWMENT funds, and the endowment is no longer the
-    only source.
-    """
-    return economics.epoch_refill(cfg) / cfg.min_stake
 
 
 @dataclass(frozen=True)

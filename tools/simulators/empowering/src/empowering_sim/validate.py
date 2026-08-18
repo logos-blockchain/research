@@ -807,6 +807,53 @@ def gate_tx_sizes(cfg: Config) -> None:
                f"study rests on the framing")
 
 
+def gate_report_headlines(cfg: Config) -> None:
+    """The published tables that had no gate: section 3's medians, section 6's clock, and the
+    elevation study's emission regime."""
+    print("\nThe report's headline tables, pinned to the runs that produced them")
+    import numpy as np                                        # noqa: PLC0415
+
+    from . import elevation as el                             # noqa: PLC0415
+    from . import strategies as st                            # noqa: PLC0415
+
+    # Section 3's table, at the published configuration (120 epochs, 100 nodes per group).
+    pop, _ = st.run(cfg, st.StrategyConfig())
+    tot = pop.reward_pow + pop.reward_leader + pop.reward_service
+    med = {s: float(np.median(tot[pop.strategy == s.value])) / cfg.base_units_per_lgo
+           for s in st.Strategy}
+    base = med[st.Strategy.STAKER]
+    for strat, want_lgo, want_ratio in (
+            (st.Strategy.MINER, 50_151, 0.31),
+            (st.Strategy.MINER_STAKER, 52_478, 0.32),
+            (st.Strategy.STAKER, 163_851, 1.00),
+            (st.Strategy.MINER_STAKER_SERVICE, 807_612, 4.93),
+            (st.Strategy.STAKER_SERVICE, 930_422, 5.68)):
+        check(f"section 3 median, {strat.name.lower()}", round(med[strat]), want_lgo,
+              note=f"{med[strat] / base:.2f}x a plain stakeholder, published {want_ratio}x")
+
+    # Section 6's depletion clock is a closed form of the distribution rate alone.
+    import math                                               # noqa: PLC0415
+    half = math.log(0.5) / math.log(1 - cfg.distribution_rate)
+    ninety = math.log(0.1) / math.log(1 - cfg.distribution_rate)
+    check("the pool's half-life, epochs", round(half), 138)
+    check("and 90% depletion", round(ninety), 459,
+          note=f"{ninety / cfg.epochs_per_year:.1f} years -- section 6's clock")
+
+    # The elevation study's emission regime. A previous revision fed the stake estimator its
+    # own expectation, pinning it at the 1e10 seed with the emission factor at zero, so the
+    # recorded service income sat four orders of magnitude below the regime the study's own
+    # retirement rationale assumes. The estimator must converge and the income must be of the
+    # order the strategy study pays.
+    r = el.run(cfg, el.ElevationConfig(epochs=12))
+    check("elevation's estimator leaves the genesis seed",
+          r.rows[6].service_per_provider_lgo > 1_000.0, True,
+          note=f"{r.rows[6].service_per_provider_lgo:,.0f} LGO per provider at epoch 6, "
+               f"against 0.09 under the pinned estimator")
+    check("and the elevation counts are pure pool arithmetic, untouched by the fix",
+          el.run(cfg, el.ElevationConfig(miners_per_epoch=100, epochs=400,
+                                         retire_on_bond=False)).elevated, 5_682)
+
+
 def gate_targets(cfg: Config) -> None:
     """The three inversions: state the outcome, derive the parameter."""
     print("\nParameterising by outcome: the three inversions")
@@ -982,6 +1029,7 @@ def main() -> int:
     gate_inscription(cfg)
     gate_tx_sizes(cfg)
     gate_targets(cfg)
+    gate_report_headlines(cfg)
     gate_strategies(cfg)
     gate_alternative_is_neutral(cfg)
 

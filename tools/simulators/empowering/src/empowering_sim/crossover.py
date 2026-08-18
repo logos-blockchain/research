@@ -113,9 +113,12 @@ def leader_overtakes_mining(cfg: Config, hashrate_share: float, pool: int | None
 
     | ``crossing when balance * apy_per_epoch > hashrate_share * distribution_rate * pool``
 
-    Since the balance grows at exactly that flow, the crossing time is ``1 / apy_per_epoch``
-    and **the field share, the distribution rate and the pool size all cancel**. Compounding
-    pulls it in: measured at epoch 1,013, about 20.8 years, identical at every field share.
+    **The field share and the pool size cancel; the distribution rate does not.** The flow a
+    miner races is `distribution_rate * pool`, and the pool decays at exactly that rate, so a
+    faster drain ends the race sooner: measured at epoch 570 -- 11.71 years -- at the 0.4
+    leader share, identical at every field share, and moving with rho (354 epochs at 1/100,
+    868 at 1/400). An earlier revision froze the pool, which made everything cancel and gave
+    1,013 epochs; the closed form below is how that error was caught.
     """
     pool = float(cfg.genesis_pool if pool is None else pool)
     apy_epoch = consensus.validation_apy(cfg, staked_fraction, emission_factor) \
@@ -276,7 +279,8 @@ def conservation_product(cfg: Config, pool: int, hashrate_share: float, min_stak
     Its consequence is that **fast onboarding and a staking-favoured endpoint are the same
     dial pulled in opposite directions**. Staking can only pay more than mining at the moment
     of graduation if graduation takes longer than the reciprocal of the staking yield, which
-    at the specified parameters is thirty years. No endowment size, distribution rate, claim
+    at the specified parameters is seventy-five years (the reciprocal of the 1.33% leader-leg
+    yield; thirty would be the whole-emission reading the config does not carry). No endowment size, distribution rate, claim
     target or minimum stake escapes it; only a change of mechanism does.
     """
     staked_total = staked_fraction * cfg.launch_supply * cfg.base_units_per_lgo

@@ -61,20 +61,15 @@ def validation_apy(cfg: Config, staked_fraction: float | None = None,
                    emission_factor: float = 1.0) -> float:
     """Annual yield on staked tokens, at the maximum emission regime.
 
-    | ``validation_apy = emission_factor * max_emission_per_year / staked_fraction``
+    | ``validation_apy = emission_factor * max_emission_per_year * leader_reward_share / staked_fraction``
 
-    The specification calibrates ``I_max = 1%`` precisely so that this lands near **3.33%**
-    when inferred total stake reaches its 30% target (`block-rewards.md`, the ``I_max`` row,
-    and `analysis-block-reward-parameter-calibration.md`). Reproducing that figure is what
-    grounds every staking number in this simulator, and it is gated.
-
-    **What this does NOT account for.** The specification's APY is the yield on the *whole*
-    emission. The EmPoWering proposal separately splits the block reward three ways between
-    Blend, leaders and proof of work, illustrated at 59/39/2. If that split lands, a
-    validator receives only its leg and the yield falls with it -- to roughly 1.3% at the
-    illustrated 39%. Every figure downstream of this therefore has a stated upper-bound
-    quality, and the direction matters: a lower yield makes the on-ramp's obstacle worse,
-    not better.
+    **The leader share is applied**, so this returns 1.333% at the defaults, not the 3.33%
+    the specification's calibration narrative quotes. `block-rewards.md` calibrates
+    ``I_max = 1%`` so the yield lands near 3.33% at the 30% stake target -- a figure that
+    holds only if validators take the WHOLE emission, while `overview-cryptoeconomics.md`
+    states as code that they take 0.4 of it. The config carries 0.4, this function follows
+    the config, and the gate reproduces 3.33% only by explicitly setting the share to one.
+    The direction matters: the lower yield makes the on-ramp's obstacle worse, not better.
     """
     frac = cfg.stake_target if staked_fraction is None else staked_fraction
     if frac <= 0:

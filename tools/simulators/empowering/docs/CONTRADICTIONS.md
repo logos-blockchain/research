@@ -1,8 +1,11 @@
 # The eleven contradictions, resolved
 
 The reward extraction found eleven places where the specifications disagree. Each is settled
-below, with the rule used and the consequence. **Ten resolve. One does not, and it moves every
-reward in the study by four orders of magnitude.**
+below, with the rule used and the consequence. **All eleven are now settled: ten resolve from
+the documents, and one — 4.3 — cannot be settled by them and is DECIDED as a parameter** (the
+genesis rule, `D = 10^10`). Its four-orders-of-magnitude table is the gap between the two
+readings at launch, not the study's error bar: the estimator converges in about five epochs,
+so the decided reading costs a launch transient, negligible over a multi-year horizon.
 
 ## The precedence rule
 
@@ -133,7 +136,7 @@ function boundary and gates the conversion.
 ## 4.8 Storage price floor — 1 LGO or 1 lepton
 
 `storage-markets.md:224` (Standards Track): *"Rounding upwards makes 1 LGO per Permanent
-Storage Gas the effective floor"*, in a document whose latest revision is 2026-05-27 and whose
+Storage Gas the effective floor"*, in a document whose latest revision is 2026-07-28 and whose
 own text sets `P_STR(0) = 1` — one *unit*.
 `bedrock-v1.1-mantle-specification.md:2119`: the fee markets *"price in whole lepta per unit of
 gas and can never go below one"*, and it **defers explicitly to *Logos Token: Units and
@@ -185,8 +188,10 @@ absorbed silently.
 analysis that assumed 10⁸, giving 1,000 LGO. At the governing supply the same rule gives
 **100,000 LGO** — a hundredfold difference in the gate on the most valuable reward stream on
 the chain. **The derivation of `min_stake` is invalid as it stands and needs redoing at the
-correct supply.** Since the specification leaves `min_stake.stake_threshold` UNSET in any case,
-the simulator carries it as a sweep axis and this is why.
+correct supply.** The value itself is nonetheless SETTLED for this study: 1,000 LGO, fixed and
+not a study axis (config.py records the decision and its rationale). What this entry keeps
+alive is that the settled number rests on a derivation whose supply assumption is wrong by a
+hundred — a defect to report upstream, not an open input.
 
 ## 4.10 `ServiceType` — `BN` or `BLEND`
 
@@ -213,7 +218,7 @@ the standard BN254 scalar field modulus and matches what this simulator already 
 | --- | --- | --- |
 | 4.1 | leaders take 40%; APY 1.33% | yes — already applied and gated |
 | 4.2 | `α_d = 1/4` | no — not yet modelled |
-| **4.3** | **unresolved** | **yes — 10⁴× on four of five strategies** |
+| **4.3** | **DECIDED: genesis rule, `D = 10¹⁰`** | a ~5-epoch launch transient; the 10⁴× gap is between readings at launch, not over the study |
 | 4.4 | e+2 | no |
 | 4.5 | tips split 40/60 | yes — leader income lower than assumed |
 | 4.6 | per-block integer floors | marginal |

@@ -155,3 +155,20 @@ def render(cfg: Config, outdir: Path) -> list[Path]:
     outdir.mkdir(parents=True, exist_ok=True)
     return [bundle_cost(cfg, outdir / "inscription_bundle.png"),
             affordability(cfg, outdir / "inscription_affordability.png")]
+
+
+def main() -> int:
+    import argparse
+
+    from .config import load
+
+    ap = argparse.ArgumentParser(prog="plots_inscription")
+    ap.add_argument("--out", default="figures/strategies")
+    args = ap.parse_args()
+    for p in render(load(), Path(args.out)):
+        print(f"  wrote {p}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

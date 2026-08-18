@@ -35,7 +35,7 @@ derivation as this can get while the encoding document omits the operation.
 
 **And the uncertainty would not propagate far in any case.** Almost every result in the study
 depends on the *ratio* of the two sizes rather than on either alone. Under the strict reading
-the sizes become 204 and 301, moving the fee ratio by 0.19% and the claim fee by 0.53%.
+the sizes become 204 and 301, moving the fee ratio by 0.15% and the claim fee by 0.53%.
 """
 from __future__ import annotations
 

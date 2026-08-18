@@ -133,6 +133,7 @@ def run(cfg: Config, ecfg: ElevationConfig) -> ElevationResult:
 
     state = engine.genesis_state(cfg)
     est = emission.StakeEstimate.at_genesis(cfg)
+    slots_per_epoch = 648_000            # 21,600 blocks at f = 1/30, as in strategies.py
     fees = ecfg.txs_per_block * cfg.avg_tx_fee
     burnt_lgo = cfg.to_lgo(fees - fees * cfg.pow_share_num // cfg.pow_share_den)
     burn_window = [burnt_lgo] * emission.BURN_WINDOW
@@ -190,9 +191,19 @@ def run(cfg: Config, ecfg: ElevationConfig) -> ElevationResult:
                       & (m_declared + services.DECLARATION_LAG_EPOCHS <= e)).sum())
         providers = e_live + m_live
 
+        # The estimator corrects on the shortfall between the blocks the lottery yields at
+        # its current estimate and the epoch's expectation -- feeding it the expectation
+        # itself (a previous revision did) pins it at the 1e10 genesis seed forever, holds the
+        # emission factor at zero, and understates service income by four orders of magnitude.
+        # The study's staked value is what its participants have locked: the endowed arrivals'
+        # stake and one bond per elevated miner.
+        true_staked_lgo = (e_count * ecfg.endowed_stake_lgo
+                           + int((m_bond != NOT_SET).sum()) * cfg.min_stake_lgo)
+        blocks = est.blocks_produced(true_staked_lgo, cfg, slots_per_epoch)
+
         blk = emission.block_reward_lgo(est.value_lgo, burn_window)
         blend, _ = emission.split(blk, cfg)
-        per_prov = services.reward_per_provider(blend * cfg.blocks_per_epoch, providers)
+        per_prov = services.reward_per_provider(blend * blocks, providers)
 
         rows.append(ElevationRow(
             epoch=e, years=e / cfg.epochs_per_year,
@@ -204,7 +215,7 @@ def run(cfg: Config, ecfg: ElevationConfig) -> ElevationResult:
             claims_paid=paid,
             elevated_this_epoch=elevated_now, service_per_provider_lgo=per_prov,
         ))
-        est = est.update(cfg.blocks_per_epoch, cfg)
+        est = est.update(blocks, cfg)
 
     return ElevationResult(rows=rows, bond_epoch=m_bond[:m_count],
                            seated_epoch=m_seated[:m_count], balance=m_balance[:m_count],
