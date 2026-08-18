@@ -220,7 +220,10 @@ each requirement **by number**:
    floor (spikes bunch the epoch's capacity into its first blocks, contending for block
    space, plus a step at the transition) and the floor-with-mild-smoothing middle ground go
    in the report as alternatives.
-5. **Epoch-fixed reward** (R6's revisitable clause): keep — it costs nothing in this design
-   and preserves the wallet's self-funding claim. Recommend keep; confirm.
+5. **Epoch-fixed reward** — SETTLED 2026-08-18: **kept**. Under Q1-Q4 it is one division at
+   the epoch boundary, and fixity is what lets a wallet construct a self-funding claim before
+   submitting -- the property the existing claim format is built around. Recomputing at the
+   saturation point (stretching borrowed funds at a reduced reward) is recorded as an
+   alternative; it breaks claim self-funding for exactly the cohort R5 protects.
 6. **Transition hysteresis**: none (recommend), or a guard band so fee noise near the boundary
    cannot flap regimes.
