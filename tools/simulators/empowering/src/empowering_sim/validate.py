@@ -839,6 +839,18 @@ def gate_report_headlines(cfg: Config) -> None:
     check("and 90% depletion", round(ninety), 459,
           note=f"{ninety / cfg.epochs_per_year:.1f} years -- section 6's clock")
 
+    # The estimator converges to TRUE stake on this ideal chain -- the specification's 0.847
+    # low-bias is a missed-slots property the no-fork model deliberately does not have, and it
+    # is documented as a limitation. If someone later models the bias, this gate forces the
+    # docstrings and the report's limitation section to move with it.
+    est_ratio = None
+    _, _recs = st.run(cfg, st.StrategyConfig(epochs=8))
+    est_ratio = _recs[-1].stake_estimate_lgo / _recs[-1].true_staked_lgo
+    check("the ideal chain's estimator converges to true stake, not 0.847 of it",
+          round(est_ratio, 2), 1.0,
+          note=f"{est_ratio:.4f} -- one epoch of lag, no bias; the real network's 0.847 is "
+               f"a recorded limitation")
+
     # The elevation study's emission regime. A previous revision fed the stake estimator its
     # own expectation, pinning it at the 1e10 seed with the emission factor at zero, so the
     # recorded service income sat four orders of magnitude below the regime the study's own

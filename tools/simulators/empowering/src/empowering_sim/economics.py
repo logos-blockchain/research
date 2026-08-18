@@ -45,8 +45,10 @@ def block_refill(cfg: Config, txs_per_block: int | None = None) -> int:
 
     Fees are collected block by block in reality, so this is the faithful timing; the
     epoch-boundary form is what the closed forms assume. The two agree over a whole epoch up
-    to floor division, and differ within one only in *when* the pool grows -- which matters
-    once the pool is near its floor and a claim may or may not clear it.
+    to floor division -- the specification floors the share per block, the epoch form floors
+    once, and the gap is bounded by one base unit per block, under 21,600 lepta an epoch
+    against a refill of trillions -- and differ within one only in *when* the pool grows,
+    which matters once the pool is near its floor and a claim may or may not clear it.
     """
     n = cfg.txs_per_block if txs_per_block is None else txs_per_block
     return (cfg.pow_share_num * n * cfg.avg_tx_fee) // cfg.pow_share_den

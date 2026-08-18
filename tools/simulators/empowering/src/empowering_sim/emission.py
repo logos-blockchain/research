@@ -101,14 +101,25 @@ class StakeEstimate:
     expected block density each epoch, so an overestimate of ten times is worked off in about
     one epoch and steady state arrives in about five.
 
-    **The estimator is biased low by construction.** It converges to roughly 0.847 of true
-    stake at the specified slot coefficient and 85% honest slot utilisation, so a persistent
-    underestimate of stake means a persistent positive deviation -- and persistently more
-    emission than the target intends. Modelled explicitly rather than left as an artefact.
+    **The real estimator is biased low; this one is not, and deliberately.** On the real
+    network the estimate converges to roughly 0.847 of true stake (slot coefficient 1/30, 85%
+    honest slot utilisation), a persistent underestimate and therefore persistently more
+    emission than the target intends. The bias comes from missed slots and forks -- exactly
+    what this simulator's ideal chain (section 1.4 of the report: no forks, no churn, every
+    provider honest) does not have. So HERE the estimate converges to true stake, the bias is
+    identically one, and the real network's extra late-era emission is recorded as a
+    limitation in the report's final section rather than reproduced. An earlier revision
+    carried a ``bias = 0.847`` field that nothing ever read, while this docstring claimed the
+    bias was "modelled explicitly"; the field is gone and the claim was false.
+
+    **The observation window is widened.** `cryptarchia-total-stake-inference.md` observes
+    ``PERIOD`` = 388,800 slots (12,960 expected blocks); this class uses the whole epoch's
+    density. At the specified beta = 1 the update rule reduces to the same one-step scaling
+    either way and the fixed point is identical -- the widening only smooths the noise the
+    shorter window would carry.
     """
 
     value_lgo: float
-    bias: float = 0.847
 
     def blocks_expected(self, cfg: Config) -> int:
         return cfg.blocks_per_epoch
@@ -137,7 +148,7 @@ class StakeEstimate:
         expected = self.blocks_expected(cfg)
         if expected <= 0:
             return self
-        return StakeEstimate(max(1.0, self.value_lgo * blocks_seen / expected), self.bias)
+        return StakeEstimate(max(1.0, self.value_lgo * blocks_seen / expected))
 
     @classmethod
     def at_genesis(cls, cfg: Config) -> "StakeEstimate":

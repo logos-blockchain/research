@@ -88,6 +88,9 @@ the simulator should reproduce rather than smooth away.
 One standing consequence: the estimator is **biased low by construction**, converging to about
 0.847 of true stake at f = 1/30 and 85% honest slot utilisation. A persistent underestimate of
 stake is a persistent positive deviation, hence persistently *more* emission than intended.
+That is a real-network property: the bias comes from missed slots and forks, which the
+simulator's ideal chain does not have, so the simulator's estimator converges to true stake
+and the extra late-era emission is recorded as a limitation rather than reproduced.
 
 ## 4.4 Service payout lag — e+2 or e−1
 
