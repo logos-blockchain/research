@@ -336,11 +336,26 @@ architectures, with one Pi core running at ~70% of one M3 core.
 ## 5. The cost of manufacturing a collision
 
 Candidates needed for one colliding pair, and the wall-clock at each rate.
-GPU column assumes an **RTX 4090 at 10¹⁰ H/s** — the figure #389 argues from,
-and roughly 2× above published hashcat Blake2b throughput for a single 4090, so
-deliberately generous to the attacker. Parallel collision search
-(van Oorschot–Wiener) is memoryless and embarrassingly parallel, so aggregate
-hash rate is the honest cost basis and a 100-GPU farm really is 100× faster.
+Parallel collision search (van Oorschot–Wiener) is memoryless and embarrassingly
+parallel, so aggregate hash rate is the honest cost basis and a 100-GPU farm
+really is 100× faster.
+
+> **The GPU rate is the one assumed input, and it is not generous.** The tables
+> use **10¹⁰ H/s**, the figure #389 argues from. #389 does not name a device;
+> attaching one shows the assumption is, if anything, slightly *optimistic for
+> the defender*: published hashcat benchmarks put a single **RTX 4090** at
+> **~1.25 × 10¹⁰ H/s** on BLAKE2b, so the tables understate one current
+> consumer GPU by ~20%. Re-pricing at the measured rate scales every cost and
+> duration below by 0.8× — sustaining a stall for a day at L = 14 becomes ~$933k
+> instead of $1.2M, and at L = 16 ~$239M instead of $298.5M. **No conclusion
+> changes**, which is why 10¹⁰ is kept for comparability with #389 rather than
+> silently diverged from.
+>
+> The direction matters more than the magnitude. This assumption was previously
+> described in this report as "roughly 2× above" a 4090 — that was wrong, and
+> wrong in the unsafe direction. It is a concrete instance of the assumption
+> risk that [§8](#8-recommendation) rests part of its argument on: one careless
+> factor moves L = 14 by 20% before any future hardware is considered.
 
 | L (bytes) | b (bits) | candidates N | 1 core (mac) | 1 machine (mac) | 1 GPU (RTX 4090) | 100 GPUs |
 |---|---|---|---|---|---|---|

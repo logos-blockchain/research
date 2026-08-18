@@ -26,10 +26,17 @@ RESULTS = ROOT / "results"
 # Expected candidates before the first birthday repeat is sqrt(pi/2) * 2^(b/2).
 SQRT_HALF_PI = math.sqrt(math.pi / 2)
 
-# GPU model and hash rate used for the adversary's strong-hardware column.
-# 10^10 H/s is the figure logos-lips#389 argues from, and is roughly 2x above
-# published hashcat Blake2b throughput for a single RTX 4090 on short inputs --
-# i.e. deliberately generous to the attacker.
+# GPU hash rate used for the adversary's strong-hardware column. This is the one
+# input in this whole model that is assumed rather than measured, and every cost
+# and duration below scales inversely with it.
+#
+# 10^10 H/s is the figure logos-lips#389 argues from, kept here for
+# comparability with it. Note it is NOT generous to the attacker: published
+# hashcat benchmarks put a single RTX 4090 at ~1.25e10 H/s on BLAKE2b, so this
+# understates one current consumer GPU by ~20%. Re-pricing at 1.25e10 scales
+# every figure by 0.8x and changes no conclusion.
+#
+# Set GPU_HASH_RATE to 1.25e10 to re-derive everything at the measured rate.
 GPU_MODEL = "RTX 4090"
 GPU_HASH_RATE = 1e10
 
