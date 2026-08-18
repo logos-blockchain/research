@@ -55,19 +55,24 @@ def bundle_cost(cfg: Config, out: Path) -> Path:
 
     f, (a0, a1) = _fig(11.4, 4.3)
     a0.bar(x, [floor] * len(n), 0.62, color=TRANSFER, zorder=3, label="the transfer itself")
-    a0.bar(x, insc, 0.62, bottom=[floor + 2] * len(n), color=INSCRIPT, zorder=3,
+    # The spacer between the two segments must scale with the bars: a fixed offset that reads
+    # as a hairline at one storage price detaches the segments entirely at another.
+    gap = max(insc.max(), floor) * 0.004
+    a0.bar(x, insc, 0.62, bottom=[floor + gap] * len(n), color=INSCRIPT, zorder=3,
            label="the inscription")
     a0.set_xticks(x); a0.set_xticklabels([f"{v}" for v in n])
     a0.set_xlabel("inscription, bytes", color=INK_2, fontsize=9)
     a0.set_ylabel(f"bundle cost, LGO at {cfg.storage_price_lgo:g} LGO/byte", color=INK_2,
                   fontsize=9)
-    a0.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}"))
+    _dp = 0 if floor >= 100 else (1 if floor >= 10 else 2)
+    a0.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.{_dp}f}"))
     a0.set_title("A transfer's own encoding is the floor", color=INK, fontsize=10.5,
                  loc="left", pad=8)
     a0.legend(frameon=False, fontsize=8.5, labelcolor=INK_2, loc="upper left")
     for i, r in enumerate(rows):
         if r.inscription_bytes in (4, 256, 1024):
-            a0.text(i, cfg.to_lgo(r.bundle) + floor * 0.06, f"{r.inscription_share:.0%}",
+            a0.text(i, cfg.to_lgo(r.bundle) + max(insc.max(), floor) * 0.03,
+                    f"{r.inscription_share:.0%}",
                     ha="center", fontsize=8, color=INK_2)
 
     margin = np.array([r.margin for r in rows])

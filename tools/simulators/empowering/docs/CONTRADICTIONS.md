@@ -139,10 +139,36 @@ own text sets `P_STR(0) = 1` — one *unit*.
 gas and can never go below one"*, and it **defers explicitly to *Logos Token: Units and
 Precision***.
 
-**Resolved: one lepton.** Precedence would say otherwise, but the third rule applies: the
-storage document's "1 LGO" is display wording from before the denomination was set, and the
-Mantle text is reporting a governing units document rather than competing with it. A factor of
-10⁹ that would otherwise have moved every fee in the model.
+**Resolved: one LGO. This reverses an earlier resolution, which was wrong.**
+
+The earlier reading called the storage document's "1 LGO" display wording from before the
+denomination was set. It is not. `storage-markets.md:112-126` reasons about the value as an
+economic quantity across a full paragraph — how many epochs the market needs to climb from a
+starting price to the clearing price, why starting a tenth or a hundredth low costs 20 or 40
+epochs — and then states the conclusion in the plainest possible terms: *"This corresponds to
+a cost of **1 LGO per permanently stored byte**. Genesis governance may adjust this value based
+on the LGO price at TGE."* Nobody writes that sentence about a display convention.
+
+The two texts are also not in conflict once the scopes are read properly. Mantle's "whole lepta
+per unit of gas" fixes the **denomination** every price is quoted in; the storage document fixes
+**this market's value** within that denomination, at 10⁹ lepta. Both hold at once.
+
+**What the error cost.** The resolution note used to read "confirms the fee model already in
+use", which is the tell — the contradiction was resolved to agree with what the model already
+did rather than with the documents. That single-price model understated every fee by
+essentially its whole storage component, and with it the pool refill, the claim's own cost, the
+depletion horizon, the mining-versus-staking crossing and the equilibrium-era analysis. See the
+strategy report's §8 to §10 for what each of those became once the two markets were priced
+apart.
+
+**The residual issue is not a contradiction but an unsatisfied requirement**, and it belongs
+upstream: the same passage requires `P_STR(0)` be *"sufficiently low so as not to suppress
+early adoption"*, and 1 LGO per byte does the opposite. At that price a claim transaction costs
+306 LGO against a genesis reward of 1.16, so no miner can afford to mine and none ever reaches
+the bond, and the network burns thirteen times the entire supply in fees every year at the
+modelled traffic. The specification anticipates this by making the value adjustable at genesis;
+what it does not do is name a value that works. **Suggested upstream: state `P_STR(0)` near
+1e-3 LGO per byte, or state the requirement as a computable bound.**
 
 ## 4.9 `S_TGE` — 10¹⁰ or 10⁸
 
