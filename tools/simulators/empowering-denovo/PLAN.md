@@ -210,7 +210,18 @@ each requirement **by number**:
    reward already insulates claimants from within-epoch noise — a quiet epoch simply funds a
    small next one and the throttle absorbs the swing. The EMA variant is recorded as an
    alternative, to be revisited only if simulations show raw budgets whipsawing the throttle.
-4. **The difficulty's role** — SETTLED 2026-08-18: **one throttle, both phases**, superseding
+4. **The difficulty's role** — SETTLED 2026-08-18 as "one throttle, both phases", then
+   **AMENDED same day** (MODEL.md §9): formalising the rules showed the unified throttle
+   composes badly with Q1 — a throttle at `capacity / blocks` with the demand-indexed reward
+   pins admissions at the previous epoch's level, so a spike is never admitted and the
+   cohort is rationed indefinitely, which is exactly what R5 rejects and would leave R6's
+   saturation semantics dead code. Amended to: **one retarget implementation, two targets** —
+   a constant floor during bootstrap (admission control is economic there), the derived
+   `capacity / blocks` target after the transition. The unified-throttle variant goes in the
+   report's alternatives table with this failure mode as its description. Original entry
+   kept below for the audit trail.
+
+   Originally: **one throttle, both phases**, superseding
    this plan's own two-role sketch in §1.4. The same EMA retarget runs in both regimes with
    the derived target `capacity_e / blocks_per_epoch`, `capacity = budget / reward`. The
    phases differ only in budget source and reward level; there is no per-phase difficulty
