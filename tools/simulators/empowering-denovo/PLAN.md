@@ -203,8 +203,11 @@ each requirement **by number**:
    next-epoch-first alternative (legible accounting, but a dim epoch after every bright one
    and a wait-it-out incentive) and the hard cap (rationing — rejected by R5 outright) go in
    the report as alternatives.
-3. **Post-phase budget source**: all of the previous epoch's diverted fees, or an EMA of them
-   (smoother, one more state variable).
+3. **Post-phase budget source** — SETTLED 2026-08-18: **the previous epoch's diverted fees,
+   raw**. `budget_e = fees_diverted(e-1)`; zero extra state, R7a verbatim, and the epoch-fixed
+   reward already insulates claimants from within-epoch noise — a quiet epoch simply funds a
+   small next one and the throttle absorbs the swing. The EMA variant is recorded as an
+   alternative, to be revisited only if simulations show raw budgets whipsawing the throttle.
 4. **Bootstrap difficulty floor**: pure spam floor, or keep mild within-epoch smoothing.
 5. **Epoch-fixed reward** (R6's revisitable clause): keep — it costs nothing in this design
    and preserves the wallet's self-funding claim. Recommend keep; confirm.
