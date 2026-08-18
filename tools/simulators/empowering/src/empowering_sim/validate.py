@@ -775,6 +775,38 @@ def gate_inscription(cfg: Config) -> None:
     check("by a margin of", round(opening / cfg.claim_fee), 173_681)
 
 
+def gate_tx_sizes(cfg: Config) -> None:
+    """Where the transaction byte counts come from, now that they have a derivation."""
+    print("\nTransaction sizes, derived from the encoding primitives")
+    from . import txsize as tx                                # noqa: PLC0415
+
+    check("a Groth16 proof, from the encoding document", tx.GROTH16, 128,
+          note="pi_a 32 + pi_b 64 + pi_c 32")
+    check("a Note is a value and a key", tx.NOTE, 40)
+    check("the claim payload is three 32-byte fields", tx.claim_payload(), 96,
+          note="epoch_nonce, block_hash, public_key")
+
+    s = tx.sizes()
+    check("the derivation reproduces transfer_tx_bytes", s.transfer, cfg.transfer_tx_bytes)
+    check("and claim_tx_bytes", s.claim, cfg.claim_tx_bytes)
+    check("the claim operation adds", s.difference, 99, note="96 payload + opcode + framing")
+
+    # The framing is assumed, so the check that matters is the specification's own arithmetic.
+    check("and only this framing reproduces the specification's stated claim fee",
+          (s.claim + cfg.claim_tx_gas) * cfg.price_resting, 6_664, note="mantle:1858")
+    u = tx.unframed()
+    check("the strict reading of the encoding document does not",
+          (u.claim + cfg.claim_tx_gas) * cfg.price_resting == 6_664, False,
+          note=f"{u.transfer} and {u.claim} bytes give "
+               f"{(u.claim + cfg.claim_tx_gas) * cfg.price_resting:,}")
+    strict_ratio = (cfg.tx_fee(u.transfer, cfg.transfer_tx_gas)
+                    / cfg.tx_fee(u.claim, cfg.claim_tx_gas))
+    check("but it would move the fee ratio by well under a percent",
+          round(abs(strict_ratio / cfg.fee_ratio - 1), 4) < 0.01, True,
+          note=f"{cfg.fee_ratio:.4f} against {strict_ratio:.4f} -- no conclusion in the "
+               f"study rests on the framing")
+
+
 def gate_targets(cfg: Config) -> None:
     """The three inversions: state the outcome, derive the parameter."""
     print("\nParameterising by outcome: the three inversions")
@@ -948,6 +980,7 @@ def main() -> int:
     gate_emission(cfg)
     gate_fee_markets(cfg)
     gate_inscription(cfg)
+    gate_tx_sizes(cfg)
     gate_targets(cfg)
     gate_strategies(cfg)
     gate_alternative_is_neutral(cfg)

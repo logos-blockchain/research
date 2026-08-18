@@ -35,9 +35,14 @@ min_stake_fraction    = 1e-5          # KNOWN  0.001% of S_tge, analysis-static-
 price_floor           = 1
 price_resting         = 7
 max_price             = 5_776_413_067_240   # KNOWN  #393: largest price whose fee products fit u64
-claim_tx_bytes        = 306           # DERIVED  sim: fee.claim_tx_bytes()
+# DERIVED, sim: txsize.sizes(). CLAIM_POW_REWARD is absent from
+# mantle-transaction-encoding.md, so these are reconstructed from the encoding
+# primitives plus a framing assumption -- the one framing that reproduces the
+# 6,664-lepta claim fee mantle:1858 states. See txsize.py for what is read and
+# what is assumed, and for the 0.2% sensitivity of everything downstream.
+claim_tx_bytes        = 306
 claim_tx_gas          = 646           # KNOWN    56 claim + 590 transfer
-transfer_tx_bytes     = 207           # DERIVED
+transfer_tx_bytes     = 207           # DERIVED  sim: txsize.sizes(), same basis
 transfer_tx_gas       = 590           # KNOWN    analysis-gas-cost-determination.md
 
 [pow]
