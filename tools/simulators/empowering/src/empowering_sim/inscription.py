@@ -44,9 +44,29 @@ SPECIFIED_PRICE_LGO = 1.0
 
 
 def max_inscription_bytes(cfg: Config) -> float:
-    """The largest inscription the fee-funded steady state can carry. Price-independent."""
+    """The largest inscription the fee-funded steady state can carry.
+
+    | ``max_bytes = (fee_multiple * avg_tx_fee - transfer_tx_bytes * storage_price
+                     - (transfer_tx_gas + inscribe_gas) * price_resting) / storage_price``
+
+    where ``fee_multiple = pow_share * txs_per_block / target_claims_per_block`` is how many
+    ordinary transactions' fees one steady claim is worth -- six, at the settled parameters.
+
+    The claim has to pay for its own transfer out of that six before it can inscribe anything,
+    which is where most of the bound comes from. At the resting prices, where storage and
+    execution both sit at 7 lepta, the answer is **3,929 bytes**.
+
+    It is NOT independent of the price ratio, though an earlier revision of this module said
+    so. That claim was true only in the limit where storage dominates the fee completely: there
+    the execution terms vanish and the bound collapses to
+    ``(fee_multiple - 1) * transfer_tx_bytes``. The two markets rest at the same level, so the
+    execution terms are the same order as the storage ones and the general form is needed.
+    """
     multiple = cfg.pow_share * cfg.txs_per_block / cfg.target_claims_per_block
-    return (multiple - 1.0) * cfg.transfer_tx_bytes
+    head = (multiple * cfg.avg_tx_fee
+            - cfg.transfer_tx_bytes * cfg.storage_price
+            - (cfg.transfer_tx_gas + cfg.inscribe_gas) * cfg.price_resting)
+    return head / cfg.storage_price
 
 
 def steady_reward(cfg: Config, txs_per_block: int | None = None) -> int:
@@ -57,14 +77,14 @@ def steady_reward(cfg: Config, txs_per_block: int | None = None) -> int:
 
 
 def affordable_storage_price(cfg: Config) -> float:
-    """Storage price, in LGO per byte, above which a genesis claim costs more than it pays.
+    """Storage price, in LEPTA per byte, above which a genesis claim costs more than it pays.
 
     During bootstrap the reward is set by the pool and does not move with the fee level, while
     the claim's own fee is almost entirely storage. Past this price the miner pays to mine.
     """
     opening = economics.reward_per_claim(cfg.genesis_pool, cfg)
     head = opening - cfg.claim_tx_gas * cfg.price_resting
-    return max(0.0, head / cfg.claim_tx_bytes / cfg.base_units_per_lgo)
+    return max(0.0, head / cfg.claim_tx_bytes)
 
 
 def self_funding_storage_price(cfg: Config) -> float:
@@ -119,16 +139,16 @@ def sweep(cfg: Config, sizes=SIZES, txs_per_block: int | None = None) -> list[Ro
     return out
 
 
-def price_sweep(cfg: Config, prices_lgo, sizes=SIZES) -> list[dict]:
+def price_sweep(cfg: Config, prices_lepta, sizes=SIZES) -> list[dict]:
     """The same sweep across storage prices, which is what the bootstrap side turns on."""
     from dataclasses import replace
     out = []
-    for p in prices_lgo:
-        c = replace(cfg, storage_price_lgo=p)
+    for p in prices_lepta:
+        c = replace(cfg, storage_price_lepta=int(round(p)))
         opening = economics.reward_per_claim(c.genesis_pool, c)
         tx_per_year = c.blocks_per_year * c.txs_per_block
         out.append(dict(
-            price_lgo=p,
+            price_lepta=p,
             claim_fee=c.claim_fee,
             opening_reward=opening,
             genesis_net=opening - c.claim_fee,

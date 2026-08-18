@@ -37,7 +37,7 @@ class Config:
 
     # ---- fees, in base units per byte and per gas unit ----
     price_resting: int
-    storage_price_lgo: float
+    storage_price_lepta: int
     claim_tx_bytes: int
     claim_tx_gas: int
     transfer_tx_bytes: int
@@ -145,18 +145,17 @@ class Config:
 
     @property
     def storage_price(self) -> int:
-        """Price of one Permanent Storage Gas, in base units.
+        """Price of one Permanent Storage Gas, in LEPTA.
 
-        `storage-markets.md:124` sets `P_STR(0) = 1 LGO per Permanent Storage Gas`, and
-        `:224` makes that same value the market's effective FLOOR: the update rounds upwards
-        precisely so that 1 cannot decay to 0 and make permanent storage free. So this is not
-        merely the opening price, it is the cheapest storage ever gets.
+        *Logos Token: Units and Precision* tabulates `P_STR(s)` in lepta per storage gas unit
+        and floors it at one lepton, and `mantle:2119` defers to that document by name. The
+        "1 LGO per stored byte" in `storage-markets.md:124-126` predates the denomination and
+        is superseded -- see `CONTRADICTIONS.md` 4.8.
 
-        A billion times the execution price. Charging both markets at one price -- which an
-        earlier version of this model did -- understates every fee by essentially its whole
-        storage component.
+        The two markets are still charged on different things and discover their prices
+        independently; they happen to share a floor and a resting level.
         """
-        return round(self.storage_price_lgo * self.base_units_per_lgo)
+        return self.storage_price_lepta
 
     def tx_fee(self, nbytes: int, gas: int) -> int:
         """| ``fee = bytes * storage_price + gas * execution_price``
@@ -292,7 +291,7 @@ def load(path: str | Path | None = None, **overrides) -> Config:
         base_units_per_lgo=supply["base_units_per_lgo"],
         min_stake_fraction=supply["min_stake_fraction"],
         price_resting=fees["price_resting"],
-        storage_price_lgo=fees["storage_price_lgo"],
+        storage_price_lepta=fees["storage_price_lepta"],
         claim_tx_bytes=fees["claim_tx_bytes"],
         claim_tx_gas=fees["claim_tx_gas"],
         transfer_tx_bytes=fees["transfer_tx_bytes"],

@@ -49,23 +49,26 @@ min_stake_fraction    = 1e-5          # KNOWN  0.001% of S_tge, analysis-static-
 price_floor           = 1
 price_resting         = 7
 # Storage: charged on the encoded size of the whole signed transaction, one gas per byte
-# (mantle:71, mantle:148).  storage-markets.md:126 sets P_STR(0) = 1 LGO per stored byte.
+# (mantle:71, mantle:148).  Priced in LEPTA per Storage Gas unit, floor one LEPTON.
 #
-# That value is NOT used here, and the specification is why.  The same passage states the
-# requirement the price must meet -- "sufficiently low so as not to suppress early adoption"
-# -- calls the precise value "not critical", notes the market converges to the clearing price
-# from any start, and says genesis governance may adjust it.  At 1 LGO/byte a claim
-# transaction costs 306 LGO against a genesis reward of 1.16 LGO, so no miner can afford to
-# mine and none ever reaches the bond; and the network burns thirteen times the entire supply
-# in fees every year.  The stated value violates the stated requirement.
+# KNOWN, and settled by the governing units document.  *Logos Token: Units and Precision*
+# (Standards Track, rev 1.0.0, 2026-08-11) tabulates P_STR(s) in "LEPTA per Storage Gas unit",
+# states that both markets have "an effective floor of one base unit per gas unit", and
+# computes the consequence directly: "Storing one GiB permanently costs at least 2^30 =
+# 1,073,741,824 LEPTA, which is 1.0737 LOGOS".  Its whole lower-bound derivation rests on that
+# floor.  mantle:2119 defers to it by name and adds that "amounts written in LGO here are a
+# display convenience for 10^9 lepta".
 #
-# So the study runs at the largest round price that satisfies it.  Mining stays profitable at
-# genesis up to 3.78e-3 LGO/byte; 1e-3 keeps a claim clearing its own fee by 0.85 LGO and
-# holds the annual fee burn near 1.3% of supply.  The steady-state margin does not depend on
-# this at all -- the price cancels out of it -- so only the bootstrap side is sensitive.
-# DECISION, not a reading.  inscription.SPECIFIED_PRICE_LGO carries the specified value and
-# the gates check what it would do.
-storage_price_lgo     = 0.001
+# storage-markets.md:124-126 reads "P_STR(0) = 1 LGO per Permanent Storage Gas ... a cost of
+# 1 LGO per permanently stored byte".  That document was last revised 2026-07-28, two weeks
+# BEFORE the denomination was fixed, and its figure is superseded: at 1 LGO per byte a GiB
+# would cost 1.07 billion LOGOS, a tenth of the entire supply, and the units document's own
+# target of a few dollars per GiB would be unreachable by nine orders of magnitude.
+#
+# So storage rests at the same 7 as execution.  The two markets remain SEPARATE -- different
+# charging bases, independent price discovery -- and this file prices them separately; they
+# merely share a floor and a resting level.  See CONTRADICTIONS.md 4.8.
+storage_price_lepta   = 7
 max_price             = 5_776_413_067_240   # KNOWN  #393: largest price whose fee products fit u64
 claim_tx_bytes        = 306           # DERIVED  sim: fee.claim_tx_bytes()
 claim_tx_gas          = 646           # KNOWN    56 claim + 590 transfer

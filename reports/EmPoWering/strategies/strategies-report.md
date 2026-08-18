@@ -64,7 +64,7 @@ This is a thermostat: claims arriving too fast tighten the threshold, too slow l
 
 The left panel is the thermostat working. Over 200 epochs miners arrive continuously and the field's search power grows **380-fold**; the work one claim costs climbs to match, across three orders of magnitude. The right panel is the consequence, and it is the most important structural fact in this report: **the number of claims paid does not move.** Flat at about 217,000 an epoch through a 380-fold change in load. The half-percent above the 216,000 target is the controller's known overshoot, not drift.
 
-Follow that through. The pool pays a fixed amount per claim; the controller fixes the number of claims; therefore **the pool's outflow is fixed too** — it does not move with mining, adoption or hardware. That is why §6 finds the pool's behaviour completely independent of demand: the difficulty absorbs every bit of the load variation before it can reach the pool. What the outflow is *balanced against* is a separate question, answered by the fee level rather than by the controller, and §6 shows the two very nearly cancel.
+Follow that through. The pool pays a fixed amount per claim; the controller fixes the number of claims; therefore **the pool's outflow is fixed too.** It drains on a clock that no amount of mining, adoption or hardware can change. That is why §6 finds pool depletion completely independent of demand — the difficulty absorbs every bit of the load variation before it can reach the pool.
 
 ### 1.4 What we do not model
 
@@ -94,15 +94,15 @@ A word on why the comparison is not straightforward. Groups 1 to 3 arrive with h
 
 | strategy | median node, LGO | against a plain stakeholder |
 | --- | --- | --- |
-| miner | 49,957 | 0.30× |
-| miner and staker | 52,067 | 0.31× |
-| stakeholder | 167,743 | 1.00× |
-| miner, staker and service provider | 801,673 | **4.78×** |
-| stakeholder and service provider | 936,012 | **5.58×** |
+| miner | 50,151 | 0.31× |
+| miner and staker | 52,478 | 0.32× |
+| stakeholder | 163,851 | 1.00× |
+| miner, staker and service provider | 807,612 | **4.93×** |
+| stakeholder and service provider | 930,422 | **5.68×** |
 
 **Service provision dominates by a factor of five and a half**, and structurally rather than because a parameter was set badly: its reward carries no stake term, so the whole Blend pool divides flat among however many providers exist — and that pool is 60% of everything the protocol mints.
 
-**Staking on top of mining is worth four percent.** A miner who stakes everything it mines earns 52,067 against a pure miner's 49,957. What a miner accumulates in two and a half years is simply small against 5% of supply, so its slice of the lottery is small too.
+**Staking on top of mining is worth five percent.** A miner who stakes everything it mines earns 52,478 against a pure miner's 50,151. What a miner accumulates in two and a half years is simply small against 5% of supply, so its slice of the lottery is small too.
 
 **Mining is the weakest of the five.** A miner earns less than a third of what a stakeholder earns, and it is the only strategy that pays for its income in electricity.
 
@@ -153,28 +153,26 @@ With the bond fixed, the live question is not how high the threshold is but who 
 
 A separate study with **dynamic arrivals**: new nodes are seated every epoch, so the field grows and each miner's share of a fixed claim flow shrinks. Two groups only — endowed providers who arrive above the bond, and mining providers who must earn it. Only the second is elevated by the mechanism.
 
-A first guess at a ceiling comes from arithmetic. The endowment is the only source of a miner's first tokens *if the pool is never refilled*, and every elevation costs one bond, so `genesis_pool / min_stake` is **50,000**, and at genesis the pool can fund `distribution_rate * pool / min_stake` = 250 of them an epoch. Hold on to that number, because the simulation says it is the wrong kind of quantity: it is a milestone, not a limit.
+Before simulating anything the arithmetic sets a ceiling. The pool is the only source of a miner's first tokens and every elevation costs one bond, so `elevation_ceiling = genesis_pool / min_stake` is **50,000**, and at genesis the pool can fund `distribution_rate * pool / min_stake` = 250 of them an epoch.
 
 ![what the pool spends, and what that spending buys](figures/elevation_depletion.png)
 
-### The pool does not drain — the fees very nearly replace what it pays
+### The pool drains on a clock nobody can change
 
-The three curves on the left are miner populations differing **fiftyfold**, and they lie on top of one another. This is §1.3 playing out: the controller fixes the claim count and the pool pays a fixed amount per claim, so the outflow is a property of the pool rather than of demand. No arrival rate, no hashrate and no adoption scenario moves that curve.
+The three curves on the left are miner populations differing **fiftyfold**, and they lie on top of one another: after 400 epochs each has spent 43,336,6xx LGO, identical to six figures. This is §1.3 playing out — the controller fixes the claim count and the pool pays a fixed amount per claim, so the outflow is a property of the pool rather than of demand. Its half-life is **138 epochs, two years and ten months**, and it is 90% depleted after **459 epochs, nine and a half years**. No arrival rate, no hashrate and no adoption scenario moves that curve.
 
-What the curve *does* is the surprise. The pool does not fall. It **drifts up**, to 106% of its genesis level after 400 epochs, because `epoch_refill` runs slightly ahead of `distribution_rate * pool`. The two are within 7% of exactly cancelling, and §9 shows this is not a coincidence but a property of the price storage is sold at: there is a storage price at which the endowment *is* the pool's fixed point, and the parameters sit almost on it.
+### What the spend buys is another matter
 
-This corrects a headline result. Earlier revisions of this study reported a pool half-life of 138 epochs and 90% depletion within a decade. That was an artefact of pricing permanent storage at the execution market's rate, which understated every fee — and therefore every refill — by nine orders of magnitude. **With the two markets priced separately, the proof-of-work pool is self-sustaining and there is no depletion horizon to plan around.**
-
-### What the spend buys, over 400 epochs
-
-| bonded miners | elevated in 400 epochs | against the 50,000 milestone | still climbing? |
+| bonded miners | elevated | of the 50,000 ceiling | spend stranded below the bond |
 | --- | --- | --- | --- |
-| keep mining | 9,295 | 18.6% | yes |
-| retire | 19,982 | 40.0% | yes |
+| keep mining | 5,682 | **11.4%** | 87% |
+| retire | 25,934 | **51.9%** | 40% |
 
-Neither run is finished, and neither is bounded: with the pool holding its level, fees alone fund `epoch_refill / min_stake` = **268 bonds an epoch, indefinitely**. Elevation is limited by how long the network runs, not by how much the pool holds.
+Out of the *same* 43.3M LGO. A bonded miner that keeps mining takes claims from miners still trying to cross, and it has no reason to — its service income is orders of magnitude larger than anything more mining will add. **Retiring bonded miners is worth four and a half times as many elevations, for free**, and nothing in the protocol makes them stop.
 
-A bonded miner that keeps mining takes claims from miners still trying to cross, and it has no reason to — its service income is far larger than anything more mining will add. **Retiring bonded miners is worth just over twice as many elevations, for free**, and nothing in the protocol makes them stop. The rest becomes sub-bond balances: real tokens held by miners who mined for years without reaching the threshold that would have made them worth something.
+Without retirement the arrival rate barely matters: elevation sits near 5,000 whether two thousand or a hundred thousand miners turn up, because the pool's output spreads across everyone still mining and more arrivals only means thinner slices.
+
+**So the mechanism can elevate between about 5,700 and 26,000 nodes**, against a ceiling of 50,000, and which end depends on a behaviour the specification does not address. The rest becomes sub-bond balances: real tokens held by miners who mined for years and never reached the threshold that would have made them worth something.
 
 ---
 
@@ -182,45 +180,21 @@ A bonded miner that keeps mining takes claims from miners still trying to cross,
 
 ![proof-of-work reward per block and per epoch](figures/pow_distributions.png)
 
-Per block this is the arrival process at a fixed price: the reward per claim is frozen for the whole epoch, so the shape is just the Poisson count of claims, with a median of 8.4 LGO a block against a target of ten claims at the opening reward. Per epoch the picture also carries the reward's slow drift upward, which is why it is not the same distribution rescaled — the pool sits just under its fee-funded fixed point, so the per-claim price creeps up across the run rather than decaying. Neither distribution has a tail worth worrying about.
+Per block this is the arrival process at a fixed price: the reward per claim is frozen for the whole epoch, so the shape is just the Poisson count of claims, with a median of 8.4 LGO a block against a target of ten claims at the opening reward. Per epoch the picture also carries the reward's decay, which is why it is not the same distribution rescaled — the spread runs from about 250,000 LGO down through 140,000 across the run as the pool drains. Neither distribution has a tail worth worrying about.
 
 ---
 
-## 8. The two costs of mining
+## 8. Electricity, and why it does not change the answer
 
-Miners pay for their income and stakeholders do not. A miner pays **twice**, and the two costs behave so differently that they have to be separated.
-
-**The claim fee is a cost per claim.** Every claim is a transaction and pays its own fee, so a miner keeps `reward_per_claim - claim_fee`. At the opening reward that is 0.306 LGO against 1.157, so **the fee takes 26.4% of gross before any electricity is bought**. It does not vary with hardware, with the field, or with the difficulty — it is a flat tax on claiming, and it falls hardest on exactly the miners the mechanism is meant to onboard, since they have nothing else to pay it from.
-
-**Electricity is a cost per unit of work.** It scales with the difficulty, which the controller tightens as search power arrives (§1.3). Priced from the standalone cost estimator, at a Raspberry Pi 5's measured Poseidon2 rate, whole-platform, at 20 cents a kilowatt-hour:
-
-| field search power | electricity per claim | claim fee per claim | break-even token price |
-| --- | --- | --- | --- |
-| at genesis | $0.0014 | 0.306 LGO | $1.6 × 10⁻³ /LGO |
-| 10× | $0.0136 | 0.306 LGO | $1.6 × 10⁻² /LGO |
-| 100× | $0.1359 | 0.306 LGO | $1.6 × 10⁻¹ /LGO |
-| 380× | $0.5163 | 0.306 LGO | **$0.61 /LGO** |
-
-**So which cost binds depends entirely on how much hardware has turned up.** At genesis the fee is much the larger of the two; past roughly a tripling of search power electricity overtakes it, and from then on electricity grows without limit while the fee stays where it is. A Raspberry Pi 5 facing the 380-fold field of §1.3 needs a token worth **61 cents** to break even, against a sixth of a cent at genesis.
-
-### This is the affordability limit, and it is self-correcting
-
-That runaway does not actually run away, because miners leave. Free entry settles the difficulty where the cheapest available hardware exactly breaks even:
-
-| `equilibrium_difficulty = field_modulus * cost_per_candidate / (reward_per_claim - claim_fee)` |
-| --- |
-
-At $0.01 a token the equilibrium target is 0.16× the genesis value — six times the work per claim, sustained. At a tenth of a cent it is 1.6× genesis, meaning the field is *smaller* than at launch: the price has driven miners out until the survivors can pay their bill. **There is no price at which mining becomes permanently unaffordable; there is a difficulty at which it stops being worth it, and the controller finds it.** This is modelled endogenously — miners enter and leave on the arithmetic above rather than by assumption, priced per device class from the standalone cost estimator — and the behaviour is held by the validation suite: a Raspberry Pi 5 is priced out of the whole epoch at a low token price and mines all of it at a high one, with no limit cycle between the two.
-
-### Whether it changes the ordering
+Miners pay for their income and stakeholders do not. Netting it out at a Raspberry Pi 5's measured rate, whole-platform, at 20 cents a kilowatt-hour:
 
 | strategy | median electricity, 120 epochs | break-even token price |
 | --- | --- | --- |
 | miner | $83.28 | $1.7 × 10⁻³ /LGO |
 | miner and staker | $83.28 | $1.6 × 10⁻³ /LGO |
-| miner, staker and service | $83.28 | $1.0 × 10⁻⁴ /LGO |
+| miner, staker and service | $83.28 | $1.1 × 10⁻⁴ /LGO |
 
-It does not. Against total income over the run, electricity stops mining paying only below about a sixth of a cent a token, and the ordering in §3 is unchanged. **Mining is not weak because it is expensive, it is weak because it pays little** — and 26% of what little it pays goes straight back out as the fee on the claim itself.
+Mining stops paying only if a token is worth less than about a sixth of a cent; above that, electricity is a rounding error and the ordering in §3 is unchanged. It is worth being clear what that means: **mining is not weak because it is expensive, it is weak because it pays little.**
 
 ---
 
@@ -238,60 +212,51 @@ Stake reaches 99% of target at about year 20, and by year 25 the block reward ha
 
 ### Does the equilibrium era pay anyone?
 
-A transaction pays into **two** fee markets, and they are three orders of magnitude apart. Execution gas is charged per Operation and rests at 7 lepta. Permanent storage gas is charged on the encoded size of the whole signed transaction — one gas per byte — and is priced in whole LGO. Storage therefore dominates: a transfer's fee is, to three figures, its byte count times the storage price, and the 590 gas of execution beside it is a rounding error.
-
-That changes the question from "can the fee ever get high enough" to "is the modelled traffic already enough", and it is:
+That table is computed at the **resting** fee price of 7, and the resting price is the floor of an idle market rather than a forecast. Asked properly, the question is where the fee markets settle — and both update rules are specified. The execution market is EIP-1559 with a smoothed average: nothing bounds the base fee above, it multiplies by 9/8 at a full block and 7/8 at an empty one, and it is stationary exactly at half capacity.
 
 | | |
 | --- | --- |
-| a transfer's fee at the operating storage price | **0.207 LGO** |
-| a block's burn at 600 transactions | **112 LGO** |
-| the minting ceiling it has to replace | 95.13 LGO |
-| transactions a block needed to match the ceiling | **511** |
+| price at which a full block's burn equals the minting ceiling | 129,513 |
+| — what that costs one transaction | **0.103 LGO** |
+| blocks of persistently full demand to reach it | **86** (43 minutes) |
+| demand at or below target | **never** — the price is stationary or falls |
 
-**So the equilibrium era is already funded at the traffic this report models**, with 17% to spare, and without the fee market having to move at all. This is a much stronger result than earlier revisions of this study reported, and for an unglamorous reason: those revisions priced permanent storage at the execution market's rate and so understated every fee by a factor of about a billion. What remains true is the shape of the risk — the mechanism never drives fees up on its own, it only tracks demand, so **the long-run incentive is still a bet on adoption**. What has changed is how big that bet has to be: roughly five hundred transactions a block rather than a fee level nobody has ever seen.
+**So the equilibrium era is fundable at an entirely ordinary fee**: a tenth of a token per transaction replaces the whole minting ceiling. The eighteen-thousandfold multiple sounds alarming only because it is measured against a price that exists when nobody is transacting. What it is not is guaranteed — the mechanism never drives the fee up on its own, it only tracks demand. **The long-run incentive is a bet on adoption rather than a property of the mechanism.**
 
 ---
 
 ## 10. What should one claim be worth?
 
-The design goal for the era after the endowment is spent is that a claim still buys something concrete: a transfer carrying a small inscription. That gives a target a number can be checked against, so this section prices the bundle and asks whether the mechanism can pay for it. The sizes swept are 4, 8, 16, 32, 64, 128, 256, 512 and 1024 bytes.
+The design goal for the era after the endowment is spent is that a claim still buys something concrete: a transfer carrying a small inscription. That gives a target a number can be checked against. The sizes swept are 4, 8, 16, 32, 64, 128, 256, 512 and 1024 bytes.
 
-### The transfer's own encoding is most of the cost
+### A transaction pays into two markets, not one
+
+Execution gas is charged **per Operation**; permanent storage gas is charged on the **encoded size of the whole signed transaction**, one gas per byte. They discover their prices independently. Both floor at one lepton and an idle market settles at 7, which is why `mantle:1858` can state a claim's fee as 6,664 lepta — that is `(306 + 646) * 7`, the claim's bytes and its gas at the same resting level.
+
+The prices being equal is a fact about where the markets rest, not about how they are charged, and the two come apart as soon as either market sees load. The model prices them separately for that reason.
 
 ![what the bundle costs, and whether a claim covers it](figures/inscription_bundle.png)
 
-Because storage is charged on the *whole signed transaction*, an inscription never pays only for itself: it rides on a transfer whose own 207 bytes are already on the meter. At 4 bytes the inscription is **1.9%** of what the bundle costs; the other 98% is the envelope. Only past 256 bytes does the message become the majority of its own transaction. Anyone reasoning about "the cost of inscribing N bytes" should start from a fixed cost of one transfer and treat N as the increment.
+### The transfer's own encoding is most of the cost
 
-### The ceiling is 1,035 bytes, and the storage price has nothing to do with it
+An inscription never pays only for itself: it rides on a transfer whose own 207 bytes and 590 gas are already on the meter. At 4 bytes the inscription is **0.4%** of what the bundle costs. Only past 512 bytes does the message reach even half of its own transaction. Anyone reasoning about "the cost of inscribing N bytes" should start from the fixed cost of one transfer and treat N as the increment.
 
-Ask what the fee-funded steady state can afford. The refill is a share of the fees the network pays; those fees are storage-priced, and so is the bundle. The price appears on both sides and cancels:
+### The ceiling is 3,929 bytes
 
-| `max_inscription_bytes = (pow_share * txs_per_block / target_claims_per_block - 1) * transfer_tx_bytes` |
+Ask what the fee-funded steady state can afford. A steady claim is worth `pow_share * txs_per_block / target_claims_per_block` = **six** ordinary transactions' fees. It must pay for its own transfer out of those six before it can inscribe anything, which is where most of the bound comes from:
+
+| `max_inscription_bytes = (fee_multiple * avg_tx_fee - transfer_tx_bytes * storage_price - (transfer_tx_gas + inscribe_gas) * price_resting) / storage_price` |
 | --- |
 
-At the settled parameters that is `(0.1 * 600 / 10 - 1) * 207` = **1,035 bytes, whatever storage costs**. The intuition is worth keeping: a steady claim is worth six transfers' fees, one of which pays for its own transfer, leaving five transfers' worth of bytes to inscribe with.
+At the resting prices that is **3,929 bytes**. Every swept size is therefore covered, from 5.58× at 4 bytes down to **2.55× at 1024** — so a 1 kB target is comfortable rather than marginal, with more than twice the margin it needs.
 
-Every swept size is therefore covered — by 5.89× at 4 bytes, falling to **1.01× at 1024**. The 1 kB target that earlier revisions assumed turns out to sit 1% inside a hard ceiling, which is far too little margin to build on: a 10% shortfall in traffic, or a claim target raised from 10 to 11, puts it under water. **A target of 256 bytes carries 2.68× and is the largest of the swept sizes with real headroom.**
-
-### What the storage price does decide
+### Affordability is not close
 
 ![what the storage price decides](figures/inscription_affordability.png)
 
-Not the steady state — the bootstrap. During bootstrap the reward comes from the pool and does not move with the fee level, while the claim's own fee is almost entirely storage. So there is a price above which a claim costs more to submit than it pays:
+A claim's own fee is 6,664 lepta against an opening reward of 1.157 LGO, so the reward exceeds the fee by a factor of **173,681**. `mantle:1858` states the bound this has to satisfy — the reward covers the fee while the fee stays at or below `1.157e-10` of launch supply, which is 1.157 LGO — and the claim fee sits at six millionths of that ceiling.
 
-| | |
-| --- | --- |
-| genesis `reward_per_claim` | 1.16 LGO |
-| storage price at which a claim breaks even | **3.78e-3 LGO/byte** |
-| storage price at which the pool is exactly self-funding | **9.32e-4 LGO/byte** |
-| `P_STR(0)` as written in `storage-markets.md` | **1 LGO/byte** |
-
-**The specified price is 264 times the affordable one.** At 1 LGO per byte a claim transaction costs 306 LGO against a reward of 1.16, so no miner can afford to mine, none ever reaches the bond, and the mechanism does not start. The same price would burn thirteen times the entire token supply in fees every year at the modelled traffic.
-
-This is not read as a defect so much as an unset parameter. `storage-markets.md` states the requirement the price must satisfy — *"sufficiently low so as not to suppress early adoption"* — calls the precise value "not critical", notes the market converges to the clearing price from any start, and says genesis governance may adjust it. The stated value does not satisfy the stated requirement, so this study runs at **1e-3 LGO/byte**, which does: it keeps a claim clearing its own fee by 0.85 LGO, holds the annual fee burn near 1.3% of supply, and lands within 7% of the price that makes the endowment exactly the pool's fixed point. That last coincidence is what §6's flat pool curve is made of.
-
-**The recommendation this section supports** is to set `P_STR(0)` near 1e-3 LGO per byte and take 256 bytes rather than 1024 as the self-sustaining inscription target.
+**This is the question the storage price decides, and it is worth stating what would change it.** The affordability margin is proportional to the storage price: it would take a **540,000-fold** rise in `P_STR`, to 3,782,362 lepta a byte, before a claim stopped covering its own fee at the opening reward. The `1 LGO per permanently stored byte` written in `storage-markets.md:124-126` is such a rise — 10⁹ over the floor — and at that price a claim costs 306 LGO against a 1.157 LGO reward, no miner ever reaches the bond, and the mechanism does not start. That figure is superseded rather than operative: it predates the denomination being fixed, and *Logos Token: Units and Precision*, which `mantle:2119` defers to by name, prices permanent storage in lepta per gas unit with a one-lepton floor and puts a gigabyte of permanent storage at 1.0737 LOGOS. It is recorded here because the margin, though enormous, is not unconditional.
 
 ---
 
@@ -299,7 +264,7 @@ This is not read as a defect so much as an unset parameter. `storage-markets.md`
 
 Three sweeps, and only one thing overturns the answer.
 
-**Horizon — the lead grows rather than decaying.** Accumulated reward is dominated by the bootstrap era, so a provider's advantage is locked in early and never given back: 5.58× at two and a half years, 7.04× at ten, 8.33× at twenty, 8.36× at forty-three.
+**Horizon — the lead grows rather than decaying.** Accumulated reward is dominated by the bootstrap era, so a provider's advantage is locked in early and never given back: 5.68× at two and a half years, 7.04× at ten, 8.33× at twenty, 8.36× at forty-three.
 
 **Stake concentration — changes the size of the lead, not its direction.** At a very concentrated Pareto draw the lead is 18.41×, at the default 6.71×, at a fairly even draw 3.52×. The more concentrated the stake, the more valuable a flat per-provider payment is against the median stakeholder's proportional income.
 
@@ -309,7 +274,7 @@ Three sweeps, and only one thing overturns the answer.
 
 ## 12. What would change these conclusions
 
-**Who receives the emission — settled, by the EmPoWering PR itself.** `block-rewards.md` calibrates the maximum emission rate so that "the APY for validation is ~3.33%", which requires validators to receive the whole emission, while `overview-cryptoeconomics.md` gives leaders 0.4 with Blend taking 0.6. Both cannot hold, and the PR settles it in a sentence written for the purpose: *"The split between the Blend service and the leader is itself unchanged: they continue to divide the block reward 60/40."* The PR does not touch `block-rewards.md` at all, so its 3.33% figure is the stale side. The alternative is recorded only because of how much it would have moved: the two shares are complements of one split, so giving leaders everything sets the Blend share to zero — and service rewards *are* Blend rewards. Under that reading the dominant strategy of this report pays nothing and plain staking wins, 5.58× becoming 0.99×.
+**Who receives the emission — settled, by the EmPoWering PR itself.** `block-rewards.md` calibrates the maximum emission rate so that "the APY for validation is ~3.33%", which requires validators to receive the whole emission, while `overview-cryptoeconomics.md` gives leaders 0.4 with Blend taking 0.6. Both cannot hold, and the PR settles it in a sentence written for the purpose: *"The split between the Blend service and the leader is itself unchanged: they continue to divide the block reward 60/40."* The PR does not touch `block-rewards.md` at all, so its 3.33% figure is the stale side. The alternative is recorded only because of how much it would have moved: the two shares are complements of one split, so giving leaders everything sets the Blend share to zero — and service rewards *are* Blend rewards. Under that reading the dominant strategy of this report pays nothing and plain staking wins, 5.68× becoming 0.99×.
 
 **Settled: a locked service bond carries leadership weight.** Not stated in the specification, so a decision rather than a reading. A provider therefore adds service income on top of its leader income rather than trading one for the other, and strategies 3 and 5 dominate outright rather than conditionally.
 

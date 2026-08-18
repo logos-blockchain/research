@@ -139,36 +139,40 @@ own text sets `P_STR(0) = 1` — one *unit*.
 gas and can never go below one"*, and it **defers explicitly to *Logos Token: Units and
 Precision***.
 
-**Resolved: one LGO. This reverses an earlier resolution, which was wrong.**
+**Resolved: one lepton — and confirmed by the governing units document.**
 
-The earlier reading called the storage document's "1 LGO" display wording from before the
-denomination was set. It is not. `storage-markets.md:112-126` reasons about the value as an
-economic quantity across a full paragraph — how many epochs the market needs to climb from a
-starting price to the clearing price, why starting a tenth or a hundredth low costs 20 or 40
-epochs — and then states the conclusion in the plainest possible terms: *"This corresponds to
-a cost of **1 LGO per permanently stored byte**. Genesis governance may adjust this value based
-on the LGO price at TGE."* Nobody writes that sentence about a display convention.
+This entry has been resolved twice and reversed once, so the evidence is set out in full.
 
-The two texts are also not in conflict once the scopes are read properly. Mantle's "whole lepta
-per unit of gas" fixes the **denomination** every price is quoted in; the storage document fixes
-**this market's value** within that denomination, at 10⁹ lepta. Both hold at once.
+*Logos Token: Units and Precision* (Standards Track, rev 1.0.0, **2026-08-11**) is the document
+`mantle:2119` defers to by name for the unit system. It settles this on four independent
+points. It tabulates `P_STR(s)` in **"LEPTA per Storage Gas unit"**. It states that the
+execution base fee and the permanent storage price "are integers with an effective floor of
+**one base unit** per gas unit". It computes the consequence itself: *"Storing one GiB
+permanently costs at least 2^30 = 1,073,741,824 **LEPTA**, which is 1.0737 LOGOS."* And its
+entire lower-bound derivation — the argument that fixes precision at `d = 9` — rests on that
+floor, since it asks what precision keeps a GiB of storage under a target of a few dollars.
 
-**What the error cost.** The resolution note used to read "confirms the fee model already in
-use", which is the tell — the contradiction was resolved to agree with what the model already
-did rather than with the documents. That single-price model understated every fee by
-essentially its whole storage component, and with it the pool refill, the claim's own cost, the
-depletion horizon, the mining-versus-staking crossing and the equilibrium-era analysis. See the
-strategy report's §8 to §10 for what each of those became once the two markets were priced
-apart.
+`storage-markets.md` was last revised **2026-07-28**, two weeks before the denomination was
+fixed, so its "1 LGO per Permanent Storage Gas" is a figure from before there was a lepton to
+state it in. `mantle:2119` says as much in general terms: *"amounts written in LGO here are a
+display convenience for 10^9 lepta."*
 
-**The residual issue is not a contradiction but an unsatisfied requirement**, and it belongs
-upstream: the same passage requires `P_STR(0)` be *"sufficiently low so as not to suppress
-early adoption"*, and 1 LGO per byte does the opposite. At that price a claim transaction costs
-306 LGO against a genesis reward of 1.16, so no miner can afford to mine and none ever reaches
-the bond, and the network burns thirteen times the entire supply in fees every year at the
-modelled traffic. The specification anticipates this by making the value adjustable at genesis;
-what it does not do is name a value that works. **Suggested upstream: state `P_STR(0)` near
-1e-3 LGO per byte, or state the requirement as a computable bound.**
+**Why the reversal happened, and what it cost.** The middle resolution read
+`storage-markets.md:112-126` closely, found the value stated with a full paragraph of economic
+reasoning behind it, and concluded it was deliberate rather than presentational. That reading
+of *that document* is right; the error was resolving a units question without consulting the
+units document, which is both newer and explicitly deferred to. The check that would have
+caught it immediately is arithmetic: at 1 LGO per byte a gigabyte costs 1.07 **billion** LOGOS,
+a tenth of the entire supply, and `mantle:1858`'s own stated claim fee of 6,664 lepta becomes
+unreproducible. At the resting price of 7 it reproduces exactly, as `(306 + 646) * 7`.
+
+**The lasting consequence is not the number but the structure.** The two markets are charged on
+different things — execution gas per Operation, permanent storage gas on the encoded size of
+the whole signed transaction, one gas per byte (`mantle:71`, `mantle:148`) — and they discover
+their prices independently. They happen to share a floor of one lepton and a resting level of
+7, which is why a single-price model got the right answers. The simulator now prices them
+separately regardless, so that a divergence between the two markets shows up rather than being
+absorbed silently.
 
 ## 4.9 `S_TGE` — 10¹⁰ or 10⁸
 
@@ -214,7 +218,7 @@ the standard BN254 scalar field modulus and matches what this simulator already 
 | 4.5 | tips split 40/60 | yes — leader income lower than assumed |
 | 4.6 | per-block integer floors | marginal |
 | 4.7 | convert at the function boundary | guards a 10⁹ error |
-| 4.8 | one lepton | confirms the fee model already in use |
+| 4.8 | one lepton | confirmed against *Units and Precision*, which is newer than `storage-markets.md` and deferred to by `mantle:2119` |
 | 4.9 | `S_TGE = 10¹⁰` | **invalidates the `min_stake` derivation** |
 | 4.10 | `BN` | no |
 | 4.11 | use the stated modulus | no |
