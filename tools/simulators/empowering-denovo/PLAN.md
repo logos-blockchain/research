@@ -183,7 +183,7 @@ each requirement **by number**:
 - R1: the parameter table of §1.7, honestly accounted;
 - and the consistency identity against the measured efficiency band.
 
-## 3. Design questions (to be settled one by one, before Phase A freezes)
+## 3. Design questions — ALL SIX SETTLED 2026-08-18; Phase A may freeze the model
 
 1. **The bootstrap reward rule** — SETTLED 2026-08-18: **demand-indexed**,
    `reward_e = max(anchor, epoch_budget / claims_seen_last_epoch)`. Zero new parameters; quiet
@@ -225,5 +225,9 @@ each requirement **by number**:
    submitting -- the property the existing claim format is built around. Recomputing at the
    saturation point (stretching borrowed funds at a reduced reward) is recorded as an
    alternative; it breaks claim self-funding for exactly the cohort R5 protects.
-6. **Transition hysteresis**: none (recommend), or a guard band so fee noise near the boundary
-   cannot flap regimes.
+6. **Transition** — SETTLED 2026-08-18: **component accounting, no hysteresis**. The pool
+   tracks the TGE endowment and the fee inflow as separate buckets; the endowment is only
+   ever drawn down (sub-pools and Q2's borrow-forward both charge it), so the regime test
+   `endowment == 0` is monotone, fires once, and is irreversible by construction. No guard
+   band exists because the flapping it would guard against cannot occur. The single-bucket
+   level test, which would need one, is recorded as the alternative it replaces.
