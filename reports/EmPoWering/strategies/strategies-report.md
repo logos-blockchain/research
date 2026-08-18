@@ -186,17 +186,41 @@ Per block this is the arrival process at a fixed price: the reward per claim is 
 
 ---
 
-## 8. Electricity, and why it does not change the answer
+## 8. The two costs of mining
 
-Miners pay for their income and stakeholders do not. Netting it out at a Raspberry Pi 5's measured rate, whole-platform, at 20 cents a kilowatt-hour:
+Miners pay for their income and stakeholders do not. A miner pays **twice**, and the two costs behave so differently that they have to be separated.
+
+**The claim fee is a cost per claim.** Every claim is a transaction and pays its own fee, so a miner keeps `reward_per_claim - claim_fee`. At the opening reward that is 0.306 LGO against 1.157, so **the fee takes 26.4% of gross before any electricity is bought**. It does not vary with hardware, with the field, or with the difficulty — it is a flat tax on claiming, and it falls hardest on exactly the miners the mechanism is meant to onboard, since they have nothing else to pay it from.
+
+**Electricity is a cost per unit of work.** It scales with the difficulty, which the controller tightens as search power arrives (§1.3). Priced from the standalone cost estimator, at a Raspberry Pi 5's measured Poseidon2 rate, whole-platform, at 20 cents a kilowatt-hour:
+
+| field search power | electricity per claim | claim fee per claim | break-even token price |
+| --- | --- | --- | --- |
+| at genesis | $0.0014 | 0.306 LGO | $1.6 × 10⁻³ /LGO |
+| 10× | $0.0136 | 0.306 LGO | $1.6 × 10⁻² /LGO |
+| 100× | $0.1359 | 0.306 LGO | $1.6 × 10⁻¹ /LGO |
+| 380× | $0.5163 | 0.306 LGO | **$0.61 /LGO** |
+
+**So which cost binds depends entirely on how much hardware has turned up.** At genesis the fee is much the larger of the two; past roughly a tripling of search power electricity overtakes it, and from then on electricity grows without limit while the fee stays where it is. A Raspberry Pi 5 facing the 380-fold field of §1.3 needs a token worth **61 cents** to break even, against a sixth of a cent at genesis.
+
+### This is the affordability limit, and it is self-correcting
+
+That runaway does not actually run away, because miners leave. Free entry settles the difficulty where the cheapest available hardware exactly breaks even:
+
+| `equilibrium_difficulty = field_modulus * cost_per_candidate / (reward_per_claim - claim_fee)` |
+| --- |
+
+At $0.01 a token the equilibrium target is 0.16× the genesis value — six times the work per claim, sustained. At a tenth of a cent it is 1.6× genesis, meaning the field is *smaller* than at launch: the price has driven miners out until the survivors can pay their bill. **There is no price at which mining becomes permanently unaffordable; there is a difficulty at which it stops being worth it, and the controller finds it.** This is modelled endogenously — miners enter and leave on the arithmetic above rather than by assumption, priced per device class from the standalone cost estimator — and the behaviour is held by the validation suite: a Raspberry Pi 5 is priced out of the whole epoch at a low token price and mines all of it at a high one, with no limit cycle between the two.
+
+### Whether it changes the ordering
 
 | strategy | median electricity, 120 epochs | break-even token price |
 | --- | --- | --- |
 | miner | $83.28 | $1.7 × 10⁻³ /LGO |
 | miner and staker | $83.28 | $1.6 × 10⁻³ /LGO |
-| miner, staker and service | $83.28 | $1.1 × 10⁻⁴ /LGO |
+| miner, staker and service | $83.28 | $1.0 × 10⁻⁴ /LGO |
 
-Mining stops paying only if a token is worth less than about a sixth of a cent; above that, electricity is a rounding error and the ordering in §3 is unchanged. It is worth being clear what that means: **mining is not weak because it is expensive, it is weak because it pays little.**
+It does not. Against total income over the run, electricity stops mining paying only below about a sixth of a cent a token, and the ordering in §3 is unchanged. **Mining is not weak because it is expensive, it is weak because it pays little** — and 26% of what little it pays goes straight back out as the fee on the claim itself.
 
 ---
 

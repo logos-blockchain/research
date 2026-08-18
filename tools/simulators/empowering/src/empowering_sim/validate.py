@@ -334,6 +334,30 @@ def gate_participation(cfg: Config) -> None:
     check(f"{dear.key} mines freely at a high token price",
           high[-1].active_fraction_by_class[dear_i] > 0.99, True,
           note=f"{high[-1].active_fraction_by_class[dear_i]:.1%} of the epoch")
+    # The two costs of mining, and how differently they scale.
+    import numpy as _np                                        # noqa: PLC0415
+
+    _r0 = economics.reward_per_claim(cfg.genesis_pool, cfg)
+    _d0 = cfg.genesis_difficulty_target
+    _rpi = next(k for k in classes if k.key == "rpi5")
+    check("the claim fee alone takes this share of a genesis claim",
+          round(cfg.claim_fee / _r0, 3), 0.264,
+          note="a flat cost per claim -- it does not move with hardware or difficulty")
+    _elec = [float(market.work_cost_per_claim_usd(
+        _d0 // m, _np.array([_rpi.cost_per_candidate_usd]))[0]) for m in (1, 10, 380)]
+    for _m, _e, _want in zip((1, 10, 380), _elec, (0.0014, 0.0136, 0.5163)):
+        check(f"electricity per claim at {_m}x the genesis field", round(_e, 4), _want,
+              rel=2e-2, note="it rises with the difficulty; the fee does not")
+    check("so electricity overtakes the fee once the field has roughly tripled",
+          float(_elec[1]) > float(_elec[0]) * 9, True)
+    check("and a Pi 5 at the 380x field needs this token price to break even",
+          round(market.break_even_token_price(cfg, _r0, _d0 // 380,
+                                              _rpi.cost_per_candidate_usd), 2), 0.61,
+          note="against 0.0016 at genesis -- the affordability ceiling")
+    check("free entry settles the difficulty where the cheapest class breaks even",
+          market.affordability_floor_target(cfg, _r0, _rpi.cost_per_candidate_usd, 0.01) < _d0,
+          True, note="a tighter target than genesis at a cent a token")
+
     check("the cheaper class is never the one excluded first",
           cheap.cost_per_candidate_usd <= dear.cost_per_candidate_usd, True)
 
