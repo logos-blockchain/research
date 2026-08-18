@@ -5,30 +5,28 @@ useful: a transfer carrying a small inscription. This module prices that bundle 
 questions of it -- can the fee-funded steady state cover it, and can a miner afford to claim
 at all.
 
-**Fees have two prices, not one.** Execution gas is charged per Operation and rests at 7 lepta;
-permanent storage gas is charged on the encoded size of the whole signed transaction
-(`mantle:71`, `mantle:148`) and `storage-markets.md:126` puts it at **one LGO per stored
-byte** -- a billion times more. Storage therefore dominates every fee, and a transaction costs,
-to three figures, its byte count in LGO.
+**Fees have two prices, not one.** Execution gas is charged per Operation; permanent storage
+gas is charged on the encoded size of the whole signed transaction, one gas per byte
+(`mantle:71`, `mantle:148`). They discover their prices independently, so they are modelled
+separately -- but both floor at one lepton and an idle market settles at 7, which is why
+`mantle:1858` can state a claim's fee as 6,664 lepta: that is `(306 + 646) * 7`, the claim's
+bytes and its gas at the same resting level.
 
-That price is not a constant. The same passage calls its precise value "not critical", notes
-the market "converges autonomously to the market-clearing price" from any start, and leaves
-that clearing price undetermined. So `P_STR` is swept here rather than assumed.
+`storage-markets.md:124-126` reads "1 LGO per permanently stored byte". That is superseded --
+it predates the denomination being fixed, and *Logos Token: Units and Precision*, which
+`mantle:2119` defers to by name, prices storage in lepta per gas unit with a one-lepton floor.
+See `CONTRADICTIONS.md` 4.8.
 
-**The result that makes the sweep worth running.** Ask what inscription the steady state can
-afford. The refill is a share of the fees the network pays, and those fees are storage-priced;
-so is the bundle. The price appears on both sides and cancels:
+**What the sweep is for.** Ask what inscription the fee-funded steady state can afford. A
+steady claim is worth `pow_share * txs_per_block / target_claims_per_block` ordinary
+transactions' fees -- six, at the settled parameters -- and has to pay for its own transfer out
+of those six before it can inscribe anything. That is where most of the bound comes from, and
+it puts the ceiling at **3,929 bytes** at the resting prices. Every size this module sweeps
+clears it, 1 kB by 2.55x.
 
-| ``max_inscription_bytes = (pow_share * txs_per_block / target_claims_per_block - 1) * transfer_tx_bytes`` |
-| --- |
-
-At the settled parameters that is ``(0.1 * 600 / 10 - 1) * 207 = 1035`` bytes, **whatever
-storage costs**. The steady claim is worth six transfers' fees; one pays for its own transfer
-and five are left to inscribe with.
-
-So the ceiling is set by the fee multiple alone, and a 1 kB target sits 1% inside it. What the
-storage price does control is the other question -- whether a miner can afford the claim
-transaction during bootstrap, when the reward comes from the pool and not from fees.
+The storage price does not decide that, but it does decide affordability: a claim stops
+covering its own fee once storage passes 3,782,362 lepta a byte, 540,000 times its resting
+level.
 """
 from __future__ import annotations
 

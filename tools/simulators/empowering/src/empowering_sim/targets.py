@@ -15,11 +15,10 @@ Each inversion is closed form. See `docs/TARGET-PARAMETERISATION.md` for the arg
 the arithmetic, with the constraints attached so a target that cannot be met says so rather
 than returning a number that quietly does not work.
 
-**The first inversion is not the one you would expect.** It used to map a node target onto the
-size of the endowment, on the premise that the pool is a miner's only source of first tokens.
-With fees priced correctly the pool holds its level indefinitely and `epoch_refill / min_stake`
-bonds an epoch are funded from fees alone, so no endowment is the binding constraint. A node
-target therefore buys **time**, and what it inverts onto is the schedule.
+The first inversion rests on the endowment being what funds onboarding, and it is: at the
+resting fee level `epoch_refill` is 7.23 LGO an epoch, which is 0.007 of a single bond, against
+the 250 bonds an epoch the endowment itself funds at genesis. Fees are a rounding error on this
+question during bootstrap.
 """
 from __future__ import annotations
 
@@ -33,48 +32,36 @@ from .config import Config
 # paying for itself and the mechanism does not onboard anyone.
 SPEC_FEE_CEILING_FRACTION = 1.157e-10
 
-# Measured by the elevation study. Most of what the pool pays lands in balances that never
-# reach the bond, and the difference between these two is a behaviour the specification does
-# not address: whether a miner that has crossed the bond keeps mining.
-CONVERSION_RETIRING = 0.191
-CONVERSION_PERSISTENT = 0.089
+# Measured by the elevation study at 400 epochs and 100 arrivals an epoch, as fractions of the
+# `genesis_pool / min_stake` ceiling. Most of what the pool pays lands in balances that never
+# reach the bond, and the gap between these two is a behaviour the specification does not
+# address: whether a miner that has crossed the bond keeps mining. It is worth 4.5x.
+CONVERSION_RETIRING = 0.519
+CONVERSION_PERSISTENT = 0.114
 
 
 @dataclass(frozen=True)
 class Onboarding:
     nodes: int
-    epochs_retiring: float
-    epochs_persistent: float
-    bonds_per_epoch_funded: float
-
-    @property
-    def years_retiring(self) -> float:
-        return self._years(self.epochs_retiring)
-
-    @property
-    def years_persistent(self) -> float:
-        return self._years(self.epochs_persistent)
-
-    _epochs_per_year: float = 48.667
-
-    def _years(self, e: float) -> float:
-        return e / self._epochs_per_year
+    pool_retiring_lgo: float
+    pool_persistent_lgo: float
+    ceiling_at_current_pool: float
 
 
-def onboarding_schedule(cfg: Config, nodes_to_onboard: int) -> Onboarding:
-    """| ``epochs = nodes * min_stake / (conversion_efficiency * epoch_refill)``
+def endowment_for(cfg: Config, nodes_to_onboard: int) -> Onboarding:
+    """| ``genesis_pool = nodes_to_onboard * min_stake / conversion_efficiency``
 
-    What a node target costs in time. Both conversion efficiencies are returned because the
-    switch between them is unspecified and worth a factor of two.
+    What a node target costs, in tokens. Both conversion efficiencies are returned because the
+    switch between them is unspecified and worth a factor of four and a half -- which is the
+    single strongest argument for parameterising this way, since the current form hides that
+    behaviour inside a pool size chosen as a round fraction of supply.
     """
-    refill = economics.epoch_refill(cfg)
     need = nodes_to_onboard * cfg.min_stake
     return Onboarding(
         nodes=nodes_to_onboard,
-        epochs_retiring=need / (CONVERSION_RETIRING * refill),
-        epochs_persistent=need / (CONVERSION_PERSISTENT * refill),
-        bonds_per_epoch_funded=refill / cfg.min_stake,
-        _epochs_per_year=cfg.epochs_per_year,
+        pool_retiring_lgo=cfg.to_lgo(need / CONVERSION_RETIRING),
+        pool_persistent_lgo=cfg.to_lgo(need / CONVERSION_PERSISTENT),
+        ceiling_at_current_pool=cfg.genesis_pool / cfg.min_stake,
     )
 
 
@@ -121,11 +108,10 @@ def pow_share_for(cfg: Config, inscription_bytes: int) -> dict:
     The share of fees the pool must divert for a steady claim to cover a transfer carrying an
     inscription of the stated size.
 
-    This inversion is tightly constrained, which is easy to miss. The refill is a share of
-    storage-priced fees and so is the bundle, so the storage price cancels and the reachable
-    inscription is capped at `inscription.max_inscription_bytes` -- 1,035 bytes -- whatever
-    storage costs. Choosing a target inscription IS choosing `pow_share`, and choosing 1 kB
-    pins it within a percent of the 10% already specified.
+    This inversion is tightly constrained, which is easy to miss. The reachable inscription is
+    capped at `inscription.max_inscription_bytes` -- 3,929 bytes at the resting prices -- so
+    choosing a target above that is not a choice about `pow_share` at all, and the function
+    reports it as unreachable rather than returning a share that cannot deliver it.
     """
     claims = cfg.target_claims_per_block * cfg.blocks_per_epoch
     fee_revenue = cfg.blocks_per_epoch * cfg.txs_per_block * cfg.avg_tx_fee
@@ -156,5 +142,5 @@ def affordable(cfg: Config) -> dict:
         spec_ceiling_lgo=ceiling,
         ratio=fee / ceiling,
         affordable=fee <= ceiling,
-        max_storage_price_lgo=inscription.affordable_storage_price(cfg),
+        max_storage_price_lepta=inscription.affordable_storage_price(cfg),
     )

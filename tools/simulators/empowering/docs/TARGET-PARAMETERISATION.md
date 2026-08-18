@@ -1,11 +1,11 @@
 # Parameterising by outcome instead of by rate
 
-> **Revised after the fee correction.** This note was first written against a fee model that
-> applied one price to both gas markets and so understated every fee by essentially its whole
-> storage component. Two of the three inversions moved, and the first one changed *shape*
-> rather than just value: the pool turns out to be self-sustaining, so a node target no longer
-> sizes an endowment. The corrected version is below; the conclusion — that the
-> reparameterisation is sound and worth doing — survives intact, and is if anything stronger.
+> **Restored.** An intermediate revision of this note was written against a mistaken reading of
+> the storage price — one LGO per stored byte rather than one lepton — which made the pool look
+> self-sustaining and turned the first inversion into a schedule rather than a budget. That
+> reading is superseded (`CONTRADICTIONS.md` 4.8) and this note is back to its original form,
+> with the inscription section corrected for the general ceiling formula. The conclusion never
+> depended on the reading: the reparameterisation is sound and worth doing.
 
 A design note on the proposal to make the mechanism's controlling values **how many nodes we want to onboard** and **how long we want that to take**, with everything else derived.
 
@@ -19,27 +19,27 @@ Three outcomes map one-to-one onto three parameters. Each is a closed form — n
 
 | you state | it determines | how |
 | --- | --- | --- |
-| `nodes_to_onboard` | the **time** it takes, not the endowment | `epochs = nodes_to_onboard * min_stake / (conversion_efficiency * epoch_refill)` |
+| `nodes_to_onboard` | `genesis_pool` | `genesis_pool = nodes_to_onboard * min_stake / conversion_efficiency` |
 | `bootstrap_years` | `distribution_rate` | `distribution_rate = 1 - remaining_fraction ** (1 / bootstrap_epochs)` |
 | `steady_reward` (a transaction bundle) | `pow_share` | `pow_share = bundle * target_claims_per_block / (txs_per_block * avg_tx_fee)` |
 
-The second follows from the pool's decay being geometric at exactly `distribution_rate`; the third from the fee-funded steady state being the refill spread over an epoch's claims. The first used to follow from the pool being the only source of a miner's first tokens — and that is the premise that broke.
+The first follows from the pool being the only source of a miner's first tokens — at the resting fee level `epoch_refill` is 7.23 LGO an epoch, seven thousandths of a single bond, against the 250 bonds an epoch the endowment funds at genesis. The second follows from the pool's decay being geometric at exactly `distribution_rate`; the third from the fee-funded steady state being the refill spread over an epoch's claims.
 
-Checked against the current settings: `distribution_rate = 1/200` corresponds to 90% of the endowment spent in 9.4 years, and the elevation study measures 23 bonds an epoch without retirement and 50 with.
+Checked against the current settings: `genesis_pool` of 50M LGO onboards 25,934 nodes at the good conversion efficiency and 5,682 at the bad one, which is what the elevation study measures. `distribution_rate = 1/200` corresponds to 90% of the pool spent in 9.4 years.
 
-## What changed: a node target buys time, not budget
+## What it exposes: conversion efficiency
 
-The first inversion assumed the endowment is the only source of a miner's first tokens, so that `nodes_to_onboard` sized `genesis_pool`. With fees priced correctly that is false. The refill runs slightly ahead of what the pool pays, the pool holds its level indefinitely, and `epoch_refill / min_stake` = **268 bonds an epoch** are funded from fees alone, forever. There is no endowment large enough to be the binding constraint, because the endowment is not being consumed.
+The first inversion has a term the current parameterisation never asks about. The pool does not convert into bonds cleanly — most of what it pays out lands in balances that never reach the threshold. The elevation study measures **11.4%** of the ceiling reached when bonded miners keep mining and **51.9%** when they retire.
 
-So a node target does not fix a budget. It fixes a **duration**, and the parameter it inverts onto is the schedule rather than the pool:
+So the budget for a stated onboarding target is not one number but a range:
 
-| nodes to onboard | bonded miners retire (50/epoch) | bonded miners keep mining (23/epoch) |
+| nodes to onboard | at 51.9% | at 11.4% |
 | --- | --- | --- |
-| 1,000 | 20 epochs (0.4 yr) | 43 epochs (0.9 yr) |
-| 10,000 | 200 epochs (4.1 yr) | 431 epochs (8.9 yr) |
-| 50,000 | 1,001 epochs (20.6 yr) | 2,155 epochs (44.3 yr) |
+| 1,000 | 1.9M LGO | 8.8M LGO |
+| 10,000 | 19.3M LGO | 87.7M LGO |
+| 50,000 | 96.3M LGO | 438.6M LGO |
 
-**This is still the strongest argument for the reparameterisation, and now for a sharper reason.** The rate-based parameters cannot express an onboarding goal at all: `genesis_pool` sets a starting level that the mechanism then holds rather than spends. Stating the target forces the question of what actually limits the rate — and the answer is conversion efficiency, which is **8.9%** when bonded miners keep mining and **19.1%** when they retire. Nine-tenths of what the pool pays out lands in balances that never reach the bond. That is an unspecified behaviour worth a factor of two in the schedule, and nothing in the current parameterisation asks about it.
+**This is the strongest argument for the reparameterisation.** Under the current scheme you set `genesis_pool = 0.5%` of supply and discover the outcome afterwards; under the proposed one you state the outcome and are immediately asked what the conversion efficiency is — an unspecified behaviour worth a factor of four and a half in the budget. At 10,000 nodes it is the difference between 0.19% and 0.88% of supply.
 
 ## What it constrains: a floor under `bootstrap_years`
 
@@ -56,22 +56,22 @@ A shorter bootstrap needs `target_claims_per_block` raised in step, and that thi
 
 ## What it says about `pow_share`
 
-Setting the steady reward to a transaction bundle inverts cleanly, and the answer is that the current share is about four times larger than the stated goal needs.
+Setting the steady reward to a transaction bundle inverts cleanly:
 
 | inscription | `pow_share` needed | against the current 10% |
 | --- | --- | --- |
-| 256 B | **3.73%** | 0.37× |
-| 512 B | 5.79% | 0.58× |
-| 1024 B | **9.91%** | 0.99× |
+| 256 B | **2.32%** | 0.23× |
+| 512 B | 2.85% | 0.29× |
+| 1024 B | 3.93% | 0.39× |
 
-The current 10% share is, to within a percent, *exactly* what a 1 kB bundle costs — which is the same fact the strategy report's §10 states from the other direction: the ceiling on the inscription is
+So the current share is about four times larger than the stated goal needs, and the target is nowhere near its ceiling. That ceiling is worth stating alongside, because it is what makes the inversion well-posed at all:
 
-| `max_inscription_bytes = (pow_share * txs_per_block / target_claims_per_block - 1) * transfer_tx_bytes` |
+| `max_inscription_bytes = (fee_multiple * avg_tx_fee - transfer_tx_bytes * storage_price - (transfer_tx_gas + inscribe_gas) * price_resting) / storage_price` |
 | --- |
 
-= **1,035 bytes**, and it is independent of the storage price because the price appears on both sides and cancels. So this inversion is not free to choose: picking a target inscription *is* picking `pow_share`, and picking 1 kB pins it at essentially the value it already has, with 1% of headroom. **256 bytes at a 3.73% share is the version with real margin.**
+where `fee_multiple = pow_share * txs_per_block / target_claims_per_block` is how many ordinary transactions' fees one steady claim is worth — six, at the settled parameters — out of which the claim must first pay for its own transfer. That puts the ceiling at **3,929 bytes**, so every size in the study's sweep is reachable and 1 kB clears by 2.55×.
 
-One caveat: this holds at one traffic level. The fee-funded steady state scales with `txs_per_block`, so a share that exactly covers a bundle at 600 transactions covers ten bundles at 6,000. If the goal is that a claim covers a bundle *whatever the traffic*, the reward has to be **defined** as the bundle and the pool left to absorb the difference — which is a mechanism change rather than a re-parameterisation, and the only version that delivers the goal as stated.
+One caveat: this holds at one traffic level. The fee-funded steady state scales with `txs_per_block`, so a share that exactly covers a bundle at 600 transactions covers ten bundles at 6,000. If the goal is that a claim covers a bundle *whatever the traffic*, the reward has to be **defined** as the bundle and the pool left to absorb the difference — a mechanism change rather than a re-parameterisation, and the only version that delivers the goal as stated.
 
 ## What does not survive: the difficulty as the onboarding controller
 
@@ -89,7 +89,7 @@ Little, and most of it is presentation:
 
 1. **A `targets.py` that inverts the three closed forms.** Trivial; they are the formulas above. Not yet built.
 2. **The config takes targets and derives the parameters.** A presentation change, not a model change — the simulator computes the same things afterwards.
-3. **Conversion efficiency becomes an explicit input**, because the first inversion cannot be stated without it. This is the substantive part: it forces a currently-invisible behaviour — worth a factor of two in the onboarding schedule — into the parameter set.
+3. **Conversion efficiency becomes an explicit input**, because the first inversion cannot be stated without it. This is the substantive part: it forces a currently-invisible behaviour — worth a factor of four and a half in the budget — into the parameter set.
 4. **Only if the steady-state goal is to hold at every traffic level**: the reward gains a floor at the bundle. That one is a mechanism change and should be taken on its own merits.
 
 ## Is it easier to reason about?

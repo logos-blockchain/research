@@ -164,8 +164,8 @@ class Config:
         different things and priced independently: execution gas per Operation, permanent
         storage gas on the encoded size of the WHOLE signed transaction.
 
-        Storage dominates so completely that a transaction's fee is, to three figures, its
-        byte count in LGO.
+        The two markets rest at the same level, so a transaction's fee is its bytes and its
+        gas at that one level -- which is how `mantle:1858` gets 6,664 lepta for a claim.
         """
         return nbytes * self.storage_price + gas * self.price_resting
 
@@ -183,8 +183,8 @@ class Config:
         """A transfer carrying an inscription of a given size -- the self-sustaining target.
 
         The inscription's bytes ride on the same signed transaction, so they are charged at the
-        storage price alongside the transfer's own encoding. That encoding is the floor: even a
-        four-byte inscription costs a transfer's worth of storage before it costs its own.
+        storage price alongside the transfer's own encoding. That encoding is the floor: a
+        four-byte inscription is under half a percent of what its own transaction costs.
         """
         return self.tx_fee(self.transfer_tx_bytes + inscription_bytes,
                            self.transfer_tx_gas + self.inscribe_gas)

@@ -243,10 +243,7 @@ def provider_ramp(cfg, out: Path, cohort_sizes=(16, 32, 64, 100), epochs: int = 
 def elevation_and_depletion(cfg, out: Path, epochs: int = 400) -> Path:
     """What the pool spends, and what that spending buys.
 
-    Left: the pool holds its level. Fees replace slightly more than the pool pays out, so it
-    drifts UP rather than draining -- the depletion horizon this study reported before the
-    storage market was priced separately was an artefact of understating the fee. The three
-    curves are three miner populations
+    Left: the pool drains on a fixed clock. The three curves are three miner populations
     differing fiftyfold and they lie on top of one another, because the difficulty controller
     holds the claim count at target -- so the payout is a property of the POOL and not of
     demand. Nothing anyone does makes it drain faster or slower.
@@ -267,10 +264,10 @@ def elevation_and_depletion(cfg, out: Path, epochs: int = 400) -> Path:
                      color=list(SERIES.values())[i], linewidth=2.4 - i * 0.6, zorder=3 + i,
                      label=f"{rate} miners/epoch", solid_capstyle="round")
     axes[0].set_xlabel("epoch", color=INK_2, fontsize=9.5)
-    axes[0].set_ylabel("pool level, % of genesis", color=INK_2, fontsize=9.5)
+    axes[0].set_ylabel("pool remaining, % of genesis", color=INK_2, fontsize=9.5)
     axes[0].legend(frameon=False, fontsize=9, ncol=3, loc="upper center",
                    bbox_to_anchor=(0.5, -0.22), labelcolor=INK_2)
-    _style(axes[0], "The pool does not drain — fees more than replace what it pays",
+    _style(axes[0], "The pool drains on a fixed clock",
            "three populations, fiftyfold apart — one curve")
 
     for i, retire in enumerate((False, True)):
@@ -283,15 +280,15 @@ def elevation_and_depletion(cfg, out: Path, epochs: int = 400) -> Path:
     axes[1].axhline(cfg.genesis_pool / cfg.min_stake, color="#e34948", linewidth=1.4,
                     linestyle=(0, (2, 2)), zorder=4)
     axes[1].text(0, cfg.genesis_pool / cfg.min_stake * 0.94,
-                 "  50,000 — what the endowment alone funds",
+                 "  50,000 — the pool over the bond, the arithmetic ceiling",
                  color="#e34948", fontsize=8, va="top", ha="left")
     axes[1].set_xlabel("epoch", color=INK_2, fontsize=9.5)
     axes[1].set_ylabel("miners elevated to the bond", color=INK_2, fontsize=9.5)
     axes[1].legend(frameon=False, fontsize=9, ncol=2, loc="upper center",
                    bbox_to_anchor=(0.5, -0.22), labelcolor=INK_2)
     _thousands(axes[1], "y")
-    _style(axes[1], "Elevation is not capped by the endowment",
-           "fees fund 268 more bonds an epoch, indefinitely")
+    _style(axes[1], "What the same spend buys",
+           "identical money, four times the elevations")
 
     fig.tight_layout(rect=(0, 0.10, 1, 0.88), w_pad=4.0)
     p = out / "elevation_depletion.png"

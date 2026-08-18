@@ -780,10 +780,16 @@ def gate_targets(cfg: Config) -> None:
     print("\nParameterising by outcome: the three inversions")
     from . import targets as tg                               # noqa: PLC0415
 
-    o = tg.onboarding_schedule(cfg, 10_000)
-    check("the schedule is linear in the node target",
-          round(tg.onboarding_schedule(cfg, 20_000).epochs_retiring / o.epochs_retiring, 6),
-          2.0)
+    o = tg.endowment_for(cfg, 10_000)
+    check("the endowment a 10,000-node target needs, if bonded miners retire",
+          round(o.pool_retiring_lgo / 1e6, 2), 19.27, note="millions of LGO")
+    check("and if they do not", round(o.pool_persistent_lgo / 1e6, 2), 87.72,
+          note="an unspecified behaviour, worth 4.5x the budget")
+    check("the inversion is linear in the node target",
+          round(tg.endowment_for(cfg, 20_000).pool_retiring_lgo / o.pool_retiring_lgo, 6), 2.0)
+    check("and it round-trips against the measured elevation study",
+          round(tg.endowment_for(cfg, 5_682).pool_persistent_lgo / cfg.to_lgo(cfg.genesis_pool),
+                2), 1.0, note="5,682 elevated is 11.4% of the 50,000 ceiling")
     check("the current rate corresponds to this bootstrap period",
           tg.distribution_rate_for(cfg, 9.4)["denominator"], 199,
           note="against the specified 1/200")
@@ -793,6 +799,19 @@ def gate_targets(cfg: Config) -> None:
     check("a two-year bootstrap is not drain-safe",
           tg.distribution_rate_for(cfg, 2.0)["drain_safe"], False)
     check("a five-year one is", tg.distribution_rate_for(cfg, 4.85)["drain_safe"], True)
+    # The elevation study's published table, pinned to the configuration that produced it --
+    # the numbers move by a fifth between 400 and 600 epochs, and by a tenth between 50 and 100
+    # arrivals an epoch, so the report's figures are only meaningful with the run attached.
+    from . import elevation as _el                            # noqa: PLC0415
+
+    _ceiling = cfg.genesis_pool / cfg.min_stake
+    for _retire, _want in ((False, 5_682), (True, 25_934)):
+        _r = _el.run(cfg, _el.ElevationConfig(miners_per_epoch=100, epochs=400,
+                                              retire_on_bond=_retire))
+        check(f"elevated over 400 epochs, bonded miners "
+              f"{'retire' if _retire else 'keep mining'}", _r.elevated, _want,
+              note=f"{_r.elevated / _ceiling:.1%} of the {_ceiling:,.0f} ceiling")
+
     check("past the ceiling an inscription target is unreachable at any share",
           tg.pow_share_for(cfg, 5_000)["reachable"], False,
           note="the ceiling is 3,929 bytes at the resting prices")

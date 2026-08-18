@@ -70,7 +70,7 @@ def bundle_cost(cfg: Config, out: Path) -> Path:
     for i, r in enumerate(rows):
         if r.inscription_bytes in (4, 512, 1024):
             a0.text(i, float(r.bundle) + max(insc.max(), floor) * 0.03,
-                    f"{r.inscription_share:.0%}",
+                    f"{r.inscription_share:.1%}",
                     ha="center", fontsize=8, color=INK_2)
 
     margin = np.array([r.margin for r in rows])
@@ -90,8 +90,8 @@ def bundle_cost(cfg: Config, out: Path) -> Path:
                     xytext=(dx, dy), ha=ha, fontsize=8.5, color=INK_2)
 
     f.suptitle(
-        f"The fee multiple, not the storage price, sets the ceiling: "
-        f"{inscription.max_inscription_bytes(cfg):,.0f} bytes",
+        f"A steady claim is worth six transfers, and pays for its own first: "
+        f"the ceiling is {inscription.max_inscription_bytes(cfg):,.0f} bytes",
         color=INK, fontsize=12, x=0.008, ha="left", y=0.985)
     f.tight_layout(rect=(0, 0, 1, 0.93))
     f.savefig(out, dpi=180, facecolor=SURFACE)
