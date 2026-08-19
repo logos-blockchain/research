@@ -1,0 +1,20 @@
+{
+  "launch_supply_lgo": 10000000000.0,
+  "base_units_per_lgo": 1000000000,
+  "epochs_per_year": 48.667,
+  "blocks_per_epoch": 21600,
+  "max_block_txs": 1024,
+  "min_stake_lepta": 1000000000000,
+  "transfer_fee_lepta": 5579,
+  "claim_fee_lepta": 6664,
+  "pow_share_num": 10,
+  "pow_share_den": 100,
+  "efficiency_persistent": 0.114,
+  "efficiency_retiring": 0.519,
+  "reference": {
+    "pool_fraction": 0.005,
+    "expected_nodes": 25000,
+    "expected_years": 4.0,
+    "txs_per_block": 600
+  }
+}
