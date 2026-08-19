@@ -195,6 +195,15 @@ post-phase equilibrium within its usual ~10-block time constant; no special-case
 | difficulty | constant floor | EMA throttle at `capacity / blocks` |
 | ends | endowment exhausted — at `BOOTSTRAP_EPOCHS` on expectation, earlier under spikes, later under weak interest | — |
 
+**A residual corner, documented rather than decided.** The nominal-rate cap applies past
+the deadline; *inside* the window, linear amortisation's endpoint still means the last
+scheduled epochs offer everything that remains. A field that is completely silent until
+epoch `B - 1` therefore meets the same whole-remainder dump Q7 removed from the tail -- the
+trigger is total prior silence, strictly narrower than the back-loaded scenario, and the
+candidate one-line extension (cap the sub-pool at the nominal rate whenever
+`claims_prev == 0`) is a design decision beyond Q7's settled scope, recorded here for the
+owner rather than taken.
+
 Weak-interest tail (settled as Q7 after simulation): if the expected duration passes with
 endowment remaining, each further epoch offers a sub-pool capped at the **nominal rate**,
 `ENDOWMENT_GENESIS // BOOTSTRAP_EPOCHS`, until the money is gone. Late cohorts meet the same

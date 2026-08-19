@@ -49,6 +49,10 @@ def main() -> int:
             check(f"a triple {side} the band is rejected", True, True)
 
     print("\nThe reference run: uniform arrivals, retirement on")
+    # ONE draw object is reused across every run below, so its rng state advances run by
+    # run and every pinned constant depends on the ORDER of the gates. Reordering runs, or
+    # inserting one, legitimately moves heavy-tail-sensitive numbers (the x100 borrow ratio
+    # spans 86-111x across paths) -- re-pin deliberately, never relax.
     draw = arrivals.pi5_pareto(np.random.default_rng(2),
                                floor_rate=1 / cfg.seconds_per_candidate_reward)
     r = engine.run(d, arrivals.uniform(220, 130), draw, epochs=220)

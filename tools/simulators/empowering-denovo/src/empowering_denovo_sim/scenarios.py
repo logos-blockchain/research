@@ -11,9 +11,10 @@ from .params import Derived
 class CohortDraw:
     """A hashrate draw that knows the arrival schedule.
 
-    The engine calls the draw once per seating epoch, in order, so a stateful iterator can
-    hand different cohorts different hardware -- which is how the whale enters: one arrival
-    whose rate is a stated multiple of the whole expected field.
+    The engine calls the draw once per epoch THAT SEATS ANYONE, in order -- epochs with no
+    arrivals do not call it. ``specials`` is therefore keyed by seating ORDINAL, not by
+    epoch; callers with gappy schedules must translate (see `whale_run`). A first version
+    keyed by epoch and was correct only for gapless backgrounds.
     """
 
     def __init__(self, base_draw, specials: dict[int, float] | None = None):
@@ -42,7 +43,8 @@ def whale_run(d: Derived, per_epoch: int, whale_epoch: int, whale_multiple: floa
     field_met = max(1, per_epoch * whale_epoch) * mean_rate
     a = arr.uniform(epochs, per_epoch)
     a[whale_epoch] += 1
-    draw = CohortDraw(base, specials={whale_epoch: whale_multiple * field_met})
+    ordinal = int(np.count_nonzero(a[:whale_epoch]))     # == whale_epoch for this background,
+    draw = CohortDraw(base, specials={ordinal: whale_multiple * field_met})  # but computed
     return engine.run(d, a, draw, epochs=epochs, seed=seed)
 
 
