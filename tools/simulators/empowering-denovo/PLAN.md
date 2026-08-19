@@ -183,7 +183,27 @@ each requirement **by number**:
 - R1: the parameter table of §1.7, honestly accounted;
 - and the consistency identity against the measured efficiency band.
 
-## 3. Design questions — ALL SIX SETTLED 2026-08-18; Phase A may freeze the model
+## 3. Design questions — all settled
+
+Q1-Q6 settled 2026-08-18 (Q4 amended same day, see MODEL.md section 9). Simulation raised
+three more; Q7 settled 2026-08-19, Q8/Q9 pending as a coupled pair:
+
+7. **The post-deadline remainder** — SETTLED 2026-08-19: **the nominal-rate tail**. Past the
+   expected duration each epoch's sub-pool caps at `endowment_genesis // bootstrap_epochs`
+   until spent. Zero new parameters; back-loaded conversion went from 4.5% to 76-100% across
+   draws. Rejected: the whole-remainder dump (measured 2.6% conversion), folding to fees at
+   the deadline (abandons the onboarding purpose of the remainder).
+8. **The burst window** — SETTLED 2026-08-19: **unbounded**, R6 read literally. The pool
+   pays until exhausted and a whale is a claimant like any other; the endowment is
+   first-come by design and the 17%/52%/83% capture at 1x/3x/10x ships as a documented,
+   gated property. Rejected: caps at 3x or 2x budget per epoch (one constant against R1,
+   softens R6, and the 2x cap would already queue the measured honest x100 cohort).
+9. **Index damping** — SETTLED 2026-08-19: **raw claims_prev**. Zero state, and the index's
+   one-epoch crash IS the whale response (reward /120 after a burst). The period-2 cycle
+   under a participation cliff at the operating reward ships as a documented, gated hazard.
+   Rejected: the beta = 1/2 EMA (kills the cycle but widens the whale window, only
+   affordable with a Q8 cap that was itself rejected).
+
 
 1. **The bootstrap reward rule** — SETTLED 2026-08-18: **demand-indexed**,
    `reward_e = max(anchor, epoch_budget / claims_seen_last_epoch)`. Zero new parameters; quiet

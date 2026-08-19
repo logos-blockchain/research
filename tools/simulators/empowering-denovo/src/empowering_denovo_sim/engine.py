@@ -56,6 +56,7 @@ class EpochRow:
     claims_paid: int
     spent: int
     saturation_block: int           # NOT_SET if the budget was never exceeded/stopped short
+    max_block_claims: int           # the fullest block's paid claims -- the block-space question
     bonds_total: int
     bonds_new: int
     miners_live: int
@@ -85,11 +86,17 @@ class Result:
 
 def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
         retire_on_bond: bool = True, txs_per_block: int | None = None,
-        seed: int = 70_001, deterministic: bool = False) -> Result:
+        seed: int = 70_001, deterministic: bool = False,
+        participation=None) -> Result:
     """Advance the chain.
 
     ``arrivals[e]`` miners are seated at epoch ``e`` with hashrates from ``hashrate_draw(n)``.
     ``deterministic`` replaces Poisson draws with their expectation (for gating closed forms).
+
+    ``participation(reward_lepta, epoch) -> [0, 1]`` scales the epoch's active search power --
+    the elasticity hook for MODEL.md section 8.1's oscillation probe. Miners see the epoch's
+    posted reward at the boundary and respond as one body; attribution still draws over the
+    whole live set, which is second-order for the aggregate dynamics the probe measures.
     """
     cfg = d.cfg
     rng = np.random.default_rng(seed)
@@ -120,23 +127,31 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
             pop.arrived[seated:seated + n] = e
             seated += n
 
-        # The dust fold (MODEL.md section 3): a remainder below the anchor cannot fund a
-        # claim and would hold the regime open forever.
-        if 0 < endowment < d.anchor:
-            fee_bucket += endowment
-            endowment = 0
+        # ---- epoch boundary (MODEL.md section 3)
+        # Price the epoch as bootstrap first; the dust fold then asks whether the endowment
+        # can fund even one claim AT THAT PRICE. An anchor-scale threshold misses the
+        # weak-interest tail, where the remainder-dump reward is thousands of LGO and a
+        # room-locked residual of hundreds of LGO would hold the regime open forever.
+        if endowment > 0:
+            if e < d.bootstrap_epochs:
+                sub_pool = endowment // (d.bootstrap_epochs - e)
+            else:
+                # Q7, the nominal-rate tail: past the deadline the schedule continues at the
+                # planned per-epoch rate until the money is gone. The whole-remainder dump
+                # this replaces handed 50M LGO to the first 1,300 claimants at 2.6%
+                # conversion and stranded everyone after them at the anchor.
+                sub_pool = min(endowment, d.endowment_genesis // d.bootstrap_epochs)
+            budget = sub_pool + fee_bucket
+            reward = max(d.anchor, budget // max(claims_prev, cfg.blocks_per_epoch))
+            if endowment < reward:
+                fee_bucket += endowment
+                endowment = 0
 
         bootstrap = endowment > 0
         if not bootstrap and transition_epoch == NOT_SET:
             transition_epoch = e
 
-        # ---- epoch boundary (MODEL.md section 3)
-        if bootstrap:
-            epochs_left = max(1, d.bootstrap_epochs - e)
-            sub_pool = endowment // epochs_left
-            budget = sub_pool + fee_bucket
-            reward = max(d.anchor, budget // max(claims_prev, cfg.blocks_per_epoch))
-        else:
+        if not bootstrap:
             budget = fee_bucket
             reward = d.anchor
         fee_opening = fee_bucket
@@ -144,6 +159,8 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
         # ---- the epoch, block by block (MODEL.md section 4)
         live = pop.live_mask(retire_on_bond)
         rate = float(pop.hashrate[live].sum())
+        if participation is not None:
+            rate *= float(np.clip(participation(reward, e), 0.0, 1.0))
         idx = np.flatnonzero(live)
         weights = pop.hashrate[idx]
         wsum = weights.sum()
@@ -173,6 +190,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
             paid_per_block = np.minimum(offered,
                                         np.maximum(0, room - (cum - offered)))
             paid_total = int(paid_per_block.sum())
+            max_block_claims = int(paid_per_block.max()) if paid_per_block.size else 0
             spent = paid_total * reward
             over = np.flatnonzero(np.cumsum(paid_per_block) * reward > budget)
             saturation = int(over[0]) if over.size else NOT_SET
@@ -185,6 +203,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
         else:
             # The throttle feeds back per block, so the loop is real -- but admission within
             # a block is batch arithmetic, not a per-claim loop.
+            max_block_claims = 0
             for b in range(cfg.blocks_per_epoch):
                 if rate > 0:
                     mu = work.expected_claims(rate, difficulty, cfg)
@@ -195,16 +214,20 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
                 room = (budget - spent) // reward if reward else 0
                 paid = min(offered_b, max(0, room))
                 if paid:
+                    max_block_claims = max(max_block_claims, paid)
                     take = paid * reward
                     draw_f = min(take, fee_bucket)
                     fee_bucket -= draw_f
                     spent += take
                     paid_total += paid
-                    if wsum > 0:
-                        won += rng.multinomial(paid, weights / wsum)
                 if spent + reward > budget and saturation == NOT_SET:
                     saturation = b
                 difficulty = _retarget(difficulty, paid, target, cfg)
+            # One multinomial for the epoch: sums of multinomials over the same weights ARE
+            # the multinomial of the summed count, so per-block draws would buy nothing but
+            # twenty-one thousand RNG calls.
+            if paid_total and wsum > 0:
+                won = rng.multinomial(paid_total, weights / wsum).astype(np.int64)
 
         # ---- settle balances and bonds
         bonds_before = int((pop.bonded_at != NOT_SET).sum())
@@ -219,7 +242,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
             epoch=e, bootstrap=bootstrap, endowment=endowment,
             fee_bucket_opening=fee_opening, budget=budget, reward=reward,
             claims_paid=paid_total, spent=spent, saturation_block=saturation,
-            bonds_total=bonds_total, bonds_new=bonds_total - bonds_before,
+            max_block_claims=max_block_claims, bonds_total=bonds_total, bonds_new=bonds_total - bonds_before,
             miners_live=int(live.sum()), difficulty_target=difficulty,
             endowment_drawn=endowment_drawn))
 

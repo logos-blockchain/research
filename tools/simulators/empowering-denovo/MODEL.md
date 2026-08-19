@@ -63,17 +63,20 @@ only ever falls, so the transition fires once and cannot flap).
 def on_epoch_boundary(e):
     fee_bucket   = fee_bucket_remaining + fee_accrual      # unspent F rolls forward; see note
     fee_accrual  = 0
-    if 0 < endowment < anchor():                           # the dust fold; see note below
-        fee_bucket += endowment
-        endowment   = 0
 
-    if endowment > 0:                                      # ---- bootstrap
-        epochs_left  = max(1, BOOTSTRAP_EPOCHS - e)
-        sub_pool     = endowment // epochs_left            # linear amortisation (plan 1.1)
+    if endowment > 0:                                      # ---- price as bootstrap first
+        if e < BOOTSTRAP_EPOCHS:
+            sub_pool = endowment // (BOOTSTRAP_EPOCHS - e) # linear amortisation (plan 1.1)
+        else:                                              # Q7: the nominal-rate tail
+            sub_pool = min(endowment, ENDOWMENT_GENESIS // BOOTSTRAP_EPOCHS)
         epoch_budget = sub_pool + fee_bucket
         epoch_reward = max(anchor(),                       # R8: never below the anchor
                            epoch_budget // max(claims_prev, BLOCKS_PER_EPOCH))
-    else:                                                  # ---- post-bootstrap
+        if endowment < epoch_reward:                       # the dust fold; see note below
+            fee_bucket += endowment
+            endowment   = 0
+
+    if endowment == 0:                                     # ---- post-bootstrap
         epoch_budget = fee_bucket                          # R7a: last epoch's fees, raw (Q3)
         epoch_reward = anchor()                            # R8: the anchor exactly
 
@@ -99,12 +102,17 @@ LGO per claim** — about ten times the old design's opening, because a four-yea
 is faster than a 1/200 geometric one.
 
 **The dust fold.** Payments draw the fee bucket first, so the endowment's last remainder is
-whatever the final borrow leaves -- strictly less than one reward. Without this rule that dust
-keeps `endowment > 0` true forever and the transition never fires (the simulator found the
-deadlock on its first full run: the regime froze one reward short of the end). Folding a
-remainder smaller than the anchor into the fee bucket ends the phase exactly when the
-endowment can no longer fund a single claim, conserves every lepton, and keeps the transition
-one-way -- the fold only ever moves value out of `endowment`.
+whatever the final borrow leaves -- strictly less than one reward. Without a fold that dust
+keeps `endowment > 0` true forever and the transition never fires; the simulator found the
+deadlock on its first full run, frozen one reward short of the end. The threshold is **the
+epoch's own reward**, not the anchor: the epoch is priced as bootstrap first, and if the
+endowment cannot fund one claim at that price it folds into the fee bucket and the epoch runs
+as post-bootstrap. The anchor-scale rule this replaces failed in the weak-interest tail, where
+the remainder-dump reward is thousands of LGO and a room-locked residual of hundreds of LGO --
+far above the anchor, far below one reward -- held the regime open indefinitely with the
+reward pinned near `fee_bucket / claims_prev` instead of falling to the anchor. The fold
+conserves every lepton and keeps the transition one-way: it only ever moves value out of
+`endowment`.
 
 **Rollover note.** Q3 says the post-phase budget is the previous epoch's fees, *raw*. When an
 epoch under-spends (the throttle overshot), the unspent remainder stays in `fee_bucket` and
@@ -181,10 +189,14 @@ post-phase equilibrium within its usual ~10-block time constant; no special-case
 | difficulty | constant floor | EMA throttle at `capacity / blocks` |
 | ends | endowment exhausted — at `BOOTSTRAP_EPOCHS` on expectation, earlier under spikes, later under weak interest | — |
 
-Weak-interest tail: if the expected duration passes with endowment remaining (arrivals below
-expectation), `epochs_left` floors at 1 and each further epoch offers the whole remainder as
-its sub-pool until it is claimed. The phase ends when the money is gone, not when the clock
-says so — in both directions.
+Weak-interest tail (settled as Q7 after simulation): if the expected duration passes with
+endowment remaining, each further epoch offers a sub-pool capped at the **nominal rate**,
+`ENDOWMENT_GENESIS // BOOTSTRAP_EPOCHS`, until the money is gone. Late cohorts meet the same
+regime on-time cohorts did, and the expected duration is symmetric: spikes shorten the phase,
+weak interest extends it at the planned pace. The whole-remainder dump this replaces — the
+schedule's naive `max(1, B - e)` floor — handed the entire remainder to the first epoch with
+claimants at a measured 2.6% conversion and stranded every later arrival at the anchor. The
+phase still ends when the money is gone, not when the clock says so — in both directions.
 
 ## 6. Closed forms (for gating the simulator)
 
@@ -218,7 +230,14 @@ With `B = BOOTSTRAP_EPOCHS`, `E_0 = ENDOWMENT_GENESIS`, uniform arrivals at the 
 grows; implied efficiency 50% — satisfiable only in the retiring regime, which the report must
 state as the triple's built-in assumption.
 
-## 8. Analysis obligations (known risks, owned before simulation)
+## 8. Analysis obligations — measured, and resolved
+
+Every obligation below was simulated (the report, sections 5-7). The resolutions, settled
+2026-08-19: the whale exposure and the index's cliff cycle are ACCEPTED as documented
+properties — Q8 keeps the borrow-forward unbounded (R6 literally: the pool pays until
+exhausted, the endowment is first-come) and Q9 keeps the index raw (its one-epoch crash is
+the burst response; zero state). Both are pinned by gates so they cannot drift silently.
+The original obligations, kept for the audit trail:
 
 1. **Demand-index oscillation.** `reward_{e+1} = budget / claims_e` with entry/exit elasticity
    can two-cycle: heavy epoch → small reward → exit → light epoch → big reward → re-entry.

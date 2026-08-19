@@ -61,8 +61,9 @@ def main() -> int:
     check("the regime flips exactly once",
           sum(1 for a, b in zip(boot, boot[1:]) if a != b), 1)
     check("and never back", all(not b for b in boot[r.transition_epoch:]), True)
-    check("the transition lands at the expected duration plus the room-lock tail",
-          195 <= r.transition_epoch <= 205, True, note=f"epoch {r.transition_epoch}")
+    check("the transition lands at the expected duration exactly",
+          r.transition_epoch, 195,
+          note="the earlier 195-199 drift was the anchor-scale dust fold failing to fire")
     check("after it the endowment is exactly zero",
           all(q.endowment == 0 for q in rows[r.transition_epoch:]), True,
           note="the dust fold -- without it the regime deadlocks one reward short")
@@ -103,9 +104,27 @@ def main() -> int:
     check("no claim in the spike epoch went unpaid for budget reasons",
           q30.spent >= q30.budget, True,
           note=f"spent {q30.spent / q30.budget:.2f}x the budget -- the borrow-forward at work")
-    check("the borrow shortens the phase",
+    check("the borrow cannot lengthen the phase",
           r10.transition_epoch <= r.transition_epoch, True,
           note=f"transition {r10.transition_epoch} against uniform {r.transition_epoch}")
+
+    print("\nThe nominal-rate tail (Q7): late interest meets the planned regime")
+    rbl = engine.run(d, arrivals.back_loaded(220, 220 * 130), draw, epochs=420)
+    check("a wholly back-loaded field converts like an on-time one",
+          rbl.rows[-1].bonds_total >= 20_000, True,
+          note=f"{rbl.rows[-1].bonds_total:,} of 28,600 -- 76-100% across draws, against "
+               f"1,293 (4.5%) under the whole-remainder dump this replaces")
+    nominal = d.endowment_genesis // d.bootstrap_epochs
+    tail = [q for q in rbl.rows if q.epoch >= d.bootstrap_epochs and q.bootstrap]
+    check("no tail epoch offers more than the nominal sub-pool plus fees",
+          all(q.budget <= nominal + q.fee_bucket_opening for q in tail), True,
+          note=f"{len(tail)} tail epochs, capped at {nominal / 1e18:.4f}e9 LGO each")
+    last = rbl.rows[-1]
+    check("the tail ends in a legal state: armed, or spent and transitioned",
+          last.endowment > 0 or (last.endowment == 0 and not last.bootstrap), True,
+          note=f"endowment {last.endowment / d.endowment_genesis:.0%}, "
+               f"bootstrap={last.bootstrap} -- which branch is draw-dependent, the legality "
+               f"is not")
     # R5's admission metric: the spike cohort reaches bonds like its neighbours do.
     bonds = r10.bonds_by_cohort()
     spike_frac = bonds.get(30, 0) / (130 * 10)
@@ -113,6 +132,27 @@ def main() -> int:
     check("the spike cohort's bond rate is within the neighbours' range",
           0.5 * min(neigh) <= spike_frac <= 1.5 * max(neigh), True,
           note=f"{spike_frac:.1%} against neighbours {min(neigh):.1%}..{max(neigh):.1%}")
+
+    print("\nThe accepted properties (Q8 unbounded, Q9 raw), pinned so they cannot drift")
+    from . import scenarios                                   # noqa: PLC0415
+    caps = []
+    for mult in (1.0, 3.0, 10.0):
+        rw = scenarios.whale_run(d, 130, whale_epoch=30, whale_multiple=mult, epochs=220)
+        caps.append(rw.pop.balance.max() / d.endowment_genesis)
+    check("the whale's capture curve is monotone in its size",
+          caps[0] < caps[1] < caps[2], True,
+          note=f"{caps[0]:.0%} / {caps[1]:.0%} / {caps[2]:.0%} at 1x / 3x / 10x -- the "
+               f"documented first-come property of an unbounded borrow")
+    check("and even at 10x the pool never goes negative anywhere",
+          min(q.endowment for q in rw.rows) >= 0, True)
+    rc = scenarios.elastic_run(d, 130, epochs=120, threshold_lepta=4_500_000_000, eta=8.0)
+    tail = [q.claims_paid for q in rc.rows[100:116]]
+    lows = sum(1 for c in tail if c < 1_000)
+    highs = sum(1 for c in tail if c > 20_000)
+    check("a participation cliff at the operating reward period-2 cycles",
+          lows >= 6 and highs >= 6, True,
+          note=f"{lows} near-zero and {highs} full epochs in a 16-epoch window -- the "
+               f"documented hazard of the raw index")
 
     print()
     if FAILURES:
