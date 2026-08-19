@@ -89,10 +89,15 @@ def main() -> int:
                                             // (cfg.pow_share_den * 2)}, True,
           note="capacity = pow_share * txs_per_epoch / 2 -- independent of the fee level")
     sat = [q.saturation_block for q in post]
-    check("and the saturation point sits in the epoch's last tenth (R7b)",
-          all(s == engine.NOT_SET or s >= 0.9 * cfg.blocks_per_epoch for s in sat), True,
+    check("and the saturation point sits in the epoch's last half-percent (R7b)",
+          all(s == engine.NOT_SET or s >= 21_500 for s in sat), True,
           note=f"worst settled saturation at block {min(s for s in sat if s != engine.NOT_SET):,}"
           if any(s != engine.NOT_SET for s in sat) else "never saturated")
+    check("no settled post block carries more than a few times the target",
+          max(q.max_block_claims for q in post) <= 4 * (648_000 // cfg.blocks_per_epoch),
+          True, note=f"fullest {max(q.max_block_claims for q in post)} against target 30 -- "
+                     f"before the retarget was frozen past the saturation point, every epoch "
+                     f"opened with a 1,024-claim burst off the eased-to-cap tail")
 
     print("\nThe spike: ten times the background, one epoch (R5)")
     r10 = engine.run(d, arrivals.spike(220, 130, at=30, factor=10), draw, epochs=220)
@@ -125,6 +130,22 @@ def main() -> int:
           note=f"endowment {last.endowment / d.endowment_genesis:.0%}, "
                f"bootstrap={last.bootstrap} -- which branch is draw-dependent, the legality "
                f"is not")
+    r100 = engine.run(d, arrivals.spike(220, 130, at=30, factor=100), draw, epochs=220)
+    check("the block-space cap never binds, even in the spike epoch",
+          r100.rows[30].max_block_claims < cfg.max_block_txs, True,
+          note=f"peak {r100.rows[30].max_block_claims} of {cfg.max_block_txs} -- ordinary "
+               f"transactions are never crowded out (MODEL 8.3, resolved)")
+    ratio100 = r100.rows[30].spent / r100.rows[30].budget
+    check("the x100 epoch's borrow runs two orders deeper than the x10's",
+          50 <= ratio100 <= 200, True,
+          note=f"{ratio100:.0f}x the budget against the x10's 2.6x -- the exact multiplier "
+               f"is Pareto-tail luck (86-111 across seeds) and the report says so; the two "
+               f"figures must not be conflated again")
+    check("front-loaded arrivals convert completely",
+          engine.run(d, arrivals.front_loaded(220, 220 * 130), draw,
+                     epochs=220).rows[-1].bonds_total, 28_600,
+          note="every arrival bonds; the surplus endowment stays armed")
+
     # R5's admission metric: the spike cohort reaches bonds like its neighbours do.
     bonds = r10.bonds_by_cohort()
     spike_frac = bonds.get(30, 0) / (130 * 10)

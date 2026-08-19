@@ -146,7 +146,7 @@ def try_pay_claim():
 ```
 
 Bootstrap admissions past the budget draw the **undivided endowment** (Q2): the spike thins
-every later sub-pool through the `endowment // epochs_left` recomputation and pulls the
+every later sub-pool through the schedule's recomputation and pulls the
 phase's end earlier. No cliff, no cap, no cohort turned away while the endowment lasts — R5.
 
 Post-bootstrap there is nothing to borrow from — R7a's budget is the limit, and the throttle's
@@ -168,8 +168,14 @@ difficulty_target = compute_new_reward_difficulty(claims_in_block, difficulty_ta
                     # the unchanged EMA machinery, against claims_target
 ```
 
-The machinery is exactly today's; only the target stops being a constant. Its objective is
-R7b: claims spread evenly, the saturation point steered toward the epoch end. The `max(1, ·)`
+The machinery is exactly today's; only the target stops being a constant, **and the update
+runs only while the budget still admits claims**. A block past the saturation point carries
+no demand signal -- admission is closed, not demand absent -- and feeding its zero count to
+the controller would ease the target to its cap across the epoch tail, reopening every epoch
+with an everyone-wins burst (the simulator measured exactly this limit cycle before the rule
+was added: the target pinned at the `p - 1` cap each epoch end, a 1,024-claim block at each
+epoch start). Its objective is R7b: claims spread evenly, the saturation point steered toward
+the epoch end. The `max(1, ·)`
 floor matters only while `capacity < 21,600` — a sparsely-funded network — where the epoch
 saturates early by necessity; at the reference traffic (600 txs/block) the capacity is
 `0.1 · 600 · 21,600 · 5,579 / 11,158 = 648,000` claims, a target of 30 per block, comfortably
@@ -183,7 +189,7 @@ post-phase equilibrium within its usual ~10-block time constant; no special-case
 | | bootstrap (`endowment > 0`) | post (`endowment == 0`) |
 | --- | --- | --- |
 | purpose | onboard nodes (R3) | sustain claiming from fees (R7) |
-| budget | `endowment // epochs_left + fee_bucket` | `fee_bucket` |
+| budget | `endowment // (B - e) + fee_bucket`, capped at the nominal rate in the Q7 tail | `fee_bucket` |
 | reward | `max(anchor, budget // max(claims_prev, blocks))` | `anchor` |
 | on saturation | continue, drawing the endowment (Q2) | stop for the epoch |
 | difficulty | constant floor | EMA throttle at `capacity / blocks` |

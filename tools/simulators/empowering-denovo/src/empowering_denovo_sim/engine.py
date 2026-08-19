@@ -222,7 +222,14 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
                     paid_total += paid
                 if spent + reward > budget and saturation == NOT_SET:
                     saturation = b
-                difficulty = _retarget(difficulty, paid, target, cfg)
+                # Blocks past the saturation point carry no demand signal -- admission is
+                # closed, not demand absent. Feeding their zero counts to the retarget eased
+                # it to the 2^26 cap across every epoch tail, so each next epoch opened at
+                # everyone-wins difficulty with a 1024-claim burst: a per-epoch limit cycle
+                # that violated R7b at both epoch edges. The retarget updates only while the
+                # budget still admits claims.
+                if spent + reward <= budget:
+                    difficulty = _retarget(difficulty, paid, target, cfg)
             # One multinomial for the epoch: sums of multinomials over the same weights ARE
             # the multinomial of the summed count, so per-block draws would buy nothing but
             # twenty-one thousand RNG calls.
