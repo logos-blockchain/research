@@ -130,14 +130,16 @@ Measured, at a 10% cap:
 | --- | --- | --- |
 | whale capture, 10× at epoch 20 | **55%** | **9%** |
 | whale capture, 3× / 30× / 100× at epoch 20 | 33% / 56% / 56% | 9% / 9% / 9% |
-| ×100 honest cohort bonded | 100% | 100% |
-| its median time to bond | 43 epochs | **59 epochs** |
+| ×100 honest cohort bonded, retiring | 100% | 100% |
+| its median time to bond, retiring | 43 epochs | **59 epochs** |
+| ×100 cohort bonded, persistent | 24% | 24% |
+| its median time to bond, persistent | 69 epochs | **69 epochs — unchanged** |
 | uniform onboarding | 24,707 | 24,782 |
 | phase ends | 196 | 197 |
 
 Across the cap sweep the whale falls 55% → 18% → 9% → 5% → 2% at caps of 20%, 10%, 5% and 2%, while onboarding drifts *up* slightly and the phase length does not move. **The variant converts a size-dependent exposure into a flat ceiling**: under the base design a whale's take rises with its hashrate, and under the cap a 3× and a 100× whale take the same 9%, because what binds is the cap and the repricing rather than the attacker's power.
 
-**What it costs, honestly.** One parameter, against R1 — and it is a parameter with no natural value, since 20%/10%/5%/2% are all defensible. It softens R6's letter: the pool no longer pays purely until exhausted *within an epoch*, though nothing is refused permanently and no money is destroyed. And it defers the very cohorts R5 protects by about 40% in time-to-bond — 43 epochs to 59 — which is a real cost to the people the mechanism exists for, even though every one of them still gets in.
+**What it costs, honestly.** One parameter, against R1 — and it is a parameter with no natural value, since 20%/10%/5%/2% are all defensible. It softens R6's letter: the pool no longer pays purely until exhausted *within an epoch*, though nothing is refused permanently and no money is destroyed. And in the *retiring* regime it defers the very cohorts R5 protects by about 40% in time-to-bond, 43 epochs to 59. **Under persistence — the regime incentives actually produce — it costs nothing at all**: 24% bonded at a median 69 epochs with the cap and without it. The deferral is a cost the variant only incurs where the mechanism was already converting quickly.
 
 **What it does not cost** is the thing worth noting: not onboarding, not the phase length, and not R5's guarantee. This is the cheapest of the mitigations considered anywhere in this analysis, and the only one that closes an accepted exposure without opening another.
 

@@ -62,6 +62,61 @@ def outputs(t: Triple, txs: int, spike_k: int) -> dict:
     }
 
 
+def profitability_inputs() -> dict:
+    """Everything the profitability page needs that is not a closed form it can compute."""
+    from empowering_sim import market
+
+    from . import power, priceviz
+    ref = Triple().derived()
+    cfg = ref.cfg
+    classes = {k.key: k for k in market.from_powcost("poseidon2_reward", 0.20, "total")}
+    devices = []
+    for key, label, rate in (
+            ("pi5-core", "Raspberry Pi 5, one core", power.minimal(cfg).candidates_per_second),
+            ("pi5-board", "Raspberry Pi 5, whole board", power.board(cfg).candidates_per_second),
+            ("best-measured", "best measured class, all cores",
+             power.worst(cfg).candidates_per_second)):
+        # watt-hours per candidate, back-derived from the estimator at its reference price
+        cost = classes["rpi5"].cost_per_candidate_usd
+        if key == "best-measured":
+            cost = classes["apple"].cost_per_candidate_usd
+        devices.append({"key": key, "label": label, "candidates_per_second": rate,
+                        "wh_per_candidate": cost / priceviz.REFERENCE_ELECTRICITY_USD_PER_KWH
+                        * 1000.0})
+    return {
+        "devices": devices,
+        "reference_electricity_usd_per_kwh": priceviz.REFERENCE_ELECTRICITY_USD_PER_KWH,
+        "genesis_difficulty_target": str(cfg.genesis_difficulty_target),
+        "field_modulus": str(__import__("empowering_sim.config",
+                                        fromlist=["FIELD_MODULUS"]).FIELD_MODULUS),
+        "claim_fee_lepta": cfg.claim_fee,
+        "anchor_lepta": 2 * cfg.avg_tx_fee,
+        "opening_reward_lepta": ref.opening_reward(),
+        "curves": [{"key": c.key, "label": c.label, "note": c.note, "points": c.points}
+                   for c in priceviz.curves(400)],
+    }
+
+
+def comparison_rows() -> list[dict]:
+    """Simulated outcomes for the three designs. NOT closed forms -- exported, not recomputed.
+
+    The page displays these as measurements with the run that produced them named, rather than
+    pretending a browser can re-derive them.
+    """
+    from . import variant
+    d = Triple().derived()
+    rows = []
+    for cap, label in ((0.0, "de novo"), (variant.DEFAULT_CAP, "de novo*")):
+        for retire in (True, False):
+            o = variant.evaluate(d, cap, label, retire=retire)
+            rows.append({"design": label, "regime": "retiring" if retire else "persistent",
+                         "cap": cap, "bonds": o.uniform_bonds, "transition": o.transition,
+                         "spike_bonded": o.spike_bonded_fraction,
+                         "spike_median_epochs": o.spike_median_epochs,
+                         "whale_capture": o.whale_capture})
+    return rows
+
+
 def export(out: Path) -> list[Path]:
     out.mkdir(parents=True, exist_ok=True)
     ref = Triple()
@@ -94,7 +149,19 @@ def export(out: Path) -> list[Path]:
                      "out": outputs(t, txs, k)})
     gj = out / "golden.json"
     gj.write_text(json.dumps({"rows": rows}, indent=2) + "\n")
-    return [pj, gj]
+
+    fj = out / "profitability.json"
+    fj.write_text(json.dumps(profitability_inputs(), indent=2) + "\n")
+
+    cj = out / "comparison.json"
+    cj.write_text(json.dumps({"rows": comparison_rows(),
+                              "current_design": {
+                                  "note": "measured on the EmPoWering-simulator branch",
+                                  "elevated_retiring": 25934, "elevated_persistent": 5682,
+                                  "door_closes_at_100_per_epoch": 34,
+                                  "point_of_no_return_at_100_per_epoch": 212}},
+                             indent=2) + "\n")
+    return [pj, gj, fj, cj]
 
 
 if __name__ == "__main__":

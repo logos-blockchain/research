@@ -1,0 +1,51 @@
+{
+  "rows": [
+    {
+      "design": "de novo",
+      "regime": "retiring",
+      "cap": 0.0,
+      "bonds": 24707,
+      "transition": 196,
+      "spike_bonded": 1.0,
+      "spike_median_epochs": 43.0,
+      "whale_capture": 0.5541692365622796
+    },
+    {
+      "design": "de novo",
+      "regime": "persistent",
+      "cap": 0.0,
+      "bonds": 7963,
+      "transition": 196,
+      "spike_bonded": 0.2403076923076923,
+      "spike_median_epochs": 69.0,
+      "whale_capture": 0.5541692365622796
+    },
+    {
+      "design": "de novo*",
+      "regime": "retiring",
+      "cap": 0.1,
+      "bonds": 24782,
+      "transition": 197,
+      "spike_bonded": 1.0,
+      "spike_median_epochs": 59.0,
+      "whale_capture": 0.09064967754358344
+    },
+    {
+      "design": "de novo*",
+      "regime": "persistent",
+      "cap": 0.1,
+      "bonds": 7963,
+      "transition": 196,
+      "spike_bonded": 0.2403076923076923,
+      "spike_median_epochs": 69.0,
+      "whale_capture": 0.09064967754358344
+    }
+  ],
+  "current_design": {
+    "note": "measured on the EmPoWering-simulator branch",
+    "elevated_retiring": 25934,
+    "elevated_persistent": 5682,
+    "door_closes_at_100_per_epoch": 34,
+    "point_of_no_return_at_100_per_epoch": 212
+  }
+}

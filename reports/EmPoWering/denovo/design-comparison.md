@@ -92,7 +92,7 @@ The whale is the redesign's one accepted weakness, and `adversarial-analysis.md`
 | parameters someone must defend | 3 | 3 | **4** |
 | pays out until exhausted (R6 literal) | n/a | yes | within an epoch, no |
 
-**`de novo*` buys the current design's whale-resistance without its rationing** — and the price is one parameter with no natural value, plus a 40% longer wait for exactly the crowds R5 exists to protect. Everyone still gets in; they get in later.
+**`de novo*` buys the current design's whale-resistance without its rationing** — and the price is one parameter with no natural value, plus a 40% longer wait for exactly the crowds R5 exists to protect. Everyone still gets in; they get in later. **In the persistent regime that wait cost vanishes entirely** — a ×100 cohort bonds at 24% and a median 69 epochs with the cap or without it — so under the behaviour incentives actually deliver, the variant is one parameter for a sixfold reduction in whale exposure and nothing else.
 
 Which of the three is right depends on a judgement the simulations cannot make: whether an early large operator taking half the onboarding fund is a tolerable cost of an open door, a reason to meter the door, or a reason to keep the slow dribble that never opened it wide in the first place.
 
