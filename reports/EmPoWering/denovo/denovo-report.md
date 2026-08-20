@@ -69,6 +69,8 @@ The three R4 parameters carry an internal check, and the model applies it before
 
 Every onboarded node costs one bond, so a triple silently asserts that this fraction of what the pool pays out actually reaches bonds. The prior branch's elevation study measured the achievable band: **11.4%** when bonded miners keep mining, **51.9%** when they retire. The simulator rejects a triple outside the band at construction time. The reference triple used throughout — pool 0.5% of TGE, 25,000 nodes, 4 years — implies exactly 50%: satisfiable, and only just, which makes it a demanding test rather than a soft one.
 
+**A caveat the adversarial analysis established, and it is load-bearing.** The band's upper edge describes bonded miners retiring, and nothing pays them to: a bonded node can provide service *and* keep mining, and the marginal claim is profitable at any plausible token price. When a quarter of the field keeps mining, onboarding falls 37%; when all of it does, 67%. A triple implying 50% is therefore feasible only under a behaviour the mechanism does not buy, and **the reference triple should be re-struck against the persistent edge** — or the mechanism given something that prices continued mining after bonding. See `adversarial-analysis.md` §2.
+
 ## 3. The reference run (R2, R4, R6)
 
 ![one run, two regimes](figures/two_regimes.png)

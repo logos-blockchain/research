@@ -205,6 +205,29 @@ def main() -> int:
           note=f"{picky / always:.2f}x of always-on -- Q9's cycle is a UX hazard, not an "
                f"exploit")
 
+    # The assumption both designs' targets rest on, and what it costs when it fails.
+    from . import arrivals as _arr                             # noqa: PLC0415
+    from . import study as _st                                 # noqa: PLC0415
+
+    _base = engine.run(d, _arr.uniform(220, 130), _st.hashrate_draw(cfg), epochs=360)
+    _quarter = engine.run(d, _arr.uniform(220, 130), _st.hashrate_draw(cfg), epochs=360,
+                          refuse_fraction=0.25)
+    _all = engine.run(d, _arr.uniform(220, 130), _st.hashrate_draw(cfg), epochs=360,
+                      refuse_fraction=1.0)
+    ratio_q = _quarter.rows[-1].bonds_total / _base.rows[-1].bonds_total
+    ratio_a = _all.rows[-1].bonds_total / _base.rows[-1].bonds_total
+    check("a quarter of the field refusing to retire costs a third of onboarding",
+          round(ratio_q, 2), 0.63,
+          note=f"{_quarter.rows[-1].bonds_total:,} against {_base.rows[-1].bonds_total:,} -- "
+               f"and it costs the coalition nothing, they keep earning")
+    check("the whole field refusing costs two thirds", round(ratio_a, 2), 0.33,
+          note="the persistent regime the identity band's low edge describes")
+    check("and retiring is not incentivised: mining still pays after bonding",
+          d.opening_reward() - cfg.claim_fee > 0, True,
+          note="a bonded node can provide service AND mine; the marginal claim is profitable "
+               "at any plausible token price, so the retiring figure is an assumption about "
+               "behaviour rather than about incentives")
+
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILURES")

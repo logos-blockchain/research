@@ -36,12 +36,25 @@ class Population:
         return cls(hashrate=np.zeros(capacity),
                    arrived=np.full(capacity, NOT_SET, dtype=np.int32),
                    balance=np.zeros(capacity, dtype=np.int64),
-                   bonded_at=np.full(capacity, NOT_SET, dtype=np.int32))
+                   bonded_at=np.full(capacity, NOT_SET, dtype=np.int32),
+                   refuses_to_retire=np.zeros(capacity, dtype=bool))
+
+    refuses_to_retire: np.ndarray = None    # bool per miner; None means nobody refuses
 
     def live_mask(self, retire_on_bond: bool) -> np.ndarray:
+        """Who is still mining.
+
+        ``refuses_to_retire`` models a coalition that bonds and keeps mining anyway. It costs
+        them nothing -- they go on earning -- and it degrades everyone else's conversion, so
+        it is the cheapest griefing attack on a design whose feasibility check presumes
+        retirement. See `adversary.retirement_denial`.
+        """
         m = self.arrived >= 0
         if retire_on_bond:
-            m &= self.bonded_at == NOT_SET
+            bonded = self.bonded_at != NOT_SET
+            if self.refuses_to_retire is not None:
+                bonded &= ~self.refuses_to_retire
+            m &= ~bonded
         return m
 
 
@@ -87,7 +100,7 @@ class Result:
 def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
         retire_on_bond: bool = True, txs_per_block: int | None = None,
         seed: int = 70_001, deterministic: bool = False,
-        participation=None) -> Result:
+        participation=None, refuse_fraction: float = 0.0) -> Result:
     """Advance the chain.
 
     ``arrivals[e]`` miners are seated at epoch ``e`` with hashrates from ``hashrate_draw(n)``.
@@ -104,6 +117,8 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
 
     total = int(arrivals.sum())
     pop = Population.empty(total)
+    if refuse_fraction > 0:
+        pop.refuses_to_retire = rng.random(total) < refuse_fraction
     seated = 0
 
     # ---- consensus state (MODEL.md section 2)
