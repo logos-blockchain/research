@@ -18,7 +18,9 @@ That has an awkward consequence. **If a lot of people arrive at once, nobody get
 
 That removes all three problems above. There is no best speed, no closing door, and no point of no return, because the money follows the people rather than the people competing over a fixed trickle. The simulations bear it out: whether newcomers arrive steadily, or a hundred times over in a single week, or all at the end, roughly the same number get in.
 
-**What it costs.** Money that follows the people can be followed by the wrong people. One very large operator arriving early can take a great deal of the fund quickly, because the mechanism has no way to say "you have had enough" — the current design's slow dribble prevents that by accident, simply by never handing out much at once. This was a deliberate choice rather than an oversight: the same rule that lets a genuine crowd in is the rule that lets a big player take a lot.
+**What it costs.** Money that follows the people can be followed by the wrong people. One very large operator arriving early can take a great deal of the fund quickly — more than half of it, measured — because the mechanism has no way to say "you have had enough". The current design's slow dribble prevents that by accident, simply by never handing out much at once. This was a deliberate choice rather than an oversight: the same rule that lets a genuine crowd in is the rule that lets a big player take a lot.
+
+**And there is a third option that fixes it cheaply.** Put a limit on how much of the remaining fund any single period may hand out *beyond its own share* — say a tenth. A big operator is then metered: it takes a tenth, the mechanism notices the surge and cuts the price for everyone, and its later attempts buy far less. A genuine crowd is metered too, but a crowd is not in a hurry — everyone still gets in, they simply wait about 40% longer. Measured, that turns the big operator's haul from **more than half the fund into under a tenth**, and it costs nothing in the number of people onboarded or the length of the programme. It is written up as **de novo\*** and it is a decision, not a discovery: it adds one number to the design that nobody can derive, and it means the fund no longer simply pays out until it is empty.
 
 **The catch that affects both, and it is the important one.** Both designs quote their headline numbers assuming that once somebody has saved enough and joined, they *stop* competing for the prizes and leave the rest for newcomers. Nothing pays anyone to do that, and joining does not switch their computer off.
 
@@ -75,6 +77,25 @@ The current steady reward happens to cover a useful bundle with margin; the rede
 
 Both designs are attacked concretely in `adversarial-analysis.md`. It finds the redesign's two novel surfaces closed by measurement (withholding and cliff-harvesting both lose money), the redesign markedly *more* sybil-resistant at moderate flooding (3.5% of honest bonds denied against 48.4%, at a doubled field), and — the finding that bears on both — that the retiring behaviour both designs' headline numbers assume is not incentivised, costing a third to two thirds of onboarding when it fails. Two exposures are shared and unchanged by the redesign, and honesty requires saying so. The service stream's flat split dilutes with success in both worlds — the strategy report measures 6,185 LGO per provider per epoch at two hundred providers and 166 at seven and a half thousand, and nothing in the redesign touches that arithmetic. And both mechanisms pay claims in proportion to hashrate within an epoch, so neither has any per-identity defence beyond the claim fee — accepted deliberately, since proof of work is sheer power and any remedy would make it something else.
 
+## 4.1 Three designs, side by side
+
+The whale is the redesign's one accepted weakness, and `adversarial-analysis.md` §3.4 shows it is closable. That makes three design points worth comparing rather than two:
+
+| | current | de novo | **de novo\*** |
+| --- | --- | --- | --- |
+| onboarding, retiring / persistent | 25,934 / 5,682 | 24,707 / 7,963 | 24,782 / — |
+| a ×100 cohort's fate | the door has already closed at this arrival rate | 100% bonded, median 43 epochs | 100% bonded, median **59 epochs** |
+| best adoption speed | **a hump** — worst rate elevates a sixth of the best | none — flat across arrival shape | none |
+| a 10× whale at its best moment | cannot happen: the flow is fixed | **55% of the endowment** | **9%** |
+| a 3× / 100× whale | cannot happen | 33% / 56% | 9% / 9% — flat |
+| phase length | never ends | 196 epochs | 197 epochs |
+| parameters someone must defend | 3 | 3 | **4** |
+| pays out until exhausted (R6 literal) | n/a | yes | within an epoch, no |
+
+**`de novo*` buys the current design's whale-resistance without its rationing** — and the price is one parameter with no natural value, plus a 40% longer wait for exactly the crowds R5 exists to protect. Everyone still gets in; they get in later.
+
+Which of the three is right depends on a judgement the simulations cannot make: whether an early large operator taking half the onboarding fund is a tolerable cost of an open door, a reason to meter the door, or a reason to keep the slow dribble that never opened it wide in the first place.
+
 ## 5. What the comparison cannot settle
 
 The conversion-efficiency band the redesign's identity check leans on was measured under the *current* reward dynamics; re-measuring it under the demand-indexed reward is the natural next study, and the de-novo report lists it as its first limitation. The current design's §7 numbers come from Poisson arrivals over a 600-epoch horizon; the de-novo matrix uses shaped arrivals over 220–420 epochs with equal totals — the qualitative contrasts of §2 are far outside either study's seed noise (the current report bounds its own at ~13%, the de-novo pins its headline counts exactly), but individual counts should not be read to the last digit across the two. And neither simulator models the leadership lottery or the emission side differently: everything downstream of the block reward is common ground.
@@ -89,6 +110,6 @@ The conversion-efficiency band the redesign's identity check leans on was measur
 | R6 saturation semantics | exhaustion excluded by construction, margin ~2,000 vs 1,024 | saturation routine, bounded, measured at 86–111× budget for the ×100 spike |
 | R7 fee-funded, even post-phase | no post-phase concept; the pool never ends | budget = last epoch's fees; saturation in the epoch's last half-percent |
 | R8 reward = transfer + inscription | emergent, ≈ 3× the target bundle | the anchor, by definition |
-| whale resistance | inherent, via the rationing R5 rejects | conceded and documented (Q8), bounded per-epoch by block space × reward |
+| whale resistance | inherent, via the rationing R5 rejects | base: conceded and documented (Q8) — 55% at the worst moment. **`de novo*`: 9%, flat across whale size, for one parameter and a 40% longer wait** |
 
 On its own brief the redesign wins every row except the last, and the last is the one it conceded deliberately. On the old design's implicit brief — hold the outflow invariant against everything — the current mechanism remains the correct answer. The two briefs cannot both be wanted at once, which is what made the de-novo exercise worth running.

@@ -276,6 +276,33 @@ The original obligations, kept for the audit trail:
 4. **Sparse-capacity regime.** `capacity < blocks_per_epoch` post-phase forces target 1 and
    early saturation; quantify the R7b deviation vs traffic level.
 
+## 8.5 The asterisked alternative: **de novo\***
+
+Q8 settles the borrow-forward as unbounded, and §8's whale obligation quantifies what that
+concedes: 55% of the endowment to a 10× actor arriving at epoch 20, and a phase collapsing
+from 195 epochs to 23. The alternative that closes it is specified here so the base design
+stays as decided and the variant can be adopted or declined on its own terms.
+
+| `drawable = sub_pool + draw_cap_fraction * endowment_at_epoch_start` |
+| --- |
+
+An epoch may always spend its own scheduled sub-pool; only the borrow *beyond* it is bounded.
+Capping the whole draw instead throttles the ordinary spend-down and the endowment never
+empties — measured, the transition stopped firing at every cap tested.
+
+A flat cap **in budgets** cannot work, and the reason is structural rather than a matter of
+tuning: one budget is about `1/BOOTSTRAP_EPOCHS` of the endowment, an honest ×100 cohort
+borrows about 97 of them, and a cap loose enough for that cohort already permits half the
+endowment to leave in one epoch. The honest crowd and the hostile whale are the same shape to
+the mechanism; what separates them is not size but patience, and a fraction-of-remaining cap
+prices patience by deferring both and letting the demand index reprice in between.
+
+At `draw_cap_fraction = 0.10`: whale capture falls from 55% to 9% and becomes flat in the
+whale's size (3×, 30× and 100× all land at 9%, where the base ranges 33–56%); the ×100 cohort
+still bonds completely, at a median 59 epochs against 43; onboarding and phase length do not
+move. The costs are one parameter with no natural value, a softening of R6's letter within an
+epoch, and a 40% longer wait for the cohorts R5 exists to protect.
+
 ## 9. Amendment to Q4, on the record
 
 Q4 was settled as "one throttle, both phases". Writing §4 formally shows that composes badly

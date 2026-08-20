@@ -193,7 +193,11 @@ three more; Q7 settled 2026-08-19, Q8/Q9 pending as a coupled pair:
    until spent. Zero new parameters; back-loaded conversion went from 4.5% to 76-100% across
    draws. Rejected: the whole-remainder dump (measured 2.6% conversion), folding to fees at
    the deadline (abandons the onboarding purpose of the remainder).
-8. **The burst window** — SETTLED 2026-08-19: **unbounded**, R6 read literally. The pool
+8. **The burst window** — SETTLED 2026-08-19: **unbounded**, R6 read literally. *(2026-08-20:
+   the simulations later showed the exposure is closable at low cost -- see MODEL.md 8.5, the
+   asterisked `de novo*` variant -- so the decision stands but is now an informed one rather
+   than a concession made blind. The flat-budget cap this entry rejected was rejected for the
+   right reason; the workable form bounds the draw as a fraction of the remaining endowment.)* The pool
    pays until exhausted and a whale is a claimant like any other; the endowment is
    first-come by design and the 17%/52%/83% capture at 1x/3x/10x ships as a documented,
    gated property. Rejected: caps at 3x or 2x budget per epoch (one constant against R1,

@@ -85,7 +85,7 @@ Q9 accepts a documented hazard: a sharp participation threshold at the operating
 
 **Being picky costs more than it harvests, at every threshold**, for the same reason the pump fails: skipped epochs forfeit more than elevated rewards return. Q9's cycle is a user-experience hazard — a badly-chosen wallet default could make a *population* oscillate to everyone's detriment — but not an exploit anyone profits from.
 
-### 3.3 The whale — conceded, and now bounded in time
+### 3.3 The whale — conceded in the base design, and addressed in **de novo\*** (§3.4)
 
 Q8 keeps the borrow-forward unbounded, so a large actor can draw the endowment through the demand index's one-epoch lag. When it should arrive:
 
@@ -109,7 +109,39 @@ And across the power bracket, a whale arriving at the worst moment:
 
 **The danger window is early but not immediate.** At genesis the whale takes only 20%, because `claims_prev = 0` caps the reward at one block's share. By epoch 20 the honest field has established a `claims_prev` large enough to price the epoch generously while the endowment is still 90% intact — 88% capture, and the bootstrap collapses from 195 epochs to 23. By epoch 100 the endowment is half spent and the exposure falls back.
 
-This sharpens the accepted risk rather than changing it. If the Q8 cap is ever revisited, a bound applying only to the early epochs would buy most of the protection at the least cost to R5 — the honest ×100 cohort that borrows about a hundred budgets arrives at epoch 30.
+This sharpens the accepted risk rather than changing it — and §3.4 now addresses it, because the obvious mitigation turned out not to be the workable one.
+
+### 3.4 **de novo\*** — bounding the draw, and what it costs
+
+The whale is the base design's one accepted weakness, so it is worth asking what closing it takes. The answer is one parameter and a deferral, and the route to it is not the obvious one.
+
+**The obvious cap does not work.** Bound the borrow itself — no epoch may spend more than `m` budgets. One budget is about `1/195` of the endowment, and the honest ×100 cohort borrows about **97** of them, so a cap loose enough to admit the very cohort R5 exists to protect already permits half the endowment to leave in one epoch. Honest crowd and hostile whale are the same shape to the mechanism, and a flat cap cannot tell them apart. *(An earlier draft of this document recommended `m ≈ 3` on the strength of a mis-measured 2.6× figure for that cohort; at the true ~97 that cap would have rationed it savagely. The recommendation is withdrawn.)*
+
+**What works is bounding the endowment draw as a fraction of what remains**, and only the part *beyond* the epoch's own scheduled sub-pool:
+
+| `drawable = sub_pool + draw_cap_fraction × endowment_at_epoch_start` |
+| --- |
+
+The point is not the ceiling but what it converts. Past the cap the epoch stops admitting — but the claimants have not left, and they claim again next epoch, by which time `claims_prev` has exploded and the reward has fallen. **The cap turns instant extraction into metered extraction, which is exactly the interval the demand index needs to reprice.** Bounding the *whole* draw instead also throttles the ordinary spend-down, and the endowment then never empties — measured, the transition simply stopped firing at every cap tested.
+
+Measured, at a 10% cap:
+
+| | base | de novo\* (10%) |
+| --- | --- | --- |
+| whale capture, 10× at epoch 20 | **55%** | **9%** |
+| whale capture, 3× / 30× / 100× at epoch 20 | 33% / 56% / 56% | 9% / 9% / 9% |
+| ×100 honest cohort bonded | 100% | 100% |
+| its median time to bond | 43 epochs | **59 epochs** |
+| uniform onboarding | 24,707 | 24,782 |
+| phase ends | 196 | 197 |
+
+Across the cap sweep the whale falls 55% → 18% → 9% → 5% → 2% at caps of 20%, 10%, 5% and 2%, while onboarding drifts *up* slightly and the phase length does not move. **The variant converts a size-dependent exposure into a flat ceiling**: under the base design a whale's take rises with its hashrate, and under the cap a 3× and a 100× whale take the same 9%, because what binds is the cap and the repricing rather than the attacker's power.
+
+**What it costs, honestly.** One parameter, against R1 — and it is a parameter with no natural value, since 20%/10%/5%/2% are all defensible. It softens R6's letter: the pool no longer pays purely until exhausted *within an epoch*, though nothing is refused permanently and no money is destroyed. And it defers the very cohorts R5 protects by about 40% in time-to-bond — 43 epochs to 59 — which is a real cost to the people the mechanism exists for, even though every one of them still gets in.
+
+**What it does not cost** is the thing worth noting: not onboarding, not the phase length, and not R5's guarantee. This is the cheapest of the mitigations considered anywhere in this analysis, and the only one that closes an accepted exposure without opening another.
+
+Q8 was settled as unbounded, so this is recorded as an **alternative design** rather than a correction — the decision is the design owner's, and §6 states it as such.
 
 ## 4. The sybil flood — and the correction
 
@@ -148,7 +180,7 @@ Post-phase, the anchor nets 4.494 × 10⁻⁶ LGO per claim after the claim's ow
 
 **For both designs, and first.** The retiring assumption is not incentivised, costs a third to two thirds of onboarding when it fails, and is indistinguishable from ordinary inattention. Either stop quoting the retiring figure as the expected case — which makes the de-novo reference triple infeasible by its own check and should move the triple — or add a mechanism that prices continued mining after bonding. This is the one finding here that should change a decision.
 
-**For the redesign.** Both of its novel surfaces are closed by measurement rather than argument, and gated. The whale exposure is real, accepted, and concentrated in the first quarter of the phase. Its sybil resistance at moderate flooding is markedly better than the current design's, which is a point in its favour that the first version of this analysis missed.
+**For the redesign.** Both of its novel surfaces are closed by measurement rather than argument, and gated. The whale exposure is real, accepted, concentrated in the first quarter of the phase — **and now shown to be closable**: §3.4's `de novo*` bounds it from 55% to 9%, flat across whale size, for one parameter and a 40% deferral of spike cohorts' time-to-bond, with no cost to onboarding, phase length or R5. Whether to buy that is a decision rather than a finding, and it is the one open item this analysis leaves. Its sybil resistance at moderate flooding is markedly better than the current design's, which is a point in its favour that the first version of this analysis missed.
 
 **For the current design.** Its immunity to reward manipulation is structural — a pool-determined reward cannot be pumped — and worth counting as the redesign's opportunity cost. Its flow cap makes it undrainable by any actor.
 

@@ -100,7 +100,8 @@ class Result:
 def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
         retire_on_bond: bool = True, txs_per_block: int | None = None,
         seed: int = 70_001, deterministic: bool = False,
-        participation=None, refuse_fraction: float = 0.0) -> Result:
+        participation=None, refuse_fraction: float = 0.0,
+        draw_cap_fraction: float = 0.0) -> Result:
     """Advance the chain.
 
     ``arrivals[e]`` miners are seated at epoch ``e`` with hashrates from ``hashrate_draw(n)``.
@@ -200,7 +201,19 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
             else:
                 offered = rng.poisson(mu, cfg.blocks_per_epoch).astype(np.int64)
             np.minimum(offered, cfg.max_block_txs, out=offered)
-            room = (fee_bucket + endowment) // reward if reward else 0
+            # de novo*: bound what the endowment may give up this epoch. Beyond it the epoch
+            # stops admitting, but the claimants persist and claim again next epoch -- by
+            # which time claims_prev has risen and the reward has fallen. The cap converts
+            # instant extraction into metered extraction; see `variant.py`.
+            # The cap bounds the BORROW, never the schedule: an epoch may always spend its own
+            # sub-pool, and only what it draws *beyond* that is limited. Capping the whole
+            # draw instead throttles the ordinary spend-down too, and the endowment then never
+            # empties -- measured, the transition simply stopped firing at every cap.
+            drawable = endowment
+            if draw_cap_fraction > 0:
+                allowance = sub_pool + int(draw_cap_fraction * endowment)
+                drawable = min(endowment, allowance)
+            room = (fee_bucket + drawable) // reward if reward else 0
             cum = np.cumsum(offered)
             paid_per_block = np.minimum(offered,
                                         np.maximum(0, room - (cum - offered)))

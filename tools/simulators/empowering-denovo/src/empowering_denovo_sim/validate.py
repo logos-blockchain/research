@@ -245,6 +245,29 @@ def main() -> int:
                "at any plausible token price, so the retiring figure is an assumption about "
                "behaviour rather than about incentives")
 
+    print("\nde novo* -- the asterisked variant that bounds the endowment draw")
+    from . import variant                                       # noqa: PLC0415
+
+    base = variant.evaluate(d, 0.0, "base")
+    capped = variant.evaluate(d, variant.DEFAULT_CAP, "capped")
+    check("the base design concedes most of the endowment to a well-timed whale",
+          base.whale_capture > 0.4, True, note=f"{base.whale_capture:.0%} at epoch 20")
+    check("the variant bounds it to under a tenth",
+          capped.whale_capture < 0.12, True,
+          note=f"{capped.whale_capture:.0%} -- and flat across whale size: 3x/10x/30x/100x "
+               f"all land near 9%, where the base ranges 33-56%")
+    check("and R5 survives: the x100 cohort still bonds completely",
+          capped.spike_bonded_fraction, 1.0,
+          note=f"median time-to-bond {capped.spike_median_epochs:.0f} epochs against the "
+               f"base's {base.spike_median_epochs:.0f} -- a deferral, not a denial")
+    check("onboarding is not paid for",
+          capped.uniform_bonds >= base.uniform_bonds * 0.98, True,
+          note=f"{capped.uniform_bonds:,} against {base.uniform_bonds:,}")
+    check("nor is the phase length",
+          abs(capped.transition - base.transition) <= 3, True,
+          note=f"transition {capped.transition} against {base.transition}; the cap bounds the "
+               f"BORROW only -- capping the whole draw stopped the endowment ever emptying")
+
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILURES")
