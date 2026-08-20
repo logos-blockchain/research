@@ -69,7 +69,16 @@ The three R4 parameters carry an internal check, and the model applies it before
 
 Every onboarded node costs one bond, so a triple silently asserts that this fraction of what the pool pays out actually reaches bonds. The prior branch's elevation study measured the achievable band: **11.4%** when bonded miners keep mining, **51.9%** when they retire. The simulator rejects a triple outside the band at construction time. The reference triple used throughout — pool 0.5% of TGE, 25,000 nodes, 4 years — implies exactly 50%: satisfiable, and only just, which makes it a demanding test rather than a soft one.
 
-**A caveat the adversarial analysis established, and it is load-bearing.** The band's upper edge describes bonded miners retiring, and nothing pays them to: a bonded node can provide service *and* keep mining, and the marginal claim is profitable at any plausible token price. When a quarter of the field keeps mining, onboarding falls 37%; when all of it does, 67%. A triple implying 50% is therefore feasible only under a behaviour the mechanism does not buy, and **the reference triple should be re-struck against the persistent edge** — or the mechanism given something that prices continued mining after bonding. See `adversarial-analysis.md` §2.
+**Retirement is a regime, not a caveat, and every figure below is given in both.** The band's upper edge describes bonded miners retiring, and nothing pays them to: a bonded node can provide service *and* keep mining, and the marginal claim is profitable at any plausible token price (`adversarial-analysis.md` §2). Measuring this mechanism's own conversion — rather than importing the prior branch's — shows the two regimes are not one quantity at two values but two different shapes:
+
+| arrivals an epoch | 65 | 130 | 260 |
+| --- | --- | --- | --- |
+| **persistent** (nobody retires) | 13.9% | 15.9% | 14.6% |
+| **retiring** | 24.9% | 49.4% | 74.1% |
+
+Under persistence the efficiency is **flat**: everyone keeps mining, so the field grows with the arrival rate and dilution cancels the gain. Under retirement it **rises with the rate**, because each departure frees claim share for the next cohort. So a triple's feasibility is a property of the triple alone in one regime and depends on adoption speed in the other.
+
+The consequence for the reference triple is blunt. It implies 50%, which is reachable only if miners retire *and* arrive fast — a bet on two behaviours. The feasibility check now defaults to the persistent reading and reports the optimistic one beside it, so the bet is visible rather than assumed.
 
 ## 3. The reference run (R2, R4, R6)
 
@@ -79,7 +88,7 @@ Uniform arrivals, 130 miners an epoch, bonded miners retiring. The endowment spe
 
 The reward opens at **11.87 LGO** — the opening sub-pool of 256,410 LGO spread over one claim per block, because at genesis there is no previous epoch to index on — and glides down as participation grows, cliffing to the anchor at the transition. At the opening reward a bond costs 85 claims.
 
-The run lands **24,723 bonds against the 25,000 intent** — the 50%-implied triple delivering within 1.1% of its target, at the very edge of the measured band it presumes.
+The run lands **24,707 bonds against the 25,000 intent** if bonded miners retire — within 1.2% of target, at the very edge of the band it presumes. **If they do not, the same triple delivers 7,963 — under a third.** Both are the same mechanism on the same parameters; the difference is entirely a behaviour nothing in the design pays for.
 
 ## 4. The spike, measured (R5)
 
@@ -91,7 +100,17 @@ Block space stays comfortable even here: the spike epoch averages 190 claims a b
 
 The cohort itself: **100% bonded, median 39 epochs to the bond.** Its neighbour cohorts before the spike bond within an epoch; the ones after it land between 84% and 100% — diluted while the giant cohort works through, not excluded. Under the previous design's controller, which holds the claim count fixed against any load, this cohort would have thinned everyone's share a hundredfold and stretched every time-to-bond with it; here it costs the schedule one epoch.
 
-For contrast: uniform, ×10 and ×100 arrivals all land on the target — 24,723, 26,031 and 25,537 bonds — with transitions at 195, 196 and 196. Inside the arrival window, timing barely matters.
+For contrast, and in both regimes — uniform, ×10 and ×100 arrivals all land in the same place:
+
+| arrival shape | retiring | persistent |
+| --- | --- | --- |
+| uniform | 24,707 | 7,963 |
+| ×10 spike | 26,020 | 8,027 |
+| ×100 spike | 25,266 | 7,384 |
+| front-loaded | 28,600 | 6,139 |
+| back-loaded | 28,600 | 6,096 |
+
+**Inside the arrival window, timing barely matters in either regime** — which is R5's claim, and it survives the regime question intact. What the regime changes is the level, uniformly: about a third, whatever the shape.
 
 ## 5. The window's edges (R4, and a question)
 
@@ -168,6 +187,16 @@ Recorded with their reasons, as instructed:
 | R7a fees, one-epoch delay | §6 | post budget = previous epoch's diverted fees, raw |
 | R7b even spread | §6, fig. 4 | saturation steered into the epoch's last 2% at reference traffic; graceful degradation quantified at sparse traffic |
 | R8 reward anchor | §6 | floored at the anchor in bootstrap, equal to it after; fee-drag at the anchor stated (59.7%) |
+
+### 10.1 How much to believe the mining field
+
+Every claim-rate figure rests on an assumption about what one node commits, and that assumption deserves stating plainly because it was previously implicit — and wrong.
+
+**The basis is now a whole four-core Raspberry Pi 5 board, 24,146 candidates a second**, measured. The de-novo engine previously seated nodes at one pinned core, 6,037, while `empowering_sim.elevation` — whose numbers this report compares itself against — had always used the board. A factor of four, between two simulators being read side by side. Corrected; and the correction moves bonds by less than 0.1% (25,191 against 25,179 on the uniform run) because the budget governs the payout, not the hashrate, which is itself the strongest evidence that these results do not rest on the field's size.
+
+**The spread, though, is not measured.** Hashrates are drawn from `Pareto(1.16)` floored at a board, and 1.16 is the "80/20" index — a folk constant from *wealth* distributions applied to hardware. Wealth compounds; hardware is bought. Real mining populations are concentrated, but through pooling and capital access rather than the process a Pareto describes, and there is no Logos mining population to fit against because the network has not launched. **Treat the synthetic spread as one plausible shape rather than the expected one**, and treat anything that turns on its exact tail — the ×100 spike's borrow multiple, which ranges 58× to 125× across seeds — as indicative rather than precise.
+
+The bounds that do not depend on the shape are in `power.py`: a minimal basis of one core, the board basis used here, and an adversarial basis of the best measured hardware at full duty. Section 7's attacks are run against the last of those.
 
 ## 11. Limitations
 

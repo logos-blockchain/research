@@ -16,10 +16,10 @@ from empowering_sim.config import Config, load
 # 11.4%/51.9% at a single arrival rate. Measuring it here showed that is not one number per
 # regime but two different shapes:
 #
-#   persistent (nobody retires):  14.0% / 16.3% / 15.3% at 65 / 130 / 260 arrivals an epoch
+#   persistent (nobody retires):  13.9% / 15.9% / 14.6% at 65 / 130 / 260 arrivals an epoch
 #                                 -- essentially FLAT: everyone keeps mining, so the field
 #                                 grows with the arrival rate and dilution cancels the gain.
-#   retiring:                     25.3% / 49.4% / 78.8% at the same rates
+#   retiring:                     24.9% / 49.4% / 74.1% at the same rates
 #                                 -- strongly RISING: retirement frees claim share for the
 #                                 next cohort, so faster arrival converts better.
 #
@@ -28,10 +28,11 @@ from empowering_sim.config import Config, load
 # retirement it also depends on how fast nodes turn up.
 EFFICIENCY_PERSISTENT = 0.15          # flat, and what the incentives actually deliver
 EFFICIENCY_RETIRING_SLOW = 0.25       # at half the reference arrival rate
-EFFICIENCY_RETIRING_FAST = 0.79       # at twice it
+EFFICIENCY_RETIRING_FAST = 0.74       # at twice it
 
 # Retiring is NOT incentivised: a bonded node can provide service and go on mining, and the
-# marginal claim pays at any plausible token price (adversarial-analysis section 2). The
+# marginal claim pays at any plausible token price (adversarial-analysis section 2). All
+# figures are on the four-core board basis of `power.py`. The
 # default regime for a feasibility check is therefore the persistent one.
 EFFICIENCY_DEFAULT = EFFICIENCY_PERSISTENT
 

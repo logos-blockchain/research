@@ -27,6 +27,7 @@ import numpy as np
 
 from empowering_sim import work
 
+from . import power
 from .params import Derived
 
 
@@ -152,7 +153,10 @@ def pump_vs_honest(d: Derived, control_fraction: float, epochs: int = 60,
     epoch. The reward cap should keep the pump from paying: withholding forfeits a whole
     epoch's claims to raise the next reward by a factor the cap bounds.
     """
-    field = 1.0 / d.cfg.seconds_per_candidate_reward * 1000  # a fixed honest baseline field
+    # A thousand committed miners at the honest board basis. The pump's outcome is a RATIO
+    # against the same actor mining honestly, so the absolute field cancels -- shown robust
+    # across three orders of magnitude in the report.
+    field = power.board(d.cfg).candidates_per_second * 1000
     c = control_fraction
     honest_rate = field * (1 - c)
     adv_rate = field * c
@@ -190,7 +194,7 @@ def main() -> int:
               f"endowment, phase ends {r.transition_epoch}")
 
     print("\nThe manufactured cliff: mine only above a threshold")
-    field = 1.0 / d.cfg.seconds_per_candidate_reward * 1000
+    field = power.board(d.cfg).candidates_per_second * 1000
     _, _, always = two_population_run(d, field * 0.7, field * 0.3, lambda e, r: True, 60)
     for thr in (3e9, 5e9, 8e9):
         _, _, picky = two_population_run(d, field * 0.7, field * 0.3,

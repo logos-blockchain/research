@@ -5,6 +5,7 @@ import numpy as np
 
 from . import arrivals as arr
 from . import engine
+from . import power
 from .params import Derived
 
 
@@ -37,7 +38,7 @@ def whale_run(d: Derived, per_epoch: int, whale_epoch: int, whale_multiple: floa
     An earlier version scaled against the run's eventual field, which overstated a "1x" whale
     by the ratio of the horizons."""
     cfg = d.cfg
-    floor_rate = 1 / cfg.seconds_per_candidate_reward
+    floor_rate = power.board(cfg).candidates_per_second
     base = arr.pi5_pareto(np.random.default_rng(2), floor_rate)
     mean_rate = floor_rate * (1 + 1 / (1.16 - 1))            # Pareto mean at the study shape
     field_met = max(1, per_epoch * whale_epoch) * mean_rate

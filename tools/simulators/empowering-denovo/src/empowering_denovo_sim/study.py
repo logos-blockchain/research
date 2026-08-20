@@ -7,13 +7,20 @@ from __future__ import annotations
 
 import numpy as np
 
-from . import arrivals, engine, scenarios
+from . import arrivals, engine, power, scenarios
 from .params import Triple
 
 
 def hashrate_draw(cfg, seed: int = 2):
-    return arrivals.pi5_pareto(np.random.default_rng(seed),
-                               1 / cfg.seconds_per_candidate_reward)
+    """The default field: a Pareto spread floored at a whole Pi 5 board.
+
+    The board basis (all four cores) rather than one core, which is what
+    `empowering_sim.elevation` has always used -- the two simulators disagreed by a factor of
+    four until this was fixed, in studies whose numbers are compared with each other. See
+    `power.py` for the bracket this sits inside and for why the Pareto shape is indicative
+    rather than measured.
+    """
+    return arrivals.pi5_pareto(np.random.default_rng(seed), power.board(cfg).candidates_per_second)
 
 
 def arrival_shapes(epochs: int = 220, per_epoch: int = 130) -> dict[str, np.ndarray]:

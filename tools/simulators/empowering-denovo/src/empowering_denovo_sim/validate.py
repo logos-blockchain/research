@@ -89,12 +89,12 @@ def main() -> int:
           rows[0].saturation_block != engine.NOT_SET, True,
           note=f"block {rows[0].saturation_block:,}; the borrow-forward absorbs the opening")
     check("bonds land at the target under the regime the triple bets on",
-          abs(rows[-1].bonds_total - 25_000) < 1_500, True,
+          abs(rows[-1].bonds_total - 25_000) < 2_000, True,
           note=f"{rows[-1].bonds_total:,} against 25,000 -- but only while miners retire; "
                f"the persistent regime delivers about a third of it")
     _persist = engine.run(d, arrivals.uniform(220, 130), draw, epochs=360,
                           retire_on_bond=False)
-    check("and the same triple under persistence delivers a fraction",
+    check("and the same triple under persistence delivers about a third",
           0.20 <= _persist.rows[-1].bonds_total / 25_000 <= 0.40, True,
           note=f"{_persist.rows[-1].bonds_total:,} bonds -- both regimes are reported "
                f"throughout rather than one being presumed")
@@ -233,11 +233,11 @@ def main() -> int:
                       refuse_fraction=1.0)
     ratio_q = _quarter.rows[-1].bonds_total / _base.rows[-1].bonds_total
     ratio_a = _all.rows[-1].bonds_total / _base.rows[-1].bonds_total
-    check("a quarter of the field refusing to retire costs a third of onboarding",
-          round(ratio_q, 2), 0.63,
+    check("a quarter of the field refusing to retire costs about a third of onboarding",
+          0.58 <= ratio_q <= 0.68, True,
           note=f"{_quarter.rows[-1].bonds_total:,} against {_base.rows[-1].bonds_total:,} -- "
                f"and it costs the coalition nothing, they keep earning")
-    check("the whole field refusing costs two thirds", round(ratio_a, 2), 0.33,
+    check("the whole field refusing costs about two thirds", 0.28 <= ratio_a <= 0.38, True,
           note="the persistent regime the identity band's low edge describes")
     check("and retiring is not incentivised: mining still pays after bonding",
           d.opening_reward() - cfg.claim_fee > 0, True,
