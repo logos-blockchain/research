@@ -179,6 +179,32 @@ def main() -> int:
           note=f"{lows} near-zero and {highs} full epochs in a 16-epoch window -- the "
                f"documented hazard of the raw index")
 
+    print("\nAdversarial: what the mechanism resists, and what it concedes")
+    from . import adversary as adv                            # noqa: PLC0415
+
+    # The reward cap max(claims_prev, blocks_per_epoch) is what makes withholding lose.
+    for frac, want_lose in ((0.10, True), (0.25, True), (0.50, True)):
+        pr = adv.pump_vs_honest(d, frac, epochs=40)
+        check(f"withholding loses money at {frac:.0%} of the field",
+              pr["pump_advantage"] < 1.0, want_lose,
+              note=f"{pr['pump_advantage']:.2f}x of mining honestly -- the reward cap bounds "
+                   f"what a shrunk claims_prev can buy back")
+    pr75 = adv.pump_vs_honest(d, 0.75, epochs=40)
+    check("and only pays once the attacker IS the field",
+          pr75["pump_advantage"] > 1.0, True,
+          note=f"{pr75['pump_advantage']:.2f}x at 75% -- above half the field the pump is "
+               f"the whale renamed, and Q8 already accepts that")
+
+    # An elastic attacker cannot harvest the Q9 cliff: being picky costs more than it takes.
+    field = 1.0 / cfg.seconds_per_candidate_reward * 1000
+    _, _, always = adv.two_population_run(d, field * 0.7, field * 0.3,
+                                          lambda e, r: True, 60)
+    _, _, picky = adv.two_population_run(d, field * 0.7, field * 0.3,
+                                         lambda e, r: r >= 5e9, 60)
+    check("harvesting the participation cliff loses money", picky < always, True,
+          note=f"{picky / always:.2f}x of always-on -- Q9's cycle is a UX hazard, not an "
+               f"exploit")
+
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILURES")
