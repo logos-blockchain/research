@@ -9,8 +9,9 @@
   "claim_fee_lepta": 6664,
   "pow_share_num": 10,
   "pow_share_den": 100,
-  "efficiency_persistent": 0.114,
-  "efficiency_retiring": 0.519,
+  "efficiency_persistent": 0.15,
+  "efficiency_retiring_slow": 0.25,
+  "efficiency_retiring_fast": 0.79,
   "reference": {
     "pool_fraction": 0.005,
     "expected_nodes": 25000,

@@ -147,7 +147,9 @@ def try_pay_claim():
 
 Bootstrap admissions past the budget draw the **undivided endowment** (Q2): the spike thins
 every later sub-pool through the schedule's recomputation and pulls the
-phase's end earlier. No cliff, no cap, no cohort turned away while the endowment lasts — R5.
+phase's end where it was: the next epoch divides a smaller remainder by one fewer epoch,
+so the schedule absorbs the spike instead of moving its own deadline. No cliff, no cap, no
+cohort turned away while the endowment lasts — R5.
 
 Post-bootstrap there is nothing to borrow from — R7a's budget is the limit, and the throttle's
 whole job is to make hitting it coincide with the epoch's end.
@@ -193,7 +195,7 @@ post-phase equilibrium within its usual ~10-block time constant; no special-case
 | reward | `max(anchor, budget // max(claims_prev, blocks))` | `anchor` |
 | on saturation | continue, drawing the endowment (Q2) | stop for the epoch |
 | difficulty | constant floor | EMA throttle at `capacity / blocks` |
-| ends | endowment exhausted — at `BOOTSTRAP_EPOCHS` on expectation, earlier under spikes, later under weak interest | — |
+| ends | endowment exhausted — at `BOOTSTRAP_EPOCHS` whatever the arrival shape, later only under weak interest (the Q7 tail) | — |
 
 **A residual corner, documented rather than decided.** The nominal-rate cap applies past
 the deadline; *inside* the window, linear amortisation's endpoint still means the last
@@ -207,7 +209,8 @@ owner rather than taken.
 Weak-interest tail (settled as Q7 after simulation): if the expected duration passes with
 endowment remaining, each further epoch offers a sub-pool capped at the **nominal rate**,
 `ENDOWMENT_GENESIS // BOOTSTRAP_EPOCHS`, until the money is gone. Late cohorts meet the same
-regime on-time cohorts did, and the expected duration is symmetric: spikes shorten the phase,
+regime on-time cohorts did. The expected duration is therefore robust in one direction and
+extensible in the other: spikes are absorbed by the schedule and do NOT move the end, while
 weak interest extends it at the planned pace. The whole-remainder dump this replaces — the
 schedule's naive `max(1, B - e)` floor — handed the entire remainder to the first epoch with
 claimants at a measured 2.6% conversion and stranded every later arrival at the anchor. The
@@ -228,11 +231,16 @@ With `B = BOOTSTRAP_EPOCHS`, `E_0 = ENDOWMENT_GENESIS`, uniform arrivals at the 
   drag small; the post-phase runs hot by construction** and the report must show it.
 - **Saturation point under a ×k offered-demand spike (bootstrap):** claims arrive ~k× the
   epoch's expectation, the budget covers `1/k` of them, so
-  `saturation_block ≈ BLOCKS_PER_EPOCH / k`, and the endowment draw beyond budget is
-  `(k − 1) · sub_pool` for the epoch (all bounded by `endowment`).
-- **Phase shortening:** a one-epoch ×k spike consumes ≈ `(k − 1)` extra sub-pools, moving the
-  expected end earlier by ≈ `(k − 1)` epochs while thinning later sub-pools by the
-  recomputation.
+  `saturation_block ≈ BLOCKS_PER_EPOCH / k`, and **the epoch spends about k budgets** —
+  measured medians 10× at k = 10 (range 6–13) and 97× at k = 100 (range 58–125) over seven
+  seeds, the spread being how the Pareto hashrate tail falls among the cohort.
+- **Phase invariance under spikes:** a one-epoch ×k spike consumes extra endowment now, but
+  every later sub-pool is `remaining // epochs_left`, so the schedule re-spreads what is left
+  over the epochs that remain and **the end date does not move**. Measured across three seeds:
+  uniform ends at 195/196/181, ×10 at 196/197/172, ×100 at 196/196/196 — seed noise dominates,
+  and no spike shortens the phase. An earlier revision of this note claimed a shortening of
+  `(k − 1)` epochs; that was wrong, and the true behaviour is the better one, since it means
+  `EXPECTED_YEARS` survives the arrival shape.
 - **Post-phase equilibrium:** `capacity = pow_share · txs_per_epoch · tx_fee / anchor =
   pow_share · txs_per_epoch / 2` — at 600 txs/block, 648,000 claims an epoch, exactly 30 a
   block. Elegant and worth gating: **at the anchor of two transfers, the post-phase capacity

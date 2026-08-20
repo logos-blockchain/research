@@ -15,7 +15,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .params import EFFICIENCY_PERSISTENT, EFFICIENCY_RETIRING, Triple
+from .params import (EFFICIENCY_PERSISTENT, EFFICIENCY_RETIRING_FAST,
+                     EFFICIENCY_RETIRING_SLOW, Triple)
 
 # (pool_fraction, expected_nodes, expected_years, txs_per_block, spike_k)
 # Spread over the corners: both band edges, both kinds of unsatisfiable, the sparse
@@ -47,6 +48,7 @@ def outputs(t: Triple, txs: int, spike_k: int) -> dict:
         "endowment_lepta": d.endowment_genesis,
         "implied_efficiency": d.implied_efficiency,
         "satisfiable": d.satisfiable,
+        "satisfiable_if_retiring": d.satisfiable_if_retiring,
         "sub_pool_lepta": sub0,
         "reward0_lepta": reward0,
         "claims_to_bond": -(-cfg.min_stake // (reward0 - cfg.claim_fee)),
@@ -55,7 +57,7 @@ def outputs(t: Triple, txs: int, spike_k: int) -> dict:
         "capacity_post": capacity,
         "target_per_block": max(1, capacity // cfg.blocks_per_epoch),
         "spike_saturation_block": cfg.blocks_per_epoch // spike_k,
-        "spike_end_shift_epochs": spike_k - 1,
+        "spike_borrow_multiple": spike_k,      # what the epoch spends, in budgets
         "whale_epoch_ceiling_lepta": cfg.blocks_per_epoch * cfg.max_block_txs * reward0,
     }
 
@@ -76,7 +78,8 @@ def export(out: Path) -> list[Path]:
         "pow_share_num": cfg.pow_share_num,
         "pow_share_den": cfg.pow_share_den,
         "efficiency_persistent": EFFICIENCY_PERSISTENT,
-        "efficiency_retiring": EFFICIENCY_RETIRING,
+        "efficiency_retiring_slow": EFFICIENCY_RETIRING_SLOW,
+        "efficiency_retiring_fast": EFFICIENCY_RETIRING_FAST,
         "reference": {"pool_fraction": ref.pool_fraction, "expected_nodes": ref.expected_nodes,
                       "expected_years": ref.expected_years, "txs_per_block": cfg.txs_per_block},
     }

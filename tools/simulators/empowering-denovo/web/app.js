@@ -96,9 +96,10 @@ function renderReadouts(o) {
       fmt(o.claims_to_bond), "min_stake over the net reward");
   row(tb, "", "a spike ×" + state.k + " saturates its epoch near block",
       fmt(o.spike_saturation_block), `of ${fmt(params.blocks_per_epoch)} — then borrows`);
-  row(tb, "", "and pulls the phase's end earlier by",
-      "≈ " + fmt(o.spike_end_shift_epochs) + " epochs",
-      "the borrow consumes that many sub-pools");
+  row(tb, "ok", "and the phase still ends when it was going to",
+      "≈ " + fmt(o.bootstrap_epochs) + " either way",
+      `the epoch spends about ${fmt(o.spike_borrow_multiple)} budgets, and the schedule `
+      + "re-spreads the remainder over the epochs that remain");
   const ceil_binds = o.whale_epoch_ceiling_lepta >= o.endowment_lepta;
   row(tb, "warn", "one epoch's drain ceiling (whale, block-space bound)",
       ceil_binds ? "the whole endowment" : lgo(o.whale_epoch_ceiling_lepta, 0),
@@ -158,20 +159,20 @@ function drawEndowment(o) {
   g.beginPath(); g.moveTo(X(0), Y(1));
   g.lineTo(X(B), Y(0)); g.lineTo(X(horizon), Y(0)); g.stroke();
 
-  // spiked: linear, a dent of (k-1) sub-pools at spikeAt, then linear to an earlier end
-  const dent = Math.min(1, (k - 1) / B);
+  // spiked: a dent at spikeAt, then a SHALLOWER slope to the SAME end -- the schedule
+  // re-spreads what is left over the epochs that remain, so the deadline does not move.
+  const dent = Math.min(0.9 * (1 - spikeAt / B), (k - 1) / B);
   const atSpike = 1 - spikeAt / B;
   const after = Math.max(0, atSpike - dent);
-  const endEarly = spikeAt + after * (B - spikeAt) / Math.max(atSpike, 1e-9);
   g.strokeStyle = ORANGE;
   g.beginPath(); g.moveTo(X(0), Y(1)); g.lineTo(X(spikeAt), Y(atSpike));
-  g.lineTo(X(spikeAt), Y(after)); g.lineTo(X(endEarly), Y(0));
+  g.lineTo(X(spikeAt), Y(after)); g.lineTo(X(B), Y(0));
   g.lineTo(X(horizon), Y(0)); g.stroke();
 
   g.fillStyle = INK2; g.font = "11px system-ui";
   g.fillText("expected end: " + B, X(B) - 34, y1 + 16);
   g.fillStyle = ORANGE;
-  g.fillText(`×${k} spike → ends ≈ ${Math.round(endEarly)}`, X(spikeAt) + 6, Y(after) - 6);
+  g.fillText(`×${k} spike — same end, thinner tail`, X(spikeAt) + 6, Y(after) - 6);
   g.fillStyle = BLUE; g.fillText("uniform", X(B * 0.45), Y(0.62));
   g.fillStyle = INK2;
   g.save(); g.translate(14, (y0 + y1) / 2); g.rotate(-Math.PI / 2);

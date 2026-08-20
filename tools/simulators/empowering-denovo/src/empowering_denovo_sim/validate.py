@@ -11,7 +11,8 @@ import sys
 import numpy as np
 
 from . import arrivals, engine
-from .params import EFFICIENCY_RETIRING, Triple, UnsatisfiableTriple
+from .params import (EFFICIENCY_PERSISTENT, EFFICIENCY_RETIRING_FAST, Triple,
+                     UnsatisfiableTriple)
 
 FAILURES: list[str] = []
 
@@ -33,7 +34,12 @@ def main() -> int:
     check("bootstrap epochs", d.bootstrap_epochs, 195)
     check("endowment, lepta", d.endowment_genesis, 50_000_000 * cfg.base_units_per_lgo)
     check("implied conversion efficiency", round(d.implied_efficiency, 3), 0.5,
-          note="satisfiable only in the retiring regime -- the triple's built-in assumption")
+          note=f"{d.regime_note}")
+    check("the reference triple is NOT feasible on incentives alone",
+          d.satisfiable, False,
+          note=f"it asserts 50% where persistence delivers "
+               f"{EFFICIENCY_PERSISTENT:.0%} -- a bet on retirement, now explicit")
+    check("but is feasible if bonded miners do retire", d.satisfiable_if_retiring, True)
     check("the anchor is two transfers", d.anchor, 2 * cfg.avg_tx_fee)
     check("and clears the claim's own fee", d.anchor > cfg.claim_fee, True,
           note=f"{d.anchor:,} against {cfg.claim_fee:,}")
@@ -44,9 +50,10 @@ def main() -> int:
     for nodes, side in ((40_000, "above"), (5_000, "below")):
         try:
             Triple(expected_nodes=nodes).derived().check()
-            check(f"a triple {side} the band is rejected", False, True)
+            ok = side != "above"      # a low triple over-funds; that is not infeasible
+            check(f"a triple {side} the band behaves correctly", True, ok)
         except UnsatisfiableTriple:
-            check(f"a triple {side} the band is rejected", True, True)
+            check(f"a triple {side} the band behaves correctly", side == "above", True)
 
     print("\nThe reference run: uniform arrivals, retirement on")
     # ONE draw object is reused across every run below, so its rng state advances run by
@@ -81,10 +88,16 @@ def main() -> int:
     check("genesis saturates -- claims_prev = 0 budgets one claim per block",
           rows[0].saturation_block != engine.NOT_SET, True,
           note=f"block {rows[0].saturation_block:,}; the borrow-forward absorbs the opening")
-    check("bonds land at the target's efficiency reading",
+    check("bonds land at the target under the regime the triple bets on",
           abs(rows[-1].bonds_total - 25_000) < 1_500, True,
-          note=f"{rows[-1].bonds_total:,} bonds against 25,000 expected at 50% implied, "
-               f"inside the {EFFICIENCY_RETIRING:.1%} band edge")
+          note=f"{rows[-1].bonds_total:,} against 25,000 -- but only while miners retire; "
+               f"the persistent regime delivers about a third of it")
+    _persist = engine.run(d, arrivals.uniform(220, 130), draw, epochs=360,
+                          retire_on_bond=False)
+    check("and the same triple under persistence delivers a fraction",
+          0.20 <= _persist.rows[-1].bonds_total / 25_000 <= 0.40, True,
+          note=f"{_persist.rows[-1].bonds_total:,} bonds -- both regimes are reported "
+               f"throughout rather than one being presumed")
 
     post = [q for q in rows if not q.bootstrap][5:]          # let the throttle settle
     check("post-phase claims hit the capacity identity exactly",
@@ -113,9 +126,12 @@ def main() -> int:
     check("no claim in the spike epoch went unpaid for budget reasons",
           q30.spent >= q30.budget, True,
           note=f"spent {q30.spent / q30.budget:.2f}x the budget -- the borrow-forward at work")
-    check("the borrow cannot lengthen the phase",
-          r10.transition_epoch <= r.transition_epoch, True,
-          note=f"transition {r10.transition_epoch} against uniform {r.transition_epoch}")
+    check("the schedule absorbs the spike: the phase still ends near its deadline",
+          abs(r10.transition_epoch - d.bootstrap_epochs) <= 25, True,
+          note=f"transition {r10.transition_epoch} against a {d.bootstrap_epochs}-epoch "
+               f"deadline and uniform's {r.transition_epoch}; across seeds uniform gives "
+               f"195/196/181 and x100 gives 196/196/196, so no spike shortens anything -- "
+               f"an earlier revision claimed a (k-1)-epoch shortening and was wrong")
 
     print("\nThe nominal-rate tail (Q7): late interest meets the planned regime")
     rbl = engine.run(d, arrivals.back_loaded(220, 220 * 130), draw, epochs=420)
@@ -140,11 +156,12 @@ def main() -> int:
           note=f"peak {r100.rows[30].max_block_claims} of {cfg.max_block_txs} -- ordinary "
                f"transactions are never crowded out (MODEL 8.3, resolved)")
     ratio100 = r100.rows[30].spent / r100.rows[30].budget
-    check("the x100 epoch's borrow runs two orders deeper than the x10's",
-          50 <= ratio100 <= 200, True,
-          note=f"{ratio100:.0f}x the budget against the x10's 2.6x -- the exact multiplier "
-               f"is Pareto-tail luck (86-111 across seeds) and the report says so; the two "
-               f"figures must not be conflated again")
+    check("a xk spike borrows on the order of k budgets",
+          20 <= ratio100 <= 200, True,
+          note=f"{ratio100:.0f}x here; across seven independent seeds the x100 median is 97x "
+               f"(58-125) and the x10 median is 10x (6-13). Single-draw figures of 2.6x and "
+               f"86-111x were quoted before this was measured properly -- do not re-quote one "
+               f"draw as the law")
     check("front-loaded arrivals convert completely",
           engine.run(d, arrivals.front_loaded(220, 220 * 130), draw,
                      epochs=220).rows[-1].bonds_total, 28_600,

@@ -11,10 +11,29 @@ from dataclasses import dataclass
 
 from empowering_sim.config import Config, load
 
-# The measured conversion-efficiency band (elevation study, EmPoWering-simulator branch):
-# the fraction of pool payout that reaches bonds, bracketed by whether bonded miners retire.
-EFFICIENCY_PERSISTENT = 0.114
-EFFICIENCY_RETIRING = 0.519
+# Conversion efficiency -- the fraction of pool payout that reaches bonds -- MEASURED IN THIS
+# MECHANISM rather than imported from the old design's elevation study, which reported
+# 11.4%/51.9% at a single arrival rate. Measuring it here showed that is not one number per
+# regime but two different shapes:
+#
+#   persistent (nobody retires):  14.0% / 16.3% / 15.3% at 65 / 130 / 260 arrivals an epoch
+#                                 -- essentially FLAT: everyone keeps mining, so the field
+#                                 grows with the arrival rate and dilution cancels the gain.
+#   retiring:                     25.3% / 49.4% / 78.8% at the same rates
+#                                 -- strongly RISING: retirement frees claim share for the
+#                                 next cohort, so faster arrival converts better.
+#
+# So retirement is not a caveat on one figure; it changes what kind of quantity the efficiency
+# is. Under persistence a triple's feasibility is a property of the triple alone; under
+# retirement it also depends on how fast nodes turn up.
+EFFICIENCY_PERSISTENT = 0.15          # flat, and what the incentives actually deliver
+EFFICIENCY_RETIRING_SLOW = 0.25       # at half the reference arrival rate
+EFFICIENCY_RETIRING_FAST = 0.79       # at twice it
+
+# Retiring is NOT incentivised: a bonded node can provide service and go on mining, and the
+# marginal claim pays at any plausible token price (adversarial-analysis section 2). The
+# default regime for a feasibility check is therefore the persistent one.
+EFFICIENCY_DEFAULT = EFFICIENCY_PERSISTENT
 
 
 class UnsatisfiableTriple(ValueError):
@@ -57,16 +76,42 @@ class Derived:
 
     @property
     def satisfiable(self) -> bool:
-        return EFFICIENCY_PERSISTENT <= self.implied_efficiency <= EFFICIENCY_RETIRING
+        """Feasible under the regime the incentives deliver -- persistence.
 
-    def check(self) -> "Derived":
-        """The parameterisation-time gate: reject an unsatisfiable triple before running."""
-        if not self.satisfiable:
+        A triple asserting more than the persistent efficiency is betting on a behaviour
+        nothing pays for. `satisfiable_if_retiring` reports the optimistic reading beside it,
+        because a design owner is entitled to take that bet knowingly.
+        """
+        return self.implied_efficiency <= EFFICIENCY_PERSISTENT
+
+    @property
+    def satisfiable_if_retiring(self) -> bool:
+        return self.implied_efficiency <= EFFICIENCY_RETIRING_FAST
+
+    @property
+    def regime_note(self) -> str:
+        e = self.implied_efficiency
+        if e <= EFFICIENCY_PERSISTENT:
+            return "feasible under either regime"
+        if e <= EFFICIENCY_RETIRING_SLOW:
+            return "needs retirement, and works even at slow arrival"
+        if e <= EFFICIENCY_RETIRING_FAST:
+            return "needs retirement AND fast arrival -- a bet on two behaviours"
+        return "infeasible under any measured regime"
+
+    def check(self, allow_retiring: bool = True) -> "Derived":
+        """The parameterisation-time gate.
+
+        ``allow_retiring`` admits a triple that only works if bonded miners stop mining --
+        the default, because that is the reading both designs have quoted, but the result
+        carries `regime_note` so the bet is visible rather than assumed.
+        """
+        ok = self.satisfiable_if_retiring if allow_retiring else self.satisfiable
+        if not ok:
             raise UnsatisfiableTriple(
                 f"({self.triple.pool_fraction:.3%}, {self.triple.expected_nodes:,}, "
                 f"{self.triple.expected_years} yr) implies a conversion efficiency of "
-                f"{self.implied_efficiency:.1%}, outside the measured "
-                f"[{EFFICIENCY_PERSISTENT:.1%}, {EFFICIENCY_RETIRING:.1%}] band")
+                f"{self.implied_efficiency:.1%}: {self.regime_note}")
         return self
 
     def opening_sub_pool(self) -> int:

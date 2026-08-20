@@ -37,7 +37,9 @@ export const M = {
     Math.max(1, Math.floor(M.capacityPost(p, txs) / p.blocks_per_epoch)),
 
   spikeSaturationBlock: (p, k) => Math.floor(p.blocks_per_epoch / k),
-  spikeEndShift: (k) => k - 1,
+  // A spike does NOT move the phase's end: the schedule re-spreads the remainder over
+  // the epochs that remain. What it does move is how many budgets the epoch spends.
+  spikeBorrowMultiple: (k) => k,
   whaleEpochCeiling: (p, poolFraction, years) =>
     p.blocks_per_epoch * p.max_block_txs * M.reward0(p, poolFraction, years),
 };
@@ -57,7 +59,7 @@ export function computeAll(p, tin) {
     capacity_post: M.capacityPost(p, n),
     target_per_block: M.targetPerBlock(p, n),
     spike_saturation_block: M.spikeSaturationBlock(p, k),
-    spike_end_shift_epochs: M.spikeEndShift(k),
+    spike_borrow_multiple: M.spikeBorrowMultiple(k),
     whale_epoch_ceiling_lepta: M.whaleEpochCeiling(p, f, y),
   };
 }

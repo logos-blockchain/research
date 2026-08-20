@@ -12,7 +12,8 @@
         "bootstrap_epochs": 195,
         "endowment_lepta": 50000000000000000,
         "implied_efficiency": 0.5,
-        "satisfiable": true,
+        "satisfiable": false,
+        "satisfiable_if_retiring": true,
         "sub_pool_lepta": 256410256410256,
         "reward0_lepta": 11870845204,
         "claims_to_bond": 85,
@@ -21,7 +22,7 @@
         "capacity_post": 648000,
         "target_per_block": 30,
         "spike_saturation_block": 2160,
-        "spike_end_shift_epochs": 9,
+        "spike_borrow_multiple": 10,
         "whale_epoch_ceiling_lepta": 262564102560153600
       }
     },
@@ -37,7 +38,8 @@
         "bootstrap_epochs": 195,
         "endowment_lepta": 50000000000000000,
         "implied_efficiency": 0.5,
-        "satisfiable": true,
+        "satisfiable": false,
+        "satisfiable_if_retiring": true,
         "sub_pool_lepta": 256410256410256,
         "reward0_lepta": 11870845204,
         "claims_to_bond": 85,
@@ -46,7 +48,7 @@
         "capacity_post": 648000,
         "target_per_block": 30,
         "spike_saturation_block": 216,
-        "spike_end_shift_epochs": 99,
+        "spike_borrow_multiple": 100,
         "whale_epoch_ceiling_lepta": 262564102560153600
       }
     },
@@ -62,7 +64,8 @@
         "bootstrap_epochs": 195,
         "endowment_lepta": 50000000000000000,
         "implied_efficiency": 0.2,
-        "satisfiable": true,
+        "satisfiable": false,
+        "satisfiable_if_retiring": true,
         "sub_pool_lepta": 256410256410256,
         "reward0_lepta": 11870845204,
         "claims_to_bond": 85,
@@ -71,7 +74,7 @@
         "capacity_post": 648000,
         "target_per_block": 30,
         "spike_saturation_block": 2160,
-        "spike_end_shift_epochs": 9,
+        "spike_borrow_multiple": 10,
         "whale_epoch_ceiling_lepta": 262564102560153600
       }
     },
@@ -87,7 +90,8 @@
         "bootstrap_epochs": 195,
         "endowment_lepta": 50000000000000000,
         "implied_efficiency": 0.1,
-        "satisfiable": false,
+        "satisfiable": true,
+        "satisfiable_if_retiring": true,
         "sub_pool_lepta": 256410256410256,
         "reward0_lepta": 11870845204,
         "claims_to_bond": 85,
@@ -96,7 +100,7 @@
         "capacity_post": 648000,
         "target_per_block": 30,
         "spike_saturation_block": 2160,
-        "spike_end_shift_epochs": 9,
+        "spike_borrow_multiple": 10,
         "whale_epoch_ceiling_lepta": 262564102560153600
       }
     },
@@ -113,6 +117,7 @@
         "endowment_lepta": 50000000000000000,
         "implied_efficiency": 0.8,
         "satisfiable": false,
+        "satisfiable_if_retiring": false,
         "sub_pool_lepta": 256410256410256,
         "reward0_lepta": 11870845204,
         "claims_to_bond": 85,
@@ -121,7 +126,7 @@
         "capacity_post": 648000,
         "target_per_block": 30,
         "spike_saturation_block": 2160,
-        "spike_end_shift_epochs": 9,
+        "spike_borrow_multiple": 10,
         "whale_epoch_ceiling_lepta": 262564102560153600
       }
     },
@@ -137,7 +142,8 @@
         "bootstrap_epochs": 195,
         "endowment_lepta": 100000000000000000,
         "implied_efficiency": 0.5,
-        "satisfiable": true,
+        "satisfiable": false,
+        "satisfiable_if_retiring": true,
         "sub_pool_lepta": 512820512820512,
         "reward0_lepta": 23741690408,
         "claims_to_bond": 43,
@@ -146,7 +152,7 @@
         "capacity_post": 648000,
         "target_per_block": 30,
         "spike_saturation_block": 2160,
-        "spike_end_shift_epochs": 9,
+        "spike_borrow_multiple": 10,
         "whale_epoch_ceiling_lepta": 525128205120307200
       }
     },
@@ -163,6 +169,7 @@
         "endowment_lepta": 20000000000000000,
         "implied_efficiency": 1.0,
         "satisfiable": false,
+        "satisfiable_if_retiring": false,
         "sub_pool_lepta": 206185567010309,
         "reward0_lepta": 9545628102,
         "claims_to_bond": 105,
@@ -171,7 +178,7 @@
         "capacity_post": 324000,
         "target_per_block": 15,
         "spike_saturation_block": 2160,
-        "spike_end_shift_epochs": 9,
+        "spike_borrow_multiple": 10,
         "whale_epoch_ceiling_lepta": 211134020611276800
       }
     },
@@ -187,7 +194,8 @@
         "bootstrap_epochs": 195,
         "endowment_lepta": 50000000000000000,
         "implied_efficiency": 0.5,
-        "satisfiable": true,
+        "satisfiable": false,
+        "satisfiable_if_retiring": true,
         "sub_pool_lepta": 256410256410256,
         "reward0_lepta": 11870845204,
         "claims_to_bond": 85,
@@ -196,7 +204,7 @@
         "capacity_post": 21600,
         "target_per_block": 1,
         "spike_saturation_block": 2160,
-        "spike_end_shift_epochs": 9,
+        "spike_borrow_multiple": 10,
         "whale_epoch_ceiling_lepta": 262564102560153600
       }
     },
@@ -212,7 +220,8 @@
         "bootstrap_epochs": 389,
         "endowment_lepta": 50000000000000000,
         "implied_efficiency": 0.5,
-        "satisfiable": true,
+        "satisfiable": false,
+        "satisfiable_if_retiring": true,
         "sub_pool_lepta": 128534704370179,
         "reward0_lepta": 5950680757,
         "claims_to_bond": 169,
@@ -221,7 +230,7 @@
         "capacity_post": 648000,
         "target_per_block": 30,
         "spike_saturation_block": 2160,
-        "spike_end_shift_epochs": 9,
+        "spike_borrow_multiple": 10,
         "whale_epoch_ceiling_lepta": 131619537255628800
       }
     },
@@ -237,7 +246,8 @@
         "bootstrap_epochs": 292,
         "endowment_lepta": 200000000000000000,
         "implied_efficiency": 0.3,
-        "satisfiable": true,
+        "satisfiable": false,
+        "satisfiable_if_retiring": true,
         "sub_pool_lepta": 684931506849315,
         "reward0_lepta": 31709791983,
         "claims_to_bond": 32,
@@ -246,7 +256,7 @@
         "capacity_post": 1105918,
         "target_per_block": 51,
         "spike_saturation_block": 432,
-        "spike_end_shift_epochs": 49,
+        "spike_borrow_multiple": 50,
         "whale_epoch_ceiling_lepta": 701369862996787200
       }
     }

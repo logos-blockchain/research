@@ -95,7 +95,7 @@ Q8 keeps the borrow-forward unbounded, so a large actor can draw the endowment t
 
 **The danger window is early but not immediate.** At genesis the whale takes only 20%, because `claims_prev = 0` caps the reward at one block's share. By epoch 20 the honest field has established a `claims_prev` large enough to price the epoch generously while the endowment is still 90% intact — 88% capture, and the bootstrap collapses from 195 epochs to 23. By epoch 100 the endowment is half spent and the exposure falls back.
 
-This sharpens the accepted risk rather than changing it. If the Q8 cap is ever revisited, a bound applying only to the early epochs would buy most of the protection at the least cost to R5 — the honest ×100 cohort that needs 86–111× its budget arrives at epoch 30.
+This sharpens the accepted risk rather than changing it. If the Q8 cap is ever revisited, a bound applying only to the early epochs would buy most of the protection at the least cost to R5 — the honest ×100 cohort that borrows about a hundred budgets arrives at epoch 30.
 
 ## 4. The sybil flood — and the correction
 
@@ -116,7 +116,7 @@ A first version of this document measured the two designs at different honest ra
 
 What the extreme case costs the attacker, at flood rates achieving ~95% denial: on the order of a quarter-million devices in both designs — $20M or more of hardware capital before any electricity, which is the real barrier — with electricity of $12.8M (current, 600 epochs) against $4.5M (de novo, 220 epochs). The redesign is cheaper to besiege in absolute terms only because its bootstrap is shorter, which is the same property that makes it converge faster.
 
-One asymmetry favours the redesign throughout. **An arrival flood cannot accelerate its drain**: the transition holds at epoch 195–197 at every flood rate tested, because the budget schedule governs what an epoch may spend. Only a *hashrate* whale shortens the phase (§3.3). The redesign therefore separates two attacks the current design conflates — many small identities dilute the on-ramp but cannot shorten it, while one large actor can shorten it but is visible in a way many small ones are not.
+One asymmetry favours the redesign throughout. **An arrival flood cannot accelerate its drain**: the transition holds at epoch 195–197 at every flood rate tested, because the budget schedule governs what an epoch may spend. Nor can an arrival spike: measured across seeds, uniform and ×100 both end at 195–196. Only a *hashrate* whale shortens the phase (§3.3), and only because it drains the endowment outright rather than merely claiming from it. The redesign therefore separates two attacks the current design conflates — many small identities dilute the on-ramp but cannot shorten it, while one large actor can shorten it but is visible in a way many small ones are not.
 
 ## 5. What the redesign converges to, and whether it matters
 
@@ -138,7 +138,9 @@ Post-phase, the anchor nets 4.494 × 10⁻⁶ LGO per claim after the claim's ow
 
 **For the current design.** Its immunity to reward manipulation is structural — a pool-determined reward cannot be pumped — and worth counting as the redesign's opportunity cost. Its flow cap makes it undrainable by any actor.
 
-**For the protocol.** The sybil flood is cheap relative to what it denies and neither design addresses it, because neither has a notion of identity beyond a keypair and a claim fee. Every candidate remedy — a bond to mine, proof of personhood, a per-identity rate limit — is outside both designs and outside the eight principles the redesign was built from. It belongs on the record as an open problem of the protocol rather than a defect of either mechanism.
+**For the protocol — decided, not open.** The sybil flood is cheap relative to what it denies and neither design addresses it, because neither has a notion of identity beyond a keypair and a claim fee. The design owner's position, taken 2026-08-20, is that **this is accepted and not to be mitigated: proof of work is sheer power, and a participant who buys more of it is entitled to more of the reward, whether they present as one identity or a thousand.** Every candidate remedy — a bond to mine, proof of personhood, a per-identity rate limit — would make the mechanism something other than proof of work, so none is pursued.
+
+That makes the flood a property to size rather than a hole to plug, and the sizing is in §4: a quarter-million devices and $20M of hardware before electricity, which is the same barrier that stands in front of any attack on any proof-of-work chain. It is worth noting only that the *denial* is cheaper than the *capture* — an attacker who merely wants to keep others out spends the same and needs no strategy at all.
 
 ## 7. Reproducing this
 
