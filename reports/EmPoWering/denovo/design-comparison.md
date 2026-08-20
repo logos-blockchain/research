@@ -39,7 +39,7 @@ So the realistic expectation is that people carry on, and **both designs bring i
 | parameters someone must defend | `distribution_rate`, `target_claims_per_block`, pool % | pool %, `expected_nodes`, `expected_years` — with the consistency identity checked before anything runs |
 | the pool's end | never — geometric decay, 4.866% left after 12.3 years, exact to four figures across all arrival rates | epoch 195 exactly on the reference triple; earlier under spikes, later at the nominal-rate tail under weak interest |
 
-The current design's two rate constants are the ones its own report could only defend by simulation. The redesign's three are statements of intent, and the identity `implied_efficiency = nodes × min_stake / endowment` prices a triple against the measured 11.4–51.9% conversion band at parameterisation time — a check the rate form cannot even express.
+The current design's two rate constants are the ones its own report could only defend by simulation. The redesign's three are statements of intent, and the identity `implied_efficiency = nodes × min_stake / endowment` prices a triple against the conversion efficiency measured **in this mechanism** — about 15% if nobody retires, rising from 25% to 74% with the arrival rate if they do — at parameterisation time, which is a check the rate form cannot even express.
 
 ## 2. Arrivals: the strongest measured contrast
 

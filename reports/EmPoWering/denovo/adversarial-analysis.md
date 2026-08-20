@@ -33,7 +33,7 @@ An attacker with hashrate and the ability to create identities freely, who may w
 
 ### 2.1 Nothing pays anyone to retire
 
-Both designs quote two onboarding numbers, one assuming bonded miners keep mining and one assuming they retire, and both lean on the retiring figure. The strategy report measures 11.4% against 51.9% of the elevation ceiling; the de-novo consistency identity takes that as its band, and its reference triple implies exactly 50% — the retiring edge.
+Both designs quote two onboarding numbers, one assuming bonded miners keep mining and one assuming they retire, and both lean on the retiring figure. The strategy report measures 11.4% against 51.9% of the elevation ceiling; the de-novo consistency identity originally imported that band, and its reference triple implies exactly 50%. Re-measured in the redesign itself the two regimes are 15% flat against 25–74% rising, and the triple sits above the persistent figure either way.
 
 The justification on record is that a bonded node's service income dwarfs what more mining would add. That is true and beside the point. A node decides whether to keep mining by comparing the *marginal* revenue of another claim against its *marginal* cost, and having a larger income elsewhere does not enter that comparison. Nor is there any capacity conflict to force a choice: **a bonded node can provide service and go on mining with the same hardware.**
 
@@ -60,7 +60,7 @@ Modelled in the de-novo engine as a coalition that bonds and keeps mining anyway
 
 A quarter of the field behaving this way costs the mechanism 37% of its onboarding; the whole field behaving this way costs two thirds. **This is the cheapest and most damaging attack in either design, it requires no coordination, and an attacker cannot be distinguished from a participant who simply never turned its miner off.** The same arithmetic applies to the current design, where the identical behaviour is what separates its 11.4% and 51.9% figures.
 
-The remedy is not in either mechanism as specified. Making retirement rational needs something that prices continued mining after bonding — a declining per-identity reward, a bond that competes with hashrate, or an explicit exit incentive — and all of those are new mechanism. **What both designs can do immediately is stop quoting the retiring figure as the expected case.** Under the persistent regime the de-novo reference triple implies an efficiency of 50% against an achievable 11.4%, which its own feasibility check would reject.
+The remedy is not in either mechanism as specified. Making retirement rational needs something that prices continued mining after bonding — a declining per-identity reward, a bond that competes with hashrate, or an explicit exit incentive — and all of those are new mechanism. **What both designs can do immediately is stop quoting the retiring figure as the expected case.** Under the persistent regime the de-novo reference triple implies an efficiency of 50% against an achievable **15%** — measured in this mechanism rather than imported — which its own feasibility check now flags as a bet on retirement rather than passing silently.
 
 ## 3. The redesign's novel surfaces — both close by measurement
 

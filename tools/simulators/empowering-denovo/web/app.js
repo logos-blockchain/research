@@ -77,17 +77,17 @@ function row(tb, cls, label, value, note) {
 function renderReadouts(o) {
   const tb = document.getElementById("readouts");
   tb.innerHTML = "";
-  const lo = params.efficiency_persistent, hi = params.efficiency_retiring;
-  const effCls = o.satisfiable ? "ok" : "bad";
+  const lo = params.efficiency_persistent, hi = params.efficiency_retiring_fast;
+  const effCls = o.satisfiable ? "ok" : o.satisfiable_if_retiring ? "warn" : "bad";
   row(tb, "", "bootstrap epochs", fmt(o.bootstrap_epochs),
       `${state.years} years at ${params.epochs_per_year} epochs a year`);
   row(tb, "", "endowment", lgo(o.endowment_lepta, 0), `${state.pool}% of TGE`);
   row(tb, effCls, "implied conversion efficiency", (o.implied_efficiency * 100).toFixed(1) + "%",
       o.satisfiable
-        ? `inside the measured ${(lo * 100).toFixed(1)}–${(hi * 100).toFixed(1)}% band`
-        : o.implied_efficiency > hi
-          ? `above ${(hi * 100).toFixed(1)}% — more nodes than this pool can bond even if every bonded miner retires`
-          : `below ${(lo * 100).toFixed(1)}% — the pool over-funds the target; expect surplus or more nodes`);
+        ? `at or under ${(lo * 100).toFixed(0)}% — feasible on incentives alone, whether or not anyone retires`
+        : o.satisfiable_if_retiring
+          ? `above the ${(lo * 100).toFixed(0)}% that persistence delivers — this triple needs bonded miners to STOP mining, which nothing pays them to do`
+          : `above ${(hi * 100).toFixed(0)}% — more nodes than this pool can bond even in the best regime measured`);
   row(tb, "", "opening sub-pool", lgo(o.sub_pool_lepta, 0), "one epoch's schedule at genesis");
   const mult = o.reward0_lepta / o.anchor_lepta;
   row(tb, mult > 10 ? "ok" : "warn", "opening reward", lgo(o.reward0_lepta),

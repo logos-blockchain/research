@@ -15,10 +15,13 @@ export const M = {
     Math.round(poolFraction * p.launch_supply_lgo * p.base_units_per_lgo),
   impliedEfficiency: (p, nodes, poolFraction) =>
     nodes * p.min_stake_lepta / M.endowment(p, poolFraction),
-  satisfiable: (p, nodes, poolFraction) => {
-    const e = M.impliedEfficiency(p, nodes, poolFraction);
-    return e >= p.efficiency_persistent && e <= p.efficiency_retiring;
-  },
+  // Feasible on incentives alone: persistence is what nothing pays anyone to avoid. A triple
+  // BELOW the persistent efficiency merely over-funds, which is not infeasible -- so this is
+  // one-sided, matching params.py. A two-sided band was wrong and the golden check caught it.
+  satisfiable: (p, nodes, poolFraction) =>
+    M.impliedEfficiency(p, nodes, poolFraction) <= p.efficiency_persistent,
+  satisfiableIfRetiring: (p, nodes, poolFraction) =>
+    M.impliedEfficiency(p, nodes, poolFraction) <= p.efficiency_retiring_fast,
   anchor: (p) => 2 * p.transfer_fee_lepta,
 
   subPool: (p, poolFraction, years) =>
@@ -51,6 +54,7 @@ export function computeAll(p, tin) {
     endowment_lepta: M.endowment(p, f),
     implied_efficiency: M.impliedEfficiency(p, tin.expected_nodes, f),
     satisfiable: M.satisfiable(p, tin.expected_nodes, f),
+    satisfiable_if_retiring: M.satisfiableIfRetiring(p, tin.expected_nodes, f),
     sub_pool_lepta: M.subPool(p, f, y),
     reward0_lepta: M.reward0(p, f, y),
     claims_to_bond: M.claimsToBond(p, f, y),
