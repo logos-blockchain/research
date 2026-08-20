@@ -12,7 +12,7 @@ Costs are priced from the standalone estimator at a Raspberry Pi 5's measured Po
 
 **The most important finding is not an attack at all.** Both designs' onboarding targets assume that miners stop mining once they have bonded, and that assumption is not incentivised — continuing to mine is individually rational, and bonding does not stop the hardware. The behaviour both designs need in order to hit their numbers is the behaviour neither pays for. Everything else below is secondary to that.
 
-*Revision note.* A first version of this analysis compared the two designs' sybil-flood resistance at different honest baselines and over different windows, and concluded they were comparably vulnerable. Normalised — same honest arrival rate, same window — they are not, and the redesign is markedly the more resistant at moderate flooding. §4 carries the corrected measurement.
+*Revision notes.* (1) A first version compared the two designs' sybil-flood resistance at different honest baselines and over different windows and concluded they were comparably vulnerable; normalised, they are not, and §4 carries the corrected measurement. (2) Every figure here was recomputed after the power basis was corrected from one Raspberry Pi 5 core to a whole four-core board — the basis the strategy study had always used. That moved the pump, whale and cliff tables materially, and the numbers below are the post-correction ones. Where a figure differs from an earlier draft, the earlier draft was measuring a field four times weaker than a committed miner actually fields.
 
 ## 1. The threat model
 
@@ -59,11 +59,11 @@ The de-novo bootstrap reward is `budget / claims_prev`, which invites the obviou
 
 | attacker's share of the field | balance, mining honestly | balance, pumping | advantage |
 | --- | --- | --- | --- |
-| 10% | 1,062,468 LGO | 566,776 LGO | **0.53×** |
-| 25% | 2,650,814 | 1,700,500 | **0.64×** |
-| 50% | 5,299,253 | 4,986,983 | **0.94×** |
-| 75% | 7,952,245 | 9,887,684 | 1.24× |
-| 90% | 9,540,992 | 11,991,523 | 1.26× |
+| 10% | 1,228,962 LGO | 544,998 LGO | **0.44×** |
+| 25% | 3,066,177 | 1,642,410 | **0.54×** |
+| 50% | 6,133,475 | 4,884,645 | **0.80×** |
+| 75% | 9,188,985 | 13,579,211 | 1.48× |
+| 90% | 11,025,370 | 30,863,255 | **2.80×** |
 
 **Withholding loses money for any minority**, and the result is robust twice over. Across field *sizes* — 0.51×, 0.64× and 0.35× at a quarter of the field, over fields of 100, 1,000 and 10,000 boards. And across the power *bracket*, where it gets stronger the better equipped the attacker is: 0.64× at the minimal basis, 0.50× at the board, **0.28× at the worst measured**. A stronger attacker forfeits more by sitting out, so the defence tightens exactly where it needs to.
 
@@ -71,33 +71,36 @@ The defence is the reward's own cap. `epoch_reward = max(anchor, budget // max(c
 
 That cap was written for a different problem: at genesis `claims_prev` is zero and something must stop one claim taking the whole sub-pool. It is the manipulation defence as well, which is the happiest accident in the design — and it is now gated, so it cannot be removed as dead weight.
 
-Past half the field the pump does pay, at 1.24×. That is not a new exposure: an actor holding three quarters of the hashrate *is* the whale of §3.3, and Q8 accepts that case explicitly.
+Past half the field the pump does pay, and it pays *well* — 1.48× at three quarters of the field and **2.80× at nine tenths**, which is worse than an earlier revision of this document reported. That is not a new exposure, since an actor holding three quarters of the hashrate *is* the whale of §3.3 and Q8 accepts that case explicitly, but it is worth stating at its true size: **a supermajority miner does not merely capture the endowment, it can nearly triple what honest mining would have paid it** by withholding. Below half the field the defence is intact and the numbers above are the measurement of it.
 
 ### 3.2 The manufactured cliff — harvest the period-2 cycle. **Unprofitable.**
 
 Q9 accepts a documented hazard: a sharp participation threshold at the operating reward drives a period-2 cycle. The attack is to *be* that threshold — mine only above a bar, harvesting the high epochs:
 
-| attacker's entry threshold | against always-on |
-| --- | --- |
-| 3 LGO | 0.96× |
-| 5 LGO | 0.59× |
-| 8 LGO | **0.02×** |
+| attacker's entry threshold | against always-on | near-zero epochs in a 16-epoch window |
+| --- | --- | --- |
+| 0.5 LGO — below the operating reward | 0.86× | 1 |
+| 1.0 LGO — at it | 0.59× | **8** |
+| 2.0 LGO — above it | 0.31× | **8** |
+| 4.5 LGO — far above | 0.02× | **8** |
 
-**Being picky costs more than it harvests, at every threshold**, for the same reason the pump fails: skipped epochs forfeit more than elevated rewards return. Q9's cycle is a user-experience hazard — a badly-chosen wallet default could make a *population* oscillate to everyone's detriment — but not an exploit anyone profits from.
+**Being picky costs more than it harvests, at every threshold**, for the same reason the pump fails: skipped epochs forfeit more than elevated rewards return. But the *cycle itself is real and easy to trigger* — any threshold at or above the operating reward produces the period-2 alternation, eight near-zero epochs out of sixteen. It needs a growing field to appear; against a static one the index is stable and no threshold induces it. So Q9's cycle is a user-experience hazard — a badly-chosen wallet default could make a *population* oscillate to everyone's detriment — but not an exploit anyone profits from.
 
 ### 3.3 The whale — conceded in the base design, and addressed in **de novo\*** (§3.4)
 
 Q8 keeps the borrow-forward unbounded, so a large actor can draw the endowment through the demand index's one-epoch lag. When it should arrive:
 
-| whale arrives at epoch | endowment captured (10× the field it meets) | phase ends | honest bonds |
-| --- | --- | --- | --- |
-| 2 | 20% | 196 | 24,554 |
-| **20** | **88%** | **23** | **2,544** |
-| 50 | 72% | 54 | 6,382 |
-| 100 | 22% | 196 | 20,644 |
-| 150 | 19% | 153 | 19,191 |
+Against a realistically-spread field (Pareto, floored at a whole board):
 
-And across the power bracket, a whale arriving at the worst moment:
+| whale arrives at epoch | endowment captured (10× the field it meets) | phase ends |
+| --- | --- | --- |
+| 2 | 21% | 196 |
+| **20** | **55%** | 197 |
+| 50 | 44% | 196 |
+| 100 | 5% | 196 |
+| 150 | 19% | 153 |
+
+And against a *homogeneous* field of identical boards — no distributional assumption, which is the bounded worst case rather than the expected one:
 
 | the field's power basis | endowment captured | phase ends |
 | --- | --- | --- |
@@ -105,7 +108,9 @@ And across the power bracket, a whale arriving at the worst moment:
 | board (four cores) | **89%** | 23 |
 | worst measured (3.45× a board) | 88% | 24 |
 
-**The exposure saturates**: once the attacker has board-class hardware, more does not help it, because block space rather than search power is what limits an epoch's extraction. That is a genuine bound — the unmeasured GPU gap above does not widen this particular attack, though it widens the others.
+**The two fields answer different questions and the difference is instructive.** Against a Pareto field the whale takes 55% at its best moment, because a heavy-tailed honest population contains fast miners that compete with it. Against a homogeneous field of identical boards it takes 89% and collapses the phase from 195 epochs to 23, because nobody present can keep up. The realistic figure is the former; the latter is the bound. Both are reported because a design should be sized against the bound and expected to experience the mean.
+
+**And the exposure saturates**: once the attacker has board-class hardware, more does not help it, because block space rather than search power is what limits an epoch's extraction. That is a genuine bound — the unmeasured GPU gap above does not widen this particular attack, though it widens the others.
 
 **The danger window is early but not immediate.** At genesis the whale takes only 20%, because `claims_prev = 0` caps the reward at one block's share. By epoch 20 the honest field has established a `claims_prev` large enough to price the epoch generously while the endowment is still 90% intact — 88% capture, and the bootstrap collapses from 195 epochs to 23. By epoch 100 the endowment is half spent and the exposure falls back.
 

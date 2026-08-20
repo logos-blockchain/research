@@ -57,7 +57,8 @@ def elastic_run(d: Derived, per_epoch: int, epochs: int, threshold_lepta: int,
     (large eta) is the worst case for the demand-indexed reward's feedback loop.
     """
     cfg = d.cfg
-    draw = arr.pi5_pareto(np.random.default_rng(2), 1 / cfg.seconds_per_candidate_reward)
+    draw = arr.pi5_pareto(np.random.default_rng(2),
+                          power.board(cfg).candidates_per_second)
 
     def participation(reward: int, _e: int) -> float:
         return min(1.0, (reward / threshold_lepta) ** eta)

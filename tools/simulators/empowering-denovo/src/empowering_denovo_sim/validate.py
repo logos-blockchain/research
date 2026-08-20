@@ -187,6 +187,9 @@ def main() -> int:
                f"documented first-come property of an unbounded borrow")
     check("and even at 10x the pool never goes negative anywhere",
           min(q.endowment for q in rw.rows) >= 0, True)
+    # elastic_run seats arrivals, so the field GROWS -- which the cycle needs. Against a
+    # static field (adversary.two_population_run) the index is stable and no threshold
+    # induces it, which is worth knowing when reading the hazard.
     rc = scenarios.elastic_run(d, 130, epochs=120, threshold_lepta=4_500_000_000, eta=8.0)
     tail = [q.claims_paid for q in rc.rows[100:116]]
     lows = sum(1 for c in tail if c < 1_000)
@@ -207,10 +210,12 @@ def main() -> int:
               note=f"{pr['pump_advantage']:.2f}x of mining honestly -- the reward cap bounds "
                    f"what a shrunk claims_prev can buy back")
     pr75 = adv.pump_vs_honest(d, 0.75, epochs=40)
+    pr90 = adv.pump_vs_honest(d, 0.90, epochs=40)
     check("and only pays once the attacker IS the field",
           pr75["pump_advantage"] > 1.0, True,
-          note=f"{pr75['pump_advantage']:.2f}x at 75% -- above half the field the pump is "
-               f"the whale renamed, and Q8 already accepts that")
+          note=f"{pr75['pump_advantage']:.2f}x at 75%, {pr90['pump_advantage']:.2f}x at 90% "
+               f"-- a supermajority does not merely capture the endowment, it nearly triples "
+               f"what honest mining would have paid it")
 
     # An elastic attacker cannot harvest the Q9 cliff: being picky costs more than it takes.
     field = 1.0 / cfg.seconds_per_candidate_reward * 1000
