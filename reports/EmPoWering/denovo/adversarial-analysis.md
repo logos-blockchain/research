@@ -8,7 +8,18 @@ Costs are priced from the standalone estimator at a Raspberry Pi 5's measured Po
 
 **The power assumption, stated because it decides the answers.** An attacker is assumed to commit **100% of its hardware to mining** — every core, full duty — on the best class with a *measured* Poseidon2 rate, which is 3.45× a Pi 5 board per unit cost. The honest field is a whole four-core board per node, 24,146 candidates a second, which is also what the strategy study has always used; the *minimal* commitment a participant can make and still be mining is one pinned core, a quarter of that. All three bases are in `power.py`, and results are given across the bracket wherever it changes them.
 
-**What is not bounded.** The classes with measured rates are a Raspberry Pi 5 and an Apple M-series part. A GPU rig is the true adversarial ceiling and its Poseidon2 rate has never been benchmarked — the estimator carries the profile and refuses to invent the rate. **Every adversarial figure here is therefore a lower bound on a well-equipped attacker**, and the gap is unmeasured rather than argued to be small.
+**What a GPU would add, now estimated rather than left open.** The classes with *measured* rates are a Raspberry Pi 5 and an Apple M-series part; a GPU rig has never been benchmarked. The estimator now carries a derived figure for it (`powcost/rates.py`, flagged `measured=False`), and the derivation changes the caveat rather than confirming it.
+
+Poseidon2 at the specified parameters costs about 488 BN254 multiplications per permutation, so about 3,400 per reward candidate. Published GPU throughput for BN254 is the input that matters and it is poor — client GPUs fall **below 1 G BN254-ops/s**, against more than 100 Gops/s for small fields like M31, because a 254-bit non-special-form modulus maps badly onto GPU ALUs. That gives roughly 294,000 candidates a second per card, **twelve times a Raspberry Pi 5 board**, and about 73× for a six-card rig.
+
+But the number that bounds an attacker is energy, not speed, and there the answer inverts: at 450 W a card spends **1.54 × 10⁻³ J per candidate against a Pi 5 board's measured 3.65 × 10⁻⁴** — roughly **four times worse**, and it only draws level under an implausible 6 Gops/s. **A GPU rig is much faster in absolute terms and no cheaper per unit of work.**
+
+So the earlier blanket caveat — that every adversarial figure here is a lower bound on a well-equipped attacker — was too pessimistic, and needs splitting:
+
+* **Cost-bounded attacks are not understated.** The sybil flood of §4 is priced per candidate, and GPUs do not make candidates cheaper. Those figures stand.
+* **Share-bounded attacks are understated.** The whale of §3.3 needs hashrate *share*, and a six-card rig brings 73 boards' worth. An attacker willing to spend on hardware reaches a given share far faster than a Pi-5 field suggests.
+
+This is a property the mechanism inherits from the curve rather than one it earns: **choosing Poseidon2 over BN254 rather than over a small field is itself a GPU-resistance decision**, and it is worth knowing that it is doing that work. The estimate should still be replaced by a benchmark before anything rests on it.
 
 **The most important finding is not an attack at all.** Both designs' onboarding targets assume that miners stop mining once they have bonded, and that assumption is not incentivised — continuing to mine is individually rational, and bonding does not stop the hardware. The behaviour both designs need in order to hit their numbers is the behaviour neither pays for. Everything else below is secondary to that.
 

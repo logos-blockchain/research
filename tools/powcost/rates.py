@@ -61,6 +61,43 @@ TABLE: dict[tuple[str, str], Rate] = {
     ("equix", "intel"): Rate(
         3.92e-3, 24, True,
         "Equi-X benchmark on a Core Ultra 9 285HX, mining.csv, effort 3000", ""),
+
+    # ESTIMATED, not measured -- `measured=False`, so anything that requires a benchmark
+    # will still refuse this cell. Derived rather than guessed, and the derivation is:
+    #
+    #   Poseidon2 over BN254 at the specified parameters (rate 1, capacity 3, so state width
+    #   t = 4; 8 external and 56 internal rounds; S-box x^5) costs 8*4 + 56 = 88 S-boxes at
+    #   three multiplications each, plus 4 constant-multiplications per internal round for the
+    #   diagonal linear layer: about 488 field multiplications per permutation. A reward
+    #   candidate is seven permutations, so about 3,400 BN254 multiplications.
+    #
+    #   Published GPU throughput for BN254 is the input that matters, and it is poor: client
+    #   GPUs fall BELOW 1 G BN254-ops/s, against >100 Gops/s for small fields such as M31,
+    #   because a 254-bit non-special-form modulus maps badly onto GPU ALUs. Taking 1 Gops/s
+    #   as the central case and 3 Gops/s as optimistic gives 293k-878k candidates a second per
+    #   card, hence the 3.4e-6 s/candidate below (central case, per accelerator).
+    #
+    #   The cross-check that matters is ENERGY, not speed. At 450 W a card doing 293k
+    #   candidates a second spends 1.54e-3 J per candidate against a Raspberry Pi 5 board's
+    #   measured 3.65e-4 J -- so a GPU is roughly FOUR TIMES WORSE per candidate, and only
+    #   beats the Pi 5 under an implausible 6 Gops/s. **A GPU rig is faster in absolute terms
+    #   and not cheaper per unit of work**, which is the opposite of the usual assumption and
+    #   follows from the curve choice rather than from anything in the mechanism.
+    #
+    #   Sources: Ingonyama ICICLE docs (Poseidon2 GPU implementation and "hash-many" mode);
+    #   moven0831/field-ops-benchmarks (BN254 below 1 Gops/s client-side, M31 above 100);
+    #   NVIDIA developer forum thread on a compute-bound 256-bit modular kernel reaching 82.5%
+    #   SM throughput on sm_89; Poseidon2 paper (eprint 2023/323) for the round structure.
+    #   REPLACE THIS with a real benchmark before relying on it: `make bench-poseidon2` on a
+    #   CUDA host is the missing measurement.
+    ("poseidon2_reward", "gpurig"): Rate(
+        3.4e-6, 6, False,
+        "ESTIMATED from published BN254 field-multiplication throughput; see the derivation "
+        "in rates.py. NOT a benchmark.",
+        "About 12x a Raspberry Pi 5 board per accelerator in raw rate (73x for the six-card "
+        "rig), and about 4x WORSE per "
+        "joule. The estimate exists so the adversarial analysis can bound a GPU attacker "
+        "rather than leave the cell empty; it must not be quoted as measured."),
 }
 
 
@@ -72,9 +109,13 @@ def seconds_per_candidate(puzzle_key: str, bucket_key: str,
                           allow_scaled: bool = True) -> tuple[float, str]:
     """Look a cell up, filling within the row if permitted. Returns (seconds, provenance).
 
-    Raises :class:`MissingRate` rather than guessing. The accelerator bucket has no rate for
-    any puzzle and cannot acquire one by propagation, because no processor ratio predicts an
-    accelerator -- that gap is answered by inverting it into a break-even, not by filling it.
+    Raises :class:`MissingRate` rather than guessing, and returns the provenance alongside the
+    figure so a caller can refuse an estimate where it needs a measurement.
+
+    The accelerator bucket cannot acquire a rate by PROPAGATION -- no processor ratio predicts
+    an accelerator. It now carries one for `poseidon2_reward` that was derived from published
+    BN254 field-multiplication throughput instead, and it is flagged `measured=False`; see the
+    derivation beside it in `TABLE`. Other accelerator cells remain absent.
     """
     if puzzle_key not in PUZZLES:
         raise KeyError(f"unknown puzzle {puzzle_key!r}")

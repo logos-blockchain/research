@@ -103,7 +103,9 @@ The reasoning, in order of weight:
 
 **What I would not do:** add a sybil defence. The design owner's position — proof of work is sheer power, and buying more of it entitles you to more reward however many identities you wear — is coherent, and every remedy would make the mechanism something other than proof of work. The flood is a property to size, and it is sized.
 
-**What remains genuinely unknown**, and is worth closing before launch: the GPU rig's Poseidon2 rate has never been benchmarked, so every adversarial figure here is a lower bound on a well-equipped attacker; and the token-price paths behind the profitability view are stylised, not fitted, so any conclusion that turns on price level rather than price *shape* should be re-checked against a real assumption.
+**What remains genuinely unknown**, and is worth closing before launch: the token-price paths behind the profitability view are stylised, not fitted, so any conclusion that turns on price level rather than price *shape* should be re-checked against a real assumption.
+
+The GPU question is now *estimated* rather than open, and the answer is more comfortable than expected. Poseidon2 over BN254 costs ~3,400 field multiplications per candidate, and published GPU throughput for BN254 is below 1 Gops/s — a hundredfold worse than small fields, because a 254-bit non-special modulus suits GPU ALUs badly. A card manages ~294,000 candidates a second, twelve times a Pi 5 board, but spends about **four times more energy per candidate**. So a GPU rig is much faster and no cheaper: the cost-bounded attacks in the analysis are not understated, while the share-bounded ones are. **The mechanism inherits meaningful GPU resistance from the curve choice**, which is worth knowing deliberately rather than by luck. It is still an estimate and should be benchmarked.
 
 ## 5. Where the workings are
 
