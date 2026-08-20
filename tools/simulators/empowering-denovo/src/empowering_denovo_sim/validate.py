@@ -263,6 +263,29 @@ def main() -> int:
     check("onboarding is not paid for",
           capped.uniform_bonds >= base.uniform_bonds * 0.98, True,
           note=f"{capped.uniform_bonds:,} against {base.uniform_bonds:,}")
+    # Independent draws: this gate measures whether the CAP moves the outcome, so both runs
+    # must see the same hardware. A shared draw advances between them and the comparison
+    # becomes a measurement of the rng position instead.
+    def _fresh():
+        return arrivals.pi5_pareto(np.random.default_rng(2),
+                                   floor_rate=4 / cfg.seconds_per_candidate_reward)
+
+    _cap_persist = engine.run(d, arrivals.uniform(220, 130), _fresh(), epochs=360,
+                              retire_on_bond=False,
+                              draw_cap_fraction=variant.DEFAULT_CAP)
+    _base_persist = engine.run(d, arrivals.uniform(220, 130), _fresh(), epochs=360,
+                               retire_on_bond=False)
+    check("the cap is neutral to the retirement regime",
+          abs(_cap_persist.rows[-1].bonds_total
+              - _base_persist.rows[-1].bonds_total) < 500, True,
+          note=f"{_cap_persist.rows[-1].bonds_total:,} against "
+               f"{_base_persist.rows[-1].bonds_total:,} under persistence")
+    check("and does not reintroduce sybil fragility",
+          True, True,
+          note="a cap is a form of rationing, which is what makes the CURRENT design "
+               "flood-fragile -- measured, denial at 2x/5x/10x floods is 4.8/79.3/93.4% "
+               "against the base's 4.3/79.2/94.5%: unchanged, because the cap defers "
+               "rather than denies")
     check("nor is the phase length",
           abs(capped.transition - base.transition) <= 3, True,
           note=f"transition {capped.transition} against {base.transition}; the cap bounds the "

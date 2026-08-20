@@ -90,6 +90,13 @@ def main() -> int:
         amp = scenarios.amplitude(r.rows, 40, 110)
         print(f"  eta={eta:>4}: relative amplitude {amp:.3f}")
 
+    print("\n=== de novo*: bounding the endowment draw (MODEL 8.5) ===")
+    from . import variant                                       # noqa: PLC0415
+    for o in variant.sweep(d):
+        print(f"  {o.label:<20} bonds {o.uniform_bonds:>7,}  transition {o.transition:>4}"
+              f"  x100 bonded {o.spike_bonded_fraction:>4.0%} (median {o.spike_median_epochs:.0f} ep)"
+              f"  whale {o.whale_capture:>4.0%}")
+
     print("\n=== the sparse post-phase (MODEL 8.4) ===")
     rs = engine.run(d, arrivals.uniform(240, 130), hashrate_draw(cfg), epochs=240,
                     txs_per_block=20)

@@ -67,6 +67,18 @@ defined semantics rather than a hazard to be excluded.
 | `overview-cryptoeconomics` §PoW Reward Pool | narrative: budgets and two regimes instead of ρ-decay; the diversion section stands |
 | everything else | no change |
 
+## 4.1 What **de novo\*** would additionally change
+
+The asterisked variant (MODEL §8.5) touches exactly one rule and adds exactly one constant, which is the main argument for it being adoptable at all:
+
+| document | change |
+| --- | --- |
+| `mantle` §Proof of Work Operations | the admission guard gains a per-epoch bound: an epoch may draw `sub_pool + draw_cap_fraction * endowment` from the endowment, no more. The guard's structure, the interleaving, and the saturation-point semantics are unchanged |
+| `bedrock-genesis-block` | one new genesis constant, `draw_cap_fraction` |
+| everything else | no change — the reward rule, the schedule, the transition, the retarget and the fee plumbing are all untouched |
+
+Nothing is refused permanently under the bound and no money is destroyed: claims beyond the cap are made by the same nodes in later epochs. So the variant does not disturb the conservation argument, and the "pays until exhausted" language in `overview-cryptoeconomics` would need one qualifying clause rather than a rewrite.
+
 ## 5. Simulator reuse map (Phase C)
 
 | existing verified component | role in `empowering_denovo_sim` |
