@@ -1,0 +1,9 @@
+shortid-bench: 64-bit keyed short IDs over 32-byte inputs
+iters/run: 2000000, runs: 5 (median reported), warmup: 200000
+
+SipHash-2-4                     12.93 ns/hash (min  12.04)     77.3 Mh/s   M=1e5:    1.29 ms   M=1e6:   12.93 ms
+SipHash-1-3                      6.54 ns/hash (min   6.43)    152.9 Mh/s   M=1e5:    0.65 ms   M=1e6:    6.54 ms
+Blake2b-512/trunc8              80.88 ns/hash (min  80.16)     12.4 Mh/s   M=1e5:    8.09 ms   M=1e6:   80.88 ms
+Blake2bMac-8 (keyed)           159.15 ns/hash (min 158.21)      6.3 Mh/s   M=1e5:   15.91 ms   M=1e6:  159.15 ms
+
+sanity: keyed determinism ok, key sensitivity ok
