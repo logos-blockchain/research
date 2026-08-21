@@ -7,8 +7,7 @@
 > **Where this is a measurement and where it is a judgement.** That 8, 10 and 12
 > fail is not a judgement call: at those lengths a *day* of sustained disruption
 > costs between $0.07 and $4,554. The choice between **14 and 16 is a
-> judgement**, and the report says so rather than dressing it up — see
-> [§8](#8-recommendation). The reviewer's instinct that 16 looks conservative is
+> judgement**, argued as such in [§8](#8-recommendation). The reviewer's instinct that 16 looks conservative is
 > not wrong; the argument for 16 is about margin over the parameter's lifetime,
 > not about 14 being exploitable today.
 
@@ -53,9 +52,9 @@ And the domain terms, in the order a reader meets them:
   first `L` bytes, so one reference matches both and the validator cannot tell
   which was meant without trying.
 - **Birthday collision** — finding *any* two colliding transactions among a set
-  the attacker generates themselves. Much cheaper than hitting one *specific*
+  the attacker generates. Much cheaper than hitting one *specific*
   target: ~2^(b/2) attempts rather than ~2^b. This distinction is the entire
-  reason the prefix is 16 bytes rather than 8, and it is #389's central insight.
+  reason the prefix is 16 bytes rather than 8.
 - **Slot** — the block-production interval, **1 second** in Cryptarchia. This is
   the deadline reconstruction must fit inside; exceeding it is the failure this
   report measures against.
@@ -76,7 +75,7 @@ it is flagged wherever it is used.
 |---|---|---|
 | "Set a threat model and start the analysis from there" | [§1](#1-threat-model) | Done — stated before any measurement, with generation and propagation priced separately |
 | Hansie's mempool flood reached ~0.3 tx/s | [§1b](#1b-propagation-and-why-hansies-03-txs-does-not-bound-this) | Addressed directly: the attack needs **20 transactions**, not volume, so 0.3 tx/s is ~67 seconds of injection, not a bound. Also measured against the current code — admission costs **1.44 µs/tx**, so 0.3 tx/s is ~2 million× off and cannot be a protocol limit |
-| "How many valid transactions we can generate locally per second on a single core" | [§4](#4-candidate-generation-rate-r_gen) | Measured: **6.19 × 10⁶ /s** on one M3 core, via the real encode + Blake2b path |
+| "How many valid transactions we can generate locally per second on a single core" | [§4](#4-candidate-generation-rate-r_gen) | Measured: **6.22 × 10⁶ /s** on one M3 core, via the real encode + Blake2b path |
 | "How many cores (or GPUs) one needs to make the reconstruction fail" | [§7](#how-much-hardware-in-the-units-the-question-was-asked-in) | Table in cores and GPUs, against a 1-hour and 1-day deadline |
 | "Show how reconstruction time grows on a single machine with the number of colliding transactions" | [§6](#6-reconstruction-latency--the-defenders-side) | Measured curve + plot, k = 0…15, at two block sizes |
 | "Hard stop when we define the max number of permutations" | [§6](#the-two-policies-differ-in-failure-mode-not-in-whether-they-fail) | Both policies measured; the merged cap refuses at **k = 6** |
@@ -113,20 +112,19 @@ impl Hashable for RawMantleTx {
 
 `mantle_txhash` covers the `MantleTx` and **not** the `op_proofs`. So the cost
 of one candidate is *encode + Blake2b-256* — no cryptography beyond a hash.
-Measured below at **6.19 × 10⁶ candidates/s on a single M3 core**, which is
+Measured below at **6.22 × 10⁶ candidates/s on a single M3 core**, which is
 within 3% of the machine's raw Blake2b rate. Grinding candidates *is* hashing.
 
 The relevant event is a **birthday self-collision**: any two of the adversary's
 own candidates sharing a prefix. They need no fixed target, so this costs
 ≈ 2^(b/2), not the ≈ 2^b of a targeted match. This is the quantity that governs
 `L`, and [§3](#3-the-birthday-model-is-measured-not-assumed) measures that the
-model is correct rather than assuming it.
+model holds.
 
 ### 1b. Propagation, and why Hansie's 0.3 tx/s does not bound this
 
 Hansie's mempool-flood experiment reached **~0.3 tx/s**, and it is reasonable to
-ask whether that already caps the attack. It does not, and the reason is the
-single most important structural point in this report.
+ask whether that already caps the attack. It does not, and the reason is structural.
 
 **The attack does not need volume. It needs 20 specific transactions.**
 
@@ -136,11 +134,11 @@ every candidate except the ones that collide, and what has to reach a mempool is
 just **2 transactions per pair, 20 in total**. The 10¹⁹ figure is a *local
 compute* cost; the propagation requirement is 20 transactions of ~76 bytes.
 
-Put the two rates side by side and the mismatch is the point:
+The two rates apply to different quantities:
 
 | quantity | rate | what it applies to |
 |---|---|---|
-| candidate generation | 6.19 × 10⁶ /s (one core) | ~10¹⁹ candidates, never transmitted |
+| candidate generation | 6.22 × 10⁶ /s (one core) | ~10¹⁹ candidates, never transmitted |
 | mempool ingest (Hansie) | ~0.3 tx/s | **20** transactions |
 
 At 0.3 tx/s, injecting those 20 transactions from a **single** node takes
@@ -203,9 +201,8 @@ does not affect it.** Whatever the prefix length, a colliding pair is still two
 transactions and `k` pairs are still `2k` transactions to inject. Doubling `L`
 multiplies the *generation* cost by 2^(8L/2) and leaves the *distribution* cost
 exactly where it was. Distribution is therefore not a lever this parameter can
-pull, at any value. Generation is the only axis `L` buys anything on, which is
-why it has to be the axis the parameter is chosen on — and why a propagation
-measurement, however carefully taken, cannot substitute for one.
+pull, at any value, which is why no propagation measurement can substitute for a
+generation one.
 
 ### 1c. Success condition
 
@@ -262,7 +259,7 @@ const REFERENCE_PREFIX_BYTES: usize = 8;
 ```
 
 The specification PR argues for 16; the code on `master` is at 8. That gap is
-the single most urgent finding here, because [§5](#5-the-cost-of-manufacturing-a-collision)
+the most urgent finding here, because [§5](#5-the-cost-of-manufacturing-a-collision)
 prices an 8-byte prefix at **under a second of GPU time** per colliding pair.
 
 **Reconstruction is a cartesian-product search.** From
@@ -286,7 +283,7 @@ pub const MAX_RECONSTRUCTION_COMBINATIONS: usize = 32;
 
 Note that #389 v3 argues these can be **deleted**, on the grounds that at 16
 bytes ambiguity cannot be manufactured at all. Both policies are measured
-separately in [§6](#6-reconstruction-latency-the-defenders-side).
+separately in [§6](#6-reconstruction-latency--the-defenders-side).
 
 **Each combination re-hashes the whole block.** `Block::reconstruct` validates
 the size of every transaction and then recomputes the Merkle root, and
@@ -302,7 +299,7 @@ This is why the defender's curve is so much steeper than the attacker's.
 
 **The slot is 1 second** (`DEFAULT_SLOT_TIME_IN_SECS = 1`, matching
 `slot_duration: '1.000000000'` in the standalone deployment config). That is
-the deadline reconstruction must fit inside.
+the budget §6 measures reconstruction against.
 
 ---
 
@@ -325,8 +322,7 @@ sqrt(π/2) · 2^(b/2) ≈ 1.2533 · 2^(b/2).
 
 Every ratio is consistent with 1.0 within ~1.5 standard errors, across 24 bits
 of doubling. The first-collision distribution is strongly right-skewed, so this
-spread is expected; the standard error is what matters, and it is reported
-rather than hidden. **The 2^(b/2) model holds on real transaction hashes**, so
+spread is expected, so the standard error is what matters. **The 2^(b/2) model holds on real transaction hashes**, so
 extrapolating to b = 64 and b = 128 needs only the grinding rate.
 
 **rpi5** — the measured-N column is **identical to the mac run at every prefix
@@ -343,8 +339,8 @@ Three rates, because the difference between them is itself the point.
 
 | machine | node path | attacker (patched) | raw Blake2b | aggregate (all cores) |
 |---|---|---|---|---|
-| **mac** (Apple M3, 4P+4E) | 2.42 × 10⁶ /s | **6.19 × 10⁶ /s** | 5.89 × 10⁶ /s | **3.34 × 10⁷ /s** (8 threads, 5.39×) |
-| **rpi5** (Cortex-A76, 4 cores) | 1.77 × 10⁶ /s | **4.31 × 10⁶ /s** | 4.10 × 10⁶ /s | **1.72 × 10⁷ /s** (4 threads, 4.00×) |
+| **mac** (Apple M3, 4P+4E) | 2.40 × 10⁶ /s | **6.22 × 10⁶ /s** | 6.01 × 10⁶ /s | **3.34 × 10⁷ /s** (8 threads, 5.39×) |
+| **rpi5** (Cortex-A76, 4 cores) | 1.77 × 10⁶ /s | **4.31 × 10⁶ /s** | 4.10 × 10⁶ /s | **1.72 × 10⁷ /s** (4 threads, 3.98×) |
 
 Sample transaction: the smallest valid `MantleTx` — a single `Transfer`, one
 input, one output — **76 bytes encoded, 92 bytes hashed** including the
@@ -359,20 +355,23 @@ Blake2b compression, so a 2× larger transaction would cost roughly 2×.
   would do more work than this. `cargo test` asserts byte-for-byte that it
   produces the same hashes as the real path.
 * **raw Blake2b** is the bare hash over a buffer of the same size, with no
-  transaction work at all. The attacker path and the bare hash are within 3% of
-  each other — indistinguishable at this measurement's precision. That is the
-  substantive result: **grinding candidates is pure hashing**, the transaction
-  machinery contributes nothing measurable once the encoding is hoisted out of
-  the loop, and there is no software headroom left for a defender to rely on.
+  transaction work at all.
+
+The last two are the substantive result: **grinding candidates is pure
+hashing.** They land within 5% of each other on both machines, and the ordering
+inverts — the attacker path measures marginally *faster* than the bare hash,
+which cannot be true, since it does the same hash plus an 8-byte copy. A
+difference that changes sign is at or below this measurement's noise floor, so
+the two are indistinguishable rather than merely close. The transaction
+machinery contributes nothing measurable once the encoding is hoisted out of the
+loop, and there is no software headroom left for a defender to rely on.
 
 Aggregate scaling is **measured, not multiplied**: 8 threads on the M3 give
 **5.39×**, not 8×, because four of those cores are efficiency cores. Assuming
-linear scaling would have understated the time an adversary needs by about 48%
-— in the direction that flatters the defender, which is the wrong way to be
-wrong. The RPi5's four identical cores, by contrast, scale essentially
-perfectly (4.00×), and its attacker path is again within ~5% of its raw
-Blake2b rate — the "grinding is pure hashing" result holds on both
-architectures, with one Pi core running at ~70% of one M3 core.
+linear scaling would have credited the adversary with 48% more throughput than
+the machine delivers, which is the wrong direction to be wrong in. The RPi5's
+four identical cores scale essentially perfectly (3.98×), and one Pi core runs
+at ~70% of one M3 core.
 
 ---
 
@@ -402,11 +401,11 @@ really is 100× faster.
 
 | L (bytes) | b (bits) | candidates N | 1 core (mac) | 1 machine (mac) | 1 GPU (RTX 4090) | 100 GPUs |
 |---|---|---|---|---|---|---|
-| **8** | 64 | 5.38 × 10⁹ | 14.5 min | 2.9 min | **0.54 s** | 5 ms |
-| **10** | 80 | 1.38 × 10¹² | 3 days | 12.5 h | 2.3 min | 1.4 s |
-| **12** | 96 | 3.53 × 10¹⁴ | 659 days | 133 days | 9.8 h | 5.9 min |
-| **14** | 112 | 9.03 × 10¹⁶ | 462 years | 93 years | 105 days | 25.1 h |
-| **16** | 128 | 2.31 × 10¹⁹ | 118,000 years | 23,800 years | **73 years** | 268 days |
+| **8** | 64 | 5.38 × 10⁹ | 14.4 min | 2.7 min | **0.54 s** | 5 ms |
+| **10** | 80 | 1.38 × 10¹² | 3 days | 11.5 h | 2.3 min | 1.4 s |
+| **12** | 96 | 3.53 × 10¹⁴ | 657 days | 122 days | 9.8 h | 5.9 min |
+| **14** | 112 | 9.03 × 10¹⁶ | 460 years | 86 years | 105 days | 25.1 h |
+| **16** | 128 | 2.31 × 10¹⁹ | 118,000 years | 22,000 years | **73 years** | 268 days |
 
 _(RPi5 columns are omitted deliberately: an adversary is not going to grind on a
 Pi. Pricing the generating side with strong hardware is the conservative
@@ -429,7 +428,7 @@ and 268 days.
 
 ## 6. Reconstruction latency — the defender's side
 
-This is where the asymmetry lives. Manufacturing `k` colliding pairs costs the
+Manufacturing `k` colliding pairs costs the
 attacker only ~sqrt(k) times one pair, because collisions accumulate as N²/2^(b+1)
 as the search runs. An **uncapped** validator must walk ∏|Cᵢ| = 2^k combinations,
 each of which re-encodes and re-hashes every transaction in the block.
@@ -471,16 +470,15 @@ colliding pair.
 | 15 | 32,768 | 62.7 s | over slot |
 
 Per-combination cost ≈ **1.8 ms** at n = 1024 and ≈ **210 µs** at n = 128. The
-expectation above the run was a crossover at a *lower* k — that did not happen:
-**the crossover is unchanged at k = 10** (and at **k = 13** for n = 128, also
-matching the M3). The reason is visible in the k = 9 row: the Pi lands at
-925 ms, 1.65× the M3's 559 ms, and pushing k = 9 over the slot would have
-required a slowdown of 1.79×. The Pi is slower by almost exactly one
-doubling-step less than that, so it crosses at the same k and the attacker
-gains nothing. At k = 0 the Pi reconstructs in 2.6 ms against the 1,000 ms
-budget — **~380× of headroom** in normal operation on the target validator
-class. (Run conditions: governor `performance`, 56 °C, `get_throttled=0x0`
-before and after — no thermal throttling.)
+expectation before the run was a crossover at a *lower* k. That did not happen:
+**the crossover is unchanged at k = 10**, and at **k = 13** for n = 128, both
+matching the M3. The reason is visible in the k = 9 row. The Pi lands at 925 ms,
+1.65× the M3's 559 ms, where pushing k = 9 over the slot would have needed
+1.79×. The Pi's slowdown falls just short of that, so it crosses at the same k
+and the attacker gains nothing. At k = 0 the Pi reconstructs in 2.6 ms against
+the 1,000 ms budget, **~380× of headroom** in normal operation on the target
+validator class. (Run conditions: `performance` governor, ~56 °C,
+`get_throttled=0x0` before and after — no thermal throttling.)
 
 ### The two policies differ in failure mode, not in whether they fail
 
@@ -520,7 +518,7 @@ _The two stall columns are identical because the measured crossover is the same
 k = 10 on both machines ([§6](#6-reconstruction-latency--the-defenders-side)) —
 the attacker's cost depends only on k and L, not on the defender's hash rate._
 
-The last column is the clearest statement of the single-event margin: how many
+The last column states the single-event margin directly: how many
 colliding pairs a $10,000 adversary can afford, against the **10** they need.
 L = 16 is the first row where a serious budget cannot buy even a single
 collision; L = 14 is the last row where it buys six times more than one stalled
@@ -540,12 +538,12 @@ manufacture the k = 10 pairs that stall one slot, within a fixed deadline:
 | **14** | 7,933 | **331** | 1.3 × 10⁷ | 533,758 |
 | **16** | 2.0 × 10⁶ | **84,619** | 3.3 × 10⁹ | 1.4 × 10⁸ |
 
-Read the "GPUs in 1 day" column as the headline. At L = 12 **one** GPU does it
+In the "GPUs in 1 day" column: at L = 12 **one** GPU does it
 overnight. At L = 14 it takes a **331-GPU** farm — large, but a real datacentre
-rents that. At L = 16 it takes **84,619 GPUs**, which is not a rental, it is a
+rents that. At L = 16 it takes **84,619 GPUs**, which is not a rental; it is a
 hyperscaler.
 
-Core counts assume the measured 6.19 × 10⁶ candidates/s per M3 core; they are
+Core counts assume the measured 6.22 × 10⁶ candidates/s per M3 core; they are
 included because the review asked in cores, though no serious adversary would
 grind Blake2b on CPUs when GPUs are ~1,600× more cost-effective per hash here.
 
@@ -563,7 +561,7 @@ holding the chain down cost". At k = 10 pairs per slot and 1-second slots:
 | **14** | $3,966 | $237,990 | **$1.2M** |
 | **16** | $1.0M | $60.9M | **$298.5M** |
 
-This table is what makes 8, 10 and 12 indefensible and it is not a close call:
+This table is what makes 8, 10 and 12 indefensible, and not marginally:
 **a full day of stalled block production costs seven cents at L = 8** and under
 $5,000 at L = 12. It is also the table that makes L = 14 arguable — $1.2M/day is
 a genuine deterrent, and anyone claiming 14 is broken has to explain away that
@@ -588,17 +586,14 @@ so even a crossover at k = 5 would have made the attack just 1.41× cheaper and
 could not move the decision between 14 and 16.
 
 **The measured outcome is at the conservative end of that range: the crossover
-did not move at all.** The Pi's reconstruction is ~1.7× slower than the M3's
-row-for-row, but pushing k = 9 over the 1 s slot would have required 1.79×
-(559 ms → >1 s), so the Pi's k = 9 lands at 925 ms and the first over-slot k is
-the **same k = 10** as on the M3 (and the same k = 13 at n = 128). The
+did not move at all** ([§6](#6-reconstruction-latency--the-defenders-side)). The
 `$ to stall rpi5` column is therefore *identical* to the mac column at every
 `L`, and the attack got no cheaper on the target validator class than on the
 development baseline. The √k-vs-256× argument above stands, but it turned out
 not even to be needed.
 
 **Do not over-read the coincidence, though.** The Pi's k = 9 sits at 925 ms
-against a 1,000 ms slot — **93% of the deadline, a margin of 7.5%**. The
+against a 1,000 ms slot — **92.5% of the deadline, a margin of 7.5%**. The
 crossovers match, but they match narrowly: a marginally slower board, a
 validator doing anything else at the same time, a cooler-limited unit that
 throttles, or a slightly larger block would all report **k = 9** instead. That
@@ -608,13 +603,9 @@ is invisible next to the 256× per 2-byte step of `L` — but anyone reproducing
 this should expect the crossover to sit at 9 or 10 depending on the machine, and
 should not treat a k = 9 result as a failure to replicate.
 
-What the Pi run establishes positively: normal-operation headroom on the target
-validator class is **2.6 ms against the 1,000 ms slot (~380×)** at a full
-1024-transaction block; the run satisfied the review's explicit "on a single
-machine RPi5" condition; and neither anticipated surprise materialised — the
-slowdown was mild (~1.7×, where even ~10× would not have shifted the
-conclusion) and there was no thermal throttling (`performance` governor,
-~56 °C, `get_throttled=0x0` before and after).
+What the Pi run establishes positively is that neither anticipated surprise
+materialised: the slowdown was mild, where even ~10× would not have shifted the
+conclusion, and the board did not throttle.
 
 The pre-registered cross-check also passed: **`birthday.csv` is identical
 between `mac/` and `rpi5/` except for the rate column**, exactly as the
@@ -653,7 +644,7 @@ exploitability:
    of a few changes nothing.
 2. **Lifetime.** This is a consensus constant that will outlive several hardware
    generations. Every 4× in hash rate divides the attacker's cost by four; L = 14
-   spends its margin against hardware that does not exist yet, L = 16 does not.
+   spends its margin against hardware that does not exist yet; L = 16 does not.
 3. **Asymmetric cost of being wrong — but not for the usual reason.** It is
    tempting to say "ship 16, shorten it later if the data allows". Be precise
    about what that costs: `L` sets the `References` layout, so changing it in
@@ -701,7 +692,7 @@ as merely over-cautious.
    currently at the one value this analysis rules out outright. This is the
    highest-priority item in this report.
 2. **Correct the two figures in #389** from 58 years / 214 days to **73 years /
-   268 days** (§5). Same conclusion, arithmetic that survives review.
+   268 days** (§5). The conclusion is unchanged.
 3. **Decide the cap question explicitly.** #389 v3 deletes
    `MAX_RECONSTRUCTION_COMBINATIONS` and `MAX_CANDIDATES_PER_REFERENCE`; they are
    still in the merged code. At L = 16 either is defensible, but the spec and the
@@ -712,7 +703,7 @@ as merely over-cautious.
 4. **Re-run on the RPi5** — **done** (2026-08-15, `results/rpi5/`). All pending
    columns above are filled from that run: crossover unchanged at k = 10, the
    birthday cross-check passed, and no deviation from the pinned code or
-   toolchain was needed. On this point the report can now be treated as final.
+   toolchain was needed.
 
 ---
 
