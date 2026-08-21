@@ -1,0 +1,35 @@
+[project]
+name = "pull-confirmation"
+version = "1.0.0"
+description = "Calibration of the mempool pull confirmation threshold (logos-lips mempool specification)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+# Stdlib only on purpose: `make verify`, `make calibrate` and `make test` must run
+# anywhere with a bare interpreter, because the numbers they produce are quoted as
+# protocol constants and anyone reviewing the specification should be able to
+# reproduce them without a wheel download.
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+
+[project.scripts]
+pull-confirmation = "pull_confirmation.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
