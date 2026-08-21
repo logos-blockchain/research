@@ -363,6 +363,48 @@ def main() -> int:
           note=f"transition {capped.transition} against {base.transition}; the cap bounds the "
                f"BORROW only -- capping the whole draw stopped the endowment ever emptying")
 
+    # ---------------------------------------------------------------- retirement, decided
+    print("\nRetirement as a decision rather than a regime")
+    from . import retirement as ret                             # noqa: PLC0415
+    from . import study as _st2                                 # noqa: PLC0415
+
+    _A = arrivals.uniform(220, 130)
+    _dec = engine.run(d, _A, _st2.hashrate_draw(cfg), epochs=240,
+                      retirement_policy=ret.Rational())
+    # Inside the SCHEDULE (e < bootstrap_epochs). Epoch 195 is still `bootstrap` by the
+    # endowment test but is already in Q7's nominal-rate tail, where the budget drops and the
+    # decision flips -- which is the next gate.
+    _boot = [q for q in _dec.rows if q.epoch < d.bootstrap_epochs and q.bonds_total > 0]
+    check("every bonded miner keeps mining, every epoch of the scheduled bootstrap",
+          min(q.persisting for q in _boot), 1.0,
+          note=f"not an assumption: each re-decides each epoch against its own income and "
+               f"electricity, and mining wins in all {len(_boot)} of them")
+    check("and they all stop within an epoch of the schedule ending",
+          max(q.persisting for q in _dec.rows if q.epoch >= d.bootstrap_epochs) < 0.001, True,
+          note="the budget collapses to the fee bucket, the anchor cannot pay for the "
+               "grinding, and the field goes home -- the post-phase is vestigial by design. "
+               "The residue is one miner that bonds in the final epoch and never re-decides")
+    check("so the DECIDED outcome is the persistent regime, not the retiring one",
+          _dec.rows[-1].bonds_total, 7_963,
+          note="against 24,707 if they retired -- the retiring figure is not a behaviour "
+               "anyone would choose, so it should not be quoted as an expectation")
+
+    _no_x = engine.run(d, _A, _st2.hashrate_draw(cfg), epochs=240,
+                       retirement_policy=ret.Rational(count_exclusion=False))
+    check("the exclusion dividend changes no decision at the measured service pot",
+          _no_x.rows[-1].bonds_total, _dec.rows[-1].bonds_total,
+          note="suppressing the on-ramp IS worth something -- every 1,000 LGO mined is one "
+               "bond that never happens -- but it only flips a decision that is otherwise "
+               "marginal, and during bootstrap mining already pays outright")
+
+    _curve = ret.price_curve(d, prices=(1.0, 0.10, 0.01))
+    check("a HIGHER token price suppresses onboarding, not a lower one",
+          [c["bonds"] for c in _curve], sorted(c["bonds"] for c in _curve),
+          note=f"income is in LGO and electricity in dollars, so a dearer token keeps "
+               f"incumbents mining longer: persists to epoch "
+               f"{'/'.join(str(c['persists_until']) for c in _curve)} and onboards "
+               f"{'/'.join(format(c['bonds'], ',') for c in _curve)} at $1.00/$0.10/$0.01")
+
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILURES")

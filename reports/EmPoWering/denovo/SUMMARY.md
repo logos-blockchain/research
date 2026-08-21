@@ -83,7 +83,17 @@ Measured in this mechanism, retirement is not one number at two values but two d
 | **persistent** (nobody retires) | 13.9% | 15.9% | 14.6% — flat |
 | **retiring** | 24.9% | 49.4% | 74.1% — rises with the rate |
 
-And the arithmetic of why nobody retires: **it costs the individual 6.2% of their income and buys the network 4.5× more onboarding.** A collective-action problem in textbook form. Every headline in every document is therefore given at both ends, and the persistent end is the one to plan against.
+And the arithmetic of why nobody retires: **it costs the individual 6.2% of their income and buys the network 4.5× more onboarding.** A collective-action problem in textbook form.
+
+**This is no longer an assumption.** Retirement was two flags the modeller set; it is now a decision each bonded miner re-makes every epoch, comparing what the epoch pays against what the grinding costs — including the dividend from suppressing the on-ramp, since the endowment is finite and every 1,000 LGO mined is one newcomer bond that never happens. Measured: **100% keep mining through every epoch of the scheduled bootstrap, and 100% stop the epoch it ends.** The decided outcome is 7,963 nodes — the persistent regime exactly. The retiring 24,707 is not a behaviour anyone would choose.
+
+**And the token price moves it, in the direction nobody expects.** Income is in LGO, electricity is in dollars, so a *dearer* token sustains incumbent mining longer and onboards *fewer* people:
+
+| token price | $1.00+ | $0.10 | $0.05 | $0.01 |
+| --- | --- | --- | --- | --- |
+| nodes onboarded | **7,963** | 9,863 | 13,420 | 22,054 |
+
+**The headline 24,707 requires a token worth under a cent.** At any price at which this would be judged a success, onboarding is a third of the target — which is the strongest reason to re-strike the triple (§4).
 
 ### 3.6 What proof of work becomes afterwards
 
@@ -109,7 +119,7 @@ The reasoning, in order of weight:
    | --- | --- | --- | --- | --- | --- |
    | bonds delivered | 7,963 | 16,566 | 17,701 | 19,897 | 21,130 |
 
-   Quadrupling the budget past the identity's answer buys under a third more nodes; at 200 arrivals an epoch the same 1.67% and 2% deliver 20,298 and 22,325. **A 25,000-node ambition therefore needs roughly 2% of TGE *and* an adoption rate near 200 an epoch** — neither alone reaches it. If 0.5% is kept, state **about 8,000** as its honest expectation. (An earlier draft quoted 20,300 and 22,300 beside "about 8,000" without noting that the first two were measured at 200 arrivals an epoch and the third at 130.) Planning against the optimistic edge of both variables at once is the single most likely way for this design to disappoint in production.
+   Quadrupling the budget past the identity's answer buys under a third more nodes; at 200 arrivals an epoch the same 1.67% and 2% deliver 20,298 and 22,325. **A 25,000-node ambition therefore needs roughly 2% of TGE *and* an adoption rate near 200 an epoch** — neither alone reaches it. If 0.5% is kept, state **about 8,000** as its honest expectation. (An earlier draft quoted 20,300 and 22,300 beside "about 8,000" without noting that the first two were measured at 200 arrivals an epoch and the third at 130.) And there is a third variable, established in §3.5: at any token price above about $0.20 incumbents mine throughout the phase and the persistent column is what you get. **Money, arrival rate and token price must all cooperate to reach 25,000, and the third one cooperates only if the token stays nearly worthless.** Planning against the optimistic edge of all three at once is the single most likely way for this design to disappoint in production.
 
 **What I would not do:** add a sybil defence. The design owner's position — proof of work is sheer power, and buying more of it entitles you to more reward however many identities you wear — is coherent, and every remedy would make the mechanism something other than proof of work. The flood is a property to size, and it is sized.
 

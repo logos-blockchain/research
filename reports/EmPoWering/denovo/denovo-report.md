@@ -78,6 +78,8 @@ Every onboarded node costs one bond, so a triple silently asserts that this frac
 
 Under persistence the efficiency is **flat**: everyone keeps mining, so the field grows with the arrival rate and dilution cancels the gain. Under retirement it **rises with the rate**, because each departure frees claim share for the next cohort. So a triple's feasibility is a property of the triple alone in one regime and depends on adoption speed in the other.
 
+**Which regime obtains is now measured, not assumed** (`adversarial-analysis.md` §2.3). Letting each bonded miner re-decide every epoch — weighing its income, its electricity, and the dividend it earns by suppressing the on-ramp — produces **100% persistence through every epoch of the scheduled bootstrap and 100% retirement the epoch it ends**, for 7,963 nodes: the persistent column exactly. Both regimes are still reported below, because the retiring column is what the reference triple was struck against and the comparison is the point, but **only one of them is a behaviour anyone would choose.** The token price is what moves it, and dearer is worse: above roughly $0.20 incumbents mine the whole phase, and the retiring figure needs a token worth under a cent.
+
 The consequence for the reference triple is blunt. It implies 50%, which is reachable only if miners retire *and* arrive fast — a bet on two behaviours. The feasibility check now defaults to the persistent reading and reports the optimistic one beside it, so the bet is visible rather than assumed.
 
 ## 3. The reference run (R2, R4, R6)

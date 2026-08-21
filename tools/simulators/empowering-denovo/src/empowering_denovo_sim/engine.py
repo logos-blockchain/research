@@ -75,6 +75,8 @@ class EpochRow:
     miners_live: int
     difficulty_target: int
     endowment_drawn: int            # what this epoch took from the endowment bucket
+    persisting: float = 0.0         # share of the BONDED still mining -- an outcome under a
+                                    # retirement_policy, an echo of the flag without one
 
 
 @dataclass
@@ -87,6 +89,18 @@ class Result:
     total_diverted: int = 0
     total_paid: int = 0
     d: Derived = field(repr=False, default=None)
+
+    @property
+    def persisting_fraction(self) -> float:
+        """Of those who reached a bond, what share was still mining at the end.
+
+        Meaningful only under a `retirement_policy`, where it is an outcome; under the
+        exogenous regimes it just reads back the flag that was set.
+        """
+        bonded = self.pop.bonded_at != NOT_SET
+        if not bonded.any() or self.pop.refuses_to_retire is None:
+            return 0.0
+        return float(self.pop.refuses_to_retire[bonded].mean())
 
     def bonds_by_cohort(self) -> dict[int, int]:
         """Arrival epoch -> bonds reached. The R5 admission metric."""
@@ -101,7 +115,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
         retire_on_bond: bool = True, txs_per_block: int | None = None,
         seed: int = 70_001, deterministic: bool = False,
         participation=None, refuse_fraction: float = 0.0,
-        draw_cap_fraction: float = 0.0) -> Result:
+        draw_cap_fraction: float = 0.0, retirement_policy=None) -> Result:
     """Advance the chain.
 
     ``arrivals[e]`` miners are seated at epoch ``e`` with hashrates from ``hashrate_draw(n)``.
@@ -111,6 +125,11 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
     the elasticity hook for MODEL.md section 8.1's oscillation probe. Miners see the epoch's
     posted reward at the boundary and respond as one body; attribution still draws over the
     whole live set, which is second-order for the aggregate dynamics the probe measures.
+
+    ``retirement_policy`` makes retirement a DECISION rather than a flag. Given one, each
+    bonded miner re-decides every epoch whether to keep mining and ``retire_on_bond`` is
+    ignored; see `retirement.py` for the utility it maximises. Without one, the two exogenous
+    regimes remain: ``retire_on_bond`` True or False, optionally with ``refuse_fraction``.
     """
     cfg = d.cfg
     rng = np.random.default_rng(seed)
@@ -121,6 +140,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
     if refuse_fraction > 0:
         pop.refuses_to_retire = rng.random(total) < refuse_fraction
     seated = 0
+    rate_prev = 0.0                 # last epoch's live hashrate; what a decider actually knows
 
     # ---- consensus state (MODEL.md section 2)
     endowment = d.endowment_genesis
@@ -172,9 +192,21 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
             reward = d.anchor
         fee_opening = fee_bucket
 
+        # ---- who is still mining. With a policy, the bonded re-decide every epoch against
+        # the budget just posted and the field they met last epoch; `refuses_to_retire` is the
+        # existing per-miner channel for "bonded and mining anyway", so the policy writes it
+        # and the mask below is unchanged.
+        if retirement_policy is not None:
+            bonded_now = (pop.arrived >= 0) & (pop.bonded_at != NOT_SET)
+            pop.refuses_to_retire = retirement_policy.keeps_mining(
+                d, pop.hashrate, bonded_now, budget, rate_prev,
+                providers=int(bonded_now.sum()))
+            retire_on_bond = True
+
         # ---- the epoch, block by block (MODEL.md section 4)
         live = pop.live_mask(retire_on_bond)
         rate = float(pop.hashrate[live].sum())
+        rate_prev = rate if rate > 0 else rate_prev
         if participation is not None:
             rate *= float(np.clip(participation(reward, e), 0.0, 1.0))
         idx = np.flatnonzero(live)
@@ -271,15 +303,25 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
             pop.balance[idx] += won * net
             newly = (pop.bonded_at[idx] == NOT_SET) & (pop.balance[idx] >= cfg.min_stake)
             pop.bonded_at[idx[newly]] = e
+            if retirement_policy is not None:
+                # Reaching the bond mid-epoch does not switch the hardware off: retiring is an
+                # action, persisting is inaction. A miner that bonds now keeps mining until it
+                # re-decides at the next boundary. Without this they read as retired for one
+                # epoch, which showed up as a spurious rise in persistence as the bond flow
+                # slowed rather than as anything anyone chose.
+                pop.refuses_to_retire[idx[newly]] = True
         bonds_total = int((pop.bonded_at != NOT_SET).sum())
 
+        bonded_mask = pop.bonded_at != NOT_SET
+        persisting = (float(pop.refuses_to_retire[bonded_mask].mean())
+                      if pop.refuses_to_retire is not None and bonded_mask.any() else 0.0)
         rows.append(EpochRow(
             epoch=e, bootstrap=bootstrap, endowment=endowment,
             fee_bucket_opening=fee_opening, budget=budget, reward=reward,
             claims_paid=paid_total, spent=spent, saturation_block=saturation,
             max_block_claims=max_block_claims, bonds_total=bonds_total, bonds_new=bonds_total - bonds_before,
             miners_live=int(live.sum()), difficulty_target=difficulty,
-            endowment_drawn=endowment_drawn))
+            endowment_drawn=endowment_drawn, persisting=persisting))
 
         # boundary rollover: unspent F stays; the epoch's accrual joins it (MODEL.md section 3)
         fee_bucket = fee_bucket + fee_accrual

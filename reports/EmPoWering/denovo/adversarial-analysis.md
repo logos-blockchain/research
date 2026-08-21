@@ -60,6 +60,39 @@ Modelled in the de-novo engine as a coalition that bonds and keeps mining anyway
 
 A quarter of the field behaving this way costs the mechanism 37% of its onboarding; the whole field behaving this way costs two thirds. **This is the cheapest and most damaging attack in either design, it requires no coordination, and an attacker cannot be distinguished from a participant who simply never turned its miner off.** The same arithmetic applies to the current design, where the identical behaviour is what separates its 11.4% and 51.9% figures.
 
+### 2.3 Letting the miners decide it
+
+Everything above treats retirement as a *regime* — a flag the modeller sets. That is the weakest assumption in the study, so `retirement.py` removes it: each bonded miner re-decides every epoch, comparing what the epoch pays it against what the grinding costs it, and the outcome is measured rather than chosen.
+
+The decision includes a term the break-even of §2.1 cannot see. The endowment is finite and fully spent, so **every 1,000 LGO an incumbent mines is exactly one newcomer bond that never happens** — and fewer providers means a larger share of a service pot that is split flat and does not grow with adoption. Suppressing the on-ramp pays the incumbent a dividend, worth `blend_pool / providers²` per epoch for as long as the network runs. Mining is not merely income; it is income that buys exclusion.
+
+**The result is unambiguous, and it settles the question:**
+
+| | measured |
+| --- | --- |
+| bonded miners still mining, each epoch of the scheduled bootstrap | **100%** |
+| still mining once the schedule ends | **0%** |
+| nodes onboarded, decided | **7,963** — the persistent regime exactly |
+
+Nobody retires while it matters, and everybody retires the moment the budget collapses to the fee bucket. **The retiring figure of 24,707 is not a behaviour anyone would choose**, and should stop being quoted as an expectation.
+
+The exclusion dividend turns out to be **real but inert**: switching it off changes not one decision. It is large early — at 200 providers a single displaced newcomer repays its 1,000 LGO in eight months — but it can only flip a decision that is otherwise marginal, and during bootstrap mining already pays outright. Post-phase it has collapsed with `1/providers²` and cannot rescue an unprofitable epoch. It would take a service pot roughly **a thousand times** the measured one to make it decision-relevant. So the incumbent-mines-at-a-loss scenario is coherent, correctly reasoned, and does not arise here — the two conditions it needs are disjoint in this mechanism.
+
+**What does move the answer is the token price, in the direction nobody expects.** Mining income is denominated in LGO and its electricity in dollars, so a *dearer* token keeps incumbents mining longer and onboards *fewer* people:
+
+| token price | incumbents persist until | nodes onboarded |
+| --- | --- | --- |
+| $1.00 and above | epoch 195 — all of it | **7,963** |
+| $0.10 | epoch 112 | 9,863 |
+| $0.05 | epoch 66 | 13,420 |
+| $0.01 | epoch 16 | 22,054 |
+
+**The reference triple's headline number requires a token worth under a cent.** At any price at which the project would be considered a success, incumbents mine throughout and onboarding is a third of the target. That is the sharpest argument in this document for re-striking the triple.
+
+*One limitation, because it shapes the output.* Income and cost both scale with hashrate, so the comparison is hashrate-independent and every miner decides identically — the model returns 0% or 100%, never a fraction, and near the break-even it oscillates period-2 for the same reason Q9's participation cliff does. A real population varies in electricity price, efficiency and horizon, and would settle at a fraction still mining. Read the flip epoch as the point where the marginal operator leaves, not as a claim that the field empties at once.
+
+### 2.4 What would actually fix it
+
 The remedy is not in either mechanism as specified. Making retirement rational needs something that prices continued mining after bonding — a declining per-identity reward, a bond that competes with hashrate, or an explicit exit incentive — and all of those are new mechanism. **What both designs can do immediately is stop quoting the retiring figure as the expected case.** Under the persistent regime the de-novo reference triple implies an efficiency of 50% against an achievable **15%** — measured in this mechanism rather than imported — which its own feasibility check now flags as a bet on retirement rather than passing silently.
 
 ## 3. The redesign's novel surfaces — both close by measurement
