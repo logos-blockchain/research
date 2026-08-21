@@ -15,6 +15,9 @@ Threats considered:
   reward cap `max(claims_prev, blocks_per_epoch)` defeats a *minority* pump.
 * **the manufactured cliff** -- an elastic actor that enters only when the reward clears a
   threshold, deliberately driving the period-2 cycle (MODEL 8.1) to harvest the high epochs.
+* **the sybil flood** -- one actor presenting as many, taking a share of the on-ramp in
+  proportion to what it can afford. Accepted and not mitigated (proof of work is sheer power),
+  so this measures the property rather than testing a defence.
 
 The whale and the cliff are documented, accepted properties (Q8, Q9); the analysis quantifies
 the accepted exposure. The pump is the one that could be a surprise, so it is tested hardest.
@@ -133,6 +136,43 @@ def two_population_run(d: Derived, honest_rate: float, adv_rate: float, adv_acti
         claims_prev = h_paid + a_paid
         last_reward = reward
     return rows, honest_balance, adv_balance
+
+
+def sybil_denial(d: Derived, multiples=(2, 5, 10), honest_per_epoch: int = 100,
+                 epochs: int = 400, cap: float = 0.0, seed: int = 2) -> list[dict]:
+    """What a flood of fabricated identities costs the honest joiners it crowds out.
+
+    The flood is modelled the only way the mechanism can see it: more arrivals. A ``k x``
+    flood seats ``k`` times the honest rate, the attacker being ``(k-1)/k`` of the field, and
+    the honest share of the resulting bonds is ``1/k`` of the total because claims are paid in
+    proportion to hashrate and every identity draws from the same distribution.
+
+    Both runs take a FRESH draw so the comparison measures the flood rather than the rng
+    position -- the same discipline the de novo* gates use.
+
+    This existed only as a hand-run figure quoted in the reports until 2026-08-20, and the
+    quoted numbers had drifted from what the engine produces. Measured here so they cannot.
+    """
+    from . import arrivals, engine                              # noqa: PLC0415
+
+    cfg = d.cfg
+
+    def draw():
+        return arrivals.pi5_pareto(np.random.default_rng(seed),
+                                   floor_rate=power.board(cfg).candidates_per_second)
+
+    def bonds(rate: int) -> int:
+        return engine.run(d, arrivals.uniform(epochs, rate), draw(), epochs=epochs,
+                          retire_on_bond=True, draw_cap_fraction=cap).rows[-1].bonds_total
+
+    baseline = bonds(honest_per_epoch)
+    out = [{"multiple": 1, "total_bonds": baseline, "honest_bonds": baseline, "denied": 0.0}]
+    for k in multiples:
+        total = bonds(honest_per_epoch * k)
+        honest = total / k
+        out.append({"multiple": k, "total_bonds": total, "honest_bonds": honest,
+                    "denied": 1.0 - honest / baseline})
+    return out
 
 
 def _retarget(difficulty, claims, target, cfg):

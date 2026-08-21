@@ -10,7 +10,7 @@ import sys
 
 import numpy as np
 
-from . import arrivals, engine
+from . import arrivals, engine, power
 from .params import (EFFICIENCY_PERSISTENT, EFFICIENCY_RETIRING_FAST, Triple,
                      UnsatisfiableTriple)
 
@@ -60,8 +60,12 @@ def main() -> int:
     # run and every pinned constant depends on the ORDER of the gates. Reordering runs, or
     # inserting one, legitimately moves heavy-tail-sensitive numbers (the x100 borrow ratio
     # spans 86-111x across paths) -- re-pin deliberately, never relax.
+    # The basis is a whole four-core board, per `power.py` -- the same one `study.py` and the
+    # reports use. This gate suite seated nodes at one core until 2026-08-20, which left the
+    # transition pinned at 195 against the reports' 196 and made the block-space gate below
+    # measure a quarter of the occupancy a spike actually produces.
     draw = arrivals.pi5_pareto(np.random.default_rng(2),
-                               floor_rate=1 / cfg.seconds_per_candidate_reward)
+                               floor_rate=power.board(cfg).candidates_per_second)
     r = engine.run(d, arrivals.uniform(220, 130), draw, epochs=220)
     rows = r.rows
 
@@ -73,8 +77,9 @@ def main() -> int:
           sum(1 for a, b in zip(boot, boot[1:]) if a != b), 1)
     check("and never back", all(not b for b in boot[r.transition_epoch:]), True)
     check("the transition lands at the expected duration exactly",
-          r.transition_epoch, 195,
-          note="the earlier 195-199 drift was the anchor-scale dust fold failing to fire")
+          r.transition_epoch, 196,
+          note="one past the 195-epoch schedule: the last epoch's dust is folded and spent. "
+               "This read 195 while the suite seated nodes at one core")
     check("after it the endowment is exactly zero",
           all(q.endowment == 0 for q in rows[r.transition_epoch:]), True,
           note="the dust fold -- without it the regime deadlocks one reward short")
@@ -151,10 +156,15 @@ def main() -> int:
                f"bootstrap={last.bootstrap} -- which branch is draw-dependent, the legality "
                f"is not")
     r100 = engine.run(d, arrivals.spike(220, 130, at=30, factor=100), draw, epochs=220)
-    check("the block-space cap never binds, even in the spike epoch",
-          r100.rows[30].max_block_claims < cfg.max_block_txs, True,
-          note=f"peak {r100.rows[30].max_block_claims} of {cfg.max_block_txs} -- ordinary "
-               f"transactions are never crowded out (MODEL 8.3, resolved)")
+    # MODEL 8.3 is REOPENED by this gate, not closed by it. On the one-core basis the spike
+    # epoch peaked at 240 of 1,024 and the question looked settled; on the board basis the cap
+    # binds outright. The mechanism has no reservation for ordinary traffic -- the engine clips
+    # claims at `max_block_txs` alone -- so a spike epoch does crowd the block.
+    check("the block-space cap DOES bind in a x100 spike epoch",
+          r100.rows[30].max_block_claims >= cfg.max_block_txs, True,
+          note=f"peak {r100.rows[30].max_block_claims} of {cfg.max_block_txs}, mean "
+               f"{r100.rows[30].claims_paid // cfg.blocks_per_epoch} -- ordinary transactions "
+               f"ARE crowded out, and MODEL 8.3 needs a reservation rule rather than a note")
     ratio100 = r100.rows[30].spent / r100.rows[30].budget
     check("a xk spike borrows on the order of k budgets",
           20 <= ratio100 <= 200, True,
@@ -162,8 +172,13 @@ def main() -> int:
                f"(58-125) and the x10 median is 10x (6-13). Single-draw figures of 2.6x and "
                f"86-111x were quoted before this was measured properly -- do not re-quote one "
                f"draw as the law")
+    # A FRESH draw: this gate asserts a property of the arrival shape, so it must not inherit
+    # the shared draw's rng position -- on the shared object it reads 16,922 and measures where
+    # in the stream we happen to be rather than whether the shape converts.
     check("front-loaded arrivals convert completely",
-          engine.run(d, arrivals.front_loaded(220, 220 * 130), draw,
+          engine.run(d, arrivals.front_loaded(220, 220 * 130),
+                     arrivals.pi5_pareto(np.random.default_rng(2),
+                                         floor_rate=power.board(cfg).candidates_per_second),
                      epochs=220).rows[-1].bonds_total, 28_600,
           note="every arrival bonds; the surplus endowment stays armed")
 
@@ -214,11 +229,28 @@ def main() -> int:
     check("and only pays once the attacker IS the field",
           pr75["pump_advantage"] > 1.0, True,
           note=f"{pr75['pump_advantage']:.2f}x at 75%, {pr90['pump_advantage']:.2f}x at 90% "
-               f"-- a supermajority does not merely capture the endowment, it nearly triples "
-               f"what honest mining would have paid it")
+               f"-- over a 40-epoch window; see the horizon gate below before quoting these")
+
+    # `pump_advantage` is a ratio of CUMULATIVE balances, so over a window shorter than the
+    # phase it reports how much FASTER the pump drained a fixed pool, not how much more it
+    # earned. The supermajority figure decays to nothing once the window covers the phase; the
+    # minority result does not, which is why the minority result is the one the report leans on.
+    _decay = [(h, adv.pump_vs_honest(d, 0.90, epochs=h)["pump_advantage"])
+              for h in (40, 80, 150, 190)]
+    check("the supermajority pump's advantage is a truncation artifact",
+          _decay[-1][1] < 1.15, True,
+          note="90% of the field: " + ", ".join(f"{v:.2f}x at {h} epochs" for h, v in _decay)
+               + " -- it converges on parity once the window covers the 196-epoch phase, so "
+                 "'a supermajority nearly triples its take' was an artifact of measuring 40 "
+                 "epochs of a fixed-pool extraction race")
+    _min_long = adv.pump_vs_honest(d, 0.10, epochs=190)["pump_advantage"]
+    check("while the minority result survives the same widening",
+          _min_long < 1.0, True,
+          note=f"{_min_long:.2f}x at 10% over 190 epochs against 0.44x over 40 -- withholding "
+               f"still loses, which is the load-bearing conclusion")
 
     # An elastic attacker cannot harvest the Q9 cliff: being picky costs more than it takes.
-    field = 1.0 / cfg.seconds_per_candidate_reward * 1000
+    field = power.board(cfg).candidates_per_second * 1000
     _, _, always = adv.two_population_run(d, field * 0.7, field * 0.3,
                                           lambda e, r: True, 60)
     _, _, picky = adv.two_population_run(d, field * 0.7, field * 0.3,
@@ -285,12 +317,28 @@ def main() -> int:
               - _base_persist.rows[-1].bonds_total) < 500, True,
           note=f"{_cap_persist.rows[-1].bonds_total:,} against "
                f"{_base_persist.rows[-1].bonds_total:,} under persistence")
+    # This was `check(..., True, True, note=<hand-typed figures>)` until 2026-08-20 -- a gate
+    # that compared True to True and measured nothing, carrying the only occurrence of these
+    # figures anywhere in the simulator. Now measured.
+    _syb_base = adv.sybil_denial(d, cap=0.0)
+    _syb_cap = adv.sybil_denial(d, cap=variant.DEFAULT_CAP)
+    _fmt = lambda rows: "/".join(f"{r['denied']:.1%}" for r in rows[1:])   # noqa: E731
     check("and does not reintroduce sybil fragility",
-          True, True,
-          note="a cap is a form of rationing, which is what makes the CURRENT design "
-               "flood-fragile -- measured, denial at 2x/5x/10x floods is 4.8/79.3/93.4% "
-               "against the base's 4.3/79.2/94.5%: unchanged, because the cap defers "
-               "rather than denies")
+          max(abs(a["denied"] - b["denied"])
+              for a, b in zip(_syb_cap[1:], _syb_base[1:])) < 0.05, True,
+          note=f"a cap is a form of rationing, which is what makes the CURRENT design "
+               f"flood-fragile -- measured, denial at 2x/5x/10x floods is {_fmt(_syb_cap)} "
+               f"against the base's {_fmt(_syb_base)}: unchanged, because the cap defers "
+               f"rather than denies")
+    check("the redesign is an order of magnitude more flood-resistant at 2x",
+          _syb_base[1]["denied"] < 0.10, True,
+          note=f"{_syb_base[1]['denied']:.1%} of honest bonds denied at a doubled field, "
+               f"against the current design's 48.4% -- a fixed claim flow halves every share, "
+               f"a budget just converts faster")
+    check("and both collapse at 10x, where the payout strands below the bond",
+          _syb_base[3]["denied"] > 0.90, True,
+          note=f"{_syb_base[3]['denied']:.1%} -- the binding constraint there is the same in "
+               f"both designs")
     check("nor is the phase length",
           abs(capped.transition - base.transition) <= 3, True,
           note=f"transition {capped.transition} against {base.transition}; the cap bounds the "

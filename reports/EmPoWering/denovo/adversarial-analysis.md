@@ -6,7 +6,7 @@ Concrete attacks, run in the simulators, against both the currently specified Em
 
 Costs are priced from the standalone estimator at a Raspberry Pi 5's measured Poseidon2 rate, whole-platform, 20 cents a kilowatt-hour.
 
-**The power assumption, stated because it decides the answers.** An attacker is assumed to commit **100% of its hardware to mining** — every core, full duty — on the best class with a *measured* Poseidon2 rate, which is 3.45× a Pi 5 board per unit cost. The honest field is a whole four-core board per node, 24,146 candidates a second, which is also what the strategy study has always used; the *minimal* commitment a participant can make and still be mining is one pinned core, a quarter of that. All three bases are in `power.py`, and results are given across the bracket wherever it changes them.
+**The power assumption, stated because it decides the answers.** An attacker is assumed to commit **100% of its hardware to mining** — every core, full duty — on the best class with a *measured* Poseidon2 rate: an M4 Pro's ten performance cores at 26.6 µs a candidate, **15.6× a Pi 5 board**. (An earlier revision derived this bracket by applying the Apple class's *cost* advantage of 3.45× to a rate, which is an energy ratio in a rate's place; it understated the attacker 4.5-fold. The measured rate was available in `powcost/rates.py` all along and is now used directly.) The honest field is a whole four-core board per node, 24,146 candidates a second, which is also what the strategy study has always used; the *minimal* commitment a participant can make and still be mining is one pinned core, a quarter of that. All three bases are in `power.py`, and results are given across the bracket wherever it changes them.
 
 **What a GPU would add, now estimated rather than left open.** The classes with *measured* rates are a Raspberry Pi 5 and an Apple M-series part; a GPU rig has never been benchmarked. The estimator now carries a derived figure for it (`powcost/rates.py`, flagged `measured=False`), and the derivation changes the caveat rather than confirming it.
 
@@ -23,7 +23,7 @@ This is a property the mechanism inherits from the curve rather than one it earn
 
 **The most important finding is not an attack at all.** Both designs' onboarding targets assume that miners stop mining once they have bonded, and that assumption is not incentivised — continuing to mine is individually rational, and bonding does not stop the hardware. The behaviour both designs need in order to hit their numbers is the behaviour neither pays for. Everything else below is secondary to that.
 
-*Revision notes.* (1) A first version compared the two designs' sybil-flood resistance at different honest baselines and over different windows and concluded they were comparably vulnerable; normalised, they are not, and §4 carries the corrected measurement. (2) Every figure here was recomputed after the power basis was corrected from one Raspberry Pi 5 core to a whole four-core board — the basis the strategy study had always used. That moved the pump, whale and cliff tables materially, and the numbers below are the post-correction ones. Where a figure differs from an earlier draft, the earlier draft was measuring a field four times weaker than a committed miner actually fields.
+*Revision notes.* (1) A first version compared the two designs' sybil-flood resistance at different honest baselines and over different windows and concluded they were comparably vulnerable; normalised, they are not, and §4 carries the corrected measurement. (2) Every figure here was recomputed after the power basis was corrected from one Raspberry Pi 5 core to a whole four-core board — the basis the strategy study had always used. Where a figure differs from an earlier draft, the earlier draft was measuring a field four times weaker than a committed miner actually fields. (3) A 2026-08-20 review found that correction had been **incomplete**: the gate suite's own reference draw was still seated on one core, so the cliff table, the whale curve, the block-space finding and the post-phase field all still carried one-core figures. Those are corrected here and the gates now run on the board basis. (4) The same review found the supermajority pump figure was an artefact of a 40-epoch measurement window; §3.1 carries the corrected reading and the horizon is now gated.
 
 ## 1. The threat model
 
@@ -52,7 +52,7 @@ Modelled in the de-novo engine as a coalition that bonds and keeps mining anyway
 
 | coalition refusing to retire | total bonds | against the honest baseline | cost to the coalition |
 | --- | --- | --- | --- |
-| none | 24,723 | 1.00× | — |
+| none | 24,707 | 1.00× | — |
 | 10% | 20,150 | 0.82× | none — they keep earning |
 | 25% | 15,562 | **0.63×** | none — they keep earning |
 | 50% | 11,555 | 0.47× | none — they keep earning |
@@ -76,13 +76,19 @@ The de-novo bootstrap reward is `budget / claims_prev`, which invites the obviou
 | 75% | 9,188,985 | 13,579,211 | 1.48× |
 | 90% | 11,025,370 | 30,863,255 | **2.80×** |
 
-**Withholding loses money for any minority**, and the result is robust twice over. Across field *sizes* — 0.51×, 0.64× and 0.35× at a quarter of the field, over fields of 100, 1,000 and 10,000 boards. And across the power *bracket*, where it gets stronger the better equipped the attacker is: 0.64× at the minimal basis, 0.50× at the board, **0.28× at the worst measured**. A stronger attacker forfeits more by sitting out, so the defence tightens exactly where it needs to.
+**Withholding loses money for any minority**, and the result is robust twice over. Across field *sizes* — 0.54×, 0.54× and 0.12× at a quarter of the field, over fields of 100, 1,000 and 10,000 boards. And across the power *bracket*, where it gets stronger the better equipped the attacker is: 0.64× at the minimal basis (one Pi 5 core), 0.54× at the board, **0.05× at the worst measured** (an M4 Pro's ten performance cores, from the measured rate). A stronger attacker forfeits more by sitting out, so the defence tightens exactly where it needs to.
 
 The defence is the reward's own cap. `epoch_reward = max(anchor, budget // max(claims_prev, blocks_per_epoch))` floors the divisor at the block count, so however far a minority shrinks `claims_prev`, the reward cannot rise past one block's budget share — measured, it oscillates 8.76 / 4.40 / 8.77 / 4.36 LGO, a factor of two, against forfeiting an entire epoch's claims.
 
 That cap was written for a different problem: at genesis `claims_prev` is zero and something must stop one claim taking the whole sub-pool. It is the manipulation defence as well, which is the happiest accident in the design — and it is now gated, so it cannot be removed as dead weight.
 
-Past half the field the pump does pay, and it pays *well* — 1.48× at three quarters of the field and **2.80× at nine tenths**, which is worse than an earlier revision of this document reported. That is not a new exposure, since an actor holding three quarters of the hashrate *is* the whale of §3.3 and Q8 accepts that case explicitly, but it is worth stating at its true size: **a supermajority miner does not merely capture the endowment, it can nearly triple what honest mining would have paid it** by withholding. Below half the field the defence is intact and the numbers above are the measurement of it.
+Past half the field the pump appears to pay — 1.48× at three quarters and 2.80× at nine tenths — but **that reading is an artefact of the measurement window, and it does not survive.** `pump_advantage` is a ratio of *cumulative* balances, so over a window shorter than the phase it reports how much faster the pump drained a fixed pool, not how much more it earned. Widening the window at 90% of the field:
+
+| window | 40 epochs | 80 | 150 | 190 |
+| --- | --- | --- | --- | --- |
+| pump advantage | 2.80× | 2.10× | 1.26× | **1.01×** |
+
+Once the window covers the 196-epoch phase, a supermajority pump earns **parity** with honest mining. The earlier claim that "a supermajority nearly triples its take" was 40 epochs of a race to empty the same pool, and is withdrawn. **The minority result survives the same widening** — 0.44× at 40 epochs becomes 0.53× at 190, still a loss — which is why it, and not the supermajority number, is the conclusion this section carries. Both readings are now gated so the window cannot quietly narrow again.
 
 ### 3.2 The manufactured cliff — harvest the period-2 cycle. **Unprofitable.**
 
@@ -91,8 +97,8 @@ Q9 accepts a documented hazard: a sharp participation threshold at the operating
 | attacker's entry threshold | against always-on | near-zero epochs in a 16-epoch window |
 | --- | --- | --- |
 | 0.5 LGO — below the operating reward | 0.86× | 1 |
-| 1.0 LGO — at it | 0.59× | **8** |
-| 2.0 LGO — above it | 0.31× | **8** |
+| 1.0 LGO — at it | 0.86× | **8** |
+| 2.0 LGO — above it | **0.02×** | **8** |
 | 4.5 LGO — far above | 0.02× | **8** |
 
 **Being picky costs more than it harvests, at every threshold**, for the same reason the pump fails: skipped epochs forfeit more than elevated rewards return. But the *cycle itself is real and easy to trigger* — any threshold at or above the operating reward produces the period-2 alternation, eight near-zero epochs out of sixteen. It needs a growing field to appear; against a static one the index is stable and no threshold induces it. So Q9's cycle is a user-experience hazard — a badly-chosen wallet default could make a *population* oscillate to everyone's detriment — but not an exploit anyone profits from.
@@ -165,22 +171,22 @@ Q8 was settled as unbounded, so this is recorded as an **alternative design** ra
 
 Neither mechanism has any defence against one actor presenting as many, so the strongest denial attack on both is to flood the field with identities and take a share of the on-ramp proportional to what you can afford. Measured at the **same honest arrival rate and the same window** for both designs — 100 honest arrivals an epoch, 400 epochs, retirement on:
 
-| flood, × the honest rate | honest elevations denied, current | honest bonds denied, de novo |
-| --- | --- | --- |
-| 1× (baseline) | — | — |
-| 2× | **48.4%** | **3.5%** |
-| 5× | 88.9% | 76.2% |
-| 10× | 96.3% | 92.8% |
+| flood, × the honest rate | honest elevations denied, current | honest bonds denied, de novo | de novo\* |
+| --- | --- | --- | --- |
+| 1× (baseline) | — | — | — |
+| 2× | **48.4%** | **4.3%** | 4.8% |
+| 5× | 88.9% | 79.2% | 79.3% |
+| 10× | 96.3% | 94.5% | 93.4% |
 
-*Baselines: 25,934 honest elevations in the current design, 19,082 honest bonds in the redesign.*
+*Baselines: 25,934 honest elevations in the current design, 19,075 honest bonds in the redesign, 19,164 with the bound. Measured by `adversary.sybil_denial` and gated. An earlier draft quoted 3.5 / 76.2 / 92.8 from a hand-run that had drifted from the engine and existed in no committed code.*
 
-**At moderate flooding the redesign is an order of magnitude more resistant** — doubling the field costs honest joiners 3.5% of their bonds against 48.4%. The reason is structural: the current design's claim flow is fixed, so twice the field is half the share each, while the redesign's budget converts whoever is present, so a doubled field simply converts faster. At extreme flooding both collapse, because there the binding constraint is the same in both — the payout strands below the bond faster than anyone crosses it.
+**At moderate flooding the redesign is an order of magnitude more resistant** — doubling the field costs honest joiners 4.3% of their bonds against 48.4%. The bound changes nothing either way, because a cap defers rather than denies. The reason is structural: the current design's claim flow is fixed, so twice the field is half the share each, while the redesign's budget converts whoever is present, so a doubled field simply converts faster. At extreme flooding both collapse, because there the binding constraint is the same in both — the payout strands below the bond faster than anyone crosses it.
 
 A first version of this document measured the two designs at different honest rates and over different windows, and concluded they were comparably vulnerable. That was an artefact of the mismatch; the corrected comparison above is the one to use.
 
 What the extreme case costs the attacker, at flood rates achieving ~95% denial: on the order of a quarter-million devices in both designs — $20M or more of hardware capital before any electricity, which is the real barrier — with electricity of $12.8M (current, 600 epochs) against $4.5M (de novo, 220 epochs). The redesign is cheaper to besiege in absolute terms only because its bootstrap is shorter, which is the same property that makes it converge faster.
 
-One asymmetry favours the redesign throughout. **An arrival flood cannot accelerate its drain**: the transition holds at epoch 195–197 at every flood rate tested, because the budget schedule governs what an epoch may spend. Nor can an arrival spike: measured across seeds, uniform and ×100 both end at 195–196. Only a *hashrate* whale shortens the phase (§3.3), and only because it drains the endowment outright rather than merely claiming from it. The redesign therefore separates two attacks the current design conflates — many small identities dilute the on-ramp but cannot shorten it, while one large actor can shorten it but is visible in a way many small ones are not.
+One asymmetry favours the redesign throughout. **An arrival flood cannot accelerate its drain**: the transition holds at epoch 195–197 at every flood rate tested, because the budget schedule governs what an epoch may spend. Nor can an arrival spike: measured across seeds, uniform and ×100 both end at 195–196. Nor, against a realistically-spread field, does a *hashrate* whale: it takes 55% of the endowment at its best moment and the phase still ends at 197 against uniform's 196 (§3.3). **Only against a homogeneous field — the worst case, where every node is an identical board — does the phase actually collapse, to epoch 23.** So the redesign separates two attacks the current design conflates: many small identities dilute the on-ramp but cannot shorten it, while one large actor drains it and, in the worst case, ends it early — and is visible in a way many small ones are not.
 
 ## 5. What the redesign converges to, and whether it matters
 
@@ -188,17 +194,19 @@ Post-phase, the anchor nets 4.494 × 10⁻⁶ LGO per claim after the claim's ow
 
 | token price | equilibrium mining field |
 | --- | --- |
-| $0.01 | 0.4 Pi 5-equivalents |
-| $1.00 | 37 |
-| $100 | 3,677 |
+| $0.01 | 0.1 Pi 5 boards |
+| $1.00 | 9 |
+| $100 | 918 |
 
-**Proof of work becomes vestigial once the endowment is spent**, supporting a field of tens of devices at plausible token prices. That is R8 working as specified rather than a defect — the brief asked that the post-phase pay "a very minimal amount", and a reward defined as exactly one transfer plus one inscription delivers exactly that. It is worth stating plainly because it means the post-phase provides no security and should not be relied on for any: whatever the chain needs proof of work *for* after bootstrap, this reward will not fund it.
+*These were published as 0.4 / 37 / 3,677 "Pi 5-equivalents", which are the same figures counted in single **cores** — the superseded basis. One node is a whole four-core board throughout, so the device counts are a quarter of that.*
+
+**Proof of work becomes vestigial once the endowment is spent**, supporting a field of single-digit boards at plausible token prices. That is R8 working as specified rather than a defect — the brief asked that the post-phase pay "a very minimal amount", and a reward defined as exactly one transfer plus one inscription delivers exactly that. It is worth stating plainly because it means the post-phase provides no security and should not be relied on for any: whatever the chain needs proof of work *for* after bootstrap, this reward will not fund it.
 
 ## 6. What follows
 
 **For both designs, and first.** The retiring assumption is not incentivised, costs a third to two thirds of onboarding when it fails, and is indistinguishable from ordinary inattention. Either stop quoting the retiring figure as the expected case — which makes the de-novo reference triple infeasible by its own check and should move the triple — or add a mechanism that prices continued mining after bonding. This is the one finding here that should change a decision.
 
-**For the redesign.** Both of its novel surfaces are closed by measurement rather than argument, and gated. The whale exposure is real, accepted, concentrated in the first quarter of the phase — **and now shown to be closable**: §3.4's `de novo*` bounds it from 55% to 9%, flat across whale size, for one parameter and a 40% deferral of spike cohorts' time-to-bond, with no cost to onboarding, phase length or R5. Whether to buy that is a decision rather than a finding, and it is the one open item this analysis leaves. Its sybil resistance at moderate flooding is markedly better than the current design's, which is a point in its favour that the first version of this analysis missed.
+**For the redesign.** Both of its novel surfaces are closed by measurement rather than argument, and gated. The whale exposure is real, accepted, concentrated in the first quarter of the phase — **and now shown to be closable**: §3.4's `de novo*` bounds it from 55% to 9%, flat across whale size, for one parameter and a 37% deferral of spike cohorts' time-to-bond, with no cost to onboarding, phase length or R5. Whether to buy that is a decision rather than a finding, and it is the one open item this analysis leaves. Its sybil resistance at moderate flooding is markedly better than the current design's, which is a point in its favour that the first version of this analysis missed.
 
 **For the current design.** Its immunity to reward manipulation is structural — a pool-determined reward cannot be pumped — and worth counting as the redesign's opportunity cost. Its flow cap makes it undrainable by any actor.
 

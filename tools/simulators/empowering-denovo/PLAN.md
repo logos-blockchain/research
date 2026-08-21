@@ -57,9 +57,11 @@ the geometric design never had.
 
 Claims are paid at the epoch's fixed reward until the sub-pool is spent. If a large cohort
 arrives and the sub-pool saturates mid-epoch, **payment continues, drawing the remaining pool
-forward** — the saturation point is recorded, and the effective end of bootstrap moves earlier.
-A spike is absorbed by shortening the phase, not by pricing out the cohort. The expected
-duration is exactly that — an expectation, not a guarantee.
+forward** — the saturation point is recorded. A spike is absorbed by borrowing against later
+epochs, not by pricing out the cohort. It does **not** shorten the phase: the schedule
+re-spreads whatever remains over the epochs still left, so the deadline holds (measured: a ×100
+spike ends at 196 against uniform's 196). The expected duration is exactly that — an
+expectation, not a guarantee — but a spike is not what moves it.
 
 This inverts the current design's central behaviour, where the controller holds the claim
 count flat against a 380-fold load change and a cohort's arrival only thins everyone's slice.
@@ -104,11 +106,16 @@ The three R4 parameters are not independent — they carry an internal consisten
 | --- |
 
 Every elevation costs one bond, so a `(pool, N, T)` triple silently asserts that this fraction
-of what the pool pays out actually reaches bonds. The elevation study measured **11.4%** when
-bonded miners keep mining and **51.9%** when they retire — so the model *validates triples*:
-a triple whose implied efficiency exceeds the achievable band is unsatisfiable and the design
-says so at parameterisation time, not after a simulation. This is the strongest single result
-carried over from the target-parameterisation work.
+of what the pool pays out actually reaches bonds — so the model *validates triples*: a triple
+whose implied efficiency exceeds what the mechanism actually converts is unsatisfiable, and the
+design says so at parameterisation time rather than after a simulation. This is the strongest
+single result carried over from the target-parameterisation work.
+
+The ceiling was originally imported from the elevation study's **11.4% / 51.9%**. It has since
+been re-measured *in this mechanism* and is not one band but two regimes: **15% when nobody
+retires**, flat in the arrival rate, and **25–74% when they do**, rising with it. `params.py`
+reports both verdicts separately, because a triple above 15% is satisfiable only on an
+assumption about behaviour that nothing in the mechanism pays for.
 
 Duration enters separately: `T` fixes the per-epoch budget and therefore the onboarding
 *pace*; `pool` and `N` fix the *total*. Fee drag couples them: each claim pays its own fee, so
@@ -199,7 +206,7 @@ three more; Q7 settled 2026-08-19, Q8/Q9 pending as a coupled pair:
    than a concession made blind. The flat-budget cap this entry rejected was rejected for the
    right reason; the workable form bounds the draw as a fraction of the remaining endowment.)* The pool
    pays until exhausted and a whale is a claimant like any other; the endowment is
-   first-come by design and the 17%/52%/83% capture at 1x/3x/10x ships as a documented,
+   first-come by design and the 17%/50%/56% capture at 1x/3x/10x ships as a documented,
    gated property. Rejected: caps at 3x or 2x budget per epoch (one constant against R1,
    softens R6, and the 2x cap would already queue the measured honest x100 cohort).
 9. **Index damping** — SETTLED 2026-08-19: **raw claims_prev**. Zero state, and the index's

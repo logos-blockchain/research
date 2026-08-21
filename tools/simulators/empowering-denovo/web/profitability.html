@@ -17,8 +17,11 @@
     <div id="controls"></div>
     <p class="note">Electricity is yours to set. The device profiles come from the standalone
       cost estimator — only the Raspberry&nbsp;Pi&nbsp;5 and one Apple class have <em>measured</em>
-      Poseidon2 rates, so a GPU rig, which would be faster per unit of cost, is absent rather
-      than guessed. The difficulty is shown as a multiple of the bootstrap floor.</p>
+      Poseidon2 rates. A GPU rig is <em>estimated</em> there and is not offered here: it is about
+      twelve times a Pi&nbsp;5 board in raw rate but roughly <strong>four times worse per
+      joule</strong>, because Poseidon2 over BN254 maps badly onto GPU ALUs — so it changes an
+      attacker's hashrate <em>share</em>, not the cost per candidate this page prices. The
+      difficulty is shown as a multiple of the bootstrap floor.</p>
   </aside>
 
   <section>

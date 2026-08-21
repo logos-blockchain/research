@@ -42,10 +42,15 @@
     }
   ],
   "current_design": {
-    "note": "measured on the EmPoWering-simulator branch",
+    "note": "measured here from empowering_sim.elevation, not transcribed",
     "elevated_retiring": 25934,
     "elevated_persistent": 5682,
-    "door_closes_at_100_per_epoch": 34,
-    "point_of_no_return_at_100_per_epoch": 212
+    "elevated_retiring_at_denovo_rate": 27125,
+    "elevated_persistent_at_denovo_rate": 5465,
+    "denovo_rate_note": "130 miners/epoch over 360 epochs -- the configuration every de-novo figure uses",
+    "door_closes_at_100_per_epoch": 40,
+    "door_closes_at_100_per_epoch_retiring": 251,
+    "point_of_no_return_at_100_per_epoch": 212,
+    "point_of_no_return_note": "carried from the strategy study; not reproducible from committed code and not gated"
   }
 }

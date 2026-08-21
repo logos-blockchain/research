@@ -26,12 +26,21 @@ are two bounds that do not depend on the shape at all:
 * ``WORST`` — every core of the most efficient hardware measured, at full duty. This is the
   adversarial assumption: an attacker buys the best available and runs it flat out.
 
-**What is NOT bounded, and it matters.** The worst case here is the best *measured* class, and
-the classes with measured Poseidon2 rates are a Raspberry Pi 5 and an Apple M-series part. A
-GPU rig would be faster per unit of cost and is the true adversarial ceiling; its Poseidon2
-rate has not been benchmarked (the cost estimator carries the profile but no rate, and says
-so). **Every adversarial number in these reports is therefore a lower bound on what a
-well-equipped attacker achieves**, and the gap is unmeasured rather than small.
+**Where the GPU sits, now that it is estimated.** The worst case here is the best *measured*
+class. `powcost.rates` now also carries an ESTIMATED `gpurig` rate for `poseidon2_reward`
+(``measured=False``), derived from published BN254 field-multiplication throughput, and it
+splits the old blanket caveat rather than confirming it:
+
+* **Cost-bounded attacks are not understated.** A card spends about 1.54e-3 J per candidate
+  against a Pi 5 board's measured 3.65e-4 -- roughly **four times worse per joule**. Anything
+  priced per candidate, the sybil flood included, is unaffected by GPUs.
+* **Share-bounded attacks are understated.** A card is about twelve times a board in raw rate
+  and a six-card rig about 73x, so an attacker buying hashrate *share* -- the whale -- reaches
+  a given share far faster than a Pi 5 field suggests.
+
+Poseidon2 over BN254 rather than over a small field is itself a GPU-resistance decision, and
+it is doing that work whether or not it was chosen for it. The GPU figure is an estimate and
+should be replaced by `make bench-poseidon2` on a CUDA host before anything rests on it.
 """
 from __future__ import annotations
 
@@ -40,6 +49,11 @@ from dataclasses import dataclass
 from empowering_sim.config import Config
 
 PI5_CORES = 4                     # protocol-snapshot.toml, [work] pi5_cores
+
+# powcost.rates TABLE[("poseidon2_reward", "apple")]: measured on an M4 Pro performance core,
+# release build with link-time optimisation, over ten usable performance cores.
+APPLE_SECONDS_PER_CANDIDATE = 26.6e-6
+APPLE_CORES = 10
 
 
 @dataclass(frozen=True)
@@ -67,18 +81,21 @@ def board(cfg: Config) -> PowerBasis:
                       "all four cores of a Raspberry Pi 5, measured, at full duty")
 
 
-def worst(cfg: Config, efficiency_ratio: float = 3.45) -> PowerBasis:
+def worst(cfg: Config) -> PowerBasis:
     """The adversarial assumption: the best measured hardware, every core, full duty.
 
-    ``efficiency_ratio`` is the Apple class's cost advantage per candidate over the Pi 5 in
-    the estimator (2.025e-11 against 5.864e-12 USD). Applied to the rate as a stand-in for a
-    faster part, since the Apple class's own candidate rate is not separately benchmarked.
-    A GPU rig would exceed this and is unmeasured; see the module docstring.
+    Built from the Apple class's own **measured** Poseidon2 rate, not from a stand-in. Until
+    2026-08-20 this multiplied the Pi 5 board rate by 3.45 -- the Apple class's cost advantage
+    per candidate (2.025e-11 against 5.864e-12 USD) -- which is an energy ratio applied to a
+    rate, a category error that also understated the bracket 4.5-fold. The rate ratio is
+    directly available: `powcost.rates` carries the M4 Pro at 26.6 microseconds per candidate,
+    measured, over ten performance cores.
     """
-    return PowerBasis("worst-measured",
-                      efficiency_ratio * PI5_CORES / cfg.seconds_per_candidate_reward,
-                      f"best measured class, all cores, full duty -- {efficiency_ratio:.2f}x a "
-                      f"Pi 5 board; a GPU rig would exceed this and is unbenchmarked")
+    rate = APPLE_CORES / APPLE_SECONDS_PER_CANDIDATE
+    return PowerBasis("worst-measured", rate,
+                      f"best measured class, all cores, full duty -- "
+                      f"{rate / (PI5_CORES / cfg.seconds_per_candidate_reward):.1f}x a Pi 5 "
+                      f"board, from the measured rate rather than a cost ratio")
 
 
 def homogeneous(basis: PowerBasis):

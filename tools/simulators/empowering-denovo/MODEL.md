@@ -33,10 +33,20 @@ ENDOWMENT_GENESIS  = floor(POOL_FRACTION * LAUNCH_SUPPLY * LEPTA)     # 5e16 lep
 | `implied_efficiency = EXPECTED_NODES * min_stake / ENDOWMENT_GENESIS` |
 | --- |
 
-must lie inside the measured conversion band **[11.4%, 51.9%]** (elevation study; the ends are
-the bonded-miners-keep-mining and bonded-miners-retire behaviours). The reference triple
-implies 50% — satisfiable, and only just: it presumes most bonded miners retire. A triple
-outside the band is rejected as unsatisfiable at declaration time.
+must not exceed what this mechanism actually converts. The ceiling is a **regime**, re-measured
+here rather than imported from the elevation study's [11.4%, 51.9%]:
+
+* **persistent** (nobody retires — what the incentives deliver): **15%**, and flat in the
+  arrival rate.
+* **retiring** (bonded miners stop mining): **25% to 74%**, rising with the arrival rate.
+
+A triple implying more than 15% is satisfiable **only on the assumption that miners retire**,
+which nothing in the mechanism pays for; `params.py` reports the two verdicts separately
+(`satisfiable` against the persistent figure, `satisfiable_if_retiring` against the retiring
+one) and names the regime in `regime_note`. There is no lower bound: under-spending the
+endowment is not an inconsistency, it just leaves money armed. The reference triple implies
+50% — satisfiable only if miners retire, and therefore a bet on behaviour rather than a
+parameter choice.
 
 ## 2. State
 
@@ -301,7 +311,7 @@ At `draw_cap_fraction = 0.10`: whale capture falls from 55% to 9% and becomes fl
 whale's size (3×, 30× and 100× all land at 9%, where the base ranges 33–56%); the ×100 cohort
 still bonds completely, at a median 59 epochs against 43; onboarding and phase length do not
 move. The costs are one parameter with no natural value, a softening of R6's letter within an
-epoch, and a 40% longer wait for the cohorts R5 exists to protect.
+epoch, and a 37% longer wait for the cohorts R5 exists to protect.
 
 ## 9. Amendment to Q4, on the record
 

@@ -28,11 +28,17 @@ function renderTable() {
   const tb = document.getElementById("table");
   tb.innerHTML = "";
   const dn = pick("de novo"), dns = pick("de novo*");
+  // Like for like: the current design measured at the SAME arrival rate and horizon as the
+  // de-novo runs (130/epoch, 360 epochs), not at its own study's 100/400.
   const cur = state.regime === "retiring"
-    ? D.current_design.elevated_retiring : D.current_design.elevated_persistent;
+    ? D.current_design.elevated_retiring_at_denovo_rate
+    : D.current_design.elevated_persistent_at_denovo_rate;
+  const curDoor = state.regime === "retiring"
+    ? D.current_design.door_closes_at_100_per_epoch_retiring
+    : D.current_design.door_closes_at_100_per_epoch;
 
   row(tb, "nodes onboarded", fmt(cur), fmt(dn.bonds), fmt(dns.bonds),
-      "at the reference parameters, this regime");
+      "reference parameters, this regime, all three at 130 arrivals/epoch over 360 epochs");
   row(tb, "a ×100 cohort's fate",
       `door shut`, `${(dn.spike_bonded * 100).toFixed(0)}% in`,
       `${(dns.spike_bonded * 100).toFixed(0)}% in`,
@@ -49,8 +55,11 @@ function renderTable() {
       "none", "none", "does the mechanism care when people arrive?",
       { cur: "bad", dn: "ok", dns: "ok" });
   row(tb, "door closes at 100 arrivals/epoch",
-      `epoch ${D.current_design.door_closes_at_100_per_epoch}`, "never", "never",
-      "last cohort with even odds of getting in", { cur: "bad", dn: "ok", dns: "ok" });
+      `epoch ${curDoor}`, "never", "never",
+      "last cohort with even odds of getting in — strongly regime-dependent: epoch "
+      + `${D.current_design.door_closes_at_100_per_epoch} under persistence, `
+      + `${D.current_design.door_closes_at_100_per_epoch_retiring} under retirement`,
+      { cur: "bad", dn: "ok", dns: "ok" });
   row(tb, "point of no return", `epoch ${D.current_design.point_of_no_return_at_100_per_epoch}`,
       "none", "none", "queue exceeds every bond the pool can fund",
       { cur: "bad", dn: "ok", dns: "ok" });
@@ -106,21 +115,26 @@ function renderCharts() {
 
 function renderVerdict() {
   const dn = pick("de novo"), dns = pick("de novo*");
+  const curDoor = state.regime === "retiring"
+    ? D.current_design.door_closes_at_100_per_epoch_retiring
+    : D.current_design.door_closes_at_100_per_epoch;
   document.getElementById("verdict").innerHTML = `
     <table><tbody>
       <tr><td style="width:9rem"><strong>current</strong></td><td class="n">
         Cannot be drained and cannot be rushed — but it rations a fixed flow, so it has a best
-        adoption speed, a door that closes at epoch
-        ${D.current_design.door_closes_at_100_per_epoch}, and a point of no return.</td></tr>
+        adoption speed, a door that closes at epoch ${curDoor} in this regime, and a point of
+        no return.</td></tr>
       <tr><td><strong>de novo</strong></td><td class="n">
         No best speed, no door, no point of no return — the budget follows the crowd. Pays for
         it by being drainable: ${(dn.whale_capture * 100).toFixed(0)}% of the endowment to one
         well-timed actor.</td></tr>
       <tr><td><strong>de novo*</strong></td><td class="n">
         The same, with the drain bounded to ${(dns.whale_capture * 100).toFixed(0)}% and flat in
-        the whale's size. Costs one parameter with no natural value and makes the crowd wait
-        ${((dns.spike_median_epochs / dn.spike_median_epochs - 1) * 100).toFixed(0)}% longer —
-        everyone still gets in.</td></tr>
+        the whale's size. Costs one parameter with no natural value${
+          dns.spike_median_epochs > dn.spike_median_epochs
+            ? ` and makes the ×100 crowd wait ${((dns.spike_median_epochs / dn.spike_median_epochs - 1) * 100).toFixed(0)}% longer — all of it still bonds`
+            : ` and, in this regime, nothing else: the ×100 crowd waits exactly as long with the bound as without it (${fmt(dns.spike_median_epochs)} epochs), and the same ${(dns.spike_bonded * 100).toFixed(0)}% of it bonds either way`
+        }.</td></tr>
     </tbody></table>`;
 }
 

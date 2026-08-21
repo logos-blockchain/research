@@ -1,21 +1,15 @@
 {
   "devices": [
     {
-      "key": "pi5-core",
-      "label": "Raspberry Pi 5, one core",
-      "candidates_per_second": 6036.533098310978,
-      "wh_per_candidate": 1.0123544444444445e-07
-    },
-    {
       "key": "pi5-board",
-      "label": "Raspberry Pi 5, whole board",
+      "label": "Raspberry Pi 5 (per candidate; core or board alike)",
       "candidates_per_second": 24146.13239324391,
       "wh_per_candidate": 1.0123544444444445e-07
     },
     {
       "key": "best-measured",
       "label": "best measured class, all cores",
-      "candidates_per_second": 83304.1567566915,
+      "candidates_per_second": 375939.84962406015,
       "wh_per_candidate": 2.9320987654320985e-08
     }
   ],

@@ -2,7 +2,10 @@
 
 The base design accepts, under Q8, that the borrow-forward is unbounded: a large actor
 arriving early can take most of the endowment inside the demand index's one-epoch repricing
-lag (88% at epoch 20, collapsing a 195-epoch phase to 23). This module is the alternative that
+lag: 55% at epoch 20 against a realistically-spread Pareto field, and 89% against a homogeneous
+field of identical boards -- the bound, where the phase does collapse, to epoch 23. Against the
+Pareto field the phase does not collapse at all; it ends at 197 against uniform's 196. This
+module is the alternative that
 addresses it, kept separate so the base design stays exactly as specified and the variant can
 be compared against it rather than replacing it.
 
@@ -17,15 +20,20 @@ mis-measured 2.6× figure; at the true ~97 that cap would ration the honest coho
 **What the variant does instead.** Bound the *endowment draw* per epoch as a fraction of what
 remains, and let the demand index do the rest:
 
-| `drawable_this_epoch = draw_cap_fraction * endowment_at_epoch_start` |
+| `drawable_this_epoch = sub_pool + draw_cap_fraction * endowment_at_epoch_start` |
 | --- |
+
+An epoch may always spend its own scheduled sub-pool; only the borrow *beyond* it is bounded.
+Capping the whole draw instead throttles the ordinary spend-down, and the endowment then never
+empties -- measured, the transition stops firing at every cap tested. The `sub_pool +` term is
+the difference between a bound on the borrow and a bound on the design.
 
 The point is not the ceiling itself but what it converts. Beyond the cap the epoch stops
 admitting claims — but the claimants have not gone anywhere, and they claim again next epoch,
 by which time `claims_prev` has exploded and the reward has fallen. **The cap turns instant
 extraction into extraction across several epochs, which is exactly the interval the index
 needs to reprice.** For an honest cohort that is a deferral of a few epochs against a
-median time-to-bond of thirty-nine; for a whale it is the difference between beating the
+median time-to-bond of forty-three; for a whale it is the difference between beating the
 index and being metered by it.
 
 It costs one parameter, against R1, and it softens R6's letter — the pool no longer pays

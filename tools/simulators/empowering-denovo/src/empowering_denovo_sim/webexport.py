@@ -71,9 +71,14 @@ def profitability_inputs() -> dict:
     cfg = ref.cfg
     classes = {k.key: k for k in market.from_powcost("poseidon2_reward", 0.20, "total")}
     devices = []
+    # One entry per distinct ENERGY class. Cost per claim is candidates-per-claim times energy
+    # per candidate, and energy per candidate does not depend on how many cores you run -- so a
+    # Pi 5 core and a whole Pi 5 board are the same point on this page, and offering both as
+    # separate options presented the superseded one-core basis as a live alternative while
+    # producing byte-identical output.
     for key, label, rate in (
-            ("pi5-core", "Raspberry Pi 5, one core", power.minimal(cfg).candidates_per_second),
-            ("pi5-board", "Raspberry Pi 5, whole board", power.board(cfg).candidates_per_second),
+            ("pi5-board", "Raspberry Pi 5 (per candidate; core or board alike)",
+             power.board(cfg).candidates_per_second),
             ("best-measured", "best measured class, all cores",
              power.worst(cfg).candidates_per_second)):
         # watt-hours per candidate, back-derived from the estimator at its reference price
@@ -117,6 +122,62 @@ def comparison_rows() -> list[dict]:
     return rows
 
 
+def current_design() -> dict:
+    """The incumbent's column, MEASURED from `empowering_sim.elevation` rather than transcribed.
+
+    These four numbers were integer literals in this file until 2026-08-20, with no gate and no
+    way to notice drift. Two things the measurement makes visible:
+
+    * the published pair (25,934 / 5,682) is taken at 100 miners an epoch over 400 epochs,
+      while every de-novo figure is at 130 over 360 -- so the headline onboarding table was
+      comparing designs at different arrival rates. Both are exported now, and the browser
+      shows the like-for-like one.
+    * the closing door is strongly regime-dependent -- at 100/epoch it shuts at epoch 40 under
+      persistence and epoch 251 under retirement. It was published regime-free, at the
+      persistent value, in a document that gives every other headline at both ends.
+    """
+    import numpy as np                                          # noqa: PLC0415
+
+    from empowering_sim import elevation as el                  # noqa: PLC0415
+    from empowering_sim.config import load as _load             # noqa: PLC0415
+
+    cfg = _load()
+
+    def elevated(rate: int, epochs: int, retire: bool) -> int:
+        return el.run(cfg, el.ElevationConfig(miners_per_epoch=rate, epochs=epochs,
+                                              retire_on_bond=retire)).elevated
+
+    def door(rate: int, retire: bool, epochs: int = 400) -> int:
+        """Last arrival epoch whose cohort still has even odds of ever bonding."""
+        r = el.run(cfg, el.ElevationConfig(miners_per_epoch=rate, epochs=epochs,
+                                           retire_on_bond=retire))
+        seated = np.asarray(r.seated_epoch)
+        bonded = np.asarray(r.bond_epoch) >= 0
+        last = -1
+        for e in sorted(set(seated.tolist())):
+            m = seated == e
+            if m.any() and bonded[m].mean() >= 0.5:
+                last = int(e)
+        return last
+
+    return {
+        "note": "measured here from empowering_sim.elevation, not transcribed",
+        # as published: 100/epoch over 400 epochs
+        "elevated_retiring": elevated(100, 400, True),
+        "elevated_persistent": elevated(100, 400, False),
+        # like-for-like with the de-novo runs: 130/epoch over 360 epochs
+        "elevated_retiring_at_denovo_rate": elevated(130, 360, True),
+        "elevated_persistent_at_denovo_rate": elevated(130, 360, False),
+        "denovo_rate_note": "130 miners/epoch over 360 epochs -- the configuration every "
+                            "de-novo figure uses",
+        "door_closes_at_100_per_epoch": door(100, False),
+        "door_closes_at_100_per_epoch_retiring": door(100, True),
+        "point_of_no_return_at_100_per_epoch": 212,
+        "point_of_no_return_note": "carried from the strategy study; not reproducible from "
+                                   "committed code and not gated",
+    }
+
+
 def export(out: Path) -> list[Path]:
     out.mkdir(parents=True, exist_ok=True)
     ref = Triple()
@@ -155,11 +216,7 @@ def export(out: Path) -> list[Path]:
 
     cj = out / "comparison.json"
     cj.write_text(json.dumps({"rows": comparison_rows(),
-                              "current_design": {
-                                  "note": "measured on the EmPoWering-simulator branch",
-                                  "elevated_retiring": 25934, "elevated_persistent": 5682,
-                                  "door_closes_at_100_per_epoch": 34,
-                                  "point_of_no_return_at_100_per_epoch": 212}},
+                              "current_design": current_design()},
                              indent=2) + "\n")
     return [pj, gj, fj, cj]
 

@@ -47,7 +47,7 @@ class Population:
         ``refuses_to_retire`` models a coalition that bonds and keeps mining anyway. It costs
         them nothing -- they go on earning -- and it degrades everyone else's conversion, so
         it is the cheapest griefing attack on a design whose feasibility check presumes
-        retirement. See `adversary.retirement_denial`.
+        retirement. Measured by the `refuse_fraction` gates in `validate.py`.
         """
         m = self.arrived >= 0
         if retire_on_bond:
