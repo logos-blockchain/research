@@ -28,6 +28,8 @@ The arithmetic is a textbook collective-action problem. For somebody who has alr
 
 So the realistic expectation is that people carry on, and **both designs bring in roughly a third of the people their headline numbers promise.** That is not an attack; it is what ordinary self-interest produces. Both sets of figures in this document are given at both ends for that reason.
 
+And it is no longer only an expectation: letting each joiner *re-decide every period* — weighing what the prizes pay against what the electricity costs, including the small bonus that crowding out a newcomer protects their service income — was measured in the redesign's simulator (`adversarial-analysis.md` §2.3). Everyone carries on for the whole programme, and everyone stops the moment it ends. One twist matters for planning: the prizes are paid in tokens and electricity in dollars, so **a more valuable token makes the problem worse** — the optimistic headline numbers require a token worth under a cent, and at any price that would count as success, the one-third figure is what happens.
+
 **What actually has to be decided.** Whether the network wants a mechanism that treats everyone who turns up the same regardless of when they come (the redesign) or one that cannot be drained quickly by any single participant (the current design). The simulations can say what each one does; they cannot say which of those two properties matters more, and that is the decision in front of you. Either way, the numbers should be re-struck on the assumption that joiners keep mining, because that is what they will do.
 
 ## 1. What each design fixes, and what it lets move

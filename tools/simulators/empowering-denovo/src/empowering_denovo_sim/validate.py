@@ -391,11 +391,12 @@ def main() -> int:
 
     _no_x = engine.run(d, _A, _st2.hashrate_draw(cfg), epochs=240,
                        retirement_policy=ret.Rational(count_exclusion=False))
-    check("the exclusion dividend changes no decision at the measured service pot",
+    check("the exclusion dividend changes no decision at the measured pot and reference price",
           _no_x.rows[-1].bonds_total, _dec.rows[-1].bonds_total,
           note="suppressing the on-ramp IS worth something -- every 1,000 LGO mined is one "
-               "bond that never happens -- but it only flips a decision that is otherwise "
-               "marginal, and during bootstrap mining already pays outright")
+               "bond that never happens -- but at $1 it only reinforces a decision mining "
+               "wins outright. Near the break-even price it perturbs the oscillation's phase "
+               "and moves bonds by a few per cent; it never changes the regime at any price")
 
     _curve = ret.price_curve(d, prices=(1.0, 0.10, 0.01))
     check("a HIGHER token price suppresses onboarding, not a lower one",

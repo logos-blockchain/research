@@ -141,7 +141,10 @@ def sweep_pool(d: Derived, pools, **kw) -> list[dict]:
     for pool in pools:
         r = engine.run(d, arrivals.uniform(220, 130), study.hashrate_draw(d.cfg), epochs=360,
                        retirement_policy=Rational(blend_pool_lgo=pool, **kw))
+        # Mid-bootstrap, not end-of-run: post-phase everyone has retired in every run, so an
+        # end-state column reads 0.0 regardless of the pool and says nothing about the sweep.
+        mid = d.bootstrap_epochs // 2
         rows.append({"blend_pool_lgo": pool, "bonds": r.rows[-1].bonds_total,
                      "transition": r.transition_epoch,
-                     "persisting_at_end": r.persisting_fraction})
+                     "persisting_mid_bootstrap": r.rows[mid].persisting})
     return rows

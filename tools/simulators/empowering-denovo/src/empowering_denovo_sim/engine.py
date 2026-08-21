@@ -75,8 +75,14 @@ class EpochRow:
     miners_live: int
     difficulty_target: int
     endowment_drawn: int            # what this epoch took from the endowment bucket
-    persisting: float = 0.0         # share of the BONDED still mining -- an outcome under a
-                                    # retirement_policy, an echo of the flag without one
+    persisting: float = 0.0         # of those bonded by this epoch's end, the share that
+                                    # MINED during it -- measured from the live mask, so it is
+                                    # truthful under every mode: an outcome under a
+                                    # retirement_policy, 100% under retire_on_bond=False, and
+                                    # the new-bond residue under plain retire_on_bond=True.
+                                    # (It read the refuses_to_retire flags until 2026-08-21,
+                                    # which showed 0% for an exogenous-persistent run whose
+                                    # every miner was in fact mining.)
 
 
 @dataclass
@@ -92,15 +98,13 @@ class Result:
 
     @property
     def persisting_fraction(self) -> float:
-        """Of those who reached a bond, what share was still mining at the end.
+        """Of those bonded by the end, the share that mined the final epoch.
 
-        Meaningful only under a `retirement_policy`, where it is an outcome; under the
-        exogenous regimes it just reads back the flag that was set.
+        Reads the last row's measured `persisting`, so it is truthful under every mode --
+        including the exogenous regimes, where the flag array it once read gave the exact
+        opposite of reality for a `retire_on_bond=False` run.
         """
-        bonded = self.pop.bonded_at != NOT_SET
-        if not bonded.any() or self.pop.refuses_to_retire is None:
-            return 0.0
-        return float(self.pop.refuses_to_retire[bonded].mean())
+        return self.rows[-1].persisting if self.rows else 0.0
 
     def bonds_by_cohort(self) -> dict[int, int]:
         """Arrival epoch -> bonds reached. The R5 admission metric."""
@@ -130,6 +134,12 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
     bonded miner re-decides every epoch whether to keep mining and ``retire_on_bond`` is
     ignored; see `retirement.py` for the utility it maximises. Without one, the two exogenous
     regimes remain: ``retire_on_bond`` True or False, optionally with ``refuse_fraction``.
+
+    ``refuse_fraction`` under a policy is FUNCTIONALLY IGNORED -- the policy rewrites the
+    per-miner flags every epoch, so the coalition it seeds never survives to a decision. Its
+    only residue is the rng draws its ignored array consumed, which shift the stream for
+    everything after (measured: 4,382 against 4,384 bonds). Do not combine them expecting a
+    coalition that overrides the policy; model that as a policy instead.
     """
     cfg = d.cfg
     rng = np.random.default_rng(seed)
@@ -312,9 +322,10 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
                 pop.refuses_to_retire[idx[newly]] = True
         bonds_total = int((pop.bonded_at != NOT_SET).sum())
 
+        # The newly bonded were live this epoch by construction -- mining is how they bonded --
+        # so `live[bonded]` is the truthful "did this bonded miner mine" for every mode.
         bonded_mask = pop.bonded_at != NOT_SET
-        persisting = (float(pop.refuses_to_retire[bonded_mask].mean())
-                      if pop.refuses_to_retire is not None and bonded_mask.any() else 0.0)
+        persisting = float(live[bonded_mask].mean()) if bonded_mask.any() else 0.0
         rows.append(EpochRow(
             epoch=e, bootstrap=bootstrap, endowment=endowment,
             fee_bucket_opening=fee_opening, budget=budget, reward=reward,

@@ -48,6 +48,14 @@ endowment is not an inconsistency, it just leaves money armed. The reference tri
 50% — satisfiable only if miners retire, and therefore a bet on behaviour rather than a
 parameter choice.
 
+The bet has since been measured rather than left open (`retirement.py`; analysis in
+`adversarial-analysis.md` §2.3): with retirement decided per miner per epoch, every bonded
+miner keeps mining through the scheduled phase at any token price above roughly $0.20 —
+income is denominated in LGO and electricity in dollars, so a dearer token sustains mining
+longer — and the retiring reading requires a token worth under a cent. A triple should
+therefore be struck against the persistent figure unless the token is expected to stay
+nearly worthless.
+
 ## 2. State
 
 Consensus state, per the component accounting of Q6:
