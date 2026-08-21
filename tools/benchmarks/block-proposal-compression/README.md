@@ -1,8 +1,14 @@
-# `REFERENCE_PREFIX_LENGTH` — benchmark suite
+# Block proposal compression — benchmark suite
 
 Measurements behind the choice of `REFERENCE_PREFIX_LENGTH` for the compressed
 block proposal ([logos-lips#389]). The report that reads these results is
-[`reports/block-proposal/reference-prefix-length.md`](../../../reports/block-proposal/reference-prefix-length.md).
+[`reports/block-proposal-compression/reference-prefix-length.md`](../../../reports/block-proposal-compression/reference-prefix-length.md),
+and its **Notation and terms** section defines every symbol used below
+(`L`, `k`, `b`, `n`, `R_gen`).
+
+The crate is named `reference-prefix-bench` because that is what it measures;
+the directory is named for the wider topic, so further block-proposal-compression
+tools can sit beside it later.
 
 Everything here runs the **real `logos-blockchain` code**, pinned by commit in
 `Cargo.toml` — the Mantle transaction encoding, `mantle_txhash` (Blake2b-256),
@@ -38,7 +44,7 @@ sources, so the comparison is like-for-like.
 brew install rustup git          # if not already present
 rustup-init -y                   # then restart the shell
 
-cd tools/benchmarks/reference-prefix
+cd tools/benchmarks/block-proposal-compression
 ./scripts/run_all.sh mac
 ```
 
@@ -58,7 +64,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
 
 git clone https://github.com/logos-blockchain/research.git
-cd research/tools/benchmarks/reference-prefix   # or: git pull, if already cloned
+cd research/tools/benchmarks/block-proposal-compression   # or: git pull, if already cloned
 
 ./scripts/run_all.sh rpi5
 ```

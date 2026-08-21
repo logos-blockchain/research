@@ -14,7 +14,7 @@
 
 Everything below is measured against the real `logos-blockchain` code at commit
 [`40e76c8`], not a model of it. The benchmark suite is in
-[`tools/benchmarks/reference-prefix`](../../tools/benchmarks/reference-prefix/),
+[`tools/benchmarks/block-proposal-compression`](../../tools/benchmarks/block-proposal-compression/),
 and every number in this report can be re-derived by running it.
 
 > **Status of the RPi5 columns: complete.** macOS (Apple M3) is the development
@@ -24,6 +24,49 @@ and every number in this report can be re-derived by running it.
 > conclusion**. Its reconstruction is ~1.7× slower than the M3's, but its slot
 > crossover is the **same k = 10**, so the cost tables are identical between
 > the two machines — see [what the RPi5 data changed](#what-the-rpi5-data-changed).
+
+---
+
+## Notation and terms
+
+Everything in this report is expressed in a handful of symbols. They are defined
+once here so no section has to re-introduce them.
+
+| Symbol | Means | Typical values here |
+|---|---|---|
+| **`L`** | **Reference prefix length in bytes** — the parameter being chosen. A block proposal refers to each transaction by the first `L` bytes of its hash instead of all 32. | 8, 10, 12, 14, 16 |
+| **`b`** | The same quantity **in bits**, `b = 8L`. Used when quoting cryptographic costs, which are conventionally powers of two. | 64 … 128 |
+| **`k`** | **Colliding pairs present in the mempool** — how many of a proposal's references are ambiguous, i.e. resolve to two candidate transactions instead of one. This is the attacker's dial. | 0 … 15 |
+| **`n`** | **Transactions in the block** being reconstructed. Matters because the validator's per-attempt cost is proportional to it. | 128, 1024 |
+| **`N`** | **Candidates an attacker must generate** to find a collision. Not to be confused with `n`. | ~10⁹ … ~10¹⁹ |
+| **`R_gen`** | **Candidate-generation rate** — how many candidate transactions per second an attacker can build, encode, hash and reduce to a prefix. | ~10⁶/s per core |
+
+And the domain terms, in the order a reader meets them:
+
+- **Reference** — one entry in a block proposal, identifying a transaction the
+  validator should already hold in its mempool. Shortening references from 32
+  bytes to `L` is what this whole change is about.
+- **Reconstruction** — the validator's job on receiving a proposal: turn each
+  reference back into the transaction it names, and rebuild the block. It
+  succeeds when the rebuilt block reproduces `block_root`.
+- **Prefix collision** — two different transactions whose hashes agree in their
+  first `L` bytes, so one reference matches both and the validator cannot tell
+  which was meant without trying.
+- **Birthday collision** — finding *any* two colliding transactions among a set
+  the attacker generates themselves. Much cheaper than hitting one *specific*
+  target: ~2^(b/2) attempts rather than ~2^b. This distinction is the entire
+  reason the prefix is 16 bytes rather than 8, and it is #389's central insight.
+- **Slot** — the block-production interval, **1 second** in Cryptarchia. This is
+  the deadline reconstruction must fit inside; exceeding it is the failure this
+  report measures against.
+- **Grinding** — repeatedly generating candidate transactions and hashing them,
+  looking for a collision. Cheap here because it needs no signatures or proofs.
+
+**Two conventions used throughout.** Costs are given for an attacker on *strong*
+hardware and a validator on *weak* hardware, because that pairing is the
+conservative direction for a security margin. And every figure is labelled as
+measured or assumed — there is exactly one assumed input, the GPU hash rate, and
+it is flagged wherever it is used.
 
 ---
 
@@ -676,7 +719,7 @@ as merely over-cautious.
 ## Appendix — reproducing this
 
 ```bash
-cd tools/benchmarks/reference-prefix
+cd tools/benchmarks/block-proposal-compression
 ./scripts/run_all.sh mac      # or: rpi5
 python3 scripts/analyse.py    # regenerates every table and the figure above
 ```
