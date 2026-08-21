@@ -89,14 +89,26 @@ def two_population_run(d: Derived, honest_rate: float, adv_rate: float, adv_acti
             reward = d.anchor
         bootstrap = endowment > 0
 
+        # Participation is an epoch-level decision; the OFFERED rate is not -- it follows the
+        # difficulty, which the throttle moves per block after the transition. Computing the
+        # two expectations once per epoch (as this did until 2026-08-21) left the post-phase
+        # throttle open-loop within the epoch: a burst at the transition ratcheted difficulty
+        # hard, the next epoch opened at a rate of zero, and because nothing recomputed the
+        # rate as the throttle eased back, claims stayed at zero for the rest of the run.
+        # `engine.py` has always recomputed per block (its post-phase branch); this now matches.
+        # During bootstrap `difficulty` is pinned to the floor and never moves inside the loop,
+        # so this is exactly equivalent there -- every published pump and cliff figure, both
+        # measured wholly within bootstrap, is unchanged.
         active = bool(adv_active(e, last_reward))
-        h_mu = work.expected_claims(honest_rate, difficulty, cfg)
-        a_mu = work.expected_claims(adv_rate, difficulty, cfg) if active else 0.0
 
         capacity = None if bootstrap else budget // reward
+        tgt = None if bootstrap else max(1, capacity // cfg.blocks_per_epoch)
         spent = 0
         h_paid = a_paid = 0
         for _ in range(cfg.blocks_per_epoch):
+            h_mu = work.expected_claims(honest_rate, difficulty, cfg) if honest_rate > 0 else 0.0
+            a_mu = (work.expected_claims(adv_rate, difficulty, cfg)
+                    if active and adv_rate > 0 else 0.0)
             ho = int(round(h_mu)) if deterministic else int(rng.poisson(h_mu)) if h_mu else 0
             ao = int(round(a_mu)) if deterministic else int(rng.poisson(a_mu)) if a_mu else 0
             ho = min(ho, cfg.max_block_txs)
@@ -122,7 +134,6 @@ def two_population_run(d: Derived, honest_rate: float, adv_rate: float, adv_acti
             if not bootstrap:
                 # throttle only while admitting (the MODEL 4.2 rule)
                 if spent + reward <= budget:
-                    tgt = max(1, capacity // cfg.blocks_per_epoch)
                     difficulty = _retarget(difficulty, paid, tgt, cfg)
         if bootstrap:
             difficulty = floor

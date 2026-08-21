@@ -259,6 +259,25 @@ def main() -> int:
           note=f"{picky / always:.2f}x of always-on -- Q9's cycle is a UX hazard, not an "
                f"exploit")
 
+    # Every attack above is measured in `two_population_run`, so it is only evidence about
+    # THIS mechanism if that harness reproduces the engine. It did not, past the transition,
+    # until 2026-08-21: expected claims were computed once per epoch, leaving the post-phase
+    # throttle open-loop within the epoch, so a burst at the transition ratcheted the
+    # difficulty and the run then sat at zero claims forever. Nothing tested past the
+    # transition, so nothing caught it. This does.
+    _hon, _, _ = adv.two_population_run(
+        d, power.board(cfg).candidates_per_second * 1000, 0.0, lambda e, r: False, 240)
+    _h_post = [q.honest_paid for q in _hon if not q.bootstrap][1:]
+    _e_post = [q.claims_paid for q in r.rows if not q.bootstrap][1:]
+    check("the adversarial harness does not stall after the transition",
+          min(_h_post) > 0, True,
+          note=f"{len(_h_post)} post-phase epochs, all paying; the open-loop throttle used to "
+               f"collapse this to zero claims and never recover")
+    check("and it reproduces the engine's post-phase steady state exactly",
+          sorted(set(_h_post)), sorted(set(_e_post)),
+          note=f"{_h_post[0]:,} claims an epoch at the anchor in both -- budget // reward, "
+               f"the post-phase capacity")
+
     # The assumption both designs' targets rest on, and what it costs when it fails.
     from . import arrivals as _arr                             # noqa: PLC0415
     from . import study as _st                                 # noqa: PLC0415
