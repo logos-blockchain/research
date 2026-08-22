@@ -98,6 +98,28 @@ def test_the_stable_answer_is_at_least_the_first_feasible_one():
     assert stable.total_queries >= first
 
 
+@pytest.mark.parametrize("providers", [60, 100, 120])
+def test_feasible_regions_near_the_ceiling_are_found(providers):
+    # Regression: the doubling bracket used to test only powers of two and
+    # treated any probe beyond the ceiling as infeasible, so a first stable
+    # sample between the last power of two and the set size was reported as
+    # None even though a scan finds it.
+    params = base(n_providers=providers, adversary_withholds=True)
+    first = first_feasible_sample(params, TARGET)
+    result = calibrate(params, TARGET)
+    if first is None:
+        assert result is None
+    else:
+        assert result is not None, f"calibrate missed feasible samples at N={providers}"
+        assert result.total_queries >= first
+
+
+def test_the_result_never_exceeds_the_set_size():
+    result = calibrate(base(n_providers=120, adversary_withholds=True), TARGET)
+    assert result is not None
+    assert result.total_queries <= 120
+
+
 def test_withholding_costs_more_than_cooperation():
     cooperating = calibrate(base(), TARGET)
     withholding = calibrate(base(adversary_withholds=True), TARGET)

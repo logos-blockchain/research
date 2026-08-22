@@ -127,19 +127,25 @@ def calibrate(
     ceiling = min(max_total_sample, base.n_providers)
 
     def has_option(total: int) -> bool:
-        if total > ceiling:
-            return False
-        probe = replace(base, sample_size=total, max_rounds=1, threshold=1)
+        # Clamp instead of failing: a nominal sample beyond the ceiling draws
+        # exactly the ceiling (total_sampled caps at the set), so its
+        # feasibility IS the ceiling's. Returning False here instead would make
+        # stable() structurally false near the ceiling and the search would
+        # report feasible regions as infeasible.
+        probe = replace(base, sample_size=min(total, ceiling), max_rounds=1, threshold=1)
         return bool(feasible_thresholds(probe, target))
 
     def stable(total: int) -> bool:
         return all(has_option(total + offset) for offset in range(stability_window))
 
+    # Widen by doubling, but land on the ceiling rather than jumping past it —
+    # a bracket that only ever tests powers of two would miss a first stable
+    # sample lying between the last power of two and the ceiling.
     upper = 1
-    while upper <= ceiling and not stable(upper):
-        upper *= 2
-    if upper > ceiling:
-        return None
+    while not stable(upper):
+        if upper >= ceiling:
+            return None
+        upper = min(upper * 2, ceiling)
 
     lower = upper // 2 + 1
     while lower < upper:
@@ -190,13 +196,11 @@ def sweep_fraction(
     max_total_sample: int = 4096,
 ) -> list[tuple[float, Feasible | None]]:
     """Calibrate across adversarial fractions, to show how the cost grows."""
-    from dataclasses import replace as _replace
-
     return [
         (
             f,
             calibrate(
-                _replace(base, adversarial_fraction=f),
+                replace(base, adversarial_fraction=f),
                 target,
                 max_total_sample=max_total_sample,
             ),

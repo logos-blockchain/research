@@ -28,15 +28,17 @@ width — not the value of ``t`` alone — is what decides how large the sample 
 to be.
 
 Sampling is without replacement from a finite set of declarations, so every
-count here is hypergeometric rather than binomial. For the set sizes Bedrock
-expects that distinction is not cosmetic: at ``N`` a few hundred and a sample of
-tens, the binomial approximation understates the tail that matters.
+count here is hypergeometric rather than binomial. At the set sizes Bedrock
+expects the distinction is not cosmetic: without-replacement draws concentrate
+the count, so the binomial approximation *overstates* the security tail (by
+roughly 3x at the design point). The exact model is what makes the calibrated
+sample genuinely minimal — a binomial calibration would be safe but oversized.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import comb, fsum, inf, isfinite
+from math import ceil, comb, fsum, inf, log2
 
 __all__ = [
     "Parameters",
@@ -91,8 +93,15 @@ class Parameters:
 
     @property
     def n_adversarial(self) -> int:
-        """Adversarial providers in the set, rounded to a whole node."""
-        return round(self.adversarial_fraction * self.n_providers)
+        """Adversarial providers in the set, rounded **up** to a whole node.
+
+        A security tool must not round the adversary away: banker's rounding
+        would drop an exact half-node down half the time, and ``f = 1/3`` of
+        5000 must mean 1667 adversaries, not 1666. The product is snapped to 6
+        decimals first so float artifacts (``0.33 * 5000 == 1650.0000000000002``)
+        do not conjure an extra adversary out of representation error.
+        """
+        return min(self.n_providers, ceil(round(self.adversarial_fraction * self.n_providers, 6)))
 
     @property
     def total_sampled(self) -> int:
@@ -141,14 +150,15 @@ def hypergeometric_pmf_array(n_population: int, n_success: int, n_draws: int) ->
     unnormalised = [0.0] * (n_draws + 1)
     unnormalised[mode] = 1.0
 
+    n_rest = n_population - n_success
     for k in range(mode, hi):
         # P[k+1] / P[k]
-        ratio = ((n_success - k) * (n_draws - k)) / ((k + 1) * (n_population - n_success - n_draws + k + 1))
+        ratio = ((n_success - k) * (n_draws - k)) / ((k + 1) * (n_rest - n_draws + k + 1))
         unnormalised[k + 1] = unnormalised[k] * ratio
 
     for k in range(mode, lo, -1):
         # P[k-1] / P[k]
-        ratio = (k * (n_population - n_success - n_draws + k)) / ((n_success - k + 1) * (n_draws - k + 1))
+        ratio = (k * (n_rest - n_draws + k)) / ((n_success - k + 1) * (n_draws - k + 1))
         unnormalised[k - 1] = unnormalised[k] * ratio
 
     total = fsum(unnormalised)
@@ -254,9 +264,4 @@ def liveness_failure(params: Parameters) -> float:
 def security_margin_bits(params: Parameters) -> float:
     """Security failure probability expressed as -log2, for readable comparison."""
     p = security_failure(params)
-    if p <= 0.0:
-        return inf
-    from math import log2
-
-    value = -log2(p)
-    return value if isfinite(value) else inf
+    return inf if p <= 0.0 else -log2(p)

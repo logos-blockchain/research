@@ -3,22 +3,27 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import replace
 
-from .calibrate import Target, calibrate, sweep_fraction
+from .calibrate import Target, sweep_fraction
 from .model import Parameters, liveness_failure, security_failure, security_margin_bits
-from .simulate import simulate
+from .simulate import simulate, within_three_sigma
 
 __all__ = ["main"]
 
-DEFAULT_FRACTIONS = [0.10, 0.20, 0.25, 0.33, 0.40, 0.45]
+DEFAULT_FRACTIONS = [0.10, 0.20, 0.25, 1 / 3, 0.40, 0.45]
 
 
 def _base_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--providers", type=int, default=1000, help="active declaration set size")
+    # Defaults match the documented operating assumptions (5000 active
+    # declarations, adversarial fraction one third) so a bare invocation scores
+    # against the same set the README and the specification quote.
+    parser.add_argument("--providers", type=int, default=5000, help="active declaration set size")
     parser.add_argument(
-        "--fraction", type=float, default=0.33, help="adversarial share of that set"
+        "--fraction",
+        type=float,
+        default=1 / 3,
+        help="adversarial share of that set (the adversary count rounds up)",
     )
     parser.add_argument(
         "--hold",
@@ -87,7 +92,7 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
           f"adversary {'withholds' if args.withhold else 'cooperates'}, "
           f"{args.providers} providers")
     print()
-    print(f"{'f':>6}  {'sample':>7}  {'threshold':>10}  {'t/S':>6}  "
+    print(f"{'f':>8}  {'sample':>7}  {'threshold':>10}  {'t/S':>6}  "
           f"{'P[sec]':>11}  {'P[live]':>11}")
 
     fractions = args.fractions or DEFAULT_FRACTIONS
@@ -95,12 +100,12 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
     for fraction, result in sweep_fraction(base, target, fractions):
         if result is None:
             any_missing = True
-            print(f"{fraction:>6.2f}  {'-':>7}  {'-':>10}  {'-':>6}  "
+            print(f"{fraction:>8.4f}  {'-':>7}  {'-':>10}  {'-':>6}  "
                   f"{'infeasible':>11}  {'infeasible':>11}")
             continue
         p = result.params
         print(
-            f"{fraction:>6.2f}  {p.total_sampled:>7}  {p.threshold:>10}  "
+            f"{fraction:>8.4f}  {p.total_sampled:>7}  {p.threshold:>10}  "
             f"{p.threshold / p.total_sampled:>6.2f}  "
             f"{_fmt(result.security_failure):>11}  {_fmt(result.liveness_failure):>11}"
         )
@@ -146,19 +151,14 @@ def cmd_verify(args: argparse.Namespace) -> int:
             analytic = security_failure(params) if tagged else 1.0 - liveness_failure(params)
             result = simulate(params, tagged=tagged, trials=args.trials, seed=args.seed)
             observed = result.confirm_rate
-            # Three sigma of a binomial proportion, floored so that comparisons
-            # against a near-zero analytic value do not demand exactness the
-            # trial count cannot deliver.
-            sigma = (max(analytic, 1e-9) * (1 - min(analytic, 1.0)) / args.trials) ** 0.5
-            tolerance = max(3 * sigma, 3.0 / args.trials)
-            ok = abs(observed - analytic) <= tolerance
+            ok = within_three_sigma(observed, analytic, args.trials)
             failures += not ok
             label = "tagged   " if tagged else "broadcast"
             print(
-                f"f={fraction:.2f} t={threshold:<3} hold={hold:.2f} "
+                f"f={fraction:.4f} t={threshold:<3} hold={hold:.2f} "
                 f"{'wh' if withholds else '  '} {label}  "
                 f"analytic {analytic:.5f}  simulated {observed:.5f}  "
-                f"tol {tolerance:.5f}  {'ok' if ok else 'MISMATCH'}"
+                f"{'ok' if ok else 'MISMATCH'}"
             )
 
     print()

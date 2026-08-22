@@ -50,46 +50,53 @@ than a formula in a comment:
 ## Result
 
 At the specification's assumptions — 5000 active declarations, adversarial
-fraction 1/3, honest providers holding a broadcast transaction with probability
-0.99 by the time they are asked, security failure at most 1e-9 and liveness
-failure at most 1e-6, adversary withholding:
+fraction **exactly one third** (1667 of 5000 providers; the adversary count
+always rounds up), honest providers holding a broadcast transaction with
+probability 0.99 by the time they are asked, security failure at most 1e-9 and
+liveness failure at most 1e-6, adversary withholding:
 
 | constant | value |
 | --- | --- |
 | `PULL_SAMPLE_SIZE` | 32 providers per round |
 | `PULL_MAX_ROUNDS` | 8 |
 | total sampled | 256 |
-| `PULL_CONFIRMATIONS` | 134 |
+| `PULL_CONFIRMATIONS` | 133 |
 
-giving a security failure of 4.4e-11 and a liveness failure of 7.5e-7 (the
-4.4e-11 reproduces exactly under integer arithmetic). The feasible thresholds at
-this sample are 131 to 134; 134 is chosen as the one furthest from the security
+giving a security failure of 2.28e-10 and a liveness failure of 7.14e-7 (both
+reproduce exactly under integer arithmetic). The feasible thresholds at this
+sample are 132 and 133; 133 is chosen as the one furthest from the security
 bound, since a tagging success cannot be retried away whereas a confirmation
 failure can.
 
-Strictly the smallest stable total sample is 236 (threshold 122, security
-9.7e-10); 256 is adopted as the operating point because it splits into clean
-32-provider rounds and buys a further 20x of security margin for 20 extra
-queries. The threshold belongs to the sample: 134 is calibrated for a 256-draw
-run and is not safe over a larger one.
+An earlier revision of this analysis quoted a threshold of 134 "at f = 1/3"
+while actually computing at the decimal 0.33 (1650 adversaries). At true one
+third, 134 misses the liveness target (1.36e-6 > 1e-6). The fraction-to-count
+mapping is now explicit — `ceil`, snapped against float artifacts — so the
+stated threat model and the computed one cannot drift apart again.
 
-How it degrades, at the same constants:
+Strictly the smallest stable total sample is 247 (threshold 128, security
+6.3e-10); 256 is adopted as the operating point because it splits into clean
+32-provider rounds and buys extra security margin for 9 extra queries. The
+threshold belongs to the sample: 133 is calibrated for a 256-draw run and is
+not safe over a larger one.
+
+How it degrades, at the same constants (sample 256, threshold 133):
 
 | adversarial fraction | security failure | liveness failure |
 | --- | --- | --- |
-| 0.20 | 1.9e-32 | 1.5e-23 |
-| 0.33 | 4.4e-11 | 7.5e-07 |
-| 0.40 | 2.8e-05 | 8.0e-03 |
+| 0.20 | 9.2e-32 | 3.9e-24 |
+| 1/3 | 2.3e-10 | 7.1e-07 |
+| 0.40 | 4.7e-05 | 5.6e-03 |
 
 One third is therefore the tolerated fraction, and the margin past it is thin —
 which is a property of the mechanism, not of the parameter choice: above one half
 no threshold satisfies both bounds at any sample size.
 
 **A previously proposed `PULL_CONFIRMATIONS = 24` over a sample of 64 fails
-badly**: at f = 1/3 its security failure is 2.5e-01. Reproduce with
+badly**: its security failure is 2.5e-01. Reproduce with
 
 ```
-make evaluate SAMPLE=8 ROUNDS=8 THRESHOLD=24 PROVIDERS=1000
+make evaluate SAMPLE=8 ROUNDS=8 THRESHOLD=24 PROVIDERS=1000 FRACTION=0.33
 ```
 
 ## Usage
@@ -98,15 +105,18 @@ No dependencies beyond the standard library; every analysis target runs with a
 bare `python3`.
 
 ```
-make calibrate               # cheapest safe configuration, per adversarial fraction
-make calibrate-withhold      # the same against an adversary that refuses to attest
-make evaluate SAMPLE=32 ROUNDS=8 THRESHOLD=134    # score one candidate
-make cost SAMPLE=32 ROUNDS=8 THRESHOLD=134        # expected queries and rounds
-make verify                  # closed forms against the simulated protocol
-make test                    # unit tests (needs the venv)
+make calibrate                                     # cheapest safe configuration, per adversarial fraction
+make calibrate WITHHOLD=1                          # the same against an adversary that refuses to attest
+make evaluate SAMPLE=32 ROUNDS=8 THRESHOLD=133 WITHHOLD=1   # score one candidate (reproduces the headline)
+make cost SAMPLE=32 ROUNDS=8 THRESHOLD=133 WITHHOLD=1       # expected queries and rounds
+make verify                                        # closed forms against the simulated protocol
+make test                                          # unit tests (needs the venv)
 ```
 
-Override the assumptions on any target: `PROVIDERS`, `FRACTION`, `HOLD`.
+Override the assumptions on any target that uses them: `PROVIDERS`, `FRACTION`
+(evaluate/cost), `FRACTIONS` (the calibrate sweep list), `HOLD`, `WITHHOLD`,
+`TRIALS` (verify). The headline table assumes a withholding adversary, so
+reproducing it requires `WITHHOLD=1`.
 
 ## Layout
 
@@ -124,7 +134,7 @@ Sampling is without replacement from a finite declaration set, so every count is
 hypergeometric rather than binomial. At the set sizes Bedrock expects, that is
 not a cosmetic difference: without-replacement draws concentrate the count, so
 the binomial approximation overstates the security tail (by ~3x at the design
-point — 1.4e-10 against the exact 4.4e-11). The exact model is therefore what
+point — 6.7e-10 against the exact 2.3e-10). The exact model is therefore what
 makes the calibrated sample genuinely minimal; a binomial calibration would have
 been safe but oversized. Distributions are built by an anchored
 ratio recurrence from the mode outward and tails are accumulated inward, because
@@ -156,3 +166,10 @@ the difference. `tests/test_calibrate.py` pins both behaviours.
 - The adversary is assumed not to be able to influence *which* providers a node
   samples. The specification requires the sample to be drawn from local
   randomness for exactly this reason.
+- The specification's sampling exclusions. The spec excludes the querying node
+  itself, providers already queried, and the peers the transaction arrived from
+  (`received_from`); the model samples uniformly from the full declaration set.
+  Excluding known holders removes guaranteed-yes providers from the pool, which
+  is anti-conservative for liveness and conservative for security; at a handful
+  of excluded peers against 5000 declarations the shift is well inside the
+  margins above, but it is a fidelity gap, not a modelling choice.

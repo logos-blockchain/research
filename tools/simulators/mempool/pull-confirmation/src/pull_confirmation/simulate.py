@@ -19,7 +19,20 @@ from dataclasses import dataclass
 
 from .model import Parameters
 
-__all__ = ["RunOutcome", "SimulationResult", "simulate_run", "simulate"]
+__all__ = ["RunOutcome", "SimulationResult", "simulate_run", "simulate", "within_three_sigma"]
+
+
+def within_three_sigma(observed: float, expected: float, trials: int) -> bool:
+    """Whether a simulated proportion agrees with an analytic one.
+
+    Three sigma of a binomial proportion, floored at ``3 / trials`` so that a
+    comparison against a near-zero analytic value does not demand an exactness
+    the trial count cannot deliver. This predicate is the single acceptance
+    criterion for model-vs-simulator agreement — ``make verify`` and the test
+    suite both import it, so a change to the tolerance changes both together.
+    """
+    sigma = (max(expected, 1e-9) * (1 - min(expected, 1.0)) / trials) ** 0.5
+    return abs(observed - expected) <= max(3 * sigma, 3.0 / trials)
 
 
 @dataclass(frozen=True)
@@ -56,28 +69,41 @@ class _Population:
     exchangeable under uniform sampling.
     """
 
-    __slots__ = ("_slots", "_swaps", "n_adversarial")
+    __slots__ = ("_slots", "_swaps", "_drawn", "n_adversarial")
 
     def __init__(self, n_providers: int, n_adversarial: int) -> None:
         self._slots = list(range(n_providers))
         self._swaps: list[tuple[int, int]] = []
+        self._drawn = 0
         self.n_adversarial = n_adversarial
 
+    def __len__(self) -> int:
+        return len(self._slots)
+
     def draw(self, count: int, rng: random.Random) -> list[int]:
+        """Draw the next ``count`` providers, continuing where the last draw left off.
+
+        Successive calls within one trial keep drawing without replacement, so a
+        round-by-round caller pays only for the providers it actually queries —
+        a trial that confirms in round one does one round's worth of urn work.
+        """
         drawn = []
         size = len(self._slots)
-        for i in range(min(count, size)):
+        start = self._drawn
+        for i in range(start, min(start + count, size)):
             j = rng.randrange(i, size)
             if i != j:
                 self._slots[i], self._slots[j] = self._slots[j], self._slots[i]
                 self._swaps.append((i, j))
             drawn.append(self._slots[i])
+        self._drawn += len(drawn)
         return drawn
 
     def reset(self) -> None:
         for i, j in reversed(self._swaps):
             self._slots[i], self._slots[j] = self._slots[j], self._slots[i]
         self._swaps.clear()
+        self._drawn = 0
 
     def is_adversarial(self, provider: int) -> bool:
         return provider < self.n_adversarial
@@ -101,6 +127,17 @@ def simulate_run(
     ``population`` may be supplied to reuse the urn across trials; it is reset
     before returning either way.
     """
+    if population is not None and (
+        len(population) != params.n_providers
+        or population.n_adversarial != params.n_adversarial
+    ):
+        raise ValueError(
+            "population urn disagrees with params: "
+            f"urn ({len(population)}, {population.n_adversarial}) vs "
+            f"params ({params.n_providers}, {params.n_adversarial}); "
+            "attestation decisions would silently use a different adversary share"
+        )
+
     urn = population if population is not None else _Population(
         params.n_providers, params.n_adversarial
     )
@@ -110,17 +147,18 @@ def simulate_run(
     rounds_used = 0
 
     try:
-        # Providers are drawn without replacement across the whole run: a node
-        # does not re-query one it has already asked about this transaction.
-        order = urn.draw(params.total_sampled, rng)
-        cursor = 0
-
+        # Providers are drawn without replacement across the whole run — a node
+        # does not re-query one it has already asked about this transaction —
+        # and one round's batch at a time, so early stopping skips urn work for
+        # providers that were never going to be queried.
         for round_index in range(1, params.max_rounds + 1):
-            if cursor >= len(order):
+            remaining = params.total_sampled - queries
+            if remaining <= 0:
+                break
+            batch = urn.draw(min(params.sample_size, remaining), rng)
+            if not batch:
                 break
             rounds_used = round_index
-            batch = order[cursor : cursor + params.sample_size]
-            cursor += len(batch)
 
             for provider in batch:
                 queries += 1

@@ -7,7 +7,12 @@ import random
 import pytest
 
 from pull_confirmation.model import Parameters, liveness_failure, security_failure
-from pull_confirmation.simulate import _Population, simulate, simulate_run
+from pull_confirmation.simulate import (
+    _Population,
+    simulate,
+    simulate_run,
+    within_three_sigma,
+)
 
 TRIALS = 40_000
 
@@ -23,11 +28,6 @@ def base(**overrides) -> Parameters:
     )
     kwargs.update(overrides)
     return Parameters(**kwargs)
-
-
-def within_three_sigma(observed: float, expected: float, trials: int) -> bool:
-    sigma = (max(expected, 1e-9) * (1 - min(expected, 1.0)) / trials) ** 0.5
-    return abs(observed - expected) <= max(3 * sigma, 3.0 / trials)
 
 
 @pytest.mark.parametrize("fraction,threshold", [(0.33, 14), (0.50, 20), (0.20, 8)])
@@ -68,12 +68,25 @@ def test_a_run_never_queries_a_provider_twice():
 
 
 def test_the_urn_is_restored_between_trials():
-    urn = _Population(50, 20)
+    params = base(n_providers=50)
+    urn = _Population(params.n_providers, params.n_adversarial)
     before = list(urn._slots)
     rng = random.Random(0)
     for _ in range(20):
-        simulate_run(base(n_providers=50), tagged=False, rng=rng, population=urn)
+        simulate_run(params, tagged=False, rng=rng, population=urn)
     assert urn._slots == before
+
+
+def test_an_inconsistent_urn_is_rejected():
+    # Attestation decisions read the urn's adversary count while analytics read
+    # params; letting them disagree would silently simulate a different threat
+    # model than the closed forms are compared against.
+    params = base(n_providers=50)
+    assert params.n_adversarial != 20
+    with pytest.raises(ValueError):
+        simulate_run(
+            params, tagged=True, rng=random.Random(0), population=_Population(50, 20)
+        )
 
 
 def test_results_are_reproducible_from_the_seed():

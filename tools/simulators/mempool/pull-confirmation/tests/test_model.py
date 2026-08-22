@@ -100,3 +100,21 @@ def test_a_sample_cannot_exceed_the_set():
 def test_rejects_impossible_fractions(fraction):
     with pytest.raises(ValueError):
         base(adversarial_fraction=fraction)
+
+
+class TestAdversaryRounding:
+    """The adversary count rounds up — a security tool must not round it away."""
+
+    def test_one_third_of_5000_is_1667(self):
+        assert base(n_providers=5000, adversarial_fraction=1 / 3).n_adversarial == 1667
+
+    def test_exact_halves_round_up(self):
+        assert base(n_providers=50, adversarial_fraction=0.33).n_adversarial == 17
+        assert base(n_providers=10, adversarial_fraction=0.45).n_adversarial == 5
+
+    def test_float_artifacts_do_not_add_an_adversary(self):
+        # 0.33 * 5000 == 1650.0000000000002 in floats; a naive ceil would say 1651.
+        assert base(n_providers=5000, adversarial_fraction=0.33).n_adversarial == 1650
+
+    def test_the_count_never_exceeds_the_set(self):
+        assert base(n_providers=10, adversarial_fraction=0.999999).n_adversarial == 10
