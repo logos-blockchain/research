@@ -25,7 +25,7 @@ onto it term for term rather than needing an exception from it:
 
 | PR 375 | this design |
 | --- | --- |
-| genesis-minted reserve `B_0`, pre-allocated from the cap | the endowment: a genesis-minted **sub-reserve** (the RFC models reserve sub-pools explicitly) |
+| genesis-minted reserve `B_0`, pre-allocated from the cap | the endowment: a genesis-minted **sub-reserve** — our term for the analogy; the RFC specifies one undivided `B_t` and says nothing about subdividing it |
 | metered release `ι_t = min(schedule, B_{t−1})` | `sub_pool = endowment // (B − e)`, the linear amortisation |
 | reserve "lasts Y years at max rate, longer when `A_t < 1`" | Q7's nominal-rate tail |
 | depleted-reserve fallback to recycled fees | the dust fold, then the fee-bucket post-phase |

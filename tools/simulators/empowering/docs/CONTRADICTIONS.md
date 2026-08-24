@@ -250,12 +250,22 @@ cannot both be true on the day both merge.
 its share out of the pooled reward flow.** Fees enter the pending rewards pool in full — the
 RFC's sentences stay true — and the PoW share is the pool's *first outflow*, taken from the
 pooled flow before the reward rule distributes the remainder. Accounting consequences, all
-implemented: the reward rule's window carries the pool's distributable inflow (fees net of
-the carve-out — the same value the pre-pooling code used, so nothing moves); the pool
-balance stays non-negative in every regime including `A_t = 0`, where distributing against
-gross inflow would drain it by exactly the PoW share per block; and the de-novo `fee_bucket`
-becomes the EmPoWering-side view of a draw against the pending rewards pool rather than an
-interception ahead of it. The remaining upstream ask is one sentence in the RFC
+implemented: the pool balance stays non-negative in every regime including `A_t = 0`, and the
+de-novo `fee_bucket` becomes the EmPoWering-side view of a draw against the pending rewards
+pool rather than an interception ahead of it.
+
+**One sub-decision the first implementation buried, surfaced by the 2026-08-25 review.** The
+carve-out leaves `R_block` ambiguous: the RFC defines it as the fees *routed to the pool*,
+which under "in full" routing is **gross**, while `emission.py` feeds the window the **net**
+figure — fees after the carve-out, which is what the pre-pooling code measured and what makes
+the recycled term equal what is actually distributable. The alternative is defensible and
+arguably more literal, since KPI-2 measures the *pooling rate*: the factor could read gross
+while the recycled term distributes net. **Resolved: net**, and the cost of the choice is now
+gated rather than assumed — identical at `A_t = 1` (fees do not enter a release-capped
+reward, which is where every published figure sits), 0.0005% apart near the target, and
+`1/(1 − pow_share)` = 11.1% apart only in the genesis-seed transient at `A_t = 0`, where the
+absolute figure is ~0.0003 LGO a block. Nothing published moves either way; the entry exists
+so the reading can be revisited on evidence rather than rediscovered. The remaining upstream ask is one sentence in the RFC
 acknowledging the carve-out as a pool outflow, so "in full" and `POW_SHARE` stop reading as
 a contradiction.
 

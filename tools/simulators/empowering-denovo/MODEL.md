@@ -66,8 +66,10 @@ Consensus state, per the component accounting of Q6.
 **Where these stocks sit in the pooling/distributing/releasing substrate** (lips PR 375,
 `block-rewards.md` 1.1.0): this design was written against the burn/mint model and turns out
 to be an instance of the RFC's own pattern, not an exception to it. `endowment` is a
-**genesis-minted sub-reserve** in exactly the RFC's sense — its author models the reserve
-with sub-pools "for accountability purposes" — released on this design's own schedule
+**genesis-minted sub-reserve** — this document's term, not the RFC's, which specifies a single
+undivided reserve `B_t` (sub-pools appear only in its review thread, where a reviewer objected
+to them and the author left the accounting to implementers) — released on this design's own
+schedule
 (`sub_pool = endowment // (B − e)` is a metered release; Q7's nominal-rate tail is the RFC's
 "lasts Y years at the maximum rate, longer whenever slower"; the dust fold is its
 depleted-reserve fallback). `fee_bucket` is the EmPoWering-side view of a **draw against the

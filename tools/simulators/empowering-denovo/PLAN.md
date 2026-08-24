@@ -355,9 +355,12 @@ same value; what changes is which stock it is accounted against and what the doc
 
 ## 2. The opportunity: EmPoWering is already an instance of the RFC's pattern
 
-The structural rhyme is exact, and the RFC's author has already introduced the vocabulary we
-need — the review thread says the reserve is modelled with **sub-pools "for accountability
-purposes"**. Then:
+The structural rhyme is exact. (One caveat the planning draft got wrong and the 2026-08-25
+review caught: the RFC's *text* specifies a single undivided reserve and never mentions
+sub-pools — the term appears only in its review thread, where a reviewer objected to it and
+the author replied that the accounting is up to implementers. So the sub-reserve framing below
+is **our analogy**, which stands on the structure, not the RFC's own vocabulary, which it is
+not.) Then:
 
 | RFC concept | de-novo concept, already built and gated |
 | --- | --- |
@@ -399,7 +402,7 @@ which the RFC has made false anyway).
 - **MAPPING.md:** replace the "orthogonal / untouched" rows for `block-rewards` and the fee
   markets with the §2 table and the §1 resolution; adopt "pending rewards pool" naming.
 - **MODEL.md §1:** the inherited row for `pow_share` gains its new anchor; a paragraph notes
-  the endowment is a sub-reserve in the RFC's sense.
+  the endowment is a sub-reserve by analogy — our term, not the RFC's (see §2's caveat).
 - **CONTRADICTIONS.md:** two entries — the PR's flagged integer/real divergence (with its
   prescribed fix), and the "in full" vs `POW_SHARE` collision (with the §1 options and the
   owner's decision once taken).

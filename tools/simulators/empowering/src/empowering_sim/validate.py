@@ -702,16 +702,69 @@ def gate_emission(cfg: Config) -> None:
           note="S_cap anchoring (PR 375 removed S_tge); numerically identical at launch")
 
     # ---- the pool and reserve stocks, and the conservation identity they carry
+    # The net-vs-gross reading of R_block under the carve-out is a DECISION (emission.py's
+    # header). This pins what it costs, so the alternative can be taken up on evidence.
+    _fees = 600 * cfg.avg_tx_fee
+    _net = cfg.to_lgo(_fees - _fees * cfg.pow_share_num // cfg.pow_share_den)
+    _gross = cfg.to_lgo(_fees)
+    check("net-vs-gross R_block is free where the reward is release-capped",
+          emission.block_reward_lgo(1e8, [_net] * emission.POOL_WINDOW),
+          emission.block_reward_lgo(1e8, [_gross] * emission.POOL_WINDOW), rel=1e-12,
+          note="at A_t = 1 the fees do not enter the reward at all, which is the regime every "
+               "published figure in these studies is measured in")
+    _n0 = emission.block_reward_lgo(1e10, [_net] * emission.POOL_WINDOW)
+    _g0 = emission.block_reward_lgo(1e10, [_gross] * emission.POOL_WINDOW)
+    check("and costs exactly the carve-out share only at A_t = 0",
+          round(_g0 / _n0, 6), round(1 / (1 - cfg.pow_share), 6),
+          note=f"{_n0:.6f} against {_g0:.6f} LGO a block in the genesis-seed transient -- "
+               f"11.1% of three ten-thousandths of a token, which is why the reading is "
+               f"recorded rather than resolved")
+
+    check("the reserve is DERIVED from the release cap and the lifetime, not written down",
+          round(emission.RESERVE_GENESIS_LGO), 1_000_000_000,
+          note=f"I_max * S_cap * Y at Y = {emission.RESERVE_LIFETIME_YEARS} -- 10% of the cap; "
+               f"the spec_sync pin on Y now binds this instead of a literal beside it")
+    check("and it funds the release cap for exactly that many years",
+          round(emission.RESERVE_GENESIS_LGO
+                / (emission.INFLATION_NUMERATOR / emission.INFLATION_DENOMINATOR)
+                / emission.BLOCKS_PER_YEAR, 6), float(emission.RESERVE_LIFETIME_YEARS),
+          note="the RFC's sizing claim, checked rather than restated")
+
     rng_s = np.random.default_rng(7)
     stocks = emission.Stocks()
     window: list[float] = []
     for _ in range(600):
         window.append(float(rng_s.uniform(0.0, 30.0)))
         stocks.step(float(rng_s.uniform(5e7, 2e10)), window[-emission.POOL_WINDOW:])
-    check("conservation holds to float precision over a random 600-block path",
-          abs(stocks.conservation_residual_lgo) < 1e-6, True,
-          note=f"residual {stocks.conservation_residual_lgo:.2e} LGO -- delta_S + delta_P + "
-               f"delta_B accumulates to zero; the RFC's central claim, run rather than read")
+    # RELATIVE, because the total is 10^9 LGO and doubles carry ~16 significant digits: the
+    # honest path drifts ~1e-15 of the total, which is float accumulation over 600 steps and
+    # not a modelling error. An absolute 1e-6 threshold failed on exactly that -- itself
+    # evidence the check is now sensitive, where the residual-of-deltas form it replaces read
+    # a flat zero no matter what the mechanism did. The leak gate below fixes the floor: a
+    # real violation lands thousands of times above this.
+    _drift = abs(stocks.conservation_error_lgo) / stocks.genesis_total_lgo
+    check("the controlled total never moves over a random 600-block path",
+          _drift < 1e-12, True,
+          note=f"S + P + B drifts {_drift:.1e} of genesis ({stocks.conservation_error_lgo:+.2e} "
+               f"LGO) -- the RFC's central claim. Each stock is moved by its own flow and the "
+               f"total compared against genesis, so this CAN fail; the residual-of-deltas form "
+               f"it replaces cancelled symbolically and could not")
+    # Proof that the gate above has teeth: break one flow and it must catch it.
+    class _Leaky(emission.Stocks):
+        def step(self, stake, win):                          # noqa: ANN001, ANN201
+            r = super().step(stake, win)
+            self.supply_lgo += 1.0                           # a token from nowhere
+            return r
+    leaky = _Leaky()
+    for _ in range(5):
+        leaky.step(1e8, [1.0] * emission.POOL_WINDOW)
+    _leak = abs(leaky.conservation_error_lgo) / leaky.genesis_total_lgo
+    check("and a mechanism that mints from nowhere FAILS it",
+          _leak > 1e-12, True,
+          note=f"{leaky.conservation_error_lgo:+.1f} LGO after five leaky blocks = {_leak:.0e} "
+               f"of genesis, some three orders above the threshold and twelve above the "
+               f"honest path's float noise -- the check detects what it claims to detect")
+
     tiny = emission.Stocks(reserve_lgo=200.0)
     rewards = [tiny.step(1e8, [0.0]) for _ in range(4)]
     check("a depleted reserve degrades the reward to the recycled component",
@@ -720,7 +773,8 @@ def gate_emission(cfg: Config) -> None:
           note="200 LGO of reserve funds two full releases, a partial third, then nothing -- "
                "iota is capped by the balance and the fallback is (1-A)*R_bar, here zero")
     check("and the depleted run still conserves",
-          abs(tiny.conservation_residual_lgo) < 1e-9, True)
+          abs(tiny.total_lgo - 200.0) < 1e-9, True,
+          note="against ITS genesis total of 200 LGO, not the default reserve")
     # The RFC's one open boundary question (P_t >= 0), measured: a fee spike then silence at
     # A = 0 makes the windowed average distribute history the pool never banked.
     loose = emission.Stocks(reserve_lgo=0.0, guard_pool=False)
@@ -735,9 +789,11 @@ def gate_emission(cfg: Config) -> None:
     for i in range(1, len(spike)):
         tight.step(1e10, spike[max(0, i - emission.POOL_WINDOW + 1):i + 1])
     check("guarded, the distribution clips to the pool and the balance floors at zero",
-          tight.pool_lgo >= 0 and abs(tight.conservation_residual_lgo) < 1e-9, True,
+          tight.pool_lgo >= 0 and abs(tight.total_lgo) < 1e-9, True,
           note="pay what the pool holds, never more -- the same move as the de-novo room "
-               "cap, and this simulator's answer to the open question")
+               "cap, and this simulator's answer to the open question. Note the unguarded "
+               "run above CONSERVES too: conservation and the P_t >= 0 constraint are "
+               "independent claims, which is why each has its own gate")
 
     # The settled blend pool: the one number the de-novo retirement model imports from this
     # simulator (retirement.BLEND_POOL_LGO_PER_EPOCH). Pinned here, at the source and at the
