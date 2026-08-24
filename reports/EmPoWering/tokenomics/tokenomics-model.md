@@ -4,6 +4,23 @@
 
 > **Location.** This report lives in `reports/EmPoWering/tokenomics/`; the simulations backing it live in `simulations/EmPoWering/` and regenerate every current number via `make all` (and `make verify`, `make check LIPS=…`). The report was authored alongside logos-lips PR #400 and moved here when that work closed.
 
+## How to read this — and a warning about its shape
+
+*In plain words: this document works out the numbers behind the on-ramp — how big the launch fund should be, what one piece of mining work should pay, and whether the whole thing can eventually pay for itself out of ordinary transaction fees. It is the most technical document in the set, and it is **not** the place to start.*
+
+**Where to start instead.** For the mechanism explained from scratch with no arithmetic, read `reports/EmPoWering/denovo/design-comparison.md` §0. For the decision and the recommendation, read `reports/EmPoWering/denovo/SUMMARY.md`. Come here when you need a specific number and want to see how it was derived.
+
+**The shape is unusual, and knowing that saves confusion.** This document grew by addendum rather than rewrite, so that its corrections stay auditable:
+
+- **§§0.0–0.5 are addenda, newest first.** Each records a decision that landed *after* the body was written and says which of the body's conclusions it changes. **Read §0.5 first** — it is the most recent, and it states which parts of everything below still stand.
+- **The body (Backgrounds A–C, then §§1–9) is the original analysis.** Where an addendum contradicts it, the addendum wins; the body is kept as the record of what was derived when.
+- **§§4.5 and 4.6 sit at the very end, after §9**, out of numerical order. That is an artefact of how they were added, not a hint about their importance.
+- **Line references to the specifications** (`block-rewards.md:206` and the like) point at the revision the analysis was derived against, and will drift as those documents change. They are provenance, not live links.
+
+**If you are new to this, read in this order:** Background A (what the mechanism is) → Background C (the glossary) → the Epistemic legend (which tells you how much to trust each number) → §0.5 → then whichever numbered section holds the figure you came for.
+
+**The epistemic legend matters more than usual here.** Section headings carry tags — `DERIVED`, `SIMULATED`, `OPEN` — that say whether a result is arithmetic, a measurement, or an unresolved question. A `DERIVED` figure is as reliable as its inputs; a `SIMULATED` one carries the assumptions of the run; an `OPEN` one is a question, not an answer. The legend at §"Epistemic legend" defines them precisely, and skipping it makes the rest look more settled than it is.
+
 ## 0.5 Addendum — the substrate moves to pooling/distributing/releasing (lips PR 375; 2026-08-24, latest)
 
 Lips PR 375 (`block-rewards.md` 1.1.0, with `execution-market.md`, `storage-markets.md` and the overview propagating; open, one research approval in, planned against head `2b3b698`) replaces the burn/mint substrate this document was written on: fees route **in full into a pending rewards pool** instead of burning, rewards **distribute from that pool topped up by a metered release** from a finite genesis reserve (`B_0 = I_max·S_cap·Y = 10⁹ LGO`, `Y = 10` years) instead of minting, the recycled term becomes the **windowed average** of pooled fees over `T = 120` blocks instead of the latest block's, `S_tge` is removed in favour of the hard cap `S_cap` (numerically identical at 10¹⁰), and the three stocks conserve: `ΔS + ΔP + ΔB = 0`.

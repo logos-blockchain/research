@@ -19,7 +19,37 @@ PYTHONPATH=src python3 -m empowering_sim.plots_inscription \
 
 ---
 
+## How to read this
+
+*In plain words: this document answers one question — if you joined this network, what is the
+best way to make money from it? There are five ways to participate, they can be combined, and
+they pay very differently. We simulated all five competing on the same chain and measured what
+each earned.*
+
+**The answer up front, so the rest is evidence rather than suspense: running a service pays
+several times better than anything else, and it is not close.** The interesting part is *why*,
+because the reason is structural rather than a matter of tuning — and it means the ordering
+would be hard to change even deliberately.
+
+Every section opens with a short *plain-words* paragraph. Skim only those for the argument.
+
+| if you want… | read |
+| --- | --- |
+| the answer and the size of the gap | §3 |
+| how a newcomer actually gets in, and how long it takes | §5 |
+| whether electricity costs change the answer (they do not) | §8 |
+| what happens over the network's whole life | §9 |
+| what would have to be true for these conclusions to be wrong | §12 |
+
+**The three income streams**, referred to throughout: **mining** pays for computational work;
+the **leader lottery** pays whoever is randomly chosen to propose a block, weighted by how
+many tokens they hold; and the **service reward** pays nodes that run the privacy service —
+split *equally* among them, with no weighting by holdings at all. That last detail drives most
+of what follows.
+
 ## 1. The model
+
+*In plain words: what was simulated and what was deliberately left out. Worth a skim even if you skip the detail, because the omissions bound what the conclusions can claim.*
 
 ### 1.1 What the chain does
 
@@ -77,6 +107,8 @@ No Blend network, no propagation delay, no forks, no churn, no adversary. Every 
 
 ## 2. The five strategies
 
+*In plain words: the five ways to play, from "just mine" to "mine, hold, and run a service". They are cumulative rather than exclusive — each adds an income stream to the one before.*
+
 | # | strategy | mines | lottery | services |
 | --- | --- | --- | --- | --- |
 | 1 | miner | yes | no | no |
@@ -94,6 +126,8 @@ A word on why the comparison is not straightforward. Groups 1 to 3 arrive with h
 ---
 
 ## 3. The result
+
+*In plain words: the headline. Who earned what, after everyone competed on the same chain for the same rewards. One strategy wins by a wide margin.*
 
 ![where a median node's income comes from](figures/strategy_composition.png)
 
@@ -131,6 +165,8 @@ A group-3 node that stopped mining on the day it bonded would give up **6.2% of 
 
 ## 4. Dispersion, and the strategy that erases it
 
+*In plain words: averages hide things. Two strategies can pay the same on average while one is a lottery and the other a salary. This looks at the spread — and finds that running a service does something unusual: it pays everyone the same regardless of size.*
+
 ![accumulated reward per node](figures/strategy_per_node.png)
 
 Medians hide the more interesting result. These curves sort every node within its group, so a steep curve means members did very different things and a flat curve means they all did much the same.
@@ -150,6 +186,8 @@ A plain stakeholder's reward spans a **hundred-and-tenfold** range, because lead
 ---
 
 ## 5. When nodes actually become providers
+
+*In plain words: the on-ramp in practice. How long does a newcomer with no tokens have to mine before they can afford the deposit that unlocks the best-paying stream?*
 
 ![how many nodes become service providers, and when](figures/provider_ramp.png)
 
@@ -171,6 +209,8 @@ With the bond fixed, the live question is not how high the threshold is but who 
 ---
 
 ## 6. How many can be elevated, and what the pool spends doing it
+
+*In plain words: the capacity question. The launch fund is finite, so how many newcomers can it actually carry across the line — and how much of it leaks away rather than reaching anyone?*
 
 A separate study with **dynamic arrivals**: new nodes are seated every epoch, so the field grows and each miner's share of a fixed claim flow shrinks. Two groups only — endowed providers who arrive above the bond, and mining providers who must earn it. Only the second is elevated by the mechanism.
 
@@ -201,6 +241,8 @@ Without retirement the arrival rate barely matters: elevation sits near 5,000 wh
 
 ## 7. What a mining reward actually looks like
 
+*In plain words: the size of a single payout, and how it changes over time. Small, and shrinking.*
+
 ![proof-of-work reward per block and per epoch](figures/pow_distributions.png)
 
 Per block this is the arrival process at a fixed price: the reward per claim is frozen for the whole epoch, so the shape is just the Poisson count of claims, with a median of 8.4 LGO a block over the whole run — ten claims at the mid-run price. At the opening price a target block pays 11.6 LGO; the pooled median sits below it because the reward decays across the run. Per epoch the picture also carries the reward's decay, which is why it is not the same distribution rescaled — the spread runs from about 250,000 LGO down through 140,000 across the run as the pool drains. Neither distribution has a tail worth worrying about.
@@ -208,6 +250,8 @@ Per block this is the arrival process at a fixed price: the reward per claim is 
 ---
 
 ## 8. Electricity, and why it does not change the answer
+
+*In plain words: mining costs real money to run, so the obvious objection is that the figures above ignore the power bill. This prices it — and the bill turns out to be far too small to matter at any plausible token price.*
 
 Miners pay for their income and stakeholders do not. Netting it out at a Raspberry Pi 5's measured rate, whole-platform, at 20 cents a kilowatt-hour:
 
@@ -222,6 +266,8 @@ Mining stops paying only if a token is worth less than about a sixth of a cent; 
 ---
 
 ## 9. The full horizon — the mechanism switches itself off
+
+*In plain words: what happens over decades rather than months. The controller that funds these rewards is designed to stop once the network holds enough stake — so it does, and this is when.*
 
 Everything above is a 120-epoch run, which is the bootstrap era. Run it to 2,085 epochs — the whole life of the endowment, about 43 years — and a dynamic appears that a short run structurally cannot show. Distributed rewards compound into their holders' stake, and that stake is the very quantity the emission controller steers on. So the rewards drive total stake toward its target, and on reaching it the controller does exactly what it was built to do: it stops releasing.
 
@@ -249,6 +295,8 @@ That table is computed at the **resting** fee price of 7, and the resting price 
 ---
 
 ## 10. What should one claim be worth?
+
+*In plain words: the design question underneath everything above. The reward per piece of work was never chosen deliberately; it fell out of other decisions. This asks what it ought to be and what the current value implies.*
 
 The design goal for the era after the endowment is spent is that a claim still buys something concrete: a transfer carrying a small inscription. That gives a target a number can be checked against. The sizes swept are 4, 8, 16, 32, 64, 128, 256, 512 and 1024 bytes.
 
@@ -285,6 +333,8 @@ A claim's own fee is 6,664 lepta against an opening reward of 1.157 LGO, so the 
 
 ## 11. Is the ordering robust?
 
+*In plain words: would the answer change under different assumptions? This varies the ones that could plausibly move it, and reports which ones do.*
+
 Three sweeps, and only one thing overturns the answer.
 
 **Horizon — the lead grows rather than decaying.** Accumulated reward is dominated by the bootstrap era, so a provider's advantage is locked in early and never given back: 5.68× at two and a half years, 7.04× at ten, 8.33× at twenty, 8.36× at forty-three.
@@ -296,6 +346,8 @@ Three sweeps, and only one thing overturns the answer.
 ---
 
 ## 12. What would change these conclusions
+
+*In plain words: the honest list of what this study assumes and what would have to be false for its answers to be wrong.*
 
 **The stake estimator's real-world bias — not modelled, and in which direction it errs.** The specification's estimator converges to about 0.847 of true stake on a real network, because missed slots and forks depress the block density it reads. This chain is ideal (§1.4), so the simulated estimator converges to true stake and every emission figure here is the intended-emission reading. On the real network the persistent underestimate keeps the release on longer: §9's switch-off would land later and the late eras would pay somewhat more than shown, in every stream the block reward funds.
 

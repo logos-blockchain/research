@@ -1,8 +1,39 @@
 # EmPoWering from base principles — the model, and what the simulations say about it
 
+## The problem, in one paragraph
+
+A new blockchain has a chicken-and-egg problem. To earn from it you generally need to own some of its tokens first — but a newcomer owns nothing. **EmPoWering is the on-ramp that solves this**: you do computational work (mining), you get paid in tokens, you save until you have enough to put down a deposit, and that deposit lets you run a paid service on the network. Work, save, join. This document redesigns how the money for that on-ramp is handed out, and reports what happened when we simulated it.
+
 ## What this document is
 
-A redesign of the EmPoWering mechanism from eight stated principles, simulated, and validated against those principles by number. It is not an amendment to the current specification: the design was derived from the principles first and mapped back onto the existing machinery afterwards (`MAPPING.md`), so that every part of the old mechanism had to re-justify itself or go. The model is specified normatively in `MODEL.md`; this report explains it, shows what the simulations measured, and puts the open decisions where they can be seen. A number-against-number comparison with the currently specified mechanism, including its arrivals-as-process study, is in `design-comparison.md` alongside — **whose §0 explains the choice between the two designs in plain language, and is the right place to start for a reader who does not want the arithmetic** — and both designs are attacked in `adversarial-analysis.md`.
+A redesign of the EmPoWering mechanism from eight stated principles, simulated, and validated against those principles by number. It is not an amendment to the current specification: the design was derived from the principles first and mapped back onto the existing machinery afterwards (`MAPPING.md`), so that every part of the old mechanism had to re-justify itself or go. The model is specified normatively in `MODEL.md`; this report explains it, shows what the simulations measured, and puts the open decisions where they can be seen.
+
+### How to read this
+
+Each section opens with a short *plain-words* paragraph explaining what it is about and why it matters, before any arithmetic. You can read only those and get the whole argument.
+
+| if you want… | read |
+| --- | --- |
+| the decision and the recommendation | `SUMMARY.md`, next door |
+| the choice between designs, no arithmetic at all | `design-comparison.md` §0 |
+| how the redesign works and whether it does what was asked | **this document**, §§2–7 |
+| what happens when someone attacks it | `adversarial-analysis.md` |
+| the exact rules, for implementing | `MODEL.md` |
+
+**The shape of what follows.** §1 lists what the design was asked to do. §2 explains how it works. §§3–6 are the simulations, in order of how hard they push: an ordinary run, then a sudden crowd, then the awkward edges, then what happens after the money runs out. §7 gives the two things that went wrong, §§8–9 the open questions and the roads not taken, and §§10–11 the scorecard and the honest limits.
+
+### The words you need
+
+Everything else is explained where it appears; these six recur throughout.
+
+| term | what it means |
+| --- | --- |
+| **epoch** | the network's accounting period — about five and a half days here. Budgets are set and rewards fixed once per epoch |
+| **claim** | one successful piece of mining work, submitted to be paid. The unit of "getting paid" throughout |
+| **the bond** (`min_stake`) | the deposit — 1,000 tokens — that lets a node run a paid service. The finish line of the on-ramp |
+| **the endowment** | the pot of tokens set aside at launch to pay for all this. It only ever goes down |
+| **the fee bucket** | a second, smaller pot, refilled from a slice of everyone's transaction fees |
+| **TGE** | "token generation event" — the network's launch, when the initial tokens are created |
 
 Notation follows the house convention: prose and code spans carry self-describing names, so `epoch_budget` here is the same quantity as `epoch_budget` in the model document and the simulator.
 
@@ -15,6 +46,8 @@ PYTHONPATH="src:../empowering/src" python3 -m empowering_denovo_sim.validate
 ```
 
 ## 1. The requirements
+
+*In plain words: this is the brief. Someone said what the mechanism must do, in eight numbered points, before any design existed. Everything later in this document is checked back against these — §10 is the scorecard. The point of writing them down first is that the design cannot quietly change what it was trying to achieve.*
 
 Stated by the design owner on 2026-08-18, and used as the report's checklist:
 
@@ -29,7 +62,13 @@ Stated by the design owner on 2026-08-18, and used as the report's checklist:
 | R7 | post-bootstrap: (a) rewards come from the previous epoch's fees; (b) claims spread evenly, with the saturation point near the epoch end |
 | R8 | one reward pays for a transfer plus an inscription (transfer ≈ inscription); larger during bootstrap, subsidised from TGE |
 
-## 2. The model, in plain language
+## 2. How the mechanism works
+
+*In plain words: the whole design is "decide a budget, then spend it on whoever shows up".*
+
+*Picture a fund set aside at launch to bring newcomers in, and a plan to spend it over four years. Divide the money by the time and you get what each period may spend. Then pay whoever turns up out of that period's share — and if an unexpected crowd arrives, keep paying them out of money earmarked for later periods rather than making anyone wait. The price paid per piece of work adjusts automatically: busier periods pay less per person, quiet ones more, because the budget is what's fixed, not the price.*
+
+*That is the entire idea. The rest of this section is the bookkeeping that makes it precise — two pots of money, two numbers fixed at the start of each period, and three rules for the awkward moments (a crowd arriving, the money running low, and the last few coins).*
 
 The mechanism keeps two buckets of tokens. The **endowment** is the TGE allocation — it only ever goes down. The **fee bucket** holds the diverted share of transaction fees, accounted with a one-epoch delay. Which regime the chain is in is not a stored flag; it is a question about the endowment: while it holds anything, the chain is bootstrapping.
 
@@ -49,6 +88,8 @@ The transition needs no parameter and no governance. The endowment is monotone, 
 
 ### 2.1 What became of the old parameters (R1)
 
+*In plain words: the old design had knobs nobody could set without a simulation. This is the tally of which survived, which were deleted, and which are new — and the point is that the two we deleted were the two nobody could justify, while the two we added are the two anyone can argue about in a sentence.*
+
 | current design | here |
 | --- | --- |
 | `genesis_pool_fraction` | kept — the triple's pool term |
@@ -61,6 +102,8 @@ The transition needs no parameter and no governance. The endowment is monotone, 
 The two deleted parameters are exactly the two nobody could defend without running a simulation. The two added ones are the two a designer can argue about in a sentence.
 
 ### 2.2 The consistency identity
+
+*In plain words: the three settings you choose are not independent. Say how much money, how many people, and over how long, and you have implicitly claimed a **conversion rate** — how much of every token paid out actually ends up as somebody crossing the finish line, rather than leaking away in fees or going to people who were already across. This section works out that implied rate and checks whether it is achievable. It is the single most useful thing in the design, because it catches an impossible plan before anyone runs anything.*
 
 The three R4 parameters carry an internal check, and the model applies it before anything runs:
 
@@ -84,6 +127,8 @@ The consequence for the reference triple is blunt. It implies 50%, which is reac
 
 ## 3. The reference run (R2, R4, R6)
 
+*In plain words: the ordinary case, with nothing unusual happening. Newcomers arrive at a steady rate for four years. This is the baseline everything later is compared against — does the money last exactly as long as planned, does every token get accounted for, and how many people actually get in?*
+
 ![one run, two regimes](figures/two_regimes.png)
 
 Uniform arrivals, 130 miners an epoch, bonded miners retiring. The endowment spends on its linear schedule and hits zero at epoch **195 exactly** — the expected duration of the four-year triple, `195 = round(4.0 * 48.667)`. The regime flips once and never back. Every lepton is accounted: endowment in, fees in, payments out, buckets held — the conservation gate closes to zero. During bootstrap the fee bucket never clears 0.02% of the endowment, which settles empirically what the model asserted: fees are a rounding error during bootstrap, and the endowment is what onboarding spends.
@@ -93,6 +138,8 @@ The reward opens at **11.87 LGO** — the opening sub-pool of 256,410 LGO spread
 The run lands **24,707 bonds against the 25,000 intent** if bonded miners retire — within 1.2% of target, at the very edge of the band it presumes. **If they do not, the same triple delivers 7,963 — under a third.** Both are the same mechanism on the same parameters; the difference is entirely a behaviour nothing in the design pays for.
 
 ## 4. The spike, measured (R5)
+
+*In plain words: the stress test, and the reason the redesign exists. A hundred times the normal crowd shows up in a single week — the kind of surge a popular launch or a viral moment produces. The old design would have thinned everyone's share and stretched everyone's wait. The question here is whether the new one absorbs the crowd without punishing them, without punishing the people who came before, and without blowing the schedule. It mostly does — and the one place it does not is the open defect this report leaves.*
 
 ![the hundredfold cohort](figures/spike_absorption.png)
 
@@ -116,6 +163,8 @@ For contrast, and in both regimes — uniform, ×10 and ×100 arrivals all land 
 
 ## 5. The window's edges (R4, and a question)
 
+*In plain words: the two worst-shaped futures. What if everyone turns up immediately, and what if nobody turns up until the very end? These are not attacks — just unlucky timing — and a design that only works when interest is steady is not much of a design. One of these two exposed a genuine flaw, which is fixed here.*
+
 ![five arrival shapes](figures/arrival_shapes.png)
 
 The two pathological shapes mark the design's honest edges.
@@ -125,6 +174,8 @@ The two pathological shapes mark the design's honest edges.
 **Back-loaded** — the whole field in the window's last tenth — exposed the design's one sharp corner, and settling it is this report's Q7. Under the schedule's naive form, the first epoch past the expected duration with claimants present received the *entire remaining endowment* as its sub-pool: 1,300 first-comers split 50M LGO at a 2,315-LGO reward, the epoch converted at 2.6%, and the 27,300 nodes arriving afterwards met the anchor — **1,293 bonds out of 28,600 arrivals**. The settled rule is the **nominal-rate tail**: past the deadline, each epoch's sub-pool caps at `endowment_genesis // bootstrap_epochs`, the planned per-epoch rate, until the money is gone. Zero new parameters, and late cohorts meet the same regime on-time cohorts did. Measured: the same back-loaded field now converts **76–100% across draws** (21,692–28,600 bonds), and the run ends either with the endowment still armed for later arrivals or spent and transitioned — which of the two is draw-dependent; the legality is not. The expected duration is thereby asymmetric, and deliberately so: **weak interest extends the phase at the planned pace, while a spike does not shorten it** — the borrow-forward pulls later sub-pools forward and the schedule re-spreads what remains, so the deadline holds (§4).
 
 ## 6. After the endowment (R7, R8)
+
+*In plain words: what happens when the launch fund runs out. Mining does not stop — it switches to being paid from a slice of ordinary transaction fees, at a much smaller reward pegged to what a transaction actually costs. This section works out what that steady state looks like, and it is deliberately modest: after the fund is spent, mining pays for itself and very little more.*
 
 ![the post-phase](figures/post_phase.png)
 
@@ -137,6 +188,8 @@ The throttle wakes at the transition — the same EMA retarget the current speci
 R8 holds by construction in both regimes — the reward is floored at the anchor during bootstrap and equals it afterwards — but one derived fact deserves visibility: at the anchor, the claim's own fee (6,664 lepta against an 11,158-lepta reward) consumes **59.7%** of the payout. The post-phase pays for its stated bundle and not much more, which is R8's letter and its intent.
 
 ## 7. The two findings (MODEL §8, measured)
+
+*In plain words: the two ways this design can be exploited or misbehave, both found by simulation rather than argument. Both come from the same root — the price adjusts based on last week's demand, so there is always a one-week window in which someone can act before the price catches up. One is a large actor draining the fund; the other is an oscillation where everyone mines, then nobody, then everyone. Neither breaks a stated requirement, and both were put to the design owner as explicit choices.*
 
 ![the whale, and the cliff](figures/adversarial.png)
 
@@ -152,6 +205,8 @@ Neither finding breaks a stated requirement, and both were put to the design own
 
 ## 8. Open questions raised by the simulations
 
+*In plain words: three questions the simulations raised that the design owner had to decide rather than the model settle, plus one corner still left open. Recorded here so the decisions are visible as decisions, not buried as assumptions.*
+
 All three questions the simulations raised are settled, completing the design:
 
 - **Q7 — the post-deadline remainder: the nominal-rate tail** (§5). Zero new parameters; back-loaded conversion went from 4.5% to 76–100%.
@@ -161,6 +216,8 @@ All three questions the simulations raised are settled, completing the design:
 One residual corner is documented rather than decided, because it sits outside Q7's settled scope: *inside* the window, linear amortisation's endpoint still means the last scheduled epochs offer everything that remains, so a field completely silent until epoch 194 would meet the same whole-remainder dump Q7 removed from the tail. The trigger — total prior silence through 98% of the window — is strictly narrower than the back-loaded scenario, and the candidate one-line extension (cap the sub-pool at the nominal rate whenever `claims_prev == 0`) awaits the design owner if the corner is judged worth closing.
 
 ## 9. Alternatives considered and rejected
+
+*In plain words: the roads not taken, and why. Every entry here is a design that looked reasonable and lost for a measurable reason — recorded so that anyone tempted by one of them can see it was considered and what it cost.*
 
 Recorded with their reasons, as instructed:
 
@@ -182,6 +239,8 @@ Recorded with their reasons, as instructed:
 
 ## 10. Requirements, validated
 
+*In plain words: the scorecard. Each of the eight requirements from §1, with what the simulations found and whether it holds. This is where to look if you want the short answer to "did it do what it was asked?"*
+
 | requirement | where | result |
 | --- | --- | --- |
 | R1 minimality | §2.1 | two rate parameters deleted, two intent parameters added, zero added elsewhere; every remaining constant inherited |
@@ -196,6 +255,8 @@ Recorded with their reasons, as instructed:
 
 ### 10.1 How much to believe the mining field
 
+*In plain words: every number in this report depends on an assumption about what hardware people bring. This section states that assumption plainly, says which parts of it are measured and which are guesswork, and gives the range within which the conclusions hold. It matters because a study that hides its assumptions looks more certain than it is.*
+
 Every claim-rate figure rests on an assumption about what one node commits, and that assumption deserves stating plainly because it was previously implicit — and wrong.
 
 **The basis is now a whole four-core Raspberry Pi 5 board, 24,146 candidates a second**, measured. The de-novo engine previously seated nodes at one pinned core, 6,037, while `empowering_sim.elevation` — whose numbers this report compares itself against — had always used the board. A factor of four, between two simulators being read side by side. Corrected; and the correction moves bonds by less than 0.1% (25,191 against 25,179 on the uniform run) because the budget governs the payout, not the hashrate, which is itself the strongest evidence that these results do not rest on the field's size.
@@ -205,5 +266,7 @@ Every claim-rate figure rests on an assumption about what one node commits, and 
 The bounds that do not depend on the shape are in `power.py`: a minimal basis of one core, the board basis used here, and an adversarial basis of the best measured hardware at full duty. Section 7's attacks are run against the last of those.
 
 ## 11. Limitations
+
+*In plain words: what this study does not cover, stated so nobody mistakes its silence for a clean bill of health.*
 
 The simulator models the pool, the claims and the bonds; it does not model the leadership lottery, service income, or the emission side — those are the prior branch's machinery and nothing here changes them. Participation is exogenous except in the elasticity probe. The conversion-efficiency band is imported from the prior branch's elevation study rather than re-measured under the new reward dynamics; re-measuring it here, with the demand-indexed reward in place, is the natural next study, and if the band moves, the identity check's goalposts move with it. The whale analysis assumes one actor and honest blocks; a block-building whale that also orders transactions is outside scope. Fee prices are held at the resting level; the anchor tracks the fee market by construction, but no scenario here moves the market.

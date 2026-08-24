@@ -4,6 +4,17 @@ Phase B of `PLAN.md`. Mechanism by mechanism: what survives untouched, what chan
 what is deleted, and which specification document each change lands in. This is what makes
 the redesign adoptable rather than academic.
 
+## How to read this
+
+*In plain words: this design was worked out from first principles, deliberately ignoring how
+the current system is built. That is useful for thinking and useless for shipping — so this
+document does the reconciliation. It answers one question per row: for each piece of the
+existing specification, does the redesign keep it, change it, or delete it?*
+
+*Read §1 to see how little actually changes: most of the machinery is reused untouched, and
+the genuinely new rules are few enough to list. §2 covers the pieces whose meaning shifts even
+though their name does not — the easiest kind of change to miss when implementing.*
+
 ## 1. Untouched — consumed as-is
 
 | mechanism | where it lives | note |
@@ -86,7 +97,7 @@ defined semantics rather than a hazard to be excluded.
 | `overview-cryptoeconomics` §PoW Reward Pool | narrative: budgets and two regimes instead of ρ-decay; the diversion section stands |
 | everything else | no change |
 
-## 4.1 What **de novo\*** would additionally change
+### 4.1 What **de novo\*** would additionally change
 
 The asterisked variant (MODEL §8.5) touches exactly one rule and adds exactly one constant, which is the main argument for it being adoptable at all:
 
