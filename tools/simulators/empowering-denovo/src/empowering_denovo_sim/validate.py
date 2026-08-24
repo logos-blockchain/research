@@ -40,6 +40,21 @@ def main() -> int:
           note=f"it asserts 50% where persistence delivers "
                f"{EFFICIENCY_PERSISTENT:.0%} -- a bet on retirement, now explicit")
     check("but is feasible if bonded miners do retire", d.satisfiable_if_retiring, True)
+    # The persistent ceiling itself, pinned two ways. A 2026-08-25 mutation test moved it
+    # from 15% to 25% and NOTHING failed: the reference triple implies 50%, which is above
+    # both, so every satisfiability gate read the same either way. The published 15% -- the
+    # number the whole re-strike recommendation rests on -- was unpinned.
+    check("the persistent conversion ceiling is the measured 15%",
+          EFFICIENCY_PERSISTENT, 0.15,
+          note="what this mechanism converts when nobody retires; the re-strike arithmetic "
+               "in SUMMARY section 4 is computed against exactly this")
+    _straddle = Triple(expected_nodes=10_000).derived()      # implies exactly 20%
+    check("and a triple that straddles it is judged against it",
+          (round(_straddle.implied_efficiency, 3),
+           _straddle.satisfiable, _straddle.satisfiable_if_retiring),
+          (0.2, False, True),
+          note="20% is above what persistence delivers and below what retirement does, so "
+               "this triple distinguishes the two ceilings where the reference one cannot")
     check("the anchor is two transfers", d.anchor, 2 * cfg.avg_tx_fee)
     check("and clears the claim's own fee", d.anchor > cfg.claim_fee, True,
           note=f"{d.anchor:,} against {cfg.claim_fee:,}")

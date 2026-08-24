@@ -66,6 +66,23 @@ RESERVE_GENESIS_LGO = (INFLATION_NUMERATOR / INFLATION_DENOMINATOR
                        * BLOCKS_PER_YEAR * RESERVE_LIFETIME_YEARS)
 
 
+def pooled_inflow_lgo(cfg: Config, txs_per_block: int) -> float:
+    """What one block leaves DISTRIBUTABLE in the pool, in LGO -- the reward window's input.
+
+    The carve-out convention, in one place. Fees enter the pending rewards pool in full and
+    the EmPoWering `pow_share` is its first outflow (decided 2026-08-24; the net-vs-gross
+    reading and its measured cost are contradiction 4.13), so what the reward rule averages
+    over its window is the fees NET of that share.
+
+    Both simulators spelled this out separately until a mutation test showed that neither
+    spelling was pinned: feeding the window GROSS fees changed no gate in either suite. One
+    named function, called from both and gated, is the fix.
+    """
+    fees = txs_per_block * cfg.avg_tx_fee
+    diverted = fees * cfg.pow_share_num // cfg.pow_share_den
+    return cfg.to_lgo(fees - diverted)
+
+
 def emission_factor_scaled(total_stake_lgo: float, pooled_window_lgo: list[float]) -> int:
     """``A_t'``, the emission rate factor before scaling. Integer, as the consensus rule is.
 

@@ -135,12 +135,9 @@ def run(cfg: Config, ecfg: ElevationConfig) -> ElevationResult:
     est = emission.StakeEstimate.at_genesis(cfg)
     slots_per_epoch = 648_000            # 21,600 blocks at f = 1/30, as in strategies.py
     fees = ecfg.txs_per_block * cfg.avg_tx_fee
-    # Fees enter the pending rewards pool IN FULL (PR 375); the EmPoWering share is the
-    # pool's first outflow, and the reward rule reads what remains. Decided 2026-08-24:
-    # the carve-out is taken from the pooled reward flow, so the window below carries the
-    # pool's distributable inflow -- same value the pre-pooling code computed, new accounting.
-    pooled_lgo = cfg.to_lgo(fees - fees * cfg.pow_share_num // cfg.pow_share_den)
-    pooled_window = [pooled_lgo] * emission.POOL_WINDOW
+    # The carve-out convention lives in `emission.pooled_inflow_lgo` -- fees pool in full and
+    # the EmPoWering share is the first outflow, so the window carries what remains.
+    pooled_window = [emission.pooled_inflow_lgo(cfg, ecfg.txs_per_block)] * emission.POOL_WINDOW
 
     rows: list[ElevationRow] = []
     owed_m = owed_e = 0.0

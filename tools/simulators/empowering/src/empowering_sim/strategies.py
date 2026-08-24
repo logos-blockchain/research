@@ -221,11 +221,9 @@ def run(cfg: Config, scfg: StrategyConfig) -> tuple[Population, list[EpochRecord
 
     fees_per_block = scfg.txs_per_block * cfg.avg_tx_fee
     diverted = fees_per_block * cfg.pow_share_num // cfg.pow_share_den
-    # Fees enter the pending rewards pool in full (PR 375); the EmPoWering diversion is the
-    # pool's first outflow (decided 2026-08-24), so the reward rule's window carries the
-    # pool's distributable inflow -- fees net of the carve-out. Same value as before pooling.
-    pooled_per_block_lgo = cfg.to_lgo(fees_per_block - diverted)
-    pooled_window = [pooled_per_block_lgo] * emission.POOL_WINDOW
+    # The carve-out convention lives in `emission.pooled_inflow_lgo`; see it for the reading
+    # and its cost. `diverted` above is the same carve-out, in lepta, for the pool's refill.
+    pooled_window = [emission.pooled_inflow_lgo(cfg, scfg.txs_per_block)] * emission.POOL_WINDOW
 
     out: list[EpochRecord] = []
     for e in range(scfg.epochs):

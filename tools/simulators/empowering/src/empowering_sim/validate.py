@@ -720,6 +720,32 @@ def gate_emission(cfg: Config) -> None:
                f"11.1% of three ten-thousandths of a token, which is why the reading is "
                f"recorded rather than resolved")
 
+    # --- four gates added 2026-08-25 after a MUTATION TEST found the holes they close.
+    # Each was written by breaking the thing under test and checking that this gate fails.
+    check("the pooled window carries fees NET of the carve-out, not gross",
+          emission.pooled_inflow_lgo(cfg, 600),
+          cfg.to_lgo(600 * cfg.avg_tx_fee * (cfg.pow_share_den - cfg.pow_share_num)
+                     // cfg.pow_share_den),
+          rel=1e-9,
+          note="the 4.13 convention, in one place and pinned -- feeding the reward window "
+               "GROSS fees used to change no gate in either suite")
+    check("and the pool guard ships ON by default",
+          emission.Stocks().guard_pool, True,
+          note="the unguarded form drives the early-life balance negative (gated below); "
+               "flipping the default used to pass the whole suite")
+    # A_t with the stake deviation ZEROED, so the fee coefficient alone sets it -- the region
+    # every other gate misses, because at the reference parameters A_t saturates at 0 or 1
+    # and a one-part-in-10,512 change to the coefficient cannot move a saturated factor.
+    # The expected value is a LITERAL, deliberately. A first version computed it as
+    # FEE_AVG_NUMERATOR * POOL_WINDOW / A_SCALE -- derived from the very constant under test,
+    # so mutating the constant moved both sides and the gate still passed. The mutation test
+    # caught it; 10,512 * 120 / 120,000,000 = 0.010512 is now written out.
+    _a_fee = emission.emission_factor(emission.STAKE_TARGET_LGO, [1.0] * emission.POOL_WINDOW)
+    check("the KPI-2 fee coefficient is exercised where it actually bites",
+          round(_a_fee, 9), 0.010512,
+          note=f"A_t = {_a_fee:.6f} at the stake target with a flat 1-LGO window: the fee term "
+               f"alone. Off saturation the coefficient is load-bearing; on it, invisible")
+
     check("the reserve is DERIVED from the release cap and the lifetime, not written down",
           round(emission.RESERVE_GENESIS_LGO), 1_000_000_000,
           note=f"I_max * S_cap * Y at Y = {emission.RESERVE_LIFETIME_YEARS} -- 10% of the cap; "
