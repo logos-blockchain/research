@@ -91,9 +91,24 @@ def run(config: str, lips: str) -> int:
           int(p.genesis_pool_fraction * 1000))
 
     rewards = "block-rewards.md"
-    check("S_tge",
-          grab(rewards, r"Token supply at TGE \| (\d+) billion LGO", "supply"),
+    # Two accepted forms: master's parametrization row anchors the supply as S_tge ("Token
+    # supply at TGE"); lips PR 375 removes S_tge and anchors everything to the hard cap
+    # ("Maximum token supply (hard cap)"). Numerically identical at the stated 10^10, so one
+    # config value serves both trees -- the alternation is what keeps this gate green across
+    # the substrate change instead of pinning the sim to one side of an open PR.
+    check("S_tge / S_cap",
+          grab(rewards,
+               r"(?:Token supply at TGE|Maximum token supply \(hard cap\)) \| (\d+) billion LGO",
+               "supply"),
           int(p.S_tge / 1e9))
+    rewards_text = read(rewards)
+    if rewards_text and "Lifetime of the rewards reserve" in rewards_text:
+        # The PR-375 tree only: the reserve-lifetime parameter its Pool Accounting section
+        # introduces. Y = 10 sizes the reserve at I_max * S_cap * Y = 10^9 LGO, which is the
+        # RESERVE_GENESIS the strategy simulator's emission stocks carry.
+        check("Y (reserve lifetime, PR 375)",
+              grab(rewards, r"Lifetime of the rewards reserve[^|]*\| \$(\d+)\$ years", "Y"),
+              10)
 
     blendp = "blend-protocol.md"
     n_b = grab(blendp, r"which translates to \$`([\d,]+)`\$ blocks", "N_b")

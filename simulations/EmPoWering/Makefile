@@ -88,8 +88,11 @@ bench-poseidon2: ## measure the candidate rate (requires Rust and ../logos-block
 # same config AND fails if the two implementations disagree on the golden grid.
 web: $(STAMP) ## regenerate the browser panel's data and cross-check the JS model
 	$(PY) -m empowering.webexport --config $(CONFIG) --out web
-	@command -v node >/dev/null && (cd web && node selfcheck.mjs) \
-	  || echo '  (node not found: JS/Python cross-check skipped)'
+	@cd web && node selfcheck.mjs || { \
+		echo '  the JS model DISAGREES with the Python, or node is unavailable.'; \
+		echo '  Not optional: the old "|| echo skipped" swallowed real drift AND real'; \
+		echo '  failures alike -- the same silent pass the de-novo calculator shipped with.'; \
+		exit 1; }
 
 clean:
 	rm -rf $(VENV) src/*.egg-info $(shell find . -name __pycache__)

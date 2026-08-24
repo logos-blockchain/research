@@ -6,6 +6,18 @@ in REWARD-MODEL-extraction-log.txt alongside. -->
 
 # Reward Model of Record — Logos Blockchain
 
+> **Substrate note (2026-08-24).** This extraction records the burn/mint substrate of its
+> source tree. Lips **PR 375** (`block-rewards.md` 1.1.0, open) replaces it with
+> pooling/distributing/releasing: fees route in full into a pending rewards pool, rewards
+> distribute from it topped up by a metered release from a finite genesis reserve
+> (`B_0 = 10⁹ LGO`), the recycled term becomes the windowed average over `T = 120` blocks,
+> and `S_tge` is removed for `S_cap` (numerically identical). The extraction below remains
+> the record of what it read; the differences are implemented and gated in `emission.py` and
+> recorded as contradictions **4.12** (the PR's own real/integer divergence) and **4.13**
+> (the `pow_share` diversion re-founded as the pool's first outflow, decided 2026-08-24).
+> No number this simulator publishes moves under the new substrate; the settled blend pool
+> is pinned by a gate to the LGO.
+
 **Source tree:** `/Users/x/Logos/logos-lips/.claude/worktrees/Bedrock-RFC-EmPoWering/docs/blockchain/raw/`
 All citations below are `file:line` relative to that directory. This document folds in the independent verification of each extraction: invented elements have been removed, wrong citations corrected, missed elements added. Where a verification found an extraction claim to be arithmetically wrong, the corrected number is used and the error is not repeated.
 
