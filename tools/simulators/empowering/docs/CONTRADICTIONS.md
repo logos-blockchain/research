@@ -213,6 +213,52 @@ names BN254 but states no modulus. The only numeric value in the tree is at
 **Resolved: use the stated value** — a documentation gap rather than a contradiction. It is
 the standard BN254 scalar field modulus and matches what this simulator already uses.
 
+## 4.12 The block reward's recycled term — windowed or single-block (lips PR 375)
+
+`block-rewards.md` 1.1.0 (PR 375, `pooling-distributing`, head `2b3b698` at the time of this
+entry) changes the recycled term of the reward equation from the latest block's pooled fee to
+the **moving average over the look-back window T** — a genuine mechanism change, motivated as
+removing single-block volatility and the incentive to time transactions against one block.
+The same PR's integer derivation and Rust reference still compute the single-block form; the
+branch flags the section "**Rederivation required**" rather than fixing it, so the
+specification's real-valued rule and its consensus-level reference implementation disagree
+*within the same document*.
+
+**Resolved: the windowed rule**, as the stated intent, with the PR's own prescription (reuse
+the window sum already maintained for the pooling-rate KPI, divided by T). `emission.py`
+implements it as `block_reward_lgo` and keeps the superseded form callable as
+`block_reward_lgo_single_block`; the parity gate pins the divergence (a lone 12-LGO block in
+a quiet window: 0.1 LGO windowed against 12 single-block) so the rederivation landing upstream
+moves a gate here instead of passing silently. One boundary the specification leaves unstated
+is decided here: pre-genesis window entries are zero, so a short history divides by the full
+T. **No figure in these studies moves** — every run holds fees flat, where the two rules are
+identical, and `A_t` saturates at 1 over every horizon anyway; pinned by the flat-window gate.
+
+Side effect on 4.9: the PR removes `S_tge` entirely and anchors every constant to `S_cap`
+(numerically the same 10¹⁰), which dissolves 4.9's *anchor* question — but not its
+consequence, since the `min_stake` derivation assumed 10⁸ whatever the anchor is called.
+
+## 4.13 Fee routing "in full" against the EmPoWering `POW_SHARE` — cross-RFC, decided
+
+PR 375's `storage-markets.md` Fee Routing subsection routes each storage fee "**in full**"
+into the pending rewards pool, `execution-market.md` routes the entire base fee likewise, and
+the decomposition `R_block = R̂_STR + R̂_pooled` has no proof-of-work term. The EmPoWering
+design diverts `POW_SHARE` (10%) of fees to the PoW pool. As written, the two specifications
+cannot both be true on the day both merge.
+
+**Decided by the design owner, 2026-08-24: the pool's routing stands, and EmPoWering carves
+its share out of the pooled reward flow.** Fees enter the pending rewards pool in full — the
+RFC's sentences stay true — and the PoW share is the pool's *first outflow*, taken from the
+pooled flow before the reward rule distributes the remainder. Accounting consequences, all
+implemented: the reward rule's window carries the pool's distributable inflow (fees net of
+the carve-out — the same value the pre-pooling code used, so nothing moves); the pool
+balance stays non-negative in every regime including `A_t = 0`, where distributing against
+gross inflow would drain it by exactly the PoW share per block; and the de-novo `fee_bucket`
+becomes the EmPoWering-side view of a draw against the pending rewards pool rather than an
+interception ahead of it. The remaining upstream ask is one sentence in the RFC
+acknowledging the carve-out as a pool outflow, so "in full" and `POW_SHARE` stop reading as
+a contradiction.
+
 ---
 
 ## What changed, and what is still blocked
@@ -230,6 +276,8 @@ the standard BN254 scalar field modulus and matches what this simulator already 
 | 4.9 | `S_TGE = 10¹⁰` | **invalidates the `min_stake` derivation** |
 | 4.10 | `BN` | no |
 | 4.11 | use the stated modulus | no |
+| 4.12 | windowed recycled term, per PR 375's stated intent | no — flat fees and `A_t = 1` make the rules coincide here; the divergence is gated |
+| 4.13 | **DECIDED: carve-out from the pooled flow** | no — same value, new accounting; one upstream wording ask remains |
 
 **Both items the documents could not supply are now decided as parameters:** `D` seeded at
 10^10 per the genesis rule, and `min_stake` at 1,000 LGO per the static minimum stake analysis.

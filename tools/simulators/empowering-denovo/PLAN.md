@@ -327,7 +327,14 @@ full** into the pending rewards pool (`storage-markets.md` Fee Routing; `executi
 closing derivation), and its `R_block = R̂_STR + R̂_pooled` decomposition has no PoW term.
 As specified, PR 375 and the EmPoWering fee diversion cannot both be true.
 
-Two resolutions, decision for the design owner:
+**DECIDED 2026-08-24 (design owner): the pool's routing stands and EmPoWering carves its
+share out of the pooled reward flow** — resolution (ii). Fees enter the pending rewards pool
+in full, the RFC's sentences stay true, and the `POW_SHARE` is the pool's first outflow. The
+reward rule's window reads the pool's distributable inflow (fees net of the carve-out — the
+same value the pre-pooling code computed, so no figure moves), and `fee_bucket` becomes the
+EmPoWering-side view of a draw against the pending rewards pool. Recorded with the accounting
+consequences as contradiction 4.13; the one remaining upstream ask is a sentence in the RFC
+acknowledging the carve-out as a pool outflow. The options as drafted, for the record:
 
 - **(i) Pre-pool carve-out.** EmPoWering intercepts its 10% at inclusion time; the RFC's
   "in full" gains a qualifier and the decomposition gains a term

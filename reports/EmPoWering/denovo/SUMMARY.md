@@ -127,6 +127,22 @@ The reasoning, in order of weight:
 
 The GPU question is now *estimated* rather than open, and the answer is more comfortable than expected. Poseidon2 over BN254 costs ~3,400 field multiplications per candidate, and published GPU throughput for BN254 is below 1 Gops/s — a hundredfold worse than small fields, because a 254-bit non-special modulus suits GPU ALUs badly. A card manages ~294,000 candidates a second, twelve times a Pi 5 board, but spends about **four times more energy per candidate**. So a GPU rig is much faster and no cheaper: the cost-bounded attacks in the analysis are not understated, while the share-bounded ones are. **The mechanism inherits meaningful GPU resistance from the curve choice**, which is worth knowing deliberately rather than by luck. It is still an estimate and should be benchmarked.
 
+## 4.1 The substrate changed under this design, and it fits better than before
+
+Lips PR 375 (`block-rewards.md` 1.1.0) replaces the chain's burn/mint tokenomics with
+pooling/distributing/releasing: fees route into a pending rewards pool, rewards distribute
+from it topped up by a metered release from a finite genesis reserve, and the whole system
+conserves. **Measured: no number in this document moves** — the reward level this design
+reads is the release cap, numerically unchanged, and the settled blend pool is identical to
+the LGO (now pinned by a gate at its source). Two things do change. The `pow_share` fee
+diversion is re-founded as a **carve-out from the pending rewards pool** — its first outflow,
+decided 2026-08-24, closing a genuine cross-spec contradiction (the RFC routes fees "in
+full"; contradiction 4.13). And the adoption argument strengthens: the redesign turns out to
+be an instance of the RFC's own pattern — the endowment a genesis-minted sub-reserve, the
+schedule a metered release, the dust fold its depletion fallback, our conservation gate its
+conservation identity (`MAPPING.md` §1.1) — so adopting it under the new substrate adds no
+new *kind* of thing to the system.
+
 ## 5. Where the workings are
 
 | document | what it carries |

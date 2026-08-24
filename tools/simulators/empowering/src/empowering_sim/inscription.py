@@ -121,7 +121,7 @@ def price_sweep(cfg: Config, prices_lepta, sizes=SIZES) -> list[dict]:
             opening_reward=opening,
             genesis_net=opening - c.claim_fee,
             mining_pays=opening > c.claim_fee,
-            burn_per_year_lgo=c.to_lgo(tx_per_year * c.avg_tx_fee),
+            pooled_per_year_lgo=c.to_lgo(tx_per_year * c.avg_tx_fee),
             rows=sweep(c, sizes),
         ))
     return out

@@ -435,12 +435,12 @@ def gate_staking_against_the_spec(cfg: Config) -> None:
           consensus.validation_apy(whole) / consensus.validation_apy(cfg), 2.5, rel=0.01,
           note="a contradiction in the specifications, not in this model")
 
-    at_max = consensus.block_reward(cfg, 1.0, burnt_fees_per_block=12.0)
-    at_min = consensus.block_reward(cfg, 0.0, burnt_fees_per_block=12.0)
-    check("at maximum emission the reward is the minted term alone",
+    at_max = consensus.block_reward(cfg, 1.0, pooled_fees_per_block=12.0)
+    at_min = consensus.block_reward(cfg, 0.0, pooled_fees_per_block=12.0)
+    check("at maximum emission the reward is the release term alone",
           at_max, consensus.max_block_reward(cfg), rel=1e-12)
     check("at minimum emission it is the recycled fees alone", at_min, 12.0, rel=1e-12,
-          note="specification: close to target, most of the burn is minted back")
+          note="specification: close to target, most of the pooled fees are distributed back")
 
     from dataclasses import replace as _replace                # noqa: PLC0415
     split = _replace(cfg, leader_reward_share=0.39)
@@ -572,7 +572,7 @@ def gate_conservation(cfg: Config) -> None:
     base = dict(pool=cfg.genesis_pool, hashrate_share=1 / 500,
                 min_stake=cfg.min_stake, staked_fraction=0.30)
     ref = crossover.conservation_product(cfg, **base)
-    check("product equals staked_total over minted", ref["product"], ref["expected"], rel=1e-9,
+    check("product equals staked_total over released", ref["product"], ref["expected"], rel=1e-9,
           note=f"{ref['product']:,.0f} epochs = {ref['product'] / cfg.epochs_per_year:.1f} years")
 
     products = [ref["product"]]
@@ -671,17 +671,88 @@ def gate_emission(cfg: Config) -> None:
     print("\nThe emission control function")
     check("block reward at maximum emission", emission.block_reward_lgo(0.0, [0.0]),
           emission.INFLATION_NUMERATOR / emission.INFLATION_DENOMINATOR, rel=1e-12,
-          note="62500/657 LGO, block-rewards.md's own figure")
-    # Far above target with no burn: the factor clamps to zero and the reward is the burn.
-    at_genesis = emission.emission_factor(1e10, [0.0] * emission.BURN_WINDOW)
+          note="62500/657 LGO -- the reserve-release cap, block-rewards.md's own figure")
+    # Far above target with no fees: the factor clamps to zero and the reward recycles fees.
+    at_genesis = emission.emission_factor(1e10, [0.0] * emission.POOL_WINDOW)
     check("the genesis seed clamps the factor to zero", at_genesis, 0.0, rel=1e-12,
           note="D = 10^10 against a 3e9 target")
-    check("and the reward is then exactly the block's own burn",
-          emission.block_reward_lgo(1e10, [0.0] * 119 + [12.0]), 12.0, rel=1e-12)
+    # PR 375's one mechanism change to this rule: the recycled term is the WINDOWED average
+    # of pooled fees, not the latest block's. A lone 12-LGO block distributes 12/120.
+    check("and the recycled term is the windowed average, not the block's own fee",
+          emission.block_reward_lgo(1e10, [0.0] * 119 + [12.0]), 0.1, rel=1e-12,
+          note="12 LGO in one block of a quiet window -> 12/T = 0.1 LGO distributed; the "
+               "single-block rule paid the full 12 and made the reward spike with one block")
+    check("the superseded single-block form still answers 12 -- master parity",
+          emission.block_reward_lgo_single_block(1e10, [0.0] * 119 + [12.0]), 12.0,
+          rel=1e-12,
+          note="kept callable because PR 375's own integer section is flagged 'Rederivation "
+               "required' and still computes this; the divergence is contradiction 4.12")
+    check("a full window and a lone block agree only when the window is flat",
+          emission.block_reward_lgo(1e10, [12.0] * emission.POOL_WINDOW), 12.0, rel=1e-12,
+          note="flat fees are the regime this simulator runs in, which is why the windowed "
+               "rule moves no figure in these studies")
+    check("the window boundary zero-pads: a one-entry history divides by T regardless",
+          emission.block_reward_lgo(1e10, [12.0]), 0.1, rel=1e-12,
+          note="pre-genesis entries are zero -- the boundary rule the spec leaves unstated, "
+               "decided in emission.windowed_average_lgo and pinned here")
     check("well below target the factor saturates at one",
-          emission.emission_factor(1e8, [0.0] * emission.BURN_WINDOW), 1.0, rel=1e-12)
-    check("the stake target is thirty percent of supply",
-          emission.STAKE_TARGET_LGO, 0.30 * cfg.launch_supply, rel=1e-12)
+          emission.emission_factor(1e8, [0.0] * emission.POOL_WINDOW), 1.0, rel=1e-12)
+    check("the stake target is thirty percent of the cap",
+          emission.STAKE_TARGET_LGO, 0.30 * cfg.launch_supply, rel=1e-12,
+          note="S_cap anchoring (PR 375 removed S_tge); numerically identical at launch")
+
+    # ---- the pool and reserve stocks, and the conservation identity they carry
+    rng_s = np.random.default_rng(7)
+    stocks = emission.Stocks()
+    window: list[float] = []
+    for _ in range(600):
+        window.append(float(rng_s.uniform(0.0, 30.0)))
+        stocks.step(float(rng_s.uniform(5e7, 2e10)), window[-emission.POOL_WINDOW:])
+    check("conservation holds to float precision over a random 600-block path",
+          abs(stocks.conservation_residual_lgo) < 1e-6, True,
+          note=f"residual {stocks.conservation_residual_lgo:.2e} LGO -- delta_S + delta_P + "
+               f"delta_B accumulates to zero; the RFC's central claim, run rather than read")
+    tiny = emission.Stocks(reserve_lgo=200.0)
+    rewards = [tiny.step(1e8, [0.0]) for _ in range(4)]
+    check("a depleted reserve degrades the reward to the recycled component",
+          (rewards[0], rewards[1], rewards[2], rewards[3]),
+          (95.12937595129375, 95.12937595129375, 9.741248097412495, 0.0),
+          note="200 LGO of reserve funds two full releases, a partial third, then nothing -- "
+               "iota is capped by the balance and the fallback is (1-A)*R_bar, here zero")
+    check("and the depleted run still conserves",
+          abs(tiny.conservation_residual_lgo) < 1e-9, True)
+    # The RFC's one open boundary question (P_t >= 0), measured: a fee spike then silence at
+    # A = 0 makes the windowed average distribute history the pool never banked.
+    loose = emission.Stocks(reserve_lgo=0.0, guard_pool=False)
+    spike = [120.0] + [0.0] * 240
+    for i in range(1, len(spike)):
+        loose.step(1e10, spike[max(0, i - emission.POOL_WINDOW + 1):i + 1])
+    check("unguarded, the early-life pool balance goes NEGATIVE after a spike",
+          loose.pool_lgo < 0, True,
+          note=f"{loose.pool_lgo:.2f} LGO -- the regime PR 375 flags for 'explicit boundary "
+               f"treatment'; it is real, not hypothetical")
+    tight = emission.Stocks(reserve_lgo=0.0, guard_pool=True)
+    for i in range(1, len(spike)):
+        tight.step(1e10, spike[max(0, i - emission.POOL_WINDOW + 1):i + 1])
+    check("guarded, the distribution clips to the pool and the balance floors at zero",
+          tight.pool_lgo >= 0 and abs(tight.conservation_residual_lgo) < 1e-9, True,
+          note="pay what the pool holds, never more -- the same move as the de-novo room "
+               "cap, and this simulator's answer to the open question")
+
+    # The settled blend pool: the one number the de-novo retirement model imports from this
+    # simulator (retirement.BLEND_POOL_LGO_PER_EPOCH). Pinned here, at the source and at the
+    # constant's own provenance -- the DEFAULT StrategyConfig, because the median moves with
+    # the horizon as stake grows (a 40-epoch run reads 1,235,502) -- so a change to the
+    # emission machinery moves a gate instead of silently invalidating the
+    # endogenous-retirement conclusions next door.
+    from . import strategies as _strat                        # noqa: PLC0415
+    _, _recs = _strat.run(cfg, _strat.StrategyConfig())
+    _settled = sorted(r.blend_pool_lgo for r in _recs)[len(_recs) // 2]
+    check("the settled blend pool is what the de-novo retirement model assumes",
+          round(_settled), 1_235_274,
+          note="LGO per epoch, the median over the default strategy run -- unchanged by the "
+               "pooling substrate, because A_t = 1 makes the reward the release cap and the "
+               "windowed recycled term never engages at magnitude")
 
     blend, leader = emission.split(100.0, cfg)
     check("Blend takes sixty percent of a block", blend, 60.0, rel=1e-9)
@@ -720,11 +791,11 @@ def gate_fee_markets(cfg: Config) -> None:
           fm.next_storage_price(1_000_000, 500, 0), 1_000_000)
 
     # The equilibrium question. Nothing bounds the base fee above, so whether fee recycling
-    # can fund what minting funded is a question about DEMAND, not about the mechanism.
+    # can fund what the release funded is a question about DEMAND, not about the mechanism.
     cap = round(consensus.max_block_reward(cfg) * cfg.base_units_per_lgo)
     units = cfg.transfer_tx_bytes + cfg.transfer_tx_gas
-    need = fm.price_for_block_burn(cap, cfg.max_block_txs, units, cfg.pow_share)
-    check("price at which a full block's burn matches the minting ceiling", need, 129_513,
+    need = fm.price_for_block_pool(cap, cfg.max_block_txs, units, cfg.pow_share)
+    check("price at which a full block's pooled fees match the release ceiling", need, 129_513,
           rel=1e-3, note=f"{need / cfg.price_resting:,.0f}x the RESTING price")
     per_tx = units * need / cfg.base_units_per_lgo
     check("what that costs one transaction", per_tx, 0.1032, rel=1e-2,

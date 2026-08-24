@@ -17,7 +17,10 @@ The three of R4, plus what is inherited unchanged:
 | `EXPECTED_NODES` | nodes the bootstrap intends to onboard (R3) | 25,000 |
 | `EXPECTED_YEARS` | intended bootstrap duration | 4.0 |
 
-Inherited, not free: `min_stake` (1,000 LGO, SDP), `pow_share` (10%, the fee diversion),
+Inherited, not free: `min_stake` (1,000 LGO, SDP), `pow_share` (10% — under the
+pooling/distributing/releasing substrate of lips PR 375 this is a **carve-out from the
+pending rewards pool**, its first outflow, not an interception ahead of it; decided
+2026-08-24, recorded as contradiction 4.13 with the accounting consequences),
 `blocks_per_epoch` (21,600), the EMA retarget constants `F/P` (9/10), the genesis difficulty
 seed (`p / 2^26`), and the fee model (`txsize`, two markets, lepta).
 
@@ -58,7 +61,19 @@ nearly worthless.
 
 ## 2. State
 
-Consensus state, per the component accounting of Q6:
+Consensus state, per the component accounting of Q6.
+
+**Where these stocks sit in the pooling/distributing/releasing substrate** (lips PR 375,
+`block-rewards.md` 1.1.0): this design was written against the burn/mint model and turns out
+to be an instance of the RFC's own pattern, not an exception to it. `endowment` is a
+**genesis-minted sub-reserve** in exactly the RFC's sense — its author models the reserve
+with sub-pools "for accountability purposes" — released on this design's own schedule
+(`sub_pool = endowment // (B − e)` is a metered release; Q7's nominal-rate tail is the RFC's
+"lasts Y years at the maximum rate, longer whenever slower"; the dust fold is its
+depleted-reserve fallback). `fee_bucket` is the EmPoWering-side view of a **draw against the
+pending rewards pool** — fees enter that pool in full and the `pow_share` carve-out is its
+first outflow (decided 2026-08-24, contradiction 4.13). And this model's
+conservation-to-the-lepton gate is the RFC's `ΔS + ΔP + ΔB = 0`, held at a finer grain.
 
 ```python
 endowment: TokenValue        # E. The TGE bucket. Monotone non-increasing. Genesis: ENDOWMENT_GENESIS.

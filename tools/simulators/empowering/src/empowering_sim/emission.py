@@ -1,9 +1,20 @@
-"""The KPI-driven block reward, and the stake estimate that drives it.
+"""The KPI-driven block reward, the pool and reserve stocks, and the stake estimate.
 
-Transcribed from `block-rewards.md`'s normative integer form and
+Transcribed from `block-rewards.md`'s normative form and
 `cryptarchia-total-stake-inference.md`'s estimator, with the decisions in
 `docs/CONTRADICTIONS.md` applied: the deviation coefficient is 1/4 (4.2), the split is floored
 per block (4.6), and the genesis stake estimate is the total distributed at genesis (4.3).
+
+**Pooling, not burning (lips PR 375, `block-rewards.md` 1.1.0).** Fees are routed into a
+pending rewards pool rather than burned, and rewards are distributed from that pool plus a
+metered release from a finite genesis reserve rather than minted. Three consequences land
+here: the recycled term of the block reward is the WINDOWED AVERAGE of pooled fees, not the
+latest block's (`block_reward_lgo`); the pool and reserve are explicit stocks with a
+conservation identity (`Stocks`); and the vocabulary is pooled, not burnt. The PR's own
+integer section is flagged "Rederivation required" -- its Rust body still uses the
+single-block fee -- so the superseded form is kept callable as
+`block_reward_lgo_single_block` for parity with `master`, and the divergence is recorded as
+contradiction 4.12.
 
 **Units.** The block-reward function is denominated in LGO -- its literal `3e9` is three
 billion LGO -- while ledger quantities are lepta. No conversion rule is stated anywhere
@@ -23,40 +34,124 @@ A_SCALE = 120_000_000
 INFLATION_NUMERATOR = 62_500
 INFLATION_DENOMINATOR = 657
 FEE_AVG_NUMERATOR = 10_512
-STAKE_TARGET_LGO = 3_000_000_000          # D_0,target = 30% of a 10^10 supply
-BURN_WINDOW = 120                          # T, the look-back in blocks
+STAKE_TARGET_LGO = 3_000_000_000          # D_0,target = 30% of S_cap (10^10 LGO, the hard cap)
+POOL_WINDOW = 120                          # T, the look-back in blocks
+
+# The rewards reserve (PR 375): pre-allocated at genesis from the cap, drawn down by the
+# release, never refilled. B_0 = I_max * S_cap * Y with Y = 10 years: 1% of 10^10 over ten
+# years is 10^9 LGO, a tenth of the cap. The release cap per block is the familiar
+# 62500/657 = 95.1294 LGO -- the reserve funds it for exactly Y years at A_t = 1, longer
+# whenever A_t < 1.
+RESERVE_LIFETIME_YEARS = 10
+RESERVE_GENESIS_LGO = 1_000_000_000.0
 
 
-def emission_factor_scaled(total_stake_lgo: float, burnt_window_lgo: list[float]) -> int:
+def emission_factor_scaled(total_stake_lgo: float, pooled_window_lgo: list[float]) -> int:
     """``A_t'``, the emission rate factor before scaling. Integer, as the consensus rule is.
 
-    | ``A_t' = min(A_SCALE, max(0, STAKE_TARGET - total_stake + FEE_AVG_NUMERATOR * sum(burnt_window)))``
+    | ``A_t' = min(A_SCALE, max(0, STAKE_TARGET - total_stake + FEE_AVG_NUMERATOR * sum(pooled_window)))``
 
-    The first term is the stake deviation and the second the burn average. Both are read in
-    LGO. Clamped to ``[0, A_SCALE]`` on both sides, so it saturates rather than inverting.
+    The first term is the stake deviation and the second the pooling-rate average. Both are
+    read in LGO. Clamped to ``[0, A_SCALE]`` on both sides, so it saturates rather than
+    inverting. Unchanged by PR 375 -- this KPI was windowed all along.
     """
     raw = (STAKE_TARGET_LGO - total_stake_lgo
-           + FEE_AVG_NUMERATOR * sum(burnt_window_lgo[-BURN_WINDOW:]))
+           + FEE_AVG_NUMERATOR * sum(pooled_window_lgo[-POOL_WINDOW:]))
     return int(min(A_SCALE, max(0, raw)))
 
 
-def emission_factor(total_stake_lgo: float, burnt_window_lgo: list[float]) -> float:
-    """``A_t`` in [0, 1]: one is pure minting, zero is pure recycling of the block's burn."""
-    return emission_factor_scaled(total_stake_lgo, burnt_window_lgo) / A_SCALE
+def emission_factor(total_stake_lgo: float, pooled_window_lgo: list[float]) -> float:
+    """``A_t`` in [0, 1]: one is maximum reserve release, zero is pure fee recycling."""
+    return emission_factor_scaled(total_stake_lgo, pooled_window_lgo) / A_SCALE
 
 
-def block_reward_lgo(total_stake_lgo: float, burnt_window_lgo: list[float]) -> float:
-    """Total reward minted for one block, in LGO.
+def windowed_average_lgo(pooled_window_lgo: list[float]) -> float:
+    """``R-bar``: the moving average of pooled fees over the look-back window.
 
-    | ``reward = (62500 * A_t' + 657 * (A_SCALE - A_t') * burnt_this_block) / (657 * A_SCALE)``
+    | ``R_bar = sum(window[-T:]) / T`` -- always divided by T
 
-    At ``A_t = 1`` this is 62500/657 = 95.1294 LGO and the burn does not enter. At ``A_t = 0``
-    it is exactly the block's own burnt fees, minted back.
+    The window-boundary rule, decided here because the specification's sum runs from
+    ``t - T + 1`` without saying what pre-genesis entries are: they are zero. A shorter
+    history therefore averages against the full T, ramping the recycled term in smoothly
+    from genesis instead of letting one early fee spike masquerade as a hot hour.
     """
-    a = emission_factor_scaled(total_stake_lgo, burnt_window_lgo)
-    burnt_now = burnt_window_lgo[-1] if burnt_window_lgo else 0.0
-    return ((INFLATION_NUMERATOR * a + INFLATION_DENOMINATOR * (A_SCALE - a) * burnt_now)
+    return sum(pooled_window_lgo[-POOL_WINDOW:]) / POOL_WINDOW
+
+
+def block_reward_lgo(total_stake_lgo: float, pooled_window_lgo: list[float]) -> float:
+    """Total reward distributed for one block, in LGO. PR 375's equation (1).
+
+    | ``reward = (62500 * A_t' + 657 * (A_SCALE - A_t') * R_bar) / (657 * A_SCALE)``
+
+    At ``A_t = 1`` this is 62500/657 = 95.1294 LGO -- the reserve-release cap -- and the fees
+    do not enter. At ``A_t = 0`` it is the windowed average of pooled fees, distributed back.
+    The single-block form this replaces is `block_reward_lgo_single_block`.
+    """
+    a = emission_factor_scaled(total_stake_lgo, pooled_window_lgo)
+    r_bar = windowed_average_lgo(pooled_window_lgo)
+    return ((INFLATION_NUMERATOR * a + INFLATION_DENOMINATOR * (A_SCALE - a) * r_bar)
             / (INFLATION_DENOMINATOR * A_SCALE))
+
+
+def block_reward_lgo_single_block(total_stake_lgo: float,
+                                  pooled_window_lgo: list[float]) -> float:
+    """The superseded recycled term: the LATEST block's fee, not the windowed average.
+
+    This is `master`'s rule, and it is also what PR 375's own integer section and Rust
+    reference still compute -- the PR flags that section "Rederivation required" rather than
+    fixing it, so until the rederivation lands the specification's real-valued rule and its
+    consensus-level reference disagree (contradiction 4.12). Kept callable so the parity gate
+    can pin the divergence instead of letting it hide.
+    """
+    a = emission_factor_scaled(total_stake_lgo, pooled_window_lgo)
+    fee_now = pooled_window_lgo[-1] if pooled_window_lgo else 0.0
+    return ((INFLATION_NUMERATOR * a + INFLATION_DENOMINATOR * (A_SCALE - a) * fee_now)
+            / (INFLATION_DENOMINATOR * A_SCALE))
+
+
+@dataclass
+class Stocks:
+    """The pending rewards pool and the genesis reserve, as explicit state (PR 375).
+
+    The RFC's conservation identity is the point: with ``S`` the circulating supply,
+    ``delta_S + delta_P + delta_B = 0`` at every step -- tokens move between circulation,
+    the pool and the reserve, and none are created or destroyed. `step` returns the reward
+    paid and the class keeps the running residual so a gate can assert it is identically
+    zero rather than trusting the algebra.
+
+    ``guard_pool`` is the RFC's one open boundary question, made runnable. The specification
+    states ``P_t >= 0`` but the early-life regime can violate it: after a fee spike falls
+    silent, the windowed average keeps distributing history the pool never banked (a spike
+    then silence at ``A_t = 0`` drives the unguarded balance negative -- measured in the
+    gate). Guarded, the distribution is clipped to what the pool actually holds, which is
+    this simulator's boundary treatment and the shape of an answer to the open question:
+    the same move the de-novo engine's room cap makes.
+    """
+
+    reserve_lgo: float = RESERVE_GENESIS_LGO
+    pool_lgo: float = 0.0
+    guard_pool: bool = True
+    conservation_residual_lgo: float = 0.0
+
+    def step(self, total_stake_lgo: float, pooled_window_lgo: list[float]) -> float:
+        """Advance one block: route the fee in, release and distribute, return the reward."""
+        fee_in = pooled_window_lgo[-1] if pooled_window_lgo else 0.0
+        a = emission_factor(total_stake_lgo, pooled_window_lgo)
+        r_bar = windowed_average_lgo(pooled_window_lgo)
+
+        release = min(a * INFLATION_NUMERATOR / INFLATION_DENOMINATOR, self.reserve_lgo)
+        distribution = (1.0 - a) * r_bar
+        if self.guard_pool:
+            distribution = min(distribution, self.pool_lgo + fee_in)
+
+        reward = distribution + release
+        d_supply = reward - fee_in
+        d_pool = fee_in - distribution
+        d_reserve = -release
+        self.pool_lgo += d_pool
+        self.reserve_lgo += d_reserve
+        self.conservation_residual_lgo += d_supply + d_pool + d_reserve
+        return reward
 
 
 def split(reward_lgo: float, cfg: Config) -> tuple[float, float]:

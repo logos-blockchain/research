@@ -104,7 +104,7 @@ def affordability(cfg: Config, out: Path) -> Path:
     prices = np.logspace(0, 9.3, 260)
     data = inscription.price_sweep(cfg, prices, sizes=(1024,))
     net = np.array([cfg.to_lgo(d["genesis_net"]) for d in data])
-    burn = np.array([d["burn_per_year_lgo"] / cfg.launch_supply for d in data])
+    pooled = np.array([d["pooled_per_year_lgo"] / cfg.launch_supply for d in data])
     limit = inscription.affordable_storage_price(cfg)
     opening = cfg.to_lgo(economics.reward_per_claim(cfg.genesis_pool, cfg))
 
@@ -130,7 +130,7 @@ def affordability(cfg: Config, out: Path) -> Path:
             fontsize=8)
 
     a1.axvspan(prices[0], limit, color=INSCRIPT, alpha=0.10, zorder=1)
-    a1.plot(prices, burn, color=REWARD, linewidth=2.0, zorder=5)
+    a1.plot(prices, pooled, color=REWARD, linewidth=2.0, zorder=5)
     a1.axhline(1.0, color=DANGER, linewidth=1.4, zorder=4)
     a1.text(prices[0] * 2, 1.6, "the whole supply, every year", color=DANGER, fontsize=8)
     a1.axvline(cfg.base_units_per_lgo, color=DANGER, linewidth=1.6, zorder=4)
@@ -138,8 +138,8 @@ def affordability(cfg: Config, out: Path) -> Path:
     a1.axvline(limit, color=INK_2, linewidth=1.1, linestyle=(0, (4, 3)), zorder=4)
     a1.set_xscale("log"); a1.set_yscale("log")
     a1.set_xlabel("storage price, lepta per byte", color=INK_2, fontsize=9)
-    a1.set_ylabel("fees burnt per year, as a multiple of supply", color=INK_2, fontsize=9)
-    a1.set_title("Fee burn stays negligible across the whole viable band",
+    a1.set_ylabel("fees pooled per year, as a multiple of supply", color=INK_2, fontsize=9)
+    a1.set_title("Pooled fees stay negligible across the whole viable band",
                  color=INK, fontsize=10.5, loc="left", pad=8)
 
     f.suptitle("A claim clears its own fee by five orders of magnitude, and the storage price "

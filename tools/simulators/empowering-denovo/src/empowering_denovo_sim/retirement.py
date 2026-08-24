@@ -56,6 +56,9 @@ from .priceviz import PI5_WH_PER_CANDIDATE
 
 # Measured: the median epoch of `empowering_sim.strategies.run` at its default config, once
 # the emission factor has settled. The first epochs are far below it while stake is thin.
+# Pinned at the source by the empowering suite's "settled blend pool" gate, so a change to
+# the emission machinery (e.g. the PR-375 pooling substrate, which left it exactly here)
+# fails a gate there instead of silently invalidating the conclusions computed from it here.
 BLEND_POOL_LGO_PER_EPOCH = 1_235_274.0
 
 

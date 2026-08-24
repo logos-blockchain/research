@@ -135,8 +135,12 @@ def run(cfg: Config, ecfg: ElevationConfig) -> ElevationResult:
     est = emission.StakeEstimate.at_genesis(cfg)
     slots_per_epoch = 648_000            # 21,600 blocks at f = 1/30, as in strategies.py
     fees = ecfg.txs_per_block * cfg.avg_tx_fee
-    burnt_lgo = cfg.to_lgo(fees - fees * cfg.pow_share_num // cfg.pow_share_den)
-    burn_window = [burnt_lgo] * emission.BURN_WINDOW
+    # Fees enter the pending rewards pool IN FULL (PR 375); the EmPoWering share is the
+    # pool's first outflow, and the reward rule reads what remains. Decided 2026-08-24:
+    # the carve-out is taken from the pooled reward flow, so the window below carries the
+    # pool's distributable inflow -- same value the pre-pooling code computed, new accounting.
+    pooled_lgo = cfg.to_lgo(fees - fees * cfg.pow_share_num // cfg.pow_share_den)
+    pooled_window = [pooled_lgo] * emission.POOL_WINDOW
 
     rows: list[ElevationRow] = []
     owed_m = owed_e = 0.0
@@ -201,7 +205,7 @@ def run(cfg: Config, ecfg: ElevationConfig) -> ElevationResult:
                            + int((m_bond != NOT_SET).sum()) * cfg.min_stake_lgo)
         blocks = est.blocks_produced(true_staked_lgo, cfg, slots_per_epoch)
 
-        blk = emission.block_reward_lgo(est.value_lgo, burn_window)
+        blk = emission.block_reward_lgo(est.value_lgo, pooled_window)
         blend, _ = emission.split(blk, cfg)
         per_prov = services.reward_per_provider(blend * blocks, providers)
 
