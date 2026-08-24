@@ -415,6 +415,11 @@ which the RFC has made false anyway).
 
 ## 5. Upstream contributions (outward-facing — each needs an explicit go)
 
+> **The prepared answers live in `reports/EmPoWering/UPSTREAM-PENDING.md`**, written so they
+> can be posted without redoing the work — question, answer, evidence, and where the gates
+> are. Nothing has been sent. The list below is why each item exists; that file is what to
+> paste when the go arrives.
+
 1. **Answer the PR's open question with our machinery.** The PR asks for "explicit boundary
    treatment" of the early-life regime where `R̄_t` exceeds cumulative inflows (`P_t ≥ 0`).
    That is precisely the boundary class our dust fold and Q7 tail solved, and our engine can

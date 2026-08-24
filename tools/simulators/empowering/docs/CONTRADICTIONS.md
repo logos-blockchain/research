@@ -267,7 +267,8 @@ reward, which is where every published figure sits), 0.0005% apart near the targ
 absolute figure is ~0.0003 LGO a block. Nothing published moves either way; the entry exists
 so the reading can be revisited on evidence rather than rediscovered. The remaining upstream ask is one sentence in the RFC
 acknowledging the carve-out as a pool outflow, so "in full" and `POW_SHARE` stop reading as
-a contradiction.
+a contradiction — drafted, with the other pending upstream items, in
+`reports/EmPoWering/UPSTREAM-PENDING.md`.
 
 ---
 

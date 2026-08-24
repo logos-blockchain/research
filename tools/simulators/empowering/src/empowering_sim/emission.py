@@ -181,10 +181,17 @@ class Stocks:
     supply_lgo: float = 0.0          # circulating; only its CHANGES carry meaning
     guard_pool: bool = True
 
+    def __post_init__(self) -> None:
+        # Captured, not assumed. This returned the DEFAULT reserve until 2026-08-25, so any
+        # instance built with a different one -- every boundary test below does -- reported a
+        # conservation error of minus the whole default reserve. The gates papered over it by
+        # writing their own totals by hand; the property was simply wrong.
+        self._genesis_total_lgo = self.supply_lgo + self.pool_lgo + self.reserve_lgo
+
     @property
     def genesis_total_lgo(self) -> float:
-        """What ``S + P + B`` was before any step ran."""
-        return RESERVE_GENESIS_LGO
+        """What ``S + P + B`` was for THIS instance before any step ran."""
+        return self._genesis_total_lgo
 
     @property
     def total_lgo(self) -> float:

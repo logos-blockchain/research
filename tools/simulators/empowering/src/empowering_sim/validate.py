@@ -799,8 +799,11 @@ def gate_emission(cfg: Config) -> None:
           note="200 LGO of reserve funds two full releases, a partial third, then nothing -- "
                "iota is capped by the balance and the fallback is (1-A)*R_bar, here zero")
     check("and the depleted run still conserves",
-          abs(tiny.total_lgo - 200.0) < 1e-9, True,
-          note="against ITS genesis total of 200 LGO, not the default reserve")
+          abs(tiny.conservation_error_lgo) < 1e-9, True,
+          note="against ITS OWN genesis total, captured at construction -- which is the "
+               "property's whole job, and which it did not do until 2026-08-25: it returned "
+               "the DEFAULT reserve, so every non-default instance reported a conservation "
+               "error of minus a billion LGO and the gates wrote their own totals by hand")
     # The RFC's one open boundary question (P_t >= 0), measured: a fee spike then silence at
     # A = 0 makes the windowed average distribute history the pool never banked.
     loose = emission.Stocks(reserve_lgo=0.0, guard_pool=False)
@@ -815,7 +818,7 @@ def gate_emission(cfg: Config) -> None:
     for i in range(1, len(spike)):
         tight.step(1e10, spike[max(0, i - emission.POOL_WINDOW + 1):i + 1])
     check("guarded, the distribution clips to the pool and the balance floors at zero",
-          tight.pool_lgo >= 0 and abs(tight.total_lgo) < 1e-9, True,
+          tight.pool_lgo >= 0 and abs(tight.conservation_error_lgo) < 1e-9, True,
           note="pay what the pool holds, never more -- the same move as the de-novo room "
                "cap, and this simulator's answer to the open question. Note the unguarded "
                "run above CONSERVES too: conservation and the P_t >= 0 constraint are "
