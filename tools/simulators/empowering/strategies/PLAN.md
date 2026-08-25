@@ -2,7 +2,7 @@
 
 Two deliverables on this branch, in dependency order:
 
-1. **`tools/powcost/`** — a standalone proof-of-work cost estimator. No dependencies, no
+1. **`tools/benchmarks/powcost/`** — a standalone proof-of-work cost estimator. No dependencies, no
    imports from any simulator. Answers: what does executing this puzzle, at this difficulty,
    on this class of machine, cost in seconds, joules and money?
 2. **`tools/simulators/empowering/strategies/`** — a network simulator for the EmPoWering mechanism:
@@ -163,7 +163,7 @@ is reported as the threshold at which the answer changes:
 ### Layout
 
 ```
-tools/powcost/
+tools/benchmarks/powcost/
   puzzles.py    # Poseidon2, Equi-X, registry
   profiles.py   # buckets, rated power to watts, derate
   rates.py      # (puzzle, bucket) to seconds_per_candidate, provenance, coverage

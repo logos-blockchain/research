@@ -61,7 +61,11 @@ def from_powcost(puzzle: str, electricity_price_per_kwh: float,
         # moment this simulator gained a directory, and it broke quietly: the import below
         # failed, both callers skipped, and the run still reported every gate passing.
         here = Path(__file__).resolve()
-        root = next((p for p in here.parents if p.name == "tools"), here.parents[-1])
+        tools = next((p for p in here.parents if p.name == "tools"), here.parents[-1])
+        # What goes on sys.path is powcost's PARENT, so look the package up rather than
+        # spelling out where it sits: it has since moved from tools/ into tools/benchmarks/,
+        # and how deep it is under tools/ is not this module's business.
+        root = next((d.parent for d in tools.glob("*/powcost") if d.is_dir()), tools)
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
 
