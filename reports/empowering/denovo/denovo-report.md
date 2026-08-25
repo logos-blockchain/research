@@ -10,7 +10,7 @@ Regenerate every figure with (from `tools/simulators/empowering-denovo`):
 
 ```
 PYTHONPATH="src:../empowering/src" python3 -m empowering_denovo_sim.plots \
-    --out ../../../reports/EmPoWering/denovo/figures
+    --out ../../../reports/empowering/denovo/figures
 PYTHONPATH="src:../empowering/src" python3 -m empowering_denovo_sim.validate
 ```
 

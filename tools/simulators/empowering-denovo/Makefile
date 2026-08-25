@@ -9,7 +9,7 @@ study: ## the scenario matrix, printed
 	$(PY) -m empowering_denovo_sim.study
 
 plots: ## the report's five figures
-	$(PY) -m empowering_denovo_sim.plots --out ../../reports/EmPoWering/denovo/figures
+	$(PY) -m empowering_denovo_sim.plots --out ../../reports/empowering/denovo/figures
 
 # The calculator re-implements the closed forms in JS, so `web` regenerates its inputs from
 # the same source the Python reads and fails on drift rather than leaving it to a reader.

@@ -176,7 +176,7 @@ New package `empowering_denovo_sim`, reusing verified components (`txsize`, fee 
 
 Validation-gate suite from day one, in the established style.
 
-### Phase D — simulations and the report (`reports/EmPoWering/denovo/`)
+### Phase D — simulations and the report (`reports/empowering/denovo/`)
 
 Scenario matrix: arrivals {uniform, 10× spike, 100× cohort, front-loaded, back-loaded} ×
 triples {satisfiable, marginal, unsatisfiable} × retirement {on, off}. The report validates
