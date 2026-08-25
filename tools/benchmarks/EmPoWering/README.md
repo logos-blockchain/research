@@ -6,8 +6,8 @@ rests on a measurement rather than an estimate.
 
     cargo run --release
 
-Expects `logos-blockchain` checked out as a sibling of `logos-lips`; adjust the path
-dependency in `Cargo.toml` otherwise.
+Expects `logos-blockchain` checked out as a sibling of this repository; adjust the
+path dependency in `Cargo.toml` otherwise.
 
 A candidate is two `zkhash` calls (`proof-of-quota.md:204-205`). `Digest::digest`
 absorbs every input *and* a padding element, so a two-input hash is three permutations,
@@ -78,10 +78,10 @@ dated branch — is handled by:
 sudo apt install -y git build-essential python3-venv curl
 git clone https://github.com/logos-blockchain/research.git ~/Logos/research
 cd ~/Logos/research && git checkout EmPoWering-tokenomics
-cd simulations/EmPoWering && make pi5
+cd tools/simulators/EmPoWering && make pi5
 ```
 
-The script (`scripts/run_pi5.sh`) pins the benchmark to one core, waits for the
+The script (the simulator's `scripts/run_pi5.sh`) pins the benchmark to one core, waits for the
 board to cool below 65 °C before each run, discards any run that finishes above
 80 °C, takes the median of three valid runs and flags any metric whose spread
 exceeds five percent. It writes the raw runs and log under

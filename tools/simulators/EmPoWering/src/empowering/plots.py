@@ -52,7 +52,7 @@ def _save(fig, out: Path, stem: str, p: Params, key: str) -> Path:
     moves with it.
     """
     out.mkdir(parents=True, exist_ok=True)
-    caption = (f"reproduce: cd simulations/EmPoWering && "
+    caption = (f"reproduce: cd tools/simulators/EmPoWering && "
                f"python -m empowering.plots --config {_CONFIG} {key}"
                f"   (all figures: make plots)   ·   parameter set: {p.name}")
     fig.text(0.005, 0.005, caption, fontsize=5.8, alpha=0.55, va="bottom", ha="left")

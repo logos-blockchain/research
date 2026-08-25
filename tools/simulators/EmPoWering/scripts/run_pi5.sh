@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Hands-off Raspberry Pi 5 measurement for the EmPoWering Blend threshold.
 #
-#   make pi5          (from simulations/EmPoWering)
+#   make pi5          (from tools/simulators/EmPoWering)
 #
 # Does everything: preflight (arch, tools, sibling checkout), a pinned single-core
 # benchmark run three times with thermal guards, median extraction, a generated
@@ -23,7 +23,8 @@ TEMP_LIMIT_C=${TEMP_LIMIT_C:-80}
 COOL_TO_C=${COOL_TO_C:-65}
 DEV=${PI5_DEV:-0}
 STAMP=$(date +%Y%m%d-%H%M)
-OUT=bench-poseidon2/results
+BENCH=../../benchmarks/EmPoWering
+OUT=$BENCH/results
 mkdir -p "$OUT"
 LOG="$OUT/pi5-$STAMP.log"
 
@@ -42,9 +43,9 @@ command -v cargo >/dev/null || {
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y >>"$LOG" 2>&1
   . "$HOME/.cargo/env"
 }
-[ -d ../../../logos-blockchain/zk/poseidon2 ] || {
+[ -d ../../../../logos-blockchain/zk/poseidon2 ] || {
   say "cloning sibling logos-blockchain (shallow, https)"
-  git clone --depth 1 https://github.com/logos-blockchain/logos-blockchain.git ../../../logos-blockchain >>"$LOG" 2>&1
+  git clone --depth 1 https://github.com/logos-blockchain/logos-blockchain.git ../../../../logos-blockchain >>"$LOG" 2>&1
 }
 
 temp_c() {
@@ -59,7 +60,7 @@ say "governor: $governor   temp: $(temp_c) C   runs: $RUNS on core $CORE"
 
 # ---------- build once ----------
 say "== building benchmark (first build compiles arkworks; minutes on a Pi) =="
-( cd bench-poseidon2 && cargo build --release >>"../$LOG" 2>&1 )
+( cd "$BENCH" && cargo build --release ) >>"$LOG" 2>&1
 
 PIN=""
 if command -v taskset >/dev/null; then PIN="taskset -c $CORE"; else say "WARN: no taskset; unpinned"; fi
@@ -75,7 +76,7 @@ while [ "${#FILES[@]}" -lt "$RUNS" ]; do
   t0=$(temp_c)
   f="$OUT/pi5-$STAMP-run$attempt.txt"
   say "-- run $attempt (start ${t0} C)"
-  $PIN ./bench-poseidon2/target/release/pow-bench >"$f" 2>&1 || { say "run failed, see $f"; exit 1; }
+  $PIN "$BENCH/target/release/pow-bench" >"$f" 2>&1 || { say "run failed, see $f"; exit 1; }
   t1=$(temp_c)
   if [ "$DEV" != 1 ] && [ "$t1" -gt "$TEMP_LIMIT_C" ]; then
     say "   DISCARDED: finished at ${t1} C > ${TEMP_LIMIT_C} C (throttle risk)"

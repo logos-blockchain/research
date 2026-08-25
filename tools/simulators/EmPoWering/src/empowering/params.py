@@ -52,7 +52,7 @@ class Params:
     blend_damping_num: int
     blend_damping_den: int
     blend_max_step: int
-    beta_max: int
+    blend_ops_per_message: int
     # work (measured)
     sec_per_candidate: float
     sec_per_candidate_opt: float
@@ -184,7 +184,8 @@ def load(path: str | Path) -> Params:
         reward_difficulty_exp=p["reward_difficulty_exp"],
         blend_base_exp=b["difficulty_base_exp"], blend_target_txs=b["target_txs_per_block"],
         blend_damping_num=b["damping_num"], blend_damping_den=b["damping_den"],
-        blend_max_step=b["max_step"], beta_max=b["beta_max"],
+        blend_max_step=b["max_step"],
+        blend_ops_per_message=b["blend_ops_per_message"],
         sec_per_candidate=w["seconds_per_candidate"],
         sec_per_candidate_opt=w["seconds_per_candidate_opt"],
         sec_per_candidate_reward=w["seconds_per_candidate_reward"],
