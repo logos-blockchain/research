@@ -44,7 +44,8 @@ const KEY_LEN: usize = 16;
 
 // Benchmark parameters.
 const MEMPOOL: usize = 1_000_000;
-const COMBINATION_SWEEP: [usize; 9] = [1, 2, 8, 32, 64, 128, 256, 512, 1024];
+const COMBINATION_SWEEP: [usize; 12] =
+    [1, 2, 8, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
 const RUNS: usize = 5;
 
 type TxHash = [u8; 32];

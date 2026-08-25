@@ -6,33 +6,39 @@ Phase B is timed on the exhaustive path: the target is unmatchable, so all C
 assignments are evaluated regardless of enumeration order.
 
 Phase A — rehash 1000000 mempool entries and index by short ID
-  1-core           131.70 ms
-  14-core           13.29 ms      speedup 9.9x
+  1-core           132.90 ms
+  14-core           17.01 ms      speedup 7.8x
 
 Phase B — combination search, body_root per assignment (C = combinations tried)
    C |  full 1-core  full N-core |  incr 1-core  incr N-core
 ----------------------------------------------------------------
-   1 |     0.080 ms     0.080 ms |     0.082 ms     0.085 ms
-   2 |     0.159 ms     0.125 ms |     0.083 ms     0.121 ms
-   8 |     0.654 ms     0.184 ms |     0.099 ms     0.200 ms
-  32 |     2.667 ms     0.484 ms |     0.135 ms     0.281 ms
-  64 |     5.435 ms     0.796 ms |     0.199 ms     0.255 ms
- 128 |    10.662 ms     1.550 ms |     0.322 ms     0.269 ms
- 256 |    21.944 ms     2.877 ms |     0.599 ms     0.315 ms
- 512 |    43.843 ms     6.070 ms |     1.000 ms     0.407 ms
-1024 |    88.068 ms    10.891 ms |     1.925 ms     0.472 ms
+   1 |     0.080 ms     0.080 ms |     0.082 ms     0.081 ms
+   2 |     0.159 ms     0.132 ms |     0.082 ms     0.124 ms
+   8 |     0.668 ms     0.180 ms |     0.093 ms     0.177 ms
+  32 |     2.829 ms     0.547 ms |     0.160 ms     0.250 ms
+  64 |     5.502 ms     0.896 ms |     0.189 ms     0.268 ms
+ 128 |    10.963 ms     1.710 ms |     0.361 ms     0.312 ms
+ 256 |    22.061 ms     2.787 ms |     0.536 ms     0.318 ms
+ 512 |    43.655 ms     5.304 ms |     1.039 ms     0.400 ms
+1024 |    88.456 ms    10.779 ms |     1.976 ms     0.545 ms
+2048 |   179.257 ms    20.192 ms |     3.945 ms     0.744 ms
+4096 |   353.691 ms    37.582 ms |     7.658 ms     1.129 ms
+8192 |   708.340 ms    75.742 ms |    15.428 ms     2.100 ms
 
 Total — complete reconstruction (Phase A + Phase B)
    C |    full 1-core    full N-core |    incr 1-core    incr N-core
 ------------------------------------------------------------------------
-   1 |      131.78 ms       13.37 ms |      131.78 ms       13.38 ms
-   2 |      131.86 ms       13.42 ms |      131.78 ms       13.42 ms
-   8 |      132.35 ms       13.48 ms |      131.79 ms       13.49 ms
-  32 |      134.36 ms       13.78 ms |      131.83 ms       13.58 ms
-  64 |      137.13 ms       14.09 ms |      131.89 ms       13.55 ms
- 128 |      142.36 ms       14.84 ms |      132.02 ms       13.56 ms
- 256 |      153.64 ms       16.17 ms |      132.29 ms       13.61 ms
- 512 |      175.54 ms       19.36 ms |      132.70 ms       13.70 ms
-1024 |      219.76 ms       24.19 ms |      133.62 ms       13.77 ms
+   1 |      132.98 ms       17.09 ms |      132.98 ms       17.09 ms
+   2 |      133.06 ms       17.14 ms |      132.99 ms       17.13 ms
+   8 |      133.57 ms       17.19 ms |      133.00 ms       17.18 ms
+  32 |      135.73 ms       17.55 ms |      133.06 ms       17.26 ms
+  64 |      138.41 ms       17.90 ms |      133.09 ms       17.28 ms
+ 128 |      143.87 ms       18.72 ms |      133.26 ms       17.32 ms
+ 256 |      154.96 ms       19.80 ms |      133.44 ms       17.33 ms
+ 512 |      176.56 ms       22.31 ms |      133.94 ms       17.41 ms
+1024 |      221.36 ms       27.79 ms |      134.88 ms       17.55 ms
+2048 |      312.16 ms       37.20 ms |      136.85 ms       17.75 ms
+4096 |      486.59 ms       54.59 ms |      140.56 ms       18.14 ms
+8192 |      841.24 ms       92.75 ms |      148.33 ms       19.11 ms
 
 sanity: at every C the three strategies find the committed assignment and agree; a wrong target matches nothing
