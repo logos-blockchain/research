@@ -5,7 +5,7 @@ Two deliverables on this branch, in dependency order:
 1. **`tools/powcost/`** — a standalone proof-of-work cost estimator. No dependencies, no
    imports from any simulator. Answers: what does executing this puzzle, at this difficulty,
    on this class of machine, cost in seconds, joules and money?
-2. **`tools/simulators/empowering/`** — a network simulator for the EmPoWering mechanism:
+2. **`tools/simulators/empowering-strategies/`** — a network simulator for the EmPoWering mechanism:
    consensus, minting, the reward pool, and the on-ramp from proof-of-work into proof-of-stake.
    Consumes (1).
 
@@ -386,7 +386,7 @@ Further consequences to analyse:
 ### Layout
 
 ```
-tools/simulators/empowering/
+tools/simulators/empowering-strategies/
   config.py     # frozen dataclass, validated in __post_init__ (blend convention)
   rng.py        # seeded, common random numbers for paired scenarios (tsi convention)
   consensus.py  # slot lottery, stake

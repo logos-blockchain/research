@@ -8,7 +8,7 @@ Everything here runs on one honest chain. Every group is simulated at the same t
 
 Notation follows the tokenomics report's convention — prose and code spans carry self-describing names, so `reward_per_claim` here is the same quantity as `reward_per_claim` there and in the specification.
 
-Regenerate every figure with (from `tools/simulators/empowering`):
+Regenerate every figure with (from `tools/simulators/empowering-strategies`):
 
 ```
 PYTHONPATH=src python3 -m empowering_sim.plots_strategies \
