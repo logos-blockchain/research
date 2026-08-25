@@ -299,7 +299,12 @@ def gate_participation(cfg: Config) -> None:
     try:
         classes = market.from_powcost("poseidon2_reward", 0.20, "total")
     except Exception as e:                                    # noqa: BLE001
-        print(f"  [skip] cost estimator unavailable: {e}")
+        # tools/powcost/ is in this repository, not an optional dependency: if it will not
+        # import, the path to it is broken. Skipping quietly is how moving this simulator
+        # one directory deeper silently turned five gates into none.
+        check("the cost estimator imports", f"{type(e).__name__}: {e}", "importable",
+              note="tools/powcost is in-repo; a failure here is a broken path, not a "
+                   "missing dependency")
         return
     check("classes priced from the estimator", len(classes) >= 2, True,
           note=", ".join(c.key for c in classes))
@@ -344,8 +349,8 @@ def gate_group_credit(cfg: Config) -> None:
     print("\nPer-class attribution conserves claims")
     try:
         classes = market.from_powcost("poseidon2_reward", 0.20, "total")
-    except Exception:                                          # noqa: BLE001
-        print("  [skip] cost estimator unavailable")
+    except Exception as e:                                     # noqa: BLE001
+        check("the cost estimator imports", f"{type(e).__name__}: {e}", "importable")
         return
     sc = scenarios.Scenario(
         label="credit", classes=classes, mix={c.key: 1.0 for c in classes},

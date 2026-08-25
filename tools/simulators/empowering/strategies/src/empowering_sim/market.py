@@ -54,7 +54,14 @@ def from_powcost(puzzle: str, electricity_price_per_kwh: float,
     import sys
     from pathlib import Path
 
-    root = Path(tools_dir) if tools_dir else Path(__file__).resolve().parents[5] / "tools"
+    if tools_dir:
+        root = Path(tools_dir)
+    else:
+        # Walk up to tools/ rather than counting levels. A hard-coded parents[n] broke the
+        # moment this simulator gained a directory, and it broke quietly: the import below
+        # failed, both callers skipped, and the run still reported every gate passing.
+        here = Path(__file__).resolve()
+        root = next((p for p in here.parents if p.name == "tools"), here.parents[-1])
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
 
