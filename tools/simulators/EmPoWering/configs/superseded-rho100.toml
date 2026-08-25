@@ -6,11 +6,11 @@
 #
 # Source column: KNOWN = read from the specification tree with a citation.
 #                DERIVED = computed here from KNOWN values.
-#                MEASURED = benchmarked, see bench-poseidon2/.
+#                MEASURED = benchmarked, see tools/benchmarks/EmPoWering/.
 #                ASSUMED = a modelling choice, not stated by the specification.
 
-name = "specified"
-description = "The parameter set as specified in the EmPoWering RFC"
+name = "superseded-rho100"
+description = "The pre-2026-08-14 set (rho = 1/100), kept for comparison runs"
 
 [consensus]
 blocks_per_epoch      = 21_600        # KNOWN  blend-protocol.md:103
@@ -44,8 +44,8 @@ transfer_tx_gas       = 590           # KNOWN    analysis-gas-cost-determination
 target_claims_per_block = 10          # KNOWN  T
 pool_share_num          = 10          # KNOWN  POW_SHARE
 pool_share_den          = 100         # KNOWN  SHARE_DEN
-distribution_rate_num   = 1           # KNOWN  rho = 1/200 (2026-08-14: closes the within-epoch
-distribution_rate_den   = 200         #        drain by construction; see report section 0.4)
+distribution_rate_num   = 1           # KNOWN  rho = 1/100
+distribution_rate_den   = 100
 genesis_pool_fraction   = 0.005       # KNOWN  POW_REWARD_POOL_GENESIS, 5/1000 of launch supply
 ema_smoothing_factor    = 9           # KNOWN  F
 ema_smoothing_precision = 10          # KNOWN  P
@@ -65,7 +65,7 @@ blend_ops_per_message   = 3           # KNOWN  beta_max; pow_quota = blend_ops_p
 # Blend threshold should be re-derived once it has been.
 # MEASURED on the deployment target itself: Raspberry Pi 5 Model B, one pinned core,
 # six runs across two sessions, spreads under 0.1%, no thermal throttling
-# (bench-poseidon2/results/pi5-20260812-*). The reference basis is ONE CORE of the
+# (tools/benchmarks/EmPoWering/results/pi5-20260812-*). The reference basis is ONE CORE of the
 # target; a desktop-class core runs ~6x faster and is deliberately not the basis.
 seconds_per_candidate        = 94.158e-6  # blend, naive: 4 Poseidon2 permutations
 seconds_per_candidate_opt    = 48.472e-6  # blend, constant prefix precomputed: 2

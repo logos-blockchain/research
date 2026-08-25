@@ -38,7 +38,7 @@ twice.
 | `src/empowering/analyses.py` | one function per report section |
 | `src/empowering/verify.py` | self-test: simulation vs closed forms |
 | `src/empowering/spec_sync.py` | drift gate against the logos-lips tree |
-| `bench-poseidon2/` | Rust benchmark of the puzzle candidate rate |
+| `tools/benchmarks/EmPoWering/` | Rust benchmark of the puzzle candidate rate (repo path; not inside this directory) |
 
 ## Known gap
 
@@ -65,11 +65,13 @@ pinned to its boundary, and the float engine's drift bounded at one lepton per c
 and measured rather than assumed. The Units-and-Precision parse/format round-trip is
 fuzzed across the full range. `make verify` runs both engines.
 
-## The one measurement that still needs taking
+## The measurement behind `[work]`
 
-`[work]` in the config was measured on an Apple M4 Pro. The deployment target is a
-Raspberry Pi 5, estimated 4–8× slower per core and **not measured**. The Blend
-admission threshold is calibrated against this number, so run `make bench-poseidon2`
-on the target board, put the result into the config, and re-run `make blend` before
-that threshold is relied upon. The benchmark needs a `logos-blockchain` checkout as a
-sibling of this repository (path dependency in `bench-poseidon2/Cargo.toml`).
+`[work]` in the config is **measured on the deployment target itself** — a Raspberry
+Pi 5, one pinned core, with the raw runs archived in
+`tools/benchmarks/EmPoWering/results/`. The Blend admission threshold is calibrated
+against this number. To re-measure (new board, new library version), run `make pi5`
+on the target: it drives the benchmark in `tools/benchmarks/EmPoWering/`, applies
+thermal guards, takes medians, and writes `configs/pi5.toml`; then re-run
+`make blend`. The benchmark needs a `logos-blockchain` checkout as a sibling of this
+repository (path dependency in its `Cargo.toml`).
