@@ -1,0 +1,322 @@
+"""Protocol constants and simulation settings, loaded into one immutable object.
+
+Protocol values come from ``configs/protocol-snapshot.toml``, a deliberate copy of the
+tokenomics config rather than a live read of it -- see that file's header for why.
+
+Names follow the tokenomics report's section 1.0 notation table, so a quantity is called the
+same thing here, there, and in the specification. Where the protocol computes in base units
+the fields are integers and stay integers; only dimensionless ratios are floats.
+"""
+from __future__ import annotations
+
+import tomllib
+from dataclasses import dataclass
+from pathlib import Path
+
+# Scalar field modulus of BN254: the space a ticket is drawn from.
+FIELD_MODULUS = 21888242871839275222246405745257275088548364400416034343698204186575808495617
+
+_SNAPSHOT = Path(__file__).parent / "configs" / "protocol-snapshot.toml"
+
+
+@dataclass(frozen=True)
+class Config:
+    """One run's parameters. Frozen, validated on construction."""
+
+    # ---- consensus ----
+    blocks_per_epoch: int
+    block_seconds: int
+    epochs_per_year: float
+    blocks_per_year: int
+    max_block_txs: int
+
+    # ---- supply, in LGO and in base units ----
+    launch_supply: float
+    base_units_per_lgo: int
+    min_stake_fraction: float
+
+    # ---- fees, in base units per byte and per gas unit ----
+    price_resting: int
+    storage_price_lepta: int
+    claim_tx_bytes: int
+    claim_tx_gas: int
+    transfer_tx_bytes: int
+    transfer_tx_gas: int
+
+    # ---- proof of work ----
+    target_claims_per_block: int
+    pow_share_num: int
+    pow_share_den: int
+    distribution_rate_num: int
+    distribution_rate_den: int
+    genesis_pool_fraction: float
+    smoothing_factor: int
+    smoothing_precision: int
+    reward_difficulty_exp: int
+
+    # ---- emission and the leader's take ----
+    # max_emission_per_year is specified. The two shares are NOT: the report records the
+    # leader fee share as unset and nowhere in the specification tree, and carries 0.4 as a
+    # modelling choice. Anything downstream of them is conditional on that choice, and the
+    # crossover study is entirely downstream of them.
+    inscribe_gas: int = 56
+    # KNOWN, block-rewards.md: I_max = 1% a year, and the target for inferred total stake is
+    # 30%. The specification states these two together give a validation APY near 3.33%,
+    # which is the anchor every staking figure here rests on.
+    max_emission_per_year: float = 0.01
+    stake_target: float = 0.30
+    # FIXED at 1,000 LGO and not a study axis. The specification names
+    # min_stake.stake_threshold without valuing it, and the static minimum stake analysis
+    # derives 1,000 -- under an S_TGE of 10^8 where block-rewards.md governs at 10^10, so the
+    # same 0.001% rule would have given 100,000. The figure stands as settled regardless.
+    #
+    # Its consequence is that reaching the bond costs about 865 claims, days to weeks of
+    # mining, so the service on-ramp is fast and note aging rather than the bond is what
+    # floors it.
+    min_stake_lgo: float = 1_000.0
+    # The genesis seed for the inferred total stake. bedrock-genesis-block.md:317 sets it to
+    # the total tokens distributed at genesis; block-rewards.md's narrative assumes it small.
+    # The genesis rule is taken. It clamps the emission factor to zero at launch, but the
+    # estimator converges within about five epochs, so this is a transient and not a regime.
+    genesis_stake_estimate: float = 1e10
+    stake_inference_epochs: int = 5
+    # SETTLED: a locked service bond DOES carry leadership weight. The specification does not
+    # state it, so this is a decision rather than a reading -- but it is the decision, and it
+    # is what closes the largest open question in the strategy study. A service provider
+    # therefore ADDS service income on top of its leader income rather than trading one for
+    # the other, and strategies 3 and 5 dominate 2 and 4 outright rather than conditionally.
+    # The switch remains so the alternative can still be swept, not because it is undecided.
+    service_bond_counts_for_lottery: bool = True
+    # KNOWN. A note must have been held for a minimum period before it can enter the
+    # leadership lottery (cryptarchia-v1-protocol.md): the stake distribution is snapshotted
+    # at the start of an epoch and frozen, and the service declaration protocol reads a
+    # snapshot from `finalized_epoch = current_epoch - 2`. So freshly minted claim proceeds
+    # are NOT immediately staking-eligible, and this is that delay in epochs.
+    stake_aging_epochs: int = 2
+    leader_fee_share: float = 0.4
+    # KNOWN, overview-cryptoeconomics.md: "leader_rewards += 0.4 * get_block_rewards(b)",
+    # and Blend and the leaders "continue to divide the block reward 60/40". So leaders take
+    # 0.4 of the block reward, NOT all of it.
+    #
+    # This contradicts block-rewards.md, which calibrates I_max so that "the APY for
+    # validation is ~3.33%" -- a figure that only holds if validators receive the WHOLE
+    # emission. At 0.4 the validator yield is 1.33% at the 30% stake target. Both cannot be
+    # right; the value here is the one stated as code, and the tension is recorded rather
+    # than resolved.
+    leader_reward_share: float = 0.4
+
+    # ---- measured device data ----
+    # Not protocol constants: these are benchmark results, and they belong in the cost
+    # estimator once it exists. They live here meanwhile so the engine's hashrate
+    # calibration can be gated against a published figure rather than left unchecked.
+    seconds_per_candidate_reward: float = 0.0
+    reference_cores: int = 1
+
+    # ---- simulation settings (not protocol; this simulator's own) ----
+    seed: int = 0
+    horizon_epochs: int = 300
+    txs_per_block: int = 600
+    refill_timing: str = "epoch"          # "epoch" | "block" -- see economics.accrue
+    adversary_hashrate: float = 0.33
+    honest_stake_frac: float = 1.0
+    initial_stake: float = 0.0            # share of supply already staked at launch
+
+    # ---- provenance ----
+    snapshot_path: str = ""
+    label: str = "specified"
+
+    def __post_init__(self) -> None:
+        self._validate()
+
+    # ------------------------------------------------------------------ derived
+
+    @property
+    def distribution_rate(self) -> float:
+        return self.distribution_rate_num / self.distribution_rate_den
+
+    @property
+    def pow_share(self) -> float:
+        return self.pow_share_num / self.pow_share_den
+
+    @property
+    def smoothing(self) -> float:
+        """The retarget's EMA weight. The report shows this is the controller's one dial."""
+        return self.smoothing_factor / self.smoothing_precision
+
+    @property
+    def storage_price(self) -> int:
+        """Price of one Permanent Storage Gas, in LEPTA.
+
+        *Logos Token: Units and Precision* tabulates `P_STR(s)` in lepta per storage gas unit
+        and floors it at one lepton, and `mantle:2119` defers to that document by name. The
+        "1 LGO per stored byte" in `storage-markets.md:124-126` predates the denomination and
+        is superseded -- see `CONTRADICTIONS.md` 4.8.
+
+        The two markets are still charged on different things and discover their prices
+        independently; they happen to share a floor and a resting level.
+        """
+        return self.storage_price_lepta
+
+    def tx_fee(self, nbytes: int, gas: int) -> int:
+        """| ``fee = bytes * storage_price + gas * execution_price``
+
+        Transcribed from `mantle:141` and `mantle:148`. The two gas markets are charged on
+        different things and priced independently: execution gas per Operation, permanent
+        storage gas on the encoded size of the WHOLE signed transaction.
+
+        The two markets rest at the same level, so a transaction's fee is its bytes and its
+        gas at that one level -- which is how `mantle:1858` gets 6,664 lepta for a claim.
+        """
+        return nbytes * self.storage_price + gas * self.price_resting
+
+    @property
+    def claim_fee(self) -> int:
+        """What a claim transaction costs to submit, in base units."""
+        return self.tx_fee(self.claim_tx_bytes, self.claim_tx_gas)
+
+    @property
+    def avg_tx_fee(self) -> int:
+        """The average transaction, taken as an ordinary transfer."""
+        return self.tx_fee(self.transfer_tx_bytes, self.transfer_tx_gas)
+
+    def bundle_fee(self, inscription_bytes: int) -> int:
+        """A transfer carrying an inscription of a given size -- the self-sustaining target.
+
+        The inscription's bytes ride on the same signed transaction, so they are charged at the
+        storage price alongside the transfer's own encoding. That encoding is the floor: a
+        four-byte inscription is under half a percent of what its own transaction costs.
+        """
+        return self.tx_fee(self.transfer_tx_bytes + inscription_bytes,
+                           self.transfer_tx_gas + self.inscribe_gas)
+
+    @property
+    def fee_ratio(self) -> float:
+        """Average transaction's fee over a claim's. The price level cancels."""
+        return self.avg_tx_fee / self.claim_fee
+
+    @property
+    def genesis_pool(self) -> int:
+        """The pool's endowment at launch, in base units."""
+        return round(self.genesis_pool_fraction * self.launch_supply * self.base_units_per_lgo)
+
+    @property
+    def min_stake(self) -> int:
+        """Minimum stake to declare a SERVICE, in base units.
+
+        Not a consensus gate: the leadership lottery admits any sufficiently aged note
+        whatever its value. This threshold gates service provision alone, and therefore the
+        flat per-provider reward stream, which is the most valuable on the chain.
+        """
+        return round(self.min_stake_lgo * self.base_units_per_lgo)
+
+    @property
+    def min_stake_implied_fraction(self) -> float:
+        """The threshold as a share of launch supply, for comparison with the 0.001% rule."""
+        return self.min_stake_lgo / self.launch_supply
+
+    @property
+    def genesis_difficulty_target(self) -> int:
+        return FIELD_MODULUS >> self.reward_difficulty_exp
+
+    @property
+    def blocks_in_horizon(self) -> int:
+        return self.horizon_epochs * self.blocks_per_epoch
+
+    def to_lgo(self, base_units: float) -> float:
+        return base_units / self.base_units_per_lgo
+
+    # ------------------------------------------------------------------ checks
+
+    def _validate(self) -> None:
+        """Refuse a configuration the model cannot honestly evaluate.
+
+        The controller check is the substantive one: the report derives a pole of
+        ``smoothing_factor / smoothing_precision``, so a factor at or above the precision is
+        not a slower controller but a non-convergent one, and every reconvergence figure
+        would be silent nonsense rather than a visible failure.
+        """
+        if self.target_claims_per_block <= 0:
+            raise ValueError(
+                f"target_claims_per_block must be > 0, got {self.target_claims_per_block}")
+        if self.pow_share_den <= 0 or not (0 <= self.pow_share_num <= self.pow_share_den):
+            raise ValueError(
+                f"pow_share must be in [0, 1], got {self.pow_share_num}/{self.pow_share_den}")
+        if not (0 < self.distribution_rate_num <= self.distribution_rate_den):
+            raise ValueError(
+                f"distribution_rate must be in (0, 1], got "
+                f"{self.distribution_rate_num}/{self.distribution_rate_den}")
+        if self.smoothing_factor >= self.smoothing_precision:
+            raise ValueError(
+                f"the retarget needs smoothing_factor < smoothing_precision for a pole below "
+                f"one; got {self.smoothing_factor} and {self.smoothing_precision}")
+        if not (0 <= self.genesis_pool_fraction <= 1):
+            raise ValueError(
+                f"genesis_pool_fraction must be in [0, 1], got {self.genesis_pool_fraction}")
+        if self.refill_timing not in ("epoch", "block"):
+            raise ValueError(f"refill_timing must be 'epoch' or 'block', got "
+                             f"{self.refill_timing!r}")
+        if self.blocks_per_epoch <= 0 or self.block_seconds <= 0:
+            raise ValueError("blocks_per_epoch and block_seconds must both be positive")
+        if not (0 <= self.adversary_hashrate <= 1):
+            raise ValueError(f"adversary_hashrate must be in [0, 1], got "
+                             f"{self.adversary_hashrate}")
+
+
+def load(path: str | Path | None = None, **overrides) -> Config:
+    """Read the protocol snapshot, apply overrides, validate.
+
+    Overrides name simulation settings, never protocol constants -- changing one of those
+    means re-snapshotting, deliberately and in its own commit.
+    """
+    src = Path(path) if path is not None else _SNAPSHOT
+    try:
+        cfg = tomllib.loads(src.read_text())
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        raise SystemExit(f"config {src}: {e}") from e
+    try:
+        consensus, supply, fees, pow_ = (
+            cfg["consensus"], cfg["supply"], cfg["fees"], cfg["pow"])
+    except KeyError as e:
+        raise SystemExit(f"config {src}: missing section {e.args[0]!r}") from e
+    work_ = cfg.get("work", {})
+    econ = cfg.get("economics", {})
+
+    protocol = dict(
+        blocks_per_epoch=consensus["blocks_per_epoch"],
+        block_seconds=consensus["block_seconds"],
+        epochs_per_year=consensus["epochs_per_year"],
+        blocks_per_year=consensus["blocks_per_year"],
+        max_block_txs=consensus["max_block_txs"],
+        launch_supply=supply["tge"],
+        base_units_per_lgo=supply["base_units_per_lgo"],
+        min_stake_fraction=supply["min_stake_fraction"],
+        price_resting=fees["price_resting"],
+        storage_price_lepta=fees["storage_price_lepta"],
+        claim_tx_bytes=fees["claim_tx_bytes"],
+        claim_tx_gas=fees["claim_tx_gas"],
+        transfer_tx_bytes=fees["transfer_tx_bytes"],
+        transfer_tx_gas=fees["transfer_tx_gas"],
+        target_claims_per_block=pow_["target_claims_per_block"],
+        pow_share_num=pow_["pool_share_num"],
+        pow_share_den=pow_["pool_share_den"],
+        distribution_rate_num=pow_["distribution_rate_num"],
+        distribution_rate_den=pow_["distribution_rate_den"],
+        genesis_pool_fraction=pow_["genesis_pool_fraction"],
+        smoothing_factor=pow_["ema_smoothing_factor"],
+        smoothing_precision=pow_["ema_smoothing_precision"],
+        reward_difficulty_exp=pow_["reward_difficulty_exp"],
+        seconds_per_candidate_reward=work_.get("seconds_per_candidate_reward", 0.0),
+        reference_cores=work_.get("pi5_cores", 1),
+        max_emission_per_year=supply["max_emission_per_year"],
+        inscribe_gas=cfg.get("mixes", {}).get("inscribe_gas", 56),
+        leader_fee_share=econ.get("leader_fee_share", 0.4),
+    )
+    unknown = set(overrides) - set(Config.__dataclass_fields__)
+    if unknown:
+        raise SystemExit(f"unknown setting(s): {', '.join(sorted(unknown))}")
+    clashes = set(overrides) & set(protocol)
+    if clashes:
+        raise SystemExit(
+            f"{', '.join(sorted(clashes))} are protocol constants and come from the snapshot; "
+            f"re-snapshot rather than override")
+    return Config(**protocol, snapshot_path=str(src), **overrides)
