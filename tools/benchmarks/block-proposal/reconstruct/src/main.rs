@@ -44,7 +44,7 @@ const KEY_LEN: usize = 16;
 
 // Benchmark parameters.
 const MEMPOOL: usize = 1_000_000;
-const COMBINATION_SWEEP: [usize; 5] = [1, 2, 8, 32, 64];
+const COMBINATION_SWEEP: [usize; 9] = [1, 2, 8, 32, 64, 128, 256, 512, 1024];
 const RUNS: usize = 5;
 
 type TxHash = [u8; 32];
@@ -201,11 +201,12 @@ fn fixture(combinations: usize) -> Fixture {
     assert_eq!(1usize << ambiguous, combinations, "combinations must be a power of two");
     let mut candidates: Vec<Vec<usize>> = selected.iter().map(|&i| vec![i]).collect();
     for (r, cand) in candidates.iter_mut().enumerate().take(ambiguous) {
-        // Decoy first, committed transaction second, so the committed
-        // assignment is the LAST one enumerated and the search is forced to
-        // evaluate all `combinations` of them. That is the worst case the
-        // MAX_RECONSTRUCTION_COMBINATIONS bound exists to cap, and the only
-        // case worth measuring: any earlier match is strictly cheaper.
+        // Decoy first, committed transaction second. Timing does not depend on
+        // where the committed assignment sits, because the timed search runs
+        // against an unmatchable target and therefore always evaluates all
+        // `combinations` of them - the exhaustive path, which is both the
+        // worst case and the one the bound exists to cap. Any search that
+        // matches is strictly cheaper.
         let committed = cand[0];
         cand[0] = MEMPOOL - 1 - r; // a decoy, never itself selected
         cand.push(committed);
@@ -250,6 +251,15 @@ fn rehash_index_parallel(
     })
 }
 
+/// Gray code: consecutive indices differ in exactly one bit, so walking it
+/// changes exactly one leaf per step. Binary counting would flip ~2 bits per
+/// step on average, which is why the incremental search enumerates this way -
+/// it is what makes "one leaf path recomputation each" literally true.
+#[inline]
+fn gray(i: usize) -> usize {
+    i ^ (i >> 1)
+}
+
 /// Enumerate assignment `n` of the candidate space: bit k of `n` selects the
 /// alternative for the k-th ambiguous reference.
 #[inline]
@@ -284,9 +294,6 @@ fn search_full(fx: &Fixture, combinations: usize) -> Option<usize> {
 /// Phase 4, incremental strategy: build the tree once, then per assignment
 /// touch only the leaves whose choice differs from the current state.
 fn search_incremental(fx: &Fixture, combinations: usize) -> Option<usize> {
-    let mut leaves = Vec::with_capacity(MAX_BLOCK_TXS);
-    assignment_leaves(fx, 0, &mut leaves);
-    let mut tree = MerkleTree::build(&leaves);
     let ambiguous: Vec<usize> = fx
         .candidates
         .iter()
@@ -295,19 +302,18 @@ fn search_incremental(fx: &Fixture, combinations: usize) -> Option<usize> {
         .map(|(i, _)| i)
         .collect();
 
-    let mut state = 0usize;
+    let mut leaves = Vec::with_capacity(MAX_BLOCK_TXS);
+    assignment_leaves(fx, gray(0), &mut leaves);
+    let mut tree = MerkleTree::build(&leaves);
     if body_root(&fx.uncles, &tree.root()) == fx.target {
-        return Some(0);
+        return Some(gray(0));
     }
-    for n in 1..combinations {
-        let changed = state ^ n;
-        for (bit, &leaf_idx) in ambiguous.iter().enumerate() {
-            if changed >> bit & 1 == 1 {
-                let pick = fx.candidates[leaf_idx][(n >> bit) & 1];
-                tree.set_leaf(leaf_idx, fx.mempool[pick]);
-            }
-        }
-        state = n;
+    for i in 1..combinations {
+        // Exactly one bit differs between gray(i-1) and gray(i): this one.
+        let bit = i.trailing_zeros() as usize;
+        let n = gray(i);
+        let leaf_idx = ambiguous[bit];
+        tree.set_leaf(leaf_idx, fx.mempool[fx.candidates[leaf_idx][(n >> bit) & 1]]);
         if body_root(&fx.uncles, &tree.root()) == fx.target {
             return Some(n);
         }
@@ -328,28 +334,29 @@ fn search_parallel(fx: &Fixture, combinations: usize, threads: usize, incrementa
             .map(|start| {
                 let end = (start + per).min(combinations);
                 s.spawn(move || {
+                    let ambiguous: Vec<usize> = fx
+                        .candidates
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, c)| c.len() > 1)
+                        .map(|(i, _)| i)
+                        .collect();
                     let mut leaves = Vec::with_capacity(MAX_BLOCK_TXS);
                     let mut tree = None;
-                    let mut state = start;
-                    for n in start..end {
+                    for i in start..end {
+                        let n = if incremental { gray(i) } else { i };
                         let root = if incremental {
-                            if tree.is_none() {
-                                assignment_leaves(fx, n, &mut leaves);
-                                tree = Some(MerkleTree::build(&leaves));
-                                state = n;
-                            } else {
-                                let t: &mut MerkleTree = tree.as_mut().unwrap();
-                                let changed = state ^ n;
-                                let mut bit = 0usize;
-                                for (i, cand) in fx.candidates.iter().enumerate() {
-                                    if cand.len() > 1 {
-                                        if changed >> bit & 1 == 1 {
-                                            t.set_leaf(i, fx.mempool[cand[(n >> bit) & 1]]);
-                                        }
-                                        bit += 1;
-                                    }
+                            match tree {
+                                None => {
+                                    assignment_leaves(fx, n, &mut leaves);
+                                    tree = Some(MerkleTree::build(&leaves));
                                 }
-                                state = n;
+                                Some(ref mut t) => {
+                                    // One bit differs from the previous Gray index.
+                                    let bit = i.trailing_zeros() as usize;
+                                    let leaf = ambiguous[bit];
+                                    t.set_leaf(leaf, fx.mempool[fx.candidates[leaf][(n >> bit) & 1]]);
+                                }
                             }
                             tree.as_ref().unwrap().root()
                         } else {
@@ -380,7 +387,9 @@ fn main() {
     println!(
         "mempool: {MEMPOOL} entries, references: {MAX_BLOCK_TXS}, uncles: {MAX_UNCLES}, runs: {RUNS} (median), cores: {threads}"
     );
-    println!("all phases executed for real; no component is estimated\n");
+    println!("all phases executed for real; no component is estimated");
+    println!("Phase B is timed on the exhaustive path: the target is unmatchable, so all C");
+    println!("assignments are evaluated regardless of enumeration order.\n");
 
     // ---- Phase A: mempool rehash + index, measured on its own ----
     let fx = fixture(1);
@@ -416,7 +425,11 @@ fn main() {
 
     let mut search_results = Vec::new();
     for &c in &COMBINATION_SWEEP {
-        let fx = fixture(c);
+        let mut fx = fixture(c);
+        let committed = fx.target;
+        // Unmatchable: guarantees exactly C body_root evaluations in both
+        // strategies and under either enumeration order.
+        fx.target = [0xFF; 32];
         let mut f1 = Vec::new();
         for _ in 0..RUNS {
             let t = Instant::now();
@@ -448,6 +461,18 @@ fn main() {
         let (a, b, cc, d) = (median(f1), median(f_n), median(i1), median(i_n));
         println!("{c:>4} | {a:>9.3} ms {b:>9.3} ms | {cc:>9.3} ms {d:>9.3} ms");
         search_results.push((c, a, b, cc, d));
+
+        // With the real target restored, every strategy must find the
+        // committed assignment and agree on which it is.
+        fx.target = committed;
+        let (sf, si, sp) = (
+            search_full(&fx, c),
+            search_incremental(&fx, c),
+            search_parallel(&fx, c, threads, true),
+        );
+        assert!(sf.is_some(), "C={c}: full search must find the committed assignment");
+        assert_eq!(sf, si, "C={c}: incremental must agree with full");
+        assert_eq!(sf, sp, "C={c}: parallel incremental must agree with serial");
     }
 
     // ---- Total: the complete reconstruction ----
@@ -467,18 +492,14 @@ fn main() {
         );
     }
 
-    // Correctness: the committed assignment must be found, and a wrong
-    // target must not be.
-    let fx = fixture(8);
-    assert!(search_full(&fx, 8).is_some(), "full search must find the committed assignment");
-    assert!(search_incremental(&fx, 8).is_some(), "incremental search must agree");
-    assert_eq!(
-        search_full(&fx, 8),
-        search_incremental(&fx, 8),
-        "both strategies must select the same assignment"
-    );
+    // A wrong target must match nothing, at every sweep point (already
+    // exercised above: the timed runs all used an unmatchable target and
+    // their results were discarded only after being observed).
     let mut wrong = fixture(8);
     wrong.target = [0xFF; 32];
     assert!(search_full(&wrong, 8).is_none(), "a wrong target must not match");
-    println!("\nsanity: both strategies find the committed assignment and agree; a wrong target matches nothing");
+    assert!(search_incremental(&wrong, 8).is_none(), "nor under Gray enumeration");
+    println!(
+        "\nsanity: at every C the three strategies find the committed assignment and agree; a wrong target matches nothing"
+    );
 }

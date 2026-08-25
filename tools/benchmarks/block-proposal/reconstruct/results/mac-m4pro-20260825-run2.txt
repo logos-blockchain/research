@@ -2,27 +2,37 @@
 reconstruct-bench: end-to-end block proposal reconstruction
 mempool: 1000000 entries, references: 1024, uncles: 4, runs: 5 (median), cores: 14
 all phases executed for real; no component is estimated
+Phase B is timed on the exhaustive path: the target is unmatchable, so all C
+assignments are evaluated regardless of enumeration order.
 
 Phase A — rehash 1000000 mempool entries and index by short ID
-  1-core           125.15 ms
-  14-core           13.42 ms      speedup 9.3x
+  1-core           131.70 ms
+  14-core           13.29 ms      speedup 9.9x
 
 Phase B — combination search, body_root per assignment (C = combinations tried)
    C |  full 1-core  full N-core |  incr 1-core  incr N-core
 ----------------------------------------------------------------
-   1 |     0.080 ms     0.080 ms |     0.082 ms     0.081 ms
-   2 |     0.159 ms     0.120 ms |     0.083 ms     0.123 ms
-   8 |     0.638 ms     0.177 ms |     0.096 ms     0.185 ms
-  32 |     2.700 ms     0.482 ms |     0.155 ms     0.257 ms
-  64 |     5.234 ms     0.804 ms |     0.234 ms     0.262 ms
+   1 |     0.080 ms     0.080 ms |     0.082 ms     0.085 ms
+   2 |     0.159 ms     0.125 ms |     0.083 ms     0.121 ms
+   8 |     0.654 ms     0.184 ms |     0.099 ms     0.200 ms
+  32 |     2.667 ms     0.484 ms |     0.135 ms     0.281 ms
+  64 |     5.435 ms     0.796 ms |     0.199 ms     0.255 ms
+ 128 |    10.662 ms     1.550 ms |     0.322 ms     0.269 ms
+ 256 |    21.944 ms     2.877 ms |     0.599 ms     0.315 ms
+ 512 |    43.843 ms     6.070 ms |     1.000 ms     0.407 ms
+1024 |    88.068 ms    10.891 ms |     1.925 ms     0.472 ms
 
 Total — complete reconstruction (Phase A + Phase B)
    C |    full 1-core    full N-core |    incr 1-core    incr N-core
 ------------------------------------------------------------------------
-   1 |      125.23 ms       13.50 ms |      125.23 ms       13.51 ms
-   2 |      125.31 ms       13.55 ms |      125.23 ms       13.55 ms
-   8 |      125.79 ms       13.60 ms |      125.25 ms       13.61 ms
-  32 |      127.85 ms       13.91 ms |      125.30 ms       13.68 ms
-  64 |      130.38 ms       14.23 ms |      125.38 ms       13.69 ms
+   1 |      131.78 ms       13.37 ms |      131.78 ms       13.38 ms
+   2 |      131.86 ms       13.42 ms |      131.78 ms       13.42 ms
+   8 |      132.35 ms       13.48 ms |      131.79 ms       13.49 ms
+  32 |      134.36 ms       13.78 ms |      131.83 ms       13.58 ms
+  64 |      137.13 ms       14.09 ms |      131.89 ms       13.55 ms
+ 128 |      142.36 ms       14.84 ms |      132.02 ms       13.56 ms
+ 256 |      153.64 ms       16.17 ms |      132.29 ms       13.61 ms
+ 512 |      175.54 ms       19.36 ms |      132.70 ms       13.70 ms
+1024 |      219.76 ms       24.19 ms |      133.62 ms       13.77 ms
 
-sanity: both strategies find the committed assignment and agree; a wrong target matches nothing
+sanity: at every C the three strategies find the committed assignment and agree; a wrong target matches nothing

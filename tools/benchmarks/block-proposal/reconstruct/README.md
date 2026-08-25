@@ -18,17 +18,23 @@ measures what a validator actually spends per proposal.
    computing `body_root(uncle_headers, assignment)` for each and comparing it
    against the committed root.
 
-Phase B is swept over `C ∈ {1, 2, 8, 32, 64}` and always measured in the
-**worst case**: the fixture places the committed assignment *last* in
-enumeration order, so the search is forced to evaluate all `C` of them. Any
-earlier match is strictly cheaper.
+Phase B is swept over `C ∈ {1, 2, 8, 32, 64, 128, 256, 512, 1024}` — well past
+`MAX_RECONSTRUCTION_COMBINATIONS = 64`, so the cost of a different cap can be
+read off rather than guessed — and always measured in the **worst case**: the
+timed search runs against an unmatchable target, so all `C` assignments are
+evaluated regardless of enumeration order. Any search that matches is strictly
+cheaper. Correctness is checked separately at every sweep point, with the real
+target restored: all three strategies must find the committed assignment and
+agree on which it is.
 
 Two search strategies are compared, because the spec asserts one is much
 cheaper:
 
 * **full** — recompute the whole Merkle root for every assignment.
-* **incremental** — build the tree once, then recompute only the leaf paths
-  the assignment changes.
+* **incremental** — build the tree once, then recompute only the leaf paths the
+  assignment changes. Assignments are enumerated in **Gray code** order, so
+  consecutive ones differ in exactly one leaf and the spec's "one leaf path
+  recomputation each" is literally true; binary counting would average two.
 
 Both are measured single-core and across `available_parallelism()` cores.
 
