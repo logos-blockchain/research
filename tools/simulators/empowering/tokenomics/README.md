@@ -22,7 +22,7 @@ make web         # regenerate the browser panel's data, cross-check the JS model
 make verify      # closed forms vs simulation, and the config's own invariants
 make check LIPS=~/Logos/logos-lips   # config vs the spec tree: constants AND prose margins
 make report-numbers                  # every number the report quotes, against the model
-make bench-poseidon2                 # measure the candidate rate (Rust; see below)
+make poseidon2                       # measure the candidate rate (Rust; see below)
 ```
 
 `make all CONFIG=configs/other.toml` compares parameter sets by running the same code

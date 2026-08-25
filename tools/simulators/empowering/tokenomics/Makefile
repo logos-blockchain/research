@@ -5,7 +5,7 @@ CONFIG ?= configs/specified.toml
 FIGURES ?= ../../../../reports/empowering/tokenomics/figures
 REPORT  ?= ../../../../reports/empowering/tokenomics/tokenomics-model.md
 
-.PHONY: install all fee emission rewards blend exhaustion security volume sampled fees sweeps sweeps-full web lepta verify check report-numbers notation plots pi5 bench-poseidon2 clean
+.PHONY: install all fee emission rewards blend exhaustion security volume sampled fees sweeps sweeps-full web lepta verify check report-numbers notation plots pi5 poseidon2 clean
 
 # Stdlib-only package; the venv exists so `make` works identically here and in CI,
 # and re-installs whenever pyproject.toml changes.
@@ -81,7 +81,7 @@ check: $(STAMP) ## config vs the specification tree (set LIPS=path to logos-lips
 pi5: ## hands-off Pi 5 measurement: guarded runs, medians, pi5.toml, derivation table
 	./scripts/run_pi5.sh
 
-bench-poseidon2: ## measure the candidate rate (requires Rust and a sibling logos-blockchain)
+poseidon2: ## measure the candidate rate (requires Rust and a sibling logos-blockchain)
 	cd ../../../benchmarks/empowering && cargo run --release
 
 # The panel re-implements the model in JS, so `web` regenerates its inputs from the
