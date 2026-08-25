@@ -21,15 +21,31 @@ Candidates (pure-Rust implementations only):
 unbuildable from crates.io at the time of writing: every version matching its
 `arrayref ^0.3.5` requirement is yanked.
 
+## What is measured
+
+Three figures per candidate, all medians of 5 runs over deterministic inputs:
+
+1. **cache-resident ns/hash** — a 4,096-entry set (128 KB) cycled in L1/L2,
+   isolating the cost of the hash function itself.
+2. **single-core ns/hash and total** — one pass over a real 10^6-entry array
+   (30 MB), so the mempool total is *measured*, not extrapolated from (1).
+   The gap between (1) and (2) is the memory cost a micro-benchmark hides.
+3. **multi-core ns/hash, total and speedup** — the same pass partitioned
+   across `available_parallelism()` cores with `std::thread::scope`. The
+   rehash is embarrassingly parallel — every transaction is independent — so
+   this is what a validator that threads the work would see.
+
+Hashing only: the map insert that a real `resolve_candidates` performs per
+transaction is not included, so these are lower bounds on the full step.
+
 ## Run
 
 ```
 cargo run --release
 ```
 
-Five runs of 2,000,000 hashes each, median reported, deterministic inputs.
 Results are archived under `results/<host>-<date>-runN.txt`; the ones checked
-in were produced on an Apple M4 Pro (Darwin arm64, rustc 1.97.1).
+in were produced on an Apple M4 Pro (14 cores, Darwin arm64, rustc 1.97.1).
 
 ## Summary
 

@@ -1,0 +1,15 @@
+# host: Apple M4 Pro / Darwin arm64 / rustc 1.97.1
+shortid-bench: 64-bit keyed short IDs over 32-byte inputs
+mempool: 1000000 entries (30 MB), runs: 5 (median), cores: 14
+cache-resident set: 4096 entries (128 KB), 2000000 iters/run
+
+                       | cache-res |    1-core      1-core |   14-core     14-core         
+function               |   ns/hash |   ns/hash  total(1e6) |   ns/hash  total(1e6)  speedup
+------------------------------------------------------------------------------------------------
+SipHash-2-4            |     12.29 |     11.74    11.74 ms |      1.71     1.71 ms     6.9x
+SipHash-1-3            |      6.71 |      6.41     6.41 ms |      1.05     1.05 ms     6.1x
+Blake2b-512/trunc8     |     79.92 |     80.13    80.13 ms |      9.64     9.64 ms     8.3x
+Blake2bMac-8 (keyed)   |    157.81 |    158.05   158.05 ms |     19.58    19.58 ms     8.1x
+
+sanity: keyed determinism ok, key sensitivity ok
+note: hashing only; the map insert of a real resolve_candidates is not included.

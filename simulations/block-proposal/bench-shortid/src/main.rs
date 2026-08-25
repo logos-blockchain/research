@@ -3,8 +3,22 @@
 //! Context: the Revised Block Proposal Compression RFC derives per-block keyed
 //! 64-bit short IDs from full transaction hashes (BIP-152 style). Every
 //! validator recomputes shortid(key, txhash) for its whole mempool once per
-//! proposal, so the operational cost is `mempool_size * per-hash cost` on a
-//! 32-byte input. This binary measures exactly that.
+//! proposal — the key changes every block, so nothing can be cached across
+//! proposals. The operational cost is therefore `mempool_size * per-hash cost`
+//! on 32-byte inputs, and that is what this binary measures.
+//!
+//! Three measurements are reported for each candidate:
+//!
+//!   1. **cache-resident per-hash** — a small input set cycled in L1/L2. This
+//!      isolates the cost of the hash function itself.
+//!   2. **single-core, full mempool** — one pass over a real MEMPOOL-element
+//!      array (32 MB at 10^6), so the total is *measured* rather than
+//!      extrapolated from (1). The gap between (1) and (2) is the memory
+//!      cost that a cache-resident micro-benchmark hides.
+//!   3. **multi-core, full mempool** — the same pass partitioned across all
+//!      available cores. The rehash is embarrassingly parallel (every
+//!      transaction is independent), so this is the figure a validator that
+//!      threads the work would actually see.
 //!
 //! Candidates (pure-Rust implementations only):
 //!   - SipHash-2-4  (`siphasher`)          — BIP-152's choice
@@ -17,9 +31,13 @@
 //! has had every matching version yanked). The `blake2` crate is the
 //! decision-relevant implementation regardless: it is what logos-blockchain's
 //! `crypto.rs` (`pub type Hasher = blake2::Blake2b<U32>`) already uses.
+//!
+//! Note: this measures the hashing only. A real `resolve_candidates` also
+//! inserts each short ID into a map; that cost is not included here.
 
 use std::hash::Hasher as _;
 use std::hint::black_box;
+use std::thread;
 use std::time::Instant;
 
 use blake2::digest::{consts::U8, KeyInit, Mac};
@@ -27,8 +45,10 @@ use blake2::{Blake2b512, Blake2bMac, Digest};
 use siphasher::sip::{SipHasher13, SipHasher24};
 
 const INPUT_LEN: usize = 32; // a full transaction hash
+const MEMPOOL: usize = 1_000_000; // the headline mempool size
+const CACHE_SET: usize = 4_096; // inputs for the cache-resident measurement
+const MICRO_ITERS: usize = 2_000_000;
 const WARMUP_ITERS: usize = 200_000;
-const MEASURE_ITERS: usize = 2_000_000;
 const RUNS: usize = 5;
 
 /// Deterministic xorshift so runs are reproducible without pulling in a RNG crate.
@@ -89,45 +109,87 @@ fn shortid_blake2bmac8(key: &[u8; 16], input: &[u8]) -> u64 {
     u64::from_le_bytes(out[..].try_into().unwrap())
 }
 
-/// Measure `f` applied to every input, RUNS times; report per-hash ns (median
-/// and min across runs) plus the projected cost of rehashing a mempool.
-fn bench(name: &str, inputs: &[[u8; INPUT_LEN]], mut f: impl FnMut(&[u8]) -> u64) {
-    // Warmup.
+fn median(mut xs: Vec<f64>) -> f64 {
+    xs.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    xs[xs.len() / 2]
+}
+
+/// (1) Cache-resident per-hash cost: a small input set cycled in L1/L2.
+fn bench_cache_resident(inputs: &[[u8; INPUT_LEN]], f: &(dyn Fn(&[u8]) -> u64 + Sync)) -> f64 {
     let mut acc = 0u64;
     for input in inputs.iter().cycle().take(WARMUP_ITERS) {
         acc = acc.wrapping_add(f(black_box(input)));
     }
-
-    let mut per_hash_ns = Vec::with_capacity(RUNS);
+    let mut per_hash = Vec::with_capacity(RUNS);
     for _ in 0..RUNS {
         let start = Instant::now();
-        for input in inputs.iter().cycle().take(MEASURE_ITERS) {
+        for input in inputs.iter().cycle().take(MICRO_ITERS) {
             acc = acc.wrapping_add(f(black_box(input)));
         }
-        let elapsed = start.elapsed();
-        per_hash_ns.push(elapsed.as_nanos() as f64 / MEASURE_ITERS as f64);
+        per_hash.push(start.elapsed().as_nanos() as f64 / MICRO_ITERS as f64);
     }
     black_box(acc);
+    median(per_hash)
+}
 
-    per_hash_ns.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let median = per_hash_ns[RUNS / 2];
-    let min = per_hash_ns[0];
-    let hps = 1e9 / median;
-    println!(
-        "{name:<28} {median:>8.2} ns/hash (min {min:>6.2})  {:>7.1} Mh/s   M=1e5: {:>7.2} ms   M=1e6: {:>7.2} ms",
-        hps / 1e6,
-        median * 1e5 / 1e6,
-        median * 1e6 / 1e6,
-    );
+/// (2) One single-threaded pass over the whole mempool. Returns ns/hash.
+fn bench_single(inputs: &[[u8; INPUT_LEN]], f: &(dyn Fn(&[u8]) -> u64 + Sync)) -> f64 {
+    let mut per_hash = Vec::with_capacity(RUNS);
+    for _ in 0..RUNS {
+        let start = Instant::now();
+        let mut acc = 0u64;
+        for input in inputs {
+            acc = acc.wrapping_add(f(black_box(input)));
+        }
+        black_box(acc);
+        per_hash.push(start.elapsed().as_nanos() as f64 / inputs.len() as f64);
+    }
+    median(per_hash)
+}
+
+/// (3) The same pass partitioned across `threads` cores. Returns effective
+/// ns/hash, i.e. wall-clock time divided by the whole mempool.
+fn bench_multi(
+    inputs: &[[u8; INPUT_LEN]],
+    f: &(dyn Fn(&[u8]) -> u64 + Sync),
+    threads: usize,
+) -> f64 {
+    let chunk = inputs.len().div_ceil(threads);
+    let mut per_hash = Vec::with_capacity(RUNS);
+    for _ in 0..RUNS {
+        let start = Instant::now();
+        thread::scope(|s| {
+            for part in inputs.chunks(chunk) {
+                s.spawn(move || {
+                    let mut acc = 0u64;
+                    for input in part {
+                        acc = acc.wrapping_add(f(black_box(input)));
+                    }
+                    black_box(acc);
+                });
+            }
+        });
+        per_hash.push(start.elapsed().as_nanos() as f64 / inputs.len() as f64);
+    }
+    median(per_hash)
 }
 
 fn main() {
+    let threads = thread::available_parallelism().map_or(1, |n| n.get());
+
     println!("shortid-bench: 64-bit keyed short IDs over {INPUT_LEN}-byte inputs");
     println!(
-        "iters/run: {MEASURE_ITERS}, runs: {RUNS} (median reported), warmup: {WARMUP_ITERS}\n"
+        "mempool: {MEMPOOL} entries ({} MB), runs: {RUNS} (median), cores: {threads}",
+        MEMPOOL * INPUT_LEN / (1024 * 1024)
+    );
+    println!(
+        "cache-resident set: {CACHE_SET} entries ({} KB), {MICRO_ITERS} iters/run\n",
+        CACHE_SET * INPUT_LEN / 1024
     );
 
-    let inputs = gen_inputs(4096, 0x5eed_cafe_f00d_beef);
+    let small = gen_inputs(CACHE_SET, 0x5eed_cafe_f00d_beef);
+    let mempool = gen_inputs(MEMPOOL, 0x0dd_f00d_1234_5678);
+
     let k0 = 0x0123_4567_89ab_cdefu64;
     let k1 = 0xfedc_ba98_7654_3210u64;
     let key16: [u8; 16] = {
@@ -137,16 +199,41 @@ fn main() {
         k
     };
 
-    bench("SipHash-2-4", &inputs, |d| shortid_siphash24(k0, k1, d));
-    bench("SipHash-1-3", &inputs, |d| shortid_siphash13(k0, k1, d));
-    bench("Blake2b-512/trunc8", &inputs, |d| shortid_blake2b512_trunc(&key16, d));
-    bench("Blake2bMac-8 (keyed)", &inputs, |d| shortid_blake2bmac8(&key16, d));
+    let candidates: Vec<(&str, Box<dyn Fn(&[u8]) -> u64 + Sync>)> = vec![
+        ("SipHash-2-4", Box::new(move |d: &[u8]| shortid_siphash24(k0, k1, d))),
+        ("SipHash-1-3", Box::new(move |d: &[u8]| shortid_siphash13(k0, k1, d))),
+        ("Blake2b-512/trunc8", Box::new(move |d: &[u8]| shortid_blake2b512_trunc(&key16, d))),
+        ("Blake2bMac-8 (keyed)", Box::new(move |d: &[u8]| shortid_blake2bmac8(&key16, d))),
+    ];
+
+    println!(
+        "{:<22} | {:>9} | {:>9} {:>11} | {:>9} {:>11} {:>8}",
+        "", "cache-res", "1-core", "1-core", &format!("{threads}-core"), &format!("{threads}-core"), ""
+    );
+    println!(
+        "{:<22} | {:>9} | {:>9} {:>11} | {:>9} {:>11} {:>8}",
+        "function", "ns/hash", "ns/hash", "total(1e6)", "ns/hash", "total(1e6)", "speedup"
+    );
+    println!("{}", "-".repeat(96));
+
+    for (name, f) in &candidates {
+        let cache = bench_cache_resident(&small, f.as_ref());
+        let one = bench_single(&mempool, f.as_ref());
+        let many = bench_multi(&mempool, f.as_ref(), threads);
+        println!(
+            "{name:<22} | {cache:>9.2} | {one:>9.2} {:>8.2} ms | {many:>9.2} {:>8.2} ms {:>7.1}x",
+            one * MEMPOOL as f64 / 1e6,
+            many * MEMPOOL as f64 / 1e6,
+            one / many,
+        );
+    }
 
     // Sanity: distinct keys must disagree; the same key must agree.
-    let a = shortid_siphash24(k0, k1, &inputs[0]);
-    let b = shortid_siphash24(k0, k1, &inputs[0]);
-    let c = shortid_siphash24(k0 ^ 1, k1, &inputs[0]);
+    let a = shortid_siphash24(k0, k1, &small[0]);
+    let b = shortid_siphash24(k0, k1, &small[0]);
+    let c = shortid_siphash24(k0 ^ 1, k1, &small[0]);
     assert_eq!(a, b);
     assert_ne!(a, c);
     println!("\nsanity: keyed determinism ok, key sensitivity ok");
+    println!("note: hashing only; the map insert of a real resolve_candidates is not included.");
 }
