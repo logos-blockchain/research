@@ -23,6 +23,13 @@ pool drains. The simulation's job is to find where reality falls short of that, 
 
 New arrivals are seated every epoch, so the field grows and each miner's share of a fixed
 claim flow shrinks. That is the effect the arithmetic above cannot see.
+
+**Who arrives is an input, not a fixture.** By default the study seats the same number of
+miners every epoch -- an arrival *budget*, with no variance and no adoption curve, which is
+all that is needed to answer what the pool spends. Hand it ``miner_arrivals`` instead and it
+seats whatever sequence it is given; `arrivals.py` builds Poisson ones, and the difference
+between the two is the whole of the dynamic-arrivals study. This module stays the thing that
+runs a chain and never becomes the thing that decides who turns up.
 """
 from __future__ import annotations
 
@@ -30,7 +37,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from . import economics, emission, engine, services, work
+from . import arrivals, economics, emission, engine, services, work
 from .config import Config
 
 NOT_SET = -1
@@ -53,13 +60,31 @@ class ElevationConfig:
     txs_per_block: int = 600
     seed: int = 40_001
 
+    # A realised arrival sequence, one count per epoch, which overrides ``miners_per_epoch``
+    # when supplied. A plain vector rather than a process object, for the reason in the module
+    # docstring. ``None`` is the fixed study: the same number every epoch, remainder carried.
+    miner_arrivals: np.ndarray | None = field(default=None, compare=False, repr=False)
+
     # Does a miner keep mining once it has crossed the bond? Rationally it should not: its
     # service income is orders of magnitude larger and its continued mining only takes claims
     # from miners still trying to cross. Nothing in the protocol makes it stop, so both are
     # modelled and the difference is the study's main lever.
     retire_on_bond: bool = False
 
+    def miner_counts(self) -> np.ndarray:
+        """Miners seated in each epoch: the supplied sequence, or the fixed rate carried."""
+        if self.miner_arrivals is None:
+            return arrivals.fixed_counts(self.miners_per_epoch, self.epochs)
+        counts = np.asarray(self.miner_arrivals, dtype=np.int64)
+        if counts.size < self.epochs:
+            raise ValueError(f"miner_arrivals covers {counts.size} epochs and the run is "
+                             f"{self.epochs}; a short sequence would silently seat nobody "
+                             f"for the rest of the run")
+        return counts[:self.epochs]
+
     def total_miners(self) -> int:
+        if self.miner_arrivals is not None:
+            return self.miners_at_genesis + int(self.miner_counts().sum())
         return self.miners_at_genesis + int(np.ceil(self.miners_per_epoch * self.epochs))
 
     def total_endowed(self) -> int:
@@ -139,19 +164,15 @@ def run(cfg: Config, ecfg: ElevationConfig) -> ElevationResult:
     burn_window = [burnt_lgo] * emission.BURN_WINDOW
 
     rows: list[ElevationRow] = []
-    owed_m = owed_e = 0.0
+    seat_m = ecfg.miner_counts()
+    seat_e = arrivals.fixed_counts(ecfg.endowed_per_epoch, ecfg.epochs)
     for e in range(ecfg.epochs):
-        owed_m += ecfg.miners_per_epoch
-        owed_e += ecfg.endowed_per_epoch
-        take_m, take_e = int(owed_m), int(owed_e)
-        if take_m:
-            owed_m -= take_m
-            hi = min(n_m, m_count + take_m)
+        if seat_m[e]:
+            hi = min(n_m, m_count + int(seat_m[e]))
             m_seated[m_count:hi] = e
             m_count = hi
-        if take_e:
-            owed_e -= take_e
-            hi = min(n_e, e_count + take_e)
+        if seat_e[e]:
+            hi = min(n_e, e_count + int(seat_e[e]))
             e_seated[e_count:hi] = e
             e_count = hi
 

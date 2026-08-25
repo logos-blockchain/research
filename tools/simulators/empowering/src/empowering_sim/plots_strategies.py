@@ -243,10 +243,17 @@ def provider_ramp(cfg, out: Path, cohort_sizes=(16, 32, 64, 100), epochs: int = 
 def elevation_and_depletion(cfg, out: Path, epochs: int = 400) -> Path:
     """What the pool spends, and what that spending buys.
 
-    Left: the pool drains on a fixed clock. The three curves are three miner populations
-    differing fiftyfold and they lie on top of one another, because the difficulty controller
-    holds the claim count at target -- so the payout is a property of the POOL and not of
-    demand. Nothing anyone does makes it drain faster or slower.
+    Left: the pool drains on a fixed clock. Three miner populations two hundred and fiftyfold
+    apart lie on top of one another, because the difficulty controller holds the claim count
+    at target -- so the payout is a property of the POOL and not of demand.
+
+    **That panel has to work against itself.** Three coincident solid strokes read as one run,
+    which is the reading the figure exists to refute, so it does two things a single curve
+    would not: the three carry different dash patterns, so the eye counts three strokes along
+    one path, and an inset carries the populations themselves. The reader sees the fields
+    really are fiftyfold and two-hundred-fiftyfold apart BEFORE being told their drain curves
+    are not. The measured gap between the extremes goes in the subtitle rather than the prose,
+    because "identical" is a claim and a number is a fact.
 
     Right: what that identical spend converts into. Bonded miners who keep mining take claims
     from miners still trying to cross, and retiring them is worth more than four times as many
@@ -258,17 +265,47 @@ def elevation_and_depletion(cfg, out: Path, epochs: int = 400) -> Path:
     fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.6))
     R0 = cfg.to_lgo(cfg.genesis_pool)
 
-    for i, rate in enumerate((1, 50, 250)):
+    rates = (1, 50, 250)
+    dashes = ("solid", (0, (7, 4)), (0, (1.6, 3.4)))
+    drains, fields = [], []
+    for i, rate in enumerate(rates):
         r = el.run(cfg, el.ElevationConfig(miners_per_epoch=rate, epochs=epochs))
-        axes[0].plot([x.epoch for x in r.rows], [x.pool_lgo / R0 * 100 for x in r.rows],
-                     color=list(SERIES.values())[i], linewidth=2.4 - i * 0.6, zorder=3 + i,
+        drains.append(np.array([x.pool_lgo for x in r.rows]) / R0 * 100)
+        fields.append(np.array([x.miners_seated for x in r.rows]))
+        axes[0].plot([x.epoch for x in r.rows], drains[-1], color=list(SERIES.values())[i],
+                     linewidth=3.2 - i * 0.9, zorder=3 + i, linestyle=dashes[i],
                      label=f"{rate} miners/epoch", solid_capstyle="round")
+    stack = np.array(drains)
+    gap = float((stack.max(axis=0) - stack.min(axis=0)).max())
+
+    # The populations, in the corner the drain curve leaves empty. Log scale: the whole point
+    # is that they are orders of magnitude apart while the curves above them are not.
+    ins = axes[0].inset_axes((0.57, 0.55, 0.41, 0.36))
+    # Kept out of the layout pass: tight_layout treats an inset as a child axes and shrinks
+    # the whole row to make room for it, which clipped the other panel's legend.
+    ins.set_in_layout(False)
+    for i, n in enumerate(fields):
+        ins.plot(np.arange(n.size), np.maximum(n, 1), color=list(SERIES.values())[i],
+                 linewidth=1.6 - i * 0.35, linestyle=dashes[i], zorder=3 + i)
+    ins.set_yscale("log")
+    ins.set_facecolor(SURFACE)
+    for side in ("top", "right"):
+        ins.spines[side].set_visible(False)
+    for side in ("left", "bottom"):
+        ins.spines[side].set_color(GRID)
+    ins.tick_params(colors=INK_2, labelsize=7, length=2, width=0.8)
+    ins.grid(True, color=GRID, linewidth=0.6, alpha=0.9)
+    ins.set_axisbelow(True)
+    ins.text(0, 1.06, "miners in the field", transform=ins.transAxes,
+             color=INK_2, fontsize=8, va="bottom", ha="left")
+
     axes[0].set_xlabel("epoch", color=INK_2, fontsize=9.5)
     axes[0].set_ylabel("pool remaining, % of genesis", color=INK_2, fontsize=9.5)
     axes[0].legend(frameon=False, fontsize=9, ncol=3, loc="upper center",
                    bbox_to_anchor=(0.5, -0.22), labelcolor=INK_2)
     _style(axes[0], "The pool drains on a fixed clock",
-           "three populations, fiftyfold apart — one curve")
+           f"three curves, not one: fields 250× apart, drains within "
+           f"{gap / 100 * R0:,.0f} LGO of each other")
 
     for i, retire in enumerate((False, True)):
         r = el.run(cfg, el.ElevationConfig(miners_per_epoch=100, epochs=epochs,

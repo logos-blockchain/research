@@ -65,8 +65,8 @@ class StrategyConfig:
 
     # NOT IMPLEMENTED: only the array sizing was ever built, no seating code exists, and a
     # nonzero value crashed in the first epoch's attribution step. Rejected explicitly below
-    # so the failure is a sentence rather than a shape error. Dynamic arrivals are the
-    # elevation study's axis -- `elevation.py` implements them properly.
+    # so the failure is a sentence rather than a shape error. Arrivals are the elevation
+    # study's axis -- `elevation.py` seats them and `arrivals.py` decides who turns up.
     arrivals_per_epoch: dict[Strategy, float] = field(default_factory=dict)
 
     epochs: int = 120
@@ -142,7 +142,7 @@ def build_population(cfg: Config, scfg: StrategyConfig,
         raise NotImplementedError(
             "arrivals_per_epoch is not implemented in the strategy study -- run() has no "
             "seating step, so the reward arrays outgrow the population arrays and the first "
-            "attribution crashes. Use elevation.py for dynamic arrivals.")
+            "attribution crashes. Use elevation.py, with arrivals.py for the process.")
 
     def eventual(s: Strategy) -> int:
         return (scfg.nodes_per_group.get(s, 0)

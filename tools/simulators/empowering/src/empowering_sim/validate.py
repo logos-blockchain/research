@@ -1009,6 +1009,79 @@ def gate_strategies(cfg: Config) -> None:
           note="no stake term anywhere in it")
 
 
+def gate_arrivals(cfg: Config) -> None:
+    """The dynamic-arrivals study: the seam, the process, and the published table."""
+    print("\nDynamic arrivals")
+    from . import arrivals as ar                              # noqa: PLC0415
+    from . import elevation as el                             # noqa: PLC0415
+
+    # The seam. Handing the engine the fixed study's own arrival sequence must reproduce the
+    # fixed study exactly -- same population, same draws, same result. Without this the new
+    # path could quietly perturb every number section 6 publishes.
+    base = el.run(cfg, el.ElevationConfig(miners_per_epoch=100, epochs=12))
+    same = el.run(cfg, el.ElevationConfig(epochs=12,
+                                          miner_arrivals=ar.fixed_counts(100, 12)))
+    check("an explicit arrival vector reproduces the fixed study exactly",
+          (base.elevated == same.elevated
+           and np.array_equal(base.balance, same.balance)
+           and np.array_equal(base.bond_epoch, same.bond_epoch)), True,
+          note="the seam does not move section 6")
+    check("and the fractional carry seats the stated number",
+          int(ar.fixed_counts(2.5, 8).sum()), 20, note="2.5 an epoch over eight epochs")
+
+    # Every shape is a redistribution of one population, never a different population.
+    for shape in ar.SHAPES:
+        lam = ar.Arrivals(amplitude=50, shape=shape).profile(600)
+        check(f"the {shape} profile carries the amplitude's own total",
+              round(float(lam.sum())), 30_000)
+    check("a Poisson draw lands near its mean",
+          abs(float(ar.Arrivals(amplitude=50).draw(np.random.default_rng(1), 600).mean())
+              / 50 - 1) < 0.03, True)
+
+    # The closed-form crossing is where capacity equals the arrival rate, by construction.
+    t = ar.saturation_epoch_closed_form(50, cfg)
+    pool_then = cfg.to_lgo(cfg.genesis_pool) * (1 - cfg.distribution_rate) ** t
+    check("the arithmetic crossing is where capacity meets the arrival rate",
+          ar.capacity_bonds(pool_then, cfg), 50.0, rel=1e-9,
+          note=f"epoch {t:.0f} at fifty arrivals an epoch")
+    check("and at genesis the capacity is the section 6 ceiling rate",
+          ar.capacity_bonds(cfg.to_lgo(cfg.genesis_pool), cfg), 250.0, rel=1e-12)
+
+    # The published table, pinned to the runs that produced it. These move with the seed and
+    # the horizon, so the configuration is part of the number.
+    slow = ar.run_dynamic(cfg, ar.Arrivals(amplitude=5), epochs=600)
+    fast = ar.run_dynamic(cfg, ar.Arrivals(amplitude=50), epochs=600)
+    check("section 7, fifty arrivals an epoch: seated", fast.absorption.seated, 30_330)
+    check("                                    elevated", fast.absorption.elevated, 5_762)
+    check("                                    the door closes at",
+          fast.absorption.door_epoch, 83)
+    check("                                    the point of no return",
+          fast.absorption.no_return_epoch, 304)
+    check("section 7, five arrivals an epoch: elevated", slow.absorption.elevated, 1_748)
+
+    # The invariance, restated under a stochastic process: a tenfold difference in arrivals
+    # and the drain curves agree to three decimal places.
+    check("the drain is deaf to a tenfold change in the arrival rate",
+          round(fast.pool_pct[-1], 3), round(slow.pool_pct[-1], 3),
+          note=f"{fast.pool_pct[-1]:.4f}% against {slow.pool_pct[-1]:.4f}% of genesis")
+
+    # Absorption divides a fixed pot: providers times the per-provider share is the pot, and
+    # the pot is Blend's 60% of a full epoch of ceiling emission whatever the provider count.
+    # Not to the last lepton -- the estimator lags a growing stake, so a run that elevates
+    # faster produces a shade more blocks in an epoch -- but to well inside a percent, across
+    # a threefold difference in the number of providers sharing it.
+    ceiling_pot = emission.split(consensus.max_block_reward(cfg), cfg)[0] * cfg.blocks_per_epoch
+    pot_fast = fast.providers[-1] * fast.service_lgo[-1]
+    pot_slow = slow.providers[-1] * slow.service_lgo[-1]
+    check("the service pot is Blend's share of a full epoch of ceiling emission",
+          round(pot_fast / ceiling_pot, 2), 1.0, rel=0,
+          note=f"{pot_fast:,.0f} LGO an epoch against a ceiling of {ceiling_pot:,.0f}")
+    check("and it does not grow with the providers it is split across",
+          pot_fast / pot_slow, 1.0, rel=1e-2,
+          note=f"{fast.providers[-1]:,} providers against {slow.providers[-1]:,}, "
+               f"and the pot moves by {abs(pot_fast / pot_slow - 1):.2%}")
+
+
 def main() -> int:
     cfg = load()
     print(f"config: {cfg.label}  (snapshot: {cfg.snapshot_path})")
@@ -1043,6 +1116,7 @@ def main() -> int:
     gate_targets(cfg)
     gate_report_headlines(cfg)
     gate_strategies(cfg)
+    gate_arrivals(cfg)
     gate_alternative_is_neutral(cfg)
 
     print()
