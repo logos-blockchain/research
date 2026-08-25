@@ -34,6 +34,7 @@ blend_hops: [3]                              # the spec's Blend cascade length
 blend_delay_max: [4.0]                       # the spec's operating point (rho ~ 0.27)
 max_uncles: [0, 1, 2, 4]                     # 0 = negative control; 4 = the spec's MAX_UNCLES
 uncle_strategy: [oldest]                     # spec Uncle Selection
+uncle_window_anchor: [uncle]                 # SPEC AS DEPLOYED, not the sec 6.12 proposal
 init_dest: [common]                          # per-node initial D_est from agreement
 replicates: 12                               # exact-oracle runs are ~17 s each; 12 x 40 cells
 base:                                        # per-run settings shared by every cell

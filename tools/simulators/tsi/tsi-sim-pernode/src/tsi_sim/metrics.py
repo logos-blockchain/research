@@ -14,7 +14,7 @@ _CONFIG_FIELDS = (
     "n_nodes", "stake_dist", "pareto_shape", "latency", "topology", "degree",
     "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
     "init_dest", "init_spread", "uncle_model", "window_absorption",
-    "uncle_window", "max_uncles", "uncle_strategy",
+    "uncle_window", "max_uncles", "uncle_strategy", "uncle_window_anchor",
     # Recorded so downstream analysis can TELL whether a countable/--old pair actually shared
     # its RNG streams. The paired test is only valid on paired runs, and without this column
     # the analysis silently falls back to the much weaker unpaired test.

@@ -1,0 +1,37 @@
+# Does anchoring the reference window to the uncle's PARENT move the window floor? (§3.4, §6.12)
+#
+# The `W >= 7/f` recovery floor was measured against the UNCLE's slot. Under the §6.12 proposal
+# the window is measured to the uncle's PARENT, and the parent gap runs about one block-interval
+# longer (measured: median 54 slots against ~30), so the same numeric W is an effectively tighter
+# window. The floor should therefore sit roughly one block-interval higher — which matters,
+# because W = 10/f is a recommendation whose justification is its margin over that floor. If the
+# floor moves 7 -> 8, the margin falls from ~1.43x to ~1.25x and the recommendation needs
+# restating even though the value does not change.
+#
+# This is the direct re-measurement: the same absorption sweep, both anchors, side by side.
+# U = 1 isolates the window — with more uncle slots the queue drains faster and the window stops
+# being the binding constraint, which would hide the knee.
+#
+# Note the two anchors draw independent RNG streams (uncle_window_anchor is in the key when it is
+# not the default), so this is an UNPAIRED comparison and the knee position, not a per-cell
+# difference, is what it resolves. Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet (delay stresses the window)
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # fixed hop count; delay is the swept knob
+blend_delay_max: [4.0, 8.0, 16.0]            # deployed point, design point, the load boundary
+window_absorption: [3, 5, 6, 7, 8, 9, 10, 12, 15, 20]   # W in block-intervals; w_u = W/f slots
+uncle_window_anchor: [uncle, parent]         # THE comparison: spec rule vs the §6.12 proposal
+max_uncles: [1]                              # FIXED at one uncle: the question is about W
+uncle_strategy: [oldest]                     # spec Uncle Selection
+init_dest: [common]                          # per-node initial D_est from agreement
+replicates: 12                               # enough to place a knee to ~1 block-interval
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true

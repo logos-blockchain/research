@@ -24,23 +24,28 @@ REC = dict(n_nodes=1000, stake_dist="pareto", topology="blend", degree=6,
            genesis_d_factor=0.5, early_stop=True)
 
 
-def _one(adv: float, rep: int) -> list[dict]:
-    cfg = SimConfig(**REC, adversary_frac=adv, adversary_strategy="suppress", replicate=rep)
+def _one(adv: float, rep: int, anchor: str = "uncle") -> list[dict]:
+    cfg = SimConfig(**REC, adversary_frac=adv, adversary_strategy="suppress",
+                    uncle_window_anchor=anchor, replicate=rep)
     rows = run_trajectory(cfg)
     for r in rows:
         r["adv"] = adv
+        r["anchor"] = anchor
     return rows
 
 
 def main() -> None:
     out = Path(__file__).resolve().parents[1] / "runs"
-    jobs = [(a, r) for a in (0.0, 0.3) for r in range(8)]
+    # Both window anchors: the spec's uncle-anchored rule, and the §6.12 proposal. The capstone
+    # is the "whole recipe together" check, so a change to any rule in the recipe has to be run
+    # through it rather than argued from the isolated sweeps.
+    jobs = [(a, r, w) for w in ("uncle", "parent") for a in (0.0, 0.3) for r in range(8)]
     res = Parallel(n_jobs=4, backend="loky", inner_max_num_threads=1)(
-        delayed(_one)(a, r) for a, r in jobs)
+        delayed(_one)(a, r, w) for a, r, w in jobs)
     df = pd.DataFrame([row for traj in res for row in traj])
     df.to_parquet(out / "capstone.parquet", index=False)
     print("=== Capstone: recommended config, all metrics together (equilibrium tail) ===")
-    for adv, g in df.groupby("adv"):
+    for (anchor, adv), g in df.groupby(["anchor", "adv"]):
         # Per-REPLICATE tail: early_stop ends replicates at different epochs, so a per-arm cut
         # (epoch >= arm_max//2) would silently drop any replicate that stopped before the cut
         # and skew the tail toward the slow-converging ones. The report's §8.4 numbers are the
@@ -48,7 +53,7 @@ def main() -> None:
         t = pd.concat([r[r.epoch >= r.epoch.max() // 2] for _, r in g.groupby("replicate")])
         per_rep = t.groupby("replicate").fork_rate.mean()
         sem = per_rep.std(ddof=1) / (len(per_rep) ** 0.5)
-        print(f"adversary {adv:.0%}: D̂/D {t.mean_ratio.mean():.4f}  "
+        print(f"{anchor:>6}-anchored, adversary {adv:.0%}: D̂/D {t.mean_ratio.mean():.4f}  "
               f"range_ratio {t.range_ratio.max():.4f}  agreement {t.agreement_window.min():.4f}  "
               f"fork_rate {per_rep.mean():.3f}+-{sem:.3f}(SEM over {len(per_rep)} reps)  "
               f"max_reorg_depth {t.max_reorg_depth.max()}  p_ref {t.p_ref.mean():.3f}")

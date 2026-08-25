@@ -35,13 +35,35 @@ InitDest = Literal["common", "heterogeneous"]
 #     forfeit by displacing honest work, and is the one profitable lever (report §6.6). Its
 #     estimator damage is what the countable uncle rule can only partly repair, because an
 #     override discards a CHAIN of honest blocks and only the first is referenceable (§2.1).
-AdversaryStrategy = Literal["suppress", "withhold", "selfish"]
+#  "deep_parent" — mints blocks that hang off an ANCIENT chain block instead of the current
+#     tip. Each is a genuine lottery win and a legal first-fork uncle, and under the spec's
+#     uncle-anchored window it is eligible the moment it is produced (its OWN slot is recent),
+#     so honest proposers reference it — forcing every validator to derive the epoch and ledger
+#     state at that ancient parent to check its Proof of Leadership. The attack this branch
+#     evaluates: it costs the adversary nothing it would not already spend, and the effort it
+#     imposes is bounded only by how far back the block tree reaches.
+AdversaryStrategy = Literal["suppress", "withhold", "selfish", "deep_parent"]
 # WHICH nodes make up that coalition, at the same total stake:
 #  "random" — a uniformly random set grown until its stake reaches adversary_frac (the default; the
 #     block share is then smooth in adversary_frac, which is all the density levers depend on);
 #  "whale"  — the LARGEST holders first. Same stake, far fewer nodes, so the coalition's block
 #     production is lumpier — the untested concentration case flagged in report §6.5's scope.
 AdversarySelection = Literal["random", "whale"]
+# WHICH slot the uncle reference window is measured against:
+#  "uncle"  (spec) — the uncle's own slot: 0 < sl_A - sl_U <= w_u. Bounds how old a referenced
+#     block may be, but leaves its PARENT unbounded, so a valid uncle may hang off an
+#     arbitrarily old chain block and force a validator to derive historical epoch/ledger
+#     state at that ancient parent to check its Proof of Leadership.
+#  "parent" (proposed) — the uncle's parent's slot: sl_A - sl_parent(U) <= w_u. Since a block
+#     strictly postdates its parent, the parent gap is never smaller than the uncle gap, so
+#     this is STRICTLY TIGHTER: it bounds both, and bounds how far back state must be reached.
+UncleWindowAnchor = Literal["uncle", "parent"]
+# Which referencing blocks the density count reads. "window" is the spec rule
+# (cryptarchia-v1-protocol.md, Epoch State Pseudocode): referenced_uncles is drawn from the
+# chain blocks that lie in the observation window, so a block past the window's end cannot add
+# occupied slots to a closed window. "chain" is the pre-2026-08-17 wording, which gated on the
+# uncle's own slot alone and let a block up to w_u slots past the window reach back into it.
+RefScope = Literal["window", "chain"]
 
 
 @dataclass(frozen=True)
@@ -128,6 +150,18 @@ class SimConfig:
     # take the oldest candidates first, deterministically, because an uncle expires w_u slots
     # after its own slot so the oldest are the closest to expiring. Every headline result uses it.
     uncle_strategy: UncleStrategy = "oldest"
+    # DEFAULT is the deployed rule, so the simulator describes the protocol as it stands and the
+    # §6.12 proposal is an explicit arm — the same convention `fixed_point` follows. It must also
+    # stay "uncle" for a harder reason: key() appends the anchor only when it is not "uncle", so
+    # this default is what keeps an --old run's key byte-identical to the pre-redesign key and
+    # lets it bit-reproduce every historical run (§9).
+    uncle_window_anchor: UncleWindowAnchor = "uncle"
+    # DEFAULT is the spec rule (see RefScope). Deliberately NOT in key(): the reference scope is a
+    # MEASUREMENT rule that consumes no RNG, so both arms of a comparison run on a bit-identical
+    # block tree and their difference carries no sampling noise at all — the same reasoning that
+    # keeps windowed_fork_choice out of the key. Like selfish_lead_cap, that makes this a knob
+    # where an unchanged key does NOT imply an unchanged number; §9 records what was re-measured.
+    ref_scope: RefScope = "window"
     # "random" is NOT a spec variant — it is the deviation probe: walk the same oldest-first
     # candidate order but include each candidate with probability uncle_random_p, so a lone
     # candidate is dropped half the time. Uncle selection is proposer-local and unvalidated, so a
@@ -144,6 +178,26 @@ class SimConfig:
     # lever, and adversary_selection controls WHICH nodes are taken at that fixed stake.
     adversary_frac: float = 0.0
     adversary_selection: AdversarySelection = "random"
+    # How many INDEPENDENT coalitions the adversarial stake is split into (§6.9). 1 = the single
+    # coalition every other study assumes. K > 1 partitions the same adversary_frac into K groups
+    # of near-equal stake, each running its OWN private chain with its own view: a rival's
+    # unreleased blocks are invisible (they reach no node until released), so the coalitions
+    # orphan each other as well as the honest chain. Only meaningful for
+    # adversary_strategy == "selfish" — under "suppress"/"withhold" the deflation depends on the
+    # summed stake alone, which is exactly the structure-independence result of §6.9, so the
+    # partition provably cannot matter there and the engine ignores it.
+    adversary_coalitions: int = 1
+    # Lead at which a selfish coalition PUBLISHES its private chain instead of extending it.
+    #   0  (default) -> the finality depth k: a lead past k can never be caught, so holding it
+    #                   gains nothing and a rational coalition cashes in.
+    #   > 0          -> that lead, explicitly.
+    #   < 0          -> uncapped: textbook SM1, which waits for as long as it leads.
+    # Textbook SM1 assumes the lead returns to zero and the chain is cashed in then. That fails
+    # under a forking honest network: the public chain's HEIGHT grows at ~(1-alpha)*f*(1-fork)
+    # while a coalition sharing one view extends privately at the full alpha*f, so past a fork
+    # rate of ~1 - alpha/(1-alpha) the private chain outruns the public one and `wait` never
+    # terminates. See _SelfishCoalition.decide.
+    selfish_lead_cap: int = 0
     # Dynamic (withhold-then-rejoin) schedule for the withholding lever (§6.5). The coalition is
     # FIXED (identity from adversary_frac); this only gates whether it withholds in a given epoch.
     #  adversary_period == 0  -> STATIC: the coalition attacks (withholds) every epoch (the §6.4
@@ -278,11 +332,18 @@ class SimConfig:
             raise ValueError(f"clock_skew_max must be >= 0, got {self.clock_skew_max}")
         if self.f_precision < 1 or self.f_precision != int(self.f_precision):
             raise ValueError(f"f_precision must be a positive integer, got {self.f_precision!r}")
+        if self.uncle_window_anchor not in ("uncle", "parent"):
+            raise ValueError(f"uncle_window_anchor must be uncle|parent, got "
+                             f"{self.uncle_window_anchor!r}")
+        if self.ref_scope not in ("window", "chain"):
+            raise ValueError(f"ref_scope must be window|chain, got {self.ref_scope!r}")
         if self.adversary_selection not in ("random", "whale"):
             raise ValueError(f"adversary_selection must be random|whale, got "
                              f"{self.adversary_selection!r}")
-        if self.adversary_strategy not in ("suppress", "withhold", "selfish"):
-            raise ValueError(f"adversary_strategy must be suppress|withhold|selfish, got "
+        if self.adversary_strategy not in ("suppress", "withhold", "selfish",
+                                           "deep_parent"):
+            raise ValueError(f"adversary_strategy must be "
+                             f"suppress|withhold|selfish|deep_parent, got "
                              f"{self.adversary_strategy!r}")
         checks = {
             "n_nodes": self.n_nodes >= 1,
@@ -307,6 +368,7 @@ class SimConfig:
             "adversary_frac": 0.0 <= self.adversary_frac < 1.0,
             "adversary_period": self.adversary_period >= 0,
             "adversary_withhold_epochs": self.adversary_withhold_epochs >= 0,
+            "adversary_coalitions": self.adversary_coalitions >= 1,
         }
         bad = [name for name, ok in checks.items() if not ok]
         if bad:
@@ -396,7 +458,18 @@ class SimConfig:
             base = base + (self.adversary_selection,)
         # Same append-only-when-non-default discipline: a run at the default precision keeps a
         # byte-identical key, so no committed result is reseeded by adding the knob.
-        return base if self.f_precision == 1_000_000 else base + (self.f_precision,)
+        if self.f_precision != 1_000_000:
+            base = base + (self.f_precision,)
+        # Likewise: K == 1 is the single-coalition assumption every prior study was run under, so
+        # a K == 1 key must stay byte-identical to the historical one.
+        if self.adversary_coalitions != 1:
+            base = base + (self.adversary_coalitions,)
+        # Same discipline again. NOTE this knob changes RESULTS at the default value (it fixes the
+        # runaway described on the field), so it is the one case where an unchanged key does not
+        # imply an unchanged number — see report §9 on which selfish runs were re-measured.
+        if self.selfish_lead_cap != 0:
+            base = base + (self.selfish_lead_cap,)
+        return base if self.uncle_window_anchor == "uncle" else base + (self.uncle_window_anchor,)
 
     def seed_key(self) -> tuple:
         """The identity the RNG root is actually derived from (see ``rng.seedseq_for``).
@@ -412,6 +485,8 @@ class SimConfig:
 # Axes that can be swept; every SimConfig field is legal here.
 _SWEEP_AXES = (
     "n_nodes", "stake_dist", "latency", "max_uncles", "uncle_strategy", "uncle_window",
+    "uncle_window_anchor",
+    "ref_scope",
     "window_absorption",
     "topology", "degree", "link_latency_mean", "link_latency_dist",
     "blend_hops", "blend_delay_max", "init_dest", "f",
@@ -428,6 +503,8 @@ class SweepConfig:
     max_uncles: list[int] = field(default_factory=lambda: [0, 1, 2, 4])
     uncle_strategy: list[UncleStrategy] = field(default_factory=lambda: ["oldest"])
     uncle_window: list[int] = field(default_factory=lambda: [constants.W_DEFAULT])
+    uncle_window_anchor: list[UncleWindowAnchor] = field(default_factory=lambda: ["uncle"])
+    ref_scope: list[RefScope] = field(default_factory=lambda: ["window"])
     window_absorption: list[float] = field(default_factory=lambda: [constants.W_ABS_DEFAULT])
     topology: list[Topology] = field(default_factory=lambda: ["regular"])
     degree: list[int] = field(default_factory=lambda: [8])
