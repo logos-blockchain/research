@@ -18,9 +18,9 @@ measures what a validator actually spends per proposal.
    computing `body_root(uncle_headers, assignment)` for each and comparing it
    against the committed root.
 
-Phase B is swept over `C ∈ {1, 2, 8, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192}` — far past
-`MAX_RECONSTRUCTION_COMBINATIONS = 64`, so the cost of a different cap can be
-read off rather than guessed — and always measured in the **worst case**: the
+Phase B is swept over `C ∈ {1, 2, 8, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192}` — up to
+`MAX_RECONSTRUCTION_COMBINATIONS = 8192` itself, so the chosen cap and any
+alternative below it can be read off rather than guessed — and always measured in the **worst case**: the
 timed search runs against an unmatchable target, so all `C` assignments are
 evaluated regardless of enumeration order. Any search that matches is strictly
 cheaper. Correctness is checked separately at every sweep point, with the real
