@@ -1,0 +1,34 @@
+# Is w_u = 300 adequate at the SPEC's operating point, and how much margin is there?
+#
+# The spec section claims the window "never binds" (median reference lag 34 slots,
+# max 197). The report puts a hard recovery floor at ~7/f = 210 slots, set by block SPACING rather than by
+# delay, and advises widening to 450-600 near rho ~ 1. "Has margin at rho < 1" is defensible;
+# "never binds" is not, and the difference is what this measures.
+#
+# absorption-window.yaml sweeps the same axis but starts at delta_max = 8; nothing has been run at
+# the deployment's delta_max = 4. Since the floor is set by block spacing the knee should sit
+# in the same place, which is itself worth confirming rather than assuming — the report's
+# delay-invariance claim is exactly what makes a single recommended W defensible.
+#
+# U = 1 isolates the window: with more uncle slots the queue drains faster and the window stops
+# being the binding constraint, which would mask the knee.
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet — the deployment transport
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # the spec's Blend cascade length
+blend_delay_max: [4.0]                       # the spec's operating point
+window_absorption: [1, 2, 3, 5, 7, 10, 15, 20]   # W in expected block-intervals; w_u = W/f slots
+max_uncles: [1]                              # FIXED at one uncle: the question is about W
+uncle_strategy: [oldest]                     # spec Uncle Selection
+init_dest: [common]                          # per-node initial D_est from agreement
+replicates: 12                               # enough to place the knee, not to resolve 0.1 pp
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true

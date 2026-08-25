@@ -21,6 +21,7 @@ _CONFIG_FIELDS = (
     "paired_streams",
     "f", "beta", "k", "genesis_d_factor", "epochs", "fixed_point", "legacy_block_count",
     "replicate",
+    "f_precision",
     "adversary_frac", "adversary_strategy", "adversary_selection", "adversary_period",
     "adversary_withhold_epochs",
 )
@@ -65,6 +66,7 @@ def divergence_row(
         mean_reorg_depth=er.mean_reorg_depth,
         p_ref=er.p_ref,
         p_ref_honest=er.p_ref_honest,
+        deep_orphan_share=er.deep_orphan_share,
         deep_ref_share=er.deep_ref_share,
     )
     return row

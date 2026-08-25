@@ -68,10 +68,18 @@ def sweep() -> pd.DataFrame:
 
 
 def best_profitable(df: pd.DataFrame) -> pd.DataFrame:
-    """Per alpha, the frontier point minimising D_hat among those paying at least stake share."""
+    """Per alpha, the frontier point minimising D_hat among those that actually pay.
+
+    "Pays" means ABSOLUTE reward per unit time at least matching honest mining
+    (``pay_vs_honest >= 1``), not merely a revenue *share* at least matching stake. The two
+    differ by ``density / dhat``: the share's denominator is the canonical block rate, but the
+    pay rate is set by the estimator, which holds counted density at ``f`` per slot. Using the
+    share alone credits the attacker with pay it does not receive — at alpha = 0.36 it marks
+    points as break-even that are ~5 % short.
+    """
     out = []
     for _a, g in df.groupby("alpha"):
-        paid = g[g.reward_per_stake >= 1.0 - 1e-9]
+        paid = g[g.pay_vs_honest >= 1.0 - 1e-9]
         if paid.empty:
             continue
         out.append(paid.loc[paid.dhat_countable.idxmin()])
@@ -81,18 +89,20 @@ def best_profitable(df: pd.DataFrame) -> pd.DataFrame:
 def report(df: pd.DataFrame) -> None:
     best = best_profitable(df)
     print(f"{'alpha':>6} {'rev-opt rev':>12} {'rev-opt D':>10} | "
-          f"{'best paid rev':>14} {'xstake':>7} {'D':>7} {'extra deflation':>16}")
+          f"{'best paid rev':>14} {'pay/hon':>8} {'D':>7} {'extra deflation':>16}")
     for a, g in df.groupby("alpha"):
         ro_r, ro_d = g.revenue_optimal.iloc[0], g.dhat_revenue_optimal.iloc[0]
         b = best[best.alpha == a]
         if b.empty:
-            print(f"{a:6.3f} {ro_r:12.4f} {ro_d:10.4f} |  (nothing profitable deflates)")
+            print(f"{a:6.3f} {ro_r:12.4f} {ro_d:10.4f} |  (no policy in the sweep both pays "
+                  f"and deflates)")
             continue
         b = b.iloc[0]
         print(f"{a:6.3f} {ro_r:12.4f} {ro_d:10.4f} | {b.revenue:14.4f} "
-              f"{b.reward_per_stake:7.3f} {b.dhat_countable:7.4f} {ro_d - b.dhat_countable:+16.4f}")
-    print("\n(extra deflation > 0 means the profitable-but-deflating policy beats the "
-          "revenue-optimal one at damaging the estimate, at no cost versus honest mining)")
+              f"{b.pay_vs_honest:8.3f} {b.dhat_countable:7.4f} {ro_d - b.dhat_countable:+16.4f}")
+    print("\n(extra deflation > 0 means the paying-but-deflating policy beats the revenue-optimal "
+          "one at damaging the estimate, at no cost versus honest mining; 'pay/hon' is ABSOLUTE "
+          "reward per unit time, not revenue share)")
 
 
 def fig37(df: pd.DataFrame) -> None:

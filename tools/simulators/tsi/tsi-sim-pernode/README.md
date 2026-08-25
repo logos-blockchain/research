@@ -48,8 +48,18 @@
   the pre-redesign model unchanged — window = `uncle_window` slots, any-depth orphans
   referenceable, every baked reference counted — and **bit-reproduces historical runs** (the
   old model's RNG key is byte-identical to the pre-`uncle_model` key).
+- **Adversaries** (`adversary_strategy`, over a coalition holding `adversary_frac` of stake,
+  selected at random or `adversary_selection: whale` for the largest holders at matched stake):
+  - `suppress` — produces normally but references no uncles, starving the recovered density.
+  - `withhold` — never gossips its blocks; abstention, a dead loss to the attacker.
+  - `selfish` — mines a **private chain** and releases it under Eyal–Sirer SM1 rules, orphaning
+    honest work. Only visibility is modelled: a coalition member's fork choice builds on the
+    private tip whenever it leads, so the chain forms and is abandoned emergently. Forces the
+    exact full scan, since a hidden block breaks the windowed horizon's premise.
 - **Metrics:** per-node `D_est` spread (`range`, `IQR`), canonical-chain **agreement**
-  (window prefix vs current tip), mean accuracy, and — with `init_dest=heterogeneous` —
+  (window prefix vs current tip), mean accuracy, fork structure (`fork_rate`, reorg depth,
+  `p_ref` and `p_ref_honest`, and `deep_orphan_share` — the share of orphans below their fork's
+  first block, i.e. unreferenceable by construction), and — with `init_dest=heterogeneous` —
   transient re-convergence.
 
 ## Headline result
@@ -157,6 +167,9 @@ src/tsi_sim/   constants config rng stake lottery topology blocktree(+build_tree
 configs/       smoke.yaml  default.yaml  fullscale.yaml
                countable-vs-old.yaml  absorption-window.yaml   (countable-model studies)
                fine-delay.yaml   (delay 1-5 at 40 replicates: the design band, high precision)
+               uncle-selection.yaml   (the spec's oldest-first rule vs a deviating proposer)
+               spec-point-{n5000,window,jitter}.yaml  (the DEPLOYED operating point: delta_max=4
+                 from the spec's Blend profile — size, window and per-recipient-variance arms)
 tests/         test_{pernode,config,rng,lottery,blocktree,uncles,tsi_counting,stake,
                      theory,latency,theory_convergence,countable_counting,
                      countable_selfish,...}.py
@@ -164,4 +177,20 @@ scripts/       plot_countable_vs_old.py  (countable-vs-unrestricted comparison f
                plot_fine_delay.py        (design-band accuracy + model gap with 95% CIs)
                countable_selfish.py      (first-fork ceiling under the selfish MDP; fig36)
                adversary_variants.py     (whale/jitter/slow-beta variants + the withhold-load sweep)
+               deflation_frontier.py     (how far a PAID adversary can deflate D_est; fig37)
+               selfish_uncle_margin.py   (does the uncle cap need margin under a private chain?)
+               spec_point.py             (the deployed operating point; the three f-precision arms)
+               spec_jitter.py            (per-recipient delay variance — the transport diagnostic)
 ```
+
+### Modelling the *deployed* chain rather than the mechanism
+
+Two defaults are deliberately **not** spec-faithful, because the report's job is to isolate
+mechanisms. Flip both for any run meant to answer "what would the deployed chain read":
+
+| knob | default (design) | spec-faithful | why it matters |
+|---|---|---|---|
+| `fixed_point` / `f_precision` | `False` / `1e6` — exact `f` | `True` / `1000` | the spec quantises the target rate at `1e3`, which reads **+1.0 %** high; this is the largest error in the deployed estimator |
+| `uncle_model` | `countable` — the spec's rules | (same) | `--old` is an unreachable **ceiling**, not an alternative: the spec *rejects* a block carrying a reference that fails the counting rules |
+
+`scripts/spec_point.py` runs both arms side by side.

@@ -24,8 +24,15 @@ W_ABS_MAX_FACTOR = 0.6     # bound: W <= W_ABS_MAX_FACTOR * k
 
 
 def uncle_window_slots(w_abs: float, f: float = F) -> int:
-    """Derived uncle reference window ``w_u = W / f`` in slots (countable model)."""
-    return max(1, int(round(w_abs / f)))
+    """Derived uncle reference window ``w_u = floor(W / f)`` in slots (countable model).
+
+    The spec writes this as a **floor** (``w_u := ⌊W·f⁻¹⌋``, cryptarchia-v1-protocol.md
+    Constants). At the defaults (W = 10, f = 1/30) the quotient is exactly 300 either way, so no
+    committed result moves — but ``configs/absorption-window.yaml`` sweeps ``W`` and
+    ``configs/block-rate.yaml`` sweeps ``f``, and at a non-integer ``W/f`` rounding would put the
+    derived window a slot above the spec's.
+    """
+    return max(1, int(w_abs / f))
 
 
 # --- Real-world inter-node network latency (per gossip link) ---------------
