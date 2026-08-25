@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Hands-off Raspberry Pi 5 measurement for the EmPoWering Blend threshold.
 #
-#   make pi5          (from tools/simulators/EmPoWering)
+#   make pi5          (from tools/simulators/empowering/tokenomics)
 #
 # Does everything: preflight (arch, tools, sibling checkout), a pinned single-core
 # benchmark run three times with thermal guards, median extraction, a generated
@@ -23,7 +23,7 @@ TEMP_LIMIT_C=${TEMP_LIMIT_C:-80}
 COOL_TO_C=${COOL_TO_C:-65}
 DEV=${PI5_DEV:-0}
 STAMP=$(date +%Y%m%d-%H%M)
-BENCH=../../benchmarks/EmPoWering
+BENCH=../../../benchmarks/empowering
 OUT=$BENCH/results
 mkdir -p "$OUT"
 LOG="$OUT/pi5-$STAMP.log"
@@ -43,9 +43,9 @@ command -v cargo >/dev/null || {
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y >>"$LOG" 2>&1
   . "$HOME/.cargo/env"
 }
-[ -d ../../../../logos-blockchain/zk/poseidon2 ] || {
+[ -d ../../../../../logos-blockchain/zk/poseidon2 ] || {
   say "cloning sibling logos-blockchain (shallow, https)"
-  git clone --depth 1 https://github.com/logos-blockchain/logos-blockchain.git ../../../../logos-blockchain >>"$LOG" 2>&1
+  git clone --depth 1 https://github.com/logos-blockchain/logos-blockchain.git ../../../../../logos-blockchain >>"$LOG" 2>&1
 }
 
 temp_c() {

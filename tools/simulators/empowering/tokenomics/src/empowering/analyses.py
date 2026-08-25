@@ -1,7 +1,7 @@
 """The report's result sections, one function per section, all config-driven.
 
 Each function prints the tables backing the corresponding section of
-reports/EmPoWering/tokenomics/ and returns the headline numbers so `verify` can
+reports/empowering/tokenomics/ and returns the headline numbers so `verify` can
 assert on them.
 """
 from __future__ import annotations

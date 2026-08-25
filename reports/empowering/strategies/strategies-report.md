@@ -8,15 +8,15 @@ Everything here runs on one honest chain. Every group is simulated at the same t
 
 Notation follows the tokenomics report's convention — prose and code spans carry self-describing names, so `reward_per_claim` here is the same quantity as `reward_per_claim` there and in the specification.
 
-Regenerate every figure with (from `tools/simulators/empowering-strategies`):
+Regenerate every figure with (from `tools/simulators/empowering/strategies`):
 
 ```
 PYTHONPATH=src python3 -m empowering_sim.plots_strategies \
-    --out ../../../reports/EmPoWering/strategies/figures --epochs 120 --nodes 100
+    --out ../../../../reports/empowering/strategies/figures --epochs 120 --nodes 100
 PYTHONPATH=src python3 -m empowering_sim.plots_inscription \
-    --out ../../../reports/EmPoWering/strategies/figures
+    --out ../../../../reports/empowering/strategies/figures
 PYTHONPATH=src python3 -m empowering_sim.plots_arrivals \
-    --out ../../../reports/EmPoWering/strategies/figures
+    --out ../../../../reports/empowering/strategies/figures
 ```
 
 The third command is separate because it is slow: §7 sweeps an arrival rate across a 600-epoch horizon and both retirement rules, where the other two take a couple of minutes.

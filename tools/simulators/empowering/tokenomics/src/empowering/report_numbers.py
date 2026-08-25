@@ -30,7 +30,7 @@ from pathlib import Path
 from . import core
 from .params import Params, load
 
-DEFAULT_REPORT = Path("../../reports/EmPoWering/tokenomics/tokenomics-model.md")
+DEFAULT_REPORT = Path("../../../../reports/empowering/tokenomics/tokenomics-model.md")
 NUM = r"[-+]?[\d,]+(?:\.\d+)?"
 
 

@@ -34,21 +34,22 @@ class Rate:
 TABLE: dict[tuple[str, str], Rate] = {
     ("poseidon2_reward", "rpi5"): Rate(
         165.658e-6, 4, True,
-        "bench-poseidon2, six runs on the target board, spreads under 0.1%, no throttling",
+        "tools/benchmarks/empowering, six runs on the target board, spreads under 0.1%, "
+        "no throttling",
         "The calibration basis: one core of the deployment target."),
     ("poseidon2_reward", "apple"): Rate(
         26.6e-6, 10, True,
-        "bench-poseidon2 on an M4 Pro performance core, release build with link-time "
+        "tools/benchmarks/empowering on an M4 Pro performance core, release build with link-time "
         "optimisation",
         "Performance cores only; a miner would not schedule onto the efficiency cores."),
 
     ("poseidon2_blend", "rpi5"): Rate(
         94.158e-6, 4, True,
-        "bench-poseidon2 on the target board",
+        "tools/benchmarks/empowering on the target board",
         "The figure the admission threshold is calibrated against."),
     ("poseidon2_blend", "apple"): Rate(
         14.9e-6, 10, True,
-        "bench-poseidon2 on an M4 Pro performance core",
+        "tools/benchmarks/empowering on an M4 Pro performance core",
         "Naive; about 8.2 microseconds with the constant prefix precomputed."),
 
     ("equix", "rpi5"): Rate(

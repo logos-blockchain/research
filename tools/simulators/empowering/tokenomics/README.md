@@ -1,6 +1,6 @@
 # EmPoWering tokenomics simulations
 
-The models behind `reports/EmPoWering/tokenomics/` and behind the parameter values in
+The models behind `reports/empowering/tokenomics/` and behind the parameter values in
 logos-lips PR #400: the proof-of-work reward pool, its two difficulty controllers, the
 claim fee, the endowment sizing, bootstrap security, and the supply-vs-fee-schedule
 check that resized `S_tge`.
@@ -38,7 +38,7 @@ twice.
 | `src/empowering/analyses.py` | one function per report section |
 | `src/empowering/verify.py` | self-test: simulation vs closed forms |
 | `src/empowering/spec_sync.py` | drift gate against the logos-lips tree |
-| `tools/benchmarks/EmPoWering/` | Rust benchmark of the puzzle candidate rate (repo path; not inside this directory) |
+| `tools/benchmarks/empowering/` | Rust benchmark of the puzzle candidate rate (repo path; not inside this directory) |
 
 ## Known gap
 
@@ -69,9 +69,9 @@ fuzzed across the full range. `make verify` runs both engines.
 
 `[work]` in the config is **measured on the deployment target itself** — a Raspberry
 Pi 5, one pinned core, with the raw runs archived in
-`tools/benchmarks/EmPoWering/results/`. The Blend admission threshold is calibrated
+`tools/benchmarks/empowering/results/`. The Blend admission threshold is calibrated
 against this number. To re-measure (new board, new library version), run `make pi5`
-on the target: it drives the benchmark in `tools/benchmarks/EmPoWering/`, applies
+on the target: it drives the benchmark in `tools/benchmarks/empowering/`, applies
 thermal guards, takes medians, and writes `configs/pi5.toml`; then re-run
 `make blend`. The benchmark needs a `logos-blockchain` checkout as a sibling of this
 repository (path dependency in its `Cargo.toml`).

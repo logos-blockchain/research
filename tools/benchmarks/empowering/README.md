@@ -78,14 +78,14 @@ dated branch — is handled by:
 sudo apt install -y git build-essential python3-venv curl
 git clone https://github.com/logos-blockchain/research.git ~/Logos/research
 cd ~/Logos/research && git checkout EmPoWering-tokenomics
-cd tools/simulators/EmPoWering && make pi5
+cd tools/simulators/empowering/tokenomics && make pi5
 ```
 
 The script (the simulator's `scripts/run_pi5.sh`) pins the benchmark to one core, waits for the
 board to cool below 65 °C before each run, discards any run that finishes above
 80 °C, takes the median of three valid runs and flags any metric whose spread
 exceeds five percent. It writes the raw runs and log under
-`bench-poseidon2/results/`, generates `configs/pi5.toml` with the measured
+`tools/benchmarks/empowering/results/`, generates `configs/pi5.toml` with the measured
 `[work]` values (retiring the 4–8× estimate band), prints seconds-per-message
 and the suggested exponent for both reference bases — one core and the whole
 board — and commits the results on a `pi5-measurement-<date>` branch. All git steps are

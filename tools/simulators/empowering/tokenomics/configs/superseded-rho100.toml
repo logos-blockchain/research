@@ -6,7 +6,7 @@
 #
 # Source column: KNOWN = read from the specification tree with a citation.
 #                DERIVED = computed here from KNOWN values.
-#                MEASURED = benchmarked, see tools/benchmarks/EmPoWering/.
+#                MEASURED = benchmarked, see tools/benchmarks/empowering/.
 #                ASSUMED = a modelling choice, not stated by the specification.
 
 name = "superseded-rho100"
@@ -70,7 +70,7 @@ blend_ops_per_message   = 3           # KNOWN  beta_max; pow_quota = blend_ops_p
 # Blend threshold should be re-derived once it has been.
 # MEASURED on the deployment target itself: Raspberry Pi 5 Model B, one pinned core,
 # six runs across two sessions, spreads under 0.1%, no thermal throttling
-# (tools/benchmarks/EmPoWering/results/pi5-20260812-*). The reference basis is ONE CORE of the
+# (tools/benchmarks/empowering/results/pi5-20260812-*). The reference basis is ONE CORE of the
 # target; a desktop-class core runs ~6x faster and is deliberately not the basis.
 seconds_per_candidate        = 94.158e-6  # blend, naive: 4 Poseidon2 permutations
 seconds_per_candidate_opt    = 48.472e-6  # blend, constant prefix precomputed: 2

@@ -2,8 +2,8 @@ VENV ?= .venv
 PY := $(VENV)/bin/python
 STAMP := $(VENV)/.installed
 CONFIG ?= configs/specified.toml
-FIGURES ?= ../../../reports/EmPoWering/tokenomics/figures
-REPORT  ?= ../../../reports/EmPoWering/tokenomics/tokenomics-model.md
+FIGURES ?= ../../../../reports/empowering/tokenomics/figures
+REPORT  ?= ../../../../reports/empowering/tokenomics/tokenomics-model.md
 
 .PHONY: install all fee emission rewards blend exhaustion security volume sampled fees sweeps sweeps-full web lepta verify check report-numbers notation plots pi5 bench-poseidon2 clean
 
@@ -68,7 +68,7 @@ verify: $(STAMP) ## closed forms vs simulation, and the config's invariants
 	$(PY) -m empowering.verify --config $(CONFIG)
 	$(PY) -m empowering.lepta --config $(CONFIG)
 
-LIPS ?= ../../../logos-lips
+LIPS ?= ../../../../logos-lips
 report-numbers: $(STAMP) ## every number the report quotes, against the model
 	$(PY) -m empowering.report_numbers --config $(CONFIG) --report $(REPORT)
 
@@ -82,7 +82,7 @@ pi5: ## hands-off Pi 5 measurement: guarded runs, medians, pi5.toml, derivation 
 	./scripts/run_pi5.sh
 
 bench-poseidon2: ## measure the candidate rate (requires Rust and a sibling logos-blockchain)
-	cd ../../benchmarks/EmPoWering && cargo run --release
+	cd ../../../benchmarks/empowering && cargo run --release
 
 # The panel re-implements the model in JS, so `web` regenerates its inputs from the
 # same config AND fails if the two implementations disagree on the golden grid.

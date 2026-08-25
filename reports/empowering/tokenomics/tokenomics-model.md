@@ -2,7 +2,7 @@
 
 ## What this document is
 
-> **Location.** This report lives in `reports/EmPoWering/tokenomics/`; the simulations backing it live in `tools/simulators/EmPoWering/` and regenerate every current number via `make all` (and `make verify`, `make check LIPS=…`). The report was authored alongside logos-lips PR #400 and moved here when that work closed.
+> **Location.** This report lives in `reports/empowering/tokenomics/`; the simulations backing it live in `tools/simulators/empowering/tokenomics/` and regenerate every current number via `make all` (and `make verify`, `make check LIPS=…`). The report was authored alongside logos-lips PR #400 and moved here when that work closed.
 
 ## 0.4 Addendum — `EPOCH_POW_DISTRIBUTION_RATE` moves to 1/200 (2026-08-14, latest)
 
@@ -97,7 +97,7 @@ What this undoes and what it restores:
 - **Every ratio stands, again**: `fee_ratio` = 0.837, `reward_over_fee` = 5.02 at reference traffic, the 1.124× builder edge, `target_claims_per_block`↔`pow_share`, the 1,000-claims drain margin, the 5.75×10⁻⁵-of-pool genesis-error cost. The whole calibration of §§4.4.1–4.4.3 is untouched.
 - The open policy question sharpens into the Units doc's own terms: the storage floor exceeds \$5/GiB once LOGOS trades above **\$4.66**, and no admissible precision fixes that — the remedy lies in the Permanent Storage Gas unit, outside this proposal.
 
-`make all` in `tools/simulators/EmPoWering/` regenerates everything at `decimals = 9`, printing lepta as the primary unit, and `make lepta` confirms the mechanism at lepton granularity in exact integer arithmetic — conservation to the lepton, checked `uint64` throughout, the `reward_per_claim` cliff at its exact boundary, and the canonical parse/format round-trip — something the float engine structurally cannot do. **Terminology**: where the body says "base units", read *lepta*; where it prices in LGO, the figures are pre-resize/pre-lepton absolutes superseded per §0.2 and this section.
+`make all` in `tools/simulators/empowering/tokenomics/` regenerates everything at `decimals = 9`, printing lepta as the primary unit, and `make lepta` confirms the mechanism at lepton granularity in exact integer arithmetic — conservation to the lepton, checked `uint64` throughout, the `reward_per_claim` cliff at its exact boundary, and the canonical parse/format round-trip — something the float engine structurally cannot do. **Terminology**: where the body says "base units", read *lepta*; where it prices in LGO, the figures are pre-resize/pre-lepton absolutes superseded per §0.2 and this section.
 
 ## 0.2 Addendum — the TGE supply resize (2026-08-11, superseded by §0.1 above)
 
@@ -109,7 +109,7 @@ Consequences for reading this document:
 - **The fee is now determined, not assumed.** The body treats `claim_fee` = 0.952 LGO as a price-level assumption (§5.1). It is now `(306 + 646) × 7 = 6,664 LGO` at the resting price — a consequence of the fee schedule and the indivisible LGO, with no free parameter left.
 - **Supply-relative figures scale by ×0.233** (`claim_fee`/S fell from 9.52×10⁻¹¹ to 2.22×10⁻¹¹): `pool_floor` 0.206 % → **0.048 %**, `steady_pool` 1.03 % → **0.241 %**, the 5-year ramp 0.34 % → **0.080 %**, the 10-year ramp 0.60 % → **0.140 %** of supply.
 - **The specified `genesis_pool = 0.5 %` now opens at 10.4× the fee** (was 2.4×) and covers the 10-year ramp several times over. It is over-provisioned by about 4×; reducing it toward 0.2 % is an open token-allocation question, not a viability one.
-- `make all` in `tools/simulators/EmPoWering/` prints all of the above from `configs/specified.toml`.
+- `make all` in `tools/simulators/empowering/tokenomics/` prints all of the above from `configs/specified.toml`.
 - The resize also closes items the body leaves open: §4.4.4's denomination question is settled (one LGO is the smallest unit, workable at the sized supply), and §10's "launch fee level" ceiling is now met with a factor of five in hand rather than being a target for governance to hit. §10.2's standing-reserve question is now about a reserve of ~0.24 % of supply at the reference traffic, not ~1 %.
 - **The trajectory direction in §3.7 and §4.2 is inverted at the current parameters.** Those sections describe the endowment sitting *below* the pool's fixed point, the reward climbing, and the builder edge shrinking — so the worst moment for self-dealing was the first epoch. After the resize, `genesis_pool` (0.5 % of supply) sits *above* `steady_pool` (0.241 % at the reference traffic): the reward **decays** from 10.4× the fee toward 5.0×, and the edge **grows** from 1.05× toward 1.12×. Both endpoints are comfortably inside the design margins, but the qualitative conclusion flips — the worst moment for self-dealing is the steady state again, at a still-benign 1.124×, and the open allocation question (trimming `genesis_pool` toward `steady_pool`) would flatten the trajectory rather than raise it.
 
@@ -121,11 +121,11 @@ EmPoWering lets someone earn their first Logos tokens by mining — running a co
 
 **Self-contained.** Background A–C describe the mechanism, its funding, and the vocabulary, so this can be read without the specification tree to hand.
 
-**Measured, not assumed — but on the wrong machine.** `tools/benchmarks/EmPoWering/` times the real Poseidon2 crate, so §4.5's Blend threshold rests on a measurement rather than an estimate. It was taken on an Apple M4 Pro; deployment targets a Raspberry Pi 5, several times slower per core, and the threshold should be re-derived once it has been run there.
+**Measured, not assumed — but on the wrong machine.** `tools/benchmarks/empowering/` times the real Poseidon2 crate, so §4.5's Blend threshold rests on a measurement rather than an estimate. It was taken on an Apple M4 Pro; deployment targets a Raspberry Pi 5, several times slower per core, and the threshold should be re-derived once it has been run there.
 
 **Sequencing.** This proposal merges *after* the in-flight fee-market change, so that change's findings are treated as the baseline here — in particular the resting price of 7 used throughout §4.3. The two touch no file in common.
 
-**Sync is checked, not asserted.** `make check LIPS=<path-to-logos-lips>` in `tools/simulators/EmPoWering/` reads the constants back out of the specification tree — and recomputes the derived margins the specifications state in prose — comparing both against the config the simulations run from; it exits non-zero on any drift. Run it after every specification change.
+**Sync is checked, not asserted.** `make check LIPS=<path-to-logos-lips>` in `tools/simulators/empowering/tokenomics/` reads the constants back out of the specification tree — and recomputes the derived margins the specifications state in prose — comparing both against the config the simulations run from; it exits non-zero on any drift. Run it after every specification change.
 
 **In sync with PR #400** as of 2026-08-12, at commit `85ece929`. Where the specification has been decided since the proposal was written, this document follows the specification — the differences are listed in *What changed since the proposal* below.
 
@@ -1520,7 +1520,7 @@ That is a policy question, and §10.2 should ask it in those terms. It also expl
 
 ## 5. Simulator
 
-The `empowering` package in `tools/simulators/EmPoWering/`, one module per concern and one `make` target per report section: `make fee` (the claim's fee, §4.3), `make emission` (§3.4), `make rewards` (§4.3–§4.4), `make blend` (§4.5), `make exhaustion` (§3.8, §4.6), `make security` (§4.1), `make volume` (§4.7.2), `make sweeps` (§4.4.1–§4.4.3) and `make plots` (§4.7). Every number lives in `configs/specified.toml`, annotated KNOWN / DERIVED / MEASURED / ASSUMED with citations into the specification tree; nothing is hardcoded in the modules, so a specification change is a one-line edit. `make lepta` re-runs the mechanism in exact integer arithmetic at lepton granularity; `make check LIPS=…` compares the config against the specification tree, constants and prose margins alike. Mirrors the merged code, not the proposal.
+The `empowering` package in `tools/simulators/empowering/tokenomics/`, one module per concern and one `make` target per report section: `make fee` (the claim's fee, §4.3), `make emission` (§3.4), `make rewards` (§4.3–§4.4), `make blend` (§4.5), `make exhaustion` (§3.8, §4.6), `make security` (§4.1), `make volume` (§4.7.2), `make sweeps` (§4.4.1–§4.4.3) and `make plots` (§4.7). Every number lives in `configs/specified.toml`, annotated KNOWN / DERIVED / MEASURED / ASSUMED with citations into the specification tree; nothing is hardcoded in the modules, so a specification change is a one-line edit. `make lepta` re-runs the mechanism in exact integer arithmetic at lepton granularity; `make check LIPS=…` compares the config against the specification tree, constants and prose margins alike. Mirrors the merged code, not the proposal.
 
 ### 5.1 The denomination, and what it is not `OPEN`
 
@@ -1645,7 +1645,7 @@ The four constants of the Blend difficulty controller, from `make blend`. This g
 
 None of those has a value anywhere in the tree. Parity is the right anchor in principle and unavailable in practice; it should be revisited when those land.
 
-So it is derived instead from the work itself — **measured**, in `tools/benchmarks/EmPoWering/`, against the real `logos-blockchain-poseidon2` crate.
+So it is derived instead from the work itself — **measured**, in `tools/benchmarks/empowering/`, against the real `logos-blockchain-poseidon2` crate.
 
 **What the measurement changed.** A candidate is two `zkhash` calls, and an earlier revision of this section costed that as two Poseidon2 invocations at an assumed 2 μs. Both halves were wrong. `Digest::digest` absorbs every input *and* a padding element through a width-3 sponge, so a two-input hash is **three permutations, not one** — six per candidate. And one permutation measures **3,350 ns**, not 2,000. The estimate was between four and six times too fast.
 
@@ -1681,7 +1681,7 @@ Re-derived on those numbers:
 
 **The specified `field_modulus / 2**22` meets the design target on the machine it was measured on and overshoots it five- to eightfold on the machine it is for.** A message costs closer to ten minutes than to ninety seconds, and a participant with one Pi 5 core sends 147 messages a day rather than 882. Matching the intended cost on one Pi 5 core puts the threshold near `field_modulus / 2**19`; on all four cores, near `field_modulus / 2**21`.
 
-**Two decisions follow, and neither is made here.** Whether the reference is one core or the whole board — a factor of four. And the threshold itself, which should be re-derived against a measurement on the target hardware rather than against the scaling estimate above. `tools/benchmarks/EmPoWering/` runs on the Pi as it stands.
+**Two decisions follow, and neither is made here.** Whether the reference is one core or the whole board — a factor of four. And the threshold itself, which should be re-derived against a measurement on the target hardware rather than against the scaling estimate above. `tools/benchmarks/empowering/` runs on the Pi as it stands.
 
 **What else remains unmeasured.** One implementation, no assembly and no batching. More importantly for §4.5.1, the 1.40× above bounds only the *algorithmic* headroom — implementation headroom from assembly field arithmetic, batching or GPU is not measured and could be considerably larger, which would widen an adversary's advantage over an honest participant beyond what that figure suggests. Note that this cuts the opposite way from the hardware gap: the honest participant is on the slowest plausible machine and the adversary on the fastest.
 
@@ -1733,7 +1733,7 @@ Audited against the branch on 2026-08-11. The reward economics are complete; wha
 | `difficulty_reward` genesis value | Mantle, *Reward Difficulty* | **Set** to `field_modulus / 2**26`, deliberately on the hard side — see §4.6 |
 | `BLEND_DIFFICULTY_BASE`, `TARGET_TXS_PER_BLOCK`, damping ratio α, `BLEND_MAX_STEP` | Mantle, *Blend Difficulty* | **Set** — §4.5. Three from anchors already in the tree, the fourth from the work cost, resting on an unmeasured hash rate |
 | `difficulty_blend` genesis value | Genesis Block | **Set** to `BLEND_DIFFICULTY_BASE` |
-| Poseidon2 throughput on the **target** hardware | `tools/benchmarks/EmPoWering/` | **Measured on an M4 Pro, but deployment targets a Raspberry Pi 5** — estimated 4–8× slower per core. At the middle of that band the specified threshold overshoots its design target fivefold (§4.5). Re-run on the Pi and re-derive |
+| Poseidon2 throughput on the **target** hardware | `tools/benchmarks/empowering/` | **Measured on an M4 Pro, but deployment targets a Raspberry Pi 5** — estimated 4–8× slower per core. At the middle of that band the specified threshold overshoots its design target fivefold (§4.5). Re-run on the Pi and re-derive |
 | Reference machine: one core or the whole board? | — | A factor of four in the threshold, undecided |
 | Leader fee share `L` | — | **Unset, and nowhere in the tree.** `POW_SHARE`/`SHARE_DEN` are its only fee-share constants. `L` fixes how much PoW share counts as "junior" (§4.4.2, §4.11); the model assumes 0.4. Only needed to *interpret* a `POW_SHARE` value, not to compute one |
 

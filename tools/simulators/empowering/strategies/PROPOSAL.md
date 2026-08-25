@@ -16,7 +16,7 @@
 >
 > What replaces it: `docs/CONTRADICTIONS.md` for the settled readings and decisions,
 > `docs/REWARD-MODEL.md` for the grounded formulas, and
-> `reports/EmPoWering/strategies/` for what the mechanism actually pays.
+> `reports/empowering/strategies/` for what the mechanism actually pays.
 
 # Making EmPoWering do what it is for — a plan
 
