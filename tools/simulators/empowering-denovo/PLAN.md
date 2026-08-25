@@ -9,6 +9,19 @@ lepta-denominated two-market pricing), the cost estimator (`powcost`), the emiss
 service machinery, and 196 validation gates are verified components this work consumes rather
 than rebuilds.
 
+## How to read this
+
+*In plain words: this is the working notebook of the redesign — the brief it was given, the
+reasoning that produced the design, and every decision taken along the way with its date and
+its alternatives. It is kept because a design whose choices cannot be audited is a design
+nobody can safely change. If you want the finished story instead, read `denovo-report.md`;
+if you want the exact rules, `MODEL.md`.*
+
+*The shape: §0 is the brief (eight requirements, stated before any design existed). §§1–2 work
+out what the requirements force. §3 is the decision log — each open question, the options, the
+measurement that settled it, and the date. The sections after §3 are later revisions appended
+as they happened, newest last, so the file reads as a history.*
+
 ## 0. The principles, as requirements
 
 Stated by the design owner, 2026-08-18. The report validates against these by number.
@@ -94,7 +107,8 @@ borrow-forward. The phases differ in nothing but budget source and reward level.
 ### 1.5 The transition is automatic (R2)
 
 Bootstrap ends when the TGE endowment component of the pool reaches zero — by schedule at the
-expected duration, earlier under spikes. Post-bootstrap begins the next epoch: budget = last
+expected duration; spikes do not move it (the schedule re-spreads, §1.2), weak interest
+extends it at the nominal rate. Post-bootstrap begins the next epoch: budget = last
 epoch's diverted fees (R7a), reward drops from the subsidised to the anchor level. No
 transition parameter, no governance action.
 
@@ -182,7 +196,7 @@ Scenario matrix: arrivals {uniform, 10× spike, 100× cohort, front-loaded, back
 triples {satisfiable, marginal, unsatisfiable} × retirement {on, off}. The report validates
 each requirement **by number**:
 
-- R4/R6: pool trajectory, never negative, ends when scheduled or earlier under spikes;
+- R4/R6: pool trajectory, never negative, ends when scheduled (spikes borrow, they do not shorten);
 - R5: cohort admission — time-to-bond for a spike cohort vs the same nodes arriving uniformly
   (the current design's rationing, reproduced from `EmPoWering-simulator`, as the baseline);
 - R7: post-phase saturation-point distribution vs the epoch end; evenness of claims;

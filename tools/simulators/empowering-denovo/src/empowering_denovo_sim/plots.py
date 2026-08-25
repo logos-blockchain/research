@@ -302,6 +302,109 @@ def adversarial(d, out: Path) -> Path:
     return p
 
 
+def retirement_price(d, out: Path) -> Path:
+    """The token price sets the regime: dearer sustains incumbent mining, onboards fewer.
+
+    Backs adversarial-analysis §2.3 and SUMMARY §3.5. Both panels from
+    `retirement.price_curve` — the same runs the gates pin at $1.00/$0.10/$0.01.
+    """
+    from . import retirement                                   # noqa: PLC0415
+
+    prices = (10.0, 1.0, 0.50, 0.20, 0.10, 0.05, 0.02, 0.01)
+    rows = retirement.price_curve(d, prices=prices)
+
+    f, (a0, a1) = _fig()
+    xs = [r["token_usd"] for r in rows]
+
+    a0.plot(xs, [r["bonds"] for r in rows], color=BLUE, linewidth=2.0, zorder=5,
+            marker="o", markersize=4.5)
+    a0.set_xscale("log")
+    a0.invert_xaxis()          # dearer on the LEFT: reading right means the token cheapens
+    a0.axhline(24_707, color=INK_2, linewidth=1.0, linestyle=(0, (2, 2)))
+    a0.text(xs[0], 24_707, "  the retiring headline (24,707)", color=INK_2, fontsize=8,
+            va="bottom")
+    _thousands(a0)
+    a0.set_xlabel("token price, USD per LGO (log; dearer →← cheaper)", color=INK_2,
+                  fontsize=9)
+    a0.set_ylabel("nodes onboarded", color=INK_2, fontsize=9)
+    _style(a0, "A dearer token onboards FEWER nodes",
+           "mining income is in LGO, electricity in dollars — so price sustains incumbents")
+
+    a1.plot(xs, [r["persists_until"] for r in rows], color=ORANGE, linewidth=2.0, zorder=5,
+            marker="o", markersize=4.5)
+    a1.set_xscale("log")
+    a1.invert_xaxis()
+    a1.axhline(d.bootstrap_epochs, color=INK_2, linewidth=1.0, linestyle=(0, (2, 2)))
+    a1.text(xs[-1], d.bootstrap_epochs, "the whole scheduled phase  ", color=INK_2,
+            fontsize=8, va="bottom", ha="right")
+    a1.set_xlabel("token price, USD per LGO (log; dearer →← cheaper)", color=INK_2,
+                  fontsize=9)
+    a1.set_ylabel("incumbents keep mining until epoch", color=INK_2, fontsize=9)
+    _style(a1, "Above about $0.20 they mine the whole phase",
+           "each bonded miner re-decides every epoch; this is the decided outcome")
+
+    f.suptitle("Retirement is decided by the token price — and dearer is worse", color=INK,
+               fontsize=12.5, x=0.008, ha="left", y=0.99)
+    f.tight_layout(rect=(0, 0, 1, 0.90))
+    p = out / "retirement_price.png"
+    f.savefig(p, dpi=170, facecolor=SURFACE)
+    plt.close(f)
+    return p
+
+
+def flood_denial(d, out: Path) -> Path:
+    """The fake-identity flood, all three designs, measured in this figure's own runs.
+
+    Backs adversarial-analysis §4 and SUMMARY §3.4. The de-novo bars come from
+    `adversary.sybil_denial` (the gated measurement); the current-design bars are computed
+    HERE from `empowering_sim.elevation` at the same honest rate and window, so the figure
+    carries no transcribed numbers at all.
+    """
+    from empowering_sim import elevation as el                 # noqa: PLC0415
+
+    from . import adversary as adv                             # noqa: PLC0415
+    from . import variant                                      # noqa: PLC0415
+
+    cfg = d.cfg
+    multiples = (2, 5, 10)
+
+    base = el.run(cfg, el.ElevationConfig(miners_per_epoch=100, epochs=400,
+                                          retire_on_bond=True)).elevated
+    current = []
+    for k in multiples:
+        total = el.run(cfg, el.ElevationConfig(miners_per_epoch=100 * k, epochs=400,
+                                               retire_on_bond=True)).elevated
+        current.append(1.0 - (total / k) / base)
+    dn = [r["denied"] for r in adv.sybil_denial(d, multiples=multiples)[1:]]
+    dns = [r["denied"] for r in adv.sybil_denial(d, multiples=multiples,
+                                                 cap=variant.DEFAULT_CAP)[1:]]
+
+    f, ax = _fig(n=1, w=7.6, h=4.4)
+    x = np.arange(len(multiples))
+    w = 0.26
+    for off, vals, colour, label in ((-w, current, DANGER, "current"),
+                                     (0.0, dn, BLUE, "de novo"),
+                                     (w, dns, GREEN, "de novo*")):
+        bars = ax.bar(x + off, [v * 100 for v in vals], width=w * 0.92, color=colour,
+                      zorder=5, label=label)
+        for b, v in zip(bars, vals):
+            ax.text(b.get_x() + b.get_width() / 2, v * 100 + 1.2, f"{v:.0%}",
+                    ha="center", color=INK_2, fontsize=8)
+    ax.set_xticks(x, [f"{k}× the honest crowd" for k in multiples])
+    ax.set_ylim(0, 108)
+    ax.set_ylabel("honest joiners denied", color=INK_2, fontsize=9)
+    ax.legend(frameon=False, fontsize=8.5, loc="upper left", labelcolor=INK_2)
+    _style(ax, "", "100 honest arrivals an epoch, 400 epochs, retirement on — every bar "
+                   "from a run in this figure's own code")
+    f.suptitle("Flooded with fake identities: who gets crowded out", color=INK,
+               fontsize=12.5, x=0.008, ha="left", y=0.985)
+    f.tight_layout(rect=(0, 0, 1, 0.92))
+    p = out / "flood_denial.png"
+    f.savefig(p, dpi=170, facecolor=SURFACE)
+    plt.close(f)
+    return p
+
+
 def main() -> int:
     import argparse
     ap = argparse.ArgumentParser(prog="empowering_denovo_sim.plots")
@@ -320,7 +423,9 @@ def main() -> int:
               spike_absorption(d, runs, out),
               arrival_shapes_fig(d, runs, out),
               post_phase(d, r_uniform, r_sparse, out),
-              adversarial(d, out)):
+              adversarial(d, out),
+              retirement_price(d, out),
+              flood_denial(d, out)):
         print(f"  wrote {p}")
     return 0
 

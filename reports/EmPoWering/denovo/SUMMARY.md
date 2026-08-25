@@ -66,7 +66,7 @@ Measured in the strategy report's arrivals study, and absent from both redesigns
 
 - **A best adoption speed.** The number who get in is a hump — too few arrivals and the money goes unused, too many and nobody saves enough: 951 nodes at two arrivals an epoch, ~6,100 near a hundred, 5,001 at five hundred. The worst rate onboards a sixth of the best.
 - **A closing door.** The last cohort with even odds of ever bonding arrives at epoch 286 at ten arrivals an epoch, **epoch 40 at a hundred**, epoch 3 at two hundred and fifty — *under persistence*. Under retirement the same door shuts at 399 / 251 / 77. The door is real in both regimes, and it shuts early in the one the incentives actually deliver; both are given because the difference is large and the earlier text quoted only the persistent end.
-- **A point of no return.** The waiting queue passes every bond the endowment can still fund at epoch 212 (a hundred an epoch), computable from the pool alone.
+- **A point of no return.** The waiting queue passes every bond the remaining money could ever fund — even in a perfect world — at **epoch 214** at a hundred arrivals an epoch under persistence, epoch 338 under retirement. Past it, most of the queue can never get in no matter what happens. (Quoted as a carried "212" until it was computed; the figure is now produced by the same code that exports the comparison page, and gated.)
 
 All three are the same fact seen three ways: a fixed claim flow means a bigger crowd is a thinner slice each. Neither redesign has any of them, because the budget follows the people.
 
@@ -90,6 +90,8 @@ The current design cannot be drained by anyone, because its outflow is fixed —
 
 *In plain words: what happens when someone actively tries to break or game each design, rather than just arriving at an awkward time. The good news is that the redesign's most obvious new weakness turns out not to work.*
 
+![the flood, all three designs](figures/flood_denial.png)
+
 | | current | de novo | de novo\* |
 | --- | --- | --- | --- |
 | withholding to inflate the reward | impossible — the reward ignores demand | **loses money below half the field**: 0.44× at 10%, 0.80× at 50%. A supermajority reaches only **parity** (1.01×) once the window covers the phase | same |
@@ -102,6 +104,8 @@ Two things stand out. The redesigns' one new weakness — setting the price from
 ### 3.5 The finding that applies to all three, and matters most
 
 *In plain words: the most important result here, and it is bad news for every design equally. All three quote their headline numbers assuming that once someone has joined, they stop competing for the prizes and leave room for newcomers. Nothing pays anyone to do that, and joining does not switch their computer off. So the realistic expectation is about a third of the advertised number — for all three.*
+
+![the token price decides who retires](figures/retirement_price.png)
 
 **Nothing pays a bonded miner to stop mining.** Both designs quote their headline numbers assuming they do. A bonded node can run its service *and* keep mining on the same hardware, and the marginal claim is profitable unless a token is worth less than $0.0001.
 
@@ -191,5 +195,6 @@ new *kind* of thing to the system.
 | `MAPPING.md` | what each design changes in the specification tree |
 | `PLAN.md` | all nine design decisions with their reasoning and audit trail |
 | `web/` | three browser pages: the bootstrap calculator, the design comparison, and mining profitability |
+| `../UPSTREAM-PENDING.md` | answers prepared for the upstream specification PRs, awaiting a go — nothing sent |
 
 Every number in these documents is pinned by the validation suite (`make validate`), so a change that moves one fails a gate rather than drifting quietly.

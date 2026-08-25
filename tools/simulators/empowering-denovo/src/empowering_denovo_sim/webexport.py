@@ -160,6 +160,26 @@ def current_design() -> dict:
                 last = int(e)
         return last
 
+    def point_of_no_return(rate: int, retire: bool, epochs: int = 400) -> int:
+        """First epoch where the waiting queue exceeds every bond the pool can still fund.
+
+        Queue = seated minus elevated; fundable = the remaining pool over one bond -- the
+        ceiling even a perfect world could not beat, since every bond costs `min_stake` and
+        the pool is all there is. Past this epoch, most of the queue can never get in no
+        matter what happens. Was the literal 212 with a note admitting it was "carried from
+        the strategy study; not reproducible from committed code" until 2026-08-25 -- the one
+        claim in the set that confessed to being unbacked. Computed, it is 214 under
+        persistence (the carried figure was its neighbour) and 338 under retirement, and like
+        the door it had been published regime-free at the persistent end.
+        """
+        r = el.run(cfg, el.ElevationConfig(miners_per_epoch=rate, epochs=epochs,
+                                           retire_on_bond=retire))
+        min_stake_lgo = cfg.min_stake / cfg.base_units_per_lgo
+        for q in r.rows:
+            if (q.miners_seated - q.miners_elevated) > q.pool_lgo / min_stake_lgo:
+                return q.epoch
+        return -1
+
     return {
         "note": "measured here from empowering_sim.elevation, not transcribed",
         # as published: 100/epoch over 400 epochs
@@ -172,9 +192,10 @@ def current_design() -> dict:
                             "de-novo figure uses",
         "door_closes_at_100_per_epoch": door(100, False),
         "door_closes_at_100_per_epoch_retiring": door(100, True),
-        "point_of_no_return_at_100_per_epoch": 212,
-        "point_of_no_return_note": "carried from the strategy study; not reproducible from "
-                                   "committed code and not gated",
+        "point_of_no_return_at_100_per_epoch": point_of_no_return(100, False),
+        "point_of_no_return_at_100_per_epoch_retiring": point_of_no_return(100, True),
+        "point_of_no_return_note": "queue first exceeds remaining_pool / min_stake -- "
+                                   "computed here from the elevation run, both regimes",
     }
 
 

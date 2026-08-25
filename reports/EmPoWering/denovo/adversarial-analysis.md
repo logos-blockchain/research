@@ -98,6 +98,8 @@ A quarter of the field behaving this way costs the mechanism 37% of its onboardi
 
 *In plain words: rather than assuming whether people stop, we let each simulated participant work it out for themselves each period — weighing what they earn against what the electricity costs, plus the quiet benefit of crowding newcomers out. Then we watched what they chose. They all carried on, every period, until the fund ran dry. One twist is worth the read: a **more** valuable token makes this worse, not better.*
 
+![the token price decides who retires](figures/retirement_price.png)
+
 Everything above treats retirement as a *regime* — a flag the modeller sets. That is the weakest assumption in the study, so `retirement.py` removes it: each bonded miner re-decides every epoch, comparing what the epoch pays it against what the grinding costs it, and the outcome is measured rather than chosen.
 
 The decision includes a term the break-even of §2.1 cannot see. The endowment is finite and fully spent, so **every 1,000 LGO an incumbent mines is exactly one newcomer bond that never happens** — and fewer providers means a larger share of a service pot that is split flat and does not grow with adoption. Suppressing the on-ramp pays the incumbent a dividend, worth `blend_pool / providers²` per epoch for as long as the network runs. Mining is not merely income; it is income that buys exclusion.
@@ -182,6 +184,8 @@ Q9 accepts a documented hazard: a sharp participation threshold at the operating
 
 *In plain words: the redesign's real weakness. Because the price only adjusts once per period, someone arriving with enormous computing power gets a whole period at the old, generous price before anything reacts. This measures how much of the fund such an actor can take, and when they would strike.*
 
+![what a whale takes, and the participation cliff](figures/adversarial.png)
+
 Q8 keeps the borrow-forward unbounded, so a large actor can draw the endowment through the demand index's one-epoch lag. When it should arrive:
 
 Against a realistically-spread field (Pareto, floored at a whole board):
@@ -249,6 +253,8 @@ Q8 was settled as unbounded, so this is recorded as an **alternative design** ra
 ## 4. The sybil flood — and the correction
 
 *In plain words: neither design can tell one person with a thousand machines from a thousand people with one each. So the strongest denial attack is simply to show up as a crowd and take a proportional share of the on-ramp. This measures what that costs honest newcomers in each design — and the redesign does markedly better at realistic scales.*
+
+![the flood, all three designs](figures/flood_denial.png)
 
 Neither mechanism has any defence against one actor presenting as many, so the strongest denial attack on both is to flood the field with identities and take a share of the on-ramp proportional to what you can afford. Measured at the **same honest arrival rate and the same window** for both designs — 100 honest arrivals an epoch, 400 epochs, retirement on:
 

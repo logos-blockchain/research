@@ -38,6 +38,10 @@ at-target regime the design aims for. Early life is where it is *most likely*, n
 
 ### Measured
 
+![the boundary, both readings](figures/pool_boundary.png)
+
+*Regenerate: `cd tools/simulators/empowering && PYTHONPATH=src python3 -m empowering_sim.plots_emission --out ../../../reports/EmPoWering/figures`*
+
 One 120-LGO block, then 240 quiet ones, at `A_t = 0`, reserve empty:
 
 | | worst pool balance | final | conserves? |

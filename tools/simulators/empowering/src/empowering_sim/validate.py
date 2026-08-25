@@ -1017,9 +1017,23 @@ def gate_report_headlines(cfg: Config) -> None:
           r.rows[6].service_per_provider_lgo > 1_000.0, True,
           note=f"{r.rows[6].service_per_provider_lgo:,.0f} LGO per provider at epoch 6, "
                f"against 0.09 under the pinned estimator")
+    _persist = el.run(cfg, el.ElevationConfig(miners_per_epoch=100, epochs=400,
+                                              retire_on_bond=False))
     check("and the elevation counts are pure pool arithmetic, untouched by the fix",
-          el.run(cfg, el.ElevationConfig(miners_per_epoch=100, epochs=400,
-                                         retire_on_bond=False)).elevated, 5_682)
+          _persist.elevated, 5_682)
+    # The point of no return: the first epoch where the waiting queue exceeds every bond the
+    # remaining pool could fund even perfectly. Quoted as "212" across the comparison
+    # documents with a note admitting it was carried and not reproducible -- the one claim in
+    # the set that confessed to being unbacked. Computed (webexport.current_design does the
+    # same, both regimes) and pinned here at the persistent regime the quote always meant.
+    _stake_lgo = cfg.min_stake / cfg.base_units_per_lgo
+    _pnr = next((q.epoch for q in _persist.rows
+                 if q.miners_seated - q.miners_elevated > q.pool_lgo / _stake_lgo), -1)
+    check("the point of no return is computed, and lands where the carried figure pointed",
+          _pnr, 214,
+          note="epoch the queue first exceeds remaining_pool / min_stake at 100/epoch, "
+               "persistent; the carried 212 was its neighbour. Retirement moves it to 338 "
+               "(exported in comparison.json), the same regime-lean the door had")
 
 
 def gate_targets(cfg: Config) -> None:

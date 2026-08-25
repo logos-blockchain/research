@@ -68,13 +68,15 @@ The current design's two rate constants are the ones its own report could only d
 
 *In plain words: the sharpest difference between the two, and the reason to prefer one. What happens when people show up at different rates and at different times? The current design cares a great deal; the redesign barely notices.*
 
+![five arrival shapes, one budget](figures/arrival_shapes.png)
+
 The strategy report's §7 replaces constant arrivals with a Poisson process and measures the consequences of rationing. Set those against the de-novo matrix directly:
 
 | question | current (§7 of the strategy report) | de novo |
 | --- | --- | --- |
 | does adoption speed matter? | **a hump**: 951 elevated at 2/epoch, ~6,100 near 100/epoch, 5,001 at 500 — the worst rate elevates a sixth of the best | **no**: 24,707 / 26,020 / 25,266 bonds under uniform, ×10 and ×100 arrivals if miners retire; 7,963 / 8,027 / 7,384 if they do not — a third of the level either way, but flat across the shape in **both** regimes |
 | is there a closing door? | **yes**: the last cohort with even odds of bonding arrives at epoch 286 (10/epoch), 40 (100/epoch), 3 (250/epoch) **under persistence**; 399 / 251 / 77 under retirement — the door is real in both regimes, and much earlier in the one the incentives deliver | **no**: the ×100 cohort — 13,000 nodes in one epoch — is admitted and paid in both regimes, and the phase still ends on schedule — the amortisation re-spreads the borrow rather than moving its own deadline. It *bonds* completely only under retirement (median 43 epochs); under persistence 24% of it does |
-| a point of no return? | **yes, computable from the pool alone**: the waiting queue passes every bond the endowment can still fund at epoch 212 (100/epoch), 119 (250), 72 (500) | **none exists**: the queue cannot outgrow the budget because the budget is spent on whoever is present; under total silence the Q7 tail holds the offer at the nominal rate until claimed |
+| a point of no return? | **yes, computable from the pool alone**: the waiting queue passes every bond the endowment can still fund at epoch **214** at 100/epoch under persistence (338 under retirement) — computed and gated; the strategy study's carried 212/119/72 sweep pointed at the same cliff | **none exists**: the queue cannot outgrow the budget because the budget is spent on whoever is present; under total silence the Q7 tail holds the offer at the nominal rate until claimed |
 | does timing matter on a fixed population? | **1.64× between best and worst**; the early burst *loses* to flat and the late ramp loses 38% — the mechanism rewards arriving at a rate it can meter | **within noise inside the window** (retiring: 24.7k–28.6k; persistent: 6.1k–8.0k); late arrival costs time, not conversion |
 | does the mechanism ever keep up? | at ≥ 25/epoch it is behind from the first epoch and never once catches up | keeping up is not the frame: saturation is routine, bounded, and repaid by the schedule |
 

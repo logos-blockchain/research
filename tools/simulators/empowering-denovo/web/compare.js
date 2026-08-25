@@ -60,8 +60,14 @@ function renderTable() {
       + `${D.current_design.door_closes_at_100_per_epoch} under persistence, `
       + `${D.current_design.door_closes_at_100_per_epoch_retiring} under retirement`,
       { cur: "bad", dn: "ok", dns: "ok" });
-  row(tb, "point of no return", `epoch ${D.current_design.point_of_no_return_at_100_per_epoch}`,
-      "none", "none", "queue exceeds every bond the pool can fund",
+  const curPnr = state.regime === "retiring"
+    ? D.current_design.point_of_no_return_at_100_per_epoch_retiring
+    : D.current_design.point_of_no_return_at_100_per_epoch;
+  row(tb, "point of no return", `epoch ${curPnr}`,
+      "none", "none",
+      "queue exceeds every bond the pool can fund — epoch "
+      + `${D.current_design.point_of_no_return_at_100_per_epoch} under persistence, `
+      + `${D.current_design.point_of_no_return_at_100_per_epoch_retiring} under retirement`,
       { cur: "bad", dn: "ok", dns: "ok" });
   row(tb, "bootstrap ends", "never", `epoch ${dn.transition}`, `epoch ${dns.transition}`,
       "the pool is spent and the phase is over");
