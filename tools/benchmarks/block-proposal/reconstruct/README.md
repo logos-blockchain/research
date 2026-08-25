@@ -55,6 +55,14 @@ assignment from the single shared index.
   keys. Phase A is therefore an upper bound on the index-building cost, and
   the gap against the `shortid` benchmark's hashing-only figure is the cost of the
   map, not of the hash.
+* **Phase A stops the clock before the index is dropped**, so it measures the
+  build alone. Phase C includes the drop, and freeing a 10⁶-entry map with a
+  `Vec` per entry is not free: Phase C at E = 1 exceeds Phase A by 12% on an
+  M4 Pro and by 24% single-core on a Pi 5 (57% across its four). **Phase C at
+  E = 1 is therefore the figure to quote for a complete reconstruction**, and
+  the Phase A + Phase B totals understate it by that margin. Both numbers are
+  wanted, so Phase A is left as it is: a validator that caches the index pays
+  the build and not the teardown, one that does not pays both.
 * `mantle_txhash` is assumed already cached per mempool entry, as it is in a
   real mempool.
 * Two hosts are checked in: a Raspberry Pi 5 (4× Cortex-A76), which stands in
