@@ -2,13 +2,25 @@
 #
 # Copied from tools/simulators/empowering/tokenomics/configs/specified.toml -- which at the
 # time of the copy stood at simulations/EmPoWering/configs/specified.toml -- at commit b1f0e68
-# ("EmPoWering: adopt rho = 1/200 -- the parameter the analysis selects"), which is the
-# last commit to touch that file as of this branch.
+# ("EmPoWering: adopt rho = 1/200 -- the parameter the analysis selects").
 #
 # This simulator is deliberately self-contained: it does not read the tokenomics config at
 # run time, so a change there cannot silently move results here. The cost of that is drift,
 # and the cure is that any divergence shows up as a diff against the path above rather than
 # as two files quietly disagreeing. Re-snapshot deliberately, in its own commit.
+#
+# It has since diverged in BOTH directions, so copying the source over this file would undo
+# work rather than refresh it. What differs, and which way:
+#
+#   AHEAD of the source. The two fee markets are charged on different things and priced
+#   independently here, and storage_price_lepta below is a parameter config.py requires. The
+#   source still lets one price stand in for both, which understates every fee by its whole
+#   storage component. See CONTRADICTIONS.md 4.8.
+#
+#   BEHIND the source. What is beta_max here is blend_ops_per_message there -- same value,
+#   same meaning, renamed after this copy was taken.
+#
+# Reconcile those two before any re-snapshot.
 
 # The parameter set as specified by the EmPoWering proposal.
 #
@@ -18,7 +30,7 @@
 #
 # Source column: KNOWN = read from the specification tree with a citation.
 #                DERIVED = computed here from KNOWN values.
-#                MEASURED = benchmarked, see bench-poseidon2/.
+#                MEASURED = benchmarked, see tools/benchmarks/empowering/.
 #                ASSUMED = a modelling choice, not stated by the specification.
 
 name = "specified"
@@ -106,7 +118,7 @@ beta_max                = 3           # KNOWN  blending ops per message; Q_W = b
 # Blend threshold should be re-derived once it has been.
 # MEASURED on the deployment target itself: Raspberry Pi 5 Model B, one pinned core,
 # six runs across two sessions, spreads under 0.1%, no thermal throttling
-# (bench-poseidon2/results/pi5-20260812-*). The reference basis is ONE CORE of the
+# (tools/benchmarks/empowering/results/pi5-20260812-*). The reference basis is ONE CORE of the
 # target; a desktop-class core runs ~6x faster and is deliberately not the basis.
 seconds_per_candidate        = 94.158e-6  # blend, naive: 4 Poseidon2 permutations
 seconds_per_candidate_opt    = 48.472e-6  # blend, constant prefix precomputed: 2
