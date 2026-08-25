@@ -6,39 +6,49 @@ Phase B is timed on the exhaustive path: the target is unmatchable, so all C
 assignments are evaluated regardless of enumeration order.
 
 Phase A — rehash 1000000 mempool entries and index by short ID
-  1-core           132.90 ms
-  14-core           17.01 ms      speedup 7.8x
+  1-core           132.54 ms
+  14-core           13.74 ms      speedup 9.6x
 
 Phase B — combination search, body_root per assignment (C = combinations tried)
    C |  full 1-core  full N-core |  incr 1-core  incr N-core
 ----------------------------------------------------------------
-   1 |     0.080 ms     0.080 ms |     0.082 ms     0.081 ms
-   2 |     0.159 ms     0.132 ms |     0.082 ms     0.124 ms
-   8 |     0.668 ms     0.180 ms |     0.093 ms     0.177 ms
-  32 |     2.829 ms     0.547 ms |     0.160 ms     0.250 ms
-  64 |     5.502 ms     0.896 ms |     0.189 ms     0.268 ms
- 128 |    10.963 ms     1.710 ms |     0.361 ms     0.312 ms
- 256 |    22.061 ms     2.787 ms |     0.536 ms     0.318 ms
- 512 |    43.655 ms     5.304 ms |     1.039 ms     0.400 ms
-1024 |    88.456 ms    10.779 ms |     1.976 ms     0.545 ms
-2048 |   179.257 ms    20.192 ms |     3.945 ms     0.744 ms
-4096 |   353.691 ms    37.582 ms |     7.658 ms     1.129 ms
-8192 |   708.340 ms    75.742 ms |    15.428 ms     2.100 ms
+   1 |     0.080 ms     0.089 ms |     0.090 ms     0.090 ms
+   2 |     0.178 ms     0.157 ms |     0.085 ms     0.152 ms
+   8 |     0.697 ms     0.182 ms |     0.096 ms     0.177 ms
+  32 |     2.831 ms     0.522 ms |     0.155 ms     0.273 ms
+  64 |     5.571 ms     0.904 ms |     0.193 ms     0.264 ms
+ 128 |    11.097 ms     1.526 ms |     0.330 ms     0.279 ms
+ 256 |    22.453 ms     2.779 ms |     0.564 ms     0.314 ms
+ 512 |    44.884 ms     5.323 ms |     1.036 ms     0.368 ms
+1024 |    89.615 ms    10.489 ms |     2.048 ms     0.499 ms
+2048 |   179.797 ms    20.409 ms |     4.003 ms     0.736 ms
+4096 |   360.768 ms    36.484 ms |     7.986 ms     1.170 ms
+8192 |   718.616 ms    72.479 ms |    15.759 ms     2.348 ms
 
 Total — complete reconstruction (Phase A + Phase B)
    C |    full 1-core    full N-core |    incr 1-core    incr N-core
 ------------------------------------------------------------------------
-   1 |      132.98 ms       17.09 ms |      132.98 ms       17.09 ms
-   2 |      133.06 ms       17.14 ms |      132.99 ms       17.13 ms
-   8 |      133.57 ms       17.19 ms |      133.00 ms       17.18 ms
-  32 |      135.73 ms       17.55 ms |      133.06 ms       17.26 ms
-  64 |      138.41 ms       17.90 ms |      133.09 ms       17.28 ms
- 128 |      143.87 ms       18.72 ms |      133.26 ms       17.32 ms
- 256 |      154.96 ms       19.80 ms |      133.44 ms       17.33 ms
- 512 |      176.56 ms       22.31 ms |      133.94 ms       17.41 ms
-1024 |      221.36 ms       27.79 ms |      134.88 ms       17.55 ms
-2048 |      312.16 ms       37.20 ms |      136.85 ms       17.75 ms
-4096 |      486.59 ms       54.59 ms |      140.56 ms       18.14 ms
-8192 |      841.24 ms       92.75 ms |      148.33 ms       19.11 ms
+   1 |      132.62 ms       13.82 ms |      132.63 ms       13.83 ms
+   2 |      132.72 ms       13.89 ms |      132.62 ms       13.89 ms
+   8 |      133.23 ms       13.92 ms |      132.63 ms       13.91 ms
+  32 |      135.37 ms       14.26 ms |      132.69 ms       14.01 ms
+  64 |      138.11 ms       14.64 ms |      132.73 ms       14.00 ms
+ 128 |      143.64 ms       15.26 ms |      132.87 ms       14.02 ms
+ 256 |      154.99 ms       16.51 ms |      133.10 ms       14.05 ms
+ 512 |      177.42 ms       19.06 ms |      133.57 ms       14.10 ms
+1024 |      222.15 ms       24.23 ms |      134.59 ms       14.24 ms
+2048 |      312.34 ms       34.15 ms |      136.54 ms       14.47 ms
+4096 |      493.31 ms       50.22 ms |      140.52 ms       14.91 ms
+8192 |      851.15 ms       86.22 ms |      148.30 ms       16.08 ms
+
+Phase C — E variants minted by one leader in a slot (they share a key)
+   E | rebuilt 1-core rebuilt N-core |  shared 1-core  shared N-core
+------------------------------------------------------------------------
+   1 |       148.5 ms        26.8 ms |       149.3 ms        24.9 ms
+   3 |       450.2 ms        73.1 ms |       148.4 ms        25.7 ms
+   8 |      1200.5 ms       198.2 ms |       151.7 ms        24.3 ms
+  16 |      2418.6 ms       389.1 ms |       151.4 ms        25.1 ms
+(the shared columns build the index once; correctness of the reuse is asserted,
+ every variant resolving to its own committed assignment from one index)
 
 sanity: at every C the three strategies find the committed assignment and agree; a wrong target matches nothing

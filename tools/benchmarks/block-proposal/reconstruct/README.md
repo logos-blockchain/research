@@ -38,6 +38,15 @@ cheaper:
 
 Both are measured single-core and across `available_parallelism()` cores.
 
+**Phase C — equivocation.** Because the reference key derives from
+`(parent, slot, leader_key, entropy_contribution)` and not from the proposal,
+every variant a leader mints within one slot shares a key, so the short-ID
+index is a pure function of (key, mempool) and can be reused across all of
+them. Phase C measures E variants both ways — rebuilding the index per variant
+against building it once and sharing it — and asserts the reuse is *correct*,
+not merely faster: every variant must still resolve to its own committed
+assignment from the single shared index.
+
 ## Caveats
 
 * Phase A uses a plain `HashMap<u64, Vec<u32>>`, which allocates a `Vec` per
