@@ -67,7 +67,10 @@ assignment from the single shared index.
   real mempool.
 * Two hosts are checked in: a Raspberry Pi 5 (4× Cortex-A76), which stands in
   for validator-class hardware, and an Apple M4 Pro (14 cores) for contrast.
-  Nothing is scaled between them.
+  Nothing is scaled between them. The two Pi runs are independent and agree to
+  within **0.38%** on every figure, which is what licenses reading small
+  differences here as real: the Phase A / Phase C teardown gap below is 24% of
+  the phase, some 64× that noise floor.
 
 The Pi run is the one that matters, and it says something the workstation run
 hides: the index, not the hash, is the majority of Phase A there — 440 ms of
