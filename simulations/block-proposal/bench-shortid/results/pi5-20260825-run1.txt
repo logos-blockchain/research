@@ -1,0 +1,16 @@
+# host: Raspberry Pi 5 (4x Cortex-A76) / aarch64 / toolchain not recorded
+# contributed run; not produced on the machine that generated the mac-m4pro-* results
+shortid-bench: 64-bit keyed short IDs over 32-byte inputs
+mempool: 1000000 entries (30 MB), runs: 5 (median), cores: 4
+cache-resident set: 4096 entries (128 KB), 2000000 iters/run
+
+                       | cache-res |    1-core      1-core |    4-core      4-core
+function               |   ns/hash |   ns/hash  total(1e6) |   ns/hash  total(1e6)  speedup
+------------------------------------------------------------------------------------------------
+SipHash-2-4            |     34.45 |     33.78    33.78 ms |     12.59    12.59 ms     2.7x
+SipHash-1-3            |     22.28 |     21.93    21.93 ms |      7.31     7.31 ms     3.0x
+Blake2b-512/trunc8     |    218.75 |    217.25   217.25 ms |     54.47    54.47 ms     4.0x
+Blake2bMac-8 (keyed)   |    427.43 |    425.70   425.70 ms |    105.92   105.92 ms     4.0x
+
+sanity: keyed determinism ok, key sensitivity ok
+note: hashing only; the map insert of a real resolve_candidates is not included.

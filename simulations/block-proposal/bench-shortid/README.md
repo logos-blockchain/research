@@ -44,8 +44,10 @@ transaction is not included, so these are lower bounds on the full step.
 cargo run --release
 ```
 
-Results are archived under `results/<host>-<date>-runN.txt`; the ones checked
-in were produced on an Apple M4 Pro (14 cores, Darwin arm64, rustc 1.97.1).
+Results are archived under `results/<host>-<date>-runN.txt`. Two hosts are
+checked in: a Raspberry Pi 5 (4× Cortex-A76), which stands in for
+validator-class hardware and is the one the recommendation rests on, and an
+Apple M4 Pro (14 cores, Darwin arm64, rustc 1.97.1) for contrast.
 
 ## Summary
 
