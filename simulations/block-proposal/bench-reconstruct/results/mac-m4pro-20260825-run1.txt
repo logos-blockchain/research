@@ -1,0 +1,28 @@
+# host: Apple M4 Pro / Darwin arm64 / rustc 1.97.1
+reconstruct-bench: end-to-end block proposal reconstruction
+mempool: 1000000 entries, references: 1024, uncles: 4, runs: 5 (median), cores: 14
+all phases executed for real; no component is estimated
+
+Phase A — rehash 1000000 mempool entries and index by short ID
+  1-core           125.59 ms
+  14-core           13.29 ms      speedup 9.4x
+
+Phase B — combination search, body_root per assignment (C = combinations tried)
+   C |  full 1-core  full N-core |  incr 1-core  incr N-core
+----------------------------------------------------------------
+   1 |     0.082 ms     0.082 ms |     0.084 ms     0.081 ms
+   2 |     0.160 ms     0.130 ms |     0.083 ms     0.118 ms
+   8 |     0.659 ms     0.190 ms |     0.100 ms     0.189 ms
+  32 |     2.571 ms     0.500 ms |     0.158 ms     0.259 ms
+  64 |     5.186 ms     0.822 ms |     0.235 ms     0.282 ms
+
+Total — complete reconstruction (Phase A + Phase B)
+   C |    full 1-core    full N-core |    incr 1-core    incr N-core
+------------------------------------------------------------------------
+   1 |      125.67 ms       13.37 ms |      125.67 ms       13.37 ms
+   2 |      125.75 ms       13.42 ms |      125.67 ms       13.41 ms
+   8 |      126.25 ms       13.48 ms |      125.69 ms       13.48 ms
+  32 |      128.16 ms       13.79 ms |      125.75 ms       13.55 ms
+  64 |      130.77 ms       14.11 ms |      125.82 ms       13.57 ms
+
+sanity: both strategies find the committed assignment and agree; a wrong target matches nothing
