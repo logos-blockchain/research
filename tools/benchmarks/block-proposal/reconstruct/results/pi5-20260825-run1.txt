@@ -1,0 +1,45 @@
+# host: Raspberry Pi 5 (4x Cortex-A76) / aarch64 / toolchain not recorded
+# contributed run; not produced on the machine that generated the mac-m4pro-* results
+reconstruct-bench: end-to-end block proposal reconstruction
+mempool: 1000000 entries, references: 1024, uncles: 4, runs: 5 (median), cores: 4
+all phases executed for real; no component is estimated
+Phase B is timed on the exhaustive path: the target is unmatchable, so all C
+assignments are evaluated regardless of enumeration order.
+
+Phase A — rehash 1000000 mempool entries and index by short ID
+  1-core           657.26 ms
+  4-core          240.25 ms      speedup 2.7x
+
+Phase B — combination search, body_root per assignment (C = combinations tried)
+   C |  full 1-core  full N-core |  incr 1-core  incr N-core
+----------------------------------------------------------------
+   1 |     0.224 ms     0.224 ms |     0.226 ms     0.225 ms
+   2 |     0.448 ms     0.270 ms |     0.230 ms     0.265 ms
+   8 |     1.799 ms     0.535 ms |     0.258 ms     0.293 ms
+  32 |     7.177 ms     1.860 ms |     0.370 ms     0.319 ms
+  64 |    14.356 ms     4.003 ms |     0.516 ms     0.658 ms
+ 128 |    28.795 ms     8.004 ms |     0.815 ms     0.802 ms
+ 256 |    57.592 ms    16.002 ms |     1.405 ms     1.101 ms
+ 512 |   114.972 ms    28.776 ms |     2.586 ms     0.879 ms
+1024 |   230.360 ms    57.426 ms |     4.968 ms     1.467 ms
+2048 |   460.683 ms   114.819 ms |     9.719 ms     2.654 ms
+4096 |   921.102 ms   229.570 ms |    19.167 ms     5.040 ms
+8192 |  1842.193 ms   461.406 ms |    38.202 ms     9.764 ms
+
+Total — complete reconstruction (Phase A + Phase B)
+   C |    full 1-core    full N-core |    incr 1-core    incr N-core
+------------------------------------------------------------------------
+   1 |      657.49 ms      240.47 ms |      657.49 ms      240.47 ms
+   2 |      657.71 ms      240.52 ms |      657.49 ms      240.51 ms
+   8 |      659.06 ms      240.78 ms |      657.52 ms      240.54 ms
+  32 |      664.44 ms      242.11 ms |      657.63 ms      240.57 ms
+  64 |      671.62 ms      244.25 ms |      657.78 ms      240.90 ms
+ 128 |      686.06 ms      248.25 ms |      658.08 ms      241.05 ms
+ 256 |      714.85 ms      256.25 ms |      658.67 ms      241.35 ms
+ 512 |      772.23 ms      269.02 ms |      659.85 ms      241.13 ms
+1024 |      887.62 ms      297.67 ms |      662.23 ms      241.71 ms
+2048 |     1117.94 ms      355.07 ms |      666.98 ms      242.90 ms
+4096 |     1578.36 ms      469.82 ms |      676.43 ms      245.29 ms
+8192 |     2499.45 ms      701.65 ms |      695.46 ms      250.01 ms
+
+sanity: at every C the three strategies find the committed assignment and agree; a wrong target matches nothing

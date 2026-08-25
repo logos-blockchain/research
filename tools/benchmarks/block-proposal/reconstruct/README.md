@@ -48,8 +48,16 @@ Both are measured single-core and across `available_parallelism()` cores.
   map, not of the hash.
 * `mantle_txhash` is assumed already cached per mempool entry, as it is in a
   real mempool.
-* Results checked in were produced on an Apple M4 Pro. No Raspberry Pi run is
-  included — the numbers here are measured, not scaled to other hardware.
+* Two hosts are checked in: a Raspberry Pi 5 (4× Cortex-A76), which stands in
+  for validator-class hardware, and an Apple M4 Pro (14 cores) for contrast.
+  Nothing is scaled between them.
+
+The Pi run is the one that matters, and it says something the workstation run
+hides: the index, not the hash, is the majority of Phase A there — 440 ms of
+657 ms, against 52 ms of 132 ms on the M4 Pro. The map degrades worse than the
+hash on modest hardware (5.0× slower per core, against 2.7× for hashing
+alone), so a faster hash buys proportionally less than the hash benchmark
+alone would suggest.
 
 ## Run
 

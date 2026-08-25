@@ -152,11 +152,28 @@ PoL verification the proposal already requires, so it does not dominate
 proposal validation. (That comparison is by reputation, not measurement: Groth16
 verification was not benchmarked here.)
 
-Two costs are excluded from the figures above and would need measuring before
-anyone sizes hardware from them: the **map insert** per mempool transaction,
-which the benchmark does not perform and which may rival a 12 ns hash, and the
-`mantle_txhash` computation itself, which is assumed already cached per
-mempool entry.
+Two costs are excluded from the figures above: the **map insert** per mempool
+transaction, which this benchmark does not perform, and the `mantle_txhash`
+computation, which is assumed already cached per mempool entry.
+
+The first has since been measured by the companion `reconstruct` benchmark,
+and it is larger than expected — decisively so on the hardware that matters:
+
+| | hashing only | + index build | the index is |
+| --- | ---: | ---: | ---: |
+| **Raspberry Pi 5**, 1-core | 217 ms | **657 ms** | **67%** |
+| Apple M4 Pro, 1-core | 79.5 ms | 132 ms | 40% |
+
+The index degrades worse than the hash on modest hardware — the Pi is 5.0×
+slower than the M4 Pro at the combined step against 2.7× at hashing alone —
+so on a validator-class machine two thirds of the rehash is the map. That
+materially changes what a faster hash is worth: substituting SipHash-2-4's
+6.4× would take a Pi 5's rehash from 657 ms to roughly 474 ms, a **1.39×
+improvement on the phase**, not 6.4×. The equivalent figure on the M4 Pro is
+2.06×. Any decision resting on the ratios in this report should use those
+numbers instead, and the map cost is itself an upper bound: the fixture uses
+`HashMap<u64, Vec<u32>>`, which allocates per distinct short ID, where a tuned
+implementation would not.
 
 ## Caveats
 
