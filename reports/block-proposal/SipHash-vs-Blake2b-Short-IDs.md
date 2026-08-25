@@ -1,7 +1,9 @@
 # SipHash vs Blake2b for keyed transaction short IDs
 
 **Decision input for the Revised Block Proposal Compression RFC.**
-Benchmark: `simulations/block-proposal/bench-shortid` (pure-Rust crates only).
+Benchmarks: `tools/benchmarks/block-proposal/shortid` (this report) and
+`tools/benchmarks/block-proposal/reconstruct` (the end-to-end step). Pure-Rust
+crates only.
 Hosts: Raspberry Pi 5 (4× Cortex-A76) and Apple M4 Pro (14 cores, Darwin arm64,
 rustc 1.97.1). 2026-08-25.
 

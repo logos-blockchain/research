@@ -1,11 +1,11 @@
-# bench-reconstruct
+# reconstruct
 
 Measures the **complete** block-proposal reconstruction step of the Revised
 Block Proposal Compression RFC, end to end. Nothing is estimated: every phase
 runs for real, including genuine Blake2b Merkle roots over `MAX_BLOCK_TXS`
 full transaction hashes.
 
-The companion `bench-shortid` measures the hash function alone. This one
+The companion `shortid` benchmark measures the hash function alone. This one
 measures what a validator actually spends per proposal.
 
 ## What it runs
@@ -38,7 +38,7 @@ Both are measured single-core and across `available_parallelism()` cores.
   distinct short ID. That is the naive implementation, not a tuned one; a real
   node would avoid the per-entry allocation and use a faster hasher for `u64`
   keys. Phase A is therefore an upper bound on the index-building cost, and
-  the gap against `bench-shortid`'s hashing-only figure is the cost of the
+  the gap against the `shortid` benchmark's hashing-only figure is the cost of the
   map, not of the hash.
 * `mantle_txhash` is assumed already cached per mempool entry, as it is in a
   real mempool.

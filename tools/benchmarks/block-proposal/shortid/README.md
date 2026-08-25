@@ -1,4 +1,4 @@
-# bench-shortid
+# shortid
 
 Measures candidate keyed hash functions for the 64-bit transaction short IDs of
 the Revised Block Proposal Compression RFC (BIP-152-style compact proposals).
@@ -51,5 +51,9 @@ Apple M4 Pro (14 cores, Darwin arm64, rustc 1.97.1) for contrast.
 
 ## Summary
 
-See `reports/block-proposal/SipHash-vs-Blake2b-Short-IDs.md` for the analysis
-and the recommendation (SipHash-2-4).
+See `reports/block-proposal/SipHash-vs-Blake2b-Short-IDs.md` for the analysis.
+The RFC selects the truncated Blake2b row for its lack of dependencies, and
+keeps SipHash-2-4 on record as the faster alternative.
+
+The companion `reconstruct` benchmark measures the complete reconstruction
+step, of which this hashing is one phase.
