@@ -305,7 +305,7 @@ def adversarial(d, out: Path) -> Path:
 def main() -> int:
     import argparse
     ap = argparse.ArgumentParser(prog="empowering_denovo_sim.plots")
-    ap.add_argument("--out", default="../../../reports/empowering/denovo/figures")
+    ap.add_argument("--out", default="../../../../reports/empowering/denovo/figures")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)

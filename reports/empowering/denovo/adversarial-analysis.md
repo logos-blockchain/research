@@ -250,7 +250,7 @@ That makes the flood a property to size rather than a hole to plug, and the sizi
 ## 7. Reproducing this
 
 ```
-cd tools/simulators/empowering-denovo
+cd tools/simulators/empowering/denovo
 make validate                     # the adversarial findings are gated
 PYTHONPATH="src:../empowering/src" python3 -m empowering_denovo_sim.adversary
 ```

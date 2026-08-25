@@ -6,7 +6,7 @@ A redesign of the EmPoWering mechanism from eight stated principles, simulated, 
 
 Notation follows the house convention: prose and code spans carry self-describing names, so `epoch_budget` here is the same quantity as `epoch_budget` in the model document and the simulator.
 
-Regenerate every figure with (from `tools/simulators/empowering-denovo`):
+Regenerate every figure with (from `tools/simulators/empowering/denovo`):
 
 ```
 PYTHONPATH="src:../empowering/src" python3 -m empowering_denovo_sim.plots \
