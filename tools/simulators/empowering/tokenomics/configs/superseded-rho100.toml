@@ -1,0 +1,109 @@
+# The parameter set as specified by the EmPoWering proposal.
+#
+# Every number the simulations use lives here. Nothing is hardcoded in the modules,
+# so a specification change is a one-line edit and `make check` will tell you which
+# results move.
+#
+# Source column: KNOWN = read from the specification tree with a citation.
+#                DERIVED = computed here from KNOWN values.
+#                MEASURED = benchmarked, see tools/benchmarks/empowering/.
+#                ASSUMED = a modelling choice, not stated by the specification.
+
+name = "superseded-rho100"
+description = "The pre-2026-08-14 set (rho = 1/100), kept for comparison runs"
+
+[consensus]
+blocks_per_epoch      = 21_600        # KNOWN  blend-protocol.md:103
+block_seconds         = 30            # KNOWN  cryptarchia-v1-protocol.md
+epochs_per_year       = 48.667        # DERIVED
+blocks_per_year       = 1_051_200     # KNOWN  block-rewards.md (365 * 2880)
+max_block_txs         = 1_024         # KNOWN  bedrock-v1.1-mantle-specification.md
+
+[supply]
+tge                   = 1e10          # KNOWN  block-rewards.md, S_cap = 10^10 LOGOS
+base_units_per_lgo    = 1_000_000_000 # KNOWN  Units and Precision: 1 LOGOS = 10^9 LEPTA, d = 9
+max_emission_per_year = 0.01          # KNOWN  I_max, block-rewards.md
+min_stake_fraction    = 1e-5          # KNOWN  0.001% of S_tge, analysis-static-minimum-stake
+
+[fees]
+# Both markets floor at one unit per byte and per unit of gas, but neither rests there:
+# the downward step has fixed points across the first several units, so an idle market
+# settles at 7.  KNOWN, storage-markets.md / execution-market.md.
+# One price stands in for both P_STR and b_exec; they are independent in the protocol
+# but share the floor and the resting level, and every ratio here uses them together.
+# Prices are in LEPTA per gas unit (Units and Precision).
+price_floor           = 1
+price_resting         = 7
+max_price             = 5_776_413_067_240   # KNOWN  #393: largest price whose fee products fit u64
+# DERIVED, sim: txsize.sizes(). CLAIM_POW_REWARD is absent from
+# mantle-transaction-encoding.md, so these are reconstructed from the encoding
+# primitives plus a framing assumption -- the one framing that reproduces the
+# 6,664-lepta claim fee mantle:1858 states. See txsize.py for what is read and
+# what is assumed, and for the 0.2% sensitivity of everything downstream.
+claim_tx_bytes        = 306
+claim_tx_gas          = 646           # KNOWN    56 claim + 590 transfer
+transfer_tx_bytes     = 207           # DERIVED  sim: txsize.sizes(), same basis
+transfer_tx_gas       = 590           # KNOWN    analysis-gas-cost-determination.md
+
+[pow]
+target_claims_per_block = 10          # KNOWN  T
+pool_share_num          = 10          # KNOWN  POW_SHARE
+pool_share_den          = 100         # KNOWN  SHARE_DEN
+distribution_rate_num   = 1           # KNOWN  rho = 1/100
+distribution_rate_den   = 100
+genesis_pool_fraction   = 0.005       # KNOWN  POW_REWARD_POOL_GENESIS, 5/1000 of launch supply
+ema_smoothing_factor    = 9           # KNOWN  F
+ema_smoothing_precision = 10          # KNOWN  P
+reward_difficulty_exp   = 26          # KNOWN  genesis difficulty_reward = p / 2**26
+
+[blend]
+difficulty_base_exp     = 19          # KNOWN  BLEND_DIFFICULTY_BASE = p / 2**19
+target_txs_per_block    = 512         # KNOWN  TARGET_TXS_PER_BLOCK
+damping_num             = 1           # KNOWN  alpha = 1/2
+damping_den             = 2
+max_step                = 2           # KNOWN  BLEND_MAX_STEP
+blend_ops_per_message   = 3           # KNOWN  beta_max; pow_quota = blend_ops_per_message
+
+[work]
+# MEASURED on an Apple M4 Pro performance core, release build with LTO. The deployment
+# target is a Raspberry Pi 5, estimated 4-8x slower per core -- NOT measured, and the
+# Blend threshold should be re-derived once it has been.
+# MEASURED on the deployment target itself: Raspberry Pi 5 Model B, one pinned core,
+# six runs across two sessions, spreads under 0.1%, no thermal throttling
+# (tools/benchmarks/empowering/results/pi5-20260812-*). The reference basis is ONE CORE of the
+# target; a desktop-class core runs ~6x faster and is deliberately not the basis.
+seconds_per_candidate        = 94.158e-6  # blend, naive: 4 Poseidon2 permutations
+seconds_per_candidate_opt    = 48.472e-6  # blend, constant prefix precomputed: 2
+seconds_per_candidate_reward = 165.658e-6 # reward keeps its key derivation: 7 perms
+seconds_per_permutation      = 22.813e-6
+pi5_cores                   = 4           # board-level figures divide by this
+
+[model]
+# ASSUMED. Traffic is exogenous here; section 4.4 of the report parameterises the ramp
+# rather than guessing a single value.
+reference_txs_per_block = 600
+adversary_hashrate      = 0.33
+honest_stake_fraction   = 1.0
+horizon_epochs          = 300
+
+[mixes]
+# Illustrative transaction shapes for report section 4.9's mapping from a fee load to the
+# mixes that produce it. Gas is KNOWN from analysis-gas-cost-determination.md's table of
+# Operation gas. Byte counts for shapes the simulator does not already carry are ASSUMED,
+# and the report says so; they are illustrative, not a claim about the wire format.
+inscribe_gas    = 56          # KNOWN  CHANNEL_INSCRIBE_GAS -- the cheapest Operation
+inscribe_bytes  = 130         # ASSUMED  a small signed tx; the claim's signature alone is 128 B
+sdp_declare_gas = 646         # KNOWN  SDP_DECLARE_GAS
+sdp_declare_bytes = 250       # ASSUMED
+
+[economics]
+# ASSUMED, and load-bearing -- these were hardcoded in the modules until 2026-08-13.
+# leader_fee_share sets the subordination cap that bounds beta from above (section 4.4.2,
+# 4.7.6, 4.11); subordination_ratio is how "PoW stays junior to staking" is read. Neither
+# is stated anywhere in the specification tree, so both are modelling choices, and the
+# 11.76 % cap they imply should be revisited if the leader split is ever pinned down.
+leader_fee_share      = 0.4   # ASSUMED  share of undiverted fees reaching block leaders
+subordination_ratio   = 0.333333333333  # ASSUMED  PoW <= this multiple of the leader share
+# tip_fraction sets the builder's self-dealing edge (section 4.2c): the share of a claim's
+# surplus that lands as an execution tip and so returns to a builder including its own claim.
+tip_fraction          = 0.5   # ASSUMED
