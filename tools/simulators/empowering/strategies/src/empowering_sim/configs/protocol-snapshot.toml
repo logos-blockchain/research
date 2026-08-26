@@ -1,0 +1,157 @@
+# SNAPSHOT -- do not edit by hand.
+#
+# Copied from tools/simulators/empowering/tokenomics/configs/specified.toml -- which at the
+# time of the copy stood at simulations/EmPoWering/configs/specified.toml -- at commit b1f0e68
+# ("EmPoWering: adopt rho = 1/200 -- the parameter the analysis selects").
+#
+# This simulator is deliberately self-contained: it does not read the tokenomics config at
+# run time, so a change there cannot silently move results here. The cost of that is drift,
+# and the cure is that any divergence shows up as a diff against the path above rather than
+# as two files quietly disagreeing. Re-snapshot deliberately, in its own commit.
+#
+# It has since diverged in BOTH directions, so copying the source over this file would undo
+# work rather than refresh it. What differs, and which way:
+#
+#   AHEAD of the source. The two fee markets are charged on different things and priced
+#   independently here, and storage_price_lepta below is a parameter config.py requires. The
+#   source still lets one price stand in for both, which understates every fee by its whole
+#   storage component. See CONTRADICTIONS.md 4.8.
+#
+#   BEHIND the source. What is beta_max here is blend_ops_per_message there -- same value,
+#   same meaning, renamed after this copy was taken.
+#
+# Reconcile those two before any re-snapshot.
+
+# The parameter set as specified by the EmPoWering proposal.
+#
+# Every number the simulations use lives here. Nothing is hardcoded in the modules,
+# so a specification change is a one-line edit and `make check` will tell you which
+# results move.
+#
+# Source column: KNOWN = read from the specification tree with a citation.
+#                DERIVED = computed here from KNOWN values.
+#                MEASURED = benchmarked, see tools/benchmarks/empowering/.
+#                ASSUMED = a modelling choice, not stated by the specification.
+
+name = "specified"
+description = "The parameter set as specified in the EmPoWering RFC"
+
+[consensus]
+blocks_per_epoch      = 21_600        # KNOWN  blend-protocol.md:103
+block_seconds         = 30            # KNOWN  cryptarchia-v1-protocol.md
+epochs_per_year       = 48.667        # DERIVED
+blocks_per_year       = 1_051_200     # KNOWN  block-rewards.md (365 * 2880)
+max_block_txs         = 1_024         # KNOWN  bedrock-v1.1-mantle-specification.md
+
+[supply]
+tge                   = 1e10          # KNOWN  block-rewards.md, S_cap = 10^10 LOGOS
+base_units_per_lgo    = 1_000_000_000 # KNOWN  Units and Precision: 1 LOGOS = 10^9 LEPTA, d = 9
+max_emission_per_year = 0.01          # KNOWN  I_max, block-rewards.md
+min_stake_fraction    = 1e-5          # KNOWN  0.001% of S_tge, analysis-static-minimum-stake
+
+[fees]
+# The two markets are charged on different things and priced INDEPENDENTLY, and they do not
+# share a floor.  An earlier revision of this file applied one price to both; that understated
+# every fee by essentially its entire storage component, and every quantity downstream of a fee
+# with it.  mantle:71 -- execution gas is charged per Operation, permanent storage gas on the
+# encoded size of the whole signed transaction; mantle:148 -- one storage gas per encoded byte.
+#
+# Execution: floors at 1 lepton, and the downward step has fixed points across the first several
+# units, so an idle market settles at 7.  KNOWN, execution-market.md.
+# Prices are in LEPTA per gas unit (Units and Precision).
+price_floor           = 1
+price_resting         = 7
+# Storage: charged on the encoded size of the whole signed transaction, one gas per byte
+# (mantle:71, mantle:148).  Priced in LEPTA per Storage Gas unit, floor one LEPTON.
+#
+# KNOWN, and settled by the governing units document.  *Logos Token: Units and Precision*
+# (Standards Track, rev 1.0.0, 2026-08-11) tabulates P_STR(s) in "LEPTA per Storage Gas unit",
+# states that both markets have "an effective floor of one base unit per gas unit", and
+# computes the consequence directly: "Storing one GiB permanently costs at least 2^30 =
+# 1,073,741,824 LEPTA, which is 1.0737 LOGOS".  Its whole lower-bound derivation rests on that
+# floor.  mantle:2119 defers to it by name and adds that "amounts written in LGO here are a
+# display convenience for 10^9 lepta".
+#
+# storage-markets.md:124-126 reads "P_STR(0) = 1 LGO per Permanent Storage Gas ... a cost of
+# 1 LGO per permanently stored byte".  That document was last revised 2026-07-28, two weeks
+# BEFORE the denomination was fixed, and its figure is superseded: at 1 LGO per byte a GiB
+# would cost 1.07 billion LOGOS, a tenth of the entire supply, and the units document's own
+# target of a few dollars per GiB would be unreachable by nine orders of magnitude.
+#
+# So storage rests at the same 7 as execution.  The two markets remain SEPARATE -- different
+# charging bases, independent price discovery -- and this file prices them separately; they
+# merely share a floor and a resting level.  See CONTRADICTIONS.md 4.8.
+storage_price_lepta   = 7
+max_price             = 5_776_413_067_240   # KNOWN  #393: largest price whose fee products fit u64
+# DERIVED, sim: txsize.sizes(). CLAIM_POW_REWARD is absent from
+# mantle-transaction-encoding.md, so these are reconstructed from the encoding
+# primitives plus a framing assumption -- the one framing that reproduces the
+# 6,664-lepta claim fee mantle:1858 states. See txsize.py for what is read and
+# what is assumed, and for the 0.2% sensitivity of everything downstream.
+claim_tx_bytes        = 306
+claim_tx_gas          = 646           # KNOWN    56 claim + 590 transfer
+transfer_tx_bytes     = 207           # DERIVED  sim: txsize.sizes(), same basis
+transfer_tx_gas       = 590           # KNOWN    analysis-gas-cost-determination.md
+
+[pow]
+target_claims_per_block = 10          # KNOWN  T
+pool_share_num          = 10          # KNOWN  POW_SHARE
+pool_share_den          = 100         # KNOWN  SHARE_DEN
+distribution_rate_num   = 1           # KNOWN  rho = 1/200 (2026-08-14: closes the within-epoch
+distribution_rate_den   = 200         #        drain by construction; see report section 0.4)
+genesis_pool_fraction   = 0.005       # KNOWN  POW_REWARD_POOL_GENESIS, 5/1000 of launch supply
+ema_smoothing_factor    = 9           # KNOWN  F
+ema_smoothing_precision = 10          # KNOWN  P
+reward_difficulty_exp   = 26          # KNOWN  genesis difficulty_reward = p / 2**26
+
+[blend]
+difficulty_base_exp     = 19          # KNOWN  BLEND_DIFFICULTY_BASE = p / 2**19
+target_txs_per_block    = 512         # KNOWN  TARGET_TXS_PER_BLOCK
+damping_num             = 1           # KNOWN  alpha = 1/2
+damping_den             = 2
+max_step                = 2           # KNOWN  BLEND_MAX_STEP
+beta_max                = 3           # KNOWN  blending ops per message; Q_W = beta_max
+
+[work]
+# MEASURED on an Apple M4 Pro performance core, release build with LTO. The deployment
+# target is a Raspberry Pi 5, estimated 4-8x slower per core -- NOT measured, and the
+# Blend threshold should be re-derived once it has been.
+# MEASURED on the deployment target itself: Raspberry Pi 5 Model B, one pinned core,
+# six runs across two sessions, spreads under 0.1%, no thermal throttling
+# (tools/benchmarks/empowering/results/pi5-20260812-*). The reference basis is ONE CORE of the
+# target; a desktop-class core runs ~6x faster and is deliberately not the basis.
+seconds_per_candidate        = 94.158e-6  # blend, naive: 4 Poseidon2 permutations
+seconds_per_candidate_opt    = 48.472e-6  # blend, constant prefix precomputed: 2
+seconds_per_candidate_reward = 165.658e-6 # reward keeps its key derivation: 7 perms
+seconds_per_permutation      = 22.813e-6
+pi5_cores                   = 4           # board-level figures divide by this
+
+[model]
+# ASSUMED. Traffic is exogenous here; section 4.4 of the report parameterises the ramp
+# rather than guessing a single value.
+reference_txs_per_block = 600
+adversary_hashrate      = 0.33
+honest_stake_fraction   = 1.0
+horizon_epochs          = 300
+
+[mixes]
+# Illustrative transaction shapes for report section 4.9's mapping from a fee load to the
+# mixes that produce it. Gas is KNOWN from analysis-gas-cost-determination.md's table of
+# Operation gas. Byte counts for shapes the simulator does not already carry are ASSUMED,
+# and the report says so; they are illustrative, not a claim about the wire format.
+inscribe_gas    = 56          # KNOWN  CHANNEL_INSCRIBE_GAS -- the cheapest Operation
+inscribe_bytes  = 130         # ASSUMED  a small signed tx; the claim's signature alone is 128 B
+sdp_declare_gas = 646         # KNOWN  SDP_DECLARE_GAS
+sdp_declare_bytes = 250       # ASSUMED
+
+[economics]
+# ASSUMED, and load-bearing -- these were hardcoded in the modules until 2026-08-13.
+# leader_fee_share sets the subordination cap that bounds beta from above (section 4.4.2,
+# 4.7.6, 4.11); subordination_ratio is how "PoW stays junior to staking" is read. Neither
+# is stated anywhere in the specification tree, so both are modelling choices, and the
+# 11.76 % cap they imply should be revisited if the leader split is ever pinned down.
+leader_fee_share      = 0.4   # ASSUMED  share of undiverted fees reaching block leaders
+subordination_ratio   = 0.333333333333  # ASSUMED  PoW <= this multiple of the leader share
+# tip_fraction sets the builder's self-dealing edge (section 4.2c): the share of a claim's
+# surplus that lands as an execution tip and so returns to a builder including its own claim.
+tip_fraction          = 0.5   # ASSUMED
