@@ -343,19 +343,29 @@ exhausted, the endowment is first-come) and Q9 keeps the index raw (its one-epoc
 the burst response; zero state). Both are pinned by gates so they cannot drift silently.
 The original obligations, kept for the audit trail:
 
-1. **Demand-index oscillation.** `reward_{e+1} = budget / claims_e` with entry/exit elasticity
-   can two-cycle: heavy epoch → small reward → exit → light epoch → big reward → re-entry.
-   The simulator must test for limit cycles across elasticities; the EMA-smoothed index is the
-   recorded fallback (Q3's rejected alternative, same trade).
-2. **Whale drain.** With the difficulty floored, nothing rate-limits a single large actor
-   converting the endowment to its own balance quickly; R6 accepts this literally (the pool
-   pays until exhausted) and the conversion-efficiency band is where it shows. Quantify: end
-   date and per-cohort admission under a whale of 10–100× the honest field.
-3. **Block-space contention.** Floored difficulty + a spike puts claims in competition with
-   ordinary transactions inside `MAX_BLOCK_TXS`; the fee market responds. Quantify the
-   crowding at ×10/×100 spikes.
-4. **Sparse-capacity regime.** `capacity < blocks_per_epoch` post-phase forces target 1 and
-   early saturation; quantify the R7b deviation vs traffic level.
+### 8.1 Demand-index oscillation
+
+`reward_{e+1} = budget / claims_e` with entry/exit elasticity can two-cycle: heavy epoch →
+small reward → exit → light epoch → big reward → re-entry. The simulator must test for limit
+cycles across elasticities; the EMA-smoothed index is the recorded fallback (Q3's rejected
+alternative, same trade).
+
+### 8.2 Whale drain
+
+With the difficulty floored, nothing rate-limits a single large actor converting the endowment
+to its own balance quickly; R6 accepts this literally (the pool pays until exhausted) and the
+conversion-efficiency band is where it shows. Quantify: end date and per-cohort admission
+under a whale of 10–100× the honest field.
+
+### 8.3 Block-space contention
+
+Floored difficulty + a spike puts claims in competition with ordinary transactions inside
+`MAX_BLOCK_TXS`; the fee market responds. Quantify the crowding at ×10/×100 spikes.
+
+### 8.4 Sparse-capacity regime
+
+`capacity < blocks_per_epoch` post-phase forces target 1 and early saturation; quantify the
+R7b deviation vs traffic level.
 
 ### 8.5 The asterisked alternative: **de novo\***
 
