@@ -91,6 +91,8 @@ No Blend network, no propagation delay, no forks, no churn, no adversary. Every 
 
 Groups 4 and 5 are each endowed with 5% of launch supply, drawn once from a Pareto distribution and reused between them. Groups 1 to 3 start with nothing and get a Pareto hashrate distribution floored at a measured Raspberry Pi 5, likewise drawn once and shared. Reusing the draws is what makes this a comparison of strategies rather than of luck: group 1's fastest miner is the same machine as group 3's.
 
+**Which retirement flavour this is.** Groups 1 to 3 mine for the whole run, including group 3 after it has bonded — the *persistent* flavour. That is not an oversight but the incentive-compatible reading, and §6 measures the alternative. The choice matters far less here than it does there, and §3.1 says by how much.
+
 A word on why the comparison is not straightforward. Groups 1 to 3 arrive with hardware and no tokens; groups 4 and 5 arrive with five million LGO apiece. Simply totalling what everyone earns would answer "who was given more at genesis". So each table below carries the raw figure and the ratio against a plain stakeholder, which is the closest thing to a neutral baseline: capital doing nothing but the lottery.
 
 ---
@@ -112,6 +114,22 @@ A word on why the comparison is not straightforward. Groups 1 to 3 arrive with h
 **Staking on top of mining is worth five percent.** A miner who stakes everything it mines earns 52,478 against a pure miner's 50,151. What a miner accumulates in two and a half years is simply small against 5% of supply, so its slice of the lottery is small too.
 
 **Mining is the weakest of the five.** A miner earns less than a third of what a stakeholder earns, and it is the only strategy that pays for its income in electricity.
+
+### 3.1 What retiring would cost, and why nobody will
+
+Every table above is the persistent flavour. Retiring changes one number in it, because proof of work is a rounding error in the income of a node that has bonded:
+
+| strategy | median total | of which proof of work | share |
+| --- | --- | --- | --- |
+| miner | 50,151 | 50,151 | 100% |
+| miner and staker | 52,478 | 49,853 | 95% |
+| **miner, staker and service** | **807,612** | **49,938** | **6.2%** |
+| stakeholder | 163,851 | — | — |
+| stakeholder and service | 930,422 | — | — |
+
+A group-3 node that stopped mining on the day it bonded would give up **6.2% of its income**, moving it from 4.93× a plain stakeholder to about 4.62×. The ordering does not change and no conclusion in this section moves.
+
+**But §6 measures the same behaviour as a 4.5-fold difference in how many nodes ever get in at all** — 5,682 against 25,934. Both numbers are right, and together they are the finding: **retiring costs the individual 6.2% and buys the network four and a half times more onboarding.** That is a collective-action problem in its exact classical form, and it explains why the optimistic figure should not be planned around. Nothing in the mechanism converts the collective gain into a private one, so the rational choice is to keep mining, and the persistent flavour is the one to expect.
 
 ---
 
@@ -181,7 +199,9 @@ That coincidence is the finding rather than a failure to tell the two quantities
 | keep mining | 5,682 | **11.4%** | 87% |
 | retire | 25,934 | **51.9%** | 40% |
 
-Out of the *same* 43.3M LGO. A bonded miner that keeps mining takes claims from miners still trying to cross, and it has no reason to — its service income is orders of magnitude larger than anything more mining will add. **Retiring bonded miners is worth four and a half times as many elevations, for free**, and nothing in the protocol makes them stop.
+Out of the *same* 43.3M LGO. A bonded miner that keeps mining takes claims from miners still trying to cross. **Retiring bonded miners is worth four and a half times as many elevations**, and nothing in the protocol makes them stop.
+
+The earlier reading of this — that a bonded miner "has no reason to" keep mining, because its service income dwarfs what more mining adds — does not survive §3.1. Having a larger income elsewhere is not a reason to decline a smaller one, the two are not in conflict (a bonded node can serve *and* mine on the same hardware), and the marginal claim comfortably covers its own electricity. The honest statement is that retiring costs the individual 6.2% and buys the network 4.5×: **not free, and not individually rational.** The 51.9% figure is therefore the optimistic bound, and 11.4% is the one to plan against unless the mechanism gains something that pays for exit.
 
 Without retirement the arrival rate barely matters over a wide band: elevation holds between **4,213 and 5,682** from twenty-five joiners an epoch up to two hundred and fifty — ten thousand miners against a hundred thousand — because the pool's output spreads over everyone still mining and more arrivals only mean thinner slices. Outside the band it falls away in both directions, to 1,473 at five an epoch, where there are simply not enough joiners to spend the endowment on, and to 4,646 at five hundred, where the slices are too thin ever to reach the bond. **So there is a best arrival rate rather than a plateau**, and §7 measures its shape.
 

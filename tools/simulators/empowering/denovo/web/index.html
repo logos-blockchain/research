@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EmPoWering de novo — bootstrap calculator</title>
+<link rel="stylesheet" href="style.css">
+<header>
+  <h1>EmPoWering de novo — bootstrap calculator</h1>
+  <p class="sub">Three parameters — the pool, the nodes, the years — and everything the
+    redesigned mechanism derives from them, live in the browser. Backs
+    <a href="https://github.com/logos-blockchain/research/blob/EmPoWering-denovo/reports/empowering/denovo/denovo-report.md">the
+    de-novo report</a> and <code>tools/simulators/empowering/denovo</code>.</p>
+  <div id="selfcheck" class="badge">checking against the Python model…</div>
+</header>
+
+<main>
+  <aside>
+    <div class="actions">
+      <button id="reset">reset to reference</button>
+      <button id="tight">a tight triple</button>
+      <button id="sparse">sparse traffic</button>
+    </div>
+    <div id="controls"></div>
+    <p class="note">The three sliders at the top are the whole parameterisation (R4);
+      transactions and the spike are scenario inputs, not design parameters. The page computes
+      the same closed forms as the Python; the badge reports whether the two agree on a grid
+      of triples, so a divergence shows up here rather than in a reader's conclusions.</p>
+  </aside>
+
+  <section>
+    <h2>The triple's verdict</h2>
+    <table id="readoutTable"><thead><tr><th>quantity</th><th class="v">value</th><th></th>
+      <th class="n">against</th></tr></thead><tbody id="readouts"></tbody></table>
+
+    <h2>The bootstrap, on this triple</h2>
+    <div class="grid">
+      <canvas id="endowment"></canvas>
+      <canvas id="reward"></canvas>
+    </div>
+
+    <p class="note">Left: the endowment's schedule — linear to the expected end, the
+      nominal-rate tail past it, and the dent a spike of the chosen size puts in it (the
+      borrow-forward pulls later sub-pools forward; the schedule then re-spreads what remains,
+      so the deadline does not move — a spike does not end the phase early). Right: the reward's
+      admissible band — the demand-indexed price lives between one block's budget share and the
+      anchor; where inside the band it runs depends on participation, which is the simulator's
+      job, not a closed form's.</p>
+
+    <h2>After the endowment</h2>
+    <table id="postTable"><thead><tr><th>quantity</th><th class="v">value</th><th></th>
+      <th class="n">meaning</th></tr></thead><tbody id="postReadouts"></tbody></table>
+
+    <p class="note">The post-phase runs on the previous epoch's diverted fees at the anchor —
+      the cost of a transfer plus an inscription — so its capacity is
+      <code>pow_share × txs_per_epoch / 2</code>: half the diverted transaction count,
+      independent of the fee level. The throttle spreads exactly that many claims across the
+      epoch.</p>
+  </section>
+</main>
+
+<script type="module" src="app.js"></script>

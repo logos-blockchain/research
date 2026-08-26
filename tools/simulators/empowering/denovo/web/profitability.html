@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EmPoWering — mining profitability</title>
+<link rel="stylesheet" href="style.css">
+<header>
+  <h1>Mining profitability — what a claim earns against what it costs</h1>
+  <p class="sub">One comparison, live: the difficulty and the device decide what a claim costs
+    in electricity; the reward and the token price decide what it earns. Everything but the
+    token price is measured or derived, so the token price is the thing being simulated.
+    <a href="index.html">bootstrap calculator</a> · <a href="compare.html">design comparison</a></p>
+  <div id="badge" class="badge">loading…</div>
+</header>
+
+<main>
+  <aside>
+    <div id="controls"></div>
+    <p class="note">Electricity is yours to set. The device profiles come from the standalone
+      cost estimator — only the Raspberry&nbsp;Pi&nbsp;5 and one Apple class have <em>measured</em>
+      Poseidon2 rates. A GPU rig is <em>estimated</em> there and is not offered here: it is about
+      twelve times a Pi&nbsp;5 board in raw rate but roughly <strong>four times worse per
+      joule</strong>, because Poseidon2 over BN254 maps badly onto GPU ALUs — so it changes an
+      attacker's hashrate <em>share</em>, not the cost per candidate this page prices. The
+      difficulty is shown as a multiple of the bootstrap floor.</p>
+  </aside>
+
+  <section>
+    <h2>At this moment</h2>
+    <table><thead><tr><th>quantity</th><th class="v">value</th><th></th><th class="n">meaning</th></tr></thead>
+      <tbody id="readouts"></tbody></table>
+
+    <h2>Profit per claim, across the token price</h2>
+    <div class="grid one"><canvas id="curve"></canvas></div>
+    <p class="note">The crossing is the break-even token price: below it a claim costs more
+      electricity than it earns, and a rational miner stops. It moves in proportion to both the
+      electricity price and the difficulty, so a chain whose difficulty has risen tenfold needs
+      a tenfold higher token price to keep the same miners.</p>
+
+    <h2>Under four simulated price histories</h2>
+    <div class="grid"><canvas id="prices"></canvas><canvas id="margin"></canvas></div>
+    <p class="note">Left: four stylised token-price paths, in multiples of a long-run reference
+      price you set below. They are <strong>not backtests</strong> — they are hand-built from
+      the qualitative behaviour each asset is known for, and exist to show which conclusions
+      survive which kind of history. Right: the profit per claim each path implies, with the
+      break-even line. Time below it is time when mining does not pay.</p>
+  </section>
+</main>
+
+<script type="module" src="profitability.js"></script>

@@ -1,0 +1,56 @@
+{
+  "rows": [
+    {
+      "design": "de novo",
+      "regime": "retiring",
+      "cap": 0.0,
+      "bonds": 24707,
+      "transition": 196,
+      "spike_bonded": 1.0,
+      "spike_median_epochs": 43.0,
+      "whale_capture": 0.5541692365622796
+    },
+    {
+      "design": "de novo",
+      "regime": "persistent",
+      "cap": 0.0,
+      "bonds": 7963,
+      "transition": 196,
+      "spike_bonded": 0.2403076923076923,
+      "spike_median_epochs": 69.0,
+      "whale_capture": 0.5541692365622796
+    },
+    {
+      "design": "de novo*",
+      "regime": "retiring",
+      "cap": 0.1,
+      "bonds": 24782,
+      "transition": 197,
+      "spike_bonded": 1.0,
+      "spike_median_epochs": 59.0,
+      "whale_capture": 0.09064967754358344
+    },
+    {
+      "design": "de novo*",
+      "regime": "persistent",
+      "cap": 0.1,
+      "bonds": 7963,
+      "transition": 196,
+      "spike_bonded": 0.2403076923076923,
+      "spike_median_epochs": 69.0,
+      "whale_capture": 0.09064967754358344
+    }
+  ],
+  "current_design": {
+    "note": "measured here from empowering_sim.elevation, not transcribed",
+    "elevated_retiring": 25934,
+    "elevated_persistent": 5682,
+    "elevated_retiring_at_denovo_rate": 27125,
+    "elevated_persistent_at_denovo_rate": 5465,
+    "denovo_rate_note": "130 miners/epoch over 360 epochs -- the configuration every de-novo figure uses",
+    "door_closes_at_100_per_epoch": 40,
+    "door_closes_at_100_per_epoch_retiring": 251,
+    "point_of_no_return_at_100_per_epoch": 212,
+    "point_of_no_return_note": "carried from the strategy study; not reproducible from committed code and not gated"
+  }
+}
