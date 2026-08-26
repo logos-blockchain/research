@@ -1,0 +1,31 @@
+Poseidon2 / BN254, t=3 -- single core, release build
+
+  one permutation                                   22813 ns          43834 /s
+  zkhash of 2 inputs (Digest::digest)               71313 ns          14023 /s
+  candidate, naive (2 x digest = 6 perms)          142687 ns           7008 /s
+  candidate, precomputed prefixes (4 perms)         96854 ns          10325 /s
+
+  permutations per candidate: naive 6.3, optimised 4.2
+  candidates/second, one core: naive         7008   optimised        10325
+  blend candidate v0.5.6, naive (4 perms)           94157 ns          10621 /s
+  blend candidate v0.5.6, prefix precomputed (2)      48471 ns          20631 /s
+  reward candidate, naive (kdf + ticket = 7 perms)     165657 ns           6037 /s
+  reward candidate, prefixes precomputed (4 perms)      96854 ns          10325 /s
+
+  v0.5.6 blend: naive 4.1 perms, opt 2.1;  reward: naive 7.3, opt 4.2
+
+MACHINE one_permutation_ns=22813
+MACHINE blend_naive_ns=94157
+MACHINE blend_opt_ns=48471
+MACHINE reward_naive_ns=165657
+MACHINE reward_opt_ns=96854
+
+  Blend threshold cost (naive basis), seconds per solution on ONE core:
+
+       k         candidates        naive    optimised
+  ------------------------------------------------------
+    2^21            2097152      3.3 min      101.7 s
+    2^22            4194304      6.6 min      3.4 min
+    2^23            8388608     13.2 min      6.8 min
+    2^24           16777216     26.3 min     13.6 min
+    2^25           33554432     52.7 min     27.1 min

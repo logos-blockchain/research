@@ -148,8 +148,12 @@ def test_uncle_counting_repairs_part_of_the_selfish_deflation():
 def test_p_ref_honest_defaults_to_p_ref_without_a_coalition():
     from tsi_sim.fork import fork_stats
     cfg, tree, A, _ = _tree()
-    *_, p_ref, p_ref_h = fork_stats(tree, A, cfg.period_T, cutoff=cfg.epoch_len)
-    assert p_ref == p_ref_h
+    # Unpack by position, not with a splat: fork_stats has grown a field twice now, and a
+    # trailing `*_, a, b` silently re-binds to different quantities each time it does.
+    (_fork_rate, _max_d, _mean_d, p_ref, p_ref_honest,
+     deep_orphan_share) = fork_stats(tree, A, cfg.period_T, cutoff=cfg.epoch_len)
+    assert p_ref == p_ref_honest              # no coalition -> the two coincide
+    assert 0.0 <= deep_orphan_share <= 1.0
 
 
 @pytest.mark.parametrize("strategy", ["selfish", "withhold"])

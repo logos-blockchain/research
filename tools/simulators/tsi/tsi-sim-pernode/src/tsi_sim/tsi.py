@@ -89,34 +89,40 @@ def density_m(tree: BlockTree, canonical_ids: list[int], T: int,
 PRECISION = 1_000_000
 
 
-def _f_eff(f: float, fixed_point: bool) -> float:
+def _f_eff(f: float, fixed_point: bool, precision: int | None = None) -> float:
     """Target rate used in the recursion: exact ``f``, or the spec's integer quantisation.
 
-    Guards the quantised path against ``f`` so small that ``int(f*PRECISION) == 0`` (e.g. f < .001),
+    ``precision`` defaults to :data:`PRECISION`. It is a *parameter* because the deployed spec and
+    this report's recommendation disagree on it — ``cryptarchia-total-stake-inference.md`` carries
+    ``const PRECISION: u64 = 1e3`` while the report recommends 1e6 — so a spec-faithful arm has to
+    be able to run the value the chain would actually use.
+
+    Guards the quantised path against ``f`` so small that ``int(f*precision) == 0`` (e.g. f < .001),
     which would make ``f_eff = 0`` and divide-by-zero in the recursion.
     """
     if not fixed_point:
         return f
-    q = int(f * PRECISION)
+    p = PRECISION if precision is None else int(precision)
+    q = int(f * p)
     if q == 0:
         raise ValueError(
             f"fixed_point=True with f={f} quantises the target rate to 0 "
-            f"(int(f*{PRECISION})==0); use f >= 1/{PRECISION} or fixed_point=False")
-    return q / PRECISION
+            f"(int(f*{p})==0); use f >= 1/{p} or fixed_point=False")
+    return q / p
 
 
 def update_D(
-    d_prev: float, m: int, T: int, f: float, beta: float, fixed_point: bool = False
+    d_prev: float, m: int, T: int, f: float, beta: float, fixed_point: bool = False,
+    precision: int | None = None,
 ) -> float:
     """Spec TSI recursion: ``max(1, D_prev * (1 - beta*(f_eff - m/T)/f_eff))``.
 
     With ``fixed_point=True`` the target rate ``f`` is quantised as the on-chain algorithm does
-    (``f_p = int(f*PRECISION)/PRECISION``). At the raised ``PRECISION = 10**6`` this is
-    ``f_p = 0.033333`` for f=1/30, so ``f/f_p = 1.00001`` and the residual over-estimate is
-    below 10^-5 (negligible) — the report's f-precision recommendation, applied. (At the
-    original spec ``PRECISION = 1000`` the offset was ~1%.)
+    (``f_p = int(f*precision)/precision``). At the deployed spec's ``precision = 1e3`` this is
+    ``f_p = 0.033`` for f=1/30, so ``f/f_p ~ 1.010`` — the ~1 % over-estimate of Appendix A. At the
+    report's recommended 1e6 it is ``f_p = 0.033333``, ``f/f_p = 1.00001``, residual below 1e-5.
     """
-    f_eff = _f_eff(f, fixed_point)
+    f_eff = _f_eff(f, fixed_point, precision)
     measured_density = m / T
     d_new = d_prev * (1.0 - beta * (f_eff - measured_density) / f_eff)
     return max(d_new, 1.0)
@@ -124,13 +130,14 @@ def update_D(
 
 def update_D_vec(
     d_prev: np.ndarray, m: np.ndarray, T: int, f: float, beta: float, fixed_point: bool = False,
+    precision: int | None = None,
 ) -> np.ndarray:
     """Per-node TSI recursion: :func:`update_D` applied elementwise over ``(N,)`` arrays.
 
     Each node updates its OWN estimate ``d_prev[i]`` from its OWN measured slot count
     ``m[i]``. Identical formula to :func:`update_D`, clamped at 1.
     """
-    f_eff = _f_eff(f, fixed_point)
+    f_eff = _f_eff(f, fixed_point, precision)
     measured_density = np.asarray(m, dtype=float) / T
     d_new = np.asarray(d_prev, dtype=float) * (1.0 - beta * (f_eff - measured_density) / f_eff)
     return np.maximum(d_new, 1.0)

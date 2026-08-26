@@ -364,12 +364,24 @@ def deflation_frontier(alpha: float, gamma: float, lam: float, p_ref: float = 1.
     canonical = rates["adv_rate"] + rates["hon_rate"]
     blocks, runs = rates["orphan_hon_blocks"], rates["orphan_hon_runs"]
     revenue = (rates["adv_rate"] / canonical) if canonical > 0 else 0.0
+    dhat = canonical + float(p_ref) * runs
+
+    # Absolute pay, not just share. Revenue *share* understates what an attack costs the attacker,
+    # because the share's denominator is the canonical rate while the pay rate is set by the
+    # ESTIMATOR: TSI drives counted density (canonical + recovered uncles) to `f` per slot, so a
+    # run yields `f / dhat` block-finding events per slot and a deflating attack makes the lottery
+    # easier. Pay per slot is therefore `adv_rate · f / dhat` against an honest miner's `alpha · f`,
+    # so the correction on the share ratio is `density / dhat` — below 1 whenever uncles are
+    # recovered. (Events vs occupied slots differ by the multi-winner factor c(f) ~ 1.017 at
+    # f = 1/30, §2.1, which is neglected here and is small against the effect.)
+    pay_vs_honest = (rates["adv_rate"] / (alpha * dhat)) if alpha and dhat > 0 else 0.0
     return dict(
         alpha=alpha, gamma=gamma, lam=lam,
         revenue=revenue,
         reward_per_stake=(revenue / alpha) if alpha else 0.0,
+        pay_vs_honest=pay_vs_honest,
         density_fraction=canonical,
-        dhat_countable=canonical + float(p_ref) * runs,
+        dhat_countable=dhat,
         dhat_unrestricted=canonical + float(p_ref) * blocks,
         eta=(runs / blocks) if blocks > 0 else 1.0,
         orphan_hon_blocks=blocks,

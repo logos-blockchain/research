@@ -163,11 +163,15 @@ class SimConfig:
     genesis_d_factor: float = 0.5        # genesis D = factor * true total stake
     epochs: int = 40
     # If True, quantise the target rate the way an on-chain integer estimator does:
-    # f_p = int(f*tsi.PRECISION)/tsi.PRECISION. With tsi.PRECISION = 1_000_000 (the report's
-    # recommended 10^-6 f-precision, §8) this gives f_p = 0.033333 and a negligible residual
-    # f/f_p < 1e-5 — not the ~1% overestimate the old 10^-3 truncation produced.
-    # Default False keeps the analysis-faithful exact-f behaviour.
+    # f_p = int(f*f_precision)/f_precision. Default False keeps the analysis-faithful exact-f
+    # behaviour, which is right for DESIGN questions (it isolates the mechanism under test).
     fixed_point: bool = False
+    # The on-chain fixed-point scale, read only when fixed_point is True. The deployed spec and
+    # this report disagree: cryptarchia-total-stake-inference.md carries `const PRECISION = 1e3`
+    # (f_p = 0.033 at f = 1/30, so f/f_p ~ 1.010 — the ~1 % over-estimate of Appendix A), while
+    # the report recommends 1e6 (f_p = 0.033333, residual < 1e-5). Default is the recommendation;
+    # set 1000 for a SPEC-FAITHFUL arm answering "what would the deployed chain read".
+    f_precision: int = 1_000_000
     # If True, count uncle references per BLOCK ID (the pre-fix behaviour, which double-counts
     # same-slot co-winners and inflates the equilibrium by c(f)). The correct default counts
     # per SLOT (one count per slot, matching the pre-uncle design invariant). Kept as a flag
@@ -272,6 +276,8 @@ class SimConfig:
             raise ValueError(f"churn_period must be >= 1, got {self.churn_period}")
         if self.clock_skew_max < 0:
             raise ValueError(f"clock_skew_max must be >= 0, got {self.clock_skew_max}")
+        if self.f_precision < 1 or self.f_precision != int(self.f_precision):
+            raise ValueError(f"f_precision must be a positive integer, got {self.f_precision!r}")
         if self.adversary_selection not in ("random", "whale"):
             raise ValueError(f"adversary_selection must be random|whale, got "
                              f"{self.adversary_selection!r}")
@@ -386,7 +392,11 @@ class SimConfig:
                 else self._base_key() + (self.uncle_model, self.window_absorption))
         # Appended ONLY when non-default, for the same reason the uncle_model marker is: a
         # "random"-coalition run's key must stay byte-identical to every historical run's.
-        return base if self.adversary_selection == "random" else base + (self.adversary_selection,)
+        if self.adversary_selection != "random":
+            base = base + (self.adversary_selection,)
+        # Same append-only-when-non-default discipline: a run at the default precision keeps a
+        # byte-identical key, so no committed result is reseeded by adding the knob.
+        return base if self.f_precision == 1_000_000 else base + (self.f_precision,)
 
     def seed_key(self) -> tuple:
         """The identity the RNG root is actually derived from (see ``rng.seedseq_for``).
