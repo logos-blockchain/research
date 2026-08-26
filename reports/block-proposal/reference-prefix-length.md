@@ -13,7 +13,7 @@
 
 Everything below is measured against the real `logos-blockchain` code at commit
 [`40e76c8`], not a model of it. The benchmark suite is in
-[`tools/benchmarks/block-proposal-compression`](../../tools/benchmarks/block-proposal-compression/),
+[`tools/benchmarks/block-proposal/reference-prefix-length`](../../tools/benchmarks/block-proposal/reference-prefix-length/),
 and every number in this report can be re-derived by running it.
 
 > **Status of the RPi5 columns: complete.** macOS (Apple M3) is the development
@@ -710,9 +710,9 @@ as merely over-cautious.
 ## Appendix — reproducing this
 
 ```bash
-cd tools/benchmarks/block-proposal-compression
-./scripts/run_all.sh mac      # or: rpi5
-python3 scripts/analyse.py    # regenerates every table and the figure above
+cd tools/benchmarks/block-proposal/reference-prefix-length
+make run        # the full suite; MACHINE is detected, override with MACHINE=rpi5
+make analyse    # regenerates every table and the figure above
 ```
 
 Assumptions, all changeable at the top of `scripts/analyse.py`: GPU model and

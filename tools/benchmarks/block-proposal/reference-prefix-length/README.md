@@ -2,12 +2,12 @@
 
 Measurements behind the choice of `REFERENCE_PREFIX_LENGTH` for the compressed
 block proposal ([logos-lips#389]). The report that reads these results is
-[`reports/block-proposal-compression/reference-prefix-length.md`](../../../reports/block-proposal-compression/reference-prefix-length.md),
+[`reports/block-proposal/reference-prefix-length.md`](../../../../reports/block-proposal/reference-prefix-length.md),
 and its **Notation and terms** section defines every symbol used below
 (`L`, `k`, `b`, `n`, `R_gen`).
 
 The crate is named `reference-prefix-bench` because that is what it measures;
-the directory is named for the wider topic, so further block-proposal-compression
+the directory is named for the wider topic, so further block-proposal
 tools can sit beside it later.
 
 Everything here runs the **real `logos-blockchain` code**, pinned by commit in
@@ -44,8 +44,10 @@ sources, so the comparison is like-for-like.
 brew install rustup git          # if not already present
 rustup-init -y                   # then restart the shell
 
-cd tools/benchmarks/block-proposal-compression
-./scripts/run_all.sh mac
+cd tools/benchmarks/block-proposal/reference-prefix-length
+make check     # read-only: what's installed, what's missing
+make test      # the gate — asserts the harness matches the real code path
+make run       # the full suite -> results/mac/
 ```
 
 Results land in `results/mac/`.
@@ -64,9 +66,10 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
 
 git clone https://github.com/logos-blockchain/research.git
-cd research/tools/benchmarks/block-proposal-compression   # or: git pull, if already cloned
+cd research/tools/benchmarks/block-proposal/reference-prefix-length   # or: git pull, if already cloned
 
-./scripts/run_all.sh rpi5
+make check
+make run       # MACHINE is detected as rpi5; results land in results/rpi5/
 ```
 
 Results land in `results/rpi5/`. Commit that directory and the report tables
@@ -85,19 +88,24 @@ vcgencmd measure_temp     # keep an eye on this across the run
 ## Reading the results
 
 ```bash
-python3 scripts/analyse.py            # tables + plot, from whatever is in results/
-python3 scripts/analyse.py --machines mac rpi5
+make analyse                          # tables + plot, from whatever is in results/
+make figures                          # analyse, then copy the plot into the report
 ```
 
-`analyse.py` needs `matplotlib` for the plot and is meant to be run on the
+The analysis needs `matplotlib` for the plot and is meant to run on the
 development machine, not the Pi. Recent Pythons refuse a global `pip install`
-(PEP 668), so use a virtualenv:
+(PEP 668), so `make venv` builds a local one; every later `make analyse` picks
+it up automatically:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install matplotlib
-.venv/bin/python scripts/analyse.py
+make venv
+make analyse
 ```
+
+Without it the tables still print and only the figure is skipped.
+
+`make help` lists every target, and `make where` prints the exact results and
+report directories this tool reads and writes.
 
 It writes the report's cost tables to stdout and the latency plot to
 `results/reconstruction-latency.png`. Without `matplotlib` it still prints every

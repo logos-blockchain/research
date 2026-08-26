@@ -6,8 +6,8 @@ the CPU governor set to `performance` and no thermal throttling before or after
 the run (`get_throttled=0x0`, ~56 °C). Produced by:
 
 ```bash
-cd tools/benchmarks/block-proposal-compression
-./scripts/run_all.sh rpi5
+cd tools/benchmarks/block-proposal/reference-prefix-length
+make run        # MACHINE is detected as rpi5
 ```
 
 with no modification to sources, scripts, profile, or toolchain. The
@@ -17,9 +17,9 @@ all columns identical except the rate column.
 To regenerate the report tables and the latency figure from these files:
 
 ```bash
-python3 scripts/analyse.py --machines mac rpi5
+make analyse
 ```
 
 The corresponding cells in
-[`reports/block-proposal-compression/reference-prefix-length.md`](../../../../reports/block-proposal-compression/reference-prefix-length.md)
+[`reports/block-proposal/reference-prefix-length.md`](../../../../../../reports/block-proposal/reference-prefix-length.md)
 are filled from this run.
