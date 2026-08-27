@@ -1,9 +1,12 @@
 PY := PYTHONPATH="src:../strategies/src" python3
 
-.PHONY: validate study plots web serve
+.PHONY: validate report-numbers study plots web serve
 
 validate: ## the gate suite: closed forms, invariants, and the pinned properties
 	$(PY) -m empowering_denovo_sim.validate
+
+report-numbers: ## every number the report quotes, against the runs that produce it
+	$(PY) -m empowering_denovo_sim.report_numbers
 
 study: ## the scenario matrix, printed
 	$(PY) -m empowering_denovo_sim.study
