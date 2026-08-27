@@ -1,0 +1,4 @@
+# Pinned so every machine builds the same measurement. Matches the toolchain
+# logos-blockchain pins, so a node developer needs no second toolchain.
+[toolchain]
+channel = "1.97.1"
