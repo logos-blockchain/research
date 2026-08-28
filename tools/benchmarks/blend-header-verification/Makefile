@@ -73,7 +73,11 @@ check: ## verify the toolchain is present (read-only; installs nothing)
 	fi; \
 	printf '  %-8s %s\n' cores "$$($(PY) -c 'import os;print(len(os.sched_getaffinity(0)))' 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo '?')"; \
 	gov=$$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo n/a); \
-	printf '  %-8s %s%s\n' governor "$$gov" "$$([ "$$gov" = powersave ] && echo '  <-- results will be conservative')"; \
+	case "$$gov" in \
+	  performance|n/a) note="" ;; \
+	  *) note="  <-- not 'performance'; results will be conservative" ;; \
+	esac; \
+	printf '  %-8s %s%s\n' governor "$$gov" "$$note"; \
 	if [ $$ok -ne 0 ]; then \
 	  echo ""; \
 	  echo "missing tools above. On Raspberry Pi OS:"; \
