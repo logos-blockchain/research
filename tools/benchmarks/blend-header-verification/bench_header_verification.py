@@ -493,8 +493,17 @@ def derive_spec_bounds(per_second: float, args: argparse.Namespace) -> dict:
     }
 
 
-def report(runs: list[Run], info: dict, args: argparse.Namespace) -> dict:
+def report(runs: list[Run], info: dict, args: argparse.Namespace,
+           incomplete: str | None = None) -> dict:
     print()
+    if incomplete:
+        # stdout is what gets pasted into an issue or a chat. A partial run must
+        # not look like a finished one there, not only in results.json.
+        print("!" * 78)
+        print("  INCOMPLETE RUN — these numbers are from the repeats that finished")
+        print(f"  before: {incomplete.splitlines()[0]}")
+        print("  Do not quote them as a measurement.")
+        print("!" * 78)
     print("=" * 78)
     print(f"  {info['model']}")
     print(f"  {info['machine']}  kernel {info['kernel']}  cores {info['cores_online']}")
@@ -585,6 +594,8 @@ def report(runs: list[Run], info: dict, args: argparse.Namespace) -> dict:
         print("\n  kappa_max must sit below the ceiling above and above the ~3.87 floor")
         print("  set by duplication and bootstrapping. If the ceiling is under the")
         print("  floor, this hardware cannot verify every message it may accept.")
+        if incomplete:
+            print("\n  COMPUTED FROM AN INCOMPLETE RUN — see the warning above.")
 
     return {"machine": info, "summaries": summaries, "bounds": bounds}
 
@@ -737,7 +748,7 @@ def main() -> None:
         print(f"reporting the {len(runs)} run(s) that completed before the failure; "
               f"they are marked incomplete in results.json", file=sys.stderr)
 
-    summary = report(runs, info, args)
+    summary = report(runs, info, args, incomplete=failure)
     summary["source"] = source_info(args.repo)
     if failure:
         summary["incomplete"] = failure
