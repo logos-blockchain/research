@@ -87,6 +87,7 @@ PRIMARY_BENCH = "bench_verify_public_header_complete"
 UNIT_NS = {"ns": 1.0, "µs": 1e3, "μs": 1e3, "us": 1e3, "ms": 1e6, "s": 1e9}
 DURATION_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(ns|µs|μs|us|ms|s)(?![a-z/])")
 BENCH_ROW_RE = re.compile(r"^[│|\s]*[├╰]─\s+(\S+)")
+COLUMN_SEP = "│"
 THREAD_ROW_RE = re.compile(r"^t=(\d+)$")
 COLUMN_WORDS = ("fastest", "slowest", "median", "mean")
 
@@ -217,26 +218,52 @@ class BenchStats:
         return 1e9 / self.median_ns
 
 
+class DivanFormatError(RuntimeError):
+    """Divan printed something this script cannot read without guessing.
+
+    Raised rather than exiting, so a run that fails on its last repeat still
+    writes the repeats that succeeded — on slow hardware those cost far more
+    than the parse.
+    """
+
+
+def _columns_from_header(line: str) -> list[str]:
+    """Ordered column names, read from divan's header row.
+
+    The first field holds the target name followed by the first column; every
+    later field is one column name. Reading the real order — rather than
+    assuming it — is what lets an added or reordered column be ignored instead
+    of silently shifting values into the wrong fields.
+    """
+    fields = line.split(COLUMN_SEP)
+    if len(fields) < 2 or not fields[0].split():
+        return []
+    return [fields[0].split()[-1]] + [f.strip() for f in fields[1:]]
+
+
 def parse_divan(output: str) -> dict[str, BenchStats]:
     """Extract per-benchmark durations from divan's table.
 
-    Column order is read from the header row rather than assumed, and durations
-    are matched by pattern so the tree-drawing characters and the optional
-    counter (`item/s`) continuation rows do not need to be separated by hand.
+    Values are located by splitting each row on the same separator as the
+    header and pairing the fields positionally, so each duration is bound to
+    the column it actually sits under. Columns this script does not know about
+    (`samples`, `iters`, or anything a later divan adds) simply carry no
+    duration and are skipped.
 
     When more than one `--threads` value is given divan nests a `t=N` row under
-    each benchmark; those rows are attributed to the benchmark above them. This
-    script passes a single thread count per invocation, so that nesting normally
-    does not appear, but it is handled in case the benchmark is run by hand.
+    each benchmark; this script measures one thread count per invocation, so a
+    benchmark appearing twice is an error rather than a silent last-one-wins.
     """
     columns: list[str] = []
     for line in output.splitlines():
         if all(word in line for word in COLUMN_WORDS):
-            positions = sorted((line.index(w), w) for w in COLUMN_WORDS if w in line)
-            columns = [w for _, w in positions]
+            columns = _columns_from_header(line)
             break
     if not columns:
-        columns = list(COLUMN_WORDS)
+        raise DivanFormatError(
+            "divan printed no recognisable header row; expected one naming "
+            f"{', '.join(COLUMN_WORDS)}"
+        )
 
     results: dict[str, BenchStats] = {}
     current_bench: str | None = None
@@ -245,46 +272,47 @@ def parse_divan(output: str) -> dict[str, BenchStats]:
         if not match:
             continue
         name = match.group(1)
-        # Match durations only past the name: a benchmark called something like
-        # `bench_5s_timeout` would otherwise contribute a phantom value and
-        # shift every column silently.
-        durations = [
-            float(value) * UNIT_NS[unit]
-            for value, unit in DURATION_RE.findall(line[match.end():])
-        ]
+
+        fields = line.split(COLUMN_SEP)
+        # Strip the tree prefix and the benchmark name from the first field, so
+        # a name such as `bench_5s_timeout` cannot contribute a phantom value.
+        fields[0] = line[match.end():].split(COLUMN_SEP)[0]
+
         thread_row = THREAD_ROW_RE.match(name)
         if thread_row:
-            # A `t=N` leaf carries the timings for the benchmark named above it.
-            if current_bench is None or not durations:
+            if current_bench is None:
                 continue
             name = current_bench
         else:
             current_bench = name
-            if not durations:
-                # A group header with no timings of its own.
-                continue
 
-        # Columns are positional, so a row that does not carry exactly one
-        # duration per column would map values onto the wrong fields. A
-        # measurement that is quietly wrong is worse than one that is missing.
-        if len(durations) != len(columns):
-            sys.exit(
-                f"cannot parse divan output for {name!r}: expected one duration "
-                f"per column {columns} but found {len(durations)}. The output "
-                f"format has changed; this script must be updated rather than "
-                f"guessing which value is which.\n  row: {line.strip()}"
+        found: dict[str, float] = {}
+        for column, field in zip(columns, fields):
+            hit = DURATION_RE.search(field)
+            if hit:
+                found[column] = float(hit.group(1)) * UNIT_NS[hit.group(2)]
+
+        if not found:
+            # A group header carrying no timings of its own.
+            continue
+        if "median" not in found:
+            raise DivanFormatError(
+                f"no median duration found for {name!r} under columns "
+                f"{columns}; throughput is derived from the median, so this "
+                f"row cannot be used.\n  row: {line.strip()}"
             )
         if name in results:
-            sys.exit(
+            raise DivanFormatError(
                 f"divan reported {name!r} more than once, which happens when "
-                f"several --threads values are given. This script measures one "
-                f"thread count per invocation so it cannot tell the rows apart; "
-                f"run it once per thread count instead."
+                "several --threads values are given. This script measures one "
+                "thread count per invocation and cannot tell the rows apart; "
+                "run it once per thread count instead."
             )
 
         stats = BenchStats(name=name)
-        for column, value in zip(columns, durations):
-            setattr(stats, f"{column}_ns", value)
+        for column, value in found.items():
+            if column in COLUMN_WORDS:
+                setattr(stats, f"{column}_ns", value)
         results[name] = stats
     return results
 
@@ -676,27 +704,46 @@ def main() -> None:
     total = (0 if args.skip_single else args.repeats) + (0 if args.skip_multi else args.repeats)
     phase = 0
 
-    for repeat in range(1, args.repeats + 1):
-        if not args.skip_single:
-            phase += 1
-            where = "" if single_cores is None else f" on core {single_cores[0]}"
-            print(f"[{phase}/{total}] 1 thread{where}, repeat {repeat} ...", flush=True)
-            runs.append(run_bench(exe, single_cores, 1, "single", repeat, args))
+    # A failure part-way through must not discard the repeats already paid for:
+    # on slow hardware each one costs a fixture proof plus the measurement, so
+    # losing four completed repeats to a bad fifth is far worse than reporting
+    # four. The same applies to Ctrl-C during a long run.
+    failure: str | None = None
+    try:
+        for repeat in range(1, args.repeats + 1):
+            if not args.skip_single:
+                phase += 1
+                where = "" if single_cores is None else f" on core {single_cores[0]}"
+                print(f"[{phase}/{total}] 1 thread{where}, repeat {repeat} ...", flush=True)
+                runs.append(run_bench(exe, single_cores, 1, "single", repeat, args))
 
-        if not args.skip_multi:
-            phase += 1
-            where = "" if multi_cores_arg is None else f" across cores {multi_cores_arg}"
-            print(f"[{phase}/{total}] {threads} threads{where}, repeat {repeat} ...",
-                  flush=True)
-            runs.append(run_bench(exe, multi_cores_arg, threads, "multi", repeat, args))
+            if not args.skip_multi:
+                phase += 1
+                where = "" if multi_cores_arg is None else f" across cores {multi_cores_arg}"
+                print(f"[{phase}/{total}] {threads} threads{where}, repeat {repeat} ...",
+                      flush=True)
+                runs.append(run_bench(exe, multi_cores_arg, threads, "multi", repeat, args))
+    except DivanFormatError as exc:
+        failure = str(exc)
+    except KeyboardInterrupt:
+        failure = "interrupted before all repeats completed"
 
     if not any(r.stats for r in runs):
-        sys.exit("no benchmark rows were parsed from divan's output; "
-                 "re-run with --verbose to see what it printed")
+        sys.exit(failure or "no benchmark rows were parsed from divan's output; "
+                            "re-run with --verbose to see what it printed")
+
+    if failure:
+        print(f"\nERROR: {failure}", file=sys.stderr)
+        print(f"reporting the {len(runs)} run(s) that completed before the failure; "
+              f"they are marked incomplete in results.json", file=sys.stderr)
 
     summary = report(runs, info, args)
     summary["source"] = source_info(args.repo)
+    if failure:
+        summary["incomplete"] = failure
     write_outputs(args.outdir, runs, summary, args)
+    if failure:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
