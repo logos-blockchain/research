@@ -51,7 +51,8 @@ SPEC_POINT = dict(n_nodes=1000, stake_dist="pareto", topology="blend", degree=6,
                   link_latency_mean=0.5, link_latency_dist="geo", blend_hops=3,
                   blend_delay_max=4.0, uncle_strategy="oldest", window_absorption=10.0,
                   k=2160, epochs=20, genesis_d_factor=0.5, early_stop=True,
-                  windowed_fork_choice=False, prune_arrival=False)
+                  windowed_fork_choice=False, prune_arrival=False,
+                  uncle_window_anchor="uncle")   # SPEC AS DEPLOYED, not the §6.12 proposal
 
 
 def _cell(model: str, jitter: float, u: int, rep: int) -> dict:

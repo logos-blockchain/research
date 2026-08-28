@@ -143,8 +143,12 @@ def test_key_covers_every_field():
     # paired_streams must NOT be in key(): it selects WHICH key the RNG root is derived from
     # (see seed_key), so putting it in key() would perturb every historical seed and break
     # --old bit-reproduction. Its own behaviour is pinned in test_rng.py.
+    # ref_scope is a MEASUREMENT rule that consumes no RNG: both scopes read the same block
+    # tree, so excluding it from key() is what makes the two arms share a tree and their
+    # difference carry no sampling noise. Like selfish_lead_cap it changes results at an
+    # unchanged key, which is why report §9 records what was re-measured for it.
     ignored = {"root_seed", "windowed_fork_choice", "prune_arrival", "early_stop",
-               "uncle_window", "paired_streams"}
+               "uncle_window", "paired_streams", "ref_scope"}
     names = {f.name for f in dataclasses.fields(SimConfig)} - ignored
     a = SimConfig()
     for name in names:
@@ -159,6 +163,11 @@ def test_key_covers_every_field():
     a_paired = dataclasses.replace(a, paired_streams=True)
     assert a.key() == a_paired.key()
     assert a.seed_key() != a_paired.seed_key()
+    # ref_scope leaves both untouched: the tree is generated identically and only the
+    # measurement differs, which is what makes a scope comparison exactly paired.
+    a_chain = dataclasses.replace(a, ref_scope="chain")
+    assert a.key() == a_chain.key()
+    assert a.seed_key() == a_chain.seed_key()
 
 
 def test_old_model_key_is_historical():
@@ -211,6 +220,7 @@ def _perturb(v):
         # adversary_selection. Keyed by VALUE, so this only fires on fields that are currently
         # "random" — uncle_strategy defaults to "oldest" and keeps its own flip above.
         "random": "whale",
+        "uncle": "parent",   # uncle_window_anchor
     }
     if isinstance(v, str) and v in flips:
         return flips[v]

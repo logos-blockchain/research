@@ -25,6 +25,7 @@ blend_hops: [3]                              # the spec's Blend cascade length
 blend_delay_max: [4.0]                       # the spec's 2 s dwell, matched in the mean
 max_uncles: [0, 1, 2, 4]                     # 0 = the C3 column; 4 = the spec's MAX_UNCLES
 uncle_strategy: [oldest]                     # spec Uncle Selection
+uncle_window_anchor: [uncle]                 # SPEC AS DEPLOYED, not the sec 6.12 proposal
 init_dest: [common]                          # per-node initial D_est from agreement
 replicates: 12                               # N = 5000 at true k is heavy; 12 gives ~±0.2 pp
 base:                                        # per-run settings shared by every cell

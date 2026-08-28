@@ -48,7 +48,8 @@ SPEC_POINT = dict(n_nodes=1000, stake_dist="pareto", topology="blend", degree=6,
                   link_latency_mean=0.5, link_latency_dist="geo", blend_hops=3,
                   blend_delay_max=4.0, max_uncles=4, uncle_strategy="oldest",
                   window_absorption=10.0, k=2160, epochs=EPOCHS,
-                  genesis_d_factor=0.5, early_stop=True)
+                  genesis_d_factor=0.5, early_stop=True,
+                  uncle_window_anchor="uncle")   # SPEC AS DEPLOYED, not the §6.12 proposal
 
 ARMS = [("exact f (report convention)", False, 1_000_000),
         ("spec today (PRECISION = 1e3)", True, 1_000),

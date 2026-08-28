@@ -85,10 +85,12 @@ def simulate_epoch(
     adversary_mask: np.ndarray | None = None,
     coalition_mask: np.ndarray | None = None,
     inactive_mask: np.ndarray | None = None,
+    coalition_ids: np.ndarray | None = None,
 ) -> EpochResult:
     """``adversary_mask`` drives BEHAVIOUR this epoch (None == honest); ``coalition_mask`` is the
     fixed coalition identity used only for reward attribution (so a rejoin epoch, mask None, still
     credits the coalition's honestly-produced blocks). Defaults to ``adversary_mask`` when unset.
+    ``coalition_ids`` splits the adversary into rival selfish groups (``engine._coalition_ids``).
     """
     f, T, E = config.f, config.period_T, config.epoch_len
     lottery_ss, aux_ss = epoch_ss.spawn(2)
@@ -102,13 +104,16 @@ def simulate_epoch(
     active_slots, groups = lottery.group_by_slot(winner_slots, winner_nodes)
 
     tree, A = build_tree_pernode(active_slots, groups, path_latency, config, aux_rng,
-                                 adversary_mask=adversary_mask)
+                                 adversary_mask=adversary_mask,
+                                 coalition_ids=coalition_ids)
 
     # measurement: each node's own canonical chain, deduped by tip + numba-accelerated
     ms = measure(tree, A, active_slots, T, cutoff=E,
                  legacy_block_count=config.legacy_block_count,
                  countable=config.uncle_model != "old",
-                 w=config.effective_uncle_window)
+                 w=config.effective_uncle_window,
+                 parent_anchor=config.uncle_window_anchor == "parent",
+                 scope_refs=config.ref_scope == "window")
     n_active_window = int((active_slots < T).sum())
 
     d_next = tsi.update_D_vec(d_est, ms.m, T, f, config.beta, config.fixed_point,

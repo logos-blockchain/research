@@ -38,8 +38,8 @@ from tsi_sim.blocktree import build_tree_pernode
 from tsi_sim.config import SimConfig
 from tsi_sim.engine import _adversary_mask, run_trajectory
 from tsi_sim.memguard import ArrivalMatrixTooLarge
-from tsi_sim.rng import rng_for, seedseq_for
-from tsi_sim.stake import make_stake
+from tsi_sim.rng import seedseq_for
+from tsi_sim.stake import stake_for
 
 HERE = Path(__file__).resolve().parent.parent
 RUNS = HERE / "runs"
@@ -47,7 +47,7 @@ RUNS.mkdir(exist_ok=True)
 
 EPOCHS = 16
 REPS = 8
-N_JOBS = 6
+N_JOBS = 12
 
 BASE = dict(n_nodes=1000, stake_dist="pareto", topology="blend", degree=6,
             link_latency_mean=0.5, link_latency_dist="geo", blend_hops=3,
@@ -104,7 +104,7 @@ def _decompose_cell(alpha: float, u: int, rep: int, delay: float = 8.0, w: int =
     cfg = SimConfig(**{**BASE, "epochs": 4}, blend_delay_max=delay, max_uncles=u,
                     window_absorption=w, adversary_frac=alpha, replicate=rep,
                     prune_arrival=False, windowed_fork_choice=False)
-    stake = make_stake(cfg, rng_for(cfg))
+    stake = stake_for(cfg)
     mask = _adversary_mask(cfg, stake)
     flat = np.zeros(cfg.n_nodes, dtype=bool) if mask is None else mask
     kids = seedseq_for(cfg).spawn(cfg.epochs + 3)

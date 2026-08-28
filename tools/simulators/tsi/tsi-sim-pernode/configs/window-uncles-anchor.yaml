@@ -1,0 +1,32 @@
+# Does the parent anchor change the uncle cap rule U = ceil(rho) + 1? (§3.3, §3.5, §6.12)
+#
+# The cap is sized by the LOAD: one uncle slot drains one concurrent block per block interval,
+# so U must cover rho with a margin. Anchoring the window to the uncle's parent does not change
+# how fast the queue drains, but it does shrink the candidate pool — an orphan whose parent has
+# aged past the window is no longer eligible — so the queue it drains is a slightly different
+# one. This checks whether the smallest U reaching the 0.98 recovery bar moves.
+#
+# W is held at the recommended 10 block-intervals throughout, since the window's own floor is
+# measured separately by absorption-window-anchor.yaml; here the window is meant to be slack so
+# that U is the binding constraint.
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet — the deployment transport
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # fixed hop count; delay is the swept knob
+blend_delay_max: [4.0, 8.0, 16.0, 24.0]      # rho ~ 0.27 / 0.47 / 0.87 / 1.27
+window_absorption: [10]                      # the recommended W; slack by design here
+uncle_window_anchor: [uncle, parent]         # spec rule vs the §6.12 proposal
+max_uncles: [0, 1, 2, 3, 4]                  # 0 = baseline; find the smallest U clearing 0.98
+uncle_strategy: [oldest]                     # spec Uncle Selection
+init_dest: [common]                          # per-node initial D_est from agreement
+replicates: 12
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true
