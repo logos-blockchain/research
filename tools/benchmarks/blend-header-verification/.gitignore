@@ -1,0 +1,10 @@
+# Vendored upstream clone (its own .git, not our history) — `make fetch` recreates it
+/vendor/
+
+# Results are not kept next to the tool; they land in
+# reports/blend/header-verification/. Anything appearing here is a stray run.
+/results/
+
+__pycache__/
+*.pyc
+.DS_Store
