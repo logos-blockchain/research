@@ -245,8 +245,12 @@ def parse_divan(output: str) -> dict[str, BenchStats]:
         if not match:
             continue
         name = match.group(1)
+        # Match durations only past the name: a benchmark called something like
+        # `bench_5s_timeout` would otherwise contribute a phantom value and
+        # shift every column silently.
         durations = [
-            float(value) * UNIT_NS[unit] for value, unit in DURATION_RE.findall(line)
+            float(value) * UNIT_NS[unit]
+            for value, unit in DURATION_RE.findall(line[match.end():])
         ]
         thread_row = THREAD_ROW_RE.match(name)
         if thread_row:
@@ -259,6 +263,25 @@ def parse_divan(output: str) -> dict[str, BenchStats]:
             if not durations:
                 # A group header with no timings of its own.
                 continue
+
+        # Columns are positional, so a row that does not carry exactly one
+        # duration per column would map values onto the wrong fields. A
+        # measurement that is quietly wrong is worse than one that is missing.
+        if len(durations) != len(columns):
+            sys.exit(
+                f"cannot parse divan output for {name!r}: expected one duration "
+                f"per column {columns} but found {len(durations)}. The output "
+                f"format has changed; this script must be updated rather than "
+                f"guessing which value is which.\n  row: {line.strip()}"
+            )
+        if name in results:
+            sys.exit(
+                f"divan reported {name!r} more than once, which happens when "
+                f"several --threads values are given. This script measures one "
+                f"thread count per invocation so it cannot tell the rows apart; "
+                f"run it once per thread count instead."
+            )
+
         stats = BenchStats(name=name)
         for column, value in zip(columns, durations):
             setattr(stats, f"{column}_ns", value)
@@ -307,20 +330,6 @@ def build_bench(repo: Path, verbose: bool) -> Path:
     if verbose:
         print(f"  -> {executable}")
     return Path(executable)
-
-
-def find_prebuilt(repo: Path) -> Path:
-    """Locate the most recent already-built bench binary, for --no-build."""
-    candidates = [
-        path for path in (repo / "target" / "release" / "deps").glob(f"{BENCH_TARGET}-*")
-        if path.is_file() and os.access(path, os.X_OK) and path.suffix not in (".d", ".o")
-    ]
-    if not candidates:
-        sys.exit(f"--no-build was passed but no built {BENCH_TARGET} binary was found "
-                 f"under {repo / 'target/release/deps'}; drop the flag")
-    newest = max(candidates, key=lambda p: p.stat().st_mtime)
-    print(f"reusing {newest}")
-    return newest
 
 
 def bench_command(
@@ -414,7 +423,11 @@ def summarise(runs: list[Run], bench: str) -> dict:
         if not selected:
             continue
         medians = [r.stats[bench].median_ns for r in selected]
-        threads = selected[0].threads
+        thread_counts = {r.threads for r in selected}
+        if len(thread_counts) != 1:
+            sys.exit(f"{mode} runs mixed thread counts {sorted(thread_counts)}; "
+                     f"aggregate throughput would be meaningless")
+        threads = thread_counts.pop()
         latency = statistics.median(medians)
         out[mode] = {
             "repeats": len(medians),
@@ -622,8 +635,6 @@ def main() -> None:
                         help="path to an already-built bench binary; skips cargo "
                              "entirely. The Makefile passes this after `make build`.")
     parser.add_argument("--outdir", type=Path, default=Path("bench-header-verification-out"))
-    parser.add_argument("--no-build", action="store_true",
-                        help="reuse the existing bench binary")
     parser.add_argument("--verbose", "-v", action="store_true", help="echo divan output")
 
     spec = parser.add_argument_group("Blend parameters used to derive the implied bound")
@@ -649,8 +660,15 @@ def main() -> None:
 
     if args.exe:
         exe = resolve_exe(args.exe)
-    elif args.no_build:
-        exe = find_prebuilt(args.repo)
+        # The commit is read from --repo but the binary comes from --exe; if
+        # they are unrelated, the recorded provenance would name a commit that
+        # did not produce these numbers.
+        try:
+            exe.resolve().relative_to(args.repo.resolve())
+        except ValueError:
+            print(f"WARNING: --exe is outside --repo, so the recorded commit may "
+                  f"not be the one that produced this binary\n"
+                  f"  exe:  {exe}\n  repo: {args.repo}", file=sys.stderr)
     else:
         exe = build_bench(args.repo, args.verbose)
 

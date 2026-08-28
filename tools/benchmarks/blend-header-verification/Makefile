@@ -88,12 +88,12 @@ fetch: ## vendor logos-blockchain at REF into vendor/ (clones once, then updates
 	@if [ ! -d "$(VENDOR)/.git" ]; then \
 	  echo "==> cloning $(REPO_URL) @ $(REF)"; \
 	  mkdir -p "$(dir $(VENDOR))"; \
-	  git clone --depth 1 --branch "$(REF)" "$(REPO_URL)" "$(VENDOR)" 2>/dev/null \
-	    || git clone --filter=blob:none "$(REPO_URL)" "$(VENDOR)"; \
+	  git clone --quiet --depth 1 --branch "$(REF)" "$(REPO_URL)" "$(VENDOR)" 2>/dev/null \
+	    || git clone --quiet --filter=blob:none "$(REPO_URL)" "$(VENDOR)"; \
 	else \
 	  echo "==> updating $(VENDOR) to $(REF)"; \
-	  git -C "$(VENDOR)" fetch --depth 1 origin "$(REF)" 2>/dev/null \
-	    || git -C "$(VENDOR)" fetch origin; \
+	  git -C "$(VENDOR)" fetch --quiet --depth 1 origin "$(REF)" 2>/dev/null \
+	    || git -C "$(VENDOR)" fetch --quiet origin; \
 	fi
 	@git -C "$(VENDOR)" checkout --quiet --detach FETCH_HEAD 2>/dev/null \
 	  || git -C "$(VENDOR)" checkout --quiet --detach "$(REF)"
