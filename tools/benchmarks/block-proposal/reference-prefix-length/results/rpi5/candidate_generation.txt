@@ -1,0 +1,67 @@
+   Compiling logos-blockchain-circuits-pol-sys v0.5.6 (https://github.com/logos-blockchain/logos-blockchain-circuits.git?tag=v0.5.6#07c43935)
+   Compiling logos-blockchain-circuits-poq-sys v0.5.6 (https://github.com/logos-blockchain/logos-blockchain-circuits.git?tag=v0.5.6#07c43935)
+   Compiling logos-blockchain-circuits-signature-sys v0.5.6 (https://github.com/logos-blockchain/logos-blockchain-circuits.git?tag=v0.5.6#07c43935)
+   Compiling logos-blockchain-zksign v0.0.0 (https://github.com/logos-blockchain/logos-blockchain.git?rev=40e76c8e32934f14c3370621db9bda9f14d50dc7#40e76c8e)
+   Compiling logos-blockchain-pol v0.0.0 (https://github.com/logos-blockchain/logos-blockchain.git?rev=40e76c8e32934f14c3370621db9bda9f14d50dc7#40e76c8e)
+   Compiling logos-blockchain-key-management-system-keys v0.0.0 (https://github.com/logos-blockchain/logos-blockchain.git?rev=40e76c8e32934f14c3370621db9bda9f14d50dc7#40e76c8e)
+   Compiling logos-blockchain-poq v0.0.0 (https://github.com/logos-blockchain/logos-blockchain.git?rev=40e76c8e32934f14c3370621db9bda9f14d50dc7#40e76c8e)
+   Compiling logos-blockchain-blend-crypto v0.0.0 (https://github.com/logos-blockchain/logos-blockchain.git?rev=40e76c8e32934f14c3370621db9bda9f14d50dc7#40e76c8e)
+   Compiling logos-blockchain-cryptarchia-engine v0.0.0 (https://github.com/logos-blockchain/logos-blockchain.git?rev=40e76c8e32934f14c3370621db9bda9f14d50dc7#40e76c8e)
+   Compiling logos-blockchain-blend-proofs v0.0.0 (https://github.com/logos-blockchain/logos-blockchain.git?rev=40e76c8e32934f14c3370621db9bda9f14d50dc7#40e76c8e)
+   Compiling logos-blockchain-core v0.0.0 (https://github.com/logos-blockchain/logos-blockchain.git?rev=40e76c8e32934f14c3370621db9bda9f14d50dc7#40e76c8e)
+   Compiling reference-prefix-bench v0.1.0 (/home/mem/research/tools/benchmarks/reference-prefix)
+    Finished `bench` profile [optimized] target(s) in 1m 18s
+     Running benches/candidate_generation.rs (target/release/deps/candidate_generation-6f4815aa941f7403)
+Gnuplot not found, using plotters backend
+sample MantleTx: 76 bytes encoded, 92 bytes hashed (b"MANTLE_TXHASH_V1" || encode(tx))
+Benchmarking candidate_generation/node_path
+Benchmarking candidate_generation/node_path: Warming up for 3.0000 s
+Benchmarking candidate_generation/node_path: Collecting 100 samples in estimated 5.0012 s (8.8M iterations)
+Benchmarking candidate_generation/node_path: Analyzing
+candidate_generation/node_path
+                        time:   [565.61 ns 566.41 ns 567.55 ns]
+                        thrpt:  [1.7620 Melem/s 1.7655 Melem/s 1.7680 Melem/s]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high severe
+Benchmarking candidate_generation/attacker_patched
+Benchmarking candidate_generation/attacker_patched: Warming up for 3.0000 s
+Benchmarking candidate_generation/attacker_patched: Collecting 100 samples in estimated 5.0006 s (22M iterations)
+Benchmarking candidate_generation/attacker_patched: Analyzing
+candidate_generation/attacker_patched
+                        time:   [231.78 ns 231.91 ns 232.05 ns]
+                        thrpt:  [4.3095 Melem/s 4.3120 Melem/s 4.3145 Melem/s]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking candidate_generation/blake2b_only
+Benchmarking candidate_generation/blake2b_only: Warming up for 3.0000 s
+Benchmarking candidate_generation/blake2b_only: Collecting 100 samples in estimated 5.0010 s (21M iterations)
+Benchmarking candidate_generation/blake2b_only: Analyzing
+candidate_generation/blake2b_only
+                        time:   [243.62 ns 243.66 ns 243.70 ns]
+                        thrpt:  [4.1034 Melem/s 4.1041 Melem/s 4.1048 Melem/s]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) low severe
+  3 (3.00%) low mild
+  1 (1.00%) high severe
+
+wire-encoded SignedMantleTx: 212 bytes
+Benchmarking mempool_admission/deserialize_and_preverify
+Benchmarking mempool_admission/deserialize_and_preverify: Warming up for 3.0000 s
+Benchmarking mempool_admission/deserialize_and_preverify: Collecting 100 samples in estimated 5.0075 s (1.8M iterations)
+Benchmarking mempool_admission/deserialize_and_preverify: Analyzing
+mempool_admission/deserialize_and_preverify
+                        time:   [2.7438 µs 2.7446 µs 2.7455 µs]
+                        thrpt:  [364.23 Kelem/s 364.36 Kelem/s 364.46 Kelem/s]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking mempool_admission/zk_multisig_verify
+Benchmarking mempool_admission/zk_multisig_verify: Warming up for 3.0000 s
+Benchmarking mempool_admission/zk_multisig_verify: Collecting 100 samples in estimated 5.9621 s (400 iterations)
+Benchmarking mempool_admission/zk_multisig_verify: Analyzing
+mempool_admission/zk_multisig_verify
+                        time:   [14.886 ms 14.887 ms 14.888 ms]
+                        thrpt:  [67.166  elem/s 67.173  elem/s 67.179  elem/s]
+Found 12 outliers among 100 measurements (12.00%)
+  11 (11.00%) high mild
+  1 (1.00%) high severe
+

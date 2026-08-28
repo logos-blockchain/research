@@ -1,0 +1,5 @@
+label: mac
+date: 2026-08-14T17:37:32Z
+uname: Darwin mehmetmac.local 25.3.0 Darwin Kernel Version 25.3.0: Wed Jan 28 20:56:34 PST 2026; root:xnu-12377.91.3~2/RELEASE_ARM64_T8122 arm64
+cpu: Apple M3
+cores: 8

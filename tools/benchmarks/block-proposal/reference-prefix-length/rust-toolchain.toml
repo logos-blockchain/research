@@ -1,0 +1,5 @@
+# Pinned to the same toolchain logos-blockchain pins, so the Mac and the RPi5
+# compile the measured code identically. rustup installs this on first `cargo`
+# invocation in this directory.
+[toolchain]
+channel = "1.97.1"

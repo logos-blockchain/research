@@ -1,0 +1,5 @@
+machine,prefix_bits,prefix_bytes,trials,predicted_n,measured_n_mean,measured_n_stderr,ratio,ratio_stderr,search_hashes_per_second
+mac,16,2,24,320.8,349.2,29.4,1.0883,0.0917,3290893.4
+mac,24,3,24,5133.6,4947.6,512.1,0.9638,0.0998,3923945.2
+mac,32,4,24,82137.2,84013.4,8582.1,1.0228,0.1045,4714564.5
+mac,40,5,24,1314195.1,1104775.0,140594.8,0.8406,0.1070,3795708.6
