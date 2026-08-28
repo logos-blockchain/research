@@ -1,0 +1,528 @@
+<!-- 0 ── the warning ───────────────────────────────── -->
+<section class="slide centre" data-sec="">
+  <div class="warning">
+    <h2>Warning · contains alcohol</h2>
+    <p class="sub">as a metaphor</p>
+    <ol>
+      <li>This talk explains a blockchain consensus protocol as a drinking game.</li>
+      <li>No drinking is required, encouraged, or load-bearing at any point.</li>
+      <li>Beer is the stake, and drinking one is a block. Dice are a lottery, and a hangover is a
+        chain reorganisation.</li>
+      <li>All 2&#8239;112 paired simulation runs were conducted entirely sober.</li>
+    </ol>
+  </div>
+  <p class="lede">Please infer responsibly.</p>
+  <div class="notes">
+    <p>Hold this for a beat, then move on — it sets the register and tells the room the metaphor is
+    deliberate rather than an accident of taste.</p>
+    <p>Clause four is true. The 2&#8239;112 paired runs are the high-power window sweep behind the
+    W = 12 figure later in the deck.</p>
+  </div>
+</section>
+
+<!-- 1 ── title ─────────────────────────────────────── -->
+<section class="slide" data-sec="Total Beer Inference">
+  <div class="col mid">
+    <p class="eyebrow">Logos Research · Cryptarchia</p>
+    <h1 class="big">Total Beer<br>Inference</h1>
+    <p class="lede" style="max-width:38ch">One house rule: one beer every thirty seconds. The hard part
+      is that nobody knows how much beer is left in the room.</p>
+    <p class="term">Filed under <b>Total Stake Inference</b>. Here the stake is beer.</p>
+  </div>
+  <div class="notes">
+    <p>The drinking game is a framing device, not a joke that has to be sustained — drop it the moment it
+    stops earning its keep. Underneath, this is a parameter-selection study from a simulator that models
+    every node separately, at up to 32 000 nodes.</p>
+    <p>The technical names sit on every slide in small grey type, so anyone who knows the material can map
+    each beer back to the spec.</p>
+    <p>About 20 minutes. Keys: arrows or space to advance, N for notes, T for a dark room, P for a PDF.</p>
+  </div>
+</section>
+
+<!-- 2 ── media ─────────────────────────────────────── -->
+<section class="slide" data-sec="" data-media="1" data-top="" data-bottom="">
+  <div class="media"><div class="frame"><div class="cap"><span></span><span></span></div></div></div>
+  <div class="notes"><p>Opener. Drop a file at assets/1.* — any video or image format.</p></div>
+</section>
+
+<!-- 3 ── the rules ─────────────────────────────────── -->
+<section class="slide centre" data-sec="The rules">
+  <p class="eyebrow">The rules</p>
+  <h1>Every second, everyone rolls</h1>
+  <div class="draws"><i></i><b>hit</b></div>
+  <p class="lede">The more beer you bring, the more dice you roll. About one roll in
+    thirty is a hit, and whoever hits drinks a beer. One at a time, and the barman keeps the
+    tally.</p>
+  <p class="term">Your beer is your <b>stake</b>. Drinking one is a <b>block</b>. A roll is a
+    <b>slot</b>. The tally is the <b>chain</b>.</p>
+  <div class="notes">
+    <p>Formally: slots are one second, the target rate is f = 1/30, and a node's per-slot win chance is
+    <code>φ = 1 − (1−f)^(w_i/D̂)</code> where w_i is its stake and D̂ the estimate of total active
+    stake.</p>
+    <p>The one-in-thirty pace is a design choice, and it is the whole talk in miniature: it has to be slow
+    enough that word of a beer gets round the table before the next one is opened.</p>
+  </div>
+</section>
+
+<!-- 4 ── the unknown ───────────────────────────────── -->
+<section class="slide centre" data-sec="The rules">
+  <p class="eyebrow">The problem</p>
+  <h1>Nobody knows how much beer is left</h1>
+  <p class="lede">To hold the pace at one beer every thirty seconds, the odds have to match the beer in the
+    room. But people drift off, and take their beer with them.</p>
+  <p class="term">The beer still in the room is the <b>total active stake</b>. Working it out is the whole
+    problem.</p>
+  <div class="notes">
+    <p>Emphasise <em>still in the room</em>. Not every beer ever bought — the beer that is here and being
+    drunk right now. That is why it cannot be read off the ledger and has to be inferred.</p>
+    <p>Three things have to hold at once: everyone agrees on the number, the number is right, and nobody
+    profits from bending it. Most of this is the second.</p>
+  </div>
+</section>
+
+<!-- 5 ── the estimator ─────────────────────────────── -->
+<section class="slide centre" data-sec="The rules">
+  <p class="eyebrow">The idea</p>
+  <h1 class="small">So the barman watches the tally, and adjusts</h1>
+  <div class="row" style="align-items:center">
+    <p class="lede">Beers going down too fast? More beer in the room than we thought — make the roll
+      harder.
+ Too slow? Make it easier.</p>
+    <div class="col" style="gap:calc(1.6*var(--u))">
+<pre><span class="c"># once a week, at every table</span>
+m      = <span class="c">rolls that produced a beer</span>
+D̂_next = max(1, D̂ · (1 − <span class="k">β</span>·(f − m/T)/f))</pre>
+      <p class="term">The same rule, written out. <code>T</code> is how many rolls it looks back over.</p>
+    </div>
+  </div>
+  <div class="notes">
+    <p>β = 1 in the recommendation, so it fully corrects in one epoch — about a week. Any dent an attacker
+    puts in the number is gone the following week.</p>
+    <p>It counts a stretch of the night buried deep in settled history, closing well before the number is
+    used. That is why every node computes the same value.</p>
+  </div>
+</section>
+
+<!-- 6 ── two at once ───────────────────────────────── -->
+<section class="slide" data-sec="What goes wrong">
+  <p class="eyebrow">What goes wrong</p>
+  <h1 class="small">Only one can drink at a time</h1>
+@@SCENE_DISCARD@@
+  <p class="lede wide">That is the rule — but the room is loud. Two people can drink a beer at the same moment
+    without seeing each other, and only one of the two reaches the tally. The other beer is opened,
+    drunk, and never written down.</p>
+  <p class="term">A beer that misses the tally is an <b>orphan</b>.</p>
+  <div class="notes">
+    <p>Under the deployment's mix-network transport, roughly a third of honest blocks are lost exactly this
+    way. Nobody misbehaved — the room was just louder than the pace of the game.</p>
+    <p>The precise mechanism, if anyone asks: two leaders build on the same parent because neither has seen
+    the other's block yet. Only one branch survives the fork-choice rule, and the losing block's slot
+    disappears from the count entirely.</p>
+  </div>
+</section>
+
+<!-- 7 ── the undercount ────────────────────────────── -->
+<section class="slide" data-sec="What goes wrong">
+  <p class="eyebrow">What goes wrong</p>
+  <h1>So the tally comes up short</h1>
+  <div class="row">
+    <div class="col">
+      <p class="lede">Those unwritten beers never make the count, so the barman thinks less is being
+        drunk than really is — and concludes people have gone home with their beer.</p>
+      <p class="sub">And it feeds itself. A low count makes the roll easier, so more people drink at once,
+        so more beers go unwritten.</p>
+    </div>
+    <div>
+      <span class="num bad">0.64</span>
+      <span class="num-label">counted, against the beer really drunk</span>
+    </div>
+  </div>
+  <div class="notes">
+    <p>The measured range is 0.64 to 0.74, deepening with the size of the room: 0.739 at a thousand
+    players down to 0.635 at ten thousand, because word takes longer to cross.</p>
+    <p>In human terms: the barman believes about a third of the table has left, when everyone is still
+    there — and is pouring at up to twice the intended rate as a result.</p>
+    <p>One clean property: the error only ever goes one way. A stretch of the night cannot contain more
+    drinking rounds than actually happened, so the count can never come out too high.</p>
+  </div>
+</section>
+
+<!-- 8 ── media ─────────────────────────────────────── -->
+<section class="slide" data-sec="" data-media="2" data-top="It counted the beer" data-bottom="It was short by a third">
+  <div class="media"><div class="frame"><div class="cap"><span></span><span></span></div></div></div>
+  <div class="notes"><p>Drop a file at assets/2.*. Captions are the data-top / data-bottom attributes on
+  this slide.</p></div>
+</section>
+
+<!-- 9 ── the fix ───────────────────────────────────── -->
+<section class="slide" data-sec="The fix">
+  <p class="eyebrow">The fix</p>
+  <h1 class="small">Vouch for the beer you saw</h1>
+@@SCENE_RESCUE@@
+  <p class="lede wide">When your turn comes you may also vouch for a beer that missed the tally — you
+    saw it drunk, and here is the proof. It goes on the count after all.</p>
+  <p class="term">Vouching for one is an <b>uncle reference</b>.</p>
+  <div class="notes">
+    <p>Two things have to be decided about that vouch, and they are the two settings this talk is about:
+    how far back you may reach, and how many you may vouch for at once.</p>
+    <p>Structurally important: a vouch is counting-only. It carries no weight in deciding whose tally is
+    the real one, and a turn is never invalid for leaving a vouch undone.</p>
+    <p>One limit if asked: only the first beer of a missed run can be vouched for, because anything behind
+    it cannot be checked from the surviving tally alone. Ordinary noise misses single beers, so ordinary
+    recovery is complete.</p>
+  </div>
+</section>
+
+<!-- 10 ── evidence ─────────────────────────────────── -->
+<section class="slide" data-sec="The fix">
+  <p class="eyebrow">Does it work?</p>
+  <div class="row r">
+    <div class="col">
+      <span class="num">1.000</span>
+      <span class="num-label">counted, against the beer really drunk</span>
+      <p class="sub">One vouch per turn is enough. A second is spare capacity, not accuracy.</p>
+    </div>
+    <figure class="fig">
+      <img src="%%FIG2%%" alt="Accuracy against how many missed beers may be vouched for per turn. With none allowed the count sits between 0.59 and 0.69 depending on how loud the room is; allowing one brings all three curves to 1.00.">
+      <p class="read">Across the bottom: how many missed beers you may vouch for — none, one, two.
+        Up the side: what the tally counts, against the beer really drunk. The three lines are three
+        levels of noise.</p>
+    </figure>
+  </div>
+  <div class="notes">
+    <p>The three lines fan out on the left — the louder the room, the deeper the under-count — and collapse
+    onto each other as soon as one vouch is allowed.</p>
+  </div>
+</section>
+
+<!-- 11 ── what noise costs ─────────────────────────── -->
+<section class="slide" data-sec="The fix">
+  <p class="eyebrow">What the noise costs</p>
+  <div class="row r">
+    <div class="col">
+      <h1 class="small">The louder the room, the worse the count</h1>
+      <p class="lede">And the vouches hold it exact the whole way.</p>
+    </div>
+    <figure class="fig">
+      <img src="%%FIG34%%" alt="Accuracy against how long word takes to cross the table. With vouching switched off, accuracy falls steadily from 0.81 to 0.62. Every curve that allows one, two or four vouches stays flat on 1.000.">
+      <p class="read">Across the bottom: how long word takes to cross the table. Up the side: what the
+        tally counts. The one sloping line is vouching switched <b>off</b> — it slides from 0.81 to 0.62
+        as the room gets louder. Every other line sits flat on <b>1.000</b>.</p>
+    </figure>
+  </div>
+  <div class="notes">
+    <p>The clearest single picture of the whole argument: noise is what breaks the count, and one vouch per
+    turn removes the dependence on noise entirely across the design band.</p>
+    <p>The lines come in pairs because each budget was run under two versions of the counting rule — the
+    one the spec deploys, which can only reach the first beer of a missed run, and an unrestricted ideal.
+    They land on top of each other, which is the finding.</p>
+  </div>
+</section>
+
+<!-- 12 ── the opposite mistake ──────────────────────── -->
+<section class="slide centre" data-sec="The fix">
+  <p class="eyebrow">The opposite mistake</p>
+  <h1>Two beers, one round</h1>
+  <p class="lede">When both beers <em>do</em> reach the tally, that round still counts once — not twice.
+    Otherwise a lively round looks like more beer in the room, and the barman over-pours instead.</p>
+  <div class="pair">
+    <div><span class="n warn">1.017</span><span class="l">counting beers</span></div>
+    <div><span class="n accent">1.000</span><span class="l">counting rounds</span></div>
+  </div>
+  <p class="term">Deduplicate per <b>occupied slot</b>, not per block.</p>
+  <div class="notes">
+    <p>Draw the contrast with the earlier slide explicitly: miss a beer and you under-count; record the
+    same round twice and you over-count. The rule threads between them by counting rounds, not beers.</p>
+    <p>The multi-winner factor is c(f) ≈ 1.017 — a real bias, not a simulation artefact, and one of the two
+    biggest error terms in the deployed estimator. The old "the count can sit above the truth" result
+    people may remember was this bug.</p>
+  </div>
+</section>
+
+<!-- 13 ── media ────────────────────────────────────── -->
+<section class="slide" data-sec="" data-media="3" data-top="Two beers" data-bottom="One round">
+  <div class="media"><div class="frame"><div class="cap"><span></span><span></span></div></div></div>
+  <div class="notes"><p>Drop a file at assets/3.*.</p></div>
+</section>
+
+<!-- 14 ── what changes ─────────────────────────────── -->
+<section class="slide" data-sec="The change">
+  <p class="eyebrow">What actually changes</p>
+  <h1 class="small">You bring their bottle, not your word</h1>
+  <div class="scene">
+    <svg viewBox="0 0 880 236" aria-label="The block header stays 297 bytes and unchanged in size; its body_root field commits to both the vouched beers and the transactions">
+      <rect x="30" y="18" width="820" height="74" fill="none" stroke="var(--ink)" stroke-width="2"/>
+      <text x="48" y="44" font-family="var(--mono)" font-size="14" fill="var(--muted)">THE SLIP · 297 bytes · same size as before</text>
+      <text x="48" y="72" font-family="var(--mono)" font-size="16" fill="var(--ink)">version   parent   slot   <tspan fill="var(--accent)" font-weight="bold">body_root</tspan>   proof of leadership</text>
+      <g stroke="var(--accent)" stroke-width="2" fill="none">
+        <path d="M440 92 V124 M196 124 H684 M196 124 V152 M684 124 V152"/>
+      </g>
+      <text x="452" y="116" font-family="var(--mono)" font-size="14" fill="var(--accent)">vouches for</text>
+      <rect x="56" y="152" width="280" height="66" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="196" y="182" text-anchor="middle" font-family="var(--mono)" font-size="15" fill="var(--accent)">bottles you carry</text>
+      <text x="196" y="204" text-anchor="middle" font-family="var(--mono)" font-size="13" fill="var(--accent)">up to 4 × 361 bytes</text>
+      <rect x="544" y="152" width="280" height="66" fill="none" stroke="var(--ink)" stroke-width="2"/>
+      <text x="684" y="192" text-anchor="middle" font-family="var(--mono)" font-size="15" fill="var(--ink)">transactions</text>
+    </svg>
+  </div>
+  <p class="lede wide">A vouch is not your say-so that someone drank. It is their bottle, with their name
+    on it, set down on the bar — so anyone can check without going to find them.</p>
+  <p class="term">The header gained no field. <b>body_root</b> replaced <b>block_root</b> and now covers
+    both lists.</p>
+  <div class="notes">
+    <p>This is the block-construction change the uncle work actually requires, spec revision 1.2.0.</p>
+    <p>The header is still 297 bytes and holds no uncle data of its own. The old <code>block_root</code>,
+    which committed only to the transactions, became <code>body_root</code>, which commits to the
+    serialized <code>uncle_headers</code> list as well. The block ID is the hash of the header, so it
+    transitively commits to the carried entries and their signatures.</p>
+    <p>Each entry is 361 bytes — a 297-byte header plus its 64-byte signature — so at most 1 445 bytes are
+    added to a 2 MiB body.</p>
+    <p>Why the whole bottle rather than a note: validity is checked from the referencing chain and the
+    carried entry alone. Availability is structural — vouching for a beer is inseparable from publishing
+    the evidence.</p>
+  </div>
+</section>
+
+<!-- 15 ── the load ─────────────────────────────────── -->
+<section class="slide" data-sec="The settings">
+  <p class="eyebrow">The one number that matters</p>
+  <h1 class="small">How many beers overlap?</h1>
+  <div class="row" style="align-items:center">
+    <div class="col">
+      <p class="sub" style="max-width:38ch">Word of a beer takes time to get round the table. However
+        many more are opened in the meantime is how many can collide — and each vouch picks up one of
+        them.</p>
+      <div class="knobs">
+        <div class="knob">
+          <label for="kHops">Hops word travels</label><output id="oHops">3</output>
+          <input id="kHops" type="range" min="1" max="6" step="1" value="3">
+        </div>
+        <div class="knob">
+          <label for="kD">Seconds lost per hop</label><output id="oD">8</output>
+          <input id="kD" type="range" min="0" max="16" step="1" value="8">
+        </div>
+        <div class="knob">
+          <label for="kF">Seconds between beers</label><output id="oF">30</output>
+          <input id="kF" type="range" min="10" max="60" step="1" value="30">
+        </div>
+      </div>
+    </div>
+    <div class="col" style="gap:calc(2*var(--u))">
+      <span class="rho" id="rRho">0.57</span>
+      <span class="num-label" style="margin-top:0">overlapping beers</span>
+      <div class="bar" id="bar"><i id="barFill"></i><u></u></div>
+      <p class="verdict" id="verdict"></p>
+      <p class="term">The report calls this the <b>load</b>, <code>ρ = f · D_vis</code>.</p>
+    </div>
+  </div>
+  <div class="notes">
+    <p>Drag the delay up until the number crosses 1 and let the room watch the verdict change. That
+    crossing is simultaneously the accuracy boundary, the cheating boundary and the history-rewrite
+    boundary.</p>
+    <p>Formally ρ = f · D_vis with D_vis = hops·δ_max/2 + (hops+1)·ℓ_mean. Mean path latency is held at
+    1.2 seconds here. In a real deployment you measure it, and how densely nodes peer is the operator-side
+    lever on it.</p>
+  </div>
+</section>
+
+<!-- 16 ── how many ─────────────────────────────────── -->
+<section class="slide" data-sec="The settings">
+  <p class="eyebrow">Setting one</p>
+  <h1 class="small">One more vouch than overlapping beers</h1>
+  <div class="row r">
+    <div class="col">
+      <p class="lede">Any fewer and the backlog never clears — nothing else picks it up.</p>
+      <p class="term">Round up, then add one: <code>U = ⌈ρ⌉ + 1</code>. Two, at this table.</p>
+    </div>
+    <figure class="fig">
+      <img src="%%FIG26%%" alt="Accuracy against how many beers overlap, for vouch budgets of none, one, two and three. None decays steadily; one holds until the overlap nears one then falls away; two and three stay exact.">
+      <p class="read">Across the bottom: overlapping beers. Up the side: what the tally counts.
+        Each line is a vouch budget — the orange one runs out just as the overlap reaches one.</p>
+    </figure>
+  </div>
+  <div class="notes">
+    <p>Read the orange line: one vouch holds the count exact while the overlap is comfortably below one,
+    then peels away exactly where it stops clearing the backlog. That peel-off point is the rule.</p>
+    <p>Why the spare: at an overlap of 0.96 a single vouch lands at 0.962 ± 0.006, three standard errors
+    short. The tight minimum starts under-shooting from about 0.9.</p>
+    <p>The spec permits up to four. This table needs two; the spare two are headroom for a louder room.</p>
+  </div>
+</section>
+
+<!-- 17 ── how far ──────────────────────────────────── -->
+<section class="slide" data-sec="The settings">
+  <p class="eyebrow">Setting two</p>
+  <h1 class="small">You may vouch twelve rounds back</h1>
+  <div class="row r">
+    <div class="col">
+      <p class="lede">Counted in rounds, not in seconds. It barely moves when the room gets louder.</p>
+      <p class="term">Twelve block-intervals — <code>W = 12</code>, or 360 slots, in the spec. The measured
+        floor is about seven.</p>
+    </div>
+    <figure class="fig">
+      <img src="%%FIG22%%" alt="A grid of accuracy values. Rows are how far back a vouch may reach; columns are how loud the room is. The boundary where accuracy collapses runs horizontally rather than diagonally.">
+      <p class="read">Rows: how far back you may vouch. Columns: how loud the room is. Yellow is accurate.
+        The edge runs <b>across</b>, not diagonally — so it is the spacing between beers that sets this,
+        not the noise.</p>
+    </figure>
+  </div>
+  <div class="notes">
+    <p>If this were set by noise, the yellow-to-blue boundary would slope. It does not, which is the whole
+    argument on this slide.</p>
+    <p>The reach is a buffer for the randomness in when beers land, not for delay. The spec sets W = 12
+    block-intervals, 360 slots, and states no lower bound; the measured floor is about seven, so twelve
+    carries roughly a 1.7× margin.</p>
+    <p>The two settings are not interchangeable. No number of vouches buys below the reach floor, and no
+    amount of reach buys below the vouch minimum.</p>
+  </div>
+</section>
+
+<!-- ── when it breaks · history ─────────────────────── -->
+<section class="slide" data-sec="When it breaks">
+  <p class="eyebrow">When it breaks · 1</p>
+  <div class="row r">
+    <div class="col">
+      <h1 class="small">Past one, the night can be rewritten</h1>
+      <p class="lede">Below one overlapping beer the tally settles and stays settled. Above it, a group
+        holding a third of the beer can undo as much of the night as it likes.</p>
+    </div>
+    <figure class="fig">
+      <img src="%%FIG28%%" alt="Reorganisation depth against network delay for honest play and for adversaries holding ten, twenty and thirty per cent of the stake. A dashed line marks one overlapping beer; past it the thirty per cent curve leaves the top of the chart, annotated as unbounded.">
+      <p class="read">Across the bottom: how loud the room is. Up the side: how many rounds can be undone.
+        The dashed line is <b>one overlapping beer</b>. Past it, the top curve leaves the chart —
+        <b>unbounded</b>.</p>
+    </figure>
+  </div>
+  <div class="notes">
+    <p>This is the reorganisation tail at the 99.9th percentile, from a private-chain model. Below the
+    boundary the numbers are small and flat: four blocks against a 10 % adversary, eight against 20 %,
+    seventeen against 30 %. Those are the confirmation depths a wallet would wait.</p>
+    <p>What happens past the line is not a steeper curve, it is a different regime. Fork-induced orphaning
+    of honest work tips a 30 % holder over an effective majority, and then depth is unbounded — no
+    confirmation depth is safe.</p>
+    <p>The grey dotted line is honest play with vouching switched off. It climbs too, because the deflated
+    count makes the game over-produce: about seventeen blocks deep at the far right, against four when
+    vouching is on. Vouching keeps ordinary reorganisations shallow as well as keeping the count right.</p>
+  </div>
+</section>
+
+<!-- ── when it breaks · incentives ──────────────────── -->
+<section class="slide" data-sec="When it breaks">
+  <p class="eyebrow">When it breaks · 2</p>
+  <div class="row r">
+    <div class="col">
+      <h1 class="small">And past a third, cheating starts to pay</h1>
+      <p class="lede">Drink in secret, keep your own tally, and produce it later. Below a third of the
+        beer that loses you money. Above it, it makes money.</p>
+      <p class="term">Classic selfish mining. Every chain of this design has it — beer did not introduce
+        it.</p>
+    </div>
+    <figure class="fig">
+      <img src="%%FIG13L%%" alt="Revenue share against the share of stake one group holds, for three network assumptions. The dashed line is playing fair; the curves cross it near one third, above which withholding earns more than honest play.">
+      <p class="read">Across the bottom: the share of the beer one group holds. Up the side: the share of
+        the tally they end up with. The dashed line is <b>playing fair</b> — where a curve crosses it,
+        cheating begins to pay.</p>
+    </figure>
+  </div>
+  <div class="notes">
+    <p>The three curves are three assumptions about who wins a tie when both tallies are revealed at once.
+    The threshold is (1−γ)/(3−2γ) — a third in the worst case for the attacker, a quarter when ties always
+    go their way.</p>
+    <p>Two things worth adding. First, this threshold <em>falls</em> as the honest fork rate rises, so
+    keeping the overlap under one is an incentive constraint too, not only an accuracy one — the two
+    breakage slides are the same rule seen twice.</p>
+    <p>Second, profitability bounds what an attacker <em>earns</em>, not what the count <em>loses</em>. An
+    attacker content to earn what honest play would pay it can push the count down to 0.65 at 40 % stake,
+    where the revenue-maximiser only reaches 0.81. Vouching repairs about half the damage either way.</p>
+    <p>What TSI does not add: hiding beer to drag the count down is unprofitable on its own, heals within a
+    week, and for a genuine withdrawal the lower number is simply correct.</p>
+  </div>
+</section>
+
+<!-- 18 ── where this landed ────────────────────────── -->
+<section class="slide centre" data-sec="The recommendation">
+  <p class="eyebrow">Where this landed</p>
+  <div class="row" style="align-items:start">
+    <div class="col">
+      <h1 class="small" style="font-size:calc(4.4*var(--u))">The spec now says</h1>
+      <ul class="list">
+        <li>Count rounds, once each<span>each slot counted once, however many beers fall in it</span></li>
+        <li>Vouch twelve rounds back<span>W = 12 → 360 slots</span></li>
+        <li>Measure the reach from the <b>parent</b><span>bounds how far back checking has to go</span></li>
+        <li>Carry up to four vouches<span>MAX_UNCLES = 4</span></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h1 class="small" style="font-size:calc(4.4*var(--u))">Still open</h1>
+      <ul class="list">
+        <li>Two vouches is what this table needs<span>⌈ρ⌉ + 1 — the other two are headroom</span></li>
+        <li>Pay for vouches<span>the spec grants no reward; uncle + nephew under one block reward</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="notes">
+    <p>Worth saying out loud: the left column is not a wish list. Spec revision 1.2.0 already adopted
+    counting per occupied slot, the parent-anchored window, and W = 12 — three of the things this study
+    argued for.</p>
+    <p>MAX_UNCLES = 4 is a cap, not an operating point. The overlap at the deployment target is about 0.56,
+    so two is what gets used.</p>
+    <p>Rewards are the real remaining gap. The spec says an uncle grants no block reward, and that "because
+    uncle references carry no fork-choice weight and grant no reward, a proposer has no incentive to
+    deviate" — a sentence that stops holding the moment they pay.</p>
+  </div>
+</section>
+
+<!-- ── play it ──────────────────────────────────────── -->
+<section class="slide centre" data-sec="Play it">
+  <p class="eyebrow">You can play this</p>
+  <h1 class="small">One die each. Six is loud, one is quiet.</h1>
+  <div class="row" style="align-items:center">
+    <div class="col">
+      <p class="lede">Roll a six, take a sip and shout. Roll a one, take a sip and say nothing — and drop
+        a bottle cap in the middle. The Barman has their back turned and ticks a mat when they hear
+        something.</p>
+      <p class="sub">The pile of caps is everything they missed. Turn vouching on and it empties.</p>
+    </div>
+    <div class="col" style="gap:calc(1.4*var(--u))">
+      <div class="pair">
+        <div><span class="n warn">0.69</span><span class="l">five at the table</span></div>
+        <div><span class="n accent">0.64</span><span class="l">the simulator</span></div>
+      </div>
+      <p class="sub">Ticks alone against ticks plus caps. Four players lands at 0.65, six at 0.73 —
+        the same band the study measures.</p>
+    </div>
+  </div>
+  <p class="term">Rules on one page: <b>beer-game-rules.html</b>, next to this deck.</p>
+  <div class="notes">
+    <p>Fifteen minutes, one die per person, and it reproduces the headline number of the study on a pub
+    table. No arithmetic during play — the Barman only ever counts, and the error is a physical pile
+    rather than a calculation.</p>
+    <p>Why it works: a round ticks if anyone rolled a six. A one is a real drink that goes unrecorded,
+    but only costs a round when nobody else shouted in it. With five players the Barman ticks 0.598 of
+    rounds while 0.868 actually had a drink — 0.69 of the truth. Four players give 0.65, six give 0.73,
+    and it drifts up towards 0.85 by ten players as shouts start covering the quiet ones.</p>
+    <p>If someone objects that the mechanism is not identical — they are right. The quiet roll stands in
+    for network delay rather than simulating it. What transfers is the shape: a count that loses events,
+    and a vouch that puts them back.</p>
+  </div>
+</section>
+
+<!-- 19 ── thank you ────────────────────────────────── -->
+<section class="slide" data-sec="">
+  <div class="col mid">
+    <h1 class="big">Thank you</h1>
+  </div>
+  <div class="notes">
+    <p>Where it lives: reports/tsi/README.md — §4 the equations, §8 the selection, §9 to re-run every
+    study.</p>
+    <p>Backup: §3.7 for how this scales with the size of the room, §6.10 for how far history can be
+    rewritten, Appendix B for the week-to-week noise floor.</p>
+  </div>
+</section>
+
+<!-- 20 ── media ────────────────────────────────────── -->
+<section class="slide" data-sec="" data-media="4" data-top="" data-bottom="">
+  <div class="media"><div class="frame"><div class="cap"><span></span><span></span></div></div></div>
+  <div class="notes"><p>Closer. Drop a file at assets/4.*.</p></div>
+</section>
+

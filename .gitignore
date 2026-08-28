@@ -228,6 +228,9 @@ tools/benchmarks/original/
 # Rendered report HTML — a build artifact of scripts/build_html.py; markdown is the source
 reports/**/*.html
 
+# ...except the talk, whose HTML is hand-authored source, not rendered from markdown
+!reports/tsi/talk/**/*.html
+
 # Generated knowledge graph (graphify): HTML/SVG/GraphML exports, Obsidian vault,
 # wiki articles, extraction cache. Rebuildable from the corpus, so not tracked.
 graphify-out/

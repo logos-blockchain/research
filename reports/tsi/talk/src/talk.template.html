@@ -1,0 +1,1074 @@
+<title>Total Stake Inference</title>
+
+<!--
+  ═══ YOUR MEMES AND CLIPS GO HERE ═══════════════════════════════════
+  Put files next to this HTML in an "assets" folder, named 1, 2, 3, 4:
+
+      assets/1.mp4      opener
+      assets/2.jpg      after "it under-counts the crowd"
+      assets/3.jpg      after "two winners, one tally"
+      assets/4.mp4      closer
+
+  Extension does not matter — the deck tries video first, then image:
+  mp4 webm mov m4v gif png jpg jpeg webp avif.
+  A slot with no file REMOVES ITSELF, so the deck always presents cleanly.
+
+  Meme captions are the data-top / data-bottom attributes on each media
+  slide below — edit the text there. Leave them empty for a plain clip.
+  ════════════════════════════════════════════════════════════════════
+-->
+
+<style>
+/* ─── tokens ──────────────────────────────────────────────────
+   Light is the design. Dark is a room concession, on T.        */
+:root{
+  --paper:#f7f8f6;
+  --panel:#edf0ec;
+  --rule:#d2d8d1;
+  --ink:#10171a;
+  --muted:#5f6d6b;
+  --accent:#16635c;
+  --accent-soft:#e2eeeb;
+  --warn:#a8442a;
+  --plate:#ffffff;
+  --plate-edge:#dfe4de;
+
+  --display:"Helvetica Neue","Helvetica Now Display",Helvetica,"Segoe UI",Arial,sans-serif;
+  --body:Charter,"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --mono:"SF Mono",Menlo,"JetBrains Mono",Consolas,ui-monospace,monospace;
+  --impact:Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif;
+
+  /* One unit = 1% of the 16:9 stage height. Width-derived by default so the deck
+     can never collapse where no viewport height is available; fit() narrows it. */
+  --u:var(--u-js,0.5625vw);
+}
+:root[data-theme="dark"]{
+  --paper:#10151a;
+  --panel:#19222a;
+  --rule:#2c3841;
+  --ink:#eef2ef;
+  --muted:#95a5a1;
+  --accent:#57bcac;
+  --accent-soft:#16302f;
+  --warn:#e0724e;
+  --plate-edge:#2c3841;
+}
+
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+
+/* ─── stage ───────────────────────────────────────────────────── */
+.deck{display:grid;place-items:center;min-height:100dvh;background:var(--paper)}
+.stage{
+  position:relative;
+  width:calc(177.78 * var(--u));height:calc(100 * var(--u));
+  background:var(--paper);overflow:hidden;
+}
+.slide{
+  position:absolute;inset:0;
+  padding:calc(11*var(--u)) calc(11*var(--u)) calc(12*var(--u));
+  font-size:calc(2.7*var(--u));line-height:1.5;
+  display:none;opacity:0;
+}
+.slide.is-active{display:flex;flex-direction:column;gap:calc(4*var(--u));animation:in .4s ease both}
+body:not(.ready) .slide:first-of-type{display:flex;flex-direction:column;gap:calc(4*var(--u));opacity:1}
+@keyframes in{from{opacity:0;transform:translateY(calc(.8*var(--u)))}to{opacity:1;transform:none}}
+
+/* ─── type ────────────────────────────────────────────────────── */
+.eyebrow{
+  margin:0;font-family:var(--display);font-size:calc(1.7*var(--u));font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--accent);
+}
+h1{
+  margin:0;font-family:var(--display);font-weight:500;
+  font-size:calc(7.4*var(--u));line-height:1.03;letter-spacing:-.028em;
+  text-wrap:balance;max-width:20ch;
+}
+h1.big{font-size:calc(10*var(--u))}
+h1.small{font-size:calc(5.2*var(--u));max-width:24ch}
+
+p{margin:0;max-width:44ch}
+.lede{font-size:calc(3.2*var(--u));line-height:1.4}
+.lede.wide{max-width:66ch}
+.sub{font-size:calc(2.2*var(--u));color:var(--muted);max-width:54ch}
+b,strong{font-weight:600}
+.accent{color:var(--accent)}
+.warn{color:var(--warn)}
+code,.m{font-family:var(--mono);font-size:.9em;color:var(--accent);font-variant-ligatures:none}
+
+/* the technical name, kept small so a lay audience can skip it and an expert can't */
+.term{
+  font-family:var(--mono);font-size:calc(1.8*var(--u));color:var(--muted);max-width:54ch;
+}
+.term b{color:var(--accent);font-weight:400}
+
+/* how to read the chart, in words */
+.read{
+  font-size:calc(1.9*var(--u));color:var(--muted);max-width:46ch;line-height:1.45;
+  padding-left:calc(2*var(--u));border-left:2px solid var(--rule);
+}
+
+.num{
+  font-family:var(--display);font-weight:500;font-size:calc(15*var(--u));
+  line-height:.88;letter-spacing:-.045em;color:var(--accent);font-variant-numeric:tabular-nums;
+}
+.num.bad{color:var(--warn)}
+.num-label{
+  display:block;margin-top:calc(1.8*var(--u));font-family:var(--display);font-weight:600;
+  font-size:calc(1.7*var(--u));letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+}
+/* uppercasing a symbol mangles it — ρ would render as a capital Rho */
+.num-label code{text-transform:none}
+
+pre{
+  margin:0;font-family:var(--mono);font-size:calc(2.2*var(--u));line-height:1.75;
+  color:var(--ink);background:var(--panel);padding:calc(2.6*var(--u)) calc(3*var(--u));
+  overflow-x:auto;white-space:pre;border-left:2px solid var(--accent);
+}
+pre .c{color:var(--muted)}
+pre .k{color:var(--accent)}
+
+/* ─── layout ──────────────────────────────────────────────────── */
+.row{display:grid;grid-template-columns:1fr 1fr;gap:calc(7*var(--u));align-items:center;flex:1;min-height:0}
+.row.r{grid-template-columns:.85fr 1.15fr}
+.row.three{grid-template-columns:repeat(3,1fr);gap:calc(5*var(--u));align-items:start}
+.col{display:flex;flex-direction:column;gap:calc(2.6*var(--u));min-width:0}
+.mid{justify-content:center;flex:1}
+/* slides whose content is short: centre the whole stack instead of hanging it
+   from the top with a half-empty slide underneath */
+.slide.centre{justify-content:center}
+.slide.centre .row{flex:0 1 auto}
+
+.fig{margin:0;min-height:0;display:flex;flex-direction:column;gap:calc(1.6*var(--u))}
+.fig img{
+  width:100%;height:auto;max-height:calc(48*var(--u));object-fit:contain;display:block;
+  background:var(--plate);border:1px solid var(--plate-edge);padding:calc(1*var(--u));
+}
+
+.card{display:flex;flex-direction:column;gap:calc(1.6*var(--u));padding-top:calc(2*var(--u));border-top:2px solid var(--accent)}
+.card h3{
+  margin:0;font-family:var(--display);font-weight:600;font-size:calc(1.7*var(--u));
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+}
+.card p{font-size:calc(2.4*var(--u));max-width:26ch}
+
+.list{display:flex;flex-direction:column;gap:calc(2*var(--u));margin:0;padding:0;list-style:none}
+.list li{font-size:calc(2.6*var(--u));max-width:34ch}
+.list li span{display:block;font-family:var(--mono);font-size:calc(1.7*var(--u));color:var(--muted)}
+
+.pair{display:flex;gap:calc(8*var(--u))}
+.pair div{display:flex;flex-direction:column}
+.pair .n{font-family:var(--display);font-weight:500;font-size:calc(8*var(--u));letter-spacing:-.04em;line-height:1}
+.pair .l{margin-top:calc(1*var(--u));font-family:var(--display);font-weight:600;font-size:calc(1.6*var(--u));letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+/* the one-second draw strip */
+.draws{
+  position:relative;height:calc(8*var(--u));width:100%;
+  background-image:linear-gradient(90deg,var(--rule) 0 2px,transparent 2px);
+  background-size:calc(100%/30) 100%;
+}
+.draws i{
+  position:absolute;top:calc(-2.4*var(--u));bottom:calc(-2.4*var(--u));
+  left:calc(100% * 19 / 30);width:4px;background:var(--accent);
+}
+.draws b{
+  position:absolute;top:calc(-6.6*var(--u));left:calc(100% * 19 / 30 + 1.4*var(--u));
+  font-family:var(--display);font-weight:600;font-size:calc(1.6*var(--u));
+  letter-spacing:.14em;text-transform:uppercase;color:var(--accent);white-space:nowrap;
+}
+
+/* ─── media slides ────────────────────────────────────────────── */
+.media{position:relative;flex:1;min-height:0;display:grid;place-items:center}
+/* the frame shrink-wraps the media so the meme captions sit on the image, not the slide */
+.frame{position:relative;display:flex;max-width:100%;max-height:100%}
+.frame img,.frame video{max-width:100%;max-height:100%;width:auto;height:auto;display:block}
+.cap{
+  position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;
+  padding:calc(3*var(--u));text-align:center;pointer-events:none;
+}
+.cap span{
+  font-family:var(--impact);font-size:calc(6*var(--u));line-height:1.02;
+  text-transform:uppercase;color:#fff;letter-spacing:.01em;
+  -webkit-text-stroke:calc(.5*var(--u)) #000;paint-order:stroke fill;
+}
+.cap span:empty{display:none}
+
+/* ─── the block diagrams ──────────────────────────────────────── */
+.scene{width:min(100%,calc(128*var(--u)))}
+.scene svg{width:100%;height:auto;display:block}
+/* Blocks are revealed by runScene(), which re-rolls a random gap between each one
+   every time the slide is shown — hence no fixed delays here, only the base states
+   and the keyframes it applies inline. */
+.sc,.s-orphan,.s-saved{opacity:0}
+@keyframes pop{from{opacity:0;transform:translateY(calc(-.8*var(--u)))}to{opacity:1;transform:none}}
+@keyframes dim{to{opacity:.32}}
+/* pathLength="1" normalises the dash, so the draw-on is exact whatever the curve measures */
+.s-line{stroke-dasharray:1;stroke-dashoffset:1;opacity:0}
+@keyframes draw{0%{stroke-dashoffset:1;opacity:0}12%{opacity:1}100%{stroke-dashoffset:0;opacity:1}}
+
+/* ─── the load console ────────────────────────────────────────── */
+.knobs{display:flex;flex-direction:column;gap:calc(3*var(--u))}
+.knob{display:grid;grid-template-columns:1fr auto;gap:calc(.9*var(--u)) calc(1.6*var(--u));align-items:baseline}
+.knob label{
+  font-family:var(--display);font-weight:600;font-size:calc(1.9*var(--u));
+  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+}
+.knob output{font-family:var(--mono);font-size:calc(2.5*var(--u));font-variant-numeric:tabular-nums}
+.knob input{grid-column:1/-1;width:100%;margin:0;accent-color:var(--accent);height:calc(2.6*var(--u));cursor:pointer}
+.knob input:focus-visible{outline:2px solid var(--accent);outline-offset:calc(.5*var(--u))}
+
+.rho{font-family:var(--display);font-weight:500;font-size:calc(16*var(--u));line-height:.85;letter-spacing:-.045em;color:var(--accent);font-variant-numeric:tabular-nums}
+.rho.over{color:var(--warn)}
+.bar{position:relative;height:calc(2.6*var(--u));background:var(--panel);overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.5;transition:width .15s ease}
+.bar.over i{background:var(--warn);opacity:.6}
+.bar u{position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--ink);opacity:.45}
+.verdict{font-size:calc(2.2*var(--u));color:var(--muted);max-width:40ch;min-height:calc(7*var(--u))}
+
+/* ─── chrome ──────────────────────────────────────────────────── */
+.foot{
+  position:absolute;left:calc(11*var(--u));right:calc(11*var(--u));bottom:calc(5*var(--u));
+  display:flex;align-items:center;gap:calc(2.6*var(--u));
+  font-family:var(--display);font-weight:600;font-size:calc(1.5*var(--u));
+  letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+}
+.foot .track{flex:1;height:2px;background:var(--rule);position:relative}
+.foot .track i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);transition:width .3s ease}
+.foot .n{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+
+.notes-drawer{
+  position:fixed;left:0;right:0;bottom:0;max-height:40vh;overflow-y:auto;display:none;z-index:40;
+  background:var(--panel);border-top:2px solid var(--accent);color:var(--ink);
+  padding:18px 26px;font-size:15px;line-height:1.62;
+}
+body.notes .notes-drawer{display:block}
+.notes-drawer h4{margin:0 0 8px;font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.notes-drawer p{margin:0 0 8px;max-width:105ch}
+.slide .notes{display:none}
+
+.help{position:fixed;inset:0;background:var(--paper);z-index:50;display:none;place-items:center}
+body.help .help{display:grid}
+.help dl{display:grid;grid-template-columns:auto 1fr;gap:11px 22px;margin:0;font-size:16px}
+.help dt{font-family:var(--mono);color:var(--accent);text-align:right}
+.help dd{margin:0}
+.help h4{margin:0 0 22px;font-family:var(--display);font-weight:500;font-size:24px}
+.help .box{border:1px solid var(--rule);padding:34px 46px;background:var(--panel)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-iteration-count:1 !important;animation-duration:1ms !important;
+     animation-delay:0s !important;transition-duration:1ms !important}
+}
+
+/* Export: one 16:9 slide per page. Each slide becomes its own page-sized box —
+   the stage's overflow would otherwise clip everything after the first. */
+@page{size:297mm 167mm;margin:0}
+@media print{
+  :root{--u:1.67mm}
+  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .deck{display:block}
+  .stage{width:297mm;height:auto;overflow:visible}
+  .slide{
+    display:flex !important;flex-direction:column;gap:calc(4*var(--u));
+    position:relative;width:297mm;height:167mm;overflow:hidden;
+    opacity:1 !important;animation:none !important;background:var(--paper);
+    page-break-after:always;break-after:page;
+  }
+  .foot,.notes-drawer,.help{display:none !important}
+  /* the diagrams are revealed by script on the active slide only, so a printed
+     copy has to be forced to the finished state or every one exports blank */
+  .sc,.s-orphan,.s-saved{opacity:1 !important;animation:none !important;transform:none !important}
+  .s-line{stroke-dashoffset:0 !important;opacity:1 !important;animation:none !important}
+}
+</style>
+
+<div class="deck">
+<div class="stage" id="stage">
+
+<!-- 1 ── title ─────────────────────────────────────── -->
+<section class="slide" data-sec="Total Stake Inference">
+  <div class="col mid">
+    <p class="eyebrow">Logos Research · Cryptarchia</p>
+    <h1 class="big">Total Stake<br>Inference</h1>
+    <p class="lede" style="max-width:36ch">How a blockchain works out how many players are in the
+      game — and what it takes to get that number right.</p>
+  </div>
+  <div class="notes">
+    <p>This deck is pitched so someone with no blockchain background can follow it. The technical
+    names are on the slides in small grey type, so anyone who knows the material can still map every
+    plain word back to the spec.</p>
+    <p>Scope: a parameter-selection study, from a simulator that models every node separately — its own
+    view of the network, its own chain, its own estimate — at up to 32 000 nodes.</p>
+    <p>About 20 minutes. Keys: arrows or space to advance, N for notes, T for a dark room, P to export
+    a PDF.</p>
+  </div>
+</section>
+
+<!-- 2 ── media ─────────────────────────────────────── -->
+<section class="slide" data-sec="" data-media="1" data-top="" data-bottom="">
+  <div class="media"><div class="frame"><div class="cap"><span></span><span></span></div></div></div>
+  <div class="notes"><p>Opener. Drop a file at assets/1.* — any video or image format.</p></div>
+</section>
+
+<!-- 3 ── the game ──────────────────────────────────── -->
+<section class="slide centre" data-sec="How it works">
+  <p class="eyebrow">How it works</p>
+  <h1>Every second is a draw</h1>
+  <div class="draws"><i></i><b>winner</b></div>
+  <p class="lede">Everyone holds tickets in proportion to the money they have put up. About one draw
+    in thirty produces a winner, and the winner writes the next block.</p>
+  <p class="term">A <b>block</b> is one entry in the shared record. A draw is a <b>slot</b>.</p>
+  <div class="notes">
+    <p>Formally: slots are one second, the target rate is f = 1/30, and a node's per-slot win chance is
+    <code>φ = 1 − (1−f)^(w_i/D̂)</code> where w_i is its stake and D̂ the estimate of total active
+    stake.</p>
+    <p>Say "money they have put up" rather than "stake" the first time. The word stake arrives on the
+    next slide, once the mechanism is already clear.</p>
+    <p>The one-in-thirty rate is a design choice: it has to be slow enough that a block usually reaches
+    everyone before the next one is written. That constraint is the whole talk.</p>
+  </div>
+</section>
+
+<!-- 4 ── the unknown ───────────────────────────────── -->
+<section class="slide centre" data-sec="How it works">
+  <p class="eyebrow">The problem</p>
+  <h1>Nobody knows how many are playing</h1>
+  <p class="lede">To hold the rate at one in thirty, the difficulty has to match the tickets in play.
+    But players join and leave without telling anyone.</p>
+  <p class="term">Their deposits added up are the <b>total active stake</b>. Working it out is the
+    whole problem.</p>
+  <div class="notes">
+    <p>Emphasise <em>active</em>. Not the money that exists — the money that is online and playing right
+    now. That is why it cannot be read off the ledger, and why it has to be inferred.</p>
+    <p>Three things have to hold at once: every node agrees on the number, the number is right, and
+    nobody profits from bending it. Most of this talk is the second; the third arrives near the end.</p>
+    <p>Measured: every node computes an identical value — spread ≡ 0 at every size and rate tested.
+    Agreement is not accuracy, though, which is the next few slides.</p>
+  </div>
+</section>
+
+<!-- 5 ── the estimator ─────────────────────────────── -->
+<section class="slide centre" data-sec="How it works">
+  <p class="eyebrow">The idea</p>
+  <h1 class="small">So it watches the winners, and corrects itself</h1>
+  <div class="row" style="align-items:center">
+    <p class="lede">Winners showing up too often? More players than we thought — make it harder.
+      Too rarely? Make it easier.</p>
+    <div class="col" style="gap:calc(1.6*var(--u))">
+<pre><span class="c"># once a week, at every node</span>
+m      = <span class="c">draws that produced a winner</span>
+D̂_next = max(1, D̂ · (1 − <span class="k">β</span>·(f − m/T)/f))</pre>
+      <p class="term">The same rule, written out. <code>T</code> is how many draws it looks back over.</p>
+    </div>
+  </div>
+  <div class="notes">
+    <p>β = 1 in the recommendation, so it fully corrects in one epoch — about a week. That means any dent
+    an attacker puts in the number is erased the following week.</p>
+    <p>Crucially, it counts a window buried deep in settled history, closing well before the number is
+    used. That is why every node computes the same value, and why the churn around the newest blocks
+    never reaches the estimate.</p>
+    <p>If someone asks why weekly: the window is tied to the security parameter k = 2160, which sets the
+    epoch length. It is a deliberate trade — it means the estimate lags real participation by one to two
+    weeks, and cannot track anything faster.</p>
+  </div>
+</section>
+
+<!-- 6 ── delay ─────────────────────────────────────── -->
+<section class="slide" data-sec="What goes wrong">
+  <p class="eyebrow">What goes wrong</p>
+  <h1 class="small">News travels slowly</h1>
+  <div class="scene discard">
+    <svg viewBox="0 0 880 200" aria-label="A chain of blocks; two people write from the same point and one of the two blocks is thrown away">
+      <path d="M30 92 H850" stroke="var(--rule)" stroke-width="2" stroke-dasharray="5 6"/>
+      <g fill="none" stroke="var(--ink)" stroke-width="2">
+        <rect class="sc" data-seq="0" x="40" y="69" width="76" height="46"/>
+        <rect class="sc" data-seq="1" x="208" y="69" width="76" height="46"/>
+        <rect class="sc" data-seq="2" x="376" y="69" width="76" height="46"/>
+        <rect class="sc" data-seq="3" x="544" y="69" width="76" height="46"/>
+        <rect class="sc" data-seq="4" x="712" y="69" width="76" height="46"/>
+      </g>
+      <g class="s-orphan" data-with="2" data-dim="3">
+        <rect x="376" y="137" width="76" height="46" fill="none" stroke="var(--warn)" stroke-width="2"/>
+        <text x="414" y="166" text-anchor="middle" font-family="var(--mono)" font-size="13"
+              fill="var(--warn)">thrown away</text>
+      </g>
+    </svg>
+  </div>
+  <p class="lede wide">Two people can start writing from the same point, neither knowing about the other.
+    Only one block survives. The other is thrown away — and the draw it won vanishes from the record.</p>
+  <p class="term">A discarded block is an <b>orphan</b>.</p>
+  <div class="notes">
+    <p>Under the deployment's mix-network transport, roughly a third of honest blocks are orphaned this
+    way. Nobody misbehaved; the network was just slower than the block rate.</p>
+    <p>The label on the bottom box says "thrown away" rather than "orphan" deliberately — the technical
+    word is on the slide underneath in small type.</p>
+  </div>
+</section>
+
+<!-- 7 ── the undercount ────────────────────────────── -->
+<section class="slide" data-sec="What goes wrong">
+  <p class="eyebrow">What goes wrong</p>
+  <h1>It under-counts the crowd</h1>
+  <div class="row">
+    <div class="col">
+      <p class="lede">Those lost draws are missing from the record, so the system counts fewer winners
+        than really happened — and concludes fewer people are playing.</p>
+      <p class="sub">And it feeds itself. A low estimate makes winning easier, so more people write at
+        once, so more blocks get thrown away.</p>
+    </div>
+    <div>
+      <span class="num bad">0.64</span>
+      <span class="num-label">counted, against what is really there</span>
+    </div>
+  </div>
+  <div class="notes">
+    <p>The measured range is 0.64 to 0.74, deepening with network size — 0.739 at a thousand nodes down
+    to 0.635 at ten thousand, because a bigger network takes longer to cross.</p>
+    <p>Put the number in human terms: the system believes about a third of the players have gone home,
+    when they are all still there. And it is over-producing blocks at up to twice the intended rate as a
+    result.</p>
+    <p>One clean property worth stating: the error only ever goes one way. A window cannot contain more
+    winning draws than actually happened, so the estimate can never come out too high. Delay only
+    deflates.</p>
+  </div>
+</section>
+
+<!-- 8 ── media ─────────────────────────────────────── -->
+<section class="slide" data-sec="" data-media="2" data-top="It counted itself" data-bottom="It was wrong by a third">
+  <div class="media"><div class="frame"><div class="cap"><span></span><span></span></div></div></div>
+  <div class="notes"><p>Drop a file at assets/2.*. Captions are the data-top / data-bottom attributes on
+  this slide — edit them to fit whatever image you pick.</p></div>
+</section>
+
+<!-- 9 ── the fix ───────────────────────────────────── -->
+<section class="slide" data-sec="The fix">
+  <p class="eyebrow">The fix</p>
+  <h1 class="small">Let a later block point back</h1>
+  <div class="scene">
+    <svg viewBox="0 0 880 200" aria-label="A later block carries a footnote pointing back at the discarded block, putting its draw back into the count">
+      <path d="M30 92 H850" stroke="var(--rule)" stroke-width="2" stroke-dasharray="5 6"/>
+      <g fill="none" stroke="var(--ink)" stroke-width="2">
+        <rect class="sc" data-seq="0" x="40" y="69" width="76" height="46"/>
+        <rect class="sc" data-seq="1" x="208" y="69" width="76" height="46"/>
+        <rect class="sc" data-seq="2" x="376" y="69" width="76" height="46"/>
+        <rect class="sc" data-seq="3" x="544" y="69" width="76" height="46"/>
+        <rect class="sc" data-seq="4" x="712" y="69" width="76" height="46"/>
+      </g>
+      <g class="s-orphan" data-with="2" data-dim="3">
+        <rect x="376" y="137" width="76" height="46" fill="none" stroke="var(--warn)" stroke-width="2"/>
+        <text x="414" y="166" text-anchor="middle" font-family="var(--mono)" font-size="13"
+              fill="var(--warn)">thrown away</text>
+      </g>
+      <path class="s-line" data-after="0.7" pathLength="1" d="M544 92 C506 90 476 114 458 156"
+            fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+      <g class="s-saved" data-after="1.6">
+        <rect x="366" y="127" width="96" height="66" fill="var(--paper)" stroke="none"/>
+        <rect x="376" y="137" width="76" height="46" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2.5"/>
+        <text x="414" y="166" text-anchor="middle" font-family="var(--mono)" font-size="14"
+              fill="var(--accent)">counted</text>
+        <text x="600" y="54" font-family="var(--mono)" font-size="15" fill="var(--accent)">footnote</text>
+      </g>
+    </svg>
+  </div>
+  <p class="lede wide">A block can carry a footnote: <em>someone else won that draw too, and here is the
+    proof</em>. The lost draw goes back into the count.</p>
+  <p class="term">A footnote is an <b>uncle reference</b>.</p>
+  <div class="notes">
+    <p>Two things have to be decided about that footnote, and they are the two parameters this talk is
+    about: how far back it may point, and how many a single block may carry.</p>
+    <p>Structurally important: footnotes are counting-only. They carry no weight in deciding which chain
+    wins, and a block is never invalid for leaving one out. That comes back as the central design
+    decision near the end.</p>
+    <p>One limit if asked: only the first block of a discarded branch can be referenced, because anything
+    deeper cannot be checked from the surviving chain alone. Ordinary delay throws away single blocks, so
+    ordinary recovery is complete. A deliberate attack that discards a whole run is only partly
+    recoverable.</p>
+  </div>
+</section>
+
+<!-- 10 ── evidence ─────────────────────────────────── -->
+<section class="slide" data-sec="The fix">
+  <p class="eyebrow">Does it work?</p>
+  <div class="row r">
+    <div class="col">
+      <span class="num">1.000</span>
+      <span class="num-label">counted, against what is really there</span>
+      <p class="sub">One footnote per block is enough. A second one adds safety margin, not accuracy.</p>
+    </div>
+    <figure class="fig">
+      <img src="%%FIG2%%" alt="Accuracy against the number of footnotes allowed per block. With none allowed the count sits between 0.59 and 0.69 depending on how slow the network is; allowing one brings all three curves to 1.00, and they stay there when two are allowed.">
+      <p class="read">Across the bottom: how many footnotes a block may carry — none, one, two.
+        Up the side: what the system counts, against what is really there. The three lines are three
+        network speeds.</p>
+    </figure>
+  </div>
+  <div class="notes">
+    <p>The three lines fan out on the left — the slower the network, the deeper the under-count — and
+    collapse onto each other as soon as one footnote is allowed. That collapse is why the sizing rule
+    later is written in terms of how many blocks are in the air, not in terms of network speed.</p>
+    <p>A thousand nodes, realistic stake concentration, production security parameter.</p>
+  </div>
+</section>
+
+<!-- ── what delay costs ─────────────────────────────── -->
+<section class="slide" data-sec="The fix">
+  <p class="eyebrow">What delay costs</p>
+  <div class="row r">
+    <div class="col">
+      <h1 class="small">The slower the network, the worse the guess</h1>
+      <p class="lede">And the footnotes hold it exact the whole way.</p>
+    </div>
+    <figure class="fig">
+      <img src="%%FIG34%%" alt="Accuracy against how much delay each relay adds. With footnotes switched off, accuracy falls steadily from 0.81 to 0.62 as the delay grows. Every curve that allows one, two or four footnotes stays flat on 1.000 across the whole range.">
+      <p class="read">Across the bottom: how much delay each relay adds. Up the side: what the system
+        counts. The one sloping line is footnotes switched <b>off</b> — it slides from 0.81 to 0.62 as
+        the network slows. Every other line sits flat on <b>1.000</b>.</p>
+    </figure>
+  </div>
+  <div class="notes">
+    <p>This is the clearest single picture of the whole argument: delay is what breaks the count, and one
+    footnote per block removes the dependence on delay entirely across the design band.</p>
+    <p>The lines come in pairs — solid and dashed — because each footnote budget was run under two
+    versions of the counting rule: the one the spec deploys, which can only reference the first block of a
+    discarded branch, and an unrestricted ideal that could reference any of them. They land on top of each
+    other, which is the finding: inside the design band the restriction costs nothing measurable up to
+    three slots of delay, and about 0.1 % at four and five.</p>
+    <p>Don't over-read the flat lines. This band is the design regime, where the load stays below one. Push
+    the delay far enough and the footnote budget runs out — that is the next few slides.</p>
+    <p>Forty paired replicates, each pair sharing the stake draw, the peering graph and every lottery
+    outcome, so the counting rule is the only difference between them.</p>
+  </div>
+</section>
+
+<!-- ── two winners, one tally ───────────────────────── -->
+<section class="slide centre" data-sec="The fix">
+  <p class="eyebrow">One detail that decides it</p>
+  <h1>Two winners, one tally</h1>
+  <p class="lede">Sometimes two people win the same draw. That draw still counts once — otherwise a
+    lucky second looks like extra players, and the estimate drifts high.</p>
+  <div class="pair">
+    <div><span class="n warn">1.017</span><span class="l">counting blocks</span></div>
+    <div><span class="n accent">1.000</span><span class="l">counting draws</span></div>
+  </div>
+  <p class="term">Deduplicate per <b>occupied slot</b>, not per block. Change 1 of 3 to the spec.</p>
+  <div class="notes">
+    <p>The multi-winner factor is c(f) ≈ 1.017. This is the smallest change proposed here and one of the
+    two biggest error terms in the deployed estimator.</p>
+    <p>Worth saying plainly: the old "the estimate can sit above the truth" result people may remember
+    from earlier analysis was this bug, not a property of the estimator. Count draws and the ceiling
+    disappears.</p>
+    <p>The other residual is change 2 — the target rate is stored on-chain to three decimals, which
+    leaves the number about 1 % high. Measured end to end: 0.99997 at exact f, 1.01026 at the spec's
+    three decimals, 0.99990 at the six recommended.</p>
+  </div>
+</section>
+
+<!-- ── what changes in a block ──────────────────────── -->
+<section class="slide" data-sec="The change">
+  <p class="eyebrow">What actually changes</p>
+  <h1 class="small">The footnote is the whole block, carried along</h1>
+  <div class="scene">
+    <svg viewBox="0 0 880 236" aria-label="The block header stays 297 bytes and unchanged in size; its body_root field commits to both the carried footnotes and the transactions">
+      <rect x="30" y="18" width="820" height="74" fill="none" stroke="var(--ink)" stroke-width="2"/>
+      <text x="48" y="44" font-family="var(--mono)" font-size="14" fill="var(--muted)">HEADER · 297 bytes · same size as before</text>
+      <text x="48" y="72" font-family="var(--mono)" font-size="16" fill="var(--ink)">version   parent   slot   <tspan fill="var(--accent)" font-weight="bold">body_root</tspan>   proof of leadership</text>
+      <g stroke="var(--accent)" stroke-width="2" fill="none">
+        <path d="M440 92 V124 M196 124 H684 M196 124 V152 M684 124 V152"/>
+      </g>
+      <text x="452" y="116" font-family="var(--mono)" font-size="14" fill="var(--accent)">commits to</text>
+      <rect x="56" y="152" width="280" height="66" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="196" y="182" text-anchor="middle" font-family="var(--mono)" font-size="15" fill="var(--accent)">footnotes</text>
+      <text x="196" y="204" text-anchor="middle" font-family="var(--mono)" font-size="13" fill="var(--accent)">up to 4 × 361 bytes</text>
+      <rect x="544" y="152" width="280" height="66" fill="none" stroke="var(--ink)" stroke-width="2"/>
+      <text x="684" y="192" text-anchor="middle" font-family="var(--mono)" font-size="15" fill="var(--ink)">transactions</text>
+    </svg>
+  </div>
+  <p class="lede wide">A footnote is not a pointer. It is the discarded block’s entire signed header,
+    carried inside the block — so anyone can check it without hunting for the original.</p>
+  <p class="term">The header gained no field. <b>body_root</b> replaced <b>block_root</b> and now
+    covers both lists.</p>
+  <div class="notes">
+    <p>This is the block-construction change the uncle work actually requires, spec revision 1.2.0.</p>
+    <p>The header is still 297 bytes and holds no uncle data of its own. What changed is that the old
+    <code>block_root</code>, which committed only to the transactions, became <code>body_root</code>,
+    which commits to the serialized <code>uncle_headers</code> list as well. The block ID is the hash of
+    the header, so it transitively commits to the carried footnotes and their signatures: two blocks with
+    the same ID are identical byte for byte.</p>
+    <p>Each entry is 361 bytes — a 297-byte header plus its 64-byte signature. The list is length-prefixed
+    with a single byte, so at most 1 + 4 × 361 = 1 445 bytes are added to a 2 MiB body.</p>
+    <p>Why carry the whole header rather than a hash: validity is checked from the referencing chain and
+    the carried entry alone. The proof of leadership verifies against the ledger root as of the uncle's
+    parent, which is on the chain. Availability is structural — referencing an uncle is inseparable from
+    publishing its signed header — so no node can be starved of what it needs to decide.</p>
+    <p>One privacy consequence worth knowing: proposal size now varies with the number of footnotes. The
+    spec preserves indistinguishability at the message layer instead, padding every dispersed payload to a
+    fixed maximum.</p>
+  </div>
+</section>
+
+<!-- ── media ────────────────────────────────────────── -->
+<section class="slide" data-sec="" data-media="3" data-top="Two winners" data-bottom="One tally mark">
+  <div class="media"><div class="frame"><div class="cap"><span></span><span></span></div></div></div>
+  <div class="notes"><p>Drop a file at assets/3.*.</p></div>
+</section>
+
+<!-- 13 ── the load ─────────────────────────────────── -->
+<section class="slide" data-sec="The settings">
+  <p class="eyebrow">The one number that matters</p>
+  <h1 class="small">How many blocks are in the air at once?</h1>
+  <div class="row" style="align-items:center">
+    <div class="col">
+      <p class="sub" style="max-width:38ch">While one block is still travelling to everyone, others get
+        written. Each footnote rescues one of them — so this number decides how many footnotes a block
+        needs.</p>
+      <div class="knobs">
+        <div class="knob">
+          <label for="kHops">Relay hops</label><output id="oHops">3</output>
+          <input id="kHops" type="range" min="1" max="6" step="1" value="3">
+        </div>
+        <div class="knob">
+          <label for="kD">Delay per hop, seconds</label><output id="oD">8</output>
+          <input id="kD" type="range" min="0" max="16" step="1" value="8">
+        </div>
+        <div class="knob">
+          <label for="kF">Seconds between blocks</label><output id="oF">30</output>
+          <input id="kF" type="range" min="10" max="60" step="1" value="30">
+        </div>
+      </div>
+    </div>
+    <div class="col" style="gap:calc(2*var(--u))">
+      <span class="rho" id="rRho">0.57</span>
+      <span class="num-label" style="margin-top:0">blocks in the air at once</span>
+      <div class="bar" id="bar"><i id="barFill"></i><u></u></div>
+      <p class="verdict" id="verdict"></p>
+      <p class="term">The report calls this the <b>load</b>, <code>ρ = f · D_vis</code>.</p>
+    </div>
+  </div>
+  <div class="notes">
+    <p>Drag the delay up until the number crosses 1 and let the room watch the verdict change. That
+    crossing is simultaneously the accuracy boundary, the cheating boundary and the history-rewrite
+    boundary — one line doing three jobs.</p>
+    <p>Formally ρ = f · D_vis with D_vis = hops·δ_max/2 + (hops+1)·ℓ_mean. Mean path latency is held at
+    1.2 seconds here, the value for the study graph. In a real deployment you measure it, and how densely
+    nodes peer with each other is the operator-side lever on it.</p>
+    <p>Semi-empirical: the shape of the rule follows from the mechanism, the constants are fitted to the
+    sweeps.</p>
+  </div>
+</section>
+
+<!-- 14 ── how many ─────────────────────────────────── -->
+<section class="slide" data-sec="The settings">
+  <p class="eyebrow">Setting one</p>
+  <h1 class="small">One more footnote than there are blocks in the air</h1>
+  <div class="row r">
+    <div class="col">
+      <p class="lede">Any fewer and the backlog never clears — no other setting rescues it.</p>
+      <p class="term">Round up, then add one: <code>U = ⌈ρ⌉ + 1</code>. Two, at the deployment target.</p>
+    </div>
+    <figure class="fig">
+      <img src="%%FIG26%%" alt="Accuracy against how many blocks are in the air, for footnote budgets of none, one, two and three. None decays steadily; one holds until the load nears one and then falls away; two and three stay exact across the whole range.">
+      <p class="read">Across the bottom: blocks in the air at once. Up the side: what the system counts.
+        Each line is a footnote budget — the orange one runs out just as the load reaches one.</p>
+    </figure>
+  </div>
+  <div class="notes">
+    <p>Read the orange line: one footnote holds the count exact while the load is comfortably below one,
+    then peels away exactly where it stops clearing the backlog. That peel-off point <em>is</em> the
+    rule.</p>
+    <p>Why the spare: at a load of 0.96 a single footnote lands at 0.962 ± 0.006, three standard errors
+    short. The tight minimum starts under-shooting from about 0.9, just below each whole number.</p>
+    <p>The spec already permits up to four. The deployment target needs two, so nothing needs changing —
+    just don't read four as the operating point.</p>
+  </div>
+</section>
+
+<!-- 15 ── how far ──────────────────────────────────── -->
+<section class="slide" data-sec="The settings">
+  <p class="eyebrow">Setting two</p>
+  <h1 class="small">A footnote may reach twelve blocks back</h1>
+  <div class="row r">
+    <div class="col">
+      <p class="lede">Counted in blocks, not in seconds. It barely moves when the network gets
+        slower.</p>
+      <p class="term">Twelve block-intervals — <code>W = 12</code>, or 360 slots, in the spec. The measured floor is about seven.</p>
+    </div>
+    <figure class="fig">
+      <img src="%%FIG22%%" alt="A grid of accuracy values. Rows are how far back a footnote may reach; columns are how slow the network is. The top rows are accurate across most columns, and the boundary where accuracy collapses runs horizontally rather than diagonally.">
+      <p class="read">Rows: how far back a footnote may reach. Columns: how slow the network is.
+        Yellow is accurate. The edge runs <b>across</b>, not diagonally — so it is the block spacing that
+        sets this, not the network.</p>
+    </figure>
+  </div>
+  <div class="notes">
+    <p>If this were set by network speed, the yellow-to-blue boundary would slope. It does not — which is
+    the whole argument on this slide.</p>
+    <p>The reach is a buffer for the randomness in when blocks appear, not for latency. Near a load of
+    one, widening it to fifteen or twenty block intervals recovers what ten loses — cheaper than buying
+    another footnote slot.</p>
+    <p>The spec sets W = 12 block-intervals, 360 slots. It states no lower bound, and the measured
+    floor is about seven — so twelve carries roughly a 1.7× margin. That floor is the contribution here.
+    Twelve rather than ten is what the parent-anchored window needs: anchoring on the parent lengthens the
+    gap a footnote has to span, which was measured to parity over 2 112 paired runs.</p>
+    <p>The two settings are not interchangeable. No number of footnotes buys below the reach floor, and
+    no amount of reach buys below the footnote minimum.</p>
+  </div>
+</section>
+
+<!-- 18 ── ship / change ────────────────────────────── -->
+<section class="slide centre" data-sec="The recommendation">
+  <p class="eyebrow">Where this landed</p>
+  <div class="row" style="align-items:start">
+    <div class="col">
+      <h1 class="small" style="font-size:calc(4.4*var(--u))">The spec now says</h1>
+      <ul class="list">
+        <li>Count occupied draws, once each<span>each slot counted once, however many blocks fall in it</span></li>
+        <li>Reach back twelve blocks<span>W = 12 → 360 slots</span></li>
+        <li>Measure the reach from the <b>parent</b><span>bounds how far back checking has to go</span></li>
+        <li>Carry up to four footnotes<span>MAX_UNCLES = 4</span></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h1 class="small" style="font-size:calc(4.4*var(--u))">Still open</h1>
+      <ul class="list">
+        <li>Two footnotes is what this network needs<span>⌈ρ⌉ + 1 — the other two are headroom</span></li>
+        <li>Pay for footnotes<span>the spec grants no reward; uncle + nephew under one block reward</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="notes">
+    <p>Worth saying out loud: the left column is not a wish list. Spec revision 1.2.0 already adopted
+    counting per occupied slot, the parent-anchored window, and W = 12 — three of the things this study
+    argued for. The talk is partly a record of why they are right rather than a request to change them.</p>
+    <p>W = 12 is the parent-anchor figure. Anchoring on the parent lengthens the gap a footnote must span,
+    so the window has to widen by a block-interval or two; twelve was measured to parity over 2 112 paired
+    runs and bracketed to half a block.</p>
+    <p>MAX_UNCLES = 4 is a cap, not an operating point. The load at the deployment target is about 0.56, so
+    two is what gets used; the spare two are headroom for a slower network.</p>
+    <p>The load rule is the one thing here with no home in the spec — it constrains the Blend delay budget
+    rather than a consensus constant, so it belongs in deployment guidance.</p>
+    <p>Rewards are the real remaining gap. The spec says plainly that an uncle grants no block reward, and
+    that "because uncle references carry no fork-choice weight and grant no reward, a proposer has no
+    incentive to deviate" — a sentence that stops holding the moment they pay. Three things would need
+    reconciling: that rationale, the content-independent reward voucher, and the fact that a discarded
+    block never executes, so its author has no payout path at all.</p>
+  </div>
+</section>
+
+<!-- ── thank you ────────────────────────────────────── -->
+<section class="slide" data-sec="">
+  <div class="col mid">
+    <h1 class="big">Thank you</h1>
+  </div>
+  <div class="notes">
+    <p>Backup, if questions run: §3.7 for how this scales with network size and the peering-degree
+    argument, §6.10 for how deep a rewrite can go, Appendix B for the week-to-week noise floor in the
+    estimate.</p>
+    <p>The open items are in §8.3 — twenty of them. The two that would actually bite in production are
+    the bistable edge right at a load of one, and the fact that a divergence in the number can never
+    self-heal, so the genesis value has to be a protocol constant.</p>
+  </div>
+</section>
+
+<!-- ── media ────────────────────────────────────────── -->
+<section class="slide" data-sec="" data-media="4" data-top="" data-bottom="">
+  <div class="media"><div class="frame"><div class="cap"><span></span><span></span></div></div></div>
+  <div class="notes"><p>Closer. Drop a file at assets/4.*.</p></div>
+</section>
+
+<div class="foot">
+  <span id="secName"></span>
+  <span class="track"><i id="trackFill"></i></span>
+  <span class="n" id="pageNo"></span>
+</div>
+
+</div>
+</div>
+
+<div class="notes-drawer" id="drawer" aria-live="polite">
+  <h4>Speaker notes</h4>
+  <div id="notesBody"></div>
+</div>
+
+<div class="help" id="help">
+  <div class="box">
+    <h4>Keys</h4>
+    <dl>
+      <dt>→ space ↓</dt><dd>Next</dd>
+      <dt>← ↑</dt><dd>Previous</dd>
+      <dt>Home End</dt><dd>First · last</dd>
+      <dt>N</dt><dd>Speaker notes</dd>
+      <dt>T</dt><dd>Light / dark</dd>
+      <dt>F</dt><dd>Fullscreen</dd>
+      <dt>P</dt><dd>Export PDF, one slide per page</dd>
+      <dt>? Esc</dt><dd>This panel</dd>
+    </dl>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // Size the stage unit from whatever box we have. The CSS default is width-derived
+  // so the deck is never zero-sized; narrow it against a real height when there is one.
+  function fit() {
+    var w = document.documentElement.clientWidth || window.innerWidth || 1280;
+    var h = document.documentElement.clientHeight || window.innerHeight || 0;
+    var u = w * 0.005625;
+    if (h > 200) { u = Math.min(u, h / 100); }
+    document.documentElement.style.setProperty("--u-js", u.toFixed(4) + "px");
+  }
+  window.addEventListener("resize", fit);
+  fit();
+
+  var stage = document.getElementById("stage");
+  var secName = document.getElementById("secName");
+  var trackFill = document.getElementById("trackFill");
+  var pageNo = document.getElementById("pageNo");
+  var notesBody = document.getElementById("notesBody");
+  var slides = [];
+  var i = 0;
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+  function chrome() {
+    var s = slides[i];
+    if (!s) { return; }
+    secName.textContent = s.getAttribute("data-sec") || "";
+    pageNo.textContent = pad(i + 1) + " / " + pad(slides.length);
+    trackFill.style.width = (slides.length > 1 ? (i / (slides.length - 1)) * 100 : 0) + "%";
+    var n = s.querySelector(".notes");
+    notesBody.innerHTML = n ? n.innerHTML : "<p>No notes for this slide.</p>";
+  }
+
+  function show(next) {
+    document.body.classList.add("ready");
+    i = Math.max(0, Math.min(slides.length - 1, next));
+    slides.forEach(function (s, k) {
+      var on = k === i;
+      s.classList.toggle("is-active", on);
+      var v = s.querySelector("video");
+      if (v) { if (on) { v.play().catch(function () {}); } else { v.pause(); v.currentTime = 0; } }
+    });
+    runScene(slides[i]);
+    chrome();
+    // a file:// document can refuse the history API; deep links are a nicety, not a requirement
+    try {
+      if (window.location.hash !== "#" + (i + 1)) {
+        history.replaceState(null, "", "#" + (i + 1));
+      }
+    } catch (err) { /* no deep link here */ }
+  }
+
+  function reindex() { slides = Array.prototype.slice.call(stage.querySelectorAll(".slide")); }
+
+  /* ── the block diagrams ───────────────────────────────────────
+     Blocks arrive at irregular intervals, so they are revealed at irregular
+     intervals: a fresh random gap between each pair every time the slide is
+     shown. Change GAP to retime it — [min, max] seconds between blocks. */
+  var GAP = [1, 3];
+
+  function restart(el, animation) {
+    el.style.animation = "none";
+    void el.offsetWidth;              // force a reflow so the animation re-runs
+    el.style.animation = animation;
+  }
+
+  function runScene(slide) {
+    var scene = slide.querySelector(".scene");
+    if (!scene) { return; }
+    var steps = Array.prototype.slice.call(scene.querySelectorAll("[data-seq]"));
+    if (!steps.length) { return; }
+
+    var t = 0.3;
+    var at = [];
+    steps.forEach(function (el, k) {
+      if (k > 0) { t += GAP[0] + Math.random() * (GAP[1] - GAP[0]); }
+      at.push(t);
+      restart(el, "pop .3s ease " + t.toFixed(2) + "s both");
+    });
+
+    // the losing block shows up alongside its rival and fades when the chain moves on
+    var orphan = scene.querySelector("[data-with]");
+    if (orphan) {
+      var appears = at[+orphan.getAttribute("data-with")];
+      var fades = at[+orphan.getAttribute("data-dim")];
+      if (fades === undefined) { fades = appears + 2; }
+      restart(orphan, "pop .3s ease " + appears.toFixed(2) + "s both, dim .5s ease "
+        + fades.toFixed(2) + "s forwards");
+    }
+
+    var last = at[at.length - 1];
+    Array.prototype.forEach.call(scene.querySelectorAll("[data-after]"), function (el) {
+      var d = last + parseFloat(el.getAttribute("data-after"));
+      restart(el, (el.classList.contains("s-line") ? "draw .8s ease " : "pop .4s ease ")
+        + d.toFixed(2) + "s both");
+    });
+  }
+
+  function fromHash() {
+    var n = parseInt((window.location.hash || "").slice(1), 10);
+    return isNaN(n) ? 0 : n - 1;
+  }
+
+  /* ── media slots ──────────────────────────────────────────────
+     Each media slide looks for assets/<n>.<ext>, video formats first.
+     Nothing found → the slide removes itself, so the deck always presents. */
+  var VIDEO = ["mp4", "webm", "mov", "m4v"];
+  var IMAGE = ["gif", "png", "jpg", "jpeg", "webp", "avif"];
+
+  // A missing local file does not always fire `error` promptly, so every probe carries
+  // a short deadline. They all run at once — serially this would cost seconds per slot.
+  function probe(src, isVideo) {
+    return new Promise(function (resolve) {
+      var el = isVideo ? document.createElement("video") : new Image();
+      var settled = false;
+      function done(ok) { if (!settled) { settled = true; clearTimeout(timer); resolve(ok); } }
+      var timer = setTimeout(function () { done(false); }, 1200);
+      el.onerror = function () { done(false); };
+      if (isVideo) { el.preload = "metadata"; el.onloadedmetadata = function () { done(true); }; }
+      else { el.onload = function () { done(true); }; }
+      el.src = src;
+    });
+  }
+
+  async function resolveMedia(slide) {
+    var n = slide.getAttribute("data-media");
+    var cands = VIDEO.map(function (e) { return ["assets/" + n + "." + e, true]; })
+      .concat(IMAGE.map(function (e) { return ["assets/" + n + "." + e, false]; }));
+
+    var found = await Promise.all(cands.map(function (c) { return probe(c[0], c[1]); }));
+    var hit = found.indexOf(true);   // candidates are in priority order: video, then image
+    if (hit < 0) {
+      slide.parentNode.removeChild(slide);
+      return;
+    }
+
+    var el;
+    if (cands[hit][1]) {
+      el = document.createElement("video");
+      el.muted = true; el.loop = true; el.controls = false;
+      el.setAttribute("playsinline", "");
+    } else {
+      el = document.createElement("img");
+      el.alt = "";
+    }
+    el.src = cands[hit][0];
+    var box = slide.querySelector(".frame");
+    box.insertBefore(el, box.firstChild);
+    var caps = slide.querySelectorAll(".cap span");
+    caps[0].textContent = slide.getAttribute("data-top") || "";
+    caps[1].textContent = slide.getAttribute("data-bottom") || "";
+  }
+
+  var startIndex = fromHash();
+  reindex();
+  show(startIndex);
+
+  (async function () {
+    var before = slides.length;
+    var media = Array.prototype.slice.call(stage.querySelectorAll("[data-media]"));
+    await Promise.all(media.map(resolveMedia));
+    reindex();
+    // Re-resolve a deep link against the final list: empty media slots are gone now,
+    // so the numbering has shifted. With nothing removed, or no deep link, just refresh
+    // the footer — re-running show() would replay the entry animation for no reason.
+    if (slides.length !== before && startIndex !== 0) { show(startIndex); } else { chrome(); }
+  }());
+
+  /* ── keys ─────────────────────────────────────────────────── */
+  document.addEventListener("keydown", function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && t.tagName === "INPUT" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) { return; }
+    switch (e.key) {
+      case "ArrowRight": case "ArrowDown": case " ": case "PageDown":
+        e.preventDefault(); show(i + 1); break;
+      case "ArrowLeft": case "ArrowUp": case "PageUp":
+        e.preventDefault(); show(i - 1); break;
+      case "Home": e.preventDefault(); show(0); break;
+      case "End": e.preventDefault(); show(slides.length - 1); break;
+      case "n": case "N": document.body.classList.toggle("notes"); break;
+      case "t": case "T":
+        document.documentElement.setAttribute("data-theme",
+          document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+        break;
+      case "p": case "P": window.print(); break;
+      case "f": case "F":
+        try {
+          if (document.fullscreenElement) { document.exitFullscreen(); }
+          else if (document.documentElement.requestFullscreen) {
+            var pr = document.documentElement.requestFullscreen();
+            if (pr && pr.catch) { pr.catch(function () {}); }
+          }
+        } catch (err) { /* the browser may disallow it */ }
+        break;
+      case "?": document.body.classList.toggle("help"); break;
+      case "Escape": document.body.classList.remove("help"); break;
+      default: break;
+    }
+  });
+
+  stage.addEventListener("click", function (e) {
+    if (e.target.closest("button, input, a, video")) { return; }
+    var r = this.getBoundingClientRect();
+    var x = (e.clientX - r.left) / r.width;
+    if (x > 0.7) { show(i + 1); } else if (x < 0.3) { show(i - 1); }
+  });
+
+  var tx = null;
+  document.addEventListener("touchstart", function (e) { tx = e.changedTouches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", function (e) {
+    if (tx === null) { return; }
+    var d = e.changedTouches[0].clientX - tx;
+    if (Math.abs(d) > 48) { show(i + (d < 0 ? 1 : -1)); }
+    tx = null;
+  }, { passive: true });
+
+  document.getElementById("help").addEventListener("click", function () {
+    document.body.classList.remove("help");
+  });
+
+  /* ── the load console ─────────────────────────────────────── */
+  var L_MEAN = 1.2;   // mean path latency in seconds — study graph, 1000 nodes, degree 6
+  var kHops = document.getElementById("kHops");
+  var kD = document.getElementById("kD");
+  var kF = document.getElementById("kF");
+  var oHops = document.getElementById("oHops");
+  var oD = document.getElementById("oD");
+  var oF = document.getElementById("oF");
+  var rRho = document.getElementById("rRho");
+  var bar = document.getElementById("bar");
+  var barFill = document.getElementById("barFill");
+  var verdict = document.getElementById("verdict");
+
+  function recompute() {
+    var hops = +kHops.value, dmax = +kD.value, iv = +kF.value;
+    var rho = (hops * dmax / 2 + (hops + 1) * L_MEAN) / iv;
+    var u = Math.max(1, Math.ceil(rho)) + 1;
+
+    oHops.textContent = hops;
+    oD.textContent = dmax;
+    oF.textContent = iv;
+    rRho.textContent = rho.toFixed(2);
+
+    var over = rho >= 1;
+    rRho.classList.toggle("over", over);
+    bar.classList.toggle("over", over);
+    barFill.style.width = Math.min(100, rho / 2 * 100) + "%";
+    verdict.textContent = over
+      ? "Over one. Footnotes cannot keep up, and no setting rescues it — the network has to get faster."
+      : (rho > 0.8
+        ? "Under one, but close. This is where the bare minimum starts falling short."
+        : "Under one, with room to spare. " + u + " footnotes per block and the count comes out exact.");
+  }
+
+  [kHops, kD, kF].forEach(function (el) { el.addEventListener("input", recompute); });
+  recompute();
+
+  window.addEventListener("hashchange", function () {
+    var n = fromHash();
+    if (n !== i) { show(n); }
+  });
+}());
+</script>
