@@ -275,8 +275,8 @@ D̂_next = max(1, D̂ · (1 − <span class="k">β</span>·(f − m/T)/f))</pre>
     which committed only to the transactions, became <code>body_root</code>, which commits to the
     serialized <code>uncle_headers</code> list as well. The block ID is the hash of the header, so it
     transitively commits to the carried entries and their signatures.</p>
-    <p>Each entry is 361 bytes — a 297-byte header plus its 64-byte signature — so at most 1 445 bytes are
-    added to a 2 MiB body.</p>
+    <p>Each entry is 361 bytes — a 297-byte header plus its 64-byte signature — and the list carries a
+    one-byte count, so at most 1 + 4 × 361 = 1 445 bytes are added to a 2 MiB body.</p>
     <p>Why the whole bottle rather than a note: validity is checked from the referencing chain and the
     carried entry alone. Availability is structural — vouching for a beer is inseparable from publishing
     the evidence.</p>
@@ -426,8 +426,8 @@ D̂_next = max(1, D̂ · (1 − <span class="k">β</span>·(f − m/T)/f))</pre>
   </div>
   <div class="notes">
     <p>The three curves are three assumptions about who wins a tie when both tallies are revealed at once.
-    The threshold is (1−γ)/(3−2γ) — a third in the worst case for the attacker, a quarter when ties always
-    go their way.</p>
+    The threshold is (1−γ)/(3−2γ): a third when ties never go the attacker's way, a quarter at even
+    odds, and it falls away to nothing as ties always go theirs.</p>
     <p>Two things worth adding. First, this threshold <em>falls</em> as the honest fork rate rises, so
     keeping the overlap under one is an incentive constraint too, not only an accuracy one — the two
     breakage slides are the same rule seen twice.</p>

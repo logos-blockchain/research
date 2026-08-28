@@ -24,13 +24,18 @@ tail = src[src.index(FOOT):]
 # These two scenes were paced for a slow reveal; halve it. GAP is the random
 # gap in seconds between one drinker and the next, and the two trailing beats
 # (the vouch arc, then the counted figure) come in proportionally sooner.
-tail = tail.replace("var GAP = [1, 3];", "var GAP = [0.5, 1.5];", 1)
-tail = tail.replace('"draw .8s ease "', '"draw .6s ease "', 1)
-if "[0.5, 1.5]" not in tail:
-    sys.exit("pacing hook missed")
+def graft(text, old, new, what):
+    if text.count(old) != 1:
+        sys.exit("make_drinking: %s anchor matched %d times, expected 1 — %r"
+                 % (what, text.count(old), old[:60]))
+    return text.replace(old, new, 1)
 
-head = head.replace("<title>Total Stake Inference</title>",
-                    "<title>Total Beer Inference</title>", 1)
+
+tail = graft(tail, "var GAP = [1, 3];", "var GAP = [0.5, 1.5];", "reveal pacing")
+tail = graft(tail, '"draw .8s ease "', '"draw .6s ease "', "vouch-arc duration")
+
+head = graft(head, "<title>Total Stake Inference</title>",
+             "<title>Total Beer Inference</title>", "deck title")
 
 EXTRA_CSS = """
 /* ─── the warning card ──────────────────────
@@ -58,7 +63,8 @@ EXTRA_CSS = """
   font-family:var(--mono);font-size:.86em;color:var(--warn);
 }
 """
-head = head.replace("\n/* ─── the load console", EXTRA_CSS + "\n/* ─── the load console", 1)
+head = graft(head, "\n/* ─── the load console", EXTRA_CSS + "\n/* ─── the load console",
+             "warning-card CSS insertion point")
 
 SPRITE = """<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <symbol id="drinker" viewBox="0 0 48 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -112,11 +118,12 @@ def scene(label, rescue):
 
 
 SLIDES = open(HERE + "/drinking_slides.html", encoding="utf-8").read()
-SLIDES = SLIDES.replace("@@SCENE_DISCARD@@", scene(
+SLIDES = graft(SLIDES, "@@SCENE_DISCARD@@", scene(
     "A row of people taking turns to drink a beer; two drink at the same moment and one of the two "
-    "beers is never written on the tally", False))
-SLIDES = SLIDES.replace("@@SCENE_RESCUE@@", scene(
-    "A later drinker vouches for the beer that missed the tally, and it is counted after all", True))
+    "beers is never written on the tally", False), "discard scene")
+SLIDES = graft(SLIDES, "@@SCENE_RESCUE@@", scene(
+    "A later drinker vouches for the beer that missed the tally, and it is counted after all", True),
+    "rescue scene")
 
 out = head + OPEN_DECK + SPRITE + SLIDES + tail
 open(HERE + "/drinking.template.html", "w", encoding="utf-8").write(out)

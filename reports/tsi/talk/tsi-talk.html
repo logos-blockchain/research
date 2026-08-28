@@ -1,3 +1,6 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Total Stake Inference</title>
 
 <!--
@@ -841,15 +844,22 @@ D̂_next = max(1, D̂ · (1 − <span class="k">β</span>·(f − m/T)/f))</pre>
     notesBody.innerHTML = n ? n.innerHTML : "<p>No notes for this slide.</p>";
   }
 
+  // Called from show() and again once the media probes settle, because a clip inserted
+  // into the already-active slide has never been through show().
+  function syncVideo() {
+    slides.forEach(function (s, k) {
+      var v = s.querySelector("video");
+      if (!v) { return; }
+      if (k === i) { v.play().catch(function () {}); }
+      else { v.pause(); v.currentTime = 0; }
+    });
+  }
+
   function show(next) {
     document.body.classList.add("ready");
     i = Math.max(0, Math.min(slides.length - 1, next));
-    slides.forEach(function (s, k) {
-      var on = k === i;
-      s.classList.toggle("is-active", on);
-      var v = s.querySelector("video");
-      if (v) { if (on) { v.play().catch(function () {}); } else { v.pause(); v.currentTime = 0; } }
-    });
+    slides.forEach(function (s, k) { s.classList.toggle("is-active", k === i); });
+    syncVideo();
     runScene(slides[i]);
     chrome();
     // a file:// document can refuse the history API; deep links are a nicety, not a requirement
@@ -923,7 +933,14 @@ D̂_next = max(1, D̂ · (1 − <span class="k">β</span>·(f − m/T)/f))</pre>
     return new Promise(function (resolve) {
       var el = isVideo ? document.createElement("video") : new Image();
       var settled = false;
-      function done(ok) { if (!settled) { settled = true; clearTimeout(timer); resolve(ok); } }
+      function done(ok) {
+        if (settled) { return; }
+        settled = true;
+        clearTimeout(timer);
+        el.onerror = el.onload = el.onloadedmetadata = null;
+        el.removeAttribute("src");     // forty of these are created per load; let them go
+        resolve(ok);
+      }
       var timer = setTimeout(function () { done(false); }, 1200);
       el.onerror = function () { done(false); };
       if (isVideo) { el.preload = "metadata"; el.onloadedmetadata = function () { done(true); }; }
@@ -966,21 +983,36 @@ D̂_next = max(1, D̂ · (1 − <span class="k">β</span>·(f − m/T)/f))</pre>
   show(startIndex);
 
   (async function () {
-    var before = slides.length;
     var media = Array.prototype.slice.call(stage.querySelectorAll("[data-media]"));
     await Promise.all(media.map(resolveMedia));
+    // read both after the probes settle but before reindex(), while `slides` is still
+    // the old array: `i` indexes into it, so slides[i] is what is actually on screen
+    var moved = i !== startIndex;          // did the presenter navigate while we probed?
+    var current = slides[i];
     reindex();
-    // Re-resolve a deep link against the final list: empty media slots are gone now,
-    // so the numbering has shifted. With nothing removed, or no deep link, just refresh
-    // the footer — re-running show() would replay the entry animation for no reason.
-    if (slides.length !== before && startIndex !== 0) { show(startIndex); } else { chrome(); }
+
+    // Empty media slots are gone, so indices have shifted and the slide that was on
+    // screen may have been one of them. Re-running show() replays the entry animation,
+    // so only do it when the active slide actually has to change.
+    var at = slides.indexOf(current);
+    if (at < 0) {
+      show(Math.min(i, slides.length - 1));       // it was removed — activate a real one
+    } else if (moved) {
+      i = at; chrome(); syncVideo();              // leave the presenter where they are
+    } else {
+      var target = fromHash();                    // untouched: honour the deep link
+      if (target === at) { i = at; chrome(); syncVideo(); } else { show(target); }
+    }
   }());
 
   /* ── keys ─────────────────────────────────────────────────── */
+  var NAV_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+                  "Home", "End", "PageUp", "PageDown"];
   document.addEventListener("keydown", function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey) { return; }
     var t = e.target;
-    if (t && t.tagName === "INPUT" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) { return; }
+    var inControl = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT");
+    if (inControl && NAV_KEYS.indexOf(e.key) >= 0) { return; }   // the load-console sliders
     switch (e.key) {
       case "ArrowRight": case "ArrowDown": case " ": case "PageDown":
         e.preventDefault(); show(i + 1); break;
@@ -1017,7 +1049,11 @@ D̂_next = max(1, D̂ · (1 − <span class="k">β</span>·(f − m/T)/f))</pre>
   });
 
   var tx = null;
-  document.addEventListener("touchstart", function (e) { tx = e.changedTouches[0].clientX; }, { passive: true });
+  document.addEventListener("touchstart", function (e) {
+    // dragging a slider is not a swipe — the click handler already makes this exception
+    if (e.target.closest && e.target.closest("button, input, a, video")) { tx = null; return; }
+    tx = e.changedTouches[0].clientX;
+  }, { passive: true });
   document.addEventListener("touchend", function (e) {
     if (tx === null) { return; }
     var d = e.changedTouches[0].clientX - tx;

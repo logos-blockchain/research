@@ -35,7 +35,7 @@ Meme captions are the `data-top` and `data-bottom` attributes on the media slide
 
 The **circle** is the simple one: one die each, one bottle cap each, secret limits, drink when you
 roll above yours and pass a cap to your right. The twist is that the caps make everyone drink at
-exactly the same rate — over 4 000 simulated rounds, limits 1 through 5 drank 165/165/164/164/164 —
+exactly the same rate — over 1 000 simulated rounds, limits 1 through 5 drank 165/165/164/164/164 —
 so sips tell you nothing and the tell is who is never holding a cap. That is a bottleneck game, not
 an inference one.
 

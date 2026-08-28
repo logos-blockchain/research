@@ -1,3 +1,6 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Total Beer Inference — the rules</title>
 
 <style>
@@ -59,8 +62,17 @@ footer p{max-width:none}
 
 @page{size:A4 portrait;margin:0}
 @media print{
-  body{background:#fff;padding:0;font-size:10.6pt}
-  .sheet{box-shadow:none;margin:0;padding:13mm 16mm 8mm}
+  body{background:#fff;padding:0;font-size:9.7pt;line-height:1.42}
+  .sheet{box-shadow:none;margin:0;padding:7mm 15mm 3mm}
+  header{padding-bottom:6px;margin-bottom:10px}
+  h1{font-size:23pt}
+  .hook{font-size:10.6pt;margin-top:8px}
+  section{margin-bottom:6px}
+  .creed{margin-top:8px;padding:9px 15px;font-size:12.5pt}
+  .punch{margin-top:8px;padding:9px 15px}
+  .big{font-size:17pt}
+  .alt{margin-top:9px;padding-top:7px}
+  footer{margin-top:8px;padding-top:6px;font-size:8.4pt}
 }
 </style>
 
@@ -99,11 +111,11 @@ footer p{max-width:none}
 
 <section>
   <h2>Why that is harder than it sounds</h2>
-  <p><b>Everybody drinks exactly the same amount.</b> A limit of one is five times more eager than a limit
-    of five, and it makes no difference at all — the cap has to come round the circle before you can roll
-    again, so the whole table moves at the pace of its slowest member.</p>
+  <p><b>Everybody drinks exactly the same amount.</b> A limit of one is five times more eager than a
+    limit of five and it makes no difference: the cap must come round the circle before you can roll
+    again, so the table moves at the pace of its slowest member.</p>
   <p>Counting sips tells you <em>nothing</em>. What gives someone away is <b>who is never holding a
-    cap</b>. Four thousand rounds, limits one through five:</p>
+    cap</b>. One thousand rounds, limits one through five:</p>
   <table>
     <tr><th>limit</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
     <tr><td>sips</td><td>165</td><td>165</td><td>164</td><td>164</td><td>164</td></tr>
@@ -116,13 +128,13 @@ footer p{max-width:none}
 
 <section class="alt">
   <h2>The other game — one rule different</h2>
-  <p>The circle above is about <b>bottlenecks</b>. If you want the one the talk is actually about — a
-    count that comes out short — stop using caps as permission to roll and use them as a record of what
-    got missed:</p>
+  <p>The circle is about <b>bottlenecks</b>. For the one the talk is about — a count that comes out
+    short — stop using caps as permission to roll and make them a record of what got missed:</p>
   <ol>
     <li>Nobody passes anything. Everyone rolls every round.</li>
     <li><b>Six</b> — sip, and shout <b>BEER</b>. &nbsp;<b>One</b> — sip, and say nothing.</li>
-    <li>Quiet sip and <b>nobody else shouted</b> that round? Drop a cap in the middle.</li>
+    <li>Did anyone sip quietly in a round where <b>nobody shouted</b>? Put <b>one</b> cap in the
+      middle — one per round, however many went quiet.</li>
     <li>A <b>Barman</b> sits with their back turned and ticks a beer mat whenever they hear a shout. Two
       shouts is still one tick.</li>
   </ol>
@@ -136,12 +148,11 @@ footer p{max-width:none}
 </section>
 
 <footer>
-  <p><b>Why they are rigged.</b> Both are Cryptarchia, played with dice. In the second, a roll is the
-  block lottery, a sip is a block, a round is a slot, the mat is the chain, a cap is an orphan and a vouch
-  is an uncle reference — the simulator puts the count at <b>0.64 to 0.74</b> of the truth and this table
-  lands at <b>0.65 to 0.73</b>. In the first, the cap is a credit and the circle is a pipeline: it runs at
-  the speed of its slowest hop, which is the same reason the network has to stay under one block in the
-  air. Different lesson, same table.</p>
+  <p><b>Why they are rigged.</b> Both are Cryptarchia with dice. In the second a sip is a block, a round
+  is a slot, the mat is the chain, a cap is an orphan and a vouch is an uncle reference — the simulator
+  puts the count at <b>0.64–0.74</b> of the truth and this table lands at <b>0.65–0.73</b>. In the first
+  the cap is a credit and the circle a pipeline, running at the speed of its slowest hop — the same reason
+  the network must stay under one block in the air. Different lesson, same table.</p>
 </footer>
 
 </div>
