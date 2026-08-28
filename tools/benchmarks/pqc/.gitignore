@@ -1,0 +1,37 @@
+# Build trees / vendored deps (rebuilt by setup/setup.sh)
+/vendor/
+/build/
+setup/versions.lock
+
+# Compiled harness binaries
+bench/kem_sig/bench_pq
+bench/tls/bench_tls
+bench/stress/stress_roles
+*.o
+
+# Generated TLS material
+bench/tls/pki/
+
+# Per-run scratch dirs (intermediate artifacts; never committed). Results
+# themselves are NOT here — they land in reports/pqc/results/, which carries
+# its own ignore rules for the published set.
+/.work-*/
+
+# The repo-root .gitignore has a bare `lib/` rule (Python packaging boilerplate)
+# that would otherwise swallow the harness's own bench/lib/ package.
+!/bench/lib/
+
+# Rust harness build trees (Cargo.lock IS committed)
+bench/rust/target/
+bench/rust-tls/target/
+
+# Python venv (matplotlib lives here; system python stays clean)
+analyze/.venv/
+
+# Machine-local Claude Code settings (never shared)
+.claude/settings.local.json
+
+# Python / OS cruft
+__pycache__/
+*.pyc
+.DS_Store

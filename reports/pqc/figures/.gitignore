@@ -1,0 +1,7 @@
+# Figures exported by `make figures` from the merged dataset.
+#
+# Same rule as ../results: generated output is not committed by default, so a
+# re-export never shows up as repo churn. A figure that a report actually cites
+# is a different thing — it is that report's figure of record and belongs in
+# git, so un-ignore it here explicitly when you cite it.
+*.png
