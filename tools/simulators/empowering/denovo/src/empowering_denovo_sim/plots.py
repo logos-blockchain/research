@@ -405,6 +405,68 @@ def flood_denial(d, out: Path) -> Path:
     return p
 
 
+def window_tax(d, out: Path) -> Path:
+    """The acceptance window's price: expiry above the cap, and what it does to retirement.
+
+    Left panel from a synthetic sweep of the inclusion queue (offered demand as a multiple
+    of block space); right panel from `window.congested_price_curve`, the same runs the
+    gates pin. Backs denovo-report §4's congestion paragraph and adversarial §2.3's note.
+    """
+    from . import window                                       # noqa: PLC0415
+
+    cfg = d.cfg
+    f, (a0, a1) = _fig()
+
+    mults = np.linspace(0.5, 3.0, 11)
+    rng = np.random.default_rng(7)
+    exp_frac, infl = [], []
+    for m in mults:
+        q = window._Queue(cfg.max_block_txs)
+        offered = included = expired = 0
+        draws = rng.poisson(m * cfg.max_block_txs, 4000)
+        for a_t in draws:
+            inc, ex = q.step(int(a_t))
+            offered += int(a_t); included += inc; expired += ex
+        exp_frac.append(expired / offered)
+        infl.append(offered / included)
+    a0.plot(mults, [e * 100 for e in exp_frac], color=DANGER, linewidth=2.0, zorder=5,
+            label="solutions that expire")
+    a0.plot(mults, [(i - 1) * 100 for i in infl], color=ORANGE, linewidth=2.0, zorder=5,
+            linestyle=(0, (4, 2)), label="extra energy per paid claim")
+    a0.axvline(1.0, color=INK_2, linewidth=1.0, linestyle=(0, (2, 2)))
+    a0.text(1.0, max(exp_frac) * 100 * 0.95, " block space full", color=INK_2, fontsize=8)
+    a0.set_xlabel("offered demand, as a multiple of block space", color=INK_2, fontsize=9)
+    a0.set_ylabel("percent", color=INK_2, fontsize=9)
+    a0.legend(frameon=False, fontsize=8.5, loc="upper left", labelcolor=INK_2)
+    _style(a0, "Below the cap the window is free; above it, a tax",
+           "10-block window, exact inclusion queue -- the knee sits exactly at capacity")
+
+    rows = window.congested_price_curve(d)
+    xs = [r["token_usd"] for r in rows]
+    # The two series COINCIDE at every price -- that is the finding. Drawn as a wide
+    # translucent base with a thin line inside it, so the identity is visible rather than
+    # one series silently hiding the other.
+    a1.plot(xs, [r["persists_until"] for r in rows], color=BLUE, linewidth=7.0, alpha=0.30,
+            zorder=5, solid_capstyle="round", label="electricity as published")
+    a1.plot(xs, [r["persists_until_taxed"] for r in rows], color=DANGER, linewidth=1.6,
+            zorder=6, marker="o", markersize=4.5, label="with the congestion tax")
+    a1.set_xscale("log")
+    a1.invert_xaxis()
+    a1.set_xlabel("token price, USD per LGO (log; dearer left)", color=INK_2, fontsize=9)
+    a1.set_ylabel("incumbents keep mining until epoch", color=INK_2, fontsize=9)
+    a1.legend(frameon=False, fontsize=8.5, loc="lower left", labelcolor=INK_2)
+    _style(a1, "The tax moves no retirement threshold: the lines coincide",
+           "the thin taxed line sits inside the published band at every price")
+
+    f.suptitle("The acceptance window, priced", color=INK, fontsize=12.5, x=0.008,
+               ha="left", y=0.99)
+    f.tight_layout(rect=(0, 0, 1, 0.90))
+    p = out / "window_tax.png"
+    f.savefig(p, dpi=170, facecolor=SURFACE)
+    plt.close(f)
+    return p
+
+
 def main() -> int:
     import argparse
     ap = argparse.ArgumentParser(prog="empowering_denovo_sim.plots")
@@ -425,7 +487,8 @@ def main() -> int:
               post_phase(d, r_uniform, r_sparse, out),
               adversarial(d, out),
               retirement_price(d, out),
-              flood_denial(d, out)):
+              flood_denial(d, out),
+              window_tax(d, out)):
         print(f"  wrote {p}")
     return 0
 

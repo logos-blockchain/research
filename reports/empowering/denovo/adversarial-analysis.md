@@ -127,6 +127,8 @@ The exclusion dividend turns out to be **real but never decisive**: at no price 
 
 **The reference triple's headline number requires a token worth under a cent.** At any price at which the project would be considered a success, incumbents mine throughout and onboarding is a third of the target. That is the sharpest argument in this document for re-striking the triple.
 
+*One tax checked and found not to bite here:* expired acceptance-window claims burn electricity without paying (see the report's §4), so the decision's cost side inflates by offered/included. Closing that loop through the decision (`window.congested_price_curve`) moves **no threshold at any tested price** — persists-until 195/112/66/16 at $1/$0.10/$0.05/$0.01, identical with and without the tax — because congestion only develops in the late persistent endgame (peak ×1.41 at $1), where the decision is nowhere near marginal, while at the prices where retirement is decided early the field never grows enough to congest. The regimes where the window taxes and where decisions flip do not overlap; gated.
+
 *One limitation, because it shapes the output.* Income and cost both scale with hashrate, so the comparison is hashrate-independent and every miner decides identically — the model returns 0% or 100%, never a fraction, and near the break-even it oscillates period-2 for the same reason Q9's participation cliff does. A real population varies in electricity price, efficiency and horizon, and would settle at a fraction still mining. Read the flip epoch as the point where the marginal operator leaves, not as a claim that the field empties at once.
 
 ### 2.4 What would actually fix it

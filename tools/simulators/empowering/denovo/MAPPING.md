@@ -19,7 +19,7 @@ though their name does not — the easiest kind of change to miss when implement
 
 | mechanism | where it lives | note |
 | --- | --- | --- |
-| claim operation `CLAIM_POW_REWARD` | `mantle` §Proof of Work Operations | payload, ticket derivation, nullifier, acceptance window, Groth16 proof — byte-for-byte |
+| claim operation `CLAIM_POW_REWARD` | `mantle` §Proof of Work Operations | payload, ticket derivation, nullifier, acceptance window, Groth16 proof — byte-for-byte. The window (`W = 10` expected blocks) is also **priced**, not just consumed: free in every regime that matters, a 28.8%-expiry energy tax only in the late persistent endgame, 0.135%/epoch in the post-phase tail, and it bounds any attacker's claim stockpile to ~10 blocks of its own rate (`window.py`, gated; report §4) |
 | self-funding claim | `mantle` (interleaving + epoch-fixed reward) | preserved by Q5: the reward is still known at claim-construction time |
 | fee diversion (`POW_SHARE`) | `overview-cryptoeconomics` §PoW Reward Pool; under lips PR 375, a carve-out from `block-rewards`' pending rewards pool | same 10%, same per-block flooring; lands in `fee_accrual`. **Decided 2026-08-24**: fees enter the pool in full and this is the pool's first outflow, not an interception ahead of it (contradiction 4.13) |
 | retarget implementation | `mantle` `compute_new_reward_difficulty` | the function is reused verbatim; only its target argument and *when it runs* change |

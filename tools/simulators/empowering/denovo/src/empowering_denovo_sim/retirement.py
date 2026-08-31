@@ -76,9 +76,16 @@ class Rational:
     blend_pool_lgo: float = BLEND_POOL_LGO_PER_EPOCH
     horizon_epochs: int = 195
     count_exclusion: bool = True
+    # Optional epoch -> factor on the electricity cost. The acceptance-window study feeds
+    # the congestion tax through here: when offered demand exceeds block space, expired
+    # solutions burn energy without paying, so the effective cost per PAID claim inflates
+    # by offered/included (window.py). None means 1.0 everywhere -- the default economics,
+    # and every previously pinned result, are unchanged.
+    cost_multiplier: object = None
 
     def keeps_mining(self, d: Derived, hashrate: np.ndarray, bonded: np.ndarray,
-                     budget_lepta: int, rate_prev: float, providers: int) -> np.ndarray:
+                     budget_lepta: int, rate_prev: float, providers: int,
+                     epoch: int = 0) -> np.ndarray:
         """Per-miner decision for the bonded set. Returns a bool array over all miners.
 
         ``rate_prev`` is the previous epoch's live hashrate: a miner deciding at the boundary
@@ -101,6 +108,8 @@ class Rational:
         # wall-clock, not the claims that happen to land.
         cost_usd = (hashrate * epoch_seconds * PI5_WH_PER_CANDIDATE / 1000.0
                     * self.electricity_usd_per_kwh)
+        if self.cost_multiplier is not None:
+            cost_usd = cost_usd * float(self.cost_multiplier(epoch))
 
         dividend_lgo = np.zeros_like(income_lgo)
         if self.count_exclusion and providers >= MIN_PROVIDERS:

@@ -75,6 +75,11 @@ class EpochRow:
     miners_live: int
     difficulty_target: int
     endowment_drawn: int            # what this epoch took from the endowment bucket
+    offered_mu: float = 0.0         # UNCLIPPED expected claims per block from the live rate.
+                                    # The engine clips offered at max_block_txs before paying,
+                                    # so demand above the cap is invisible to everything below;
+                                    # this records it for the acceptance-window study, which
+                                    # prices what the clip discards (window.py).
     persisting: float = 0.0         # of those bonded by this epoch's end, the share that
                                     # MINED during it -- measured from the live mask, so it is
                                     # truthful under every mode: an outcome under a
@@ -210,7 +215,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
             bonded_now = (pop.arrived >= 0) & (pop.bonded_at != NOT_SET)
             pop.refuses_to_retire = retirement_policy.keeps_mining(
                 d, pop.hashrate, bonded_now, budget, rate_prev,
-                providers=int(bonded_now.sum()))
+                providers=int(bonded_now.sum()), epoch=e)
             retire_on_bond = True
 
         # ---- the epoch, block by block (MODEL.md section 4)
@@ -324,6 +329,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
 
         # The newly bonded were live this epoch by construction -- mining is how they bonded --
         # so `live[bonded]` is the truthful "did this bonded miner mine" for every mode.
+        epoch_mu = work.expected_claims(rate, difficulty, cfg) if rate > 0 else 0.0
         bonded_mask = pop.bonded_at != NOT_SET
         persisting = float(live[bonded_mask].mean()) if bonded_mask.any() else 0.0
         rows.append(EpochRow(
@@ -332,7 +338,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
             claims_paid=paid_total, spent=spent, saturation_block=saturation,
             max_block_claims=max_block_claims, bonds_total=bonds_total, bonds_new=bonds_total - bonds_before,
             miners_live=int(live.sum()), difficulty_target=difficulty,
-            endowment_drawn=endowment_drawn, persisting=persisting))
+            endowment_drawn=endowment_drawn, offered_mu=epoch_mu, persisting=persisting))
 
         # boundary rollover: unspent F stays; the epoch's accrual joins it (MODEL.md section 3)
         fee_bucket = fee_bucket + fee_accrual

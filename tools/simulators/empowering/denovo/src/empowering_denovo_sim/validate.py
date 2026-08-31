@@ -421,6 +421,50 @@ def main() -> int:
                f"{'/'.join(str(c['persists_until']) for c in _curve)} and onboards "
                f"{'/'.join(format(c['bonds'], ',') for c in _curve)} at $1.00/$0.10/$0.01")
 
+    # ---------------------------------------------------------------- the window, priced
+    print("\nThe acceptance window, priced (W = 10 blocks)")
+    from . import window as win                                # noqa: PLC0415
+
+    _wref = engine.run(d, arrivals.uniform(220, 130), _st2.hashrate_draw(cfg), epochs=220)
+    _wprof = win.congestion_profile(_wref.rows, cfg)
+    check("the window is free where the field stays small",
+          max(c.inflation for c in _wprof) < 1.001, True,
+          note="reference retiring run: worst epoch inflation 1.000x, expiry 0.00% -- "
+               "offered demand never nears block space, so nothing waits and nothing dies")
+    _wspk = engine.run(d, arrivals.spike(220, 130, at=30, factor=100),
+                       _st2.hashrate_draw(cfg), epochs=35)
+    _cs = win.congestion_profile(_wspk.rows, cfg)[30]
+    check("and it acquits the x100 spike",
+          (_cs.expired, round(_cs.inflation, 3)), (0, 1.0),
+          note=f"{_cs.offered / cfg.blocks_per_epoch:.0f} offered a block against 1,024 of "
+               f"space -- the crowding is real (83-84% of the cap) but the queue clears "
+               f"inside the window; not one solution expires")
+    _wper = engine.run(d, arrivals.uniform(220, 130), _st2.hashrate_draw(cfg), epochs=220,
+                       retire_on_bond=False)
+    _cp = win.congestion_profile(_wper.rows, cfg)[194]
+    check("the tax lives in the late persistent endgame",
+          (round(_cp.inflation, 2), round(_cp.expiry_fraction, 3)), (1.41, 0.288),
+          note="epoch 194 of the never-shrinking field: 1,439 offered a block, 28.8% of "
+               "solutions expire, energy per paid claim x1.41 -- the floored difficulty "
+               "meets finite block space, and the window collects the difference")
+    check("the post-phase saturation tail loses a tenth of a percent",
+          round(win.post_tail_loss(_wref.rows, cfg), 5), 0.00135,
+          note="solutions found between saturation and the window's grace strip expire and "
+               "re-mine next epoch -- R7b's only hidden fee, 0.135% per settled epoch")
+    check("and the window bounds any stockpile to ten blocks of the attacker's own rate",
+          round(win.stockpile_bound(d, 10 * 1000 * power.board(cfg).candidates_per_second), 1),
+          1079.4,
+          note="a 10x-the-field whale holds at most ~1,079 claims ready against an epoch "
+               "capacity of 648,000 -- the grinding defence, quantified; and why the "
+               "adversary harness's live-rate limit was never an understatement")
+    _wcurve = win.congested_price_curve(d, prices=(0.10,))
+    check("the tax moves no retirement threshold",
+          (_wcurve[0]["persists_until"], _wcurve[0]["persists_until_taxed"]), (112, 112),
+          note="at $0.10, the steepest tested point of the price curve: identical with and "
+               "without the congestion tax, because congestion develops only where the "
+               "decision is nowhere near marginal -- the full sweep (1.0/0.10/0.05/0.01) "
+               "shows the same at every price")
+
     print()
     if FAILURES:
         print(f"{len(FAILURES)} FAILURES")
