@@ -11,8 +11,9 @@ metered release from a finite genesis reserve rather than minted. Three conseque
 here: the recycled term of the block reward is the WINDOWED AVERAGE of pooled fees, not the
 latest block's (`block_reward_lgo`); the pool and reserve are explicit stocks with a
 conservation identity (`Stocks`); and the vocabulary is pooled, not burnt. The PR's own
-integer section is flagged "Rederivation required" -- its Rust body still uses the
-single-block fee -- so the superseded form is kept callable as
+integer reference STILL uses the single-block fee -- PR 375 merged on 2026-08-26 with the
+"Rederivation required" flag REMOVED (2026-08-25) but the rederivation never applied, so
+master now carries the divergence unflagged -- and the superseded form is kept callable as
 `block_reward_lgo_single_block` for parity with `master`, and the divergence is recorded as
 contradiction 4.12.
 
@@ -134,10 +135,12 @@ def block_reward_lgo_single_block(total_stake_lgo: float,
                                   pooled_window_lgo: list[float]) -> float:
     """The superseded recycled term: the LATEST block's fee, not the windowed average.
 
-    This is `master`'s rule, and it is also what PR 375's own integer section and Rust
-    reference still compute -- the PR flags that section "Rederivation required" rather than
-    fixing it, so until the rederivation lands the specification's real-valued rule and its
-    consensus-level reference disagree (contradiction 4.12). Kept callable so the parity gate
+    This is what `master`'s integer reference STILL computes after PR 375 merged
+    (2026-08-26): the merge rewrote that block around int64 and renamed the window to
+    `pooled_fees_window`, removed the "Rederivation required" flag (2026-08-25) -- and left
+    `last_pooled_fee` in the recycled term. The specification's real-valued rule and its
+    consensus-level reference therefore disagree on master, now without the callout that
+    admitted it (contradiction 4.12). Kept callable so the parity gate
     can pin the divergence instead of letting it hide.
     """
     a = emission_factor_scaled(total_stake_lgo, pooled_window_lgo)

@@ -690,8 +690,10 @@ def gate_emission(cfg: Config) -> None:
     check("the superseded single-block form still answers 12 -- master parity",
           emission.block_reward_lgo_single_block(1e10, [0.0] * 119 + [12.0]), 12.0,
           rel=1e-12,
-          note="kept callable because PR 375's own integer section is flagged 'Rederivation "
-               "required' and still computes this; the divergence is contradiction 4.12")
+          note="kept callable because master's integer reference still computes this after "
+               "the 2026-08-26 merge of PR 375 -- the 'Rederivation required' flag was "
+               "removed without the fix, so the divergence is now unflagged upstream; "
+               "contradiction 4.12")
     check("a full window and a lone block agree only when the window is flat",
           emission.block_reward_lgo(1e10, [12.0] * emission.POOL_WINDOW), 12.0, rel=1e-12,
           note="flat fees are the regime this simulator runs in, which is why the windowed "

@@ -294,8 +294,11 @@ three more; Q7 settled 2026-08-19, Q8/Q9 pending as a coupled pair:
 
 *Planned 2026-08-22 against PR head `2b3b698` (branch `pooling-distributing`). Status at
 planning time: thomaslavaur APPROVED after changes, madxor's review pending, the Verified
-checklist open. The PR is still moving; every step below re-checks against the head it lands
-on, and this section records the head it was planned against.*
+checklist open. **Outcome: the PR merged to master 2026-08-26 at `6aaa6db`**; the plan was
+executed against the pinned head and re-verified against the merged text on 2026-08-31 —
+five drift-gate patterns widened for pre-merge formatting cleanups, no value moved, and one
+merge-day fact recorded as its own finding: the integer-section "Rederivation required" flag
+was removed without the rederivation (contradiction 4.12, UPSTREAM-PENDING §4).*
 
 ## What the RFC changes
 

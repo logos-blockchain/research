@@ -5,11 +5,16 @@ Each entry is written so it can be posted without redoing the work: the question
 the evidence, and where the code is. **Nothing here has been sent.** Posting to a public PR is
 outward-facing and needs the design owner's explicit go.
 
-*Last verified 2026-08-25 against logos-lips PR 375 at head `2b3b698`.*
+*Last verified 2026-08-31 against **merged master** (`6aaa6db`, PR 375 merged 2026-08-26) and the EmPoWering RFC branch (PR 400, unchanged). PR 375's merge retargets items 1, 2 and 3: they are now findings against master, for a follow-up issue or PR rather than PR-375 review.*
 
 ---
 
-## 1. PR 375's open boundary question — `P_t ≥ 0` in the early-life regime
+## 1. The `P_t ≥ 0` boundary — asked in PR 375's review, merged unanswered
+
+**Status 2026-08-31: PR 375 merged with the constraint exactly as it was** — merged master's
+Pool Accounting still says only "The pool is redistributable, subject to `P_t ≥ 0`", with no
+mechanism delivering it. The open question below is now a gap in the *merged* specification,
+and the answer belongs in a follow-up issue or PR against master.
 
 ### What they asked
 
@@ -94,11 +99,16 @@ wants precedent; it is not an argument on its own.)*
 
 ### What is needed
 
-One sentence in PR 375. `storage-markets.md`'s Fee Routing subsection and
+**Status 2026-08-31: unchanged by the merge** — merged master's `storage-markets.md` still
+routes each fee "in full" (its Fee Routing subsection, verified at line 99) and the
+`R_block` decomposition still has no proof-of-work term, so the contradiction now sits
+between two *merged* documents once the EmPoWering RFC lands.
+
+One sentence, now against master. `storage-markets.md`'s Fee Routing subsection and
 `execution-market.md`'s closing derivation both say fees route into the pending rewards pool
 **"in full"**, and the decomposition `R_block = R̂_STR + R̂_pooled` has no proof-of-work term.
 EmPoWering diverts `POW_SHARE` (10%). As written, the two specifications contradict each other
-the day both merge.
+the day the EmPoWering RFC joins the already-merged routing text.
 
 ### What was decided here
 
@@ -108,14 +118,56 @@ stays literally true and nothing in PR 375's arithmetic changes; what it needs i
 acknowledgement that the pool has an outflow the decomposition does not currently name.
 
 Recorded with its accounting consequences as contradiction 4.13
-(`tools/simulators/empowering/docs/CONTRADICTIONS.md`). Implemented in
+(`tools/simulators/empowering/strategies/docs/CONTRADICTIONS.md`). Implemented in
 `emission.pooled_inflow_lgo`, gated, and costed: identical at `A_t = 1` where every published
 figure sits, 0.0005% near target, and exactly `1/(1 − pow_share)` only in the genesis-seed
 transient.
 
 ---
 
-## 3. The leader-incentive concern, if wanted
+## 3. The integer reference's "Rederivation required" flag was removed without the rederivation
+
+### What happened
+
+At the head this workstream pinned (`2b3b698`), PR 375's integer section carried an honest
+callout: the derivation and reference implementation were written for the old single-block
+recycled term, and rederivation against the windowed rule was required. A pre-merge commit on
+2026-08-25 — *"removing 'rederivation required'"* — deleted the callout, rewrote the block
+around `int64`, renamed the window to `pooled_fees_window`… and **left `last_pooled_fee` in
+the recycled term**. PR 375 then merged (2026-08-26, `6aaa6db`).
+
+### The consequence
+
+Merged master now contains two reference implementations of the block reward that disagree —
+equation (1) and its Python reference distribute the windowed average `R̄_t`; the
+consensus-level integer reference distributes the latest block's fee — **with no flag between
+them**. Before the merge this was a known gap with a warning attached; after it, an
+implementer reading only the integer section ships the single-block rule believing it final.
+
+### Measured
+
+The two rules differ wherever fees vary within the look-back hour and `A_t < 1`. The
+strategy simulator implements both and pins the divergence with a parity gate: a lone 12-LGO
+block in an otherwise quiet window distributes **0.1 LGO** under the windowed rule against
+**12 LGO** under the integer reference's — a factor of 120, the full window length. (At flat
+fees the rules coincide, which is why no figure in these studies moves either way.)
+
+### The ask
+
+Apply the rederivation the removed callout prescribed: replace the recycled term's
+`last_pooled_fee` with the window sum over `T` (already accumulated for the pooling-rate KPI)
+divided by `T`, and update the worked integer example. Until then, restore the callout — a
+known divergence with a warning is a defect; the same divergence unflagged is a trap.
+
+### Provenance
+
+`empowering_sim.emission` carries both forms (`block_reward_lgo`, windowed, and
+`block_reward_lgo_single_block`, the integer reference's) with the parity gate in
+`empowering_sim.validate`. Recorded as contradiction 4.12.
+
+---
+
+## 4. The leader-incentive concern, if wanted
 
 A reviewer on PR 375 (`block-rewards.md:262`) raised that pool retention when `A_t → 1` leaves
 leaders uninterested in tips during the adoption phase. **Not answered — we have the machinery

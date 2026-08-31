@@ -215,21 +215,26 @@ the standard BN254 scalar field modulus and matches what this simulator already 
 
 ## 4.12 The block reward's recycled term — windowed or single-block (lips PR 375)
 
-`block-rewards.md` 1.1.0 (PR 375, `pooling-distributing`, head `2b3b698` at the time of this
-entry) changes the recycled term of the reward equation from the latest block's pooled fee to
-the **moving average over the look-back window T** — a genuine mechanism change, motivated as
-removing single-block volatility and the incentive to time transactions against one block.
-The same PR's integer derivation and Rust reference still compute the single-block form; the
-branch flags the section "**Rederivation required**" rather than fixing it, so the
-specification's real-valued rule and its consensus-level reference implementation disagree
-*within the same document*.
+`block-rewards.md` 1.1.0 (PR 375; entry written against head `2b3b698`, **merged to master
+2026-08-26 at `6aaa6db`**) changes the recycled term of the reward equation from the latest
+block's pooled fee to the **moving average over the look-back window T** — a genuine
+mechanism change, motivated as removing single-block volatility and the incentive to time
+transactions against one block. The same document's integer derivation and reference
+implementation still compute the single-block form. At the pinned head that section carried a
+"**Rederivation required**" callout admitting it; a 2026-08-25 pre-merge commit **removed the
+callout without applying the rederivation** (the block was rewritten around int64 and the
+window renamed to `pooled_fees_window`, but the recycled term still reads `last_pooled_fee` —
+verified against merged master). So the specification's real-valued rule and its
+consensus-level reference implementation disagree *within the same merged document*, now with
+no flag between them. Reported upstream-ready in `reports/empowering/UPSTREAM-PENDING.md` §3.
 
 **Resolved: the windowed rule**, as the stated intent, with the PR's own prescription (reuse
 the window sum already maintained for the pooling-rate KPI, divided by T). `emission.py`
 implements it as `block_reward_lgo` and keeps the superseded form callable as
 `block_reward_lgo_single_block`; the parity gate pins the divergence (a lone 12-LGO block in
-a quiet window: 0.1 LGO windowed against 12 single-block) so the rederivation landing upstream
-moves a gate here instead of passing silently. One boundary the specification leaves unstated
+a quiet window: 0.1 LGO windowed against 12 single-block) so the rederivation actually landing
+upstream — it has not, despite the flag's removal — moves a gate here instead of passing
+silently. One boundary the specification leaves unstated
 is decided here: pre-genesis window entries are zero, so a short history divides by the full
 T. **No figure in these studies moves** — every run holds fees flat, where the two rules are
 identical, and `A_t` saturates at 1 over every horizon anyway; pinned by the flat-window gate.

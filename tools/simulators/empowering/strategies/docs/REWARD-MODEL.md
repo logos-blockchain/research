@@ -7,7 +7,7 @@ in REWARD-MODEL-extraction-log.txt alongside. -->
 # Reward Model of Record — Logos Blockchain
 
 > **Substrate note (2026-08-24).** This extraction records the burn/mint substrate of its
-> source tree. Lips **PR 375** (`block-rewards.md` 1.1.0, open) replaces it with
+> source tree. Lips **PR 375** (`block-rewards.md` 1.1.0, merged 2026-08-26) replaces it with
 > pooling/distributing/releasing: fees route in full into a pending rewards pool, rewards
 > distribute from it topped up by a metered release from a finite genesis reserve
 > (`B_0 = 10⁹ LGO`), the recycled term becomes the windowed average over `T = 120` blocks,

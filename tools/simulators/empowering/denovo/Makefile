@@ -11,7 +11,7 @@ report-numbers: ## every number the report quotes, against the runs that produce
 study: ## the scenario matrix, printed
 	$(PY) -m empowering_denovo_sim.study
 
-plots: ## the report's five figures
+plots: ## the report's seven figures
 	$(PY) -m empowering_denovo_sim.plots --out ../../../../reports/empowering/denovo/figures
 
 # The calculator re-implements the closed forms in JS, so `web` regenerates its inputs from
