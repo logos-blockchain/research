@@ -166,11 +166,13 @@ def current_design() -> dict:
         Queue = seated minus elevated; fundable = the remaining pool over one bond -- the
         ceiling even a perfect world could not beat, since every bond costs `min_stake` and
         the pool is all there is. Past this epoch, most of the queue can never get in no
-        matter what happens. Was the literal 212 with a note admitting it was "carried from
-        the strategy study; not reproducible from committed code" until 2026-08-25 -- the one
-        claim in the set that confessed to being unbacked. Computed, it is 214 under
-        persistence (the carried figure was its neighbour) and 338 under retirement, and like
-        the door it had been published regime-free at the persistent end.
+        matter what happens. Provenance, corrected twice: the literal 212 here once carried a
+        note calling itself unreproducible; it is in fact the strategies report's section-7
+        measurement (Poisson arrivals, 600 epochs, empowering_sim.arrivals.run_dynamic ->
+        no_return_epoch = 212 at 100/epoch, gated there). This function computes the
+        CONSTANT-arrival companion: 214 under persistence -- two epochs from the Poisson
+        figure, the agreement one wants between independent implementations -- and 338 under
+        retirement, the regime the original quote omitted.
         """
         r = el.run(cfg, el.ElevationConfig(miners_per_epoch=rate, epochs=epochs,
                                            retire_on_bond=retire))
@@ -193,10 +195,14 @@ def current_design() -> dict:
         "door_closes_at_100_per_epoch": door(100, False),
         "door_closes_at_100_per_epoch_retiring": door(100, True),
         # The adoption hump: elevated at slow / reference / fast arrival rates, both
-        # regimes, over the study's 400-epoch window. The third carried number found in
-        # this column (after the door and the point of no return): the prose triple
-        # 951/~6,100/5,001 reproduced from no committed code and was recognisably the
-        # persistent hump quoted regime-free. Computed since 2026-08-31, and gated.
+        # regimes, over 400 epochs of CONSTANT arrivals -- the like-for-like companion to
+        # the strategies report's section-7 study, which measures the same hump under
+        # POISSON arrivals over 600 epochs (951/6,145/5,001, persistent, gated by that
+        # report's own number-gate via empowering_sim.arrivals.run_dynamic). A 2026-08-31
+        # revision wrongly called the section-7 triple unreproducible; the module had
+        # merged in from the simulator branch and reproduces it exactly. Two protocols,
+        # both gated, deliberately both kept: constant arrivals isolate the rate, Poisson
+        # adds the variance real adoption has.
         "hump_elevated_at_2_100_500_persistent": [elevated(2, 400, False),
                                                   elevated(100, 400, False),
                                                   elevated(500, 400, False)],

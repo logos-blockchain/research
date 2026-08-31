@@ -51,8 +51,14 @@ function renderTable() {
       `${(dns.whale_capture * 100).toFixed(0)}%`,
       "the current design's outflow is fixed, so it cannot be drained",
       { cur: "ok", dn: "bad", dns: "ok" });
-  row(tb, "best adoption speed", "a hump — worst rate elevates ⅙ of the best",
-      "none", "none", "does the mechanism care when people arrive?",
+  const hp = D.current_design.hump_elevated_at_2_100_500_persistent;
+  const hr = D.current_design.hump_elevated_at_2_100_500_retiring;
+  row(tb, "best adoption speed", "a hump — the worst rate onboards a fraction of the best",
+      "none", "none",
+      "constant arrivals, this regime: "
+      + (state.regime === "retiring" ? hr : hp).map((v) => fmt(v)).join(" / ")
+      + " at 2 / 100 / 500 per epoch; the strategy report's Poisson study reads "
+      + "951 / 6,145 / 5,001 (persistent)",
       { cur: "bad", dn: "ok", dns: "ok" });
   row(tb, "door closes at 100 arrivals/epoch",
       `epoch ${curDoor}`, "never", "never",

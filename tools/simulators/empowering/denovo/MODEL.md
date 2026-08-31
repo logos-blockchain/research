@@ -234,6 +234,8 @@ whole job is to make hitting it coincide with the epoch's end.
 
 *In plain words: how hard the puzzle is. During the launch phase it is a fixed floor and does nothing clever — the rationing here is economic, not computational. Afterwards the existing controller wakes up and spreads the work evenly across the period.*
 
+> **Inherited edge case.** The reused retarget clamps its output above but not below, so it has an absorbing zero — from a target of 1 under a full block the map returns 0, and 0 is permanent (`UPSTREAM-PENDING.md` §4, raised on the RFC; pinned by the strategy suite's gates). A `max(1, …)` floor upstream removes it; this model inherits whichever form the specification settles on.
+
 **Bootstrap: a constant floor.** The difficulty holds at the genesis seed (`p / 2^26`) for the
 whole phase. It is spam protection, not a controller: admission control is economic
 (saturation + the demand-indexed reward), and a cohort's arrival must not be met with a rising

@@ -1060,17 +1060,19 @@ def gate_report_headlines(cfg: Config) -> None:
                                               retire_on_bond=False))
     check("and the elevation counts are pure pool arithmetic, untouched by the fix",
           _persist.elevated, 5_682)
-    # The adoption hump, pinned in both regimes at the study's 400-epoch window. The prose
-    # carried 951/~6,100/5,001 regime-free from a study no committed code reproduces; these
-    # are the measured rows the documents now quote (SUMMARY 3.2, design-comparison 2).
+    # The adoption hump under CONSTANT arrivals, pinned in both regimes at 400 epochs --
+    # the companion protocol to section 7's Poisson study (arrivals.run_dynamic, 600 epochs,
+    # 951/6,145/5,001 persistent, gated by report_numbers). A 2026-08-31 note here wrongly
+    # called the section-7 triple unreproducible; it reproduces exactly. Both protocols are
+    # quoted, labelled, in SUMMARY 3.2 and design-comparison 2.
     _hump = {(rate, ret): el.run(cfg, el.ElevationConfig(miners_per_epoch=rate, epochs=400,
                                                          retire_on_bond=ret)).elevated
              for rate in (2, 500) for ret in (False, True)}
     check("the adoption hump, persistent: slow starves, fast dilutes",
           (_hump[(2, False)], _persist.elevated, _hump[(500, False)]),
           (707, 5_682, 4_646),
-          note="2 / 100 / 500 arrivals an epoch -- the worst rate onboards an eighth of the "
-               "best; the carried 951/~6,100/5,001 was recognisably this row, unlabelled")
+          note="2 / 100 / 500 constant arrivals an epoch -- worst onboards an eighth of "
+               "best; section 7's Poisson protocol reads 951/6,145/5,001 for the same hump")
     check("and retiring: same shape, steeper",
           (_hump[(2, True)], _hump[(500, True)]), (800, 14_398),
           note="800 and 14,398 against the 25,934 peak at 100/epoch -- a thirty-second and "
@@ -1083,11 +1085,12 @@ def gate_report_headlines(cfg: Config) -> None:
     _stake_lgo = cfg.min_stake / cfg.base_units_per_lgo
     _pnr = next((q.epoch for q in _persist.rows
                  if q.miners_seated - q.miners_elevated > q.pool_lgo / _stake_lgo), -1)
-    check("the point of no return is computed, and lands where the carried figure pointed",
+    check("the point of no return under constant arrivals agrees with section 7's Poisson run",
           _pnr, 214,
           note="epoch the queue first exceeds remaining_pool / min_stake at 100/epoch, "
-               "persistent; the carried 212 was its neighbour. Retirement moves it to 338 "
-               "(exported in comparison.json), the same regime-lean the door had")
+               "persistent; section 7's run_dynamic reads 212 -- two epochs apart across "
+               "independent protocols. Retirement moves it to 338 (exported in "
+               "comparison.json), the regime the original quote omitted")
 
 
 def gate_targets(cfg: Config) -> None:
