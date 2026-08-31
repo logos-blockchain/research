@@ -2,14 +2,17 @@
 
 Things this workstream has an answer for that belong in somebody else's document.
 Each entry is written so it can be posted without redoing the work: the question, the answer,
-the evidence, and where the code is. **Nothing here has been sent.** Posting to a public PR is
-outward-facing and needs the design owner's explicit go.
+the evidence, and where the code is. Items are marked **SENT** with their link once posted;
+posting is outward-facing and happens only on the design owner's explicit go (items 1–3 were
+authorised and posted 2026-08-31).
 
 *Last verified 2026-08-31 against **merged master** (`6aaa6db`, PR 375 merged 2026-08-26) and the EmPoWering RFC branch (PR 400, unchanged). PR 375's merge retargets items 1, 2 and 3: they are now findings against master, for a follow-up issue or PR rather than PR-375 review.*
 
 ---
 
 ## 1. The `P_t ≥ 0` boundary — asked in PR 375's review, merged unanswered
+
+> **SENT 2026-08-31**: https://github.com/logos-co/logos-lips/issues/432
 
 **Status 2026-08-31: PR 375 merged with the constraint exactly as it was** — merged master's
 Pool Accounting still says only "The pool is redistributable, subject to `P_t ≥ 0`", with no
@@ -97,6 +100,9 @@ wants precedent; it is not an argument on its own.)*
 
 ## 2. The `POW_SHARE` carve-out, acknowledged as a pool outflow
 
+> **SENT 2026-08-31** as a PR 400 review comment:
+> https://github.com/logos-co/logos-lips/pull/400#issuecomment-5478663427
+
 ### What is needed
 
 **Status 2026-08-31: unchanged by the merge** — merged master's `storage-markets.md` still
@@ -126,6 +132,8 @@ transient.
 ---
 
 ## 3. The integer reference's "Rederivation required" flag was removed without the rederivation
+
+> **SENT 2026-08-31**: https://github.com/logos-co/logos-lips/issues/433
 
 ### What happened
 
