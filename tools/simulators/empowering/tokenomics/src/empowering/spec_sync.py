@@ -96,7 +96,7 @@ def run(config: str, lips: str) -> int:
 
     genesis = "bedrock-genesis-block.md"
     check("POW_REWARD_POOL_GENESIS",
-          grab(genesis, r"= (\d+)/1000 of the supply at network launch", "seed"),
+          grab(genesis, r"= (\d+)/1000 of the maximum supply", "seed"),
           int(p.genesis_pool_fraction * 1000))
 
     rewards = "block-rewards.md"
