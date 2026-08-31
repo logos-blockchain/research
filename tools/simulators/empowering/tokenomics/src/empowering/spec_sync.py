@@ -200,7 +200,8 @@ def run(config: str, lips: str) -> int:
     require_phrase(poq, "pow_nonce")
     require_phrase(mantle, "one LGO is $`10^{9}`$ lepta")
     require_phrase(mantle, "hi = min(previous * BLEND_MAX_STEP, p - 1)")
-    require_phrase(mantle, "return min(new_target, p - 1)")
+    require_phrase(mantle, "return min(max(new_target, REWARD_TARGET_FLOOR), p - 1)")
+    require_phrase(mantle, "REWARD_TARGET_FLOOR: uint64 = 9")
     require_phrase(mantle, "specified over **arbitrary-precision integers**")
 
     print(f"{checks} checks against {raw}")

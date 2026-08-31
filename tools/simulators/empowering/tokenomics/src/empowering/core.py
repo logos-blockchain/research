@@ -135,7 +135,11 @@ def builder_edge(p: Params, n_tx: int | None = None, tip_frac: float | None = No
 def next_reward_difficulty(d: int, claims_in_block: int, p: Params) -> int:
     """The memoryless per-block retarget. compute_new_reward_difficulty."""
     demand = max(1, (p.P_ema - p.F_ema) * claims_in_block + p.F_ema * p.T)
-    return min((p.T * d * p.P_ema) // demand, P_FIELD - 1)
+    # Floored at ceil(F/(P-F)): zero is absorbing (the map multiplies by d, and a
+    # zero target admits no ticket), and below that floor the empty-block easing
+    # floor(d*P/F) returns d unchanged, so 1..floor-1 would be a stalled band.
+    floor = -(-p.F_ema // (p.P_ema - p.F_ema))
+    return min(max((p.T * d * p.P_ema) // demand, floor), P_FIELD - 1)
 
 
 def simulate_pool(p: Params, epochs: int | None = None, n_tx: int | None = None):
