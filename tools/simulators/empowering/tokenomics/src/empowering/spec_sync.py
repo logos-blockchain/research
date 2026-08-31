@@ -44,8 +44,17 @@ def run(config: str, lips: str) -> int:
     def check(label: str, got, want):
         nonlocal checks
         checks += 1
-        if got is not None and str(got).replace(",", "").replace("_", "") != str(want):
-            failures.append(f"{label}: spec says {got!r}, config has {want!r}")
+        if got is None:
+            return
+        g, w = str(got).replace(",", "").replace("_", ""), str(want)
+        if g == w:
+            return
+        try:                       # the same constant may be written 3e9 or 3000000000
+            if float(g) == float(w):
+                return
+        except ValueError:
+            pass
+        failures.append(f"{label}: spec says {got!r}, config has {want!r}")
 
     mantle = "bedrock-v1.1-mantle-specification.md"
     check("TARGET_CLAIMS_PER_BLOCK",
@@ -92,7 +101,8 @@ def run(config: str, lips: str) -> int:
 
     rewards = "block-rewards.md"
     check("S_tge",
-          grab(rewards, r"Token supply at TGE \| (\d+) billion LGO", "supply"),
+          grab(rewards, r"(?:Token supply at TGE|Maximum token supply \(hard cap\))"
+                        r"[^|]*\| (\d+) billion LGO", "supply"),
           int(p.S_tge / 1e9))
 
     blendp = "blend-protocol.md"
@@ -110,18 +120,18 @@ def run(config: str, lips: str) -> int:
     # them so a supply revision cannot leave the code behind again.
     import math
     check("STAKE_TARGET (reference code)",
-          grab(rewards, r"STAKE_TARGET = int\((\S+)\)", "stake target"),
+          grab(rewards, r"STAKE_TARGET = int(?:64)?\((\S+?)\)", "stake target"),
           f"{0.3 * p.S_tge:.0e}".replace("e+", "e").replace("e0", "e"))
     infl_num = int(p.I_max * p.S_tge)
     g = math.gcd(infl_num, p.blocks_per_year)
     check("INFLATION_NUMERATOR (reference code)",
-          grab(rewards, r"INFLATION_NUMERATOR = ([\d_]+)", "inflation num"),
+          grab(rewards, r"INFLATION_NUMERATOR = (?:int64\()?([\d_]+)", "inflation num"),
           str(infl_num // g))
     check("INFLATION_DENOMINATOR (reference code)",
-          grab(rewards, r"INFLATION_DENOMINATOR = ([\d_]+)", "inflation den"),
+          grab(rewards, r"INFLATION_DENOMINATOR = (?:int64\()?([\d_]+)", "inflation den"),
           str(p.blocks_per_year // g))
     check("A_SCALE (reference code)",
-          grab(rewards, r"A_SCALE = ([\d_]+)", "a scale"),
+          grab(rewards, r"A_SCALE = (?:int64\()?([\d_]+)", "a scale"),
           str(int(0.3 * p.S_tge * p.I_max * 4)))
 
     # --- derived margins the specifications state in prose ------------------------
