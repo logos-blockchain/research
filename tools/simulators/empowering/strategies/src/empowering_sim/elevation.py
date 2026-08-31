@@ -160,8 +160,9 @@ def run(cfg: Config, ecfg: ElevationConfig) -> ElevationResult:
     est = emission.StakeEstimate.at_genesis(cfg)
     slots_per_epoch = 648_000            # 21,600 blocks at f = 1/30, as in strategies.py
     fees = ecfg.txs_per_block * cfg.avg_tx_fee
-    burnt_lgo = cfg.to_lgo(fees - fees * cfg.pow_share_num // cfg.pow_share_den)
-    burn_window = [burnt_lgo] * emission.BURN_WINDOW
+    # The carve-out convention lives in `emission.pooled_inflow_lgo` -- fees pool in full and
+    # the EmPoWering share is the first outflow, so the window carries what remains.
+    pooled_window = [emission.pooled_inflow_lgo(cfg, ecfg.txs_per_block)] * emission.POOL_WINDOW
 
     rows: list[ElevationRow] = []
     seat_m = ecfg.miner_counts()
@@ -222,7 +223,7 @@ def run(cfg: Config, ecfg: ElevationConfig) -> ElevationResult:
                            + int((m_bond != NOT_SET).sum()) * cfg.min_stake_lgo)
         blocks = est.blocks_produced(true_staked_lgo, cfg, slots_per_epoch)
 
-        blk = emission.block_reward_lgo(est.value_lgo, burn_window)
+        blk = emission.block_reward_lgo(est.value_lgo, pooled_window)
         blend, _ = emission.split(blk, cfg)
         per_prov = services.reward_per_provider(blend * blocks, providers)
 

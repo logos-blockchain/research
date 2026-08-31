@@ -114,6 +114,38 @@ def gate_controller_fixed_point(cfg: Config) -> None:
     check("blocks to recover a tenfold hashrate step", blocks, 22, rel=0.25,
           note="report section 3.6 predicts about 22")
 
+    # The specification's integer form has an ABSORBING ZERO, demonstrated rather than
+    # hidden behind a defensive clamp the spec does not have: from target 1 under a full
+    # block of claims the map returns 0, the win probability becomes target/p = 0, no claim
+    # can ever land again, and 0 maps to 0 forever. No attacker walks it down from a healthy
+    # chain -- each of the ~65 steps demands ~11x more hashrate than the last, so physics
+    # forbids that path. The defect is the missing fence, not the walk: any road to a tiny
+    # threshold (a mis-seeded genesis, a small deployment, an integer bug writing the target
+    # once) is permanent, because the clamp that guards the top (min(., p - 1)) has no
+    # counterpart at the bottom. This simulator mirrors the spec faithfully instead of
+    # quietly flooring at 1 and diverging. Reported upstream-ready in
+    # reports/empowering/UPSTREAM-PENDING.md section 4.
+    check("the spec's retarget has an absorbing zero, and this transcription preserves it",
+          (work.next_difficulty_target(1, cfg.max_block_txs, cfg),
+           work.next_difficulty_target(0, 0, cfg),
+           work.next_difficulty_target(0, cfg.max_block_txs, cfg)),
+          (0, 0, 0),
+          note="target 1 under a 1,024-claim block -> 0; and 0 -> 0 under any load, so the "
+               "state is absorbing. A floor of max(1, .) upstream would remove it")
+    # The same missing floor's gentler cousin: the map is asymmetric. One full block divides
+    # the threshold by ~11.14; recovery under silence eases at only 100/90 per block. Pinned
+    # because UPSTREAM-PENDING section 4 quotes both figures.
+    _t0 = 10 ** 60
+    _down = work.next_difficulty_target(_t0, cfg.max_block_txs, cfg)
+    _t, _blocks = _down, 0
+    while _t < _t0 and _blocks < 100:
+        _t = work.next_difficulty_target(_t, 0, cfg)
+        _blocks += 1
+    check("one overloaded block costs 23 quiet blocks to undo",
+          (round(_t0 / _down, 2), _blocks), (11.14, 23),
+          note="down /11.14 in one block, up x10/9 per quiet block -- the asymmetry the "
+               "missing floor makes dangerous at the bottom edge")
+
 
 # ------------------------------------------------------------------ the work process
 
@@ -440,12 +472,12 @@ def gate_staking_against_the_spec(cfg: Config) -> None:
           consensus.validation_apy(whole) / consensus.validation_apy(cfg), 2.5, rel=0.01,
           note="a contradiction in the specifications, not in this model")
 
-    at_max = consensus.block_reward(cfg, 1.0, burnt_fees_per_block=12.0)
-    at_min = consensus.block_reward(cfg, 0.0, burnt_fees_per_block=12.0)
-    check("at maximum emission the reward is the minted term alone",
+    at_max = consensus.block_reward(cfg, 1.0, pooled_fees_per_block=12.0)
+    at_min = consensus.block_reward(cfg, 0.0, pooled_fees_per_block=12.0)
+    check("at maximum emission the reward is the release term alone",
           at_max, consensus.max_block_reward(cfg), rel=1e-12)
     check("at minimum emission it is the recycled fees alone", at_min, 12.0, rel=1e-12,
-          note="specification: close to target, most of the burn is minted back")
+          note="specification: close to target, most of the pooled fees are distributed back")
 
     from dataclasses import replace as _replace                # noqa: PLC0415
     split = _replace(cfg, leader_reward_share=0.39)
@@ -577,7 +609,7 @@ def gate_conservation(cfg: Config) -> None:
     base = dict(pool=cfg.genesis_pool, hashrate_share=1 / 500,
                 min_stake=cfg.min_stake, staked_fraction=0.30)
     ref = crossover.conservation_product(cfg, **base)
-    check("product equals staked_total over minted", ref["product"], ref["expected"], rel=1e-9,
+    check("product equals staked_total over released", ref["product"], ref["expected"], rel=1e-9,
           note=f"{ref['product']:,.0f} epochs = {ref['product'] / cfg.epochs_per_year:.1f} years")
 
     products = [ref["product"]]
@@ -676,17 +708,175 @@ def gate_emission(cfg: Config) -> None:
     print("\nThe emission control function")
     check("block reward at maximum emission", emission.block_reward_lgo(0.0, [0.0]),
           emission.INFLATION_NUMERATOR / emission.INFLATION_DENOMINATOR, rel=1e-12,
-          note="62500/657 LGO, block-rewards.md's own figure")
-    # Far above target with no burn: the factor clamps to zero and the reward is the burn.
-    at_genesis = emission.emission_factor(1e10, [0.0] * emission.BURN_WINDOW)
+          note="62500/657 LGO -- the reserve-release cap, block-rewards.md's own figure")
+    # Far above target with no fees: the factor clamps to zero and the reward recycles fees.
+    at_genesis = emission.emission_factor(1e10, [0.0] * emission.POOL_WINDOW)
     check("the genesis seed clamps the factor to zero", at_genesis, 0.0, rel=1e-12,
           note="D = 10^10 against a 3e9 target")
-    check("and the reward is then exactly the block's own burn",
-          emission.block_reward_lgo(1e10, [0.0] * 119 + [12.0]), 12.0, rel=1e-12)
+    # PR 375's one mechanism change to this rule: the recycled term is the WINDOWED average
+    # of pooled fees, not the latest block's. A lone 12-LGO block distributes 12/120.
+    check("and the recycled term is the windowed average, not the block's own fee",
+          emission.block_reward_lgo(1e10, [0.0] * 119 + [12.0]), 0.1, rel=1e-12,
+          note="12 LGO in one block of a quiet window -> 12/T = 0.1 LGO distributed; the "
+               "single-block rule paid the full 12 and made the reward spike with one block")
+    check("the superseded single-block form still answers 12 -- master parity",
+          emission.block_reward_lgo_single_block(1e10, [0.0] * 119 + [12.0]), 12.0,
+          rel=1e-12,
+          note="kept callable because master's integer reference still computes this after "
+               "the 2026-08-26 merge of PR 375 -- the 'Rederivation required' flag was "
+               "removed without the fix, so the divergence is now unflagged upstream; "
+               "contradiction 4.12")
+    check("a full window and a lone block agree only when the window is flat",
+          emission.block_reward_lgo(1e10, [12.0] * emission.POOL_WINDOW), 12.0, rel=1e-12,
+          note="flat fees are the regime this simulator runs in, which is why the windowed "
+               "rule moves no figure in these studies")
+    check("the window boundary zero-pads: a one-entry history divides by T regardless",
+          emission.block_reward_lgo(1e10, [12.0]), 0.1, rel=1e-12,
+          note="pre-genesis entries are zero -- the boundary rule the spec leaves unstated, "
+               "decided in emission.windowed_average_lgo and pinned here")
     check("well below target the factor saturates at one",
-          emission.emission_factor(1e8, [0.0] * emission.BURN_WINDOW), 1.0, rel=1e-12)
-    check("the stake target is thirty percent of supply",
-          emission.STAKE_TARGET_LGO, 0.30 * cfg.launch_supply, rel=1e-12)
+          emission.emission_factor(1e8, [0.0] * emission.POOL_WINDOW), 1.0, rel=1e-12)
+    check("the stake target is thirty percent of the cap",
+          emission.STAKE_TARGET_LGO, 0.30 * cfg.launch_supply, rel=1e-12,
+          note="S_cap anchoring (PR 375 removed S_tge); numerically identical at launch")
+
+    # ---- the pool and reserve stocks, and the conservation identity they carry
+    # The net-vs-gross reading of R_block under the carve-out is a DECISION (emission.py's
+    # header). This pins what it costs, so the alternative can be taken up on evidence.
+    _fees = 600 * cfg.avg_tx_fee
+    _net = cfg.to_lgo(_fees - _fees * cfg.pow_share_num // cfg.pow_share_den)
+    _gross = cfg.to_lgo(_fees)
+    check("net-vs-gross R_block is free where the reward is release-capped",
+          emission.block_reward_lgo(1e8, [_net] * emission.POOL_WINDOW),
+          emission.block_reward_lgo(1e8, [_gross] * emission.POOL_WINDOW), rel=1e-12,
+          note="at A_t = 1 the fees do not enter the reward at all, which is the regime every "
+               "published figure in these studies is measured in")
+    _n0 = emission.block_reward_lgo(1e10, [_net] * emission.POOL_WINDOW)
+    _g0 = emission.block_reward_lgo(1e10, [_gross] * emission.POOL_WINDOW)
+    check("and costs exactly the carve-out share only at A_t = 0",
+          round(_g0 / _n0, 6), round(1 / (1 - cfg.pow_share), 6),
+          note=f"{_n0:.6f} against {_g0:.6f} LGO a block in the genesis-seed transient -- "
+               f"11.1% of three ten-thousandths of a token, which is why the reading is "
+               f"recorded rather than resolved")
+
+    # --- four gates added 2026-08-25 after a MUTATION TEST found the holes they close.
+    # Each was written by breaking the thing under test and checking that this gate fails.
+    check("the pooled window carries fees NET of the carve-out, not gross",
+          emission.pooled_inflow_lgo(cfg, 600),
+          cfg.to_lgo(600 * cfg.avg_tx_fee * (cfg.pow_share_den - cfg.pow_share_num)
+                     // cfg.pow_share_den),
+          rel=1e-9,
+          note="the 4.13 convention, in one place and pinned -- feeding the reward window "
+               "GROSS fees used to change no gate in either suite")
+    check("and the pool guard ships ON by default",
+          emission.Stocks().guard_pool, True,
+          note="the unguarded form drives the early-life balance negative (gated below); "
+               "flipping the default used to pass the whole suite")
+    # A_t with the stake deviation ZEROED, so the fee coefficient alone sets it -- the region
+    # every other gate misses, because at the reference parameters A_t saturates at 0 or 1
+    # and a one-part-in-10,512 change to the coefficient cannot move a saturated factor.
+    # The expected value is a LITERAL, deliberately. A first version computed it as
+    # FEE_AVG_NUMERATOR * POOL_WINDOW / A_SCALE -- derived from the very constant under test,
+    # so mutating the constant moved both sides and the gate still passed. The mutation test
+    # caught it; 10,512 * 120 / 120,000,000 = 0.010512 is now written out.
+    _a_fee = emission.emission_factor(emission.STAKE_TARGET_LGO, [1.0] * emission.POOL_WINDOW)
+    check("the KPI-2 fee coefficient is exercised where it actually bites",
+          round(_a_fee, 9), 0.010512,
+          note=f"A_t = {_a_fee:.6f} at the stake target with a flat 1-LGO window: the fee term "
+               f"alone. Off saturation the coefficient is load-bearing; on it, invisible")
+
+    check("the reserve is DERIVED from the release cap and the lifetime, not written down",
+          round(emission.RESERVE_GENESIS_LGO), 1_000_000_000,
+          note=f"I_max * S_cap * Y at Y = {emission.RESERVE_LIFETIME_YEARS} -- 10% of the cap; "
+               f"the spec_sync pin on Y now binds this instead of a literal beside it")
+    check("and it funds the release cap for exactly that many years",
+          round(emission.RESERVE_GENESIS_LGO
+                / (emission.INFLATION_NUMERATOR / emission.INFLATION_DENOMINATOR)
+                / emission.BLOCKS_PER_YEAR, 6), float(emission.RESERVE_LIFETIME_YEARS),
+          note="the RFC's sizing claim, checked rather than restated")
+
+    rng_s = np.random.default_rng(7)
+    stocks = emission.Stocks()
+    window: list[float] = []
+    for _ in range(600):
+        window.append(float(rng_s.uniform(0.0, 30.0)))
+        stocks.step(float(rng_s.uniform(5e7, 2e10)), window[-emission.POOL_WINDOW:])
+    # RELATIVE, because the total is 10^9 LGO and doubles carry ~16 significant digits: the
+    # honest path drifts ~1e-15 of the total, which is float accumulation over 600 steps and
+    # not a modelling error. An absolute 1e-6 threshold failed on exactly that -- itself
+    # evidence the check is now sensitive, where the residual-of-deltas form it replaces read
+    # a flat zero no matter what the mechanism did. The leak gate below fixes the floor: a
+    # real violation lands thousands of times above this.
+    _drift = abs(stocks.conservation_error_lgo) / stocks.genesis_total_lgo
+    check("the controlled total never moves over a random 600-block path",
+          _drift < 1e-12, True,
+          note=f"S + P + B drifts {_drift:.1e} of genesis ({stocks.conservation_error_lgo:+.2e} "
+               f"LGO) -- the RFC's central claim. Each stock is moved by its own flow and the "
+               f"total compared against genesis, so this CAN fail; the residual-of-deltas form "
+               f"it replaces cancelled symbolically and could not")
+    # Proof that the gate above has teeth: break one flow and it must catch it.
+    class _Leaky(emission.Stocks):
+        def step(self, stake, win):                          # noqa: ANN001, ANN201
+            r = super().step(stake, win)
+            self.supply_lgo += 1.0                           # a token from nowhere
+            return r
+    leaky = _Leaky()
+    for _ in range(5):
+        leaky.step(1e8, [1.0] * emission.POOL_WINDOW)
+    _leak = abs(leaky.conservation_error_lgo) / leaky.genesis_total_lgo
+    check("and a mechanism that mints from nowhere FAILS it",
+          _leak > 1e-12, True,
+          note=f"{leaky.conservation_error_lgo:+.1f} LGO after five leaky blocks = {_leak:.0e} "
+               f"of genesis, some three orders above the threshold and twelve above the "
+               f"honest path's float noise -- the check detects what it claims to detect")
+
+    tiny = emission.Stocks(reserve_lgo=200.0)
+    rewards = [tiny.step(1e8, [0.0]) for _ in range(4)]
+    check("a depleted reserve degrades the reward to the recycled component",
+          (rewards[0], rewards[1], rewards[2], rewards[3]),
+          (95.12937595129375, 95.12937595129375, 9.741248097412495, 0.0),
+          note="200 LGO of reserve funds two full releases, a partial third, then nothing -- "
+               "iota is capped by the balance and the fallback is (1-A)*R_bar, here zero")
+    check("and the depleted run still conserves",
+          abs(tiny.conservation_error_lgo) < 1e-9, True,
+          note="against ITS OWN genesis total, captured at construction -- which is the "
+               "property's whole job, and which it did not do until 2026-08-25: it returned "
+               "the DEFAULT reserve, so every non-default instance reported a conservation "
+               "error of minus a billion LGO and the gates wrote their own totals by hand")
+    # The RFC's one open boundary question (P_t >= 0), measured: a fee spike then silence at
+    # A = 0 makes the windowed average distribute history the pool never banked.
+    loose = emission.Stocks(reserve_lgo=0.0, guard_pool=False)
+    spike = [120.0] + [0.0] * 240
+    for i in range(1, len(spike)):
+        loose.step(1e10, spike[max(0, i - emission.POOL_WINDOW + 1):i + 1])
+    check("unguarded, the early-life pool balance goes NEGATIVE after a spike",
+          loose.pool_lgo < 0, True,
+          note=f"{loose.pool_lgo:.2f} LGO -- the regime PR 375 flags for 'explicit boundary "
+               f"treatment'; it is real, not hypothetical")
+    tight = emission.Stocks(reserve_lgo=0.0, guard_pool=True)
+    for i in range(1, len(spike)):
+        tight.step(1e10, spike[max(0, i - emission.POOL_WINDOW + 1):i + 1])
+    check("guarded, the distribution clips to the pool and the balance floors at zero",
+          tight.pool_lgo >= 0 and abs(tight.conservation_error_lgo) < 1e-9, True,
+          note="pay what the pool holds, never more -- the same move as the de-novo room "
+               "cap, and this simulator's answer to the open question. Note the unguarded "
+               "run above CONSERVES too: conservation and the P_t >= 0 constraint are "
+               "independent claims, which is why each has its own gate")
+
+    # The settled blend pool: the one number the de-novo retirement model imports from this
+    # simulator (retirement.BLEND_POOL_LGO_PER_EPOCH). Pinned here, at the source and at the
+    # constant's own provenance -- the DEFAULT StrategyConfig, because the median moves with
+    # the horizon as stake grows (a 40-epoch run reads 1,235,502) -- so a change to the
+    # emission machinery moves a gate instead of silently invalidating the
+    # endogenous-retirement conclusions next door.
+    from . import strategies as _strat                        # noqa: PLC0415
+    _, _recs = _strat.run(cfg, _strat.StrategyConfig())
+    _settled = sorted(r.blend_pool_lgo for r in _recs)[len(_recs) // 2]
+    check("the settled blend pool is what the de-novo retirement model assumes",
+          round(_settled), 1_235_274,
+          note="LGO per epoch, the median over the default strategy run -- unchanged by the "
+               "pooling substrate, because A_t = 1 makes the reward the release cap and the "
+               "windowed recycled term never engages at magnitude")
 
     blend, leader = emission.split(100.0, cfg)
     check("Blend takes sixty percent of a block", blend, 60.0, rel=1e-9)
@@ -725,11 +915,11 @@ def gate_fee_markets(cfg: Config) -> None:
           fm.next_storage_price(1_000_000, 500, 0), 1_000_000)
 
     # The equilibrium question. Nothing bounds the base fee above, so whether fee recycling
-    # can fund what minting funded is a question about DEMAND, not about the mechanism.
+    # can fund what the release funded is a question about DEMAND, not about the mechanism.
     cap = round(consensus.max_block_reward(cfg) * cfg.base_units_per_lgo)
     units = cfg.transfer_tx_bytes + cfg.transfer_tx_gas
-    need = fm.price_for_block_burn(cap, cfg.max_block_txs, units, cfg.pow_share)
-    check("price at which a full block's burn matches the minting ceiling", need, 129_513,
+    need = fm.price_for_block_pool(cap, cfg.max_block_txs, units, cfg.pow_share)
+    check("price at which a full block's pooled fees match the release ceiling", need, 129_513,
           rel=1e-3, note=f"{need / cfg.price_resting:,.0f}x the RESTING price")
     per_tx = units * need / cfg.base_units_per_lgo
     check("what that costs one transaction", per_tx, 0.1032, rel=1e-2,
@@ -866,9 +1056,41 @@ def gate_report_headlines(cfg: Config) -> None:
           r.rows[6].service_per_provider_lgo > 1_000.0, True,
           note=f"{r.rows[6].service_per_provider_lgo:,.0f} LGO per provider at epoch 6, "
                f"against 0.09 under the pinned estimator")
+    _persist = el.run(cfg, el.ElevationConfig(miners_per_epoch=100, epochs=400,
+                                              retire_on_bond=False))
     check("and the elevation counts are pure pool arithmetic, untouched by the fix",
-          el.run(cfg, el.ElevationConfig(miners_per_epoch=100, epochs=400,
-                                         retire_on_bond=False)).elevated, 5_682)
+          _persist.elevated, 5_682)
+    # The adoption hump under CONSTANT arrivals, pinned in both regimes at 400 epochs --
+    # the companion protocol to section 7's Poisson study (arrivals.run_dynamic, 600 epochs,
+    # 951/6,145/5,001 persistent, gated by report_numbers). A 2026-08-31 note here wrongly
+    # called the section-7 triple unreproducible; it reproduces exactly. Both protocols are
+    # quoted, labelled, in SUMMARY 3.2 and design-comparison 2.
+    _hump = {(rate, ret): el.run(cfg, el.ElevationConfig(miners_per_epoch=rate, epochs=400,
+                                                         retire_on_bond=ret)).elevated
+             for rate in (2, 500) for ret in (False, True)}
+    check("the adoption hump, persistent: slow starves, fast dilutes",
+          (_hump[(2, False)], _persist.elevated, _hump[(500, False)]),
+          (707, 5_682, 4_646),
+          note="2 / 100 / 500 constant arrivals an epoch -- worst onboards an eighth of "
+               "best; section 7's Poisson protocol reads 951/6,145/5,001 for the same hump")
+    check("and retiring: same shape, steeper",
+          (_hump[(2, True)], _hump[(500, True)]), (800, 14_398),
+          note="800 and 14,398 against the 25,934 peak at 100/epoch -- a thirty-second and "
+               "a half; the hump is not a persistent-regime artefact, it is the rationing")
+    # The point of no return: the first epoch where the waiting queue exceeds every bond the
+    # remaining pool could fund even perfectly. Quoted as "212" across the comparison
+    # documents with a note admitting it was carried and not reproducible -- the one claim in
+    # the set that confessed to being unbacked. Computed (webexport.current_design does the
+    # same, both regimes) and pinned here at the persistent regime the quote always meant.
+    _stake_lgo = cfg.min_stake / cfg.base_units_per_lgo
+    _pnr = next((q.epoch for q in _persist.rows
+                 if q.miners_seated - q.miners_elevated > q.pool_lgo / _stake_lgo), -1)
+    check("the point of no return under constant arrivals agrees with section 7's Poisson run",
+          _pnr, 214,
+          note="epoch the queue first exceeds remaining_pool / min_stake at 100/epoch, "
+               "persistent; section 7's run_dynamic reads 212 -- two epochs apart across "
+               "independent protocols. Retirement moves it to 338 (exported in "
+               "comparison.json), the regime the original quote omitted")
 
 
 def gate_targets(cfg: Config) -> None:

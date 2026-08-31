@@ -88,7 +88,7 @@ TABLE: dict[tuple[str, str], Rate] = {
     #   moven0831/field-ops-benchmarks (BN254 below 1 Gops/s client-side, M31 above 100);
     #   NVIDIA developer forum thread on a compute-bound 256-bit modular kernel reaching 82.5%
     #   SM throughput on sm_89; Poseidon2 paper (eprint 2023/323) for the round structure.
-    #   REPLACE THIS with a real benchmark before relying on it: `make bench-poseidon2` on a
+    #   REPLACE THIS with a real benchmark before relying on it: `make poseidon2` on a
     #   CUDA host is the missing measurement.
     ("poseidon2_reward", "gpurig"): Rate(
         3.4e-6, 6, False,

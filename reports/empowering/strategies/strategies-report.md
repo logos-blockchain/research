@@ -23,7 +23,37 @@ The third command is separate because it is slow: §7 sweeps an arrival rate acr
 
 ---
 
+## How to read this
+
+*In plain words: this document answers one question — if you joined this network, what is the
+best way to make money from it? There are five ways to participate, they can be combined, and
+they pay very differently. We simulated all five competing on the same chain and measured what
+each earned.*
+
+**The answer up front, so the rest is evidence rather than suspense: running a service pays
+several times better than anything else, and it is not close.** The interesting part is *why*,
+because the reason is structural rather than a matter of tuning — and it means the ordering
+would be hard to change even deliberately.
+
+Every section opens with a short *plain-words* paragraph. Skim only those for the argument.
+
+| if you want… | read |
+| --- | --- |
+| the answer and the size of the gap | §3 |
+| how a newcomer actually gets in, and how long it takes | §5, §7 |
+| whether electricity costs change the answer (they do not) | §9 |
+| what happens over the network's whole life | §10 |
+| what would have to be true for these conclusions to be wrong | §13 |
+
+**The three income streams**, referred to throughout: **mining** pays for computational work;
+the **leader lottery** pays whoever is randomly chosen to propose a block, weighted by how
+many tokens they hold; and the **service reward** pays nodes that run the privacy service —
+split *equally* among them, with no weighting by holdings at all. That last detail drives most
+of what follows.
+
 ## 1. The model
+
+*In plain words: what was simulated and what was deliberately left out. Worth a skim even if you skip the detail, because the omissions bound what the conclusions can claim.*
 
 ### 1.1 What the chain does
 
@@ -38,23 +68,23 @@ Keeping those two places straight is most of understanding the mechanism.
 | `reward_per_claim = distribution_rate * pool / (target_claims_per_block * blocks_per_epoch)` |
 | --- |
 
-At `distribution_rate = 1/200` and `target_claims_per_block = 10`, that is 216,000 claims an epoch sharing a two-hundredth of the pool. The pool is topped up by diverting a share of transaction fees before they are burnt, `epoch_refill = pow_share * blocks_per_epoch * txs_per_block * avg_tx_fee`, with `pow_share = 10%`. Claiming is not free: the claim transaction pays its own fee, so a miner keeps `reward_per_claim - claim_fee`.
+At `distribution_rate = 1/200` and `target_claims_per_block = 10`, that is 216,000 claims an epoch sharing a two-hundredth of the pool. The pool is topped up from the fee flow — under lips PR 375's pooling substrate, a carve-out from the pending rewards pool that all fees now route into (its first outflow; decided 2026-08-24) — `epoch_refill = pow_share * blocks_per_epoch * txs_per_block * avg_tx_fee`, with `pow_share = 10%`. Claiming is not free: the claim transaction pays its own fee, so a miner keeps `reward_per_claim - claim_fee`.
 
-**Leader rewards — paid from newly minted tokens.** Each block's leader is drawn by lottery, weighted by the stake it holds. There is **no minimum**: a note of any size can win, provided it has been held long enough to have *aged* into the stake snapshot — two epochs, fifteen days. Aging is the only gate, and it matters in §5.
+**Leader rewards — paid from the block-reward release.** Each block's leader is drawn by lottery, weighted by the stake it holds. There is **no minimum**: a note of any size can win, provided it has been held long enough to have *aged* into the stake snapshot — two epochs, fifteen days. Aging is the only gate, and it matters in §5.
 
-**Service rewards — also newly minted, but divided a completely different way.** A node that locks `min_stake = 1,000 LGO` may declare itself a service provider, and the service pool is then split **equally among the providers**:
+**Service rewards — from the same release, but divided a completely different way.** A node that locks `min_stake = 1,000 LGO` may declare itself a service provider, and the service pool is then split **equally among the providers**:
 
 | `reward_per_provider = blend_pool / providers` |
 | --- |
 
 There is no stake term in that formula anywhere. A provider at the bare minimum earns exactly what a provider holding a million tokens earns. Stake is a door, not a dial. Two consequences run through this whole report: holding more than the bond is worth nothing to this stream, and each additional provider dilutes every other one. And it does not taper — below **32 providers** the specification says the reward is not calculated at all.
 
-**What funds the last two.** Leader and service rewards come out of the block reward, which is newly minted tokens. How much is minted is not fixed; a controller steers it by watching how much stake the network has:
+**What funds the last two.** Leader and service rewards come out of the block reward — under PR 375, a metered release from a finite genesis reserve (10⁹ LGO) plus recycled pooled fees, not minting. How much is released is not fixed; a controller steers it by watching how much stake the network has:
 
-| `block_reward = emission_factor * max_minted_per_block + (1 - emission_factor) * burnt_fees` |
+| `block_reward = emission_factor * max_release_per_block + (1 - emission_factor) * pooled_fees_avg` |
 | --- |
 
-The `emission_factor` runs from 1 to 0. At 1 the protocol mints at its ceiling of 95.13 LGO a block and ignores fees. At 0 it mints nothing new and simply re-mints whatever that block burned. What moves it is the gap between the stake the network has and the `stake_target` of 30% of supply: far below target it mints hard to attract stake, and at target it stops. Whatever is minted is split **60% to the Blend service and 40% to the leader**.
+The `emission_factor` runs from 1 to 0. At 1 the protocol releases at its ceiling of 95.13 LGO a block and ignores fees. At 0 it releases nothing and simply distributes back the hour's average of pooled fees (PR 375 replaced the single block's fee with the 120-block window; invisible at flat fees, gated). What moves it is the gap between the stake the network has and the `stake_target` of 30% of the cap: far below target it releases hard to attract stake, and at target it stops. Whatever is paid is split **60% to the Blend service and 40% to the leader**.
 
 In one line: **mining is paid out of a finite pot of old tokens, while leading and providing are paid in new ones — and only while the network is short of stake.**
 
@@ -81,6 +111,8 @@ No Blend network, no propagation delay, no forks, no churn, no adversary. Every 
 
 ## 2. The five strategies
 
+*In plain words: the five ways to play, from "just mine" to "mine, hold, and run a service". They are cumulative rather than exclusive — each adds an income stream to the one before.*
+
 | # | strategy | mines | lottery | services |
 | --- | --- | --- | --- | --- |
 | 1 | miner | yes | no | no |
@@ -99,6 +131,8 @@ A word on why the comparison is not straightforward. Groups 1 to 3 arrive with h
 
 ## 3. The result
 
+*In plain words: the headline. Who earned what, after everyone competed on the same chain for the same rewards. One strategy wins by a wide margin.*
+
 ![where a median node's income comes from](figures/strategy_composition.png)
 
 | strategy | median node, LGO | against a plain stakeholder |
@@ -109,7 +143,7 @@ A word on why the comparison is not straightforward. Groups 1 to 3 arrive with h
 | miner, staker and service provider | 807,612 | **4.93×** |
 | stakeholder and service provider | 930,422 | **5.68×** |
 
-**Service provision dominates by a factor of five and a half**, and structurally rather than because a parameter was set badly: its reward carries no stake term, so the whole Blend pool divides flat among however many providers exist — and that pool is 60% of everything the protocol mints.
+**Service provision dominates by a factor of five and a half**, and structurally rather than because a parameter was set badly: its reward carries no stake term, so the whole Blend pool divides flat among however many providers exist — and that pool is 60% of everything the protocol distributes.
 
 **Staking on top of mining is worth five percent.** A miner who stakes everything it mines earns 52,478 against a pure miner's 50,151. What a miner accumulates in two and a half years is simply small against 5% of supply, so its slice of the lottery is small too.
 
@@ -135,6 +169,8 @@ A group-3 node that stopped mining on the day it bonded would give up **6.2% of 
 
 ## 4. Dispersion, and the strategy that erases it
 
+*In plain words: averages hide things. Two strategies can pay the same on average while one is a lottery and the other a salary. This looks at the spread — and finds that running a service does something unusual: it pays everyone the same regardless of size.*
+
 ![accumulated reward per node](figures/strategy_per_node.png)
 
 Medians hide the more interesting result. These curves sort every node within its group, so a steep curve means members did very different things and a flat curve means they all did much the same.
@@ -154,6 +190,8 @@ A plain stakeholder's reward spans a **hundred-and-tenfold** range, because lead
 ---
 
 ## 5. When nodes actually become providers
+
+*In plain words: the on-ramp in practice. How long does a newcomer with no tokens have to mine before they can afford the deposit that unlocks the best-paying stream?*
 
 ![how many nodes become service providers, and when](figures/provider_ramp.png)
 
@@ -175,6 +213,8 @@ With the bond fixed, the live question is not how high the threshold is but who 
 ---
 
 ## 6. How many can be elevated, and what the pool spends doing it
+
+*In plain words: the capacity question. The launch fund is finite, so how many newcomers can it actually carry across the line — and how much of it leaks away rather than reaching anyone?*
 
 A separate study, and the first in which **the field grows**: new nodes are seated every epoch, so each miner's share of a fixed claim flow shrinks as the run goes on. Two groups only — endowed providers who arrive above the bond, and mining providers who must earn it. Only the second is elevated by the mechanism.
 
@@ -354,6 +394,8 @@ The strategy study runs two hundred providers, which §10's bootstrap row prices
 
 ## 8. What a mining reward actually looks like
 
+*In plain words: the size of a single payout, and how it changes over time. Small, and shrinking.*
+
 ![proof-of-work reward per block and per epoch](figures/pow_distributions.png)
 
 Per block this is the arrival process at a fixed price: the reward per claim is frozen for the whole epoch, so the shape is just the Poisson count of claims, with a median of 8.4 LGO a block over the whole run — ten claims at the mid-run price. At the opening price a target block pays 11.6 LGO; the pooled median sits below it because the reward decays across the run. Per epoch the picture also carries the reward's decay, which is why it is not the same distribution rescaled — the spread runs from about 250,000 LGO down through 140,000 across the run as the pool drains. Neither distribution has a tail worth worrying about.
@@ -361,6 +403,8 @@ Per block this is the arrival process at a fixed price: the reward per claim is 
 ---
 
 ## 9. Electricity, and why it does not change the answer
+
+*In plain words: mining costs real money to run, so the obvious objection is that the figures above ignore the power bill. This prices it — and the bill turns out to be far too small to matter at any plausible token price.*
 
 Miners pay for their income and stakeholders do not. Netting it out at a Raspberry Pi 5's measured rate, whole-platform, at 20 cents a kilowatt-hour:
 
@@ -376,7 +420,9 @@ Mining stops paying only if a token is worth less than about a sixth of a cent; 
 
 ## 10. The full horizon — the mechanism switches itself off
 
-Everything above is a 120-epoch run, which is the bootstrap era. Run it to 2,085 epochs — the whole life of the endowment, about 43 years — and a dynamic appears that a short run structurally cannot show. Minted rewards compound into their holders' stake, and that stake is the very quantity the emission controller steers on. So the rewards drive total stake toward its target, and on reaching it the controller does exactly what it was built to do: it stops minting.
+*In plain words: what happens over decades rather than months. The controller that funds these rewards is designed to stop once the network holds enough stake — so it does, and this is when.*
+
+Everything above is a 120-epoch run, which is the bootstrap era. Run it to 2,085 epochs — the whole life of the endowment, about 43 years — and a dynamic appears that a short run structurally cannot show. Distributed rewards compound into their holders' stake, and that stake is the very quantity the emission controller steers on. So the rewards drive total stake toward its target, and on reaching it the controller does exactly what it was built to do: it stops releasing.
 
 | era | emission factor | block reward | service per provider | proof-of-work pool |
 | --- | --- | --- | --- | --- |
@@ -392,16 +438,18 @@ That table is computed at the **resting** fee price of 7, and the resting price 
 
 | | |
 | --- | --- |
-| price at which a full block's burn equals the minting ceiling | 129,513 |
+| price at which a full block's pooled fees equal the release ceiling | 129,513 |
 | — what that costs one transaction | **0.103 LGO** |
 | blocks of persistently full demand to reach it | **86** (43 minutes) |
 | demand at or below target | **never** — the price is stationary or falls |
 
-**So the equilibrium era is fundable at an entirely ordinary fee**: a tenth of a token per transaction replaces the whole minting ceiling. The eighteen-thousandfold multiple sounds alarming only because it is measured against a price that exists when nobody is transacting. What it is not is guaranteed — the mechanism never drives the fee up on its own, it only tracks demand. **The long-run incentive is a bet on adoption rather than a property of the mechanism.**
+**So the equilibrium era is fundable at an entirely ordinary fee**: a tenth of a token per transaction replaces the whole release ceiling. The eighteen-thousandfold multiple sounds alarming only because it is measured against a price that exists when nobody is transacting. What it is not is guaranteed — the mechanism never drives the fee up on its own, it only tracks demand. **The long-run incentive is a bet on adoption rather than a property of the mechanism.**
 
 ---
 
 ## 11. What should one claim be worth?
+
+*In plain words: the design question underneath everything above. The reward per piece of work was never chosen deliberately; it fell out of other decisions. This asks what it ought to be and what the current value implies.*
 
 The design goal for the era after the endowment is spent is that a claim still buys something concrete: a transfer carrying a small inscription. That gives a target a number can be checked against. The sizes swept are 4, 8, 16, 32, 64, 128, 256, 512 and 1024 bytes.
 
@@ -438,6 +486,8 @@ A claim's own fee is 6,664 lepta against an opening reward of 1.157 LGO, so the 
 
 ## 12. Is the ordering robust?
 
+*In plain words: would the answer change under different assumptions? This varies the ones that could plausibly move it, and reports which ones do.*
+
 Three sweeps, and only one thing overturns the answer.
 
 **Horizon — the lead grows rather than decaying.** Accumulated reward is dominated by the bootstrap era, so a provider's advantage is locked in early and never given back: 5.68× at two and a half years, 7.04× at ten, 8.33× at twenty, 8.36× at forty-three.
@@ -450,7 +500,9 @@ Three sweeps, and only one thing overturns the answer.
 
 ## 13. What would change these conclusions
 
-**The stake estimator's real-world bias — not modelled, and in which direction it errs.** The specification's estimator converges to about 0.847 of true stake on a real network, because missed slots and forks depress the block density it reads. This chain is ideal (§1.4), so the simulated estimator converges to true stake and every emission figure here is the intended-emission reading. On the real network the persistent underestimate keeps the minting on longer: §10's switch-off would land later and the late eras would pay somewhat more than shown, in every stream the block reward funds.
+*In plain words: the honest list of what this study assumes and what would have to be false for its answers to be wrong.*
+
+**The stake estimator's real-world bias — not modelled, and in which direction it errs.** The specification's estimator converges to about 0.847 of true stake on a real network, because missed slots and forks depress the block density it reads. This chain is ideal (§1.4), so the simulated estimator converges to true stake and every emission figure here is the intended-emission reading. On the real network the persistent underestimate keeps the release on longer: §10's switch-off would land later and the late eras would pay somewhat more than shown, in every stream the block reward funds.
 
 **Who receives the emission — settled, by the EmPoWering PR itself.** `block-rewards.md` calibrates the maximum emission rate so that "the APY for validation is ~3.33%", which requires validators to receive the whole emission, while `overview-cryptoeconomics.md` gives leaders 0.4 with Blend taking 0.6. Both cannot hold, and the PR settles it in a sentence written for the purpose: *"The split between the Blend service and the leader is itself unchanged: they continue to divide the block reward 60/40."* The PR does not touch `block-rewards.md` at all, so its 3.33% figure is the stale side. The alternative is recorded only because of how much it would have moved: the two shares are complements of one split, so giving leaders everything sets the Blend share to zero — and service rewards *are* Blend rewards. Under that reading the dominant strategy of this report pays nothing and plain staking wins, 5.68× becoming 0.99×.
 

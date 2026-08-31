@@ -7,7 +7,35 @@ One settled question is **amended** here with its reasoning on record: §9.
 Everything is denominated in **lepta** unless suffixed `_lgo`. Integer arithmetic with stated
 flooring, matching the ledger.
 
+## How to read this
+
+*This is the exact-rules document — what an implementer needs, written to be unambiguous
+rather than readable. If you want to understand the design rather than build it, read
+`denovo-report.md` instead, or `design-comparison.md` §0 for the version with no arithmetic
+at all.*
+
+**Still, the whole thing in four sentences.** Money is set aside at launch to bring newcomers
+in, and a plan says how long to spend it over. Each period gets a share of what remains, and
+pays whoever turns up out of it — at a price fixed for the period, so a newcomer can work out
+in advance what their work will earn. If a crowd arrives, the period keeps paying by borrowing
+against later periods rather than turning anyone away; the schedule then re-spreads what is
+left, so the end date does not move. When the launch money is gone the mechanism switches to
+paying out of ordinary transaction fees at a much smaller, fixed price.
+
+Every section below opens with a *plain-words* line saying what it covers.
+
+| section | what it defines |
+| --- | --- |
+| §1 | the three numbers a deployer chooses, and the check that they are consistent |
+| §2 | what the chain has to remember |
+| §3 | what happens at the start of each period — the heart of the design |
+| §4 | what happens at each block: who gets paid, and how the difficulty behaves |
+| §5–7 | the two regimes summarised, formulas for testing, and a worked example |
+| §8 | the known weaknesses, measured; §8.5 is the optional mitigation |
+
 ## 1. Parameters
+
+*In plain words: the three numbers somebody has to choose — how much money, how many newcomers, over how long — plus the values inherited from elsewhere in the protocol. The consistency check at the end of this section is the most useful thing here: it catches an impossible combination before anything runs.*
 
 The three of R4, plus what is inherited unchanged:
 
@@ -17,7 +45,10 @@ The three of R4, plus what is inherited unchanged:
 | `EXPECTED_NODES` | nodes the bootstrap intends to onboard (R3) | 25,000 |
 | `EXPECTED_YEARS` | intended bootstrap duration | 4.0 |
 
-Inherited, not free: `min_stake` (1,000 LGO, SDP), `pow_share` (10%, the fee diversion),
+Inherited, not free: `min_stake` (1,000 LGO, SDP), `pow_share` (10% — under the
+pooling/distributing/releasing substrate of lips PR 375 this is a **carve-out from the
+pending rewards pool**, its first outflow, not an interception ahead of it; decided
+2026-08-24, recorded as contradiction 4.13 with the accounting consequences),
 `blocks_per_epoch` (21,600), the EMA retarget constants `F/P` (9/10), the genesis difficulty
 seed (`p / 2^26`), and the fee model (`txsize`, two markets, lepta).
 
@@ -58,7 +89,23 @@ nearly worthless.
 
 ## 2. State
 
-Consensus state, per the component accounting of Q6:
+*In plain words: what the chain has to keep track of. Two pots of money, a count of last period's activity, and a few per-period working values. Deliberately small — anything the chain must remember is something that can go wrong.*
+
+Consensus state, per the component accounting of Q6.
+
+**Where these stocks sit in the pooling/distributing/releasing substrate** (lips PR 375,
+`block-rewards.md` 1.1.0): this design was written against the burn/mint model and turns out
+to be an instance of the RFC's own pattern, not an exception to it. `endowment` is a
+**genesis-minted sub-reserve** — this document's term, not the RFC's, which specifies a single
+undivided reserve `B_t` (sub-pools appear only in its review thread, where a reviewer objected
+to them and the author left the accounting to implementers) — released on this design's own
+schedule
+(`sub_pool = endowment // (B − e)` is a metered release; Q7's nominal-rate tail is the RFC's
+"lasts Y years at the maximum rate, longer whenever slower"; the dust fold is its
+depleted-reserve fallback). `fee_bucket` is the EmPoWering-side view of a **draw against the
+pending rewards pool** — fees enter that pool in full and the `pow_share` carve-out is its
+first outflow (decided 2026-08-24, contradiction 4.13). And this model's
+conservation-to-the-lepton gate is the RFC's `ΔS + ΔP + ΔB = 0`, held at a finer grain.
 
 ```python
 endowment: TokenValue        # E. The TGE bucket. Monotone non-increasing. Genesis: ENDOWMENT_GENESIS.
@@ -68,7 +115,12 @@ claims_prev: uint64          # claims paid in the previous epoch. Genesis: 0.
 epoch_budget: TokenValue     # fixed at the boundary
 epoch_reward: TokenValue     # fixed at the boundary (R6)
 epoch_spent: TokenValue      # paid so far this epoch
-saturation_block: uint64     # block index at which epoch_spent first exceeded epoch_budget; unset otherwise
+saturation_block: uint64     # bootstrap: first block at which epoch_spent EXCEEDED epoch_budget
+                             # (the borrow-forward begins). Post: first block at which one more
+                             # reward would exceed it (admission stops; spent never exceeds).
+                             # Unset if neither happened. Two regimes, two events -- an earlier
+                             # revision defined only the first, which made the post-phase
+                             # figures the report leans on undefined by the model's own words.
 difficulty_target: PowTarget # as today
 ```
 
@@ -76,6 +128,8 @@ The regime is not stored; it is read: **bootstrap iff `endowment > 0`** (Q6 — 
 only ever falls, so the transition fires once and cannot flap).
 
 ## 3. Epoch boundary
+
+*In plain words: the heart of the design. Once per period, work out two numbers — how much to spend, and what one piece of work pays — then leave both alone until the next period. Everything else is consequence.*
 
 ```python
 def on_epoch_boundary(e):
@@ -140,7 +194,11 @@ Q3's letter, and it is forced by R6 + Q6 jointly.
 
 ## 4. Per block
 
+*In plain words: what happens moment to moment. Who gets paid and from which pot (§4.1), and how the puzzle's difficulty behaves in each of the two regimes (§4.2).*
+
 ### 4.1 Admission and payment
+
+*In plain words: the rule for paying a claim. Draw from the fee pot first, then the launch fund; during the launch phase keep paying even past the period's budget, because turning a crowd away is exactly what this design exists to avoid.*
 
 A claim valid under the existing puzzle rules is **paid** iff the pool can cover it, drawing
 `fee_bucket` first, then `endowment` (fees are flow-through; the endowment is the subsidy of
@@ -174,6 +232,10 @@ whole job is to make hitting it coincide with the epoch's end.
 
 ### 4.2 The difficulty
 
+*In plain words: how hard the puzzle is. During the launch phase it is a fixed floor and does nothing clever — the rationing here is economic, not computational. Afterwards the existing controller wakes up and spreads the work evenly across the period.*
+
+> **Inherited edge case.** The reused retarget clamps its output above but not below, so it has an absorbing zero — from a target of 1 under a full block the map returns 0, and 0 is permanent (`UPSTREAM-PENDING.md` §4, raised on the RFC; pinned by the strategy suite's gates). A `max(1, …)` floor upstream removes it; this model inherits whichever form the specification settles on.
+
 **Bootstrap: a constant floor.** The difficulty holds at the genesis seed (`p / 2^26`) for the
 whole phase. It is spam protection, not a controller: admission control is economic
 (saturation + the demand-indexed reward), and a cohort's arrival must not be met with a rising
@@ -206,6 +268,8 @@ post-phase equilibrium within its usual ~10-block time constant; no special-case
 
 ## 5. The regimes, summarised
 
+*In plain words: the two phases side by side — before and after the launch fund runs out — and what differs between them. Which is shorter than most readers expect.*
+
 | | bootstrap (`endowment > 0`) | post (`endowment == 0`) |
 | --- | --- | --- |
 | purpose | onboard nodes (R3) | sustain claiming from fees (R7) |
@@ -235,6 +299,8 @@ claimants at a measured 2.6% conversion and stranded every later arrival at the 
 phase still ends when the money is gone, not when the clock says so — in both directions.
 
 ## 6. Closed forms (for gating the simulator)
+
+*In plain words: formulas that can be worked out with a pencil rather than a simulation. They exist so the simulator can be checked against them: if the code and the arithmetic disagree, one of them is wrong and a test says so.*
 
 With `B = BOOTSTRAP_EPOCHS`, `E_0 = ENDOWMENT_GENESIS`, uniform arrivals at the equilibrium:
 
@@ -266,12 +332,16 @@ With `B = BOOTSTRAP_EPOCHS`, `E_0 = ENDOWMENT_GENESIS`, uniform arrivals at the 
 
 ## 7. Worked reference triple
 
+*In plain words: the whole thing with real numbers in it, start to finish, so the rules above can be checked against a concrete case.*
+
 `(0.5%, 25,000, 4 yr)`: endowment 5e16 lepta (50M LGO), 195 epochs, opening sub-pool
 ≈ 256,410 LGO/epoch, opening reward ≈ 11.9 LGO falling toward the anchor as participation
 grows; implied efficiency 50% — satisfiable only in the retiring regime, which the report must
 state as the triple's built-in assumption.
 
 ## 8. Analysis obligations — measured, and resolved
+
+*In plain words: the things this design was suspected of getting wrong, each one simulated rather than argued about, with the result recorded — including the ones that turned out to be real.*
 
 Every obligation below was simulated (the report, sections 5-7). The resolutions, settled
 2026-08-19: the whale exposure and the index's cliff cycle are ACCEPTED as documented
@@ -280,21 +350,33 @@ exhausted, the endowment is first-come) and Q9 keeps the index raw (its one-epoc
 the burst response; zero state). Both are pinned by gates so they cannot drift silently.
 The original obligations, kept for the audit trail:
 
-1. **Demand-index oscillation.** `reward_{e+1} = budget / claims_e` with entry/exit elasticity
-   can two-cycle: heavy epoch → small reward → exit → light epoch → big reward → re-entry.
-   The simulator must test for limit cycles across elasticities; the EMA-smoothed index is the
-   recorded fallback (Q3's rejected alternative, same trade).
-2. **Whale drain.** With the difficulty floored, nothing rate-limits a single large actor
-   converting the endowment to its own balance quickly; R6 accepts this literally (the pool
-   pays until exhausted) and the conversion-efficiency band is where it shows. Quantify: end
-   date and per-cohort admission under a whale of 10–100× the honest field.
-3. **Block-space contention.** Floored difficulty + a spike puts claims in competition with
-   ordinary transactions inside `MAX_BLOCK_TXS`; the fee market responds. Quantify the
-   crowding at ×10/×100 spikes.
-4. **Sparse-capacity regime.** `capacity < blocks_per_epoch` post-phase forces target 1 and
-   early saturation; quantify the R7b deviation vs traffic level.
+### 8.1 Demand-index oscillation
 
-## 8.5 The asterisked alternative: **de novo\***
+`reward_{e+1} = budget / claims_e` with entry/exit elasticity can two-cycle: heavy epoch →
+small reward → exit → light epoch → big reward → re-entry. The simulator must test for limit
+cycles across elasticities; the EMA-smoothed index is the recorded fallback (Q3's rejected
+alternative, same trade).
+
+### 8.2 Whale drain
+
+With the difficulty floored, nothing rate-limits a single large actor converting the endowment
+to its own balance quickly; R6 accepts this literally (the pool pays until exhausted) and the
+conversion-efficiency band is where it shows. Quantify: end date and per-cohort admission
+under a whale of 10–100× the honest field.
+
+### 8.3 Block-space contention
+
+Floored difficulty + a spike puts claims in competition with ordinary transactions inside
+`MAX_BLOCK_TXS`; the fee market responds. Quantify the crowding at ×10/×100 spikes.
+
+### 8.4 Sparse-capacity regime
+
+`capacity < blocks_per_epoch` post-phase forces target 1 and early saturation; quantify the
+R7b deviation vs traffic level.
+
+### 8.5 The asterisked alternative: **de novo\***
+
+*In plain words: an optional safety catch. The base design lets a period give away as much of the remaining fund as demand calls for, which is what lets a genuine crowd in — and also what lets one large actor take a lot. This adds a limit on the giving-away, at the cost of one number nobody can derive from first principles. It is presented as an option because that trade is a judgement, not a calculation.*
 
 Q8 settles the borrow-forward as unbounded, and §8's whale obligation quantifies what that
 concedes: 55% of the endowment to a 10× actor arriving at epoch 20, and a phase collapsing
@@ -322,6 +404,8 @@ move. The costs are one parameter with no natural value, a softening of R6's let
 epoch, and a 37% longer wait for the cohorts R5 exists to protect.
 
 ## 9. Amendment to Q4, on the record
+
+*In plain words: a decision that was made, then reversed once the formal write-up showed it did not work. Kept visible rather than quietly corrected, so the reasoning survives.*
 
 Q4 was settled as "one throttle, both phases". Writing §4 formally shows that composes badly
 with Q1 and R5/R6: with the reward demand-indexed at `budget / claims_prev`, the interior

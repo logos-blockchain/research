@@ -90,7 +90,7 @@ class Config:
     # KNOWN. A note must have been held for a minimum period before it can enter the
     # leadership lottery (cryptarchia-v1-protocol.md): the stake distribution is snapshotted
     # at the start of an epoch and frozen, and the service declaration protocol reads a
-    # snapshot from `finalized_epoch = current_epoch - 2`. So freshly minted claim proceeds
+    # snapshot from `finalized_epoch = current_epoch - 2`. So freshly paid claim proceeds
     # are NOT immediately staking-eligible, and this is that delay in epochs.
     stake_aging_epochs: int = 2
     leader_fee_share: float = 0.4

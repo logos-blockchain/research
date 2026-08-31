@@ -40,6 +40,21 @@ def main() -> int:
           note=f"it asserts 50% where persistence delivers "
                f"{EFFICIENCY_PERSISTENT:.0%} -- a bet on retirement, now explicit")
     check("but is feasible if bonded miners do retire", d.satisfiable_if_retiring, True)
+    # The persistent ceiling itself, pinned two ways. A 2026-08-25 mutation test moved it
+    # from 15% to 25% and NOTHING failed: the reference triple implies 50%, which is above
+    # both, so every satisfiability gate read the same either way. The published 15% -- the
+    # number the whole re-strike recommendation rests on -- was unpinned.
+    check("the persistent conversion ceiling is the measured 15%",
+          EFFICIENCY_PERSISTENT, 0.15,
+          note="what this mechanism converts when nobody retires; the re-strike arithmetic "
+               "in SUMMARY section 4 is computed against exactly this")
+    _straddle = Triple(expected_nodes=10_000).derived()      # implies exactly 20%
+    check("and a triple that straddles it is judged against it",
+          (round(_straddle.implied_efficiency, 3),
+           _straddle.satisfiable, _straddle.satisfiable_if_retiring),
+          (0.2, False, True),
+          note="20% is above what persistence delivers and below what retirement does, so "
+               "this triple distinguishes the two ceilings where the reference one cannot")
     check("the anchor is two transfers", d.anchor, 2 * cfg.avg_tx_fee)
     check("and clears the claim's own fee", d.anchor > cfg.claim_fee, True,
           note=f"{d.anchor:,} against {cfg.claim_fee:,}")
@@ -246,7 +261,7 @@ def main() -> int:
     _min_long = adv.pump_vs_honest(d, 0.10, epochs=190)["pump_advantage"]
     check("while the minority result survives the same widening",
           _min_long < 1.0, True,
-          note=f"{_min_long:.2f}x at 10% over 190 epochs against 0.44x over 40 -- withholding "
+          note=f"{_min_long:.2f}x at 10% over 190 epochs against 0.64x over 40 -- withholding "
                f"still loses, which is the load-bearing conclusion")
 
     # An elastic attacker cannot harvest the Q9 cliff: being picky costs more than it takes.
@@ -405,6 +420,50 @@ def main() -> int:
                f"incumbents mining longer: persists to epoch "
                f"{'/'.join(str(c['persists_until']) for c in _curve)} and onboards "
                f"{'/'.join(format(c['bonds'], ',') for c in _curve)} at $1.00/$0.10/$0.01")
+
+    # ---------------------------------------------------------------- the window, priced
+    print("\nThe acceptance window, priced (W = 10 blocks)")
+    from . import window as win                                # noqa: PLC0415
+
+    _wref = engine.run(d, arrivals.uniform(220, 130), _st2.hashrate_draw(cfg), epochs=220)
+    _wprof = win.congestion_profile(_wref.rows, cfg)
+    check("the window is free where the field stays small",
+          max(c.inflation for c in _wprof) < 1.001, True,
+          note="reference retiring run: worst epoch inflation 1.000x, expiry 0.00% -- "
+               "offered demand never nears block space, so nothing waits and nothing dies")
+    _wspk = engine.run(d, arrivals.spike(220, 130, at=30, factor=100),
+                       _st2.hashrate_draw(cfg), epochs=35)
+    _cs = win.congestion_profile(_wspk.rows, cfg)[30]
+    check("and it acquits the x100 spike",
+          (_cs.expired, round(_cs.inflation, 3)), (0, 1.0),
+          note=f"{_cs.offered / cfg.blocks_per_epoch:.0f} offered a block against 1,024 of "
+               f"space -- the crowding is real (83-84% of the cap) but the queue clears "
+               f"inside the window; not one solution expires")
+    _wper = engine.run(d, arrivals.uniform(220, 130), _st2.hashrate_draw(cfg), epochs=220,
+                       retire_on_bond=False)
+    _cp = win.congestion_profile(_wper.rows, cfg)[194]
+    check("the tax lives in the late persistent endgame",
+          (round(_cp.inflation, 2), round(_cp.expiry_fraction, 3)), (1.41, 0.288),
+          note="epoch 194 of the never-shrinking field: 1,439 offered a block, 28.8% of "
+               "solutions expire, energy per paid claim x1.41 -- the floored difficulty "
+               "meets finite block space, and the window collects the difference")
+    check("the post-phase saturation tail loses a tenth of a percent",
+          round(win.post_tail_loss(_wref.rows, cfg), 5), 0.00135,
+          note="solutions found between saturation and the window's grace strip expire and "
+               "re-mine next epoch -- R7b's only hidden fee, 0.135% per settled epoch")
+    check("and the window bounds any stockpile to ten blocks of the attacker's own rate",
+          round(win.stockpile_bound(d, 10 * 1000 * power.board(cfg).candidates_per_second), 1),
+          1079.4,
+          note="a 10x-the-field whale holds at most ~1,079 claims ready against an epoch "
+               "capacity of 648,000 -- the grinding defence, quantified; and why the "
+               "adversary harness's live-rate limit was never an understatement")
+    _wcurve = win.congested_price_curve(d, prices=(0.10,))
+    check("the tax moves no retirement threshold",
+          (_wcurve[0]["persists_until"], _wcurve[0]["persists_until_taxed"]), (112, 112),
+          note="at $0.10, the steepest tested point of the price curve: identical with and "
+               "without the congestion tax, because congestion develops only where the "
+               "decision is nowhere near marginal -- the full sweep (1.0/0.10/0.05/0.01) "
+               "shows the same at every price")
 
     print()
     if FAILURES:

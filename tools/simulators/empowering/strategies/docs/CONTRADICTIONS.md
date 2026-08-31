@@ -213,6 +213,68 @@ names BN254 but states no modulus. The only numeric value in the tree is at
 **Resolved: use the stated value** — a documentation gap rather than a contradiction. It is
 the standard BN254 scalar field modulus and matches what this simulator already uses.
 
+## 4.12 The block reward's recycled term — windowed or single-block (lips PR 375)
+
+`block-rewards.md` 1.1.0 (PR 375; entry written against head `2b3b698`, **merged to master
+2026-08-26 at `6aaa6db`**) changes the recycled term of the reward equation from the latest
+block's pooled fee to the **moving average over the look-back window T** — a genuine
+mechanism change, motivated as removing single-block volatility and the incentive to time
+transactions against one block. The same document's integer derivation and reference
+implementation still compute the single-block form. At the pinned head that section carried a
+"**Rederivation required**" callout admitting it; a 2026-08-25 pre-merge commit **removed the
+callout without applying the rederivation** (the block was rewritten around int64 and the
+window renamed to `pooled_fees_window`, but the recycled term still reads `last_pooled_fee` —
+verified against merged master). So the specification's real-valued rule and its
+consensus-level reference implementation disagree *within the same merged document*, now with
+no flag between them. Reported upstream-ready in `reports/empowering/UPSTREAM-PENDING.md` §3.
+
+**Resolved: the windowed rule**, as the stated intent, with the PR's own prescription (reuse
+the window sum already maintained for the pooling-rate KPI, divided by T). `emission.py`
+implements it as `block_reward_lgo` and keeps the superseded form callable as
+`block_reward_lgo_single_block`; the parity gate pins the divergence (a lone 12-LGO block in
+a quiet window: 0.1 LGO windowed against 12 single-block) so the rederivation actually landing
+upstream — it has not, despite the flag's removal — moves a gate here instead of passing
+silently. One boundary the specification leaves unstated
+is decided here: pre-genesis window entries are zero, so a short history divides by the full
+T. **No figure in these studies moves** — every run holds fees flat, where the two rules are
+identical, and `A_t` saturates at 1 over every horizon anyway; pinned by the flat-window gate.
+
+Side effect on 4.9: the PR removes `S_tge` entirely and anchors every constant to `S_cap`
+(numerically the same 10¹⁰), which dissolves 4.9's *anchor* question — but not its
+consequence, since the `min_stake` derivation assumed 10⁸ whatever the anchor is called.
+
+## 4.13 Fee routing "in full" against the EmPoWering `POW_SHARE` — cross-RFC, decided
+
+PR 375's `storage-markets.md` Fee Routing subsection routes each storage fee "**in full**"
+into the pending rewards pool, `execution-market.md` routes the entire base fee likewise, and
+the decomposition `R_block = R̂_STR + R̂_pooled` has no proof-of-work term. The EmPoWering
+design diverts `POW_SHARE` (10%) of fees to the PoW pool. As written, the two specifications
+cannot both be true on the day both merge.
+
+**Decided by the design owner, 2026-08-24: the pool's routing stands, and EmPoWering carves
+its share out of the pooled reward flow.** Fees enter the pending rewards pool in full — the
+RFC's sentences stay true — and the PoW share is the pool's *first outflow*, taken from the
+pooled flow before the reward rule distributes the remainder. Accounting consequences, all
+implemented: the pool balance stays non-negative in every regime including `A_t = 0`, and the
+de-novo `fee_bucket` becomes the EmPoWering-side view of a draw against the pending rewards
+pool rather than an interception ahead of it.
+
+**One sub-decision the first implementation buried, surfaced by the 2026-08-25 review.** The
+carve-out leaves `R_block` ambiguous: the RFC defines it as the fees *routed to the pool*,
+which under "in full" routing is **gross**, while `emission.py` feeds the window the **net**
+figure — fees after the carve-out, which is what the pre-pooling code measured and what makes
+the recycled term equal what is actually distributable. The alternative is defensible and
+arguably more literal, since KPI-2 measures the *pooling rate*: the factor could read gross
+while the recycled term distributes net. **Resolved: net**, and the cost of the choice is now
+gated rather than assumed — identical at `A_t = 1` (fees do not enter a release-capped
+reward, which is where every published figure sits), 0.0005% apart near the target, and
+`1/(1 − pow_share)` = 11.1% apart only in the genesis-seed transient at `A_t = 0`, where the
+absolute figure is ~0.0003 LGO a block. Nothing published moves either way; the entry exists
+so the reading can be revisited on evidence rather than rediscovered. The remaining upstream ask is one sentence in the RFC
+acknowledging the carve-out as a pool outflow, so "in full" and `POW_SHARE` stop reading as
+a contradiction — drafted, with the other pending upstream items, in
+`reports/empowering/UPSTREAM-PENDING.md`.
+
 ---
 
 ## What changed, and what is still blocked
@@ -230,6 +292,8 @@ the standard BN254 scalar field modulus and matches what this simulator already 
 | 4.9 | `S_TGE = 10¹⁰` | **invalidates the `min_stake` derivation** |
 | 4.10 | `BN` | no |
 | 4.11 | use the stated modulus | no |
+| 4.12 | windowed recycled term, per PR 375's stated intent | no — flat fees and `A_t = 1` make the rules coincide here; the divergence is gated |
+| 4.13 | **DECIDED: carve-out from the pooled flow** | no — same value, new accounting; one upstream wording ask remains |
 
 **Both items the documents could not supply are now decided as parameters:** `D` seeded at
 10^10 per the genesis rule, and `min_stake` at 1,000 LGO per the static minimum stake analysis.

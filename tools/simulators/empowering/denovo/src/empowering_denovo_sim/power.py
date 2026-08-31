@@ -40,7 +40,7 @@ splits the old blanket caveat rather than confirming it:
 
 Poseidon2 over BN254 rather than over a small field is itself a GPU-resistance decision, and
 it is doing that work whether or not it was chosen for it. The GPU figure is an estimate and
-should be replaced by `make bench-poseidon2` on a CUDA host before anything rests on it.
+should be replaced by `make poseidon2` on a CUDA host before anything rests on it.
 """
 from __future__ import annotations
 

@@ -4,18 +4,48 @@ Phase B of `PLAN.md`. Mechanism by mechanism: what survives untouched, what chan
 what is deleted, and which specification document each change lands in. This is what makes
 the redesign adoptable rather than academic.
 
+## How to read this
+
+*In plain words: this design was worked out from first principles, deliberately ignoring how
+the current system is built. That is useful for thinking and useless for shipping — so this
+document does the reconciliation. It answers one question per row: for each piece of the
+existing specification, does the redesign keep it, change it, or delete it?*
+
+*Read §1 to see how little actually changes: most of the machinery is reused untouched, and
+the genuinely new rules are few enough to list. §2 covers the pieces whose meaning shifts even
+though their name does not — the easiest kind of change to miss when implementing.*
+
 ## 1. Untouched — consumed as-is
 
 | mechanism | where it lives | note |
 | --- | --- | --- |
-| claim operation `CLAIM_POW_REWARD` | `mantle` §Proof of Work Operations | payload, ticket derivation, nullifier, acceptance window, Groth16 proof — byte-for-byte |
+| claim operation `CLAIM_POW_REWARD` | `mantle` §Proof of Work Operations | payload, ticket derivation, nullifier, acceptance window, Groth16 proof — byte-for-byte. The window (`W = 10` expected blocks) is also **priced**, not just consumed: free in every regime that matters, a 28.8%-expiry energy tax only in the late persistent endgame, 0.135%/epoch in the post-phase tail, and it bounds any attacker's claim stockpile to ~10 blocks of its own rate (`window.py`, gated; report §4) |
 | self-funding claim | `mantle` (interleaving + epoch-fixed reward) | preserved by Q5: the reward is still known at claim-construction time |
-| fee diversion (`POW_SHARE`) | `overview-cryptoeconomics` §PoW Reward Pool | same 10%, same per-block flooring; lands in `fee_accrual` |
+| fee diversion (`POW_SHARE`) | `overview-cryptoeconomics` §PoW Reward Pool; under lips PR 375, a carve-out from `block-rewards`' pending rewards pool | same 10%, same per-block flooring; lands in `fee_accrual`. **Decided 2026-08-24**: fees enter the pool in full and this is the pool's first outflow, not an interception ahead of it (contradiction 4.13) |
 | retarget implementation | `mantle` `compute_new_reward_difficulty` | the function is reused verbatim; only its target argument and *when it runs* change |
 | SDP / `min_stake` bond | `bedrock-service-declaration-protocol` | the onboarding destination; untouched |
-| service rewards, 60/40 split, emission control | `block-rewards`, `bedrock-service-reward-distribution` | orthogonal to the pool redesign |
-| both fee markets | `execution-market`, `storage-markets` | untouched; the anchor *reads* their epoch-boundary prices — a read, not a rule change |
+| service rewards, 60/40 split, release control | `block-rewards` 1.1.0, `bedrock-service-reward-distribution` | the reward *level* this design reads is unchanged (the release cap, 95.13 LGO/block at `A_t = 1`); the substrate under it is PR 375's — see §1.1 |
+| both fee markets | `execution-market` 1.2.0, `storage-markets` | pricing formulas untouched, so the anchor still *reads* their epoch-boundary prices; their fees now route to the pending rewards pool rather than burning, which is where the carve-out above draws from |
 | units | *Logos Token: Units and Precision* | everything in lepta, as before |
+
+### 1.1 The substrate is the RFC's own pattern
+
+Lips PR 375 (`block-rewards.md` 1.1.0) replaces burning/minting with
+pooling/distributing/releasing, and this design — written against the burn/mint model — maps
+onto it term for term rather than needing an exception from it:
+
+| PR 375 | this design |
+| --- | --- |
+| genesis-minted reserve `B_0`, pre-allocated from the cap | the endowment: a genesis-minted **sub-reserve** — our term for the analogy; the RFC specifies one undivided `B_t` and says nothing about subdividing it |
+| metered release `ι_t = min(schedule, B_{t−1})` | `sub_pool = endowment // (B − e)`, the linear amortisation |
+| reserve "lasts Y years at max rate, longer when `A_t < 1`" | Q7's nominal-rate tail |
+| depleted-reserve fallback to recycled fees | the dust fold, then the fee-bucket post-phase |
+| pending rewards pool `P_t` | `fee_bucket`: the PoW-share view of a draw against `P_t` |
+| conservation `ΔS + ΔP + ΔB = 0` | the conservation-to-the-lepton gate |
+
+So the adoption pitch under the new substrate is not "a mechanism beside the reward system"
+but **a second metered release from a dedicated sub-reserve, with its own schedule and its
+own demand index** — the same shape the reward system itself now has.
 
 ## 2. Changed meaning
 
@@ -67,7 +97,7 @@ defined semantics rather than a hazard to be excluded.
 | `overview-cryptoeconomics` §PoW Reward Pool | narrative: budgets and two regimes instead of ρ-decay; the diversion section stands |
 | everything else | no change |
 
-## 4.1 What **de novo\*** would additionally change
+### 4.1 What **de novo\*** would additionally change
 
 The asterisked variant (MODEL §8.5) touches exactly one rule and adds exactly one constant, which is the main argument for it being adoptable at all:
 

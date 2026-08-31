@@ -51,8 +51,14 @@ function renderTable() {
       `${(dns.whale_capture * 100).toFixed(0)}%`,
       "the current design's outflow is fixed, so it cannot be drained",
       { cur: "ok", dn: "bad", dns: "ok" });
-  row(tb, "best adoption speed", "a hump — worst rate elevates ⅙ of the best",
-      "none", "none", "does the mechanism care when people arrive?",
+  const hp = D.current_design.hump_elevated_at_2_100_500_persistent;
+  const hr = D.current_design.hump_elevated_at_2_100_500_retiring;
+  row(tb, "best adoption speed", "a hump — the worst rate onboards a fraction of the best",
+      "none", "none",
+      "constant arrivals, this regime: "
+      + (state.regime === "retiring" ? hr : hp).map((v) => fmt(v)).join(" / ")
+      + " at 2 / 100 / 500 per epoch; the strategy report's Poisson study reads "
+      + "951 / 6,145 / 5,001 (persistent)",
       { cur: "bad", dn: "ok", dns: "ok" });
   row(tb, "door closes at 100 arrivals/epoch",
       `epoch ${curDoor}`, "never", "never",
@@ -60,8 +66,14 @@ function renderTable() {
       + `${D.current_design.door_closes_at_100_per_epoch} under persistence, `
       + `${D.current_design.door_closes_at_100_per_epoch_retiring} under retirement`,
       { cur: "bad", dn: "ok", dns: "ok" });
-  row(tb, "point of no return", `epoch ${D.current_design.point_of_no_return_at_100_per_epoch}`,
-      "none", "none", "queue exceeds every bond the pool can fund",
+  const curPnr = state.regime === "retiring"
+    ? D.current_design.point_of_no_return_at_100_per_epoch_retiring
+    : D.current_design.point_of_no_return_at_100_per_epoch;
+  row(tb, "point of no return", `epoch ${curPnr}`,
+      "none", "none",
+      "queue exceeds every bond the pool can fund — epoch "
+      + `${D.current_design.point_of_no_return_at_100_per_epoch} under persistence, `
+      + `${D.current_design.point_of_no_return_at_100_per_epoch_retiring} under retirement`,
       { cur: "bad", dn: "ok", dns: "ok" });
   row(tb, "bootstrap ends", "never", `epoch ${dn.transition}`, `epoch ${dns.transition}`,
       "the pool is spent and the phase is over");

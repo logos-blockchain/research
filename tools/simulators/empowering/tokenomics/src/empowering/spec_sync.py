@@ -91,9 +91,28 @@ def run(config: str, lips: str) -> int:
           int(p.genesis_pool_fraction * 1000))
 
     rewards = "block-rewards.md"
-    check("S_tge",
-          grab(rewards, r"Token supply at TGE \| (\d+) billion LGO", "supply"),
+    # Two accepted forms: master's parametrization row anchors the supply as S_tge ("Token
+    # supply at TGE"); lips PR 375 removes S_tge and anchors everything to the hard cap
+    # ("Maximum token supply (hard cap)"). Numerically identical at the stated 10^10, so one
+    # config value serves both trees -- the alternation is what keeps this gate green across
+    # the substrate change instead of pinning the sim to one side of it. PR 375 merged
+    # 2026-08-26; the old form stays accepted because the EmPoWering RFC branch (PR 400,
+    # this gate's home tree) predates the merge until it is rebased.
+    check("S_tge / S_cap",
+          grab(rewards,
+               r"(?:Token supply at TGE|Maximum token supply \(hard cap\)) \| (\d+) billion LGO",
+               "supply"),
           int(p.S_tge / 1e9))
+    rewards_text = read(rewards)
+    if rewards_text and "Lifetime of the rewards reserve" in rewards_text:
+        # The PR-375 tree only: the reserve-lifetime parameter its Pool Accounting section
+        # introduces. Y = 10 sizes the reserve at I_max * S_cap * Y = 10^9 LGO, which is the
+        # RESERVE_GENESIS the strategy simulator's emission stocks carry.
+        # Accepts both $10$ (the PR head this gate was written against) and $`10`$ (the
+        # form the 2026-08-25 pre-merge cleanup switched the whole document to).
+        check("Y (reserve lifetime, PR 375)",
+              grab(rewards, r"Lifetime of the rewards reserve[^|]*\| \$`?(\d+)`?\$ years", "Y"),
+              10)
 
     blendp = "blend-protocol.md"
     n_b = grab(blendp, r"which translates to \$`([\d,]+)`\$ blocks", "N_b")
@@ -109,19 +128,23 @@ def run(config: str, lips: str) -> int:
     # The reference implementation's constants are all functions of the supply; guard
     # them so a supply revision cannot leave the code behind again.
     import math
+    # `int(3e9)` before the merge, `int64(3_000_000_000)` after -- the 2026-08-26 merge of
+    # PR 375 rewrote the reference block around numpy int64. Both forms are captured and the
+    # comparison is NUMERIC, because the old string comparison ("3e9") broke on a formatting
+    # change that moved no value -- which is drift this gate should survive, not report.
+    _stake_raw = grab(rewards, r"STAKE_TARGET = int(?:64)?\(([\d_.e+]+)\)", "stake target")
     check("STAKE_TARGET (reference code)",
-          grab(rewards, r"STAKE_TARGET = int\((\S+)\)", "stake target"),
-          f"{0.3 * p.S_tge:.0e}".replace("e+", "e").replace("e0", "e"))
+          _stake_raw and float(_stake_raw.replace("_", "")), 0.3 * p.S_tge)
     infl_num = int(p.I_max * p.S_tge)
     g = math.gcd(infl_num, p.blocks_per_year)
     check("INFLATION_NUMERATOR (reference code)",
-          grab(rewards, r"INFLATION_NUMERATOR = ([\d_]+)", "inflation num"),
+          grab(rewards, r"INFLATION_NUMERATOR = (?:int64\()?([\d_]+)\)?", "inflation num"),
           str(infl_num // g))
     check("INFLATION_DENOMINATOR (reference code)",
-          grab(rewards, r"INFLATION_DENOMINATOR = ([\d_]+)", "inflation den"),
+          grab(rewards, r"INFLATION_DENOMINATOR = (?:int64\()?([\d_]+)\)?", "inflation den"),
           str(p.blocks_per_year // g))
     check("A_SCALE (reference code)",
-          grab(rewards, r"A_SCALE = ([\d_]+)", "a scale"),
+          grab(rewards, r"A_SCALE = (?:int64\()?([\d_]+)\)?", "a scale"),
           str(int(0.3 * p.S_tge * p.I_max * 4)))
 
     # --- derived margins the specifications state in prose ------------------------

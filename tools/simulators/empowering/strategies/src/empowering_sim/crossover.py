@@ -21,7 +21,7 @@ needs a discount rate, and there is none here. So both are reported as tokens pe
 comparison of two cash flows that node actually faces, and is meaningful without a discount
 rate. It says which stream is larger, not which is the better investment.
 
-**What is not specified.** The share of a block's minted reward reaching its leader is not
+**What is not specified.** The share of a block's distributed reward reaching its leader is not
 fixed anywhere in the specification tree. Everything below scales linearly in it, and it is a
 parameter rather than a constant for that reason.
 """
@@ -45,7 +45,7 @@ class Position:
 
 def staking_income_per_epoch(cfg: Config, stake: int, staked_fraction: float,
                              txs_per_block: int | None = None) -> float:
-    """Base units a staker earns in one epoch, from minting and from leader fees.
+    """Base units a staker earns in one epoch, from the reward distribution and from leader fees.
 
     | ``stake_share = stake / (staked_fraction * launch_supply)``
 
@@ -270,7 +270,7 @@ def conservation_product(cfg: Config, pool: int, hashrate_share: float, min_stak
                          staked_fraction: float, txs_per_block: int | None = None) -> dict:
     """Graduation time times mining dominance -- a constant, and the design's obstacle.
 
-    | ``graduation_epochs * mining_dominance = staked_total / minted_per_epoch``
+    | ``graduation_epochs * mining_dominance = staked_total / released_per_epoch``
 
     Both factors are proportional to ``hashrate_share * distribution_rate * pool``, one in a
     numerator and one in a denominator, so it cancels -- and so does the threshold. The
@@ -284,21 +284,21 @@ def conservation_product(cfg: Config, pool: int, hashrate_share: float, min_stak
     target or minimum stake escapes it; only a change of mechanism does.
     """
     staked_total = staked_fraction * cfg.launch_supply * cfg.base_units_per_lgo
-    minted = consensus.max_block_reward_base_units(cfg) * cfg.blocks_per_epoch \
+    released = consensus.max_block_reward_base_units(cfg) * cfg.blocks_per_epoch \
         * cfg.leader_reward_share
     payout = cfg.distribution_rate * pool                     # base units the pool pays/epoch
-    if hashrate_share <= 0 or payout <= 0 or minted <= 0 or staked_total <= 0:
+    if hashrate_share <= 0 or payout <= 0 or released <= 0 or staked_total <= 0:
         return dict(graduation_epochs=float("inf"), mining_dominance=0.0, product=float("nan"))
 
     graduation = min_stake / (hashrate_share * payout)
-    dominance = (hashrate_share * payout) * staked_total / (min_stake * minted)
+    dominance = (hashrate_share * payout) * staked_total / (min_stake * released)
     return dict(
         graduation_epochs=graduation,
         graduation_years=graduation / cfg.epochs_per_year,
         mining_dominance=dominance,
         product=graduation * dominance,
-        expected=staked_total / minted,
-        staking_yield_per_year=minted / staked_total * cfg.epochs_per_year,
+        expected=staked_total / released,
+        staking_yield_per_year=released / staked_total * cfg.epochs_per_year,
     )
 
 

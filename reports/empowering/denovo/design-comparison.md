@@ -2,9 +2,28 @@
 
 ## What this document is
 
-A side-by-side of the mechanism as currently specified — measured in the strategy report and its simulator on the `EmPoWering-simulator` branch, including its recent §7 arrivals-as-process study — against the de-novo redesign of this branch, measured in `denovo-report.md`. Both simulators share the fee model, the transaction sizes, the device data and the ledger arithmetic, so where the numbers differ it is the mechanisms differing, not the instruments. They now also share a **power basis** — one node is a whole four-core Raspberry Pi 5 board, 24,146 candidates a second — which they did not until this revision: the de-novo engine had been seating nodes at one core, a factor of four adrift from the elevation study whose figures appear beside it here. Corrected, and the correction moves the redesign's bonds by under 0.1%, because its payout is governed by the budget rather than by the field.
+A side-by-side of the mechanism as currently specified — measured in `../strategies/strategies-report.md` and its simulator at `tools/simulators/empowering/strategies`, including that report's §7 arrivals-as-process study — against the de-novo redesign, measured in `denovo-report.md` and its simulator at `tools/simulators/empowering/denovo`. Both simulators share the fee model, the transaction sizes, the device data and the ledger arithmetic, so where the numbers differ it is the mechanisms differing, not the instruments. They now also share a **power basis** — one node is a whole four-core Raspberry Pi 5 board, 24,146 candidates a second — which they did not until this revision: the de-novo engine had been seating nodes at one core, a factor of four adrift from the elevation study whose figures appear beside it here. Corrected, and the correction moves the redesign's bonds by under 0.1%, because its payout is governed by the budget rather than by the field.
 
 The one-sentence version: **the current design rations a fixed flow and therefore has a best adoption speed, a closing door and a point of no return; the redesign spends a budget wherever the crowd actually shows up, has none of those three, and pays for it with a first-come exposure the rationing never had.**
+
+### How to read this
+
+**§0 below is written for a reader who wants no arithmetic at all** — it explains the whole
+choice in everyday language and is complete on its own. Everything after it is the evidence
+behind §0, and each of those sections opens with a short *plain-words* paragraph, so you can
+keep skimming at whatever depth suits you.
+
+| if you want… | read |
+| --- | --- |
+| the choice explained from scratch, no numbers | **§0** — and you can stop there |
+| what each design holds fixed and what it lets move | §1 |
+| the strongest measured difference between them | §2 |
+| the three-way table, including the mitigated variant | §4.1 |
+| the scorecard against the original brief | §6 |
+
+**Two terms carry the comparison.** A **claim** is one piece of mining work, submitted and
+paid. The **bond** is the deposit that lets a node run a paid service — the finish line
+newcomers are saving toward.
 
 ## 0. In plain words, for anyone
 
@@ -34,6 +53,8 @@ And it is no longer only an expectation: letting each joiner *re-decide every pe
 
 ## 1. What each design fixes, and what it lets move
 
+*In plain words: every design has to hold something steady and let something else float. That single choice — what is nailed down and what is allowed to move — is where these two designs part company, and everything else follows from it.*
+
 | | current | de novo |
 | --- | --- | --- |
 | fixed by the protocol | the claim count (10/block, held by the difficulty against a measured 380× load change) and the pool's outflow rate (`distribution_rate = 1/200`) | the budget schedule (`endowment / epochs_left`) and the reward's floor (the anchor) |
@@ -45,13 +66,17 @@ The current design's two rate constants are the ones its own report could only d
 
 ## 2. Arrivals: the strongest measured contrast
 
+*In plain words: the sharpest difference between the two, and the reason to prefer one. What happens when people show up at different rates and at different times? The current design cares a great deal; the redesign barely notices.*
+
+![five arrival shapes, one budget](figures/arrival_shapes.png)
+
 The strategy report's §7 replaces constant arrivals with a Poisson process and measures the consequences of rationing. Set those against the de-novo matrix directly:
 
 | question | current (§7 of the strategy report) | de novo |
 | --- | --- | --- |
-| does adoption speed matter? | **a hump**: 951 elevated at 2/epoch, ~6,100 near 100/epoch, 5,001 at 500 — the worst rate elevates a sixth of the best | **no**: 24,707 / 26,020 / 25,266 bonds under uniform, ×10 and ×100 arrivals if miners retire; 7,963 / 8,027 / 7,384 if they do not — a third of the level either way, but flat across the shape in **both** regimes |
+| does adoption speed matter? | **a hump**: the §7 Poisson study reads 951 / 6,145 / 5,001 elevated at 2 / 100 / 500 per epoch (persistent; worst ≈ a sixth of best), and the constant-arrival companion reads 707 / 5,682 / 4,646 persistent, 800 / 25,934 / 14,398 retiring — two protocols, both gated, same hump | **no**: 24,707 / 26,020 / 25,266 bonds under uniform, ×10 and ×100 arrivals if miners retire; 7,963 / 8,027 / 7,384 if they do not — a third of the level either way, but flat across the shape in **both** regimes |
 | is there a closing door? | **yes**: the last cohort with even odds of bonding arrives at epoch 286 (10/epoch), 40 (100/epoch), 3 (250/epoch) **under persistence**; 399 / 251 / 77 under retirement — the door is real in both regimes, and much earlier in the one the incentives deliver | **no**: the ×100 cohort — 13,000 nodes in one epoch — is admitted and paid in both regimes, and the phase still ends on schedule — the amortisation re-spreads the borrow rather than moving its own deadline. It *bonds* completely only under retirement (median 43 epochs); under persistence 24% of it does |
-| a point of no return? | **yes, computable from the pool alone**: the waiting queue passes every bond the endowment can still fund at epoch 212 (100/epoch), 119 (250), 72 (500) | **none exists**: the queue cannot outgrow the budget because the budget is spent on whoever is present; under total silence the Q7 tail holds the offer at the nominal rate until claimed |
+| a point of no return? | **yes, computable from the pool alone**: the §7 Poisson study reads epoch **212** at 100/epoch and 72 at 500 (gated in the strategies report); the constant-arrival companion reads 214 under persistence and 338 under retirement | **none exists**: the queue cannot outgrow the budget because the budget is spent on whoever is present; under total silence the Q7 tail holds the offer at the nominal rate until claimed |
 | does timing matter on a fixed population? | **1.64× between best and worst**; the early burst *loses* to flat and the late ramp loses 38% — the mechanism rewards arriving at a rate it can meter | **within noise inside the window** (retiring: 24.7k–28.6k; persistent: 6.1k–8.0k); late arrival costs time, not conversion |
 | does the mechanism ever keep up? | at ≥ 25/epoch it is behind from the first epoch and never once catches up | keeping up is not the frame: saturation is routine, bounded, and repaid by the schedule |
 
@@ -60,6 +85,8 @@ This is the R5 requirement seen from both sides. The current controller holds th
 Where the two agree is as instructive: the current §7's *retirement* column reaches 100% absorption up to 25/epoch and peaks at 28,023 elevated — and the de-novo reference triple presumes exactly that behaviour (implied efficiency 50%, at the retiring edge of the band). **Neither design pays for that behaviour.** Measured in the redesign, persistence is not merely a lower number but a different shape — flat at about 15% whatever the arrival rate, where retirement rises from 25% to 74% across the same range — and it costs roughly two thirds of onboarding. Both designs' headline figures are the optimistic end of a range, and this document gives both ends wherever it quotes one. **The current design achieves at its single best amplitude, with retirement, roughly what the redesign achieves at every arrival shape tried.** The redesign does not create conversion the old mechanism lacked; it removes the requirement that adoption arrive at the one speed the rationing can meter.
 
 ## 3. The reward: emergent against defined
+
+*In plain words: how much does one piece of work pay? In the current design that figure is a consequence of other choices, and nobody set it deliberately. In the redesign it is pinned to something meaningful — what a transaction actually costs. This matters because a number nobody chose is a number nobody can defend.*
 
 | | current | de novo |
 | --- | --- | --- |
@@ -73,13 +100,17 @@ The current steady reward happens to cover a useful bundle with margin; the rede
 
 ## 4. What each design concedes
 
+*In plain words: the honest weaknesses of each, side by side. Neither is free; the question is which price you would rather pay.*
+
 **The current design cannot be drained and cannot be rushed** — the controller fixes the outflow against any actor, whale included; a large miner captures a share of a fixed flow, never more flow. The price is everything in §2: doors, humps, queues.
 
 **The redesign cannot turn anyone away and therefore can be drained.** The measured whale takes 17% / 50% / 56% of the endowment at 1× / 3× / 10× the field it meets, inside the index's one-epoch lag — accepted as documented, gated properties under Q8/Q9's R6-literal reading: the endowment is first-come. The rationing the old design uses as an accidental whale defence is exactly the behaviour R5 rejects, so this trade is not an oversight in either direction; it is the design choice, made explicitly.
 
 Both designs are attacked concretely in `adversarial-analysis.md`. It finds the redesign's two novel surfaces closed by measurement (withholding and cliff-harvesting both lose money), the redesign markedly *more* sybil-resistant at moderate flooding (3.5% of honest bonds denied against 48.4%, at a doubled field), and — the finding that bears on both — that the retiring behaviour both designs' headline numbers assume is not incentivised, costing a third to two thirds of onboarding when it fails. Two exposures are shared and unchanged by the redesign, and honesty requires saying so. The service stream's flat split dilutes with success in both worlds — the strategy report measures 6,185 LGO per provider per epoch at two hundred providers and 166 at seven and a half thousand, and nothing in the redesign touches that arithmetic. And both mechanisms pay claims in proportion to hashrate within an epoch, so neither has any per-identity defence beyond the claim fee — accepted deliberately, since proof of work is sheer power and any remedy would make it something else.
 
-## 4.1 Three designs, side by side
+### 4.1 Three designs, side by side
+
+*In plain words: the full comparison table, including the mitigated variant. This is the densest thing in the document and the place to look if you want one view of everything.*
 
 The whale is the redesign's one accepted weakness, and `adversarial-analysis.md` §3.4 shows it is closable. That makes three design points worth comparing rather than two:
 
@@ -103,9 +134,13 @@ Which of the three is right depends on a judgement the simulations cannot make: 
 
 ## 5. What the comparison cannot settle
 
+*In plain words: the limits of this exercise. Simulations can say what each design does; they cannot say which of two competing goods matters more to the people running the network. That part is a judgement, and it is stated here rather than smuggled into a recommendation.*
+
 The conversion-efficiency band the redesign's identity check leans on was measured under the *current* reward dynamics; re-measuring it under the demand-indexed reward is the natural next study, and the de-novo report lists it as its first limitation. The current design's §7 numbers come from Poisson arrivals over a 600-epoch horizon; the de-novo matrix uses shaped arrivals over 220–420 epochs with equal totals — the qualitative contrasts of §2 are far outside either study's seed noise (the current report bounds its own at ~13%, the de-novo pins its headline counts exactly), but individual counts should not be read to the last digit across the two. And neither simulator models the leadership lottery or the emission side differently: everything downstream of the block reward is common ground.
 
 ## 6. The verdict, requirement by requirement
+
+*In plain words: the scorecard. Both designs scored against the same original brief, line by line.*
 
 | requirement (the de-novo brief) | current design | de novo |
 | --- | --- | --- |

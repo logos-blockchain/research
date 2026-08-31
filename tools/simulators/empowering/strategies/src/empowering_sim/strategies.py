@@ -221,8 +221,9 @@ def run(cfg: Config, scfg: StrategyConfig) -> tuple[Population, list[EpochRecord
 
     fees_per_block = scfg.txs_per_block * cfg.avg_tx_fee
     diverted = fees_per_block * cfg.pow_share_num // cfg.pow_share_den
-    burnt_per_block_lgo = cfg.to_lgo(fees_per_block - diverted)
-    burn_window = [burnt_per_block_lgo] * emission.BURN_WINDOW
+    # The carve-out convention lives in `emission.pooled_inflow_lgo`; see it for the reading
+    # and its cost. `diverted` above is the same carve-out, in lepta, for the pool's refill.
+    pooled_window = [emission.pooled_inflow_lgo(cfg, scfg.txs_per_block)] * emission.POOL_WINDOW
 
     out: list[EpochRecord] = []
     for e in range(scfg.epochs):
@@ -233,8 +234,8 @@ def run(cfg: Config, scfg: StrategyConfig) -> tuple[Population, list[EpochRecord
         true_staked_lgo = cfg.to_lgo(float(aged.sum()))
         blocks = est.blocks_produced(true_staked_lgo, cfg, scfg.slots_per_epoch)
 
-        a_t = emission.emission_factor(est.value_lgo, burn_window)
-        blk_lgo = emission.block_reward_lgo(est.value_lgo, burn_window)
+        a_t = emission.emission_factor(est.value_lgo, pooled_window)
+        blk_lgo = emission.block_reward_lgo(est.value_lgo, pooled_window)
         blend_per_block, leader_per_block = emission.split(blk_lgo, cfg)
         blend_pool = blend_per_block * blocks
         leader_pool = leader_per_block * blocks
@@ -278,7 +279,7 @@ def run(cfg: Config, scfg: StrategyConfig) -> tuple[Population, list[EpochRecord
             pop.reward_leader += paid_lead
             # Leader income is tokens the node now holds, so it compounds into its stake and
             # thence into its future lottery weight. Omitting this understates the long run
-            # badly: minted rewards are what drive total stake toward the 30% target, and
+            # badly: distributed rewards are what drive total stake toward the 30% target, and
             # reaching that target is what switches the emission off.
             pop.stake[pop.mask(*STAKING)] += paid_lead[pop.mask(*STAKING)]
 

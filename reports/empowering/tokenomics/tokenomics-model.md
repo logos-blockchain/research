@@ -4,7 +4,41 @@
 
 > **Location.** This report lives in `reports/empowering/tokenomics/`; the simulations backing it live in `tools/simulators/empowering/tokenomics/` and regenerate every current number via `make all` (and `make verify`, `make check LIPS=…`). The report was authored alongside logos-lips PR #400 and moved here when that work closed.
 
-## 0.4 Addendum — `EPOCH_POW_DISTRIBUTION_RATE` moves to 1/200 (2026-08-14, latest)
+## How to read this — and a warning about its shape
+
+*In plain words: this document works out the numbers behind the on-ramp — how big the launch fund should be, what one piece of mining work should pay, and whether the whole thing can eventually pay for itself out of ordinary transaction fees. It is the most technical document in the set, and it is **not** the place to start.*
+
+**Where to start instead.** For the mechanism explained from scratch with no arithmetic, read `reports/empowering/denovo/design-comparison.md` §0. For the decision and the recommendation, read `reports/empowering/denovo/SUMMARY.md`. Come here when you need a specific number and want to see how it was derived.
+
+**The shape is unusual, and knowing that saves confusion.** This document grew by addendum rather than rewrite, so that its corrections stay auditable:
+
+- **§§0.0–0.5 are addenda, newest first.** Each records a decision that landed *after* the body was written and says which of the body's conclusions it changes. **Read §0.5 first** — it is the most recent, and it states which parts of everything below still stand.
+- **The body (Backgrounds A–C, then §§1–9) is the original analysis.** Where an addendum contradicts it, the addendum wins; the body is kept as the record of what was derived when.
+- **§§4.5 and 4.6 sit at the very end, after §9**, out of numerical order. That is an artefact of how they were added, not a hint about their importance.
+- **Line references to the specifications** (`block-rewards.md:206` and the like) point at the revision the analysis was derived against, and will drift as those documents change. They are provenance, not live links.
+
+**If you are new to this, read in this order:** Background A (what the mechanism is) → Background C (the glossary) → the Epistemic legend (which tells you how much to trust each number) → §0.5 → then whichever numbered section holds the figure you came for.
+
+**The epistemic legend matters more than usual here.** Section headings carry tags — `DERIVED`, `SIMULATED`, `OPEN` — that say whether a result is arithmetic, a measurement, or an unresolved question. A `DERIVED` figure is as reliable as its inputs; a `SIMULATED` one carries the assumptions of the run; an `OPEN` one is a question, not an answer. The legend at §"Epistemic legend" defines them precisely, and skipping it makes the rest look more settled than it is.
+
+## 0.5 Addendum — the substrate moves to pooling/distributing/releasing (lips PR 375; 2026-08-24, latest)
+
+Lips PR 375 (`block-rewards.md` 1.1.0, with `execution-market.md`, `storage-markets.md` and the overview propagating; written against head `2b3b698`, **merged to master 2026-08-26 at `6aaa6db`**) replaces the burn/mint substrate this document was written on: fees route **in full into a pending rewards pool** instead of burning, rewards **distribute from that pool topped up by a metered release** from a finite genesis reserve of 10⁹ LGO — the maximum emission rate times the hard cap `S_cap`, over a ten-year lifetime — instead of minting, the recycled term becomes the **windowed average** of pooled fees over the last 120 blocks instead of the latest block's, the genesis-supply constant is removed in favour of the hard cap `S_cap` (numerically identical at 10¹⁰), and the three stocks conserve: the changes in circulating supply, pending pool and genesis reserve sum to zero.
+
+**This document is not rewritten under it, and deliberately** — its sections cite `master`'s text and line numbers verbatim and carry their own correction history, which a sweep would destroy. Instead this addendum states the translation once, and what survives it:
+
+- **Read every "burnt/burned/destroyed" below as "routed to the pending rewards pool": removed from *circulation*, not from existence.** Every argument in this document that runs on fees leaving circulation survives unchanged, because pooling removes them from circulation exactly as burning did; what changes is that the removal is banked and reversible rather than final.
+- **§3.4 and §4.4.2 survive with their conclusion re-founded.** The two-regime answer to *who pays* is intact: at `A_t → 1` the diversion is borne by the supply side — now "circulating supply contracts less than it would have" rather than "less is destroyed" — and at `A_t → 0` it comes out of Blend and leader distribution one for one, exactly as written. The sentence "mining slows the deflation rather than adding to inflation" becomes "mining slows the circulating-supply contraction rather than adding release", and §3.4 still comes out clean.
+- **The ratio arguments are untouched.** `reward_over_fee`, the builder edge, the break-even load, the claim-share ceiling and the subordination cap all compare quantities on the same fee flow, which PR 375 reroutes without resizing — the fee-computation formulas of both markets are explicitly unchanged.
+- **The `pow_share` funding question of §4.4.2 gains a decided answer.** PR 375's routing says fees enter the pool "in full", which contradicted the diversion as specified; **decided 2026-08-24: the pool's routing stands and the EmPoWering share is the pool's first outflow** — a carve-out from the pooled reward flow, same magnitude, recorded with its accounting consequences as contradiction 4.13 in the strategy simulator's `CONTRADICTIONS.md`. §1.5 of the EmPoWering RFC itself already describes fee funding in pooling terms ("fees are not burned, and rewards are not minted out of thin air"), so the two RFCs agree in direction; PR 375 supplies the general machinery that prose gestures at.
+- **One mechanism change is real but out of this document's scope**: the windowed recycled term alters the block reward only when `A_t < 1` *and* fees vary within the hour, a regime none of this document's results occupy. It is implemented and gated in the strategy simulator (`emission.py`, contradiction 4.12 for the PR's own real/integer divergence).
+- **Line citations** such as `block-rewards.md:206` ("burned when the block is proposed") and `:178` are to `master` = 1.0.0 and will drift when the PR merges; they are left as the record of what this document was derived against.
+
+**What "in sync" covers, precisely.** The *reward rule* is implemented and exercised by the simulations themselves — every published figure runs through it. The *stock accounting* (`P_t`, `B_t`, the conservation identity, the depletion fallback) is implemented and gated but **not carried through a simulation run**: no study here tracks the pool and reserve block by block, because the reserve outlives every horizon these documents model by construction (`B_0` funds the release cap for exactly 10 years, and nothing here runs that long at `A_t = 1`). So the stocks are checked for fidelity to the RFC, not integrated into results — a boundary worth stating rather than leaving to be discovered.
+
+The claim "in sync" is checked, not asserted — and the promise was kept: when PR 375 merged (2026-08-26), its pre-merge cleanup (int64-wrapped constants, backticked maths) landed here as **five loud gate failures**, exactly as designed, and the patterns were then widened. `make check` passes 43/43 against merged master with the EmPoWering RFC overlaid, and still against a pre-merge RFC checkout. One merge-day fact matters beyond formatting: the "Rederivation required" callout was removed without the rederivation being applied, so master's integer reference still computes the single-block recycled term against equation (1)'s windowed rule — the divergence this document's contradiction 4.12 tracks is now unflagged upstream (see `UPSTREAM-PENDING.md` §3).
+
+## 0.4 Addendum — `EPOCH_POW_DISTRIBUTION_RATE` moves to 1/200 (2026-08-14)
 
 The specification adopts **`distribution_rate` = 1/200** (was 1/100), on this document's own analysis; every other constant stands. The selection criterion was robustness at unchanged economics, and the candidates were the two routes §4.11 identified: (`target_claims_per_block`, `pow_share`) = (11, 11 %) and `distribution_rate` = 1/200. The second dominates:
 

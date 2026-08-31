@@ -1,14 +1,31 @@
 # EmPoWering — where the design stands, and what to do
 
-**Read this first.** It states what the mechanism is for, what the three candidate designs do, what the simulations found, and what I would do. Everything here is measured; the supporting documents carry the workings, and `design-comparison.md` §0 explains the choice in plain language for a reader who wants no arithmetic at all.
+**Read this first.** It states what the mechanism is for, what the three candidate designs do, what the simulations found, and what I would do. Everything here is measured; the supporting documents carry the workings.
+
+### How to read this
+
+Written to be read straight through in about ten minutes, with no background assumed. Every section opens with a short *plain-words* paragraph, so you can skim only those and still get the argument. Jargon is defined the first time it appears, and there is none you have to already know.
+
+| if you have… | read |
+| --- | --- |
+| two minutes | §1 (what this is for) and §4 (what to do) |
+| ten minutes | the whole of this document, in order |
+| no appetite for arithmetic at all | `design-comparison.md` §0, which explains the choice in everyday terms |
+| an implementation to write | `MODEL.md`, the exact rules |
+
+**Three terms carry the whole document.** A **claim** is one piece of mining work, submitted and paid. The **bond** is the 1,000-token deposit that lets a node run a paid service — the finish line. An **epoch** is the accounting period, about five and a half days. Everything else is explained in place.
 
 ---
 
 ## 1. The job, in one paragraph
 
+*In plain words: what problem is this solving at all?*
+
 Somebody who owns no tokens should be able to join the network by doing computation, be paid for it, save enough to post the deposit that lets them run a paid service, and so become part of the system that secures it. Work, save, join. Proof of work is the on-ramp; proof of stake is the destination. The design question is how the tokens set aside for that on-ramp should be handed out.
 
 ## 2. The three designs
+
+*In plain words: there are three candidates on the table, and they differ in one thing — how the money for the on-ramp is handed out. One pays a fixed number of prizes forever. One sets a budget per period and spends it on whoever shows up. The third is that second one with a safety catch added. This table is the whole comparison in six lines; everything after it is evidence.*
 
 | | **current** | **de novo** | **de novo\*** |
 | --- | --- | --- | --- |
@@ -21,9 +38,13 @@ The redesign's three parameters are the ones you can hold an opinion about — *
 
 ## 3. What the simulations found
 
+*In plain words: the results. Each subsection takes one question — how many people get in, what the old design does badly, what the new one does badly, what happens under attack, and what happens after the money runs out — and answers it with measured numbers rather than argument. If you read one subsection, read §3.5: it is the finding that changes what you should expect from all three designs.*
+
 Everything below is at the reference parameters (0.5% of TGE, 25,000 nodes, four years), a field of whole Raspberry Pi 5 boards, and both retirement regimes.
 
 ### 3.1 Onboarding
+
+*In plain words: the headline question — how many newcomers actually make it in? The surprise is that all three designs land in roughly the same place, so this is **not** where the choice between them is made.*
 
 | | current | de novo | de novo\* |
 | --- | --- | --- | --- |
@@ -39,15 +60,19 @@ Everything below is at the reference parameters (0.5% of TGE, 25,000 nodes, four
 
 ### 3.2 The three properties the current design has and the redesigns do not
 
+*In plain words: three ways the current design punishes people for arriving at the wrong moment. They are all the same underlying fact seen from different angles — if the number of prizes is fixed, a bigger crowd just means a thinner slice each. This is the case against the current design.*
+
 Measured in the strategy report's arrivals study, and absent from both redesigns:
 
-- **A best adoption speed.** Elevation is a hump: 951 nodes at two arrivals an epoch, ~6,100 near a hundred, 5,001 at five hundred. The worst rate onboards a sixth of the best.
-- **A closing door.** The last cohort with even odds of ever bonding arrives at epoch 286 at ten arrivals an epoch, **epoch 40 at a hundred**, epoch 3 at two hundred and fifty — *under persistence*. Under retirement the same door shuts at 399 / 251 / 77. The door is real in both regimes, and it shuts early in the one the incentives actually deliver; both are given because the difference is large and the earlier text quoted only the persistent end.
-- **A point of no return.** The waiting queue passes every bond the endowment can still fund at epoch 212 (a hundred an epoch), computable from the pool alone.
+- **A best adoption speed.** The number who get in is a hump — too few arrivals and the money goes unused, too many and nobody saves enough. The strategy report's §7 arrivals study (Poisson arrivals, 600 epochs, persistent regime, gated by that report's own number-gate) measures **951 / 6,145 / 5,001** elevated at 2 / 100 / 500 arrivals an epoch — the worst rate onboards about a sixth of the best. The comparison page's constant-arrival companion at 400 epochs reads 707 / 5,682 / 4,646 under persistence and 800 / 25,934 / 14,398 under retirement: same hump, two protocols, both gated. *(A 2026-08-31 revision wrongly called the §7 triple "carried, reproducible from no committed code" — the arrivals module had merged in from the simulator branch and reproduces it exactly; corrected same day. What was true then and remains true: the triple had been quoted regime-free, and it is the persistent regime's.)*
+- **A closing door.** The last cohort with even odds of ever bonding arrives, in the §7 Poisson study, at **epoch 34 at a hundred arrivals an epoch** (479 at two, and at five hundred the door is shut from the start). The constant-arrival companion reads 286 / 40 / 3 at 10 / 100 / 250 under persistence and 399 / 251 / 77 under retirement. The door is real in both regimes and both protocols; it shuts early in the regime the incentives actually deliver, and the original quote gave only the persistent end.
+- **A point of no return.** The waiting queue passes every bond the remaining money could ever fund — even in a perfect world. The §7 Poisson study reads **epoch 212** at a hundred arrivals an epoch (72 at five hundred); the constant-arrival companion reads 214 under persistence and 338 under retirement. Past it, most of the queue can never get in no matter what happens. The two protocols land two epochs apart at the reference rate, which is the agreement one wants between independent implementations of the same cliff.
 
 All three are the same fact seen three ways: a fixed claim flow means a bigger crowd is a thinner slice each. Neither redesign has any of them, because the budget follows the people.
 
 ### 3.3 The whale — the redesigns' cost, and its remedy
+
+*In plain words: the case **against** the redesign. Money that follows the crowd can be followed by the wrong person: one large, well-timed operator can take a great deal of the fund quickly. The old design prevents this by accident, simply by never handing out much at once. This section measures the damage and shows a cheap fix.*
 
 | a 10× actor at its best moment (epoch 20) | current | de novo | de novo\* |
 | --- | --- | --- | --- |
@@ -63,16 +88,24 @@ The current design cannot be drained by anyone, because its outflow is fixed —
 
 ### 3.4 Attacks, all three designs
 
+*In plain words: what happens when someone actively tries to break or game each design, rather than just arriving at an awkward time. The good news is that the redesign's most obvious new weakness turns out not to work.*
+
+![the flood, all three designs](figures/flood_denial.png)
+
 | | current | de novo | de novo\* |
 | --- | --- | --- | --- |
-| withholding to inflate the reward | impossible — the reward ignores demand | **loses money below half the field**: 0.44× at 10%, 0.80× at 50%. A supermajority reaches only **parity** (1.01×) once the window covers the phase | same |
+| withholding to inflate the reward | impossible — the reward ignores demand | **loses money below half the field**: 0.64× at 10%, 0.96× at 50% under the strongest simple pattern. A supermajority reaches only **parity** (1.02×) once the window covers the phase | same |
 | harvesting a participation cycle | no cycle exists | unprofitable (0.02–0.86×), but the cycle is real and easy to trigger | same |
-| sybil flood, 2× the honest field | **48.4% of honest joiners denied** | **4.3%** | 4.8% |
-| sybil flood, 10× | 96.3% | 94.5% | 93.4% |
+| flooded with fake identities, 2× the honest crowd | **48.4% of honest joiners denied** | **4.3%** | 4.8% |
+| the same flood, 10× | 96.3% | 94.5% | 93.4% |
 
-Two things stand out. The redesigns' one novel attack surface — a demand-indexed reward inviting manipulation — **closes by measurement**, and the defence is an accident: the reward cap written so that genesis could not hand one claim the whole sub-pool also bounds what a shrunk denominator can buy. And at moderate sybil flooding the redesigns are an **order of magnitude** more resistant, because a fixed flow halves every share while a budget just converts faster.
+Two things stand out. The redesigns' one new weakness — setting the price from last period's demand invites someone to fake that demand — **closes by measurement**, and the defence is an accident: the reward cap written so that genesis could not hand one claim the whole sub-pool also bounds what a shrunk denominator can buy. And against a moderate flood of fake identities the redesigns are an **order of magnitude** more resistant, because a fixed flow halves every share while a budget just converts faster.
 
 ### 3.5 The finding that applies to all three, and matters most
+
+*In plain words: the most important result here, and it is bad news for every design equally. All three quote their headline numbers assuming that once someone has joined, they stop competing for the prizes and leave room for newcomers. Nothing pays anyone to do that, and joining does not switch their computer off. So the realistic expectation is about a third of the advertised number — for all three.*
+
+![the token price decides who retires](figures/retirement_price.png)
 
 **Nothing pays a bonded miner to stop mining.** Both designs quote their headline numbers assuming they do. A bonded node can run its service *and* keep mining on the same hardware, and the marginal claim is profitable unless a token is worth less than $0.0001.
 
@@ -97,13 +130,17 @@ And the arithmetic of why nobody retires: **it costs the individual 6.2% of thei
 
 ### 3.6 What proof of work becomes afterwards
 
+*In plain words: the launch fund does not last forever. This is what mining looks like once it is gone — and the honest answer is: very small. That is the design working as specified, not a fault, but it does mean nothing here should be relied on to secure the network later.*
+
 Once the endowment is spent, the reward is one transfer plus one inscription, which nets 4.494 × 10⁻⁶ LGO against $0.00136 of electricity per claim. Mining stops paying and the field shrinks to fit: **0.1, 9 and 918 Pi 5 boards at $0.01, $1 and $100 a token.** (Published earlier as 0.4 / 37 / 3,677 — the same figures counted in single cores, on the superseded basis.) Proof of work becomes vestigial — which is the brief working as written ("pay out, but at a very minimal amount"), not a defect. It does mean the post-phase funds no security and should not be relied on for any.
 
 ## 4. Recommendation
 
+*In plain words: what I would actually do, and why — including one thing that must be fixed first.*
+
 **Adopt `de novo*`, with the reference triple re-struck against the persistent regime — and with a block-space reservation rule added first.**
 
-> **One blocking defect, found on review.** In a ×100 spike epoch the redesign **fills the block outright** — 958 claims a block on average against a 1,024-transaction cap — so ordinary transactions are crowded out while a large cohort works through. The mechanism has no reservation for ordinary traffic: it clips claims at the block cap alone. An earlier draft measured a peak of 240 and called the question closed; that was the superseded one-core basis. **MODEL §8.3 needs a rule capping the share of a block that claims may take, and the redesign should not ship without one.** It is a bounded, local fix — the redesign already meters *value* per epoch, and this meters *space* per block — but it is not optional, and it is now gated so it cannot quietly re-close.
+> **One blocking defect, found on review.** A big cohort crowds ordinary transactions out of blocks: across independent draws the ×100 spike epoch runs blocks at **83–84% of the 1,024-transaction cap** (peaks 853–863), and the front-loaded arrival shape **pegs the cap outright for three consecutive epochs**. The mechanism has no reservation for ordinary traffic: it clips claims at the block cap alone. (Two earlier drafts each quoted one draw path — a 240 peak on the superseded one-core basis, then "fills outright, 958 average" from the gate's shared draw; the range above is the across-draw measurement.) **MODEL §8.3 needs a rule capping the share of a block that claims may take, and the redesign should not ship without one.** It is a bounded, local fix — the redesign already meters *value* per epoch, and this meters *space* per block — but it is not optional, and it is gated so it cannot quietly re-close.
 
 The reasoning, in order of weight:
 
@@ -127,7 +164,27 @@ The reasoning, in order of weight:
 
 The GPU question is now *estimated* rather than open, and the answer is more comfortable than expected. Poseidon2 over BN254 costs ~3,400 field multiplications per candidate, and published GPU throughput for BN254 is below 1 Gops/s — a hundredfold worse than small fields, because a 254-bit non-special modulus suits GPU ALUs badly. A card manages ~294,000 candidates a second, twelve times a Pi 5 board, but spends about **four times more energy per candidate**. So a GPU rig is much faster and no cheaper: the cost-bounded attacks in the analysis are not understated, while the share-bounded ones are. **The mechanism inherits meaningful GPU resistance from the curve choice**, which is worth knowing deliberately rather than by luck. It is still an estimate and should be benchmarked.
 
+### 4.1 The substrate changed under this design, and it fits better than before
+
+*In plain words: while this work was underway, a separate proposal changed how the whole network handles fees and rewards — from destroying fees and creating new tokens, to moving tokens between pots. We checked what that does to everything above. The answer is: no number moves, and the redesign actually fits the new arrangement better than the old one.*
+
+Lips PR 375 (`block-rewards.md` 1.1.0) replaces the chain's burn/mint tokenomics with
+pooling/distributing/releasing: fees route into a pending rewards pool, rewards distribute
+from it topped up by a metered release from a finite genesis reserve, and the whole system
+conserves. **Measured: no number in this document moves** — the reward level this design
+reads is the release cap, numerically unchanged, and the settled blend pool is identical to
+the LGO (now pinned by a gate at its source). Two things do change. The `pow_share` fee
+diversion is re-founded as a **carve-out from the pending rewards pool** — its first outflow,
+decided 2026-08-24, closing a genuine cross-spec contradiction (the RFC routes fees "in
+full"; contradiction 4.13). And the adoption argument strengthens: the redesign turns out to
+be an instance of the RFC's own pattern — the endowment a genesis-minted sub-reserve, the
+schedule a metered release, the dust fold its depletion fallback, our conservation gate its
+conservation identity (`MAPPING.md` §1.1) — so adopting it under the new substrate adds no
+new *kind* of thing to the system.
+
 ## 5. Where the workings are
+
+*In plain words: which document to open next, depending on what you want.*
 
 | document | what it carries |
 | --- | --- |
@@ -138,5 +195,6 @@ The GPU question is now *estimated* rather than open, and the answer is more com
 | `MAPPING.md` | what each design changes in the specification tree |
 | `PLAN.md` | all nine design decisions with their reasoning and audit trail |
 | `web/` | three browser pages: the bootstrap calculator, the design comparison, and mining profitability |
+| `../UPSTREAM-PENDING.md` | answers prepared for the upstream specification PRs, awaiting a go — nothing sent |
 
 Every number in these documents is pinned by the validation suite (`make validate`), so a change that moves one fails a gate rather than drifting quietly.

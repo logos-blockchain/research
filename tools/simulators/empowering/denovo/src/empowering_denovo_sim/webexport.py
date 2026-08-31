@@ -1,6 +1,6 @@
 """Export the de-novo calculator's inputs and its golden cross-check.
 
-Same contract as `simulations/EmPoWering`'s panel: the page re-implements the closed forms in
+Same contract as `tools/simulators/empowering/tokenomics`'s panel: the page re-implements the closed forms in
 JavaScript, which is a second implementation, so `params.json` is generated from the same
 config the Python reads and `golden.json` carries a grid of triples with the outputs Python
 computes. The page recomputes every row on load and wears the result as a badge;
@@ -160,6 +160,28 @@ def current_design() -> dict:
                 last = int(e)
         return last
 
+    def point_of_no_return(rate: int, retire: bool, epochs: int = 400) -> int:
+        """First epoch where the waiting queue exceeds every bond the pool can still fund.
+
+        Queue = seated minus elevated; fundable = the remaining pool over one bond -- the
+        ceiling even a perfect world could not beat, since every bond costs `min_stake` and
+        the pool is all there is. Past this epoch, most of the queue can never get in no
+        matter what happens. Provenance, corrected twice: the literal 212 here once carried a
+        note calling itself unreproducible; it is in fact the strategies report's section-7
+        measurement (Poisson arrivals, 600 epochs, empowering_sim.arrivals.run_dynamic ->
+        no_return_epoch = 212 at 100/epoch, gated there). This function computes the
+        CONSTANT-arrival companion: 214 under persistence -- two epochs from the Poisson
+        figure, the agreement one wants between independent implementations -- and 338 under
+        retirement, the regime the original quote omitted.
+        """
+        r = el.run(cfg, el.ElevationConfig(miners_per_epoch=rate, epochs=epochs,
+                                           retire_on_bond=retire))
+        min_stake_lgo = cfg.min_stake / cfg.base_units_per_lgo
+        for q in r.rows:
+            if (q.miners_seated - q.miners_elevated) > q.pool_lgo / min_stake_lgo:
+                return q.epoch
+        return -1
+
     return {
         "note": "measured here from empowering_sim.elevation, not transcribed",
         # as published: 100/epoch over 400 epochs
@@ -172,9 +194,25 @@ def current_design() -> dict:
                             "de-novo figure uses",
         "door_closes_at_100_per_epoch": door(100, False),
         "door_closes_at_100_per_epoch_retiring": door(100, True),
-        "point_of_no_return_at_100_per_epoch": 212,
-        "point_of_no_return_note": "carried from the strategy study; not reproducible from "
-                                   "committed code and not gated",
+        # The adoption hump: elevated at slow / reference / fast arrival rates, both
+        # regimes, over 400 epochs of CONSTANT arrivals -- the like-for-like companion to
+        # the strategies report's section-7 study, which measures the same hump under
+        # POISSON arrivals over 600 epochs (951/6,145/5,001, persistent, gated by that
+        # report's own number-gate via empowering_sim.arrivals.run_dynamic). A 2026-08-31
+        # revision wrongly called the section-7 triple unreproducible; the module had
+        # merged in from the simulator branch and reproduces it exactly. Two protocols,
+        # both gated, deliberately both kept: constant arrivals isolate the rate, Poisson
+        # adds the variance real adoption has.
+        "hump_elevated_at_2_100_500_persistent": [elevated(2, 400, False),
+                                                  elevated(100, 400, False),
+                                                  elevated(500, 400, False)],
+        "hump_elevated_at_2_100_500_retiring": [elevated(2, 400, True),
+                                                elevated(100, 400, True),
+                                                elevated(500, 400, True)],
+        "point_of_no_return_at_100_per_epoch": point_of_no_return(100, False),
+        "point_of_no_return_at_100_per_epoch_retiring": point_of_no_return(100, True),
+        "point_of_no_return_note": "queue first exceeds remaining_pool / min_stake -- "
+                                   "computed here from the elevation run, both regimes",
     }
 
 
