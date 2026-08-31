@@ -117,11 +117,14 @@ def gate_controller_fixed_point(cfg: Config) -> None:
     # The specification's integer form has an ABSORBING ZERO, demonstrated rather than
     # hidden behind a defensive clamp the spec does not have: from target 1 under a full
     # block of claims the map returns 0, the win probability becomes target/p = 0, no claim
-    # can ever land again, and 0 maps to 0 forever. Reachable only via ~70 consecutive
-    # max-load blocks from realistic thresholds (each step divides by at most ~11), so it is
-    # remote -- but it is a lurking consensus-death state in the SPEC, and this simulator
-    # mirrors it faithfully instead of quietly flooring at 1 and diverging. Reported
-    # upstream-ready in reports/empowering/UPSTREAM-PENDING.md section 4.
+    # can ever land again, and 0 maps to 0 forever. No attacker walks it down from a healthy
+    # chain -- each of the ~65 steps demands ~11x more hashrate than the last, so physics
+    # forbids that path. The defect is the missing fence, not the walk: any road to a tiny
+    # threshold (a mis-seeded genesis, a small deployment, an integer bug writing the target
+    # once) is permanent, because the clamp that guards the top (min(., p - 1)) has no
+    # counterpart at the bottom. This simulator mirrors the spec faithfully instead of
+    # quietly flooring at 1 and diverging. Reported upstream-ready in
+    # reports/empowering/UPSTREAM-PENDING.md section 4.
     check("the spec's retarget has an absorbing zero, and this transcription preserves it",
           (work.next_difficulty_target(1, cfg.max_block_txs, cfg),
            work.next_difficulty_target(0, 0, cfg),
@@ -129,6 +132,19 @@ def gate_controller_fixed_point(cfg: Config) -> None:
           (0, 0, 0),
           note="target 1 under a 1,024-claim block -> 0; and 0 -> 0 under any load, so the "
                "state is absorbing. A floor of max(1, .) upstream would remove it")
+    # The same missing floor's gentler cousin: the map is asymmetric. One full block divides
+    # the threshold by ~11.14; recovery under silence eases at only 100/90 per block. Pinned
+    # because UPSTREAM-PENDING section 4 quotes both figures.
+    _t0 = 10 ** 60
+    _down = work.next_difficulty_target(_t0, cfg.max_block_txs, cfg)
+    _t, _blocks = _down, 0
+    while _t < _t0 and _blocks < 100:
+        _t = work.next_difficulty_target(_t, 0, cfg)
+        _blocks += 1
+    check("one overloaded block costs 23 quiet blocks to undo",
+          (round(_t0 / _down, 2), _blocks), (11.14, 23),
+          note="down /11.14 in one block, up x10/9 per quiet block -- the asymmetry the "
+               "missing floor makes dangerous at the bottom edge")
 
 
 # ------------------------------------------------------------------ the work process

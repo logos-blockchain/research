@@ -193,10 +193,19 @@ The claim flow is dead permanently, with no recovery path inside the mechanism.
 | `next(target=0, claims=0)` | 0 |
 | `next(target=0, claims=1024)` | 0 — absorbing |
 
-Reachability is remote but finite: each maximum-load block divides the target by at most
-~11.1 (the smoothing bounds it), so walking from a realistic post-phase threshold to 1 takes
-roughly seventy consecutive 1,024-claim blocks — sustained, extreme over-demand, but nothing
-forbids it, and one excursion is permanent.
+**Reachability, stated honestly.** No attacker walks this down from a healthy chain. Each
+maximum-load block divides the threshold by ~11.14 — but filling the *next* block at the new,
+~11× harder threshold demands ~11× more hashrate, so the ~65-step walk from a realistic
+threshold to 1 needs roughly 11⁶⁵-fold power escalation. Physics forbids that path. The risk
+is different in kind: **the map has a cliff with no fence**, so any road to a tiny threshold —
+a mis-seeded genesis value, a small deployment whose equilibrium sits low, an integer bug
+writing the target once — ends in permanent, unrecoverable death of the claim flow. The
+matching clamp already exists at the top (`min(…, p − 1)`); only the bottom is open.
+
+**The near-miss behaviour is also asymmetric**, measured with the integer map itself: one
+full block moves the threshold down ÷11.14, while recovery under silence eases at only ×10/9
+per block — **23 quiet blocks to undo one overloaded one**. Not fatal, but the same missing
+floor's gentler cousin, and worth a sentence in the same fix.
 
 ### The ask
 
