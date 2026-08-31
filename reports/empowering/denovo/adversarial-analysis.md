@@ -141,17 +141,19 @@ The remedy is not in either mechanism as specified. Making retirement rational n
 
 ### 3.1 The pump — withhold to inflate the reward, then flood. **Defeated below half the field.**
 
-The de-novo bootstrap reward is `budget / claims_prev`, which invites the obvious manipulation: mine nothing this epoch so the denominator collapses, then claim everything next epoch at the inflated price. The attacker withholds on even epochs and floods on odd ones, against the same actor mining honestly throughout:
+The de-novo bootstrap reward is `budget / claims_prev`, which invites the obvious manipulation: mine nothing this epoch so the denominator collapses, then claim everything next epoch at the inflated price. The modelled attacker plays the strongest simple version: it **mines the opening epoch** — the one payout withholding cannot inflate, since genesis already prices at the cap — and only then alternates withhold-and-flood, against the same actor mining honestly throughout:
 
 | attacker's share of the field | balance, mining honestly | balance, pumping | advantage |
 | --- | --- | --- | --- |
-| 10% | 1,228,962 LGO | 544,998 LGO | **0.44×** |
-| 25% | 3,066,177 | 1,642,410 | **0.54×** |
-| 50% | 6,133,475 | 4,884,645 | **0.80×** |
-| 75% | 9,188,985 | 13,579,211 | 1.48× |
-| 90% | 11,025,370 | 30,863,255 | **2.80×** |
+| 10% | 1,228,962 LGO | 792,387 LGO | **0.64×** |
+| 25% | 3,066,177 | 2,226,428 | **0.73×** |
+| 50% | 6,133,475 | 5,911,977 | **0.96×** |
+| 75% | 9,188,985 | 14,537,341 | 1.58× |
+| 90% | 11,025,370 | 30,996,273 | **2.81×** |
 
-**Withholding loses money for any minority**, and the result is robust twice over. Across field *sizes* — 0.54×, 0.54× and 0.12× at a quarter of the field, over fields of 100, 1,000 and 10,000 boards. And across the power *bracket*, where it gets stronger the better equipped the attacker is: 0.64× at the minimal basis (one Pi 5 core), 0.54× at the board, **0.05× at the worst measured** (an M4 Pro's ten performance cores, from the measured rate). A stronger attacker forfeits more by sitting out, so the defence tightens exactly where it needs to.
+*A 2026-08-31 review found the earlier table quoted a strictly weaker attacker — one that withheld the opening epoch too, forfeiting the bonanza for nothing — reading 0.44 / 0.54 / 0.80 at the minority shares. The conclusion is unchanged, but the margin at the 50% boundary is **4%, not 20%**: quoting the gentler attack overstated the defence fivefold exactly where it is thinnest.*
+
+**Withholding loses money for any minority** — under the strongest simple pattern, at every share below half the field, and (measured below) at every horizon. The robustness sweeps across field sizes and power brackets were taken under the weaker pattern and are retained as such: 0.54×, 0.54× and 0.12× at a quarter of the field over 100, 1,000 and 10,000 boards; 0.64× at the minimal basis, 0.54× at the board, 0.05× at the worst measured. They bracket the shape, not the headline — the headline table above is the strong-pattern measurement.
 
 The defence is the reward's own cap. `epoch_reward = max(anchor, budget // max(claims_prev, blocks_per_epoch))` floors the divisor at the block count, so however far a minority shrinks `claims_prev`, the reward cannot rise past one block's budget share — measured, it oscillates 8.76 / 4.40 / 8.77 / 4.36 LGO, a factor of two, against forfeiting an entire epoch's claims.
 
@@ -161,9 +163,9 @@ Past half the field the pump appears to pay — 1.48× at three quarters and 2.8
 
 | window | 40 epochs | 80 | 150 | 190 |
 | --- | --- | --- | --- | --- |
-| pump advantage | 2.80× | 2.10× | 1.26× | **1.01×** |
+| pump advantage | 2.81× | 2.11× | 1.27× | **1.02×** |
 
-Once the window covers the 196-epoch phase, a supermajority pump earns **parity** with honest mining. The earlier claim that "a supermajority nearly triples its take" was 40 epochs of a race to empty the same pool, and is withdrawn. **The minority result survives the same widening** — 0.44× at 40 epochs becomes 0.53× at 190, still a loss — which is why it, and not the supermajority number, is the conclusion this section carries. Both readings are now gated so the window cannot quietly narrow again.
+Once the window covers the 196-epoch phase, a supermajority pump earns **parity** with honest mining. The earlier claim that "a supermajority nearly triples its take" was 40 epochs of a race to empty the same pool, and is withdrawn. **The minority result survives the same widening** — 0.64× at 40 epochs becomes 0.58× at 190, still a loss — which is why it, and not the supermajority number, is the conclusion this section carries. Both readings are now gated so the window cannot quietly narrow again.
 
 ### 3.2 The manufactured cliff — harvest the period-2 cycle. **Unprofitable.**
 

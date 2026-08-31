@@ -50,6 +50,16 @@
     "denovo_rate_note": "130 miners/epoch over 360 epochs -- the configuration every de-novo figure uses",
     "door_closes_at_100_per_epoch": 40,
     "door_closes_at_100_per_epoch_retiring": 251,
+    "hump_elevated_at_2_100_500_persistent": [
+      707,
+      5682,
+      4646
+    ],
+    "hump_elevated_at_2_100_500_retiring": [
+      800,
+      25934,
+      14398
+    ],
     "point_of_no_return_at_100_per_epoch": 214,
     "point_of_no_return_at_100_per_epoch_retiring": 338,
     "point_of_no_return_note": "queue first exceeds remaining_pool / min_stake -- computed here from the elevation run, both regimes"

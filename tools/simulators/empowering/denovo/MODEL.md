@@ -115,7 +115,12 @@ claims_prev: uint64          # claims paid in the previous epoch. Genesis: 0.
 epoch_budget: TokenValue     # fixed at the boundary
 epoch_reward: TokenValue     # fixed at the boundary (R6)
 epoch_spent: TokenValue      # paid so far this epoch
-saturation_block: uint64     # block index at which epoch_spent first exceeded epoch_budget; unset otherwise
+saturation_block: uint64     # bootstrap: first block at which epoch_spent EXCEEDED epoch_budget
+                             # (the borrow-forward begins). Post: first block at which one more
+                             # reward would exceed it (admission stops; spent never exceeds).
+                             # Unset if neither happened. Two regimes, two events -- an earlier
+                             # revision defined only the first, which made the post-phase
+                             # figures the report leans on undefined by the model's own words.
 difficulty_target: PowTarget # as today
 ```
 

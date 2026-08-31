@@ -64,7 +64,7 @@ Everything below is at the reference parameters (0.5% of TGE, 25,000 nodes, four
 
 Measured in the strategy report's arrivals study, and absent from both redesigns:
 
-- **A best adoption speed.** The number who get in is a hump — too few arrivals and the money goes unused, too many and nobody saves enough: 951 nodes at two arrivals an epoch, ~6,100 near a hundred, 5,001 at five hundred. The worst rate onboards a sixth of the best.
+- **A best adoption speed.** The number who get in is a hump — too few arrivals and the money goes unused, too many and nobody saves enough. Measured over the study's 400-epoch window: **707 / 5,682 / 4,646** elevated at 2 / 100 / 500 arrivals an epoch under persistence (the worst rate onboards an eighth of the best), and 800 / 25,934 / 14,398 under retirement (a thirty-second). Computed by the same code that exports the comparison page, and gated. (An earlier draft carried 951 / ~6,100 / 5,001 from a study no committed code reproduces — recognisably the persistent hump, quoted regime-free, the third carried number found wearing that disguise after the door and the point of no return.)
 - **A closing door.** The last cohort with even odds of ever bonding arrives at epoch 286 at ten arrivals an epoch, **epoch 40 at a hundred**, epoch 3 at two hundred and fifty — *under persistence*. Under retirement the same door shuts at 399 / 251 / 77. The door is real in both regimes, and it shuts early in the one the incentives actually deliver; both are given because the difference is large and the earlier text quoted only the persistent end.
 - **A point of no return.** The waiting queue passes every bond the remaining money could ever fund — even in a perfect world — at **epoch 214** at a hundred arrivals an epoch under persistence, epoch 338 under retirement. Past it, most of the queue can never get in no matter what happens. (Quoted as a carried "212" until it was computed; the figure is now produced by the same code that exports the comparison page, and gated.)
 
@@ -94,7 +94,7 @@ The current design cannot be drained by anyone, because its outflow is fixed —
 
 | | current | de novo | de novo\* |
 | --- | --- | --- | --- |
-| withholding to inflate the reward | impossible — the reward ignores demand | **loses money below half the field**: 0.44× at 10%, 0.80× at 50%. A supermajority reaches only **parity** (1.01×) once the window covers the phase | same |
+| withholding to inflate the reward | impossible — the reward ignores demand | **loses money below half the field**: 0.64× at 10%, 0.96× at 50% under the strongest simple pattern. A supermajority reaches only **parity** (1.02×) once the window covers the phase | same |
 | harvesting a participation cycle | no cycle exists | unprofitable (0.02–0.86×), but the cycle is real and easy to trigger | same |
 | flooded with fake identities, 2× the honest crowd | **48.4% of honest joiners denied** | **4.3%** | 4.8% |
 | the same flood, 10× | 96.3% | 94.5% | 93.4% |

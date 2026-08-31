@@ -167,7 +167,44 @@ known divergence with a warning is a defect; the same divergence unflagged is a 
 
 ---
 
-## 4. The leader-incentive concern, if wanted
+## 4. The reward retarget has an absorbing zero — for PR 400 review
+
+### What it is
+
+`compute_new_reward_difficulty`'s integer form clamps its output above (at `p − 1`) but has
+**no floor**. From a target of 1 under a full block of claims the map returns 0 — and 0 maps
+to 0 under any load, forever. At target 0 the win probability is `target/p = 0`: no claim can
+ever land again, and no claim landing is exactly the condition that keeps the target at 0.
+The claim flow is dead permanently, with no recovery path inside the mechanism.
+
+### Measured
+
+| input | output |
+| --- | --- |
+| `next(target=1, claims=1024)` | **0** |
+| `next(target=0, claims=0)` | 0 |
+| `next(target=0, claims=1024)` | 0 — absorbing |
+
+Reachability is remote but finite: each maximum-load block divides the target by at most
+~11.1 (the smoothing bounds it), so walking from a realistic post-phase threshold to 1 takes
+roughly seventy consecutive 1,024-claim blocks — sustained, extreme over-demand, but nothing
+forbids it, and one excursion is permanent.
+
+### The ask
+
+One character's worth of specification: floor the update at 1 — `max(1, …)` — so the target
+can always recover. The simulator mirrors the spec faithfully rather than hardening away from
+it, and pins the absorbing state with a gate (`empowering_sim.validate`,
+`gate_controller_fixed_point`) so the fix landing upstream moves a gate here.
+
+### Where it belongs
+
+The retarget lives in the EmPoWering RFC's mantle section (PR 400, still open) — this is a
+review comment there, not a master issue.
+
+---
+
+## 5. The leader-incentive concern, if wanted
 
 A reviewer on PR 375 (`block-rewards.md:262`) raised that pool retention when `A_t → 1` leaves
 leaders uninterested in tips during the adoption phase. **Not answered — we have the machinery

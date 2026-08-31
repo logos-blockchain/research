@@ -261,7 +261,7 @@ def main() -> int:
     _min_long = adv.pump_vs_honest(d, 0.10, epochs=190)["pump_advantage"]
     check("while the minority result survives the same widening",
           _min_long < 1.0, True,
-          note=f"{_min_long:.2f}x at 10% over 190 epochs against 0.44x over 40 -- withholding "
+          note=f"{_min_long:.2f}x at 10% over 190 epochs against 0.64x over 40 -- withholding "
                f"still loses, which is the load-bearing conclusion")
 
     # An elastic attacker cannot harvest the Q9 cliff: being picky costs more than it takes.

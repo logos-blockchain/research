@@ -114,6 +114,22 @@ def gate_controller_fixed_point(cfg: Config) -> None:
     check("blocks to recover a tenfold hashrate step", blocks, 22, rel=0.25,
           note="report section 3.6 predicts about 22")
 
+    # The specification's integer form has an ABSORBING ZERO, demonstrated rather than
+    # hidden behind a defensive clamp the spec does not have: from target 1 under a full
+    # block of claims the map returns 0, the win probability becomes target/p = 0, no claim
+    # can ever land again, and 0 maps to 0 forever. Reachable only via ~70 consecutive
+    # max-load blocks from realistic thresholds (each step divides by at most ~11), so it is
+    # remote -- but it is a lurking consensus-death state in the SPEC, and this simulator
+    # mirrors it faithfully instead of quietly flooring at 1 and diverging. Reported
+    # upstream-ready in reports/empowering/UPSTREAM-PENDING.md section 4.
+    check("the spec's retarget has an absorbing zero, and this transcription preserves it",
+          (work.next_difficulty_target(1, cfg.max_block_txs, cfg),
+           work.next_difficulty_target(0, 0, cfg),
+           work.next_difficulty_target(0, cfg.max_block_txs, cfg)),
+          (0, 0, 0),
+          note="target 1 under a 1,024-claim block -> 0; and 0 -> 0 under any load, so the "
+               "state is absorbing. A floor of max(1, .) upstream would remove it")
+
 
 # ------------------------------------------------------------------ the work process
 
@@ -1028,6 +1044,21 @@ def gate_report_headlines(cfg: Config) -> None:
                                               retire_on_bond=False))
     check("and the elevation counts are pure pool arithmetic, untouched by the fix",
           _persist.elevated, 5_682)
+    # The adoption hump, pinned in both regimes at the study's 400-epoch window. The prose
+    # carried 951/~6,100/5,001 regime-free from a study no committed code reproduces; these
+    # are the measured rows the documents now quote (SUMMARY 3.2, design-comparison 2).
+    _hump = {(rate, ret): el.run(cfg, el.ElevationConfig(miners_per_epoch=rate, epochs=400,
+                                                         retire_on_bond=ret)).elevated
+             for rate in (2, 500) for ret in (False, True)}
+    check("the adoption hump, persistent: slow starves, fast dilutes",
+          (_hump[(2, False)], _persist.elevated, _hump[(500, False)]),
+          (707, 5_682, 4_646),
+          note="2 / 100 / 500 arrivals an epoch -- the worst rate onboards an eighth of the "
+               "best; the carried 951/~6,100/5,001 was recognisably this row, unlabelled")
+    check("and retiring: same shape, steeper",
+          (_hump[(2, True)], _hump[(500, True)]), (800, 14_398),
+          note="800 and 14,398 against the 25,934 peak at 100/epoch -- a thirty-second and "
+               "a half; the hump is not a persistent-regime artefact, it is the rationing")
     # The point of no return: the first epoch where the waiting queue exceeds every bond the
     # remaining pool could fund even perfectly. Quoted as "212" across the comparison
     # documents with a note admitting it was carried and not reproducible -- the one claim in

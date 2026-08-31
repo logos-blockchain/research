@@ -192,6 +192,17 @@ def current_design() -> dict:
                             "de-novo figure uses",
         "door_closes_at_100_per_epoch": door(100, False),
         "door_closes_at_100_per_epoch_retiring": door(100, True),
+        # The adoption hump: elevated at slow / reference / fast arrival rates, both
+        # regimes, over the study's 400-epoch window. The third carried number found in
+        # this column (after the door and the point of no return): the prose triple
+        # 951/~6,100/5,001 reproduced from no committed code and was recognisably the
+        # persistent hump quoted regime-free. Computed since 2026-08-31, and gated.
+        "hump_elevated_at_2_100_500_persistent": [elevated(2, 400, False),
+                                                  elevated(100, 400, False),
+                                                  elevated(500, 400, False)],
+        "hump_elevated_at_2_100_500_retiring": [elevated(2, 400, True),
+                                                elevated(100, 400, True),
+                                                elevated(500, 400, True)],
         "point_of_no_return_at_100_per_epoch": point_of_no_return(100, False),
         "point_of_no_return_at_100_per_epoch_retiring": point_of_no_return(100, True),
         "point_of_no_return_note": "queue first exceeds remaining_pool / min_stake -- "
