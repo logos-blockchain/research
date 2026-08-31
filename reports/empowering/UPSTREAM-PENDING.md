@@ -3,7 +3,7 @@
 Things this workstream has an answer for that belong in somebody else's document.
 Each entry is written so it can be posted without redoing the work: the question, the answer,
 the evidence, and where the code is. Items are marked **SENT** with their link once posted;
-posting is outward-facing and happens only on the design owner's explicit go (items 1–3 were
+posting is outward-facing and happens only on the design owner's explicit go (items 1–4 were
 authorised and posted 2026-08-31).
 
 *Last verified 2026-08-31 against **merged master** (`6aaa6db`, PR 375 merged 2026-08-26) and the EmPoWering RFC branch (PR 400, unchanged). PR 375's merge retargets items 1, 2 and 3: they are now findings against master, for a follow-up issue or PR rather than PR-375 review.*
@@ -176,6 +176,9 @@ known divergence with a warning is a defect; the same divergence unflagged is a 
 ---
 
 ## 4. The reward retarget has an absorbing zero — for PR 400 review
+
+> **SENT 2026-08-31** as a PR 400 review comment:
+> https://github.com/logos-co/logos-lips/pull/400#issuecomment-5478779609
 
 ### What it is
 
