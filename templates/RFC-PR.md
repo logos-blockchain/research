@@ -6,7 +6,7 @@
 
 These conventions apply to **every** section below. They are stated once here so the individual sections stay short.
 
-- **Title.** The document's top-level heading is the RFC title, prefixed `[RFC]`. Set the GitHub PR title to exactly this heading.
+- **Title.** The document's top-level heading is the RFC title: `[RFC] <Subsystem>: <Title>`. `<Subsystem>` names the part of the specification the change lands in, taken from the `bedrock-*` document(s) it touches — strip the `bedrock-` prefix and any version segment, then Title-Case the remainder, keeping its hyphens (`bedrock-v1.1-block-construction.md` → `Block-Construction`). When a change spans several subsystems, name the one whose normative change is largest; when it touches no `bedrock-*` document, use the closest subsystem the change is about. `<Title>` is a short sentence-case phrase, e.g. `[RFC] Mantle: Remove the concept of a session`. Set the GitHub PR title to exactly this heading.
 - **Order by review impact.** In every section, put the highest-impact normative change first and group minor/editorial changes last. Never let cleanup obscure protocol changes.
 - **Impact dimensions** (referenced throughout as "impact dimensions"): consensus / safety / liveness, cryptographic validity, serialization & compatibility, data availability, slashing / economics, migration, and externally visible node / validator / user / API behavior. The **Reviewer Orientation** priority labels below define how these map to Critical / High / Medium / Low.
 - **Scale ceremony to size.** For a minor correction, **Motivation** may be a single sentence and **Implementation** a single task.
