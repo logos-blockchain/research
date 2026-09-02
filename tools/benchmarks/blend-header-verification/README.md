@@ -2,17 +2,22 @@
 
 How many Blend public-header verifications per second a node sustains.
 
-The Blend protocol's connection monitoring bounds how many messages a connection
-may carry in an observation window (`⌈M₁⌉^W`). Since header verification —
-signature *and* proof of quota — now happens on the relay path, before a message
-is released, a node cannot accept messages faster than it can verify headers.
-That makes the divergence controller `κ_max` an empirical question about the
-slowest hardware the protocol targets, not a purely analytical one. This tool
-answers it.
+The Blend protocol bounds how many messages a node may receive in a round:
+`⌈M_N⌉ = (Φ_CC^Max + 1) · ⌈M₁⌉`, one share per neighbour it may hold plus one for
+the edge nodes it serves. Header verification — signature *and* proof of quota —
+happens on the relay path, before a message is released, so that budget is also a
+verification budget. Whether the slowest hardware the protocol targets can sustain
+it is an empirical question. This tool answers it.
+
+Only a *first sighting* costs a verification: the relaying logic discards a
+duplicate before checking the proof of quota. The budget is therefore the
+adversarial ceiling, reached only if every neighbour fills its share with messages
+the node has not seen, while the honest load is `F_1`, the rate at which the
+network emits distinct message instances.
 
 It wraps the `verify_public_header` divan benchmark from `logos-blockchain` and
 converts its per-operation latencies into throughput, single-threaded and across
-all cores, then prints the `κ_max` ceiling those numbers imply.
+all cores, then compares both against that budget.
 
 ## Usage
 
@@ -46,7 +51,7 @@ Useful variables:
 
 ```
 make run REPEATS=3 REF=v1.2.0
-make run ARGS="--phi-max 16 --window 60"
+make run ARGS="--phi-cc-max 16 --ceil-m1 24"
 ```
 
 ## What is measured
@@ -59,7 +64,7 @@ Three slices, so the cost is attributable rather than just totalled:
 | `bench_verify_proof_of_quota` | Groth16 PoQ check alone |
 | `bench_verify_public_header_complete` | both — the per-message relay cost |
 
-The last one is what bounds `κ_max`.
+The last one is the per-message cost the budget is measured against.
 
 ### Proving is excluded, in both senses
 
@@ -90,17 +95,16 @@ one thread to N — how much of the ideal `N×` the board's memory bandwidth and
 thermal headroom actually deliver — and then the implied protocol bound:
 
 ```
-  headers verifiable per 30-round window   ->  divided across Φ_CC^Max connections
-  ... against the expected honest traffic  ->  κ_max ceiling from CPU capacity
+  measured verifications/s  ->  vs the budget (Φ_CC^Max + 1) · ⌈M₁⌉ per round
+                            ->  headroom, and the largest ⌈M₁⌉ this rate supports
 ```
 
-`κ_max` must sit **below** that ceiling and **above** the ≈3.87 floor set by
-connection-level duplication (×2) compounding with the bootstrapping rise of
-`F_D` toward `F_C` (×1.94). If the ceiling falls under the floor, the hardware
-cannot verify every message the protocol would let it accept.
+Hardware that cannot sustain the budget cannot verify every message the protocol
+would let it accept. The honest load is far below it, so a shortfall bounds the
+adversarial case rather than normal operation.
 
 The protocol-side assumptions are all overridable, so the bound can be recomputed
-without re-measuring: `--window`, `--round-seconds`, `--phi-max`, `--f1`.
+without re-measuring: `--round-seconds`, `--phi-cc-max`, `--ceil-m1`, `--f1`.
 
 ## Output
 

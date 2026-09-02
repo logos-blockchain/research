@@ -5,9 +5,15 @@ Wraps the `verify_public_header` divan benchmark
 (`blend/message/benches/verify_public_header.rs`) and turns its per-operation
 latencies into a throughput figure, single-core and all-cores.
 
-The number this produces bounds the Blend maximum message count: every message a
-node relays now costs one public-header verification, so a node cannot accept
-messages faster than it can verify headers. See `--phi-max` / `--window` below.
+The number this produces is checked against the Blend per-round budget. A node may
+receive at most `ceil(M_N) = (Phi_CC_max + 1) * ceil(M_1)` messages in a round, one
+share per neighbour it may hold plus one for the edge nodes it serves.
+
+Only a *first sighting* costs a verification. The relaying logic discards a duplicate
+before it verifies the proof of quota, so the honest load is the rate at which the
+network emits distinct message instances, `F_1`, and not the rate a node receives.
+The budget is the adversarial ceiling, reached only if every neighbour fills its
+share with messages the node has not already seen.
 
 Three benchmarks are measured:
 
@@ -469,27 +475,25 @@ def summarise(runs: list[Run], bench: str) -> dict:
 
 
 def derive_spec_bounds(per_second: float, args: argparse.Namespace) -> dict:
-    """Translate verification throughput into the Blend connection-monitoring bound.
+    """Compare measured throughput against the Blend per-round verification budget.
 
-    Every counted message costs one public-header verification, so across
-    phi_max connections over a window of W rounds a node can verify at most
-    per_second * W * round_seconds headers in total, i.e. that budget divided by
-    phi_max per connection.
+    The worst case is the whole node budget arriving as first sightings; the honest
+    load is F_1, since duplicates are discarded before the proof of quota is checked.
     """
-    window_seconds = args.window * args.round_seconds
-    total_per_window = per_second * window_seconds
-    per_connection = total_per_window / args.phi_max
-    expected_per_connection = args.f1 * args.window
+    budget = (args.phi_cc_max + 1) * args.ceil_m1
+    required = budget / args.round_seconds
+    honest = args.f1 / args.round_seconds
     return {
         "verifications_per_second": per_second,
-        "window_rounds": args.window,
+        "phi_cc_max": args.phi_cc_max,
+        "ceil_m1": args.ceil_m1,
         "round_seconds": args.round_seconds,
-        "phi_cc_max": args.phi_max,
-        "f1_per_round": args.f1,
-        "headers_per_window_total": total_per_window,
-        "max_per_connection_per_window": per_connection,
-        "expected_per_connection_per_window": expected_per_connection,
-        "kappa_max_capacity_ceiling": per_connection / expected_per_connection,
+        "budget_per_round": budget,
+        "required_per_second": required,
+        "headroom": per_second / required,
+        "honest_per_second": honest,
+        "largest_supportable_ceil_m1":
+            int(per_second * args.round_seconds // (args.phi_cc_max + 1)),
     }
 
 
@@ -579,21 +583,20 @@ def report(runs: list[Run], info: dict, args: argparse.Namespace,
         print("\n" + "=" * 78)
         print("  implied Blend bound (complete header verification)")
         print("=" * 78)
-        print(f"  assumptions: W = {args.window} rounds of {args.round_seconds}s, "
-              f"Phi_CC^Max = {args.phi_max}, F_1 = {args.f1}/round")
+        print(f"  Phi_CC^Max = {args.phi_cc_max}, ceil(M_1) = {args.ceil_m1}/round, "
+              f"round = {args.round_seconds}s, F_1 = {args.f1}/round")
         for label, b in bounds.items():
             print(f"\n  {label}: {b['verifications_per_second']:,.0f} verifications/s")
-            print(f"    headers verifiable per {args.window}-round window: "
-                  f"{b['headers_per_window_total']:,.0f}")
-            print(f"    ... divided across {args.phi_max} connections: "
-                  f"{b['max_per_connection_per_window']:,.0f} per connection")
-            print(f"    expected honest traffic per connection: "
-                  f"{b['expected_per_connection_per_window']:,.0f}")
-            print(f"    => kappa_max ceiling from CPU capacity: "
-                  f"{b['kappa_max_capacity_ceiling']:.2f}")
-        print("\n  kappa_max must sit below the ceiling above and above the ~3.87 floor")
-        print("  set by duplication and bootstrapping. If the ceiling is under the")
-        print("  floor, this hardware cannot verify every message it may accept.")
+            print(f"    budget ({args.phi_cc_max}+1) x {args.ceil_m1} = "
+                  f"{b['budget_per_round']}/round -> {b['required_per_second']:,.0f}/s")
+            print(f"    headroom over the budget: {b['headroom']:.2f}x")
+            print(f"    honest load, first sightings only: "
+                  f"{b['honest_per_second']:,.1f}/s")
+            print(f"    largest ceil(M_1) this rate supports: "
+                  f"{b['largest_supportable_ceil_m1']}")
+        print("\n  The budget is an adversarial ceiling, not a load: a duplicate is")
+        print("  discarded before its proof of quota is verified, so honest traffic")
+        print("  costs only the first sighting of each message.")
         if incomplete:
             print("\n  COMPUTED FROM AN INCOMPLETE RUN — see the warning above.")
 
@@ -677,11 +680,13 @@ def main() -> None:
     parser.add_argument("--verbose", "-v", action="store_true", help="echo divan output")
 
     spec = parser.add_argument_group("Blend parameters used to derive the implied bound")
-    spec.add_argument("--window", type=int, default=30, help="observation window W in rounds")
     spec.add_argument("--round-seconds", type=float, default=1.0, help="round duration")
-    spec.add_argument("--phi-max", type=int, default=8, help="Phi_CC^Max, core connections")
-    spec.add_argument("--f1", type=float, default=3.1,
-                      help="F_1, expected messages per connection per round")
+    spec.add_argument("--phi-cc-max", type=int, default=8,
+                      help="Phi_CC^Max, the largest core peering degree")
+    spec.add_argument("--ceil-m1", type=int, default=12,
+                      help="ceil(M_1), messages a node may send one neighbour per round")
+    spec.add_argument("--f1", type=float, default=3.0,
+                      help="F_1, distinct message instances the network emits per round")
 
     args = parser.parse_args()
 
