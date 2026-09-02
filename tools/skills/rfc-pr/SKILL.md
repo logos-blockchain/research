@@ -47,7 +47,7 @@ gh pr view --json number,title,url,body,baseRefName,headRefName 2>/dev/null
 - Ensure the branch is pushed to the remote before creating a PR
   (`git push -u origin <branch>` if it has no upstream); a PR cannot be opened otherwise.
 
-### 2. Fetch the up-to-date template (do NOT rely on any local copy)
+### 2. Fetch the up-to-date template (every invocation — do NOT rely on any local copy)
 
 ```bash
 gh api repos/logos-blockchain/research/contents/templates/RFC-PR.md \
@@ -61,6 +61,13 @@ Add `?ref=<ref>` to the path if `--ref` was given. Fallbacks, in order, only if 
 2. the local working-tree file `templates/RFC-PR.md`
 
 If every source fails, stop and report — do not invent a template structure.
+
+This step is never skipped: run it on every invocation, including runs that only update
+an existing description. If a description already exists (the `RFC-PR-<Topic>.md` file or
+the PR body), validate it against the just-fetched template and apply whatever the
+template changed since it was drafted — title convention, headings, section structure,
+table formats. Where this skill's instructions and the fetched template disagree, the
+template wins.
 
 ### 3. Gather the change content from git
 
@@ -141,7 +148,11 @@ gh pr create --base master --head <branch> \
   --title "<PR title>" --body-file RFC-PR-<Topic>.md
 ```
 
-Derive the title from the branch name / commit subject; ask the user if it is unclear.
+**PR title:** follow the fetched template's Title convention — `[RFC] <Subsystem>: <Title>`,
+with the subsystem derivation defined in the template — and set the drafted `# ` heading to
+exactly the same string. Ask the user for the subsystem if the diff does not make it
+obvious; fall back to the branch name / commit subject for `<Title>` only, never for the
+subsystem.
 
 **Case B — a PR exists with an empty body:** push directly:
 
@@ -157,7 +168,9 @@ Report the resulting PR URL and the written file path at the end.
 ## Notes
 
 - The template is fetched fresh from GitHub on every run, so the skill always reflects
-  the latest RFC-PR conventions even as they evolve — no local copy is trusted.
+  the latest RFC-PR conventions even as they evolve — no local copy is trusted, and an
+  existing description is re-validated against the fetched template, never against the
+  one it was drafted under.
 - `$SCRATCH` refers to the session scratchpad directory; substitute the actual path.
 - Pushing a PR description is outward-facing: never overwrite an existing non-empty body
   without explicit confirmation.
