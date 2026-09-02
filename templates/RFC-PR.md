@@ -278,7 +278,7 @@ Note any prerequisite context needed before the first entry (e.g., "read Motivat
 
 **Purpose:** Identify every specification affected by this PR.
 
-**Guidance:** For PRs, this is the most critical section. Reviewers must verify the list is complete before approving.
+**Guidance:** For PRs, this is the most critical section. Reviewers must verify the list is complete before approving. Derive the list from the current diff every time the description is updated: a document appears only if the diff changes it. Drop any document the current diff leaves untouched — including one an earlier revision of the branch changed. A document that was read, consulted, or depended on is not affected.
 
 **Include:** one row per affected specification, tagged with its **Status**:
 
@@ -286,18 +286,18 @@ Note any prerequisite context needed before the first entry (e.g., "read Motivat
 - **Modified** — existing spec changed by this PR (mark the changes using the agreed change-tracking convention)
 - **Deprecated** — superseded but not yet removed
 - **Retired** — removed by this PR
-- Any spec that may have been *omitted* but could be affected — add it with a note flagging it for reviewer attention
+- A spec the change *should* have modified but did not is a review finding, not a table row — raise it in **Discussion**
 
 **Avoid:**
 
 - Leaving the table empty when the PR changes existing behavior
 - Listing broad areas instead of linking the specific specifications
-- Listing documents that are only related but not changed
+- Listing documents the diff does not change — related, read, consulted, or depended on. An unchanged entry spends reviewer attention on nothing and hides the entries that need it
 
 **Output style:** Use a single table, one linked specification per row, omitting statuses that don't apply (no empty "None" rows). Every modified specification must be branched from master.
 
 | Specification | Status | Note |
 | --- | --- | --- |
-| [Spec link] | Created / Modified / Deprecated / Retired | optional one-line note; flag here if omission is suspected |
+| [Spec link] | Created / Modified / Deprecated / Retired | optional one-line note |
 
 </aside>
