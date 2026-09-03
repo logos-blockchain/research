@@ -6,8 +6,9 @@ Wraps the `verify_public_header` divan benchmark
 latencies into a throughput figure, single-core and all-cores.
 
 The number this produces is checked against the Blend per-round budget. A node may
-receive at most `M_N^Max = (Phi_CC^Max + 1) * M_1^Max` messages in a round, one
-share per neighbour it may hold plus one for the edge nodes it serves.
+receive at most `(Phi_CC^Max + 1) * M_1^Max` messages in a round: the limit from
+each neighbour it may hold, and the same allowance once more for the edge nodes
+it serves. The specification names no symbol for this budget; no rule tests it.
 
 Only a *first sighting* costs a verification. The relaying logic discards a duplicate
 before it verifies the proof of quota, so the honest load is the rate at which the

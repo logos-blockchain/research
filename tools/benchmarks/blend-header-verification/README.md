@@ -3,7 +3,7 @@
 How many Blend public-header verifications per second a node sustains.
 
 The Blend protocol bounds how many messages a node may receive in a round:
-`M_N^Max = (Φ_CC^Max + 1) · M_1^Max`, one share per neighbour it may hold plus one for
+`(Φ_CC^Max + 1) · M_1^Max`: the limit from each neighbour it may hold, plus one for
 the edge nodes it serves. Header verification — signature *and* proof of quota —
 happens on the relay path, before a message is released, so that budget is also a
 verification budget. Whether the slowest hardware the protocol targets can sustain
