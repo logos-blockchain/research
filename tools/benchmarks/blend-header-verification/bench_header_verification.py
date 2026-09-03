@@ -6,7 +6,7 @@ Wraps the `verify_public_header` divan benchmark
 latencies into a throughput figure, single-core and all-cores.
 
 The number this produces is checked against the Blend per-round budget. A node may
-receive at most `ceil(M_N) = (Phi_CC_max + 1) * ceil(M_1)` messages in a round, one
+receive at most `M_N^Max = (Phi_CC^Max + 1) * M_1^Max` messages in a round, one
 share per neighbour it may hold plus one for the edge nodes it serves.
 
 Only a *first sighting* costs a verification. The relaying logic discards a duplicate
@@ -480,19 +480,19 @@ def derive_spec_bounds(per_second: float, args: argparse.Namespace) -> dict:
     The worst case is the whole node budget arriving as first sightings; the honest
     load is F_1, since duplicates are discarded before the proof of quota is checked.
     """
-    budget = (args.phi_cc_max + 1) * args.ceil_m1
+    budget = (args.phi_cc_max + 1) * args.m1_max
     required = budget / args.round_seconds
     honest = args.f1 / args.round_seconds
     return {
         "verifications_per_second": per_second,
         "phi_cc_max": args.phi_cc_max,
-        "ceil_m1": args.ceil_m1,
+        "m1_max": args.m1_max,
         "round_seconds": args.round_seconds,
         "budget_per_round": budget,
         "required_per_second": required,
         "headroom": per_second / required,
         "honest_per_second": honest,
-        "largest_supportable_ceil_m1":
+        "largest_supportable_m1_max":
             int(per_second * args.round_seconds // (args.phi_cc_max + 1)),
     }
 
@@ -583,17 +583,17 @@ def report(runs: list[Run], info: dict, args: argparse.Namespace,
         print("\n" + "=" * 78)
         print("  implied Blend bound (complete header verification)")
         print("=" * 78)
-        print(f"  Phi_CC^Max = {args.phi_cc_max}, ceil(M_1) = {args.ceil_m1}/round, "
+        print(f"  Phi_CC^Max = {args.phi_cc_max}, M_1^Max = {args.m1_max}/round, "
               f"round = {args.round_seconds}s, F_1 = {args.f1}/round")
         for label, b in bounds.items():
             print(f"\n  {label}: {b['verifications_per_second']:,.0f} verifications/s")
-            print(f"    budget ({args.phi_cc_max}+1) x {args.ceil_m1} = "
+            print(f"    budget ({args.phi_cc_max}+1) x {args.m1_max} = "
                   f"{b['budget_per_round']}/round -> {b['required_per_second']:,.0f}/s")
             print(f"    headroom over the budget: {b['headroom']:.2f}x")
             print(f"    honest load, first sightings only: "
                   f"{b['honest_per_second']:,.1f}/s")
-            print(f"    largest ceil(M_1) this rate supports: "
-                  f"{b['largest_supportable_ceil_m1']}")
+            print(f"    largest M_1^Max this rate supports: "
+                  f"{b['largest_supportable_m1_max']}")
         print("\n  The budget is an adversarial ceiling, not a load: a duplicate is")
         print("  discarded before its proof of quota is verified, so honest traffic")
         print("  costs only the first sighting of each message.")
@@ -683,8 +683,8 @@ def main() -> None:
     spec.add_argument("--round-seconds", type=float, default=1.0, help="round duration")
     spec.add_argument("--phi-cc-max", type=int, default=8,
                       help="Phi_CC^Max, the largest core peering degree")
-    spec.add_argument("--ceil-m1", type=int, default=12,
-                      help="ceil(M_1), messages a node may send one neighbour per round")
+    spec.add_argument("--m1-max", type=int, default=12,
+                      help="M_1^Max, messages a node may send one neighbour per round")
     spec.add_argument("--f1", type=float, default=3.0,
                       help="F_1, distinct message instances the network emits per round")
 

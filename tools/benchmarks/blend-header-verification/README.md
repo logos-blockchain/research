@@ -3,7 +3,7 @@
 How many Blend public-header verifications per second a node sustains.
 
 The Blend protocol bounds how many messages a node may receive in a round:
-`⌈M_N⌉ = (Φ_CC^Max + 1) · ⌈M₁⌉`, one share per neighbour it may hold plus one for
+`M_N^Max = (Φ_CC^Max + 1) · M_1^Max`, one share per neighbour it may hold plus one for
 the edge nodes it serves. Header verification — signature *and* proof of quota —
 happens on the relay path, before a message is released, so that budget is also a
 verification budget. Whether the slowest hardware the protocol targets can sustain
@@ -51,7 +51,7 @@ Useful variables:
 
 ```
 make run REPEATS=3 REF=v1.2.0
-make run ARGS="--phi-cc-max 16 --ceil-m1 24"
+make run ARGS="--phi-cc-max 16 --m1-max 24"
 ```
 
 ## What is measured
@@ -95,8 +95,8 @@ one thread to N — how much of the ideal `N×` the board's memory bandwidth and
 thermal headroom actually deliver — and then the implied protocol bound:
 
 ```
-  measured verifications/s  ->  vs the budget (Φ_CC^Max + 1) · ⌈M₁⌉ per round
-                            ->  headroom, and the largest ⌈M₁⌉ this rate supports
+  measured verifications/s  ->  vs the budget (Φ_CC^Max + 1) · M_1^Max per round
+                            ->  headroom, and the largest M_1^Max this rate supports
 ```
 
 Hardware that cannot sustain the budget cannot verify every message the protocol
@@ -104,7 +104,7 @@ would let it accept. The honest load is far below it, so a shortfall bounds the
 adversarial case rather than normal operation.
 
 The protocol-side assumptions are all overridable, so the bound can be recomputed
-without re-measuring: `--round-seconds`, `--phi-cc-max`, `--ceil-m1`, `--f1`.
+without re-measuring: `--round-seconds`, `--phi-cc-max`, `--m1-max`, `--f1`.
 
 ## Output
 
