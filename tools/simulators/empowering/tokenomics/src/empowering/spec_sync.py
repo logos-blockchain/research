@@ -25,11 +25,13 @@ def run(config: str, lips: str) -> int:
     failures, checks = [], 0
 
     def read(fname: str) -> str | None:
-        try:
-            return (raw / fname).read_text()
-        except OSError:
-            failures.append(f"specification file missing or unreadable: {fname}")
-            return None
+        for base in (raw, Path(lips)):        # raw specs, then repo-root documents
+            try:
+                return (base / fname).read_text()
+            except OSError:
+                continue
+        failures.append(f"specification file missing or unreadable: {fname}")
+        return None
 
     def grab(fname: str, pattern: str, label: str):
         text = read(fname)
@@ -152,25 +154,26 @@ def run(config: str, lips: str) -> int:
             failures.append(f"margin {phrase!r}: recomputed {value:.3g}, "
                             f"outside [{lo:.3g}, {hi:.3g}] — prose is stale")
 
+    desc = "RFC-PR-EmPoWering.md"   # the margin-carrying rationale lives in the PR description
     phi_over_S = p.phi / p.S_tge
     sigma0 = p.rho * p.R0 / (p.T * p.N_b)
     ceiling = (sigma0 / 2) / p.S_tge                       # the stated 1.157e-10 form
     import math as _m
-    margin(mantle, "five orders of magnitude above the floor",
+    margin(desc, "five orders of magnitude above the floor",
            _m.log10(ceiling / phi_over_S), 4.5, 6.0)
-    margin(mantle, "6,664 lepta", p.phi * p.base_units_per_lgo, 6663, 6665)
+    margin(desc, "6,664 lepta", p.phi * p.base_units_per_lgo, 6663, 6665)
     R_min = p.phi * p.T * p.N_b / p.rho
     no_traffic_years = math.log(p.R0 / R_min) / -math.log(1 - p.rho) / p.epochs_per_year
-    margin(mantle, "for decades", no_traffic_years, 15, 80)
-    margin(mantle, "a factor of only $`1.84`$",
+    margin(desc, "for decades", no_traffic_years, 15, 80)
+    margin(desc, "a factor of only $`1.84`$",
            (2 ** 64 - 1) / (p.S_tge * p.base_units_per_lgo), 1.80, 1.89)
 
     reaches = 1 - p.T / (p.psi * p.beta * p.n_tx_ref)
-    margin(mantle, "about four fifths of the distribution reaching claimants",
+    margin(desc, "about four fifths of the distribution reaching claimants",
            reaches, 0.75, 0.85)
-    margin(mantle, "five times the fee at six hundred",
+    margin(desc, "five times the fee at six hundred",
            p.psi * p.beta * 600 / p.T, 4.5, 5.5)
-    margin(mantle, "two thousand claims in every block",
+    margin(desc, "two thousand claims in every block",
            p.T * p.rho_den / p.rho_num / 1000, 1.99, 2.01)
     # excess of a 100x-too-permissive genesis target, as a fraction of the pool
     from .core import next_reward_difficulty, sigma as _sigma
@@ -180,7 +183,7 @@ def run(config: str, lips: str) -> int:
         c = min(max(0, round(p.T * d / d_eq)), p.max_block_txs)
         excess += max(0, c - p.T)
         d = next_reward_difficulty(d, c, p)
-    margin(mantle, "three thousandths of one percent of the genesis pool",
+    margin(desc, "three thousandths of one percent of the genesis pool",
            excess * _sigma(p.R0, p) / p.R0 * 1e5, 2.2, 3.8)
 
     def require_phrase(fname: str, phrase: str):
