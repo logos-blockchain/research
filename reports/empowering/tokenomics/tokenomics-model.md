@@ -43,11 +43,11 @@ The claim "in sync" is checked, not asserted — and the promise was kept: when 
 The specification adopts **`distribution_rate` = 1/200** (was 1/100), on this document's own analysis; every other constant stands. The selection criterion was robustness at unchanged economics, and the candidates were the two routes §4.11 identified: (`target_claims_per_block`, `pow_share`) = (11, 11 %) and `distribution_rate` = 1/200. The second dominates:
 
 - **It closes §3.8's within-epoch drain by construction** — 2,000 claims per block against a `MAX_BLOCK_TXS` of 1,024 — and stays closed up to a doubling of block capacity, where the (11, 11 %) route reopens at 1,101. What was the one controller-dependent guarantee in the design is now structural.
-- **It improves bootstrap security**: the same endowment distributes at half the rate, so the peak adversarial stake share falls from 0.51 % to **0.42 %** (`adversary_hashrate = 0.33`, `initial_stake = 30 %`), and the opening over-payment halves (`opening_reward` = 173,681× the fee, was 347,361×).
-- **It spends no live margin**: `reward_over_fee` = 5.02, the builder edge, the break-even load and the claim-share ceiling are all `distribution_rate`-free; `pow_share` stays at 10 %, keeping the subordination headroom and no reliance on the unset leader share; `target_claims_per_block` stays at 10, keeping every §4.4.1 argument.
+- **It improves bootstrap security**: the same endowment distributes at half the rate, so the peak adversarial stake share falls from 0.51 % to **0.42 %** (`adversary_hashrate = 0.33`, `initial_stake = 30 %`), and the opening over-payment halves (`opening_reward` = 102,444× the fee, was 204,889×; both figures are on the 2026-09 signed-claim fee).
+- **It spends no live margin**: `reward_over_fee` (5.02 then, 2.96 since the 2026-09 claim signature), the builder edge, the break-even load and the claim-share ceiling are all `distribution_rate`-free; `pow_share` stays at 10 %, keeping the subordination headroom and no reliance on the unset leader share; `target_claims_per_block` stays at 10, keeping every §4.4.1 argument.
 - **Its one cost is the response lag**, 2.1 → 4.1 years — and the lag binds only once the pool is fee-funded, which at the specified endowment and resting prices is ~43 years out (§4.7.1). The spec's other two stated costs of a smaller `distribution_rate` (reserve and floor, once ~1 % of supply) were voided by the Units decision: both are now ~10⁻⁷ of supply at either value.
 
-Consequences worth naming: the pool's half-life is 138 epochs ≈ 2.8 years (was 69 ≈ 1.4); the reserve `steady_pool` is 1,446 LGO and the floor `pool_floor` 288; the descent to the fee-funded regime takes ~43 years at the resting price (0.3 at the deflation threshold); the endowment sustains claiming for ~49 years with no traffic at all; and §4.11's window becomes (5.12, 11.76], which **contains the specified `target_claims_per_block` = 10** — the (11, 11 %) observation is discharged rather than adopted. Figures in §§0.0–0.3 are at the pre-change 1/100 and are kept as the historical record.
+Consequences worth naming: the pool's half-life is 138 epochs ≈ 2.8 years (was 69 ≈ 1.4); the reserve `steady_pool` is 1,446 LGO and the floor `pool_floor` 488; the descent to the fee-funded regime takes ~43 years at the resting price (0.3 at the deflation threshold); the endowment sustains claiming for ~47 years with no traffic at all; and §4.11's window becomes (5.12, 11.76], which **contains the specified `target_claims_per_block` = 10** — the (11, 11 %) observation is discharged rather than adopted. Figures in §§0.0–0.3 are at the pre-change 1/100 and are kept as the historical record.
 
 ## 0.3 Addendum — three conclusions the Units decision inverted (2026-08-13; figures herein at the then-specified `distribution_rate` = 1/100)
 
@@ -127,8 +127,8 @@ What this undoes and what it restores:
 
 - **The supply resize is withdrawn** — `block-rewards.md` is back at its published form. The resize's justification assumed one LGO was indivisible, which made the fee floor overwhelm the emission cap; with the floor at one *lepton* the original supply works, and the deflationary phase is reached through ordinary price discovery (a full block's burn matches the emission cap at ~116,562 lepta/gas, 16,652× the resting level and far under #393's `MAX_PRICE`).
 - **§0.2's trajectory-inversion bullet is void with it.** `genesis_pool` vs `steady_pool` again depends on the discovered price level: at floor prices `genesis_pool` vastly exceeds `steady_pool` and the reward decays from a generous opening, which is the body's original qualitative picture.
-- **The body's price-level framing is vindicated.** §4.4.4's correction — that the endowment turns on the *price level*, not the denomination — was right, and is now the operative frame: `claim_fee` at the resting floor is 6,664 lepta ≈ 6.7×10⁻⁶ LGO, under 10⁻¹⁵ of supply, and the genesis fee ceiling of `1.157×10⁻¹⁰` of supply (unchanged, having been stated supply-relative) binds only if discovered prices rise about five orders of magnitude above the floor.
-- **Every ratio stands, again**: `fee_ratio` = 0.837, `reward_over_fee` = 5.02 at reference traffic, the 1.124× builder edge, `target_claims_per_block`↔`pow_share`, the 1,000-claims drain margin, the 5.75×10⁻⁵-of-pool genesis-error cost. The whole calibration of §§4.4.1–4.4.3 is untouched.
+- **The body's price-level framing is vindicated.** §4.4.4's correction — that the endowment turns on the *price level*, not the denomination — was right, and is now the operative frame: `claim_fee` at the resting floor is 11,298 lepta ≈ 1.13×10⁻⁵ LGO, about 1.1×10⁻¹⁵ of supply, and the genesis fee ceiling of `1.157×10⁻¹⁰` of supply (unchanged, having been stated supply-relative) binds only if discovered prices rise nearly five orders of magnitude above the floor.
+- **Every ratio stands, again**: `fee_ratio` = 0.837, `reward_over_fee` = 5.02 at reference traffic, the 1.124× builder edge, `target_claims_per_block`↔`pow_share`, the 1,000-claims drain margin, the 5.75×10⁻⁵-of-pool genesis-error cost. The whole calibration of §§4.4.1–4.4.3 is untouched. *(These are the values of this note's date; the 2026-09 claim signature later moved the fee-derived ones — 0.494, 2.96, 1.255× — without disturbing the structural point.)*
 - The open policy question sharpens into the Units doc's own terms: the storage floor exceeds \$5/GiB once LOGOS trades above **\$4.66**, and no admissible precision fixes that — the remedy lies in the Permanent Storage Gas unit, outside this proposal.
 
 `make all` in `tools/simulators/empowering/tokenomics/` regenerates everything at `decimals = 9`, printing lepta as the primary unit, and `make lepta` confirms the mechanism at lepton granularity in exact integer arithmetic — conservation to the lepton, checked `uint64` throughout, the `reward_per_claim` cliff at its exact boundary, and the canonical parse/format round-trip — something the float engine structurally cannot do. **Terminology**: where the body says "base units", read *lepta*; where it prices in LGO, the figures are pre-resize/pre-lepton absolutes superseded per §0.2 and this section.
@@ -139,13 +139,13 @@ After this report reached its present form, the analysis it contains led to one 
 
 Consequences for reading this document:
 
-- **Every ratio stands.** `fee_ratio` = 0.837, `reward_over_fee` = 5.02 at the reference traffic, the 1.124× builder edge, the `target_claims_per_block`↔`pow_share` trade, the fee-overhead identity, the stopping conditions, and every argument built on them are supply-free and unchanged.
-- **The fee is now determined, not assumed.** The body treats `claim_fee` = 0.952 LGO as a price-level assumption (§5.1). It is now `(306 + 646) × 7 = 6,664 LGO` at the resting price — a consequence of the fee schedule and the indivisible LGO, with no free parameter left.
+- **Every ratio stands.** `fee_ratio` = 0.837, `reward_over_fee` = 5.02 at the reference traffic, the 1.124× builder edge, the `target_claims_per_block`↔`pow_share` trade, the fee-overhead identity, the stopping conditions, and every argument built on them are supply-free and unchanged. *(Values of this note's date; see the 2026-09 remark above.)*
+- **The fee is now determined, not assumed.** The body treats `claim_fee` = 0.952 LGO as a price-level assumption (§5.1). It became `(306 + 646) × 7 = 6,664` lepta at the resting price — a consequence of the fee schedule and the indivisible LGO, with no free parameter left — and the 2026-09 claim signature then moved the same derivation to `(434 + 1,180) × 7 = 11,298` lepta.
 - **Supply-relative figures scale by ×0.233** (`claim_fee`/S fell from 9.52×10⁻¹¹ to 2.22×10⁻¹¹): `pool_floor` 0.206 % → **0.048 %**, `steady_pool` 1.03 % → **0.241 %**, the 5-year ramp 0.34 % → **0.080 %**, the 10-year ramp 0.60 % → **0.140 %** of supply.
 - **The specified `genesis_pool = 0.5 %` now opens at 10.4× the fee** (was 2.4×) and covers the 10-year ramp several times over. It is over-provisioned by about 4×; reducing it toward 0.2 % is an open token-allocation question, not a viability one.
 - `make all` in `tools/simulators/empowering/tokenomics/` prints all of the above from `configs/specified.toml`.
 - The resize also closes items the body leaves open: §4.4.4's denomination question is settled (one LGO is the smallest unit, workable at the sized supply), and §10's "launch fee level" ceiling is now met with a factor of five in hand rather than being a target for governance to hit. §10.2's standing-reserve question is now about a reserve of ~0.24 % of supply at the reference traffic, not ~1 %.
-- **The trajectory direction in §3.7 and §4.2 is inverted at the current parameters.** Those sections describe the endowment sitting *below* the pool's fixed point, the reward climbing, and the builder edge shrinking — so the worst moment for self-dealing was the first epoch. After the resize, `genesis_pool` (0.5 % of supply) sits *above* `steady_pool` (0.241 % at the reference traffic): the reward **decays** from 10.4× the fee toward 5.0×, and the edge **grows** from 1.05× toward 1.12×. Both endpoints are comfortably inside the design margins, but the qualitative conclusion flips — the worst moment for self-dealing is the steady state again, at a still-benign 1.124×, and the open allocation question (trimming `genesis_pool` toward `steady_pool`) would flatten the trajectory rather than raise it.
+- **The trajectory direction in §3.7 and §4.2 is inverted at the current parameters.** Those sections describe the endowment sitting *below* the pool's fixed point, the reward climbing, and the builder edge shrinking — so the worst moment for self-dealing was the first epoch. After the resize, `genesis_pool` (0.5 % of supply) sits *above* `steady_pool` (0.241 % at the reference traffic): the reward **decays** from 6.1× the fee toward 2.96×, and the edge **grows** from 1.10× toward 1.25×. Both endpoints are comfortably inside the design margins, but the qualitative conclusion flips — the worst moment for self-dealing is the steady state again, at a still-benign 1.255×, and the open allocation question (trimming `genesis_pool` toward `steady_pool`) would flatten the trajectory rather than raise it.
 
 The body below is retained as written, including its §4.4.4 treatment of the denomination as an open question, because the reasoning there is what produced the resolution.
 
@@ -169,7 +169,7 @@ EmPoWering lets someone earn their first Logos tokens by mining — running a co
 
 `txs_per_block > target_claims_per_block / (fee_ratio * pow_share)`
 
-where `fee_ratio` ≈ 0.837 is the average transaction's fee over a claim's (§4.3). At the specified `target_claims_per_block = 10` that needs about 120 transactions per block at a 10 % share, or 60 at 20 %, comfortably inside what a block can carry at every share worth considering. Before that point the genesis endowment carries the reward.
+where `fee_ratio` ≈ 0.494 is the average transaction's fee over a claim's (§4.3). At the specified `target_claims_per_block = 10` that needs about 203 transactions per block at a 10 % share, or 101 at 20 %, comfortably inside what a block can carry at every share worth considering. Before that point the genesis endowment carries the reward.
 
 **The endowment reduces to one unknown, and it is not the one it looked like.**
 
@@ -733,21 +733,21 @@ At `target_claims_per_block = 10` claims occupy one percent of a block, so every
 
 | `reward_per_claim` relative to fee | builder edge |
 | --- | --- |
-| **173,681× — the specified launch value** | **1.0000×** |
+| **102,444× — the specified launch value** | **1.0000×** |
 | 100× | 1.005× |
 | 10× | 1.06× |
-| **5.02× — the specified steady state** | **1.124×** |
+| **2.96× — the specified steady state** | **1.255×** |
 | 2× | 1.50× |
 | 1.5× | 2.00× |
 | 1.2× | 3.50× |
 
-**The trajectory depends on where the endowment sits relative to the pool's fixed point**, and at the specified parameters it sits far *above* it (`genesis_pool / steady_pool = 34,576`, §4.12), so the reward decays and **the edge grows**: 1.0000× at launch, 1.0211× at twenty years, 1.124× at the steady state (§3.7, §4.7.1).
+**The trajectory depends on where the endowment sits relative to the pool's fixed point**, and at the specified parameters it sits far *above* it (`genesis_pool / steady_pool = 34,576`, §4.12), so the reward decays and **the edge grows**: 1.0000× at launch, 1.037× at twenty years, 1.255× at the steady state (§3.7, §4.7.1).
 
-**The worst moment is therefore the steady state, decades out — not the first epoch.** What makes this benign is not the shape but the bound: the edge is capped by `1 + tip_fraction / (reward_over_fee - 1)` at the settled margin, and 1.124× is small. The shape does mean the concern arrives slowly and cannot be checked against launch behaviour, which is the argument for treating `reward_over_fee` rather than `opening_reward_over_fee` as the number that matters.
+**The worst moment is therefore the steady state, decades out — not the first epoch.** What makes this benign is not the shape but the bound: the edge is capped by `1 + tip_fraction / (reward_over_fee - 1)` at the settled margin, and 1.255× is small. The shape does mean the concern arrives slowly and cannot be checked against launch behaviour, which is the argument for treating `reward_over_fee` rather than `opening_reward_over_fee` as the number that matters.
 
 There is no bootstrap grace period any more. Whatever headroom is chosen is the headroom the network lives with, so the choice of `pow_share` and `target_claims_per_block` together is directly a choice about how much of an advantage block builders hold over other miners.
 
-**Design implication, and where it landed.** `reward_over_fee` at 2 gives a 1.5× edge; bringing it below 1.1× needs `reward_over_fee ≳ 6`. At the earlier `target_claims_per_block = 50` that would have required `pow_share ≈ 60 %` — implausibly large — so a permanent 1.5× edge looked unavoidable and was recorded here as a cost of the high claim target. **Lowering `target_claims_per_block` to 10 largely removes it**: at the specified 10 % share the headroom is 5× and the edge **1.124×**. The 1.1× aspiration is missed by a whisker, and §4.4.2 explains why it is not chased further — reaching it needs `pow_share` ≥ 11.9 %, above the ceiling that keeping mining subordinate to staking imposes.
+**Design implication, and where it landed.** `reward_over_fee` at 2 gives a 1.5× edge; bringing it below 1.1× needs `reward_over_fee ≳ 6`. At the earlier `target_claims_per_block = 50` that would have required `pow_share ≈ 60 %` — implausibly large — so a permanent 1.5× edge looked unavoidable and was recorded here as a cost of the high claim target. **Lowering `target_claims_per_block` to 10 largely removes it**: at the specified 10 % share the headroom is 3× and the edge **1.255×**. The 1.1× aspiration is no longer within reach at all — since the 2026-09 claim fee it needs `pow_share` ≈ 20 %, far above the ceiling that keeping mining subordinate to staking imposes — so the edge is accepted at 1.255× and bounded rather than chased.
 
 ## 4.3 Calibration — the constraint set `DERIVED`
 
@@ -765,14 +765,14 @@ A claim transaction is **not** a bare `CLAIM_POW_REWARD`. A bare claim mints `re
 | `TRANSFER` payload — one input id, one output note | 74 B | 590 |
 | `ZkSignature` on the transfer | 128 B | — |
 | bincode framing — vector lengths, opcodes, enum tags | 8 B | — |
-| **encoded `SignedMantleTx`** | **306 B** | **646** |
+| **encoded `SignedMantleTx`** | **434 B** | **1,180** |
 
-At the resting price that is `306 * 7 + 646 * 7 = 6,664` price units — or 952 at the bare floor, which the markets reach only transiently. An ordinary one-in one-out `TRANSFER` comes to 207 B and 590 gas, or 5,579 units at rest, so
+At the resting price that is `434 * 7 + 1,180 * 7 = 11,298` price units — or 1,614 at the bare floor, which the markets reach only transiently. (Until 2026-09-04 the claim carried no proof and cost 6,664; the ZkSignature and its 590 gas are the whole difference.) An ordinary one-in one-out `TRANSFER` comes to 207 B and 590 gas, or 5,579 units at rest, so
 
 | **the fee ratio** |
 | --- |
-| $\psi = \dfrac{\bar\varphi}{\varphi_\text{claim}} \approx 0.837$ |
-| `fee_ratio = avg_tx_fee / claim_fee  # 0.837` |
+| $\psi = \dfrac{\bar\varphi}{\varphi_\text{claim}} \approx 0.494$ |
+| `fee_ratio = avg_tx_fee / claim_fee  # 0.494` |
 
 — a claim costs slightly **more** than the average transaction, because it carries a transfer plus its own payload and gas on top. **`fee_ratio` is independent of the price level**, since both markets scale together, so the resting-level correction does not move it. It enters every ratio below and mildly tightens each one.
 
@@ -813,7 +813,7 @@ Read the other way, at the specified 10 % share and 600 transactions per block:
 | `target_claims_per_block` | claims as % of a full block | `reward_over_fee` | noise, `1 / sqrt(target_claims_per_block)` |
 | --- | --- | --- | --- |
 | 1 | 0.1 % | 50.2 | 100 % |
-| **10** | **1.0 %** | **5.02** | **32 %** |
+| **10** | **1.0 %** | **2.96** | **32 %** |
 | 50 | 4.9 % | 1.00 | 14 % |
 | 100 | 9.8 % | 0.50 | 10 % |
 | 500 | 48.8 % | 0.10 | 4.5 % |
@@ -860,12 +860,12 @@ Everything on the right except `claim_fee` is fixed by the specification, so as 
 
 | base units per LGO | `claim_fee` (LGO) | `claim_fee / launch_supply` | `genesis_pool / launch_supply` | verdict |
 | --- | --- | --- | --- | --- |
-| 1 | 952 | 9.5×10⁻⁸ | **411 %** | impossible |
-| 10³ | 0.952 | 9.5×10⁻¹¹ | **0.41 %** | affordable |
+| 1 | 1,614 | 1.6×10⁻⁷ | **697 %** | impossible |
+| 10³ | 1.614 | 1.6×10⁻¹⁰ | **0.70 %** | affordable |
 | 10⁶ | 9.5×10⁻⁴ | 9.5×10⁻¹⁴ | 0.0004 % | negligible |
 | 10⁹ | 9.5×10⁻⁷ | 9.5×10⁻¹⁷ | ~0 | negligible |
 
-**Nine orders of magnitude in the fee, and therefore in the endowment.** What the table really shows is how sharply the sizing depends on the launch fee level, whatever sets it. Every entry scales linearly with `target_claims_per_block`, so the move to `target_claims_per_block = 10` divided this table by five without changing its shape, and the top row — a fee of 952 LGO — remains impossible at any endowment. §4.4.4 restates this as the constraint it actually is: a ceiling of about 1.157 LGO on the launch fee, for the specified endowment to open at twice it.
+**Nine orders of magnitude in the fee, and therefore in the endowment.** What the table really shows is how sharply the sizing depends on the launch fee level, whatever sets it. Every entry scales linearly with `target_claims_per_block`, so the move to `target_claims_per_block = 10` divided this table by five without changing its shape, and the top row — a fee of 1,614 LGO — remains impossible at any endowment. §4.4.4 restates this as the constraint it actually is: a ceiling of about 1.157 LGO on the launch fee, for the specified endowment to open at twice it.
 
 ### Sized against an adoption ramp `SIMULATED`
 
@@ -873,21 +873,21 @@ The single-point view answers "what opens at `opening_multiple` fees". The quest
 
 | `pow_share` | 1-year ramp | 2-year | 5-year | 10-year |
 | --- | --- | --- | --- | --- |
-| 5 % | 3.09×10⁻⁸ | 3.31×10⁻⁸ | 4.08×10⁻⁸ | 5.85×10⁻⁸ |
-| **10 %** | **3.02×10⁻⁸** | **3.17×10⁻⁸** | **3.68×10⁻⁸** | **4.77×10⁻⁸** |
-| 20 % | 2.96×10⁻⁸ | 3.03×10⁻⁸ | 3.29×10⁻⁸ | 3.80×10⁻⁸ |
-| 33 % | 2.91×10⁻⁸ | 2.94×10⁻⁸ | 3.03×10⁻⁸ | 3.20×10⁻⁸ |
-| 50 % | 2.88×10⁻⁸ | 2.88×10⁻⁸ | 2.88×10⁻⁸ | 2.89×10⁻⁸ |
+| 5 % | 5.32×10⁻⁸ | 5.78×10⁻⁸ | 7.46×10⁻⁸ | 1.16×10⁻⁷ |
+| **10 %** | **5.21×10⁻⁸** | **5.55×10⁻⁸** | **6.75×10⁻⁸** | **9.46×10⁻⁸** |
+| 20 % | 5.10×10⁻⁸ | 5.32×10⁻⁸ | 6.08×10⁻⁸ | 7.67×10⁻⁸ |
+| 33 % | 5.02×10⁻⁸ | 5.15×10⁻⁸ | 5.60×10⁻⁸ | 6.50×10⁻⁸ |
+| 50 % | 4.95×10⁻⁸ | 5.02×10⁻⁸ | 5.23×10⁻⁸ | 5.63×10⁻⁸ |
 
 (as a fraction of total supply. The specified `genesis_pool = 5 * 10⁻³` is five orders of magnitude above every cell — §4.12 explains what actually sizes it.)
 
 Three things fall out.
 
-**The floor is `pool_floor` = 2.88×10⁻⁸ of supply**, shared by every column — the pool must hold that much for a claim to beat its own fee at all, whatever the traffic. Nothing below it is a viable endowment.
+**The floor is `pool_floor` = 4.88×10⁻⁸ of supply**, shared by every column — the pool must hold that much for a claim to beat its own fee at all, whatever the traffic. Nothing below it is a viable endowment.
 
 **Slower adoption costs more, and superlinearly.** Doubling the ramp from five years to ten roughly doubles the excess over the floor at a 5 % share, because the pool drains at `distribution_rate` for the whole time the fee inflow is short. A larger `pow_share` is not merely a bigger subsidy, it is insurance against adoption being slower than hoped.
 
-**Every share now works.** The previous `target_claims_per_block = 50` produced *never* across the whole 5 % row — no endowment of any size kept claiming alive — and required 1.14–7.88 % of supply elsewhere. At `target_claims_per_block = 10` the entire table fits between 2.88×10⁻⁸ and 5.85×10⁻⁸ of supply, and the choice of share is a preference about robustness to slow adoption rather than a viability constraint.
+**Every share now works.** The previous `target_claims_per_block = 50` produced *never* across the whole 5 % row — no endowment of any size kept claiming alive — and required 1.14–7.88 % of supply elsewhere. At `target_claims_per_block = 10` the entire table fits between 4.95×10⁻⁸ and 1.16×10⁻⁷ of supply, and the choice of share is a preference about robustness to slow adoption rather than a viability constraint.
 
 ### 4.4.1 Choosing the target claim rate `DERIVED` + `SIMULATED`
 
@@ -918,16 +918,16 @@ the reward equals the fee, delivery is zero, and claiming stops.
 
 **Holding the share fixed at 20 %, lowering `target_claims_per_block`:**
 
-| `target_claims_per_block` | `reward_over_fee` | eaten by fees | reaches miners | builder edge | noise | `genesis_pool` (5-yr ramp) | nodes onboarded/epoch |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 100.5 | 1 % | 99 % | 1.01× | 100 % | 0.02 % | 20.5 |
-| 5 | 20.1 | 5 % | 95 % | 1.03× | 45 % | 0.11 % | 19.6 |
-| **10** | **10.05** | **10 %** | **90 %** | **1.06×** | **32 %** | **0.27 %** | **18.6** |
-| 25 | 4.02 | 25 % | 75 % | 1.17× | 20 % | 0.91 % | 15.5 |
-| 50 | 2.01 | 50 % | 50 % | 1.50× | 14 % | 2.24 % | 10.4 |
-| 100 | 1.00 | 100 % | 0 % | 109× | 10 % | 5.54 % | 0.1 |
+| `target_claims_per_block` | `reward_over_fee` | eaten by fees | reaches miners | builder edge | noise | `genesis_pool` (5-yr ramp, of supply) |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 29.63 | 3 % | 97 % | 1.02× | 100 % | 4.88×10⁻⁹ |
+| 5 | 5.93 | 17 % | 83 % | 1.10× | 45 % | 3.04×10⁻⁸ |
+| **10** | **2.96** | **34 %** | **66 %** | **1.25×** | **32 %** | **6.75×10⁻⁸** |
+| 25 | 1.19 | 84 % | 16 % | 3.70× | 20 % | 1.93×10⁻⁷ |
+| 50 | 0.59 | 100 % | 0 % | n/a — under water | 14 % | 4.50×10⁻⁷ |
+| 100 | 0.30 | 100 % | 0 % | n/a | 10 % | never |
 
-The onboarding column is measured against the thing being onboarded *to*: the minimum stake for a Blend service node is `0.001 % * launch_supply = 100,000` LGO (`analysis-static-minimum-stake-estimation-for-service-declaration-protocol.md:57-62`), and the column is the epoch's net delivery divided by it. **Claim count is a bad proxy for onboarding.** `target_claims_per_block = 50` pays 1,080,000 claims an epoch, but at 0.96 LGO net each it takes 104,000 of them to reach minimum stake; `target_claims_per_block = 10` pays a fifth as many claims and onboards nearly twice as many participants.
+The fee column is the point: **claim count is a bad proxy for delivery.** `target_claims_per_block = 50` pays five times as many claims as 10 does and delivers nothing — at the 2026-09 claim fee the claim's own fee eats the entire reward at the reference load — while 10 delivers two thirds of every reward net of fees. (An earlier revision of this table carried an onboarding-per-epoch column, measured against the 100,000-LGO Blend minimum stake, from a pre-denomination generator this report can no longer reproduce; it is withdrawn rather than rescaled, with the same note as §4.4.2's.)
 
 **A correction against an intermediate reading of this result.** Because §4.3 showed `target_claims_per_block` and `pow_share` locked together at fixed headroom:
 
@@ -1017,19 +1017,21 @@ The cap above is stated on *fee shares*, and in the steady state that is the who
 
 | `pow_share` | `reward_over_fee` | builder edge | reaching claimants | nodes onboarded/epoch | `genesis_pool` (5-yr ramp) |
 | --- | --- | --- | --- | --- | --- |
-| 2 % | 1.00 | 109× | 0 % | 0.0 | 0.55 % |
-| 5 % | 2.51 | 1.331× | 60 % | 3.1 | 0.42 % |
-| **10 %** | **5.02** | **1.124×** | **80 %** | **8.3** | **0.34 %** |
-| 20 % | 10.05 | 1.055× | 90 % | 18.6 | 0.27 % |
-| 33 % | 16.58 | 1.032× | 94 % | 32.0 | 0.23 % |
+| 2 % | 0.59 | n/a — under water | — | — | — |
+| 5 % | 1.48 | 2.04× | 33 % | — | — |
+| **10 %** | **2.96** | **1.255×** | **66 %** | — | — |
+| 20 % | 5.93 | 1.101× | 83 % | — | — |
+| 33 % | 9.78 | 1.057× | 90 % | — | — |
 
-Note the top row: **the proposal's illustrative 2 % lands exactly on break-even** at this traffic — the reward equals the fee, nothing reaches a claimant, and the builder edge diverges. Its 2 % was a share of the *block reward*, a different and much smaller base, so the figure does not transfer.
+(The first four columns are §4.3's closed forms at the 2026-09 claim fee. The last two were generated by a pre-denomination basis this report can no longer reproduce; they are withdrawn rather than rescaled, and the five-year-ramp sizing that is reproducible — as a fraction of supply, per share — is the §4.4 table above.)
+
+Note the top row: **the proposal's illustrative 2 % is now under water** at this traffic — the reward falls 41 % short of the claim's own fee (it sat exactly on break-even before the 2026-09 claim signature). Its 2 % was a share of the *block reward*, a different and much smaller base, so the figure does not transfer.
 
 #### The choice
 
-**`pow_share = 10 %`**, as `POW_SHARE = 10` over `SHARE_DEN = 100`. It clears 2× headroom from 240 transactions per block, reaches 5× at the reference 600, holds the builder edge at 1.124× against a 1.1× aspiration, keeps mining at 28 % of the leader share, and needs an endowment of 0.34 % of supply to cover a five-year ramp. A denominator of 100 leaves one-percentage-point granularity for later adjustment.
+**`pow_share = 10 %`**, as `POW_SHARE = 10` over `SHARE_DEN = 100`. It clears 2× headroom from 405 transactions per block, reaches 3× at the reference 600, holds the builder edge at 1.255× (the 1.1× aspiration would now need a share near 20 %, above the subordination ceiling, so it is bounded rather than chased), keeps mining at 28 % of the leader share, and needs an endowment of 6.75×10⁻⁸ of supply to cover a five-year ramp (§4.4). A denominator of 100 leaves one-percentage-point granularity for later adjustment.
 
-Going to 20 % would halve the builder edge and double the onboarding rate, at the cost of taking mining to 62 % of the leader share — which is no longer "clearly subordinate", and is the reading of the proposal's §1.5 that decides this.
+Going to 20 % would halve the edge's excess over one and lift the delivered share from 66 % to 83 %, at the cost of taking mining to 62 % of the leader share — which is no longer "clearly subordinate", and is the reading of the proposal's §1.5 that decides this.
 
 **What would change the answer.** A lower expected sustained traffic pushes the lower bound up quickly — at 300 transactions per block the 2× requirement is already 8 %, leaving almost no room under the subordination ceiling. If the network is expected to settle below about 250 transactions per block, `target_claims_per_block` should come down further rather than `pow_share` going up, because `target_claims_per_block` and `pow_share` trade one-for-one on this constraint (§4.4.1) and only `pow_share` is bounded above.
 
@@ -1051,11 +1053,11 @@ that is, at `1 / distribution_rate` epochs' worth of distribution. Everything el
 
 | `distribution_rate` | reserve `steady_pool`/supply | epochs held | `pool_floor`/supply | response lag | exhaustion, claims/block |
 | --- | --- | --- | --- | --- | --- |
-| 0.2 % | 3.62×10⁻⁷ | 500 | 7.20×10⁻⁸ | 10.3 yr | 5,000 — unreachable |
-| 0.5 % | 1.45×10⁻⁷ | 200 | 2.88×10⁻⁸ | 4.1 yr | 2,000 — unreachable |
-| **1 %** | **7.23×10⁻⁸** | **100** | **1.44×10⁻⁸** | **2.1 yr** | **1,000 — just reachable** |
-| 2 % | 3.62×10⁻⁸ | 50 | 7.20×10⁻⁹ | 1.0 yr | 500 — reachable at half-full blocks |
-| 5 % | 1.45×10⁻⁸ | 20 | 2.88×10⁻⁹ | 0.4 yr | 200 — routinely reachable |
+| 0.2 % | 3.62×10⁻⁷ | 500 | 1.22×10⁻⁷ | 10.3 yr | 5,000 — unreachable |
+| 0.5 % | 1.45×10⁻⁷ | 200 | 4.88×10⁻⁸ | 4.1 yr | 2,000 — unreachable |
+| **1 %** | **7.23×10⁻⁸** | **100** | **2.44×10⁻⁸** | **2.1 yr** | **1,000 — just reachable** |
+| 2 % | 3.62×10⁻⁸ | 50 | 1.22×10⁻⁸ | 1.0 yr | 500 — reachable at half-full blocks |
+| 5 % | 1.45×10⁻⁸ | 20 | 4.88×10⁻⁹ | 0.4 yr | 200 — routinely reachable |
 
 **Three considerations once pushed `distribution_rate` up, one pushes it down — and the Units decision changed the weights.** A larger `distribution_rate` shrinks the reserve and the endowment floor:
 
@@ -1079,22 +1081,22 @@ Two floors and one landmark:
 
 | | as a fraction of launch supply |
 | --- | --- |
-| `pool_floor` — below this a claim no longer beats its own fee | 2.88×10⁻⁸ |
+| `pool_floor` — below this a claim no longer beats its own fee | 4.88×10⁻⁸ |
 | covers a 1-year adoption ramp | 3.02×10⁻⁸ |
 | covers a 2-year ramp | 3.17×10⁻⁸ |
 | covers a 5-year ramp | 3.68×10⁻⁸ |
 | covers a 10-year ramp | 4.77×10⁻⁸ |
 | `steady_pool` at the reference traffic | 1.45×10⁻⁷ |
-| **the specified `genesis_pool`** | **5.00×10⁻³** — 135,949× the 5-year ramp (§4.12) |
+| **the specified `genesis_pool`** | **5.00×10⁻³** — 74,119× the 5-year ramp (§4.12) |
 
 | `genesis_pool` | in LGO | `opening_reward` | × fee | epochs to `pool_floor` with **no traffic at all** |
 | --- | --- | --- | --- | --- |
 | 0.2 % | 2.0×10⁷ | 462,962,963 | 69,472× | 2,224 ≈ 46 yr |
-| **0.5 %** | **5.0×10⁷** | **1,157,407,407** | **173,681×** | **2,407 ≈ 49 yr** |
-| 1.0 % | 1.0×10⁸ | 2,314,814,815 | 347,361× | 2,545 ≈ 52 yr |
+| **0.5 %** | **5.0×10⁷** | **1,157,407,407** | **102,444×** | **2,302 ≈ 47 yr** |
+| 1.0 % | 1.0×10⁸ | 2,314,814,815 | 204,889× | 2,440 ≈ 50 yr |
 | 2.0 % | 2.0×10⁸ | 4,629,629,630 | 694,722× | 2,684 ≈ 55 yr |
 
-**`genesis_pool = 0.5 %`.** At the settled denomination this is not a marginal choice against the ramp — it clears a five-year ramp by 135,949× and opens at 173,681× the fee, sustaining claiming for about 49 years on the endowment alone even with no traffic at all. **The reward-economics constraints do not select it; §4.12 shows what does.** Matching `steady_pool` for elegance, so the reward would be flat from the first epoch, would mean an endowment of 1.45×10⁻⁷ of supply — four to five orders of magnitude smaller, and a mechanism with no bootstrap subsidy at all. The gap between those two readings is the whole of the allocation question.
+**`genesis_pool = 0.5 %`.** At the settled denomination this is not a marginal choice against the ramp — it clears a five-year ramp by 74,119× and opens at 102,444× the fee, sustaining claiming for about 47 years on the endowment alone even with no traffic at all. **The reward-economics constraints do not select it; §4.12 shows what does.** Matching `steady_pool` for elegance, so the reward would be flat from the first epoch, would mean an endowment of 1.45×10⁻⁷ of supply — four to five orders of magnitude smaller, and a mechanism with no bootstrap subsidy at all. The gap between those two readings is the whole of the allocation question.
 
 For scale: the minimum-stake analysis sizes staking around 1,000 nodes at 0.001 % of supply each, i.e. 1 % of supply. A 0.5 % onboarding endowment is proportionate to that rather than large against it.
 
@@ -1104,7 +1106,7 @@ For scale: the minimum-stake analysis sizes staking around 1,000 nodes at 0.001 
 
 `opening_reward = distribution_rate * genesis_pool / (target_claims_per_block * blocks_per_epoch)`
 
-depends only on denomination-free quantities; the fee `claim_fee` is a fixed **952 base units**. So a chosen `genesis_pool` implies a **floor under the denomination**
+depends only on denomination-free quantities; the fee `claim_fee` is a fixed **1,614 base units**. So a chosen `genesis_pool` implies a **floor under the denomination**
 
 | `genesis_pool` | min base units per LGO for `opening_reward >= claim_fee` | for `opening_reward >= 2 * claim_fee` |
 | --- | --- | --- |
@@ -1127,11 +1129,11 @@ Both sections said the endowment "turns entirely on one unknown: the claim fee a
 
 The fee is:
 
-`claim_fee = 306 * P_STR + 646 * b_exec`
+`claim_fee = 434 * P_STR + 1,180 * b_exec`
 
  **base units**, where `P_STR` and `b_exec` are the two markets' prices. In LGO that is:
 
-`claim_fee = (306 * P_STR + 646 * b_exec) / base_units_per_lgo`
+`claim_fee = (434 * P_STR + 1,180 * b_exec) / base_units_per_lgo`
 
 Only the **ratio** of price level to denomination matters economically, and the price level is a market outcome whose initial value genesis governance sets — `storage-markets.md:230` says so explicitly. So:
 
@@ -1180,7 +1182,7 @@ kept deliberately as an exact fraction, with `block_rewards()` returning a `floa
 
 `pool_floor = claim_fee * target_claims_per_block * blocks_per_epoch / distribution_rate`
 
-is **206 % of the total token supply** at the bare floor and **1,439 %** at the resting price. The pool would have to be many times the entire supply for a claim to beat its own fee. This is not "expensive"; it is impossible at any endowment.
+is **349 % of the total token supply** at the bare floor and **2,440 %** at the resting price. The pool would have to be many times the entire supply for a claim to beat its own fee. This is not "expensive"; it is impossible at any endowment.
 
 **Conclusion.** The "1 LGO" language was written before the tree had a word for the base unit, and means one unit of the smallest representable amount. That is the ambiguity an undefined denomination allowed to persist, and defining it forces the correction — made in place in `storage-markets.md`, along with the initial-price row.
 
@@ -1220,7 +1222,7 @@ Eight figures from `make plots`, rendered from the same `Params` the tables use,
 
 ![pool trajectory](figures/01_pool_trajectory.png)
 
-`genesis_pool` is 5×10⁷ LGO and `steady_pool` is 1,446 LGO — more than four orders of magnitude apart — so the fixed point that §4.4.3 solves for is not a description of the near term. The gap closes at `(1 - distribution_rate)**epoch`, which puts the pool **within a factor of two of `steady_pool` only after about 43 years**. For the whole of that descent the reward per claim is set by the decaying endowment, not by the fee refill, and it falls about 34,600× along the way. It never crosses the floor: `steady_pool` (1,446) sits above `pool_floor` (288), so the steady state clears break-even by design and every point on the path to it clears it by more.
+`genesis_pool` is 5×10⁷ LGO and `steady_pool` is 1,446 LGO — more than four orders of magnitude apart — so the fixed point that §4.4.3 solves for is not a description of the near term. The gap closes at `(1 - distribution_rate)**epoch`, which puts the pool **within a factor of two of `steady_pool` only after about 43 years**. For the whole of that descent the reward per claim is set by the decaying endowment, not by the fee refill, and it falls about 34,600× along the way. It never crosses the floor: `steady_pool` (1,446) sits above `pool_floor` (488), so the steady state clears break-even by design and every point on the path to it clears it by more.
 
 **This is the figure to read before treating `reward_over_fee = 5.02` as the operating number.** It is the number the system converges to, not the one it launches with.
 
@@ -1256,7 +1258,7 @@ the claim share of a block's transactions,
 | $v \cdot \dfrac{\sigma^\ast}{\varphi} = \psi\,\beta$ |
 | `claim_share * reward_over_fee == fee_ratio * pow_share  # invariant` |
 
-so at break-even the claim share is exactly `fee_ratio * pow_share`, and that is the **ceiling**: if claims are more than `fee_ratio * pow_share = 8.37 %` of transactions, a claim earns less than the fee it pays. It depends on `pow_share` and nothing else — `target_claims_per_block` cancels, and so does the traffic level. At the specified set the network operates at `claim_share = 1.67 %`, a **5.02× margin** below the ceiling, and the break-even traffic is 119 tx/block.
+so at break-even the claim share is exactly `fee_ratio * pow_share`, and that is the **ceiling**: if claims are more than `fee_ratio * pow_share = 4.94 %` of transactions, a claim earns less than the fee it pays. It depends on `pow_share` and nothing else — `target_claims_per_block` cancels, and so does the traffic level. At the specified set the network operates at `claim_share = 1.67 %`, a **2.96× margin** below the ceiling, and the break-even traffic is 203 tx/block.
 
 Both numbers are gated in `make verify`.
 
@@ -1272,7 +1274,7 @@ Both numbers are gated in `make verify`.
 
 which the specified tenth puts at 119 tx/block.
 
-The sweep in §4.4.2 is worth re-reading against this. **At the proposal's original 2 % example the break-even traffic is 597 tx/block against a reference of 600** — `reward_over_fee = 1.00`, no headroom at all. The move to a tenth is what converts the mechanism from marginal to funded.
+The sweep in §4.4.2 is worth re-reading against this. **At the proposal's original 2 % example the break-even traffic is 1,013 tx/block against a reference of 600** — `reward_over_fee = 0.59`, under water at the reference load; before the 2026-09 claim fee it sat at 597 against 600, marginal rather than sunk. The move to a tenth is what converts the mechanism from under-water to funded.
 
 ### 4.7.4 The endowment against an adoption ramp
 
@@ -1280,7 +1282,7 @@ The sweep in §4.4.2 is worth re-reading against this. **At the proposal's origi
 
 ![endowment ramp](figures/04_endowment_ramp.png)
 
-Each ramp is plotted at *its own* minimum endowment, where each just grazes the floor — which is what makes the test legible. At the specified `genesis_pool` all four curves lie on top of one another, because the endowment is **135,949× the 5-year minimum** and the ramp shape disappears beneath it.
+Each ramp is plotted at *its own* minimum endowment, where each just grazes the floor — which is what makes the test legible. At the specified `genesis_pool` all four curves lie on top of one another, because the endowment is **74,119× the 5-year minimum** and the ramp shape disappears beneath it.
 
 That ratio is itself a finding: `genesis_pool = 0.5 %` of supply is not sized by the `reward_per_claim` ≥ `claim_fee` constraint, which 3.7×10⁻⁸ of supply would satisfy. Whatever justifies half a percent, it is not this floor, and §10.2's standing-reserve question is really a question about `genesis_pool` and its multi-decade decay rather than about `steady_pool`.
 
@@ -1298,7 +1300,7 @@ A mis-set genesis target recovers in about 20 blocks when it is too permissive a
 
 ![operating envelope](figures/06_operating_envelope.png)
 
-Two independent walls bound `pow_share` from opposite sides, and the specified point sits between them. Below, `reward_over_fee < 1` and a claim earns less than its own fee. Above, `pow_share > 11.8 %` and mining stops being subordinate to the leader path. At the reference traffic the admissible band is **`pow_share in [4.0 %, 11.8 %]`** for a 2× fee margin, and the specified tenth sits in it — nearer the subordination wall than the funding one.
+Two independent walls bound `pow_share` from opposite sides, and the specified point sits between them. Below, `reward_over_fee < 1` and a claim earns less than its own fee. Above, `pow_share > 11.8 %` and mining stops being subordinate to the leader path. At the reference traffic the admissible band is **`pow_share in [6.8 %, 11.8 %]`** for a 2× fee margin, and the specified tenth sits in it — still nearer the subordination wall, but the funding wall moved from 4.0 % to 6.8 % with the 2026-09 claim fee, and the band is half as wide as it was.
 
 ![drain margin](figures/07_drain_margin.png)
 
@@ -1368,15 +1370,15 @@ Sweeping `fee_load` says everything the `(txs_per_block, price)` plane says, on 
 
 | `fee_load` (claim fees/block) | `reward_over_fee` | verdict | lepta/block at rest | ≈ `txs_per_block` at any price |
 | --- | --- | --- | --- | --- |
-| 25 | 0.25 | under water | 166,600 | 30 |
-| 50 | 0.50 | under water | 333,200 | 60 |
-| **100** | **1.00** | **break-even** `target_claims_per_block / pow_share` | 666,400 | 119 |
-| 200 | 2.00 | works, 2× margin | 1,332,800 | 239 |
-| **502** | **5.02** | **specified** | 3,345,328 | 600 |
-| 857 | 8.57 | full block | 5,711,048 | 1,024 |
-| 2,000 | 20.00 | ample | 13,328,000 | 2,389 |
+| 25 | 0.25 | under water | 282,450 | 51 |
+| 50 | 0.50 | under water | 564,900 | 101 |
+| **100** | **1.00** | **break-even** `target_claims_per_block / pow_share` | 1,129,800 | 203 |
+| 200 | 2.00 | works, 2× margin | 2,259,600 | 405 |
+| **296** | **2.96** | **specified** | 3,344,208 | 599 |
+| 506 | 5.06 | full block | 5,716,788 | 1,024 |
+| 2,000 | 20.00 | ample | 22,596,000 | 4,050 |
 
-The specified set collects **502 claim fees per block against a break-even of 100** — the same 5.02× margin §4.3 derives, reached without an estimate of either traffic or price. Read as a count that is 600 ordinary transfers at the resting level; read as a price level it is anything at all. **That invariance is the substance, not a presentational convenience**: it is why §4.3's ratios survive a repricing, and why the "the on-ramp closes when the network is busiest" failure mode does not exist under fee funding. `make verify` checks it across five decades of price.
+The specified set collects **296 claim fees per block against a break-even of 100** — the same 2.96× margin §4.3 derives, reached without an estimate of either traffic or price. Read as a count that is 600 ordinary transfers at the resting level; read as a price level it is anything at all. **That invariance is the substance, not a presentational convenience**: it is why §4.3's ratios survive a repricing, and why the "the on-ramp closes when the network is busiest" failure mode does not exist under fee funding. `make verify` checks it across five decades of price.
 
 Two things this axis does better than the count.
 
@@ -1405,13 +1407,13 @@ and some blocks:
 
 | mix | load | `reward_over_fee` | |
 | --- | --- | --- | --- |
-| 600 transfers | 502 | 5.02 | the reference |
+| 600 transfers | 296 | 2.96 | the reference |
 | 10 claims + 590 transfers | 504 | 5.04 | the realistic block — and the 0.32 % §4.7.2 flags, made concrete |
-| a full block of transfers | 857 | 8.57 | |
+| a full block of transfers | 506 | 5.06 | |
 | a full block of the cheapest Operation | 200 | 2.00 | |
 | half a block, half inscribes | 264 | 2.64 | |
 
-**The composition barely matters; the fill does.** A full block needs only `(target_claims_per_block / pow_share) / MAX_BLOCK_TXS` = **0.098 claim fees per transaction** to break even, which at the cheapest Operation's 56 gas is about **37 encoded bytes each** — smaller than any signed transaction can be, since the claim's signature alone is 128 B. So every full block clears break-even whatever is in it, and even a block filled entirely with the cheapest Operation lands at twice the floor. What moves the margin is how *full* blocks are, and the specified 5.02× corresponds to blocks a little under 60 % full of transfers.
+**The composition barely matters; the fill does.** A full block needs only `(target_claims_per_block / pow_share) / MAX_BLOCK_TXS` = **0.098 claim fees per transaction** to break even, which at the cheapest Operation's 56 gas is about **102 encoded bytes each** — smaller than any signed transaction can be, since a signature alone is 128 B. So every full block clears break-even whatever is in it, though the margin has thinned: a block filled entirely with the cheapest Operation now lands at 1.18× the floor, where it cleared twice the floor before the 2026-09 claim fee. What moves the margin is how *full* blocks are, and the specified 2.96× corresponds to blocks a little under 60 % full of transfers.
 
 That is the useful form of the answer to "what traffic does this need?": not a transaction count, and not a price, but **roughly half-full blocks**.
 
@@ -1439,16 +1441,16 @@ Three columns turn out to be **flat everywhere**, and that is a result rather th
 
 | `target_claims_per_block` | `reward_over_fee` | ramp cover | peak adv | builder edge | drain/block | break-even load | claim share |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **10** (specified) | **5.02** | 135,949× | 0.42 % | **1.124×** | 2,000 | 100 | 1.7 % |
-| 50 | 1.00 | 16,377× | 0.42 % | **109×** | 10,000 | 500 | 8.3 % |
-| 100 | 0.50 | never | 0.42 % | n/a | 20,000 | 1,000 | 16.7 % |
-| 500 | 0.10 | never | 0.42 % | n/a | 100,000 | 5,000 | 83.3 % |
+| **10** (specified) | **2.96** | 74,119× | 0.42 % | **1.255×** | 2,000 | 100 | 1.7 % |
+| 50 | 0.59 | 11,111× | 0.42 % | n/a — under water | 10,000 | 500 | 8.3 % |
+| 100 | 0.30 | never | 0.42 % | n/a | 20,000 | 1,000 | 16.7 % |
+| 500 | 0.06 | never | 0.42 % | n/a | 100,000 | 5,000 | 83.3 % |
 
 (Since §0.4 the drain is out of reach at every `target_claims_per_block` shown: `target_claims_per_block / distribution_rate > MAX_BLOCK_TXS` from `target_claims_per_block = 6` up.)
 
-**`target_claims_per_block = 50` lands almost exactly on break-even at the reference load, and that is where the builder edge explodes.** `reward_over_fee = 1.00`, and since the edge is `1 + tip_fraction / (reward_over_fee - 1)` it goes to **109×** — a builder recovering the tip on its own claims earns two orders of magnitude more than an outside miner. The edge is not a smooth cost of a larger `target_claims_per_block`; it is a pole, and `target_claims_per_block = 50` sits next to it. That is a sharper argument for the move to 10 than §4.2's, which put the earlier value's edge at 2.5× on a traffic assumption the current set does not carry.
+**`target_claims_per_block = 50` is under water at the reference load since the 2026-09 claim fee** — `reward_over_fee = 0.59`, the reward falls 41 % short of the claim's own fee. Before that change it sat almost exactly on break-even, which is where the builder edge explodes: the edge is `1 + tip_fraction / (reward_over_fee - 1)`, a pole at break-even (it read 109× there), and the pole now sits at the break-even target of about 30 — `target_claims_per_block = 29` still clears at 1.02, 30 dips under. Either way `target_claims_per_block = 50` is disqualified outright, which is a sharper argument for the move to 10 than §4.2's, which put the earlier value's edge at 2.5× on a traffic assumption the current set does not carry.
 
-Above 100 the mechanism is simply under water: `reward_over_fee < 1` at the reference load, no endowment covers an adoption ramp, and at 500 claims would need to be **83 % of every block**. When this sweep was first run at `distribution_rate = 1/100`, raising `target_claims_per_block` bought the one thing the specified set then lacked — `target_claims_per_block / distribution_rate` passed `MAX_BLOCK_TXS` between 10 and 50, closing the within-epoch drain structurally — at the cost of everything else. **§0.4 took the other route to the same guarantee**: `distribution_rate` = 1/200 closes the drain at `target_claims_per_block = 10`, so a larger `target_claims_per_block` now buys nothing at all, and the specified 10 keeps its margin everywhere.
+Above the break-even target of about 30 the mechanism is simply under water: `reward_over_fee < 1` at the reference load (0.59 already at 50), the ramp cover dies past 100, and at 500 claims would need to be **83 % of every block**. When this sweep was first run at `distribution_rate = 1/100`, raising `target_claims_per_block` bought the one thing the specified set then lacked — `target_claims_per_block / distribution_rate` passed `MAX_BLOCK_TXS` between 10 and 50, closing the within-epoch drain structurally — at the cost of everything else. **§0.4 took the other route to the same guarantee**: `distribution_rate` = 1/200 closes the drain at `target_claims_per_block = 10`, so a larger `target_claims_per_block` now buys nothing at all, and the specified 10 keeps its margin everywhere.
 
 The two `1 / target_claims_per_block` effects run the other way and are small: arrival noise falls from 31.6 % to 4.5 % (§4.8's A2 case), and the retarget's overshoot from 0.50 % to 0.01 %.
 

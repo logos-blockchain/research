@@ -19,7 +19,9 @@ from empowering_sim.config import Config, load
 #   persistent (nobody retires):  13.9% / 15.9% / 14.6% at 65 / 130 / 260 arrivals an epoch
 #                                 -- essentially FLAT: everyone keeps mining, so the field
 #                                 grows with the arrival rate and dilution cancels the gain.
-#   retiring:                     24.9% / 49.4% / 74.1% at the same rates
+#   retiring:                     24.9% / 49.3% / 64.2% at the same rates (re-measured
+#                                 2026-09 on the 3-permutation basis; the fast rate read
+#                                 74.1% on the naive one -- block space now clips it)
 #                                 -- strongly RISING: retirement frees claim share for the
 #                                 next cohort, so faster arrival converts better.
 #
@@ -28,7 +30,7 @@ from empowering_sim.config import Config, load
 # retirement it also depends on how fast nodes turn up.
 EFFICIENCY_PERSISTENT = 0.15          # flat, and what the incentives actually deliver
 EFFICIENCY_RETIRING_SLOW = 0.25       # at half the reference arrival rate
-EFFICIENCY_RETIRING_FAST = 0.74       # at twice it
+EFFICIENCY_RETIRING_FAST = 0.64       # at twice it (0.74 before block space bound)
 
 # Retiring is NOT incentivised: a bonded node can provide service and go on mining, and the
 # marginal claim pays at any plausible token price (adversarial-analysis section 2). All

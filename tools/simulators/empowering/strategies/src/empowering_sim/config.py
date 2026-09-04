@@ -165,7 +165,10 @@ class Config:
         storage gas on the encoded size of the WHOLE signed transaction.
 
         The two markets rest at the same level, so a transaction's fee is its bytes and its
-        gas at that one level -- which is how `mantle:1858` gets 6,664 lepta for a claim.
+        gas at that one level -- which is how the pre-2026-09 Mantle text got 6,664 lepta
+        for a claim, and how the signed claim (434 bytes, 1,180 gas) now comes to 11,298.
+        The 6,664 anchor survives only in the PR 400 description, stale against the PR's own
+        proof-and-gas change.
         """
         return nbytes * self.storage_price + gas * self.price_resting
 

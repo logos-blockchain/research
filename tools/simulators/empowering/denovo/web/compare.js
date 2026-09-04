@@ -58,7 +58,7 @@ function renderTable() {
       "constant arrivals, this regime: "
       + (state.regime === "retiring" ? hr : hp).map((v) => fmt(v)).join(" / ")
       + " at 2 / 100 / 500 per epoch; the strategy report's Poisson study reads "
-      + "951 / 6,145 / 5,001 (persistent)",
+      + "949 / 6,132 / 4,997 (persistent)",
       { cur: "bad", dn: "ok", dns: "ok" });
   row(tb, "door closes at 100 arrivals/epoch",
       `epoch ${curDoor}`, "never", "never",

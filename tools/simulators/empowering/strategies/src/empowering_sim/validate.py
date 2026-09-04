@@ -40,12 +40,14 @@ def check(name: str, got, want, rel: float = 0.0, note: str = "") -> None:
 def gate_fees(cfg: Config) -> None:
     """The claim's own fee, and the average transaction's, from bytes and gas."""
     print("\nFees, at the resting price")
-    check("claim_fee", cfg.claim_fee, 6_664,
-          note="306 bytes and 646 gas, both at 7")
+    check("claim_fee", cfg.claim_fee, 11_298,
+          note="434 bytes and 1,180 gas, both at 7 -- the signed claim of 2026-09; the "
+               "unsigned one was 6,664")
     check("avg_tx_fee", cfg.avg_tx_fee, 5_579,
           note="an ordinary one-in one-out transfer")
-    check("fee_ratio", cfg.fee_ratio, 0.837, rel=1e-3,
-          note="a claim costs slightly more than the average transaction")
+    check("fee_ratio", cfg.fee_ratio, 0.4938, rel=1e-3,
+          note="a claim now costs about twice the average transaction; it cost 1.19 of "
+               "one before the ZkSignature and the 590 gas")
 
 
 def gate_pool_closed_forms(cfg: Config) -> None:
@@ -61,8 +63,9 @@ def gate_pool_closed_forms(cfg: Config) -> None:
     check("steady_pool", economics.steady_pool(cfg), 1_446_076_800_000.0, rel=1e-12,
           note="1,446 LGO, independent of the target")
     check("steady_reward", economics.steady_reward(cfg), 33_474.0, rel=1e-9)
-    check("reward_over_fee", economics.reward_over_fee(cfg), 5.023, rel=1e-3,
-          note="the margin the steady state settles at")
+    check("reward_over_fee", economics.reward_over_fee(cfg), 2.963, rel=1e-3,
+          note="the margin the steady state settles at -- 5.02 until the 2026-09 claim "
+               "signature and gas nearly doubled the claim's fee")
     check("steady_reward / claim_fee agrees",
           economics.steady_reward(cfg) / cfg.claim_fee,
           economics.reward_over_fee(cfg), rel=1e-9,
@@ -73,8 +76,9 @@ def gate_self_funding(cfg: Config) -> None:
     """The self-funding condition, reached from the pool's side and the miner's."""
     print("\nSelf-funding")
     need = economics.self_funding_txs(cfg)
-    check("txs for reward = fee", need, 119.4, rel=1e-2,
-          note="report section 4.3, at a tenth share")
+    check("txs for reward = fee", need, 202.5, rel=1e-2,
+          note="report section 4.3, at a tenth share -- 119.4 before the 2026-09 claim "
+               "fee; still comfortably inside the 600-tx reference block")
     check("the specified traffic clears it", cfg.txs_per_block > need, True)
 
 
@@ -114,27 +118,31 @@ def gate_controller_fixed_point(cfg: Config) -> None:
     check("blocks to recover a tenfold hashrate step", blocks, 22, rel=0.25,
           note="report section 3.6 predicts about 22")
 
-    # The specification's integer form has an ABSORBING ZERO, demonstrated rather than
-    # hidden behind a defensive clamp the spec does not have: from target 1 under a full
-    # block of claims the map returns 0, the win probability becomes target/p = 0, no claim
-    # can ever land again, and 0 maps to 0 forever. No attacker walks it down from a healthy
-    # chain -- each of the ~65 steps demands ~11x more hashrate than the last, so physics
-    # forbids that path. The defect is the missing fence, not the walk: any road to a tiny
-    # threshold (a mis-seeded genesis, a small deployment, an integer bug writing the target
-    # once) is permanent, because the clamp that guards the top (min(., p - 1)) has no
-    # counterpart at the bottom. This simulator mirrors the spec faithfully instead of
-    # quietly flooring at 1 and diverging. Reported upstream-ready in
-    # reports/empowering/UPSTREAM-PENDING.md section 4.
-    check("the spec's retarget has an absorbing zero, and this transcription preserves it",
-          (work.next_difficulty_target(1, cfg.max_block_txs, cfg),
+    # The specification's integer form HAD an absorbing zero -- from target 1 under a full
+    # block of claims the map returned 0, and 0 mapped to 0 forever -- and until 2026-09
+    # this transcription preserved it faithfully while UPSTREAM-PENDING section 4 reported
+    # it (the walk itself is physics-forbidden, ~11x more hashrate per step; the defect was
+    # the missing fence, not the walk). Upstream fenced it in PR 400: REWARD_TARGET_FLOOR =
+    # ceil(F/(P-F)) = 9, and deliberately not the max(1, .) our report suggested, because
+    # under floor division the empty-block easing returns t unchanged for every t < 9 -- a
+    # floor of one would have replaced the absorbing point with an absorbing band 1..8. The
+    # transcription carries the spec's floor, and these pins replace the old (0, 0, 0).
+    check("the retarget floor makes the bottom edge unreachable",
+          (work.reward_target_floor(cfg),
+           work.next_difficulty_target(1, cfg.max_block_txs, cfg),
            work.next_difficulty_target(0, 0, cfg),
            work.next_difficulty_target(0, cfg.max_block_txs, cfg)),
-          (0, 0, 0),
-          note="target 1 under a 1,024-claim block -> 0; and 0 -> 0 under any load, so the "
-               "state is absorbing. A floor of max(1, .) upstream would remove it")
-    # The same missing floor's gentler cousin: the map is asymmetric. One full block divides
-    # the threshold by ~11.14; recovery under silence eases at only 100/90 per block. Pinned
-    # because UPSTREAM-PENDING section 4 quotes both figures.
+          (9, 9, 9, 9),
+          note="ceil(F/(P-F)) = 9; every collapsed state is lifted straight to the floor")
+    check("and the floor is not itself absorbing: silence lifts off it",
+          (work.next_difficulty_target(9, 0, cfg),
+           work.next_difficulty_target(8, 0, cfg)),
+          (10, 9),
+          note="9 eases to 10 under an empty block, and the old band's 8 is lifted to the "
+               "floor first -- the two failure modes the constant is derived against")
+    # The map's asymmetry, which the floor does not touch away from the bottom edge: one
+    # full block divides the threshold by ~11.14; recovery under silence eases at only
+    # 100/90 per block. Pinned because UPSTREAM-PENDING section 4 quotes both figures.
     _t0 = 10 ** 60
     _down = work.next_difficulty_target(_t0, cfg.max_block_txs, cfg)
     _t, _blocks = _down, 0
@@ -143,8 +151,8 @@ def gate_controller_fixed_point(cfg: Config) -> None:
         _blocks += 1
     check("one overloaded block costs 23 quiet blocks to undo",
           (round(_t0 / _down, 2), _blocks), (11.14, 23),
-          note="down /11.14 in one block, up x10/9 per quiet block -- the asymmetry the "
-               "missing floor makes dangerous at the bottom edge")
+          note="down /11.14 in one block, up x10/9 per quiet block -- the asymmetry that "
+               "made the bottom edge dangerous before the spec's floor fenced it")
 
 
 # ------------------------------------------------------------------ the work process
@@ -181,10 +189,12 @@ def gate_poisson_superposition(cfg: Config) -> None:
 def gate_reference_cores(cfg: Config) -> None:
     """How many target cores the genesis reward target implies, at the target rate.
 
-    The first check that ties the engine to the work side rather than to the money side. The
-    report puts the genesis target at about three hours per solution on one core of the
-    deployment target, and about 3,700 such cores at the target claim rate. Both fall out of
-    the hashrate calibration, so agreeing with them tests that calibration end to end.
+    The first check that ties the engine to the work side rather than to the money side. On
+    the naive-candidate basis the report put the genesis target at about three hours per
+    solution and about 3,700 cores at the target claim rate; on the Mantle text's
+    three-permutation attempt (the config basis since 2026-09) the same target is about 1.28
+    hours and about 1,530 cores. Both fall out of the hashrate calibration, so agreeing with
+    them tests that calibration end to end.
     """
     print("\nWhat the genesis target costs, in target cores")
     if cfg.seconds_per_candidate_reward <= 0:
@@ -195,10 +205,13 @@ def gate_reference_cores(cfg: Config) -> None:
     cores = rate / per_core
     hours = FIELD_MODULUS / cfg.genesis_difficulty_target * cfg.seconds_per_candidate_reward / 3600
 
-    check("hours per solution on one target core", hours, 3.07, rel=0.05,
-          note="the report calls this about three hours")
-    check("target cores at the target claim rate", cores, 3_700, rel=0.05,
-          note="the report's figure for the genesis target")
+    check("hours per solution on one target core", hours, 1.276, rel=0.05,
+          note="about three hours for the naive miner; the spec's precomputed attempt "
+               "brings it to an hour and a quarter, and the spec still calls the seed "
+               "deliberately hard")
+    check("target cores at the target claim rate", cores, 1_531, rel=0.05,
+          note="the genesis target in whole cores of the deployment machine, on the "
+               "3-permutation basis (3,700 on the naive one)")
 
 
 def gate_trajectory(cfg: Config) -> None:
@@ -688,9 +701,11 @@ def gate_alternative_is_neutral(cfg: Config) -> None:
     margin = [alt.self_funding_margin(cfg, t) for t in targets]
     check("block space consumed does move", space[-1] / space[0] > 100, True,
           note=f"{space[0]:.1%} at target 1 to {space[-1]:.1%} at target 1024")
-    check("the steady-state margin falls below one past target 50",
-          alt.self_funding_margin(cfg, 60) < 1 < alt.self_funding_margin(cfg, 50), True,
-          note=f"{margin[1]:.2f} at target 10, {alt.self_funding_margin(cfg, 60):.2f} at 60")
+    check("the steady-state margin falls below one past target 29",
+          alt.self_funding_margin(cfg, 30) < 1 < alt.self_funding_margin(cfg, 29), True,
+          note=f"{margin[1]:.2f} at target 10, {alt.self_funding_margin(cfg, 30):.2f} at 30 "
+               f"-- the break-even target was 50 before the 2026-09 claim fee, which is "
+               f"why the old spec rationale could call 50 'break-even'; it no longer is")
 
     # An attacker inflating the target takes block space, not treasury.
     s = alt.sybil_exposure(cfg, honest_joiners=4.0, fake_joiners=100.0,
@@ -945,8 +960,10 @@ def gate_inscription(cfg: Config) -> None:
     check("a GiB of permanent storage at the floor, in LGO",
           round(2 ** 30 * 1 / cfg.base_units_per_lgo, 4), 1.0737,
           note="the figure the units document computes for itself")
-    check("the claim fee reproduces the specification's own figure", cfg.claim_fee, 6_664,
-          note="mantle:1858 -- (306 + 646) * 7")
+    check("the claim fee follows the specification's arithmetic", cfg.claim_fee, 11_298,
+          note="(434 + 1,180) * 7 since the 2026-09 claim signature and gas; the Mantle "
+               "text stated 6,664 for the unsigned claim, a figure now only in the PR 400 "
+               "description and stale against the PR's own change")
 
     # The ceiling on the inscription, and the sweep the study asked for.
     ceiling = ins.max_inscription_bytes(cfg)
@@ -967,7 +984,8 @@ def gate_inscription(cfg: Config) -> None:
     opening = economics.reward_per_claim(cfg.genesis_pool, cfg)
     check("a genesis claim clears its own fee", opening > cfg.claim_fee, True,
           note=f"{cfg.to_lgo(opening):.4f} LGO against {cfg.to_lgo(cfg.claim_fee):.6f}")
-    check("by a margin of", round(opening / cfg.claim_fee), 173_681)
+    check("by a margin of", round(opening / cfg.claim_fee), 102_444,
+          note="173,681x before the 2026-09 claim fee")
 
 
 def gate_tx_sizes(cfg: Config) -> None:
@@ -984,11 +1002,15 @@ def gate_tx_sizes(cfg: Config) -> None:
     s = tx.sizes()
     check("the derivation reproduces transfer_tx_bytes", s.transfer, cfg.transfer_tx_bytes)
     check("and claim_tx_bytes", s.claim, cfg.claim_tx_bytes)
-    check("the claim operation adds", s.difference, 99, note="96 payload + opcode + framing")
+    check("the claim operation adds", s.difference, 227,
+          note="96 payload + 128 ZkSignature + opcode + framing; 99 before the claim "
+               "carried a proof")
 
-    # The framing is assumed, so the check that matters is the specification's own arithmetic.
-    check("and only this framing reproduces the specification's stated claim fee",
-          (s.claim + cfg.claim_tx_gas) * cfg.price_resting, 6_664, note="mantle:1858")
+    # The framing is assumed; it is the one that reproduced the specification's own 6,664
+    # while the spec stated a figure, and it is held fixed across the 2026-09 proof change.
+    check("and the framing carried across the proof change gives the derived fee",
+          (s.claim + cfg.claim_tx_gas) * cfg.price_resting, 11_298,
+          note="the spec no longer states a claim fee; 6,664 was its pre-signature figure")
     u = tx.unframed()
     check("the strict reading of the encoding document does not",
           (u.claim + cfg.claim_tx_gas) * cfg.price_resting == 6_664, False,
@@ -1017,12 +1039,14 @@ def gate_report_headlines(cfg: Config) -> None:
     med = {s: float(np.median(tot[pop.strategy == s.value])) / cfg.base_units_per_lgo
            for s in st.Strategy}
     base = med[st.Strategy.STAKER]
+    # Re-pinned 2026-09: the claim signature's fee and the 3-permutation hashrate basis
+    # move the medians by 0.1-1.5%.
     for strat, want_lgo, want_ratio in (
-            (st.Strategy.MINER, 50_151, 0.31),
-            (st.Strategy.MINER_STAKER, 52_478, 0.32),
-            (st.Strategy.STAKER, 163_851, 1.00),
-            (st.Strategy.MINER_STAKER_SERVICE, 807_612, 4.93),
-            (st.Strategy.STAKER_SERVICE, 930_422, 5.68)):
+            (st.Strategy.MINER, 50_090, 0.30),
+            (st.Strategy.MINER_STAKER, 52_367, 0.31),
+            (st.Strategy.STAKER, 166_419, 1.00),
+            (st.Strategy.MINER_STAKER_SERVICE, 808_883, 4.86),
+            (st.Strategy.STAKER_SERVICE, 931_347, 5.60)):
         check(f"section 3 median, {strat.name.lower()}", round(med[strat]), want_lgo,
               note=f"{med[strat] / base:.2f}x a plain stakeholder, published {want_ratio}x")
 
@@ -1058,11 +1082,14 @@ def gate_report_headlines(cfg: Config) -> None:
                f"against 0.09 under the pinned estimator")
     _persist = el.run(cfg, el.ElevationConfig(miners_per_epoch=100, epochs=400,
                                               retire_on_bond=False))
-    check("and the elevation counts are pure pool arithmetic, untouched by the fix",
-          _persist.elevated, 5_682)
+    check("and the elevation counts are nearly pure pool arithmetic",
+          _persist.elevated, 5_690,
+          note="5,682 before the 2026-09 hashrate-floor derivation -- the count depends "
+               "faintly (0.1%) on the draw's floor through claim attribution, so 'pure "
+               "pool arithmetic' was an overstatement by exactly that much")
     # The adoption hump under CONSTANT arrivals, pinned in both regimes at 400 epochs --
     # the companion protocol to section 7's Poisson study (arrivals.run_dynamic, 600 epochs,
-    # 951/6,145/5,001 persistent, gated by report_numbers). A 2026-08-31 note here wrongly
+    # 949/6,132/4,997 persistent, gated by report_numbers). A 2026-08-31 note here wrongly
     # called the section-7 triple unreproducible; it reproduces exactly. Both protocols are
     # quoted, labelled, in SUMMARY 3.2 and design-comparison 2.
     _hump = {(rate, ret): el.run(cfg, el.ElevationConfig(miners_per_epoch=rate, epochs=400,
@@ -1070,12 +1097,12 @@ def gate_report_headlines(cfg: Config) -> None:
              for rate in (2, 500) for ret in (False, True)}
     check("the adoption hump, persistent: slow starves, fast dilutes",
           (_hump[(2, False)], _persist.elevated, _hump[(500, False)]),
-          (707, 5_682, 4_646),
+          (707, 5_690, 4_663),
           note="2 / 100 / 500 constant arrivals an epoch -- worst onboards an eighth of "
-               "best; section 7's Poisson protocol reads 951/6,145/5,001 for the same hump")
+               "best; section 7's Poisson protocol reads 949/6,132/4,997 for the same hump")
     check("and retiring: same shape, steeper",
-          (_hump[(2, True)], _hump[(500, True)]), (800, 14_398),
-          note="800 and 14,398 against the 25,934 peak at 100/epoch -- a thirty-second and "
+          (_hump[(2, True)], _hump[(500, True)]), (800, 14_392),
+          note="800 and 14,392 against the 25,935 peak at 100/epoch -- a thirty-second and "
                "a half; the hump is not a persistent-regime artefact, it is the rationing")
     # The point of no return: the first epoch where the waiting queue exceeds every bond the
     # remaining pool could fund even perfectly. Quoted as "212" across the comparison
@@ -1123,7 +1150,7 @@ def gate_targets(cfg: Config) -> None:
     from . import elevation as _el                            # noqa: PLC0415
 
     _ceiling = cfg.genesis_pool / cfg.min_stake
-    for _retire, _want in ((False, 5_682), (True, 25_934)):
+    for _retire, _want in ((False, 5_690), (True, 25_935)):
         _r = _el.run(cfg, _el.ElevationConfig(miners_per_epoch=100, epochs=400,
                                               retire_on_bond=_retire))
         check(f"elevated over 400 epochs, bonded miners "
@@ -1135,7 +1162,9 @@ def gate_targets(cfg: Config) -> None:
           note="the ceiling is 3,929 bytes at the resting prices")
     a = tg.affordable(cfg)
     check("the specification's own claim-fee ceiling, in LGO",
-          round(a["spec_ceiling_lgo"], 3), 1.157, note="mantle:1858")
+          round(a["spec_ceiling_lgo"], 3), 1.157,
+          note="the 1.157e-10-of-supply bound, stated in the PR 400 description since the "
+               "2026-09 rationale move")
     check("the claim fee sits far inside it", a["affordable"], True,
           note=f"{a['ratio']:.2e} of the ceiling")
 
@@ -1160,7 +1189,8 @@ def gate_strategies(cfg: Config) -> None:
           all(np.array_equal(ss[0], v) for v in ss[1:]), True)
     check("each endowed group holds the configured share of supply",
           cfg.to_lgo(float(ss[0].sum())), scfg.tge_stake_share * cfg.launch_supply, rel=1e-6)
-    check("no miner is slower than a Raspberry Pi 5", float(hs[0].min()) >= 24_146.0, True,
+    check("no miner is slower than a Raspberry Pi 5 board",
+          float(hs[0].min()) >= cfg.reference_cores / cfg.seconds_per_candidate_reward, True,
           note=f"minimum {hs[0].min():,.0f} candidates/s")
 
     # Isolation: disabling a group must not move anyone else's draw.
@@ -1279,12 +1309,12 @@ def gate_arrivals(cfg: Config) -> None:
     slow = ar.run_dynamic(cfg, ar.Arrivals(amplitude=5), epochs=600)
     fast = ar.run_dynamic(cfg, ar.Arrivals(amplitude=50), epochs=600)
     check("section 7, fifty arrivals an epoch: seated", fast.absorption.seated, 30_330)
-    check("                                    elevated", fast.absorption.elevated, 5_762)
+    check("                                    elevated", fast.absorption.elevated, 5_767)
     check("                                    the door closes at",
           fast.absorption.door_epoch, 83)
     check("                                    the point of no return",
           fast.absorption.no_return_epoch, 304)
-    check("section 7, five arrivals an epoch: elevated", slow.absorption.elevated, 1_748)
+    check("section 7, five arrivals an epoch: elevated", slow.absorption.elevated, 1_747)
 
     # The invariance, restated under a stochastic process: a tenfold difference in arrivals
     # and the drain curves agree to three decimal places.

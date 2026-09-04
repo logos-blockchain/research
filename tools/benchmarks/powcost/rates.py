@@ -32,15 +32,24 @@ class Rate:
 
 # (puzzle key, bucket key) -> Rate. Absent means absent; nothing is imputed at import time.
 TABLE: dict[tuple[str, str], Rate] = {
+    # BOTH reward rows measure the NAIVE candidate: full ticket evaluation with our
+    # implementation's key derivation, about 7.26 permutation-equivalents on the Pi 5. The
+    # Mantle text (2026-09) prices the attempt an optimising miner actually pays at THREE
+    # permutations (sponge prefix precomputed through epoch_nonce and block_hash), so the
+    # simulator configs carry 3 x the measured permutation instead of these figures. The
+    # measurements stay as taken -- they are the naive upper bound, and the missing
+    # benchmark is the precomputed-prefix miner on both machines.
     ("poseidon2_reward", "rpi5"): Rate(
         165.658e-6, 4, True,
         "poseidon2, six runs on the target board, spreads under 0.1%, no throttling",
-        "The calibration basis: one core of the deployment target."),
+        "The calibration basis: one core of the deployment target. Naive candidate; the "
+        "spec's 3-permutation attempt is 68.439e-6 on this core's measured permutation."),
     ("poseidon2_reward", "apple"): Rate(
         26.6e-6, 10, True,
         "poseidon2 on an M4 Pro performance core, release build with link-time "
         "optimisation",
-        "Performance cores only; a miner would not schedule onto the efficiency cores."),
+        "Performance cores only; a miner would not schedule onto the efficiency cores. "
+        "Naive candidate, same caveat as the rpi5 row."),
 
     ("poseidon2_blend", "rpi5"): Rate(
         94.158e-6, 4, True,
@@ -68,8 +77,11 @@ TABLE: dict[tuple[str, str], Rate] = {
     #   Poseidon2 over BN254 at the specified parameters (rate 1, capacity 3, so state width
     #   t = 4; 8 external and 56 internal rounds; S-box x^5) costs 8*4 + 56 = 88 S-boxes at
     #   three multiplications each, plus 4 constant-multiplications per internal round for the
-    #   diagonal linear layer: about 488 field multiplications per permutation. A reward
-    #   candidate is seven permutations, so about 3,400 BN254 multiplications.
+    #   diagonal linear layer: about 488 field multiplications per permutation. This estimate
+    #   was made for the naive seven-permutation candidate, about 3,400 BN254
+    #   multiplications; under the spec's three-permutation attempt (2026-09) both this row
+    #   and the CPU rows scale by the same factor, so every cross-class ratio below is
+    #   unchanged.
     #
     #   Published GPU throughput for BN254 is the input that matters, and it is poor: client
     #   GPUs fall BELOW 1 G BN254-ops/s, against >100 Gops/s for small fields such as M31,

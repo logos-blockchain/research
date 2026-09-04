@@ -39,11 +39,15 @@ from dataclasses import dataclass
 
 from empowering_sim.config import Config
 
-# Watt-hours per candidate for a Raspberry Pi 5 board, back-derived from the estimator's
-# cost per candidate at 20 cents a kilowatt-hour: 2.025e-11 USD / (0.20 USD/kWh) = 1.0125e-10
-# kWh = 1.0125e-7 Wh. Kept as an explicit constant so the electricity price can be a free
-# parameter of the page rather than baked into the cost.
-PI5_WH_PER_CANDIDATE = 1.0125e-7
+# Watt-hours per candidate for a Raspberry Pi 5 board. The physical quantity is the board's
+# draw -- about 2.2 W a core under load, back-derived from the estimator's 2.025e-11 USD per
+# candidate at 20 cents a kilowatt-hour when a candidate took 165.658 microseconds. A
+# candidate is now the 3-permutation attempt the Mantle text prices (68.439e-6 s), so the
+# same wattage spreads over fewer joules per candidate: 2.2004 W * 68.439e-6 s / 3600 =
+# 4.183e-8 Wh. Energy per second of mining -- what every retirement decision actually
+# compares -- is unchanged by construction. Kept as an explicit constant so the electricity
+# price can be a free parameter of the page rather than baked into the cost.
+PI5_WH_PER_CANDIDATE = 4.183e-8
 REFERENCE_ELECTRICITY_USD_PER_KWH = 0.20
 
 

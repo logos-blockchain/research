@@ -85,7 +85,7 @@ def build(p: Params) -> list[Claim]:
               p.claim_tx_bytes, 0),
         Claim("4.3", r"\*\*encoded `SignedMantleTx`\*\* \| \*\*\d+ B\*\* \| \*\*(" + NUM + r")\*\*",
               p.claim_tx_gas, 0),
-        Claim("4.3", r"`306 \* 7 \+ 646 \* 7 = (" + NUM + r")` price units",
+        Claim("4.3", r"`434 \* 7 \+ 1,180 \* 7 = (" + NUM + r")` price units",
               p.phi * p.base_units_per_lgo, 0),
         Claim("4.3", r"or (" + NUM + r") at the bare floor",
               p.claim_fee(p.price_floor) * p.base_units_per_lgo, 0),
@@ -127,7 +127,7 @@ def build(p: Params) -> list[Claim]:
               100 * p.T / p.n_tx_ref, 5e-3),
         Claim("4.7.2", r"a \*\*(" + NUM + r")× margin\*\* below the ceiling",
               core.sigma_over_phi(p), 5e-3),
-        Claim("4.7.3", r"break-even traffic is 597 tx/block against a reference of (" + NUM + r")",
+        Claim("4.7.3", r"break-even traffic is 1,013 tx/block against a reference of (" + NUM + r")",
               p.n_tx_ref, 0),
         Claim("4.7.4", r"\*\*(" + NUM + r")× the 5-year minimum\*\*", p.R0 / ramp5, 1e-2),
         Claim("4.7.6", r"admissible band is \*\*`pow_share in \[(" + NUM + r") ?%",
@@ -156,7 +156,7 @@ def build(p: Params) -> list[Claim]:
 
         # --- section 4.9: the fee-load axis ---
         Claim("4.9", r"\| \*\*100\*\* \| \*\*(" + NUM + r")\*\* \|", 1.0, 1e-9),
-        Claim("4.9", r"\| \*\*502\*\* \| \*\*(" + NUM + r")\*\* \|",
+        Claim("4.9", r"\| \*\*296\*\* \| \*\*(" + NUM + r")\*\* \|",
               _core_load_ratio(p), 5e-3),
         Claim("4.9", r"break-even of 100\*\* — the same (" + NUM + r")× margin",
               _core_load_ratio(p), 5e-3, note="optional: phrasing"),
@@ -182,7 +182,10 @@ def build(p: Params) -> list[Claim]:
               core.sigma_over_phi(p), 5e-3),
         Claim("4.10.1", r"\| 50 \| (" + NUM + r") \|", _at_T(p, 50, "ratio"), 5e-3),
         Claim("4.10.1", r"\| 500 \| (" + NUM + r") \|", _at_T(p, 500, "ratio"), 5e-2),
-        Claim("4.10.1", r"it goes to \*\*(" + NUM + r")×\*\*", _at_T(p, 50, "edge"), 2e-2),
+        # The T = 50 edge is no longer finite -- that target is under water since the
+        # 2026-09 claim fee -- so the pinned quantity is the break-even boundary instead.
+        Claim("4.10.1", r"`target_claims_per_block = 29` still clears at (" + NUM + r")",
+              _at_T(p, 29, "ratio"), 5e-3),
         Claim("4.10.1", r"claims would need to be \*\*(" + NUM + r") % of every block\*\*",
               100 * 500 / p.n_tx_ref, 1e-2),
         Claim("4.10.1", r"noise falls from (" + NUM + r") % to",
@@ -353,8 +356,14 @@ def run(config: str, report: Path) -> int:
             continue
         checked += 1
         got = _parse(found[0])
-        ok = (got == c.expected if c.rel == 0
-              else abs(got - c.expected) <= c.rel * max(abs(c.expected), 1e-12))
+        # A non-finite model value can never validate a quoted number: abs(inf - x) <= inf
+        # passes for ANY x, which is how a claim silently kept passing after its model went
+        # to infinity (the T = 50 builder edge, once the 2026-09 claim fee pushed that
+        # target under water). The claim must be restated, not waved through.
+        import math as _math
+        ok = (_math.isfinite(c.expected)
+              and (got == c.expected if c.rel == 0
+                   else abs(got - c.expected) <= c.rel * max(abs(c.expected), 1e-12)))
         if not ok:
             failures.append((c, got))
         flag = "PASS" if ok else "FAIL"

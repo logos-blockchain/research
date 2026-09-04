@@ -126,15 +126,19 @@ def _pareto(rng: np.random.Generator, n: int, shape: float, minimum: float) -> n
 
 
 def build_population(cfg: Config, scfg: StrategyConfig,
-                     pi5_candidates_per_second: float = 24_146.0,
+                     pi5_candidates_per_second: float | None = None,
                      capacity_override: int | None = None,
                      seat_initial: bool = True) -> Population:
     """Seat every enabled group, with the shared vectors drawn once and reused.
 
-    The hashrate minimum is a Raspberry Pi 5's measured rate -- four cores at the measured
-    165.658 microseconds per candidate -- because the design targets that board and a
-    distribution that can fall below it would model machines the on-ramp is not for.
+    The hashrate minimum is a Raspberry Pi 5 board -- its cores at the config's
+    seconds-per-candidate, which since 2026-09 is the Mantle text's three-permutation
+    attempt (58,446 a second; the measured naive candidate gave 24,146, the old hardcoded
+    default here) -- because the design targets that board and a distribution that can fall
+    below it would model machines the on-ramp is not for.
     """
+    if pi5_candidates_per_second is None:
+        pi5_candidates_per_second = cfg.reference_cores / cfg.seconds_per_candidate_reward
     active = scfg.active()
     # Draw enough of each shared vector to cover every node that will EVER be seated, so an
     # arrival at epoch 300 gets the same draw it would have got at epoch 0.

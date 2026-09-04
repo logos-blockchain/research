@@ -55,7 +55,10 @@ class ElevationConfig:
 
     endowed_stake_lgo: float = 5_000.0    # what an endowed arrival brings, above the bond
     hashrate_pareto_shape: float = 1.16
-    pi5_rate: float = 24_146.0            # the floor of the hashrate draw
+    pi5_rate: float = 0.0                 # floor of the hashrate draw; 0 -> derived from
+                                          # the config's candidate cost (a whole board), so
+                                          # the basis tracks the spec's 3-permutation
+                                          # attempt instead of the stale 24,146 hardcode
 
     txs_per_block: int = 600
     seed: int = 40_001
@@ -144,7 +147,8 @@ def run(cfg: Config, ecfg: ElevationConfig) -> ElevationResult:
     rng = np.random.default_rng(ecfg.seed)
 
     n_m, n_e = ecfg.total_miners(), ecfg.total_endowed()
-    hashrate = ecfg.pi5_rate * (1.0 + rng.pareto(ecfg.hashrate_pareto_shape, size=max(1, n_m)))
+    floor = ecfg.pi5_rate or (cfg.reference_cores / cfg.seconds_per_candidate_reward)
+    hashrate = floor * (1.0 + rng.pareto(ecfg.hashrate_pareto_shape, size=max(1, n_m)))
     m_balance = np.zeros(n_m, dtype=np.int64)
     m_seated = np.full(n_m, NOT_SET, dtype=np.int32)
     m_bond = np.full(n_m, NOT_SET, dtype=np.int32)

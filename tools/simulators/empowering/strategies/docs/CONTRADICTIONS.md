@@ -226,7 +226,10 @@ callout without applying the rederivation** (the block was rewritten around int6
 window renamed to `pooled_fees_window`, but the recycled term still reads `last_pooled_fee` —
 verified against merged master). So the specification's real-valued rule and its
 consensus-level reference implementation disagree *within the same merged document*, now with
-no flag between them. Reported upstream-ready in `reports/empowering/UPSTREAM-PENDING.md` §3.
+no flag between them. Reported upstream as issue #433 (`UPSTREAM-PENDING.md` §3), still open.
+**2026-09-04 check:** PR 400's 1.2.0 revision of `block-rewards.md` (the fourth-stock edit)
+touched the surrounding text and the contradiction survived it — `last_pooled_fee` is in the
+reference on both master and the PR head.
 
 **Resolved: the windowed rule**, as the stated intent, with the PR's own prescription (reuse
 the window sum already maintained for the pooling-rate KPI, divided by T). `emission.py`
@@ -293,7 +296,7 @@ a contradiction — drafted, with the other pending upstream items, in
 | 4.10 | `BN` | no |
 | 4.11 | use the stated modulus | no |
 | 4.12 | windowed recycled term, per PR 375's stated intent | no — flat fees and `A_t = 1` make the rules coincide here; the divergence is gated |
-| 4.13 | **DECIDED: carve-out from the pooled flow** | no — same value, new accounting; one upstream wording ask remains |
+| 4.13 | **DECIDED: carve-out from the pooled flow** | no — same value, new accounting; the wording ask LANDED 2026-09 (PR 400 states `R_block` net of the diverted share and counts the PoW pool as a fourth conserved stock, choosing divert-at-source over first-outflow — per-block identical, see UPSTREAM-PENDING §2). The "in full" sentences on master remain uncorrected |
 
 **Both items the documents could not supply are now decided as parameters:** `D` seeded at
 10^10 per the genesis rule, and `min_stake` at 1,000 LGO per the static minimum stake analysis.

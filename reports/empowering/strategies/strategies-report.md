@@ -68,7 +68,7 @@ Keeping those two places straight is most of understanding the mechanism.
 | `reward_per_claim = distribution_rate * pool / (target_claims_per_block * blocks_per_epoch)` |
 | --- |
 
-At `distribution_rate = 1/200` and `target_claims_per_block = 10`, that is 216,000 claims an epoch sharing a two-hundredth of the pool. The pool is topped up from the fee flow — under lips PR 375's pooling substrate, a carve-out from the pending rewards pool that all fees now route into (its first outflow; decided 2026-08-24) — `epoch_refill = pow_share * blocks_per_epoch * txs_per_block * avg_tx_fee`, with `pow_share = 10%`. Claiming is not free: the claim transaction pays its own fee, so a miner keeps `reward_per_claim - claim_fee`.
+At `distribution_rate = 1/200` and `target_claims_per_block = 10`, that is 216,000 claims an epoch sharing a two-hundredth of the pool. The pool is topped up from the fee flow — under lips PR 375's pooling substrate, a carve-out of the fees that would otherwise reach the pending rewards pool (decided here 2026-08-24 as the pool's first outflow; the 2026-09 spec revision states it as a diversion *before* the pool, which is per-block identical) — `epoch_refill = pow_share * blocks_per_epoch * txs_per_block * avg_tx_fee`, with `pow_share = 10%`. Claiming is not free: the claim transaction pays its own fee, so a miner keeps `reward_per_claim - claim_fee`.
 
 **Leader rewards — paid from the block-reward release.** Each block's leader is drawn by lottery, weighted by the stake it holds. There is **no minimum**: a note of any size can win, provided it has been held long enough to have *aged* into the stake snapshot — two epochs, fifteen days. Aging is the only gate, and it matters in §5.
 
@@ -137,15 +137,15 @@ A word on why the comparison is not straightforward. Groups 1 to 3 arrive with h
 
 | strategy | median node, LGO | against a plain stakeholder |
 | --- | --- | --- |
-| miner | 50,151 | 0.31× |
-| miner and staker | 52,478 | 0.32× |
-| stakeholder | 163,851 | 1.00× |
-| miner, staker and service provider | 807,612 | **4.93×** |
-| stakeholder and service provider | 930,422 | **5.68×** |
+| miner | 50,090 | 0.30× |
+| miner and staker | 52,367 | 0.31× |
+| stakeholder | 166,419 | 1.00× |
+| miner, staker and service provider | 808,883 | **4.86×** |
+| stakeholder and service provider | 931,347 | **5.60×** |
 
 **Service provision dominates by a factor of five and a half**, and structurally rather than because a parameter was set badly: its reward carries no stake term, so the whole Blend pool divides flat among however many providers exist — and that pool is 60% of everything the protocol distributes.
 
-**Staking on top of mining is worth five percent.** A miner who stakes everything it mines earns 52,478 against a pure miner's 50,151. What a miner accumulates in two and a half years is simply small against 5% of supply, so its slice of the lottery is small too.
+**Staking on top of mining is worth four and a half percent.** A miner who stakes everything it mines earns 52,367 against a pure miner's 50,090. What a miner accumulates in two and a half years is simply small against 5% of supply, so its slice of the lottery is small too.
 
 **Mining is the weakest of the five.** A miner earns less than a third of what a stakeholder earns, and it is the only strategy that pays for its income in electricity.
 
@@ -155,15 +155,15 @@ Every table above is the persistent flavour. Retiring changes one number in it, 
 
 | strategy | median total | of which proof of work | share |
 | --- | --- | --- | --- |
-| miner | 50,151 | 50,151 | 100% |
-| miner and staker | 52,478 | 49,853 | 95% |
-| **miner, staker and service** | **807,612** | **49,938** | **6.2%** |
-| stakeholder | 163,851 | — | — |
-| stakeholder and service | 930,422 | — | — |
+| miner | 50,090 | 50,090 | 100% |
+| miner and staker | 52,367 | 50,115 | 96% |
+| **miner, staker and service** | **808,883** | **49,988** | **6.2%** |
+| stakeholder | 166,419 | — | — |
+| stakeholder and service | 931,347 | — | — |
 
-A group-3 node that stopped mining on the day it bonded would give up **6.2% of its income**, moving it from 4.93× a plain stakeholder to about 4.62×. The ordering does not change and no conclusion in this section moves.
+A group-3 node that stopped mining on the day it bonded would give up **6.2% of its income**, moving it from 4.86× a plain stakeholder to about 4.56×. The ordering does not change and no conclusion in this section moves.
 
-**But §6 measures the same behaviour as a 4.5-fold difference in how many nodes ever get in at all** — 5,682 against 25,934. Both numbers are right, and together they are the finding: **retiring costs the individual 6.2% and buys the network four and a half times more onboarding.** That is a collective-action problem in its exact classical form, and it explains why the optimistic figure should not be planned around. Nothing in the mechanism converts the collective gain into a private one, so the rational choice is to keep mining, and the persistent flavour is the one to expect.
+**But §6 measures the same behaviour as a 4.5-fold difference in how many nodes ever get in at all** — 5,690 against 25,935. Both numbers are right, and together they are the finding: **retiring costs the individual 6.2% and buys the network four and a half times more onboarding.** That is a collective-action problem in its exact classical form, and it explains why the optimistic figure should not be planned around. Nothing in the mechanism converts the collective gain into a private one, so the rational choice is to keep mining, and the persistent flavour is the one to expect.
 
 ---
 
@@ -236,8 +236,8 @@ That coincidence is the finding rather than a failure to tell the two quantities
 
 | bonded miners | elevated | of the 50,000 ceiling | spend stranded below the bond |
 | --- | --- | --- | --- |
-| keep mining | 5,682 | **11.4%** | 87% |
-| retire | 25,934 | **51.9%** | 40% |
+| keep mining | 5,690 | **11.4%** | 87% |
+| retire | 25,935 | **51.9%** | 40% |
 
 Out of the *same* 43.3M LGO. A bonded miner that keeps mining takes claims from miners still trying to cross. **Retiring bonded miners is worth four and a half times as many elevations**, and nothing in the protocol makes them stop.
 
@@ -300,14 +300,14 @@ Ask the question a prospective joiner would ask — *if I turn up now, do I ever
 
 | arrivals an epoch | seated | elevated | absorbed, cohorts with runway | door closes | no return | median wait |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2 | 1,205 | 951 | 94% | epoch 479 | — | 10 |
-| 5 | 2,952 | 1,748 | 74% | epoch 351 | — | 17 |
-| 10 | 6,118 | 3,015 | 60% | epoch 270 | 569 | 31 |
-| 25 | 15,240 | 4,743 | 38% | epoch 153 | 412 | 39 |
-| 50 | 30,330 | 5,762 | 24% | epoch 83 | 304 | 42 |
-| 100 | 60,480 | 6,145 | 13% | epoch 34 | 212 | 45 |
-| 250 | 150,904 | 5,658 | 5% | epoch 6 | 119 | 51 |
-| 500 | 301,351 | 5,001 | 2% | **never** | 72 | 54 |
+| 2 | 1,205 | 949 | 94% | epoch 479 | — | 10 |
+| 5 | 2,952 | 1,747 | 74% | epoch 351 | — | 16 |
+| 10 | 6,118 | 3,015 | 60% | epoch 271 | 569 | 31 |
+| 25 | 15,240 | 4,732 | 38% | epoch 153 | 412 | 39 |
+| 50 | 30,330 | 5,767 | 24% | epoch 83 | 304 | 42 |
+| 100 | 60,480 | 6,132 | 13% | epoch 34 | 212 | 44 |
+| 250 | 150,904 | 5,632 | 5% | epoch 6 | 119 | 51 |
+| 500 | 301,351 | 4,997 | 2% | **never** | 72 | 54 |
 
 *Door closes* is the last arrival epoch whose cohort is more likely than not to reach the bond eventually. *Absorbed* is measured only over cohorts seated before epoch 480, which is why it is not `elevated / seated` — the last 120 cohorts are excluded rather than counted as failures. A dash under *no return* means it did not happen inside the horizon. *Median wait* is in epochs, over the miners that made it.
 
@@ -321,35 +321,35 @@ The median wait is the number that does *not* move: ten epochs at the slowest ar
 
 ![what the amplitude buys, and what the timing buys](figures/absorption_yield.png)
 
-Elevation against the arrival rate is not monotone. It rises from 951 at two arrivals an epoch to about six thousand near a hundred, then falls back to 5,001 at five hundred — a hump, not a plateau and not a curve that keeps climbing. Below the hump there is nobody to elevate; above it the same fixed payout spreads across a field growing faster than it can serve, and most of it strands in balances that never reach the bond.
+Elevation against the arrival rate is not monotone. It rises from 949 at two arrivals an epoch to about six thousand near a hundred, then falls back to 4,997 at five hundred — a hump, not a plateau and not a curve that keeps climbing. Below the hump there is nobody to elevate; above it the same fixed payout spreads across a field growing faster than it can serve, and most of it strands in balances that never reach the bond.
 
-So §6's "the arrival rate barely matters" holds over a band and fails outside it. Between twenty-five and two hundred and fifty an epoch — a tenfold range, and a population from 15,000 to 151,000 — the count stays between 4,743 and 6,145. Outside that band it falls away in both directions, and across the whole sweep **the worst arrival rate elevates a sixth of what the best one does.**
+So §6's "the arrival rate barely matters" holds over a band and fails outside it. Between twenty-five and two hundred and fifty an epoch — a tenfold range, and a population from 15,000 to 151,000 — the count stays between 4,732 and 6,132. Outside that band it falls away in both directions, and across the whole sweep **the worst arrival rate elevates a sixth of what the best one does.**
 
 Retirement changes the size of the hump, and changes what it means:
 
 | arrivals an epoch | elevated, bonded miners keep mining | elevated, bonded miners retire | of arrivals absorbed, retiring |
 | --- | --- | --- | --- |
-| 2 | 951 | 1,205 | **100%** |
-| 5 | 1,748 | 2,950 | **100%** |
+| 2 | 949 | 1,205 | **100%** |
+| 5 | 1,747 | 2,950 | **100%** |
 | 10 | 3,015 | 6,089 | **100%** |
-| 25 | 4,743 | 13,270 | **100%** |
-| 50 | 5,762 | 20,664 | 84% |
-| 100 | 6,145 | 28,023 | 58% |
-| 250 | 5,658 | 25,059 | 21% |
-| 500 | 5,001 | 15,111 | 6% |
+| 25 | 4,732 | 13,275 | **100%** |
+| 50 | 5,767 | 20,679 | 84% |
+| 100 | 6,132 | 28,023 | 58% |
+| 250 | 5,632 | 25,049 | 21% |
+| 500 | 4,997 | 15,083 | 6% |
 
-The peak becomes **28,023 at a hundred an epoch**, 56% of the 50,000 ceiling, against 15,111 at five hundred. But the column that matters is the last one. **If bonded miners stop mining, the mechanism absorbs every arrival up to twenty-five an epoch** — not most of them, all of them, across twelve years and fifteen thousand joiners. §6 measured retirement as a 4.5× multiplier on a count. Under a process it is the difference between an on-ramp that turns most people away and one that turns nobody away until adoption passes twenty-five joiners an epoch.
+The peak becomes **28,023 at a hundred an epoch**, 56% of the 50,000 ceiling, against 15,083 at five hundred. But the column that matters is the last one. **If bonded miners stop mining, the mechanism absorbs every arrival up to twenty-five an epoch** — not most of them, all of them, across twelve years and fifteen thousand joiners. §6 measured retirement as a 4.5× multiplier on a count. Under a process it is the difference between an on-ramp that turns most people away and one that turns nobody away until adoption passes twenty-five joiners an epoch.
 
 The right panel holds the population fixed at thirty thousand and moves only the timing. Because timing differences are small enough to be confused with the seed, the table below is the mean of three seeds rather than the single realisation the figure draws:
 
 | arrival timing | elevated, mean of three seeds | against flat |
 | --- | --- | --- |
-| yearly wave | 6,364 | 1.02× |
-| flat | 6,273 | 1.00× |
-| one early burst | 5,792 | 0.92× |
-| adoption ramp | 3,888 | **0.62×** |
+| yearly wave | 6,359 | 1.01× |
+| flat | 6,277 | 1.00× |
+| one early burst | 5,794 | 0.92× |
+| adoption ramp | 3,894 | **0.62×** |
 
-Timing is worth **1.64× between the best and the worst** on the same population, which makes it a first-order term rather than a detail. It does not, though, run in the direction the pool's decaying price would suggest, and that is the section's one genuinely counter-intuitive result. **The early burst is not better than flat arrivals — it is slightly worse**, in all three seeds. Thirty thousand miners arriving inside a sixty-epoch window all compete for that window's payout, and the pool can fund about a hundred and sixty bonds an epoch there whatever the demand, so the crowd simply divides one epoch's money more ways. What loses decisively is arriving *late*: the adoption ramp seats most of its thirty thousand after epoch 200, by which point 63% of the pool is already gone, and it elevates **38% fewer** of them, consistently across seeds.
+Timing is worth **1.63× between the best and the worst** on the same population, which makes it a first-order term rather than a detail. It does not, though, run in the direction the pool's decaying price would suggest, and that is the section's one genuinely counter-intuitive result. **The early burst is not better than flat arrivals — it is slightly worse**, in all three seeds. Thirty thousand miners arriving inside a sixty-epoch window all compete for that window's payout, and the pool can fund about a hundred and sixty bonds an epoch there whatever the demand, so the crowd simply divides one epoch's money more ways. What loses decisively is arriving *late*: the adoption ramp seats most of its thirty thousand after epoch 200, by which point 63% of the pool is already gone, and it elevates **38% fewer** of them, consistently across seeds.
 
 So what the mechanism rewards is not arriving early but **arriving at a rate the pool can still meter**. A hype spike wastes the endowment by oversubscribing it in one moment, exactly as a late ramp wastes it by arriving once the endowment is gone.
 
@@ -359,12 +359,12 @@ One run is one realisation, and the table above is a single seed. Repeating it a
 
 | measure | seed 40001 | 40002 | 40003 | spread |
 | --- | --- | --- | --- | --- |
-| elevated | 5,762 | 6,510 | 6,547 | 13% of the mean |
-| door closes | epoch 83 | epoch 104 | epoch 98 | 21 epochs |
-| point of no return | epoch 304 | epoch 317 | epoch 314 | 13 epochs |
-| pool remaining | 4.8664% | 4.8664% | 4.8664% | none measurable |
+| elevated | 5,767 | 6,522 | 6,543 | 12% of the mean |
+| door closes | epoch 83 | epoch 103 | epoch 97 | 20 epochs |
+| point of no return | epoch 304 | epoch 317 | epoch 313 | 13 epochs |
+| pool remaining | 4.8663% | 4.8663% | 4.8663% | none measurable |
 
-Which is the right amount of scepticism to carry into everything above. **The drain has no run-to-run spread at all**, so every invariance claim above is exact rather than approximate. The point of no return moves by 4%, because it is set by the pool and the arrival count rather than by the claim lottery. The elevated count moves by an eighth and the door by a fifth, so any single number quoted here is good to about that — which leaves the ordering across amplitudes (a factor of six) and the ordering across timings (1.64×, and consistent in every paired seed) comfortably outside the noise, and leaves **the exact location of the hump's peak unresolved**. Fifty, a hundred and two hundred and fifty an epoch are within a seed's difference of one another; only the hump itself is established.
+Which is the right amount of scepticism to carry into everything above. **The drain has no run-to-run spread at all**, so every invariance claim above is exact rather than approximate. The point of no return moves by 4%, because it is set by the pool and the arrival count rather than by the claim lottery. The elevated count moves by an eighth and the door by a fifth, so any single number quoted here is good to about that — which leaves the ordering across amplitudes (a factor of six) and the ordering across timings (1.63×, and consistent in every paired seed) comfortably outside the noise, and leaves **the exact location of the hump's peak unresolved**. Fifty, a hundred and two hundred and fifty an epoch are within a seed's difference of one another; only the hump itself is established.
 
 ### The elevated dilute the thing they were elevated into
 
@@ -372,11 +372,11 @@ Absorption means elevation into service provision, and the service stream is spl
 
 | arrivals an epoch | providers at epoch 600 | service income per provider, LGO/epoch |
 | --- | --- | --- |
-| 2 | 2,245 | 550 |
-| 10 | 4,309 | 286 |
-| 50 | 7,058 | 175 |
-| 100 | 7,437 | 166 |
-| 500 | 6,294 | 196 |
+| 2 | 2,244 | 550 |
+| 10 | 4,311 | 286 |
+| 50 | 7,061 | 175 |
+| 100 | 7,422 | 166 |
+| 500 | 6,290 | 196 |
 
 The strategy study runs two hundred providers, which §10's bootstrap row prices at 6,185 LGO an epoch each. A chain that has absorbed everyone it can pays each of them **166**, thirty-seven times less, for the same reason a bond buys the same share whether it is one of two hundred or one of seven thousand. §1.2 stated that as arithmetic; this is the arithmetic arriving. **The on-ramp's prize shrinks in proportion to the on-ramp's success**, and no arrival rate escapes it, because the numerator is a protocol constant.
 
@@ -455,7 +455,7 @@ The design goal for the era after the endowment is spent is that a claim still b
 
 ### A transaction pays into two markets, not one
 
-Execution gas is charged **per Operation**; permanent storage gas is charged on the **encoded size of the whole signed transaction**, one gas per byte. They discover their prices independently. Both floor at one lepton and an idle market settles at 7, which is why `mantle:1858` can state a claim's fee as 6,664 lepta — that is `(306 + 646) * 7`, the claim's bytes and its gas at the same resting level.
+Execution gas is charged **per Operation**; permanent storage gas is charged on the **encoded size of the whole signed transaction**, one gas per byte. They discover their prices independently. Both floor at one lepton and an idle market settles at 7, which is how the pre-2026-09 Mantle text stated a claim's fee as 6,664 lepta — `(306 + 646) * 7`. Since 2026-09-04 the claim carries a ZkSignature (128 bytes, Groth16) and 590 execution gas, so the same arithmetic gives `(434 + 1,180) * 7 = 11,298` lepta; the 6,664 figure survives only in the PR 400 description, stale against the PR's own change.
 
 The prices being equal is a fact about where the markets rest, not about how they are charged, and the two come apart as soon as either market sees load. The model prices them separately for that reason.
 
@@ -478,9 +478,9 @@ At the resting prices that is **3,929 bytes**. Every swept size is therefore cov
 
 ![what the storage price decides](figures/inscription_affordability.png)
 
-A claim's own fee is 6,664 lepta against an opening reward of 1.157 LGO, so the reward exceeds the fee by a factor of **173,681**. `mantle:1858` states the bound this has to satisfy — the reward covers the fee while the fee stays at or below `1.157e-10` of launch supply, which is 1.157 LGO — and the claim fee sits at six millionths of that ceiling.
+A claim's own fee is 11,298 lepta against an opening reward of 1.157 LGO, so the reward exceeds the fee by a factor of **102,444**. The bound this has to satisfy — the reward covers the fee while the fee stays at or below `1.157e-10` of the maximum supply, which is 1.157 LGO — now lives in the PR 400 description (the 2026-09 revision moved the rationale out of the Mantle text), and the claim fee sits at ten millionths of that ceiling.
 
-**This is the question the storage price decides, and it is worth stating what would change it.** The affordability margin is proportional to the storage price: it would take a **540,000-fold** rise in `P_STR`, to 3,782,362 lepta a byte, before a claim stopped covering its own fee at the opening reward. The `1 LGO per permanently stored byte` written in `storage-markets.md:124-126` is such a rise — 10⁹ over the floor — and at that price a claim costs 306 LGO against a 1.157 LGO reward, no miner ever reaches the bond, and the mechanism does not start. That figure is superseded rather than operative: it predates the denomination being fixed, and *Logos Token: Units and Precision*, which `mantle:2119` defers to by name, prices permanent storage in lepta per gas unit with a one-lepton floor and puts a gigabyte of permanent storage at 1.0737 LOGOS. It is recorded here because the margin, though enormous, is not unconditional.
+**This is the question the storage price decides, and it is worth stating what would change it.** The affordability margin is proportional to the storage price: it would take a **381,000-fold** rise in `P_STR`, to 2,666,818 lepta a byte, before a claim stopped covering its own fee at the opening reward. The `1 LGO per permanently stored byte` written in `storage-markets.md:124-126` is such a rise — 10⁹ over the floor — and at that price a claim costs 434 LGO against a 1.157 LGO reward, no miner ever reaches the bond, and the mechanism does not start. That figure is superseded rather than operative: it predates the denomination being fixed, and *Logos Token: Units and Precision*, which `mantle:2119` defers to by name, prices permanent storage in lepta per gas unit with a one-lepton floor and puts a gigabyte of permanent storage at 1.0737 LOGOS. It is recorded here because the margin, though enormous, is not unconditional.
 
 ---
 

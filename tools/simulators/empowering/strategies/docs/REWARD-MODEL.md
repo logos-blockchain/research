@@ -15,6 +15,20 @@ in REWARD-MODEL-extraction-log.txt alongside. -->
 > the record of what it read; the differences are implemented and gated in `emission.py` and
 > recorded as contradictions **4.12** (the PR's own real/integer divergence) and **4.13**
 > (the `pow_share` diversion re-founded as the pool's first outflow, decided 2026-08-24).
+
+> **2026-09-04 delta, against PR 400 head `425f4000`:** four extractions in this document
+> moved upstream after it was written. (1) The claim operation is **signed** — its
+> `op_proofs` entry is a `ZkSignature` (= Groth16, 128 B) over the transaction hash, and
+> `CLAIM_POW_REWARD_GAS` rose 56 → 590 — so the claim transaction is 434 bytes and 1,180
+> execution gas, and the resting-price fee is **11,298 lepta**, not the 6,664 recorded
+> below (that figure now survives only in the PR description, stale against the PR's own
+> change). (2) The retarget gained `REWARD_TARGET_FLOOR = 9`; see the superseded block at
+> the pseudocode. (3) A claim may name the **current or the previous epoch's nonce**, so a
+> solution mined just before a boundary is claimable just after it. (4) The design
+> rationale this document quotes by `mantle:` line number was moved from the specification
+> into the PR description on 2026-09-03, so those line anchors no longer resolve; quotes
+> are preserved here as history. The encoding-document gap stands, sharpened: the claim now
+> has a proof type that `OpProof`'s variant list cannot derive.
 > No number this simulator publishes moves under the new substrate; the settled blend pool
 > is pinned by a gate to the LGO.
 
@@ -100,6 +114,12 @@ new_target = (TARGET_CLAIMS_PER_BLOCK * current_target
               * EMA_SMOOTHING_PRECISION) // demand
 return min(new_target, p - 1)
 ```
+
+> **Superseded 2026-09 (PR 400):** the update is now clamped at both ends —
+> `REWARD_TARGET_FLOOR: uint64 = 9` and
+> `return min(max(new_target, REWARD_TARGET_FLOOR), p - 1)` — fencing the absorbing zero
+> this extraction recorded, with a floor of ⌈F/(P−F)⌉ = 9 rather than 1 because floors 1–8
+> are an absorbing band under floor division. The transcription in `work.py` carries it.
 
 At the specified constants this reduces to `new_target = ⌊100 · current_target / (claims_in_block + 90)⌋`. The `max(1, …)` is dead code at F=9, P=10, T=10 — it binds only if the constants change. Arithmetic is **arbitrary-precision, not `checked_uint64`** (`:135`; intermediate reaches ~2^261). Fixed point at 10 claims. At zero claims the target multiplies by 10/9 per block. Controller invariant, stated at `:1899`: *"the estimate equals `TARGET_CLAIMS_PER_BLOCK` divided by the current target."*
 

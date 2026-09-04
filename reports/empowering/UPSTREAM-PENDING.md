@@ -102,6 +102,18 @@ wants precedent; it is not an argument on its own.)*
 
 > **SENT 2026-08-31** as a PR 400 review comment:
 > https://github.com/logos-co/logos-lips/pull/400#issuecomment-5478663427
+>
+> **LANDED UPSTREAM 2026-09, routed the other way.** block-rewards 1.2.0 states `R_block`
+> as "net of the share diverted to the Proof of Work Reward Pool", counts that pool as a
+> fourth conserved stock `W_t` (total `S_t + P_t + B_t + W_t`, growth bound `B₀ + W₀`),
+> and `overview-cryptoeconomics.md` 1.3.0 adds the pool section with a per-epoch
+> `get_pow_pool_refill` and an incidence analysis. The routing chosen is
+> **divert-at-source** — fees are credited to `W_t` before they reach `P_t` — rather than
+> our decided first-outflow; per block the two are identical (the pool's delta and the
+> windowed average both read net fees, which is what `emission.pooled_inflow_lgo` already
+> implements), so no simulator change was needed. The "in full" wording in
+> `storage-markets.md` / `execution-market.md` remains uncorrected on master, so the
+> cross-document contradiction this item flagged still stands there.
 
 ### What is needed
 
@@ -179,6 +191,17 @@ known divergence with a warning is a defect; the same divergence unflagged is a 
 
 > **SENT 2026-08-31** as a PR 400 review comment:
 > https://github.com/logos-co/logos-lips/pull/400#issuecomment-5478779609
+>
+> **LANDED UPSTREAM 2026-09, and better than we asked.** PR 400 now floors the update at
+> `REWARD_TARGET_FLOOR = ceil(F/(P−F)) = 9` — not our proposed `max(1, …)`, which the PR
+> description shows would have left an absorbing *band*: under floor division the
+> empty-block easing returns `t` unchanged for every `t < 9`, so a floor of one converts
+> the absorbing point into absorbing states 1–8. The PR description also notes the fence
+> was in flight before the comment ("did so before the audit was filed"), so record this
+> as independently fixed with a stronger floor, not as adopted from us. Our transcriptions
+> (`empowering_sim.work.next_difficulty_target`, `empowering.core.next_reward_difficulty`)
+> now carry the spec's floor, the old `(0, 0, 0)` pins are replaced by fenced-behaviour
+> pins, and spec_sync requires the floored return line verbatim.
 
 ### What it is
 

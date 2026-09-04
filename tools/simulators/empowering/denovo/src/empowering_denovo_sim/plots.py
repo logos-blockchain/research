@@ -443,9 +443,10 @@ def window_tax(d, out: Path) -> Path:
 
     rows = window.congested_price_curve(d)
     xs = [r["token_usd"] for r in rows]
-    # The two series COINCIDE at every price -- that is the finding. Drawn as a wide
-    # translucent base with a thin line inside it, so the identity is visible rather than
-    # one series silently hiding the other.
+    # On the naive basis the two series coincided everywhere; on the 3-permutation basis
+    # they part at exactly one price. The wide translucent base keeps the coincidence
+    # visible where it still holds, and the departure at $0.10 reads as the thin line
+    # leaving the band.
     a1.plot(xs, [r["persists_until"] for r in rows], color=BLUE, linewidth=7.0, alpha=0.30,
             zorder=5, solid_capstyle="round", label="electricity as published")
     a1.plot(xs, [r["persists_until_taxed"] for r in rows], color=DANGER, linewidth=1.6,
@@ -455,8 +456,8 @@ def window_tax(d, out: Path) -> Path:
     a1.set_xlabel("token price, USD per LGO (log; dearer left)", color=INK_2, fontsize=9)
     a1.set_ylabel("incumbents keep mining until epoch", color=INK_2, fontsize=9)
     a1.legend(frameon=False, fontsize=8.5, loc="lower left", labelcolor=INK_2)
-    _style(a1, "The tax moves no retirement threshold: the lines coincide",
-           "the thin taxed line sits inside the published band at every price")
+    _style(a1, "The tax moves exactly one threshold: $0.10 retires 19 epochs early",
+           "the taxed line leaves the band only where congestion meets a marginal decision")
 
     f.suptitle("The acceptance window, priced", color=INK, fontsize=12.5, x=0.008,
                ha="left", y=0.99)

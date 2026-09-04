@@ -3,20 +3,20 @@
     {
       "key": "pi5-board",
       "label": "Raspberry Pi 5 (per candidate; core or board alike)",
-      "candidates_per_second": 24146.13239324391,
+      "candidates_per_second": 58446.20757170619,
       "wh_per_candidate": 1.0123544444444445e-07
     },
     {
       "key": "best-measured",
       "label": "best measured class, all cores",
-      "candidates_per_second": 375939.84962406015,
+      "candidates_per_second": 909970.0990520399,
       "wh_per_candidate": 2.9320987654320985e-08
     }
   ],
   "reference_electricity_usd_per_kwh": 0.2,
   "genesis_difficulty_target": "326160235283363986346817102212567256220405763393879448528561058440444",
   "field_modulus": "21888242871839275222246405745257275088548364400416034343698204186575808495617",
-  "claim_fee_lepta": 6664,
+  "claim_fee_lepta": 11298,
   "anchor_lepta": 11158,
   "opening_reward_lepta": 11870845204,
   "curves": [

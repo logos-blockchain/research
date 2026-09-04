@@ -197,7 +197,7 @@ def current_design() -> dict:
         # The adoption hump: elevated at slow / reference / fast arrival rates, both
         # regimes, over 400 epochs of CONSTANT arrivals -- the like-for-like companion to
         # the strategies report's section-7 study, which measures the same hump under
-        # POISSON arrivals over 600 epochs (951/6,145/5,001, persistent, gated by that
+        # POISSON arrivals over 600 epochs (949/6,132/4,997, persistent, gated by that
         # report's own number-gate via empowering_sim.arrivals.run_dynamic). A 2026-08-31
         # revision wrongly called the section-7 triple unreproducible; the module had
         # merged in from the simulator branch and reproduces it exactly. Two protocols,

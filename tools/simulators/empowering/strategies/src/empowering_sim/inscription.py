@@ -7,10 +7,11 @@ at all.
 
 **Fees have two prices, not one.** Execution gas is charged per Operation; permanent storage
 gas is charged on the encoded size of the whole signed transaction, one gas per byte
-(`mantle:71`, `mantle:148`). They discover their prices independently, so they are modelled
-separately -- but both floor at one lepton and an idle market settles at 7, which is why
-`mantle:1858` can state a claim's fee as 6,664 lepta: that is `(306 + 646) * 7`, the claim's
-bytes and its gas at the same resting level.
+(Mantle, Transaction Fees). They discover their prices independently, so they are modelled
+separately -- but both floor at one lepton and an idle market settles at 7, which is how the
+pre-2026-09 Mantle text stated a claim's fee as 6,664 lepta, `(306 + 646) * 7`. Since
+2026-09-04 the claim carries a ZkSignature and 590 execution gas, so the same arithmetic
+gives `(434 + 1,180) * 7 = 11,298` lepta at the resting level.
 
 `storage-markets.md:124-126` reads "1 LGO per permanently stored byte". That is superseded --
 it predates the denomination being fixed, and *Logos Token: Units and Precision*, which
@@ -25,8 +26,8 @@ it puts the ceiling at **3,929 bytes** at the resting prices. Every size this mo
 clears it, 1 kB by 2.55x.
 
 The storage price does not decide that, but it does decide affordability: a claim stops
-covering its own fee once storage passes 3,782,362 lepta a byte, 540,000 times its resting
-level.
+covering its own fee once storage passes 2,666,818 lepta a byte, about 381,000 times its
+resting level (3,782,362 and 540,000-fold before the 2026-09 claim signature).
 """
 from __future__ import annotations
 

@@ -53,15 +53,22 @@ def build() -> list[Claim]:
 
     # The acceptance window's headlines. Row data wherever a row already carries the number
     # (offered_mu, claims_paid); one congestion profile where only the queue can say (the
-    # epoch-194 expiry and inflation). These add four short runs and one 220-epoch one --
+    # expiry and inflation figures). These add several short runs and two 220-epoch ones --
     # the price of the section-4 rewrite being document-gated, not just engine-gated.
     spike30 = {s: engine.run(d, arrivals.spike(220, 130, at=30, factor=100),
                              study.hashrate_draw(cfg, seed=s), epochs=31).rows[30]
                for s in (2, 11, 12345)}
-    spike_means = [r.claims_paid / cfg.blocks_per_epoch for r in spike30.values()]
+    offered = [r.offered_mu for r in spike30.values()]
     persist = engine.run(d, arrivals.uniform(220, 130), study.hashrate_draw(cfg),
                          epochs=220, retire_on_bond=False)
     c194 = window.congestion_profile(persist.rows, cfg)[194]
+    spike35 = engine.run(d, arrivals.spike(220, 130, at=30, factor=100),
+                         study.hashrate_draw(cfg), epochs=35)
+    c30 = window.congestion_profile(spike35.rows, cfg)[30]
+    front = engine.run(d, arrivals.front_loaded(220, 220 * 130),
+                       arrivals.pi5_pareto(np.random.default_rng(2),
+                                           floor_rate=power.board(cfg).candidates_per_second),
+                       epochs=220)
 
     return [
         # --- section 3: the reference run -----------------------------------------------
@@ -86,19 +93,30 @@ def build() -> list[Claim]:
         Claim("4", rf"^\| uniform \|[^|\n]*\| *({NUM})", persistent, rel=1e-9,
               note="uniform arrivals, persistent"),
 
-        # --- section 4: the acceptance window, priced -----------------------------------
-        Claim("4", rf"averages \*\*({NUM})–", min(spike_means),
-              note="x100 spike epoch, lightest independent draw"),
-        Claim("4", rf"\*\*[\d,]+–({NUM}) claims a block", max(spike_means),
+        # --- section 4: block space and the acceptance window, priced -------------------
+        Claim("4", rf"offers \*\*({NUM})–", min(offered),
+              note="x100 spike epoch, lightest independent draw (unclipped demand)"),
+        Claim("4", rf"\*\*[\d,]+–({NUM}) claims a block", max(offered),
               note="x100 spike epoch, heaviest independent draw"),
+        Claim("4", rf"converts \*\*({NUM}) of its 28,600 arrivals\*\*",
+              front.rows[-1].bonds_total, rel=0,
+              note="front-loaded onboarding, rationed by the block-space cap"),
+        Claim("4", rf"loses \*\*({NUM})% of its solutions\*\*", 100 * c30.expiry_fraction,
+              note="the window's tax on the x100 spike, no longer acquitted"),
+        Claim("4", rf"burns ×({NUM}) energy per paid claim", c30.inflation,
+              note="spike-epoch energy inflation"),
         Claim("4", rf"({NUM}) offered a block clears", spike30[2].offered_mu,
-              note="unclipped spike demand -- the window acquits it"),
+              note="unclipped spike demand against the 1,024 cap"),
         Claim("4", rf"epoch 194: ({NUM}) offered a block", persist.rows[194].offered_mu,
               note="late persistent endgame, offered past the cap"),
         Claim("4", rf"\*\*({NUM})% of solutions expire\*\*", 100 * c194.expiry_fraction,
-              note="the window's congestion tax where it does bite"),
+              note="the window's congestion tax at its worst"),
         Claim("4", rf"energy per paid claim ×({NUM})", c194.inflation,
               note="offered per paid claim, epoch 194"),
+        Claim("4", rf"retires \*\*({NUM}) epochs earlier\*\*",
+              107 - 88, rel=0,
+              note="the congestion tax closed through the $0.10 retirement decision; the "
+                   "two thresholds are pinned in validate's window gates"),
 
         # --- section 6: the saturation tail's standing fee ------------------------------
         Claim("6", rf"\*\*({NUM})% of a settled post-phase epoch",

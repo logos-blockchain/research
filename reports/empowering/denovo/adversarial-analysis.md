@@ -65,7 +65,7 @@ An attacker with hashrate and the ability to create identities freely, who may w
 
 *In plain words: why an established participant keeps mining. The short version: mining costs them a little electricity and earns them more than that, so stopping is simply throwing money away. No malice required.*
 
-Both designs quote two onboarding numbers, one assuming bonded miners keep mining and one assuming they retire, and both lean on the retiring figure. The strategy report measures 11.4% against 51.9% of the elevation ceiling; the de-novo consistency identity originally imported that band, and its reference triple implies exactly 50%. Re-measured in the redesign itself the two regimes are 15% flat against 25–74% rising, and the triple sits above the persistent figure either way.
+Both designs quote two onboarding numbers, one assuming bonded miners keep mining and one assuming they retire, and both lean on the retiring figure. The strategy report measures 11.4% against 51.9% of the elevation ceiling; the de-novo consistency identity originally imported that band, and its reference triple implies exactly 50%. Re-measured in the redesign itself the two regimes are 15% flat against 25–64% rising (the fast end read 74% before block space bound it), and the triple sits above the persistent figure either way.
 
 The justification on record is that a bonded node's service income dwarfs what more mining would add. That is true and beside the point. A node decides whether to keep mining by comparing the *marginal* revenue of another claim against its *marginal* cost, and having a larger income elsewhere does not enter that comparison. Nor is there any capacity conflict to force a choice: **a bonded node can provide service and go on mining with the same hardware.**
 
@@ -86,13 +86,13 @@ Modelled in the de-novo engine as a coalition that bonds and keeps mining anyway
 
 | coalition refusing to retire | total bonds | against the honest baseline | cost to the coalition |
 | --- | --- | --- | --- |
-| none | 24,707 | 1.00× | — |
-| 10% | 20,150 | 0.82× | none — they keep earning |
-| 25% | 15,562 | **0.63×** | none — they keep earning |
-| 50% | 11,555 | 0.47× | none — they keep earning |
-| everyone | 8,140 | **0.33×** | none — they keep earning |
+| none | 24,674 | 1.00× | — |
+| 10% | 19,583 | 0.79× | none — they keep earning |
+| 25% | 14,884 | **0.60×** | none — they keep earning |
+| 50% | 10,906 | 0.44× | none — they keep earning |
+| everyone | 7,632 | **0.31×** | none — they keep earning |
 
-A quarter of the field behaving this way costs the mechanism 37% of its onboarding; the whole field behaving this way costs two thirds. **This is the cheapest and most damaging attack in either design, it requires no coordination, and an attacker cannot be distinguished from a participant who simply never turned its miner off.** The same arithmetic applies to the current design, where the identical behaviour is what separates its 11.4% and 51.9% figures.
+A quarter of the field behaving this way costs the mechanism 40% of its onboarding; the whole field behaving this way costs about two thirds. **This is the cheapest and most damaging attack in either design, it requires no coordination, and an attacker cannot be distinguished from a participant who simply never turned its miner off.** The same arithmetic applies to the current design, where the identical behaviour is what separates its 11.4% and 51.9% figures.
 
 ### 2.3 Letting the miners decide it
 
@@ -110,24 +110,24 @@ The decision includes a term the break-even of §2.1 cannot see. The endowment i
 | --- | --- |
 | bonded miners still mining, each epoch of the scheduled bootstrap | **100%** |
 | still mining once the schedule ends | **0%** |
-| nodes onboarded, decided | **7,963** — the persistent regime exactly |
+| nodes onboarded, decided | **7,635** — the persistent regime exactly |
 
-Nobody retires while it matters, and everybody retires the moment the budget collapses to the fee bucket. **The retiring figure of 24,707 is not a behaviour anyone would choose**, and should stop being quoted as an expectation.
+Nobody retires while it matters, and everybody retires the moment the budget collapses to the fee bucket. **The retiring figure of 24,674 is not a behaviour anyone would choose**, and should stop being quoted as an expectation.
 
-The exclusion dividend turns out to be **real but never decisive**: at no price does it change the *regime*, and at the reference price removing it changes literally nothing — gated as exact equality. Its entire observable effect lives in the narrow band around the break-even price, where it shifts the phase of the bang-bang oscillation described below and moves final bonds by a few per cent at most (largest measured: +763 of 21,291 at $0.01). It is large early — at 200 providers a single displaced newcomer repays its 1,000 LGO in eight months — but it can only perturb a decision that is already marginal, and during bootstrap mining already pays outright. Post-phase it has collapsed with `1/providers²` and cannot rescue an unprofitable epoch. It would take a service pot roughly **a thousand times** the measured one to make it decision-relevant. So the incumbent-mines-at-a-loss scenario is coherent, correctly reasoned, and does not arise here — the two conditions it needs are disjoint in this mechanism.
+The exclusion dividend turns out to be **real but never decisive**: at no price does it change the *regime*, and at the reference price removing it changes literally nothing — gated as exact equality. Its entire observable effect lives in the narrow band around the break-even price, where it shifts the phase of the bang-bang oscillation described below and moves final bonds by around one per cent at most (largest measured on the 2026-09 basis: −172 of 13,075 at $0.05; the pre-change measurement read +763 of 21,291 at $0.01). It is large early — at 200 providers a single displaced newcomer repays its 1,000 LGO in eight months — but it can only perturb a decision that is already marginal, and during bootstrap mining already pays outright. Post-phase it has collapsed with `1/providers²` and cannot rescue an unprofitable epoch. It would take a service pot roughly **a thousand times** the measured one to make it decision-relevant. So the incumbent-mines-at-a-loss scenario is coherent, correctly reasoned, and does not arise here — the two conditions it needs are disjoint in this mechanism.
 
 **What does move the answer is the token price, in the direction nobody expects.** Mining income is denominated in LGO and its electricity in dollars, so a *dearer* token keeps incumbents mining longer and onboards *fewer* people:
 
 | token price | incumbents persist until | nodes onboarded |
 | --- | --- | --- |
-| $1.00 and above | epoch 195 — all of it | **7,963** |
-| $0.10 | epoch 112 | 9,863 |
-| $0.05 | epoch 66 | 13,420 |
-| $0.01 | epoch 16 | 22,054 |
+| $1.00 and above | epoch 195 — all of it | **7,635** |
+| $0.10 | epoch 107 | 10,632 |
+| $0.05 | epoch 64 | 12,903 |
+| $0.01 | epoch 16 | 22,416 |
 
 **The reference triple's headline number requires a token worth under a cent.** At any price at which the project would be considered a success, incumbents mine throughout and onboarding is a third of the target. That is the sharpest argument in this document for re-striking the triple.
 
-*One tax checked and found not to bite here:* expired acceptance-window claims burn electricity without paying (see the report's §4), so the decision's cost side inflates by offered/included. Closing that loop through the decision (`window.congested_price_curve`) moves **no threshold at any tested price** — persists-until 195/112/66/16 at $1/$0.10/$0.05/$0.01, identical with and without the tax — because congestion only develops in the late persistent endgame (peak ×1.41 at $1), where the decision is nowhere near marginal, while at the prices where retirement is decided early the field never grows enough to congest. The regimes where the window taxes and where decisions flip do not overlap; gated.
+*One tax checked — and on the 2026-09 mining basis it bites, at exactly one price:* expired acceptance-window claims burn electricity without paying (see the report's §4), so the decision's cost side inflates by offered/included. Closing that loop through the decision (`window.congested_price_curve`) leaves $1, $0.05 and $0.01 essentially unmoved — persists-until 195/64/16, bond totals shifting about 1% — but pulls the $0.10 threshold forward **19 epochs** (88 taxed against 107 untaxed). At $0.10 the field grows large enough to congest hard (peak energy inflation ×3.40) while the decision is still marginal: exactly the overlap that never occurred on the naive-miner basis, where this paragraph reported no threshold moving at any price. Gated.
 
 *One limitation, because it shapes the output.* Income and cost both scale with hashrate, so the comparison is hashrate-independent and every miner decides identically — the model returns 0% or 100%, never a fraction, and near the break-even it oscillates period-2 for the same reason Q9's participation cliff does. A real population varies in electricity price, efficiency and horizon, and would settle at a fraction still mining. Read the flip epoch as the point where the marginal operator leaves, not as a claim that the field empties at once.
 
@@ -196,25 +196,25 @@ Against a realistically-spread field (Pareto, floored at a whole board):
 
 | whale arrives at epoch | endowment captured (10× the field it meets) | phase ends |
 | --- | --- | --- |
-| 2 | 21% | 196 |
-| **20** | **55%** | 197 |
-| 50 | 44% | 196 |
-| 100 | 5% | 196 |
-| 150 | 19% | 153 |
+| 2 | 20% | 196 |
+| **20** | **21%** | 196 |
+| 50 | 17% | 196 |
+| 100 | 3% | 196 |
+| 150 | 12% | 196 |
 
 And against a *homogeneous* field of identical boards — no distributional assumption, which is the bounded worst case rather than the expected one:
 
 | the field's power basis | endowment captured | phase ends |
 | --- | --- | --- |
-| minimal (one core) | 37% | 197 |
-| board (four cores) | **89%** | 23 |
-| worst measured (3.45× a board) | 88% | 24 |
+| minimal (one core) | 88% | 196 |
+| board (four cores) | **88%** | 24 |
+| worst measured (15.6× a board) | 7% | 197 |
 
-**The two fields answer different questions and the difference is instructive.** Against a Pareto field the whale takes 55% at its best moment, because a heavy-tailed honest population contains fast miners that compete with it. Against a homogeneous field of identical boards it takes 89% and collapses the phase from 195 epochs to 23, because nobody present can keep up. The realistic figure is the former; the latter is the bound. Both are reported because a design should be sized against the bound and expected to experience the mean.
+**The two fields answer different questions and the difference is instructive.** Against a Pareto field the whale now takes about a fifth at its best moment — 21%, down from the 55% the naive mining basis produced, because block space caps what any single epoch can pay the whale just as it caps everyone else. Against a homogeneous field of identical boards it still takes 88% and collapses the phase from 195 epochs to 24: nobody present can compete, and the cap alone is not protection when the whale is effectively the whole field. Against a homogeneous field of worst-measured machines the picture inverts (7%): at those rates block space saturates so early that the whale's advantage cannot be spent. The realistic figure is the first; the board bound is the one to size against.
 
-**And the exposure saturates**: once the attacker has board-class hardware, more does not help it, because block space rather than search power is what limits an epoch's extraction. That is a genuine bound — the unmeasured GPU gap above does not widen this particular attack, though it widens the others.
+**And the exposure saturates hard**: a 3× and a 100× whale now take the same 21% against the Pareto field, because block space rather than search power limits an epoch's extraction. That is a genuine bound — the unmeasured GPU gap above does not widen this particular attack, though it widens the others.
 
-**The danger window is early but not immediate.** At genesis the whale takes only 20%, because `claims_prev = 0` caps the reward at one block's share. By epoch 20 the honest field has established a `claims_prev` large enough to price the epoch generously while the endowment is still 90% intact — 88% capture, and the bootstrap collapses from 195 epochs to 23. By epoch 100 the endowment is half spent and the exposure falls back.
+**The danger window is early but not immediate.** At genesis the whale takes 20% against the Pareto field, because `claims_prev = 0` caps the reward at one block's share. By epoch 20 the honest field has established a `claims_prev` large enough to price the epoch generously while the endowment is still 90% intact — the Pareto peak of 21%, and the homogeneous bound of 88% with the bootstrap collapsing to epoch 24. By epoch 100 the endowment is half spent and the exposure falls back.
 
 This sharpens the accepted risk rather than changing it — and §3.4 now addresses it, because the obvious mitigation turned out not to be the workable one.
 
@@ -224,7 +224,7 @@ This sharpens the accepted risk rather than changing it — and §3.4 now addres
 
 The whale is the base design's one accepted weakness, so it is worth asking what closing it takes. The answer is one parameter and a deferral, and the route to it is not the obvious one.
 
-**The obvious cap does not work.** Bound the borrow itself — no epoch may spend more than `m` budgets. One budget is about `1/195` of the endowment, and the honest ×100 cohort borrows about **97** of them, so a cap loose enough to admit the very cohort R5 exists to protect already permits half the endowment to leave in one epoch. Honest crowd and hostile whale are the same shape to the mechanism, and a flat cap cannot tell them apart. *(An earlier draft of this document recommended `m ≈ 3` on the strength of a mis-measured 2.6× figure for that cohort; at the true ~97 that cap would have rationed it savagely. The recommendation is withdrawn.)*
+**The obvious cap does not work.** Bound the borrow itself — no epoch may spend more than `m` budgets. One budget is about `1/195` of the endowment, and the honest ×100 cohort borrows about **45** of them (97 on the naive mining basis; block space now truncates the borrow), so a cap loose enough to admit the very cohort R5 exists to protect already permits a quarter of the endowment to leave in one epoch. Honest crowd and hostile whale are the same shape to the mechanism, and a flat cap cannot tell them apart. *(An earlier draft of this document recommended `m ≈ 3` on the strength of a mis-measured 2.6× figure for that cohort; at the true ~97 that cap would have rationed it savagely. The recommendation is withdrawn.)*
 
 **What works is bounding the endowment draw as a fraction of what remains**, and only the part *beyond* the epoch's own scheduled sub-pool:
 
@@ -237,18 +237,18 @@ Measured, at a 10% cap:
 
 | | base | de novo\* (10%) |
 | --- | --- | --- |
-| whale capture, 10× at epoch 20 | **55%** | **9%** |
-| whale capture, 3× / 30× / 100× at epoch 20 | 33% / 56% / 56% | 9% / 9% / 9% |
+| whale capture, 10× at epoch 20 | **21%** | **9%** |
+| whale capture, 3× / 30× / 100× at epoch 20 | 21% / 21% / 21% | 9% / 9% / 9% |
 | ×100 honest cohort bonded, retiring | 100% | 100% |
-| its median time to bond, retiring | 43 epochs | **59 epochs** |
-| ×100 cohort bonded, persistent | 24% | 24% |
-| its median time to bond, persistent | 69 epochs | **69 epochs — unchanged** |
-| uniform onboarding | 24,707 | 24,782 |
-| phase ends | 196 | 197 |
+| its median time to bond, retiring | 58 epochs | **64 epochs** |
+| ×100 cohort bonded, persistent | 22% | 22% |
+| its median time to bond, persistent | 70 epochs | **70 epochs — unchanged** |
+| uniform onboarding | 24,674 | 24,745 |
+| phase ends | 196 | 196 |
 
-Across the cap sweep the whale falls 55% → 18% → 9% → 5% → 2% at caps of 20%, 10%, 5% and 2%, while onboarding drifts *up* slightly and the phase length does not move. **The variant converts a size-dependent exposure into a flat ceiling**: under the base design a whale's take rises with its hashrate, and under the cap a 3× and a 100× whale take the same 9%, because what binds is the cap and the repricing rather than the attacker's power.
+Across the cap sweep the whale falls 21% → 17% → 9% → 5% → 2% at caps of 20%, 10%, 5% and 2%, while onboarding drifts *up* slightly and the phase length does not move. **The variant still halves the flat ceiling block space already imposes**: on the naive basis the base design's take rose with the whale's hashrate (33–56%) and the cap flattened it; on the 3-permutation basis block space flattens it at 21% by itself, and the cap tightens that to 9%.
 
-**What it costs, honestly.** One parameter, against R1 — and it is a parameter with no natural value, since 20%/10%/5%/2% are all defensible. It softens R6's letter: the pool no longer pays purely until exhausted *within an epoch*, though nothing is refused permanently and no money is destroyed. And in the *retiring* regime it defers the very cohorts R5 protects by about 40% in time-to-bond, 43 epochs to 59. **Under persistence — the regime incentives actually produce — it costs nothing at all**: 24% bonded at a median 69 epochs with the cap and without it. The deferral is a cost the variant only incurs where the mechanism was already converting quickly.
+**What it costs, honestly.** One parameter, against R1 — and it is a parameter with no natural value, since 20%/10%/5%/2% are all defensible. It softens R6's letter: the pool no longer pays purely until exhausted *within an epoch*, though nothing is refused permanently and no money is destroyed. And in the *retiring* regime it defers the very cohorts R5 protects by about 10% in time-to-bond, 58 epochs to 64. **Under persistence — the regime incentives actually produce — it costs nothing at all**: 22% bonded at a median 70 epochs with the cap and without it. The deferral is a cost the variant only incurs where the mechanism was already converting quickly.
 
 **What it does not cost** is the thing worth noting: not onboarding, not the phase length, and not R5's guarantee. This is the cheapest of the mitigations considered anywhere in this analysis, and the only one that closes an accepted exposure without opening another.
 
@@ -265,11 +265,11 @@ Neither mechanism has any defence against one actor presenting as many, so the s
 | flood, × the honest rate | honest elevations denied, current | honest bonds denied, de novo | de novo\* |
 | --- | --- | --- | --- |
 | 1× (baseline) | — | — | — |
-| 2× | **48.4%** | **4.3%** | 4.8% |
-| 5× | 88.9% | 79.2% | 79.3% |
-| 10× | 96.3% | 94.5% | 93.4% |
+| 2× | **48.3%** | **7.0%** | 7.0% |
+| 5× | 88.9% | 84.5% | 79.8% |
+| 10× | 96.3% | 97.0% | 93.5% |
 
-*Baselines: 25,934 honest elevations in the current design, 19,075 honest bonds in the redesign, 19,164 with the bound. Measured by `adversary.sybil_denial` and gated. An earlier draft quoted 3.5 / 76.2 / 92.8 from a hand-run that had drifted from the engine and existed in no committed code.*
+*Baselines: 25,935 honest elevations in the current design, 19,066 honest bonds in the redesign, 19,156 with the bound. Measured by `adversary.sybil_denial` and gated. An earlier draft quoted 3.5 / 76.2 / 92.8 from a hand-run that had drifted from the engine and existed in no committed code.*
 
 **At moderate flooding the redesign is an order of magnitude more resistant** — doubling the field costs honest joiners 4.3% of their bonds against 48.4%. The bound changes nothing either way, because a cap defers rather than denies. The reason is structural: the current design's claim flow is fixed, so twice the field is half the share each, while the redesign's budget converts whoever is present, so a doubled field simply converts faster. At extreme flooding both collapse, because there the binding constraint is the same in both — the payout strands below the bond faster than anyone crosses it.
 

@@ -2,11 +2,16 @@
 
 Every claim-rate figure in these studies rests on an assumption about how much silicon one
 "node" commits, and that assumption was previously implicit and *inconsistent between the two
-simulators*: `empowering_sim.elevation` seats nodes at 24,146 candidates a second — a whole
-four-core Raspberry Pi 5 board — while the de-novo engine seated them at 6,037, one pinned
-core. A factor of four, in studies whose numbers are compared against each other.
+simulators*: `empowering_sim.elevation` seated nodes at a whole four-core Raspberry Pi 5
+board while the de-novo engine seated them at one pinned core. A factor of four, in studies
+whose numbers are compared against each other.
 
-This module fixes the basis and makes the bracket explicit.
+This module fixes the basis and makes the bracket explicit. The rates themselves follow the
+config's `seconds_per_candidate_reward`, which since 2026-09 is the Mantle text's own
+three-permutation attempt (prefix precomputed) rather than our measured naive candidate --
+a board is 58,446 candidates a second on that basis, where the naive measurement gave
+24,146. Every cross-class *ratio* below is unchanged by that rescaling, because the
+permutation count cancels.
 
 **The credibility problem with the synthetic field.** The studies draw hashrates from
 ``Pareto(1.16)`` floored at a Pi 5. The shape is not measured: 1.16 is the "80/20 rule" index
@@ -31,9 +36,11 @@ class. `powcost.rates` now also carries an ESTIMATED `gpurig` rate for `poseidon
 (``measured=False``), derived from published BN254 field-multiplication throughput, and it
 splits the old blanket caveat rather than confirming it:
 
-* **Cost-bounded attacks are not understated.** A card spends about 1.54e-3 J per candidate
-  against a Pi 5 board's measured 3.65e-4 -- roughly **four times worse per joule**. Anything
-  priced per candidate, the sybil flood included, is unaffected by GPUs.
+* **Cost-bounded attacks are not understated.** On the naive-candidate basis both were
+  stated on, a card spends about 1.54e-3 J per candidate against a Pi 5 board's measured
+  3.65e-4 -- roughly **four times worse per joule** -- and the ratio survives the
+  three-permutation rescaling, which divides both sides alike. Anything priced per
+  candidate, the sybil flood included, is unaffected by GPUs.
 * **Share-bounded attacks are understated.** A card is about twelve times a board in raw rate
   and a six-card rig about 73x, so an attacker buying hashrate *share* -- the whale -- reaches
   a given share far faster than a Pi 5 field suggests.
@@ -51,8 +58,13 @@ from empowering_sim.config import Config
 PI5_CORES = 4                     # protocol-snapshot.toml, [work] pi5_cores
 
 # powcost.rates TABLE[("poseidon2_reward", "apple")]: measured on an M4 Pro performance core,
-# release build with link-time optimisation, over ten usable performance cores.
-APPLE_SECONDS_PER_CANDIDATE = 26.6e-6
+# release build with link-time optimisation, over ten usable performance cores. That
+# measurement is of the naive candidate; the adversarial basis must match the config's
+# three-permutation attempt (an attacker precomputes at least as well as the honest field),
+# so it is scaled by the same permutation-count factor the Pi 5 basis uses. DERIVED, not
+# measured -- re-measure with the precomputed-prefix miner alongside the Pi 5 re-run.
+APPLE_NAIVE_SECONDS_PER_CANDIDATE = 26.6e-6
+APPLE_SECONDS_PER_CANDIDATE = APPLE_NAIVE_SECONDS_PER_CANDIDATE * (68.439 / 165.658)
 APPLE_CORES = 10
 
 

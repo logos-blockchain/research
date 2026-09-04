@@ -85,11 +85,13 @@ storage_price_lepta   = 7
 max_price             = 5_776_413_067_240   # KNOWN  #393: largest price whose fee products fit u64
 # DERIVED, sim: txsize.sizes(). CLAIM_POW_REWARD is absent from
 # mantle-transaction-encoding.md, so these are reconstructed from the encoding
-# primitives plus a framing assumption -- the one framing that reproduces the
-# 6,664-lepta claim fee mantle:1858 states. See txsize.py for what is read and
-# what is assumed, and for the 0.2% sensitivity of everything downstream.
-claim_tx_bytes        = 306
-claim_tx_gas          = 646           # KNOWN    56 claim + 590 transfer
+# primitives plus a framing assumption -- the one framing that reproduced the
+# 6,664-lepta claim fee the pre-2026-09 Mantle text stated (that anchor now lives
+# in the PR 400 description, stale against the PR's own change). Since 2026-09-04
+# the claim carries a ZkSignature (= Groth16, 128 B) and its gas is 590, so the
+# same framing gives 434 bytes and an 11,298-lepta resting fee. See txsize.py.
+claim_tx_bytes        = 434
+claim_tx_gas          = 1180          # KNOWN    590 claim + 590 transfer
 transfer_tx_bytes     = 207           # DERIVED  sim: txsize.sizes(), same basis
 transfer_tx_gas       = 590           # KNOWN    analysis-gas-cost-determination.md
 
@@ -99,7 +101,9 @@ pool_share_num          = 10          # KNOWN  POW_SHARE
 pool_share_den          = 100         # KNOWN  SHARE_DEN
 distribution_rate_num   = 1           # KNOWN  rho = 1/200 (2026-08-14: closes the within-epoch
 distribution_rate_den   = 200         #        drain by construction; see report section 0.4)
-genesis_pool_fraction   = 0.005       # KNOWN  POW_REWARD_POOL_GENESIS, 5/1000 of launch supply
+genesis_pool_fraction   = 0.005       # KNOWN  POW_REWARD_POOL_GENESIS, 5/1000 of the maximum
+                                      #        supply S_cap (restated from "launch supply"
+                                      #        2026-09; same 5e7 LGO, the ambiguity removed)
 ema_smoothing_factor    = 9           # KNOWN  F
 ema_smoothing_precision = 10          # KNOWN  P
 reward_difficulty_exp   = 26          # KNOWN  genesis difficulty_reward = p / 2**26
@@ -122,7 +126,15 @@ beta_max                = 3           # KNOWN  blending ops per message; Q_W = b
 # target; a desktop-class core runs ~6x faster and is deliberately not the basis.
 seconds_per_candidate        = 94.158e-6  # blend, naive: 4 Poseidon2 permutations
 seconds_per_candidate_opt    = 48.472e-6  # blend, constant prefix precomputed: 2
-seconds_per_candidate_reward = 165.658e-6 # reward keeps its key derivation: 7 perms
+# DERIVED: 3 x the measured permutation. The Mantle text (2026-09) prices a reward
+# attempt at three Poseidon2 permutations for a miner that precomputes the sponge
+# state through epoch_nonce and block_hash -- derive a key, absorb it, padding --
+# against five for a full evaluation. The 165.658e-6 this file carried was our
+# measured naive-miner candidate (~7 permutation-equivalents including a costlier
+# key derivation), a reading the specification now contradicts; kept here only as
+# the naive upper bound. Re-measure on the Pi 5 with the precomputed-prefix miner
+# when the board is available (parked with the other hardware benchmarks).
+seconds_per_candidate_reward = 68.439e-6  # reward, prefix precomputed: 3 perms
 seconds_per_permutation      = 22.813e-6
 pi5_cores                   = 4           # board-level figures divide by this
 
