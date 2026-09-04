@@ -165,9 +165,12 @@ specification's `d_edge^Max` constraint concrete.
 
 ## Not covered here
 
-- The header-verification figure (157/s) predates no circuit change we know of,
-  but re-measuring on the Pi 5 against the circuit with the proof of work
-  branch needs the hardware; open.
+- The header-verification figure (157/s) is current: the
+  `blend-header-verification` benchmark vendors the three-branch circuit
+  (`pow_nonce`, `pow_quota`, `pow_blend_difficulty` among its Groth16 inputs).
+  It is also insensitive by structure — Groth16 verification is constant in
+  circuit size, and the branch added two public inputs, ≤ ~10% of the 6.4 ms,
+  against ≥ 24% margin at every consumer.
 - Honest clients giving up under high prices, mixed device fleets beyond the
   two Pi profiles, and door-selection strategies smarter than uniform are not
   modeled.
