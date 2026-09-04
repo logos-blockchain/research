@@ -7,6 +7,7 @@
 These conventions apply to **every** section below. They are stated once here so the individual sections stay short.
 
 - **Title.** The document's top-level heading is the RFC title: `[RFC] <Subsystem>: <Title>`. `<Subsystem>` names the part of the specification the change lands in, taken from the `bedrock-*` document(s) it touches — strip the `bedrock-` prefix and any version segment, then Title-Case the remainder, keeping its hyphens (`bedrock-v1.1-block-construction.md` → `Block-Construction`). When a change spans several subsystems, name the one whose normative change is largest; when it touches no `bedrock-*` document, use the closest subsystem the change is about. `<Title>` is a short sentence-case phrase, e.g. `[RFC] Mantle: Remove the concept of a session`. Set the GitHub PR title to exactly this heading.
+- **Every update re-drafts the description; it is not a log.** The description states what the branch changes *now*, so on every revision re-derive each section from the current diff and **delete what no longer holds** — rationale for an approach since abandoned, changes reverted or moved out of scope, snippets that no longer match the spec, `TODO (author)` placeholders already answered, and every **Affected Specifications** row the current diff leaves untouched. Stale content is worse than missing content: it sends reviewers to read things that are not there, and it hides the parts that need attention. Three checks run on **every** update, before pushing — the **Change log** order (see that section), the removal of superseded content (this rule), and the **Affected Specifications** table against the current diff (see that section). Record the removals themselves as a Change log entry.
 - **Order by review impact.** In every section, put the highest-impact normative change first and group minor/editorial changes last. Never let cleanup obscure protocol changes.
 - **Impact dimensions** (referenced throughout as "impact dimensions"): consensus / safety / liveness, cryptographic validity, serialization & compatibility, data availability, slashing / economics, migration, and externally visible node / validator / user / API behavior. The **Reviewer Orientation** priority labels below define how these map to Critical / High / Medium / Low.
 - **Scale ceremony to size.** For a minor correction, **Motivation** may be a single sentence and **Implementation** a single task.
@@ -87,26 +88,51 @@ Note any prerequisite context needed before the first entry (e.g., "read Motivat
     -  All dependent specifications added (Notion backlinks checked)
     -  Specifications to deprecate added, if applicable
     -  Specifications to retire added, if applicable
-    -  Research Lead assigned, or Project Lead assigned if the Research Lead is an author
-    -  Relevant Research Domain Experts assigned (cannot be authors)
+    -  **Leads assigned** — Research Lead and Engineering Lead. Where the Research Lead is an author, the Project Lead stands in
 - [ ]  ⚙️ **Verified (make sure that all below is completed)**
-    -  Researchers’ comments addressed
+    -  **Domain experts assigned** — research and engineering, as the change requires; cannot be authors
+    -  Reviewers’ comments addressed
     -  All logical changes documented
-    -  All Research reviewers approve the latest version
-    -  Engineering Lead assigned
-    -  Relevant Engineering Domain Experts assigned
+    -  **Required approvals collected on the latest revision** (see below)
 - [ ]  🔀 **Merged (make sure that all below is completed)**
-    -  Engineers’ comments addressed
-    -  Every change added to the change log
-    -  All Engineering reviewers approve the latest version
+    -  Every change added to the change log, and the change log’s order checked
     -  Specification version numbers assigned
     -  Implementation reviewed and merged
     -  Branch updated to master and all conflicts resolved
     -  PR merged
 
-</details>
+**Required approvals — two in both cases, and both on the latest revision.**
+
+| If the author is… | Required approvals |
+| --- | --- |
+| anyone other than the Research Lead | the **lead**, plus **one** domain expert or implementer |
+| the Research Lead | **two** domain experts or implementers — the lead approval is unavailable, so a second reviewer takes its place |
+
+Nobody approves their own RFC. An approval binds only the revision it was given on: if a later revision changes anything normative, collect them again and say so in the **Change log**.
 
 ## Change log
+
+<aside>
+
+**Purpose:** Let a reviewer who has already read an earlier revision see exactly what moved since, and let an approver tell whether the revision they approved is still the current one.
+
+**Include:** one entry per revision, **oldest first** — `v1` at the top, the newest revision on the last row. A revision needing several lines keeps its number on its first row and leaves the **Revision** cell blank on the continuation rows beneath it. Dates are `YYYY-MM-DD`, and each entry says what actually moved — including content **removed** under *Every update re-drafts the description*, and any re-collection of approvals.
+
+**Check the order on every update, before pushing.** This is a standing check, not a one-off:
+
+- revisions read `v1, v2, … vN` — no gaps, no duplicates, none out of sequence;
+- the newest entry is **last**, and describes the update being pushed;
+- every date is well-formed, and no date is earlier than one above it;
+- every continuation row sits directly under the revision it belongs to, with the Revision cell blank;
+- nothing changed since the previous revision is missing an entry.
+
+**Avoid:**
+
+- Appending new revisions to the **top** — the table reads oldest-first, and reversing it silently misdates the history
+- Renumbering or rewording an existing revision to cover a later change; add a new row instead
+- Entries such as "addressed comments" or "minor fixes" that do not say what moved
+
+</aside>
 
 | **Revision** | **Description** | **Date** |
 | --- | --- | --- |
@@ -278,7 +304,14 @@ Note any prerequisite context needed before the first entry (e.g., "read Motivat
 
 **Purpose:** Identify every specification affected by this PR.
 
-**Guidance:** For PRs, this is the most critical section. Reviewers must verify the list is complete before approving. Derive the list from the current diff every time the description is updated: a document appears only if the diff changes it. Drop any document the current diff leaves untouched — including one an earlier revision of the branch changed. A document that was read, consulted, or depended on is not affected.
+**Guidance:** For PRs, this is the most critical section. Reviewers must verify the list is complete before approving. A document appears only if the diff changes it: one that was read, consulted, or depended on is not affected.
+
+**Rebuild the table from the current diff on every update, before pushing.** This is a standing check, not a one-off — the table is derived from the diff, never edited by hand into agreement with it:
+
+- every row corresponds to a document the **current** diff changes;
+- every document the current diff changes has a row;
+- each row's Status still matches what the diff does to that document — a spec first modified and later deleted on the same branch becomes Retired, not Modified;
+- **rows for documents the current diff no longer touches are deleted**, including ones an earlier revision of the branch did change. Note the removal in the **Change log**.
 
 **Include:** one row per affected specification, tagged with its **Status**:
 
