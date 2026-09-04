@@ -17,10 +17,10 @@ PYTHONPATH=harness python3 -m pytest harness/tests/test_blend_admission.py
 
 | Quantity | Value | Source |
 | --- | --- | --- |
-| Pi 5 whole-machine mint, tokens/s | 4.45 @ 100 · 1.40 @ 300 · 0.42 @ 1000 · 0.17 @ 3000 | `benchmark-results/RPi5-16GB/main/mining.csv`, pooled |
+| Pi 5 whole-machine mint, tokens/s | 4.45 @ 100 · 1.40 @ 300 · 0.42 @ 1000 · 0.17 @ 3000 | `benchmark-results/RPi5-16GB/main/mining.csv`, pooled; `RPi5-8GB` agrees within 0.4% on every point, and 16GB is the slower board |
 | Fastest attacker core (285HX, Rust-JIT), tokens/s | 3.55 @ 100 · 1.27 @ 300 · 0.39 @ 1000 · 0.11 @ 3000 | `benchmark-results/FedoraIntel285HX24C-256GB/main/mining.csv`, pooled ÷ 24 |
-| Public header verification, Pi 5, one core | 157/s (6.4 ms) | `tools/benchmarks/blend-header-verification` |
-| Equi-X verify, cold, Pi 5 | 54.7 µs | `benchmark-findings/findings.md` §3 |
+| Public header verification, Pi 5, one core | 157/s (6.4 ms) | tool: `tools/benchmarks/blend-header-verification` (branch `blend-header-verification-benchmark`); figures as recorded in #421's PR description — the run's results tree is **not committed** (see the provenance note below) |
+| Equi-X verify, cold, Pi 5 | 54.7 µs | `benchmark-findings/findings.md` §3; primary: `results.csv` medians 54.9–55.2 µs (equix-c compiled, varied challenges, both Pi boards) |
 
 Between measured efforts the curves interpolate log-log; outside, they
 extrapolate as 1/E (the `difficulty_control` model).
@@ -165,12 +165,16 @@ specification's `d_edge^Max` constraint concrete.
 
 ## Not covered here
 
-- The header-verification figure (157/s) is current: the
-  `blend-header-verification` benchmark vendors the three-branch circuit
-  (`pow_nonce`, `pow_quota`, `pow_blend_difficulty` among its Groth16 inputs).
-  It is also insensitive by structure — Groth16 verification is constant in
-  circuit size, and the branch added two public inputs, ≤ ~10% of the 6.4 ms,
-  against ≥ 24% margin at every consumer.
+- The header-verification figure (157/s) is current — the benchmark vendors
+  the three-branch circuit (`pow_nonce`, `pow_quota`, `pow_blend_difficulty`
+  among its Groth16 inputs) and is insensitive by structure (Groth16
+  verification is constant in circuit size; the branch added two public
+  inputs, ≤ ~10% of the 6.4 ms, against ≥ 24% margin at every consumer). Its
+  **provenance gap** is different: the tool is committed but its results tree
+  is not, on any ref or worktree — the figures survive only in #421's PR
+  description, and the tool's README warns the tree on the board may be the
+  only copy. Committing `reports/blend/header-verification/` from the Pi
+  closes it; no re-run is needed.
 - Honest clients giving up under high prices, mixed device fleets beyond the
   two Pi profiles, and door-selection strategies smarter than uniform are not
   modeled.

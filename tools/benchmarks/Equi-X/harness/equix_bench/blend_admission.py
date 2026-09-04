@@ -34,14 +34,20 @@ from .difficulty_control import mint_rate_per_machine
 
 # ----------------------------------------------------------------- calibration
 # Pooled measured mint rates (results */main/mining.csv, tokens_per_sec_machine).
-# Pi 5: the target machine, whole machine (4 workers). 285HX: the fastest
-# measured solver, per core (machine / 24 workers) — the marginal attacker.
+# Pi 5: the target machine, whole machine (4 workers) — RPi5-16GB, the slower of
+# the two measured boards; RPi5-8GB agrees within 0.4% on every point. 285HX:
+# the fastest measured solver, per core (machine / 24 workers) — the marginal
+# attacker.
 PI5_MINT: list[tuple[int, float]] = [(100, 4.4530), (300, 1.3950), (1000, 0.4243), (3000, 0.1715)]
 ATTACKER_CORE_MINT: list[tuple[int, float]] = [(100, 3.5514), (300, 1.2694), (1000, 0.3868), (3000, 0.1114)]
 
-# Public header verification rate, one Pi 5 core (tools/benchmarks/blend-header-verification).
+# Public header verification rate, one Pi 5 core. Tool:
+# tools/benchmarks/blend-header-verification (branch
+# blend-header-verification-benchmark); the figure is as recorded in #421's PR
+# description — the run's results tree is not committed to the repo.
 V_HEADER = 157.0
-# Equi-X verify, cold challenge, Pi 5, C implementation (findings.md section 3).
+# Equi-X verify, cold challenge, Pi 5, C implementation (findings.md section 3;
+# results.csv medians 54.9-55.2 us across both Pi boards).
 T_TOKEN_VERIFY = 54.7e-6
 
 # ------------------------------------------------- spec constants (1.7.0)
