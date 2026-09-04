@@ -85,7 +85,7 @@ def two_regimes(d, r, out: Path) -> Path:
 
     a1.semilogy(x, [q.reward / 1e9 for q in rows], color=ORANGE, linewidth=2, zorder=4)
     a1.axhline(d.anchor / 1e9, color=INK_2, linewidth=1.1, linestyle=(0, (4, 3)))
-    a1.text(3, d.anchor / 1e9 * 1.6, f"the anchor: two transfers, "
+    a1.text(3, d.anchor / 1e9 * 1.6, f"the anchor: claim fee + one transfer, "
             f"{d.anchor:,} lepta", color=INK_2, fontsize=8.5)
     a1.axvline(r.transition_epoch, color=INK_2, linewidth=1.1, linestyle=(0, (4, 3)))
     a1.set_xlabel("epoch", color=INK_2, fontsize=9)
@@ -419,11 +419,12 @@ def window_tax(d, out: Path) -> Path:
 
     mults = np.linspace(0.5, 3.0, 11)
     rng = np.random.default_rng(7)
+    room = max(32, cfg.max_block_txs - cfg.txs_per_block)   # MODEL 8.3 reservation
     exp_frac, infl = [], []
     for m in mults:
-        q = window._Queue(cfg.max_block_txs)
+        q = window._Queue(room)
         offered = included = expired = 0
-        draws = rng.poisson(m * cfg.max_block_txs, 4000)
+        draws = rng.poisson(m * room, 4000)
         for a_t in draws:
             inc, ex = q.step(int(a_t))
             offered += int(a_t); included += inc; expired += ex
@@ -435,7 +436,8 @@ def window_tax(d, out: Path) -> Path:
             linestyle=(0, (4, 2)), label="extra energy per paid claim")
     a0.axvline(1.0, color=INK_2, linewidth=1.0, linestyle=(0, (2, 2)))
     a0.text(1.0, max(exp_frac) * 100 * 0.95, " block space full", color=INK_2, fontsize=8)
-    a0.set_xlabel("offered demand, as a multiple of block space", color=INK_2, fontsize=9)
+    a0.set_xlabel("offered demand, as a multiple of the claim room (424 at reference "
+                  "traffic)", color=INK_2, fontsize=9)
     a0.set_ylabel("percent", color=INK_2, fontsize=9)
     a0.legend(frameon=False, fontsize=8.5, loc="upper left", labelcolor=INK_2)
     _style(a0, "Below the cap the window is free; above it, a tax",
@@ -456,8 +458,8 @@ def window_tax(d, out: Path) -> Path:
     a1.set_xlabel("token price, USD per LGO (log; dearer left)", color=INK_2, fontsize=9)
     a1.set_ylabel("incumbents keep mining until epoch", color=INK_2, fontsize=9)
     a1.legend(frameon=False, fontsize=8.5, loc="lower left", labelcolor=INK_2)
-    _style(a1, "The tax moves exactly one threshold: $0.10 retires 19 epochs early",
-           "the taxed line leaves the band only where congestion meets a marginal decision")
+    _style(a1, "The tax moves every threshold above a cent -- and helps",
+           "wasted energy pushes incumbents out early, so the taxed field onboards more")
 
     f.suptitle("The acceptance window, priced", color=INK, fontsize=12.5, x=0.008,
                ha="left", y=0.99)

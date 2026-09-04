@@ -74,7 +74,7 @@ The strategy report's §7 replaces constant arrivals with a Poisson process and 
 
 | question | current (§7 of the strategy report) | de novo |
 | --- | --- | --- |
-| does adoption speed matter? | **a hump**: the §7 Poisson study reads 949 / 6,132 / 4,997 elevated at 2 / 100 / 500 per epoch (persistent; worst ≈ a sixth of best), and the constant-arrival companion reads 707 / 5,690 / 4,663 persistent, 800 / 25,935 / 14,392 retiring — two protocols, both gated, same hump | **mostly no, with a 2026-09 asterisk**: 24,674 / 25,971 / 33,882 bonds under uniform, ×10 and ×100 arrivals if miners retire; 7,635 / 7,645 / 7,010 if they do not — the level is set by the regime, not the shape, for uniform-to-spiky arrivals. But on the spec's 3-permutation mining basis block space now rations the *loaded* shapes (front/back-loaded convert ~5,000 retiring, ~2,800 persistent), and the ×100 spike over-delivers under retiring by pegging the cap — see the report's §4 and §8.3 |
+| does adoption speed matter? | **a hump**: the §7 Poisson study reads 949 / 6,132 / 4,997 elevated at 2 / 100 / 500 per epoch (persistent; worst ≈ a sixth of best), and the constant-arrival companion reads 707 / 5,690 / 4,663 persistent, 800 / 25,935 / 14,392 retiring — two protocols, both gated, same hump | **mostly no, with a 2026-09 asterisk**: 24,674 / 25,971 / 37,811 bonds under uniform, ×10 and ×100 arrivals if miners retire; 7,643 / 7,634 / 7,007 if they do not — the level is set by the regime, not the shape, for uniform-to-spiky arrivals. The *loaded* shapes are rationed by §8.3's claim room (front/back-loaded convert ~5,000 retiring, ~2,800 persistent), and the ×100 spike over-delivers under retiring because rationing spreads its spend across more, better-priced epochs — see the report's §4 |
 | is there a closing door? | **yes**: the last cohort with even odds of bonding arrives at epoch 286 (10/epoch), 40 (100/epoch), 3 (250/epoch) **under persistence**; 399 / 251 / 77 under retirement — the door is real in both regimes, and much earlier in the one the incentives deliver | **no**: the ×100 cohort — 13,000 nodes in one epoch — is admitted and paid in both regimes, and the phase still ends on schedule — the amortisation re-spreads the borrow rather than moving its own deadline. It *bonds* completely only under retirement (median 43 epochs); under persistence 24% of it does |
 | a point of no return? | **yes, computable from the pool alone**: the §7 Poisson study reads epoch **212** at 100/epoch and 72 at 500 (gated in the strategies report); the constant-arrival companion reads 214 under persistence and 338 under retirement | **none exists**: the queue cannot outgrow the budget because the budget is spent on whoever is present; under total silence the Q7 tail holds the offer at the nominal rate until claimed |
 | does timing matter on a fixed population? | **1.64× between best and worst**; the early burst *loses* to flat and the late ramp loses 38% — the mechanism rewards arriving at a rate it can meter | **within noise inside the window** (retiring: 24.7k–28.6k; persistent: 6.1k–8.0k); late arrival costs time, not conversion |
@@ -116,12 +116,12 @@ The whale is the redesign's one accepted weakness, and `adversarial-analysis.md`
 
 | | current | de novo | **de novo\*** |
 | --- | --- | --- | --- |
-| onboarding, retiring / persistent | 27,125 / 5,465 | 24,674 / 7,635 | 24,745 / 7,635 |
+| onboarding, retiring / persistent | 27,125 / 5,465 | 24,674 / 7,643 | 24,745 / 7,643 |
 | a ×100 cohort's fate, **retiring** | the door has already closed at this arrival rate | 100% bonded, median 43 epochs | 100% bonded, median **59 epochs** |
 | a ×100 cohort's fate, **persistent** | the door has already closed | 24% bonded, median 69 epochs | 24% bonded, median 69 epochs — the bound costs it nothing |
 | best adoption speed | **a hump** — worst rate elevates a sixth of the best | none — flat across arrival shape | none |
-| a 10× whale at its best moment | cannot happen: the flow is fixed | **21% of the endowment** | **9%** |
-| a 3× / 100× whale | cannot happen | 21% / 21% — block space flattens it | 9% / 9% — flat |
+| a 10× whale at its best moment | cannot happen: the flow is fixed | **9% — §8.3's room bounds it** | **9%** |
+| a 3× / 100× whale | cannot happen | 9% / 9% — the claim room flattens it | 9% / 9% — flat |
 | phase length | never ends | 196 epochs | 197 epochs |
 | parameters someone must defend | 3 | 3 | **4** |
 | pays out until exhausted (R6 literal) | n/a | yes | within an epoch, no |
@@ -150,6 +150,6 @@ The conversion-efficiency band the redesign's identity check leans on was measur
 | R6 saturation semantics | exhaustion excluded by construction, margin ~2,000 vs 1,024 | saturation routine and bounded; a ×k spike borrows about k budgets (×100 median 97×, 58–125 across seeds) |
 | R7 fee-funded, even post-phase | no post-phase concept; the pool never ends | budget = last epoch's fees; saturation in the epoch's last half-percent |
 | R8 reward = transfer + inscription | emergent, ≈ 3× the target bundle | the anchor, by definition |
-| whale resistance | inherent, via the rationing R5 rejects | base: conceded and documented (Q8) — 21% at the worst moment (block space flattens what read 55% on the naive basis). **`de novo*`: 9%, flat across whale size, for one parameter and a ~10% longer wait** |
+| whale resistance | inherent, via the rationing R5 rejects | base: **9% at the worst moment — MODEL §8.3's reservation rule bounds it by itself** (the history: 55% naive, 21% under raw block space, 9% under the room). `de novo*` now adds protection only below the room's ceiling (5% cap → 5%, 2% → 2%) and costs a single epoch of deferral |
 
 On its own brief the redesign wins every row except the last, and the last is the one it conceded deliberately. On the old design's implicit brief — hold the outflow invariant against everything — the current mechanism remains the correct answer. The two briefs cannot both be wanted at once, which is what made the de-novo exercise worth running.

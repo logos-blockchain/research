@@ -386,10 +386,30 @@ to its own balance quickly; R6 accepts this literally (the pool pays until exhau
 conversion-efficiency band is where it shows. Quantify: end date and per-cohort admission
 under a whale of 10–100× the honest field.
 
-### 8.3 Block-space contention
+### 8.3 Block-space contention — RESOLVED 2026-09-05: the reservation rule
 
 Floored difficulty + a spike puts claims in competition with ordinary transactions inside
-`MAX_BLOCK_TXS`; the fee market responds. Quantify the crowding at ×10/×100 spikes.
+`MAX_BLOCK_TXS`. Measured on the 3-permutation mining basis, the competition was total: a
+×100 spike epoch pegged the whole 1,024-transaction block with claims in every draw, and the
+same clip rationed onboarding itself (front-/back-loaded fields converting ~18%). The model
+also contradicted itself: the fee flow — the thing that funds the pool — always assumed
+`TXS_PER_BLOCK` ordinary transactions in every block, while the admission clip let claims
+take the whole block. The rule closes both at once:
+
+| `claim_room = max(CLAIM_FLOOR, MAX_BLOCK_TXS − ordinary_txs_in_block)`, `CLAIM_FLOOR = 32` |
+| --- |
+
+**Ordinary transactions have priority; claims fill the space they leave**, with a 32-slot
+floor so claims are never starved outright even by a full ordinary block. No tuned fraction:
+the reservation is whatever ordinary demand actually is (424 claims a block at the reference
+600), and it self-adjusts with traffic. Claims are the marginal traffic — they exist to
+convert an endowment, not to outbid the commerce that funds it.
+
+What it costs, measured (the report, section 4): the crunch regimes serve claims at 424 a
+block instead of 1,024, so a ×100 cohort works through more slowly and the acceptance
+window's tax on the backlog rises accordingly; the uniform reference is untouched (its claim
+rate never approaches the room). The gates pin both the protection (ordinary traffic is
+never displaced) and the price.
 
 ### 8.4 Sparse-capacity regime
 
@@ -401,8 +421,11 @@ R7b deviation vs traffic level.
 *In plain words: an optional safety catch. The base design lets a period give away as much of the remaining fund as demand calls for, which is what lets a genuine crowd in — and also what lets one large actor take a lot. This adds a limit on the giving-away, at the cost of one number nobody can derive from first principles. It is presented as an option because that trade is a judgement, not a calculation.*
 
 Q8 settles the borrow-forward as unbounded, and §8's whale obligation quantifies what that
-concedes: 55% of the endowment to a 10× actor arriving at epoch 20, and a phase collapsing
-from 195 epochs to 23. The alternative that closes it is specified here so the base design
+concedes: under §8.3's claim room, 9% of the endowment to a 10× actor arriving at epoch 20
+against the realistic Pareto field, flat in the actor's size (the history: 55% on the naive
+basis, 21% under raw block space) — the room now does most of this variant's old job. The
+homogeneous bound is 88% on a one-core field; a board-class field concedes 63% and no
+longer collapses the phase. The alternative that closes it is specified here so the base design
 stays as decided and the variant can be adopted or declined on its own terms.
 
 | `drawable = sub_pool + draw_cap_fraction * endowment_at_epoch_start` |

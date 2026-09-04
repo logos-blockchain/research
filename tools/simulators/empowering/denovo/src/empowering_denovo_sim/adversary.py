@@ -61,6 +61,7 @@ def two_population_run(d: Derived, honest_rate: float, adv_rate: float, adv_acti
     rng = np.random.default_rng(seed)
     txs = cfg.txs_per_block if txs_per_block is None else txs_per_block
 
+    claim_room = max(32, cfg.max_block_txs - txs)      # MODEL 8.3 reservation
     endowment = d.endowment_genesis
     fee_bucket = 0
     claims_prev = 0
@@ -112,8 +113,8 @@ def two_population_run(d: Derived, honest_rate: float, adv_rate: float, adv_acti
                     if active and adv_rate > 0 else 0.0)
             ho = int(round(h_mu)) if deterministic else int(rng.poisson(h_mu)) if h_mu else 0
             ao = int(round(a_mu)) if deterministic else int(rng.poisson(a_mu)) if a_mu else 0
-            ho = min(ho, cfg.max_block_txs)
-            ao = min(ao, max(0, cfg.max_block_txs - ho))
+            ho = min(ho, claim_room)
+            ao = min(ao, max(0, claim_room - ho))
             offered = ho + ao
             if bootstrap:
                 room = (fee_bucket + endowment) // reward if reward else 0

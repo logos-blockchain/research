@@ -42,7 +42,7 @@ but because it pays little.
 
 **The redesign fixes the structural faults and concedes a different one.** Stating the design
 as *pool, nodes, years* delivers **24,674 bonds against a 25,000 intent** when bonded miners
-retire, and **7,635** when each one re-decides for itself and keeps mining — which is what
+retire, and **7,643** when each one re-decides for itself and keeps mining — which is what
 they do at the reference token price. It absorbs a ×100 spike the current design cannot. Its
 cost was a whale exposure of 55% at the worst moment, which the `de novo*` variant closes to
 **9%**, flat in the attacker's size, for one added parameter.

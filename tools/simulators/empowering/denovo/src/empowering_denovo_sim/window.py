@@ -105,7 +105,10 @@ def congestion_profile(rows, cfg, seed: int = 51_001) -> list[EpochCongestion]:
     regime changes under it, which is the one seam that is real.
     """
     rng = np.random.default_rng(seed)
-    q = _Queue(cfg.max_block_txs)
+    # The inclusion service rate is the claim room MODEL 8.3 reserves, not the whole block:
+    # ordinary transactions have priority, so at the reference traffic a block serves at
+    # most max_block_txs - txs_per_block claims (with the rule's floor of 32).
+    q = _Queue(max(32, cfg.max_block_txs - cfg.txs_per_block))
     out = []
     boot = [r for r in rows if r.bootstrap]
     for r in boot:

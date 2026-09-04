@@ -198,39 +198,42 @@ def main() -> int:
                f"bootstrap={last.bootstrap} -- which branch is draw-dependent, the legality "
                f"is not")
     r100 = engine.run(d, arrivals.spike(220, 130, at=30, factor=100), draw, epochs=220)
-    # MODEL 8.3 is REOPENED by this gate, not closed by it. On the one-core basis the spike
-    # epoch peaked at 240 of 1,024 and the question looked settled; on the board basis the cap
-    # binds outright. The mechanism has no reservation for ordinary traffic -- the engine clips
-    # claims at `max_block_txs` alone -- so a spike epoch does crowd the block.
-    check("the block-space cap DOES bind in a x100 spike epoch",
-          r100.rows[30].max_block_claims >= cfg.max_block_txs, True,
-          note=f"peak {r100.rows[30].max_block_claims} of {cfg.max_block_txs}, mean "
-               f"{r100.rows[30].claims_paid // cfg.blocks_per_epoch} -- ordinary transactions "
-               f"ARE crowded out, and MODEL 8.3 needs a reservation rule rather than a note")
+    # MODEL 8.3 is RESOLVED (2026-09-05): ordinary transactions have priority and claims
+    # fill only the space they leave, floored at 32. This gate carried the design's one
+    # blocking defect from the day the board basis exposed it (peak 1,024 -- total
+    # displacement) to the day the rule closed it; it now pins the protection.
+    check("the reservation rule holds: claims never displace ordinary traffic",
+          (r100.rows[30].max_block_claims,
+           r100.rows[30].max_block_claims <= cfg.max_block_txs - cfg.txs_per_block),
+          (cfg.max_block_txs - cfg.txs_per_block, True),
+          note=f"peak {r100.rows[30].max_block_claims} claims in the x100 spike epoch = "
+               f"the claim room exactly (1,024 - 600); every block still carries the full "
+               f"reference traffic that funds the pool")
     ratio100 = r100.rows[30].spent / r100.rows[30].budget
     ratio10 = r10.rows[30].spent / r10.rows[30].budget
-    check("a x10 spike borrows ~k budgets; block space now caps the x100's borrow",
-          (3 <= ratio10 <= 15, ratio100 <= 60), (True, True),
+    check("a x10 spike borrows ~k budgets; the claim room caps the x100's borrow",
+          (3 <= ratio10 <= 15, ratio100 <= 30), (True, True),
           note=f"x10 {ratio10:.1f}x and x100 {ratio100:.0f}x on this path; across seven "
                f"fresh seeds the x10 median is 9.3x (5.3-11.6) but the x100 median is only "
-               f"45x (29-58) -- on the 3-permutation basis a 1,024-tx block cannot pay a "
-               f"hundred budgets in an epoch, so the cap truncates the borrow-forward "
-               f"itself. The x100 median was 97x (58-125) on the naive basis; do not "
-               f"re-quote one draw as the law")
+               f"18.6x (11.8-23.9) -- 424 claims a block cannot pay a hundred budgets in an "
+               f"epoch, so MODEL 8.3's room truncates the borrow-forward itself (45x under "
+               f"the raw 1,024 clip, ~97x on the naive basis). Do not re-quote one draw "
+               f"as the law")
     # A FRESH draw: this gate asserts a property of the arrival shape, so it must not inherit
     # the shared draw's rng position -- on the shared object it reads 16,922 and measures where
     # in the stream we happen to be rather than whether the shape converts.
     # FLIPPED 2026-09, same cause as the back-loaded gate: a 28,600-board field on the
     # 3-permutation basis offers more claims than block space can pay, and the cap -- not
     # the endowment -- decides who bonds. "Complete conversion" was the naive-basis result.
-    check("front-loaded arrivals are now rationed by block space",
+    check("front-loaded arrivals are rationed by the claim room",
           engine.run(d, arrivals.front_loaded(220, 220 * 130),
                      arrivals.pi5_pareto(np.random.default_rng(2),
                                          floor_rate=power.board(cfg).candidates_per_second),
-                     epochs=220).rows[-1].bonds_total, 5_069,
-          note="of 28,600 arrivals -- the mean claim rate pegs the 1,024 cap from epoch 9 "
-               "to 16 and single blocks hit it across 190 epochs; on the naive basis every "
-               "arrival bonded. MODEL 8.3, again")
+                     epochs=220).rows[-1].bonds_total, 5_084,
+          note="of 28,600 arrivals -- a big early field offers more than 424 claims a "
+               "block for many consecutive epochs, and what the room clips cannot bond "
+               "(5,069 under the raw 1,024 clip; every arrival bonded on the naive "
+               "basis). The rationing is now the RULE working, not the defect")
 
     # R5's admission metric: the spike cohort reaches bonds like its neighbours do.
     bonds = r10.bonds_by_cohort()
@@ -356,19 +359,23 @@ def main() -> int:
 
     base = variant.evaluate(d, 0.0, "base")
     capped = variant.evaluate(d, variant.DEFAULT_CAP, "capped")
-    # The 3-permutation basis SOFTENS this finding: block space now rations the whale as
-    # well, so the base concession fell from 33-56% (naive basis) to a flat 21% at every
-    # whale size tested -- the cap, not the whale's size, binds. (A first re-measure read
-    # 12.6-21% across sizes; that spread was a stale 24,146 board rate hardcoded in
-    # variant.whale_run shrinking the whale relative to the field, fixed 2026-09.)
-    check("the base design concedes about a fifth of the endowment to a well-timed whale",
-          0.15 <= base.whale_capture <= 0.25, True,
-          note=f"{base.whale_capture:.0%} at epoch 20; 21% flat across 3x/10x/30x/100x "
-               f"whales, saturating at block space. Was 33-56% before block space bound")
-    check("the variant still bounds it to under a tenth",
-          capped.whale_capture < 0.12, True,
-          note=f"{capped.whale_capture:.0%} -- and flat across whale size: 3x/10x/30x/100x "
-               f"all land at 9%, where the base sits at 21%")
+    # MODEL 8.3's reservation rule bounds the whale BY ITSELF: 424 claims a block caps
+    # what any single epoch can pay an attacker, so the base concession is ~9%, flat
+    # across every whale size -- below the level the de novo* cap was added to reach.
+    # History: 33-56% on the naive basis, 21% flat once block space bound it, 9% under
+    # the rule. (An interim 12.6-21% spread was a stale 24,146 board rate hardcoded in
+    # variant.whale_run, fixed 2026-09.)
+    check("the reservation rule bounds the whale by itself",
+          0.06 <= base.whale_capture <= 0.11, True,
+          note=f"{base.whale_capture:.1%} at epoch 20, flat across 3x/10x/30x/100x -- the "
+               f"claim room caps per-epoch extraction; 21% before the rule, 33-56% on the "
+               f"naive basis")
+    check("and the de novo* cap at its default 10% now adds nothing",
+          abs(capped.whale_capture - base.whale_capture) < 0.01, True,
+          note=f"{capped.whale_capture:.1%} against {base.whale_capture:.1%} -- the "
+               f"variant's cap only bites below the rule's own ceiling (5% cap -> 5%, "
+               f"2% -> 2%), so its whale defence is superseded at the default and it "
+               f"stands as an optional tighter bound")
     check("and R5 survives: the x100 cohort still bonds completely",
           capped.spike_bonded_fraction, 1.0,
           note=f"median time-to-bond {capped.spike_median_epochs:.0f} epochs against the "
@@ -442,10 +449,11 @@ def main() -> int:
                "grinding, and the field goes home -- the post-phase is vestigial by design. "
                "The residue is one miner that bonds in the final epoch and never re-decides")
     check("so the DECIDED outcome is the persistent regime, not the retiring one",
-          _dec.rows[-1].bonds_total, 7_635,
-          note="against 24,707 if they retired -- the retiring figure is not a behaviour "
+          _dec.rows[-1].bonds_total, 7_643,
+          note="against 24,674 if they retired -- the retiring figure is not a behaviour "
                "anyone would choose, so it should not be quoted as an expectation. Read "
-               "7,963 until the 2026-09 claim fee thinned the margins")
+               "7,963 until the 2026-09 claim fee thinned the margins, then 7,635 until "
+               "MODEL 8.3's room nudged the persistent equilibrium")
 
     _no_x = engine.run(d, _A, _st2.hashrate_draw(cfg), epochs=240,
                        retirement_policy=ret.Rational(count_exclusion=False))
@@ -478,25 +486,27 @@ def main() -> int:
     _wspk = engine.run(d, arrivals.spike(220, 130, at=30, factor=100),
                        _st2.hashrate_draw(cfg), epochs=35)
     _cs = win.congestion_profile(_wspk.rows, cfg)[30]
-    # FLIPPED 2026-09: on the naive basis the spike offered 759 a block, cleared inside
-    # the window and lost nothing. On the 3-permutation basis it offers 1,837 against
-    # 1,024 of space and the window kills what cannot fit.
-    check("and it now taxes the x100 spike, which the naive basis acquitted",
-          (round(_cs.expiry_fraction, 3), round(_cs.inflation, 3)), (0.442, 1.794),
-          note=f"{_cs.offered / cfg.blocks_per_epoch:.0f} offered a block against 1,024 of "
-               f"space: 44.2% of the spike's solutions expire and its energy per paid "
-               f"claim inflates x1.79 -- the spike epoch pegs the cap outright in every "
-               f"draw, and MODEL 8.3's reservation rule is now non-negotiable")
+    # On the naive basis the spike cleared the window free; the 3-permutation basis made
+    # it pay (44.2% expiry against the raw 1,024 clip); MODEL 8.3's room makes it pay
+    # hard -- the same crowd queues for 424 slots a block, and the window kills the
+    # backlog. The price of protecting ordinary traffic is borne by the crowd that
+    # caused the crunch.
+    check("and the window prices the x100 spike's crowd against the claim room",
+          (round(_cs.expiry_fraction, 3), round(_cs.inflation, 3)), (0.769, 4.332),
+          note=f"{_cs.offered / cfg.blocks_per_epoch:.0f} offered a block against 424 of "
+               f"room: 76.9% of the spike's solutions expire and its energy per paid "
+               f"claim inflates x4.33 (44.2%/x1.79 under the raw clip; free on the naive "
+               f"basis)")
     _wper = engine.run(d, arrivals.uniform(220, 130), _st2.hashrate_draw(cfg), epochs=220,
                        retire_on_bond=False)
     _cp = win.congestion_profile(_wper.rows, cfg)[194]
     check("the tax dominates the late persistent endgame",
-          (round(_cp.inflation, 2), round(_cp.expiry_fraction, 3)), (3.4, 0.706),
-          note="epoch 194 of the never-shrinking field: 3,483 offered a block, 70.6% of "
-               "solutions expire, energy per paid claim x3.40 (epoch 100 already runs "
-               "44.8% expiry at x1.81) -- the floored difficulty meets finite block "
-               "space, and the window collects the difference. Read (1.41, 0.288) on "
-               "the naive basis")
+          (round(_cp.inflation, 2), round(_cp.expiry_fraction, 3)), (8.21, 0.878),
+          note="epoch 194 of the never-shrinking field: 3,483 offered a block against "
+               "424 of room, 87.8% of solutions expire, energy per paid claim x8.21 "
+               "(epoch 100 already runs 77.1% at x4.38) -- the floored difficulty meets "
+               "the claim room, and the window collects the difference. Read (1.41, "
+               "0.288) on the naive basis and (3.40, 0.706) before the room")
     check("the post-phase saturation tail loses about one percent",
           round(win.post_tail_loss(_wref.rows, cfg), 5), 0.01053,
           note="solutions found between saturation and the window's grace strip expire and "
@@ -511,14 +521,15 @@ def main() -> int:
                "capacity of 648,000 -- the grinding defence, quantified; and why the "
                "adversary harness's live-rate limit was never an understatement")
     _wcurve = win.congested_price_curve(d, prices=(0.10,))
-    # FLIPPED 2026-09: the naive basis found the tax moved no threshold at any price,
-    # because congestion lived only where no decision was marginal. On the 3-permutation
-    # basis congestion arrives ~90 epochs earlier and reaches the $0.10 margin.
-    check("the congestion tax now moves the $0.10 retirement threshold",
-          (_wcurve[0]["persists_until"], _wcurve[0]["persists_until_taxed"]), (107, 88),
-          note="19 epochs earlier with the tax closed through the decision; $1 (never "
-               "marginal) and $0.05/$0.01 (field too small to congest at the margin) "
-               "stay unmoved, with bond totals shifting about 1%")
+    # Under MODEL 8.3's room the congestion tax became a first-order term of the
+    # persistent regime: the naive basis moved no threshold, the raw-clip basis moved
+    # $0.10 by 19 epochs, and the room moves every threshold above a cent -- energy
+    # wasted on expiring solutions pushes incumbents out early, which RAISES onboarding.
+    check("the congestion tax now moves every threshold above a cent",
+          (_wcurve[0]["persists_until"], _wcurve[0]["persists_until_taxed"]), (108, 59),
+          note="49 epochs earlier at $0.10 (bonds 14,181 -> 16,844); the full sweep -- "
+               "$1: 195 -> 160 (7,643 -> 9,617), $0.05: 65 -> 42, $0.01 unmoved -- is "
+               "in the report's section 4")
 
     print()
     if FAILURES:

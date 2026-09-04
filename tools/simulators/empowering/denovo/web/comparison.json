@@ -7,18 +7,18 @@
       "bonds": 24674,
       "transition": 196,
       "spike_bonded": 1.0,
-      "spike_median_epochs": 58.0,
-      "whale_capture": 0.2091285237994794
+      "spike_median_epochs": 64.0,
+      "whale_capture": 0.0865978578306644
     },
     {
       "design": "de novo",
       "regime": "persistent",
       "cap": 0.0,
-      "bonds": 7635,
+      "bonds": 7643,
       "transition": 196,
-      "spike_bonded": 0.22292307692307692,
-      "spike_median_epochs": 70.5,
-      "whale_capture": 0.2091285237994794
+      "spike_bonded": 0.22238461538461538,
+      "spike_median_epochs": 72.0,
+      "whale_capture": 0.0865978578306644
     },
     {
       "design": "de novo*",
@@ -27,17 +27,17 @@
       "bonds": 24745,
       "transition": 196,
       "spike_bonded": 1.0,
-      "spike_median_epochs": 64.0,
+      "spike_median_epochs": 65.0,
       "whale_capture": 0.0865322651427539
     },
     {
       "design": "de novo*",
       "regime": "persistent",
       "cap": 0.1,
-      "bonds": 7635,
+      "bonds": 7643,
       "transition": 196,
-      "spike_bonded": 0.22292307692307692,
-      "spike_median_epochs": 70.5,
+      "spike_bonded": 0.22238461538461538,
+      "spike_median_epochs": 72.0,
       "whale_capture": 0.0865322651427539
     }
   ],

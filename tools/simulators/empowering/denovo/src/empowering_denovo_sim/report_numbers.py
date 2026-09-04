@@ -94,18 +94,18 @@ def build() -> list[Claim]:
               note="uniform arrivals, persistent"),
 
         # --- section 4: block space and the acceptance window, priced -------------------
-        Claim("4", rf"offers \*\*({NUM})–", min(offered),
+        Claim("4", rf"\*offers\* ({NUM})–", min(offered),
               note="x100 spike epoch, lightest independent draw (unclipped demand)"),
-        Claim("4", rf"\*\*[\d,]+–({NUM}) claims a block", max(offered),
+        Claim("4", rf"[\d,]+–({NUM}) claims a block", max(offered),
               note="x100 spike epoch, heaviest independent draw"),
-        Claim("4", rf"converts \*\*({NUM}) of its 28,600 arrivals\*\*",
+        Claim("4", rf"front-loaded \*\*({NUM}) of its 28,600 arrivals\*\*",
               front.rows[-1].bonds_total, rel=0,
               note="front-loaded onboarding, rationed by the block-space cap"),
         Claim("4", rf"loses \*\*({NUM})% of its solutions\*\*", 100 * c30.expiry_fraction,
               note="the window's tax on the x100 spike, no longer acquitted"),
         Claim("4", rf"burns ×({NUM}) energy per paid claim", c30.inflation,
               note="spike-epoch energy inflation"),
-        Claim("4", rf"({NUM}) offered a block clears", spike30[2].offered_mu,
+        Claim("4", rf"({NUM}) offered a block queue for", spike30[2].offered_mu,
               note="unclipped spike demand against the 1,024 cap"),
         Claim("4", rf"epoch 194: ({NUM}) offered a block", persist.rows[194].offered_mu,
               note="late persistent endgame, offered past the cap"),
@@ -113,10 +113,9 @@ def build() -> list[Claim]:
               note="the window's congestion tax at its worst"),
         Claim("4", rf"energy per paid claim ×({NUM})", c194.inflation,
               note="offered per paid claim, epoch 194"),
-        Claim("4", rf"retires \*\*({NUM}) epochs earlier\*\*",
-              107 - 88, rel=0,
-              note="the congestion tax closed through the $0.10 retirement decision; the "
-                   "two thresholds are pinned in validate's window gates"),
+        Claim("4", rf"at \$0\.10 at epoch ({NUM}) instead of 108", 59, rel=0,
+              note="the congestion tax closed through the retirement decision; the "
+                   "threshold pair (108, 59) is pinned in validate's window gates"),
 
         # --- section 6: the saturation tail's standing fee ------------------------------
         Claim("6", rf"\*\*({NUM})% of a settled post-phase epoch",

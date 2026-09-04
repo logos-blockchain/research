@@ -76,9 +76,9 @@ All three are the same fact seen three ways: a fixed claim flow means a bigger c
 
 | a 10× actor at its best moment (epoch 20) | current | de novo | de novo\* |
 | --- | --- | --- | --- |
-| endowment captured, realistic field | cannot be drained | **21%** | **9%** |
-| against a homogeneous field (the bound) | cannot be drained | 88%, phase collapses to epoch 24 | — |
-| capture at 3× / 100× | — | 21% / 21% — block space flattens it | 9% / 9%, flat |
+| endowment captured, realistic field | cannot be drained | **9% — the §8.3 room bounds it by itself** | **9%** |
+| against a homogeneous field (the bound) | cannot be drained | 88% (one-core field; a board field concedes 63% and the phase no longer collapses) | — |
+| capture at 3× / 100× | — | 9% / 9% — the claim room flattens it | 9% / 9%, flat |
 
 The current design cannot be drained by anyone, because its outflow is fixed — a genuine advantage, bought with precisely the rationing that gives it the closing door. `de novo*` recovers most of that protection by bounding what the endowment may give up per epoch *beyond* the scheduled amount, which converts instant extraction into extraction the demand index has time to reprice.
 
@@ -118,15 +118,15 @@ Measured in this mechanism, retirement is not one number at two values but two d
 
 And the arithmetic of why nobody retires: **it costs the individual 6.2% of their income and buys the network 4.5× more onboarding.** A collective-action problem in textbook form.
 
-**This is no longer an assumption.** Retirement was two flags the modeller set; it is now a decision each bonded miner re-makes every epoch, comparing what the epoch pays against what the grinding costs — including the dividend from suppressing the on-ramp, since the endowment is finite and every 1,000 LGO mined is one newcomer bond that never happens. Measured: **100% keep mining through every epoch of the scheduled bootstrap, and 100% stop the epoch it ends.** The decided outcome is 7,635 nodes — the persistent regime exactly. The retiring 24,674 is not a behaviour anyone would choose.
+**This is no longer an assumption.** Retirement was two flags the modeller set; it is now a decision each bonded miner re-makes every epoch, comparing what the epoch pays against what the grinding costs — including the dividend from suppressing the on-ramp, since the endowment is finite and every 1,000 LGO mined is one newcomer bond that never happens. Measured: **100% keep mining through every epoch of the scheduled bootstrap, and 100% stop the epoch it ends.** The decided outcome is 7,643 nodes — the persistent regime exactly. The retiring 24,674 is not a behaviour anyone would choose.
 
 **And the token price moves it, in the direction nobody expects.** Income is in LGO, electricity is in dollars, so a *dearer* token sustains incumbent mining longer and onboards *fewer* people:
 
 | token price | $1.00+ | $0.10 | $0.05 | $0.01 |
 | --- | --- | --- | --- | --- |
-| nodes onboarded | **7,635** | 10,632 | 12,903 | 22,416 |
+| nodes onboarded | **7,643** | 14,181 | 16,818 | 22,520 |
 
-**The headline 24,674 requires a token worth under a cent.** At any price at which this would be judged a success, onboarding is a third of the target — which is the strongest reason to re-strike the triple (§4).
+(With the acceptance window's congestion tax closed through the same decision the numbers *improve* — 9,617 at $1, 16,844 at $0.10 — because wasted energy in the crunch pushes incumbents out early; report §4.) **The headline 24,674 requires a token worth under a cent.** At any price at which this would be judged a success, onboarding is a third of the target — which is the strongest reason to re-strike the triple (§4).
 
 ### 3.6 What proof of work becomes afterwards
 
@@ -138,9 +138,9 @@ Once the endowment is spent, the reward is one transfer plus one inscription, wh
 
 *In plain words: what I would actually do, and why — including one thing that must be fixed first.*
 
-**Adopt `de novo*`, with the reference triple re-struck against the persistent regime — and with a block-space reservation rule added first.**
+**Adopt `de novo*`, with the reference triple re-struck against the persistent regime — and with a block-space reservation rule added first.** *(2026-09-05: the reservation rule is now in MODEL §8.3, and it bounds the whale at ~9% by itself — so `de novo*`'s cap is measured as optional rather than load-bearing at its default; see §3.4 and the adversarial analysis. The recommendation's whale rationale should be re-weighed by the design owner.)*
 
-> **One blocking defect, found on review — and the 2026-09 spec revision made it worse.** A big cohort crowds ordinary transactions out of blocks entirely: on the Mantle text's own three-permutation mining basis the ×100 spike epoch **pegs the 1,024-transaction cap outright in every independent draw** (1,769–1,837 offered a block, exactly 1,024 paid), and the same cap now rations onboarding itself — a front-loaded field converts 5,069 of 28,600 arrivals, a back-loaded one 12–23%. The mechanism has no reservation for ordinary traffic: it clips claims at the block cap alone. (Earlier drafts read 83–84% crowding on the measured naive-miner basis, a 240 peak on the one-core basis before that, and once misquoted a shared-draw 958; each superseded reading stays named in the report.) **MODEL §8.3 needs a rule capping the share of a block that claims may take, and the redesign must not ship without one.** It is a bounded, local fix — the redesign already meters *value* per epoch, and this meters *space* per block — but it is not optional, and it is gated so it cannot quietly re-close.
+> **The blocking defect is closed (2026-09-05): ordinary traffic now has priority by rule.** MODEL §8.3's reservation rule admits claims only into the space ordinary transactions leave (`max(32, 1,024 − ordinary)` — 424 a block at the reference 600). The ×100 spike epoch that used to peg the whole block now pays exactly 424 claims a block in every draw and **the reference traffic rides through untouched**, which also repairs the model's own inconsistency: its fee flow always assumed the 600 ordinary transactions its old clip let claims displace. The crunches pay for their own protection — the ×100 borrow truncates at ~19 budgets, its bond median stretches to 64 epochs, the loaded shapes stay rationed (~5,000 of 28,600) — and the room incidentally **bounds the whale at ~9% by itself**, superseding de novo\*'s defence at its default cap. Gated (`the reservation rule holds`), with every superseded reading named in the report.
 
 > **And one design decision forced from upstream, now taken.** The 2026-09-04 claim signature (ZkSignature, 590 gas) pushed a claim's own fee (11,298 lepta) past the two-transfer anchor (11,158): a post-phase claim at the anchor mined at a small loss, and R1's self-funding margin was gone exactly where the design leans on it. **Re-struck 2026-09-05: the anchor is the claim's fee plus one average transfer — 16,877 lepta** — R1 written into the definition itself, immune to any future movement of the claim's fee ratio. Post-phase capacity re-derives to about 428,000 claims an epoch (~19.8 a block, from the old strike's exact 648,000); everything downstream is re-measured and re-gated.
 
@@ -148,17 +148,17 @@ The reasoning, in order of weight:
 
 1. **The current design's three pathologies are real, measured, and structural.** A best adoption speed, a door that closes inside the first year at plausible adoption, and a computable point of no return are not tuning problems — they follow from rationing a fixed flow, and no parameter choice removes them. For a mechanism whose entire purpose is onboarding, a door that shuts at epoch 34 is disqualifying.
 
-2. **The redesign's cost was the whale, and `de novo*` halves what block space already flattened** for one parameter and a deferral that vanishes in the regime that will actually obtain. 21% to 9%, flat in the attacker's size (55% to 9% on the naive mining basis — block space now does the first half of the work). Paying one parameter against R1 to remove the design's only serious concession is a good trade, and R1 was always a preference rather than a constraint.
+2. **The redesign's cost was the whale, and the §8.3 reservation rule now bounds it at ~9% by itself** — flat in the attacker's size (the finding's history: 55% to 9% via the variant on the naive basis, 21% once block space bound it, 9% from the room alone). `de novo*`'s cap adds protection only below the rule's ceiling (5% cap → 5%, 2% → 2%), so it stands as an optional tighter bound rather than the load-bearing defence. Paying one parameter against R1 to remove the design's only serious concession is a good trade, and R1 was always a preference rather than a constraint.
 
-3. **The redesign's novel risks did not survive contact with simulation.** Withholding loses money at every minority share and reaches only parity for a supermajority once measured over the whole phase; the cycle is unprofitable; and sybil resistance is an order of magnitude better than the incumbent's at moderate flooding. The things I expected to sink it did not — the block-space defect above is the one that did surface, and it is fixable rather than structural.
+3. **The redesign's novel risks did not survive contact with simulation.** Withholding loses money at every minority share and reaches only parity for a supermajority once measured over the whole phase; the cycle is unprofitable; and sybil resistance is an order of magnitude better than the incumbent's at moderate flooding. The things I expected to sink it did not — the block-space defect above is the one that did surface, and it was fixable rather than structural: the §8.3 reservation rule closed it.
 
 4. **Re-strike the triple — and stop treating the pool size as the only lever.** At the persistent efficiency (~15%) the reference triple's implied 50% is a bet on retirement. The identity puts 25,000 nodes at **1.67% of TGE** (implied efficiency 14.97%). But simulating it shows money is not sufficient, because **the arrival rate binds independently**. At the reference 130 arrivals an epoch, under persistence:
 
    | pool | 0.5% | 1.67% | 2% | 3% | 4% |
    | --- | --- | --- | --- | --- | --- |
-   | bonds delivered | 7,635 | 16,326 | 17,441 | 19,691 | 20,978 |
+   | bonds delivered | 7,643 | 16,351 | 17,484 | 19,734 | 20,997 |
 
-   Quadrupling the budget past the identity's answer buys under a third more nodes; at 200 arrivals an epoch the 1.67%, 2% and 3% pools deliver 19,473, 21,598 and 25,883. **A 25,000-node ambition now needs roughly 3% of TGE *and* an adoption rate near 200 an epoch** — the 2%-and-200 pairing that used to graze the target (22,325 on the naive basis) no longer reaches it. If 0.5% is kept, state **about 7,600** as its honest expectation. (An earlier draft quoted the 200-rate figures beside the 130-rate one without noting the different rates.) And there is a third variable, established in §3.5: at any token price above about $0.20 incumbents mine throughout the phase and the persistent column is what you get. **Money, arrival rate and token price must all cooperate to reach 25,000, and the third one cooperates only if the token stays nearly worthless.** Planning against the optimistic edge of all three at once is the single most likely way for this design to disappoint in production.
+   Quadrupling the budget past the identity's answer buys under a third more nodes; at 200 arrivals an epoch the 1.67%, 2% and 3% pools deliver 19,544, 21,657 and 25,941. **A 25,000-node ambition now needs roughly 3% of TGE *and* an adoption rate near 200 an epoch** — the 2%-and-200 pairing that used to graze the target (22,325 on the naive basis) no longer reaches it. If 0.5% is kept, state **about 7,600** as its honest expectation. (An earlier draft quoted the 200-rate figures beside the 130-rate one without noting the different rates.) And there is a third variable, established in §3.5: at any token price above about $0.20 incumbents mine throughout the phase and the persistent column is what you get. **Money, arrival rate and token price must all cooperate to reach 25,000, and the third one cooperates only if the token stays nearly worthless.** Planning against the optimistic edge of all three at once is the single most likely way for this design to disappoint in production.
 
 **What I would not do:** add a sybil defence. The design owner's position — proof of work is sheer power, and buying more of it entitles you to more reward however many identities you wear — is coherent, and every remedy would make the mechanism something other than proof of work. The flood is a property to size, and it is sized.
 

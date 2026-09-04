@@ -158,6 +158,14 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
     rate_prev = 0.0                 # last epoch's live hashrate; what a decider actually knows
 
     # ---- consensus state (MODEL.md section 2)
+    # MODEL 8.3, the reservation rule (2026-09-05): a block admits claims only into the
+    # space its ordinary transactions leave, with a guaranteed floor so claims can never be
+    # starved outright. The engine's fee flow has always assumed `txs_per_block` ordinary
+    # transactions in every block; clipping claims at `max_block_txs` alone let a burst
+    # displace the very traffic that funds the pool. Ordinary traffic now has priority by
+    # construction and the crowding defect this closes was gated, not hidden.
+    claim_room = max(32, cfg.max_block_txs - cfg.txs_per_block)
+
     endowment = d.endowment_genesis
     fee_bucket = 0
     claims_prev = 0
@@ -253,7 +261,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
                 offered = np.full(cfg.blocks_per_epoch, int(round(mu)), dtype=np.int64)
             else:
                 offered = rng.poisson(mu, cfg.blocks_per_epoch).astype(np.int64)
-            np.minimum(offered, cfg.max_block_txs, out=offered)
+            np.minimum(offered, claim_room, out=offered)   # MODEL 8.3 reservation
             # de novo*: bound what the endowment may give up this epoch. Beyond it the epoch
             # stops admitting, but the claimants persist and claim again next epoch -- by
             # which time claims_prev has risen and the reward has fallen. The cap converts
@@ -291,7 +299,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
                     offered_b = int(round(mu)) if deterministic else int(rng.poisson(mu))
                 else:
                     offered_b = 0
-                offered_b = min(offered_b, cfg.max_block_txs)
+                offered_b = min(offered_b, claim_room)     # MODEL 8.3 reservation
                 room = (budget - spent) // reward if reward else 0
                 paid = min(offered_b, max(0, room))
                 if paid:
