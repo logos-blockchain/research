@@ -229,7 +229,13 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
         wsum = weights.sum()
 
         capacity = budget // reward if reward else 0
-        target = max(1, capacity // cfg.blocks_per_epoch)
+        # CEIL, not floor (2026-09-05, with the anchor re-strike): the old two-transfer
+        # anchor made capacity/blocks exactly 30 and the floor was invisible. Off-integer
+        # (19.83 at the new anchor) the floored target steered the throttle to offer LESS
+        # than the budget funds, the epoch chronically under-spent, and R7b's saturation
+        # became intermittent. The ceiling keeps expected offers at or above capacity, so
+        # admission still closes late in the epoch at any anchor.
+        target = max(1, -(-capacity // cfg.blocks_per_epoch))
 
         spent = 0
         paid_total = 0

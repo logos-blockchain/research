@@ -22,7 +22,10 @@ export const M = {
     M.impliedEfficiency(p, nodes, poolFraction) <= p.efficiency_persistent,
   satisfiableIfRetiring: (p, nodes, poolFraction) =>
     M.impliedEfficiency(p, nodes, poolFraction) <= p.efficiency_retiring_fast,
-  anchor: (p) => 2 * p.transfer_fee_lepta,
+  // Re-struck 2026-09-05: the claim's own fee plus one transfer, so the surplus is one
+  // transaction by construction (the 2 * transfer strike broke when the 2026-09 claim
+  // signature pushed the claim's fee past it).
+  anchor: (p) => p.claim_fee_lepta + p.transfer_fee_lepta,
 
   subPool: (p, poolFraction, years) =>
     Math.floor(M.endowment(p, poolFraction) / M.epochs(p, years)),

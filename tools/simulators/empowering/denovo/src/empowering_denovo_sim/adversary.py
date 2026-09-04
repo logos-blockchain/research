@@ -102,7 +102,8 @@ def two_population_run(d: Derived, honest_rate: float, adv_rate: float, adv_acti
         active = bool(adv_active(e, last_reward))
 
         capacity = None if bootstrap else budget // reward
-        tgt = None if bootstrap else max(1, capacity // cfg.blocks_per_epoch)
+        # ceil, matching engine.py's 2026-09-05 change -- see the comment there
+        tgt = None if bootstrap else max(1, -(-capacity // cfg.blocks_per_epoch))
         spent = 0
         h_paid = a_paid = 0
         for _ in range(cfg.blocks_per_epoch):

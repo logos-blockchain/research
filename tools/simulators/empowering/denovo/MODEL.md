@@ -156,13 +156,18 @@ def on_epoch_boundary(e):
     claims_prev  = claims_paid_last_epoch
 ```
 
-**The anchor** (R8, with the stated transfer ≈ inscription assumption):
+**The anchor** (R8, re-struck 2026-09-05; with the stated transfer ≈ inscription assumption):
 
-| `anchor = 2 * tx_fee(transfer_tx_bytes, transfer_tx_gas)` — at the epoch-boundary market prices |
+| `anchor = claim_fee + tx_fee(transfer_tx_bytes, transfer_tx_gas)` — at the epoch-boundary market prices |
 | --- |
 
-At the resting prices this is `2 × 5,579 = 11,158` lepta — above the claim's own fee of 6,664,
-so a claim at the anchor is always worth submitting. The anchor moves with the fee markets by
+At the resting prices this is `11,298 + 5,579 = 16,877` lepta: the claim covers its own
+inclusion and delivers **one average transaction of value, by construction**. The original
+strike was `2 × avg_tx_fee = 11,158` — above the claim's then-fee of 6,664 with ~0.8
+transfers of surplus — until the 2026-09 upstream revision gave the claim a ZkSignature and
+590 gas, making it cost 2.03 transfers and pushing that anchor 140 lepta *under* the claim's
+own fee. The re-strike removes the failure mode rather than the instance: the surplus is one
+transfer whatever the claim's fee ratio does. The anchor still moves with the fee markets by
 construction; no parameter.
 
 **The bootstrap reward** (Q1, demand-indexed, with two floors made explicit):
@@ -245,7 +250,7 @@ work price — that is R5, and it is why the retarget is *off* here (§9).
 
 ```python
 capacity          = epoch_budget // epoch_reward                    # claims the budget can pay
-claims_target     = max(1, capacity // BLOCKS_PER_EPOCH)            # per block
+claims_target     = max(1, ceil(capacity / BLOCKS_PER_EPOCH))       # per block
 difficulty_target = compute_new_reward_difficulty(claims_in_block, difficulty_target)
                     # the unchanged EMA machinery, against claims_target
 ```
@@ -257,11 +262,22 @@ the controller would ease the target to its cap across the epoch tail, reopening
 with an everyone-wins burst (the simulator measured exactly this limit cycle before the rule
 was added: the target pinned at the `p - 1` cap each epoch end, a 1,024-claim block at each
 epoch start). Its objective is R7b: claims spread evenly, the saturation point steered toward
-the epoch end. The `max(1, ·)`
-floor matters only while `capacity < 21,600` — a sparsely-funded network — where the epoch
-saturates early by necessity; at the reference traffic (600 txs/block) the capacity is
-`0.1 · 600 · 21,600 · 5,579 / 11,158 = 648,000` claims, a target of 30 per block, comfortably
-interior.
+the epoch end. **The per-block target rounds UP** (2026-09-05, with the anchor re-strike):
+the old anchor made `capacity / BLOCKS_PER_EPOCH` exactly 30 and the rounding direction was
+invisible, but off-integer a floored target steers the field to offer *less* than the budget
+funds, the epoch chronically under-spends, and saturation — the property R7b exists for —
+turns intermittent (measured: the engine and the adversarial harness drifted apart and the
+post-phase tail fee vanished). Ceiling keeps expected offers at or above capacity at any
+anchor, at the price of the saturation point sitting a little earlier when the division is
+far from integer: at the re-struck anchor the capacity is
+`0.1 · 600 · 21,600 · 5,579 / 16,877 ≈ 428,416` claims, a target of 20 per block
+(19.83 rounded up), and saturation lands around block 21,3xx — the last ~1% of the epoch
+rather than the last half-percent the integer case gave. The overshoot is re-mined: the
+post-phase tail fee (§6 of the report; `window.post_tail_loss`, gated) rises from 0.137% to
+a measured **1.05% of a settled epoch's solutions** — the price of keeping saturation
+reliable at an anchor that does not divide the epoch evenly. The `max(1, ·)` floor matters only
+while `capacity < 21,600` — a sparsely-funded network — where the epoch saturates early by
+necessity.
 
 At the transition the difficulty starts from the floor and the EMA walks it to the first
 post-phase equilibrium within its usual ~10-block time constant; no special-case rule.
@@ -310,25 +326,31 @@ With `B = BOOTSTRAP_EPOCHS`, `E_0 = ENDOWMENT_GENESIS`, uniform arrivals at the 
   reference reward: `1e12 / (1.19e10 − 6.7e3) ≈ 85` claims.
 - **Fee drag:** each claim returns `claim_fee / R` of itself to the fee flow; the pool-to-bond
   conversion is bounded above by `1 − claim_fee / R` before any stranding. At the opening
-  reward the drag is ~6e-7 — negligible; it grows as the reward falls toward the anchor,
-  reaching `6,664 / 11,158 = 59.7%` at the anchor itself. **The subsidy is what keeps the
-  drag small; the post-phase runs hot by construction** and the report must show it.
+  reward the drag is ~1e-6 — negligible; it grows as the reward falls toward the anchor,
+  reaching `11,298 / 16,877 = 66.9%` at the anchor itself (59.7% at the pre-2026-09 fee and
+  anchor). **The subsidy is what keeps the drag small; the post-phase runs hot by
+  construction** and the report must show it.
 - **Saturation point under a ×k offered-demand spike (bootstrap):** claims arrive ~k× the
   epoch's expectation, the budget covers `1/k` of them, so
-  `saturation_block ≈ BLOCKS_PER_EPOCH / k`, and **the epoch spends about k budgets** —
-  measured medians 10× at k = 10 (range 6–13) and 97× at k = 100 (range 58–125) over seven
-  seeds, the spread being how the Pareto hashrate tail falls among the cohort.
+  `saturation_block ≈ BLOCKS_PER_EPOCH / k`, and **the epoch spends about k budgets — until
+  block space caps it**: on the 3-permutation mining basis a 1,024-transaction block cannot
+  pay a hundred budgets inside one epoch, so the measured medians over seven seeds are 9.3×
+  at k = 10 (range 5.3–11.6) but only 45× at k = 100 (range 29–58). On the naive basis,
+  where offered demand stayed under the cap, k = 100 spent its nominal ~97× (58–125).
 - **Phase invariance under spikes:** a one-epoch ×k spike consumes extra endowment now, but
   every later sub-pool is `remaining // epochs_left`, so the schedule re-spreads what is left
-  over the epochs that remain and **the end date does not move**. Measured across three seeds:
-  uniform ends at 195/196/181, ×10 at 196/197/172, ×100 at 196/196/196 — seed noise dominates,
-  and no spike shortens the phase. An earlier revision of this note claimed a shortening of
+  over the epochs that remain and **the end date does not move**. Measured across three seeds
+  on the 3-permutation basis: uniform ends at 196/196/181 and ×100 at 197/198/196 — seed
+  noise dominates, a spike delays the end by an epoch or two at most, and none shortens it. An earlier revision of this note claimed a shortening of
   `(k − 1)` epochs; that was wrong, and the true behaviour is the better one, since it means
   `EXPECTED_YEARS` survives the arrival shape.
-- **Post-phase equilibrium:** `capacity = pow_share · txs_per_epoch · tx_fee / anchor =
-  pow_share · txs_per_epoch / 2` — at 600 txs/block, 648,000 claims an epoch, exactly 30 a
-  block. Elegant and worth gating: **at the anchor of two transfers, the post-phase capacity
-  is half the diverted transaction count, independent of the fee level.**
+- **Post-phase equilibrium:** `capacity = pow_share · txs_per_epoch · tx_fee / anchor` — at
+  the re-struck anchor this is `pow_share · txs_per_epoch / (1 + claim_fee/tx_fee)`, about
+  428,000 claims an epoch (~19.8 a block) at 600 txs/block and the resting fee ratio. The
+  two-transfer anchor's tidier form — exactly half the diverted count, 648,000 an epoch,
+  fee-level-independent — died with that anchor: the divisor now carries the claim's own fee,
+  so the capacity moves with the fee *ratio* (though still not with the fee *level*, which
+  cancels). Gated against the engine's realised count rather than a closed constant.
 
 ## 7. Worked reference triple
 

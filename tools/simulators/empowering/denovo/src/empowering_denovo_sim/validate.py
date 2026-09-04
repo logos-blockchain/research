@@ -55,20 +55,19 @@ def main() -> int:
           (0.2, False, True),
           note="20% is above what persistence delivers and below what retirement does, so "
                "this triple distinguishes the two ceilings where the reference one cannot")
-    check("the anchor is two transfers", d.anchor, 2 * cfg.avg_tx_fee)
-    # An OPEN DESIGN BREAK, pinned as the true state rather than papered over: the anchor
-    # was sized at two average transfers when a claim cost 1.19 of one -- self-funding plus
-    # ~0.8 transfers of surplus. The 2026-09 upstream change (ZkSignature proof, gas 590)
-    # made a claim cost 2.03 transfers, so the two-transfer anchor now falls 140 lepta
-    # SHORT of the claim's own fee and R1's self-funding margin is gone at the anchor.
-    # The re-strike (three transfers, or claim_fee + one transfer) is a design decision for
-    # the owner; until it is taken, this gate records the violation so it cannot be shipped
-    # silently. SUMMARY and the report carry the same warning.
-    check("the anchor NO LONGER clears the claim's own fee (2026-09 upstream fee change)",
-          (d.anchor > cfg.claim_fee, d.anchor, cfg.claim_fee),
-          (False, 11_158, 11_298),
-          note="short by 140 lepta; a claim at the anchor mines at a small loss -- the "
-               "anchor re-strike is the open design decision this leaves")
+    # Re-struck 2026-09-05 (design owner) after the upstream claim signature made a claim
+    # cost 2.03 transfers and pushed the old two-transfer anchor (11,158) 140 lepta under
+    # the claim's own fee. The new strike writes R1 into the definition: the claim covers
+    # its own inclusion and delivers one average transaction of value, whatever the claim's
+    # fee ratio does. The violation this gate briefly pinned is thereby closed BY
+    # CONSTRUCTION, not by re-tuning a multiplier.
+    check("the anchor is the claim's own fee plus one transfer",
+          d.anchor, cfg.claim_fee + cfg.avg_tx_fee,
+          note=f"{d.anchor:,} lepta = {cfg.claim_fee:,} + {cfg.avg_tx_fee:,}")
+    check("and clears the claim's own fee by exactly one transfer, by construction",
+          d.anchor - cfg.claim_fee, cfg.avg_tx_fee,
+          note="the 2026-09 upstream fee change broke the old two-transfer strike; this "
+               "one cannot be broken by any movement of the claim's fee")
     check("opening sub-pool, LGO", d.opening_sub_pool() // cfg.base_units_per_lgo, 256_410)
     check("opening reward, LGO", round(d.opening_reward() / cfg.base_units_per_lgo, 2), 11.87)
     check("claims to a bond at the opening reward",
@@ -131,15 +130,25 @@ def main() -> int:
                f"throughout rather than one being presumed")
 
     post = [q for q in rows if not q.bootstrap][5:]          # let the throttle settle
-    check("post-phase claims hit the capacity identity exactly",
-          {q.claims_paid for q in post} == {cfg.pow_share_num * cfg.txs_per_block
-                                            * cfg.blocks_per_epoch
-                                            // (cfg.pow_share_den * 2)}, True,
-          note="capacity = pow_share * txs_per_epoch / 2 -- independent of the fee level")
+    _accrual = (cfg.txs_per_block * cfg.avg_tx_fee * cfg.pow_share_num
+                // cfg.pow_share_den) * cfg.blocks_per_epoch
+    _cap_q, _cap_r = divmod(_accrual, d.anchor)
+    check("post-phase claims hit the capacity identity",
+          set(q.claims_paid for q in post) <= {_cap_q, _cap_q + 1}, True,
+          note=f"the diverted {_accrual:,} lepta an epoch pays {_cap_q:,} claims "
+               f"(~{_cap_q / cfg.blocks_per_epoch:.1f} a block) with {_cap_r:,} rolling "
+               f"forward -- capacity = pow_share * txs_per_epoch / (1 + claim_fee/tx_fee) "
+               f"at the re-struck anchor; the two-transfer strike's exact 648,000 died "
+               f"with it. Fee-LEVEL independent still: the level cancels top and bottom")
     sat = [q.saturation_block for q in post]
-    check("and the saturation point sits in the epoch's last half-percent (R7b)",
-          all(s == engine.NOT_SET or s >= 21_500 for s in sat), True,
+    # "Last half-percent" was the integer-capacity accident of the old anchor (target
+    # exactly 30/block). The re-struck anchor gives 19.83, the ceiled target 20, and the
+    # ~1% overshoot pulls saturation to ~block 21,4xx -- the last ~1.6% is the honest
+    # bound at any anchor, and admission stays open for >98% of every settled epoch.
+    check("and the saturation point sits in the epoch's last stretch (R7b)",
+          all(s == engine.NOT_SET or s >= 21_250 for s in sat), True,
           note=f"worst settled saturation at block {min(s for s in sat if s != engine.NOT_SET):,}"
+               f" of 21,600 -- admission open for over 98% of the epoch"
           if any(s != engine.NOT_SET for s in sat) else "never saturated")
     check("no settled post block carries more than a few times the target",
           max(q.max_block_claims for q in post) <= 4 * (648_000 // cfg.blocks_per_epoch),
@@ -488,10 +497,13 @@ def main() -> int:
                "44.8% expiry at x1.81) -- the floored difficulty meets finite block "
                "space, and the window collects the difference. Read (1.41, 0.288) on "
                "the naive basis")
-    check("the post-phase saturation tail loses a tenth of a percent",
-          round(win.post_tail_loss(_wref.rows, cfg), 5), 0.00137,
+    check("the post-phase saturation tail loses about one percent",
+          round(win.post_tail_loss(_wref.rows, cfg), 5), 0.01053,
           note="solutions found between saturation and the window's grace strip expire and "
-               "re-mine next epoch -- R7b's only hidden fee, 0.137% per settled epoch")
+               "re-mine next epoch -- R7b's only hidden fee, 1.05% per settled epoch. It "
+               "was 0.137% when the two-transfer anchor made the throttle's target exactly "
+               "30/block; the re-struck anchor's ceiled target (19.83 -> 20) overshoots by "
+               "~1%, which is the same overshoot that keeps saturation reliable at all")
     check("and the window bounds any stockpile to ten blocks of the attacker's own rate",
           round(win.stockpile_bound(d, 10 * 1000 * power.board(cfg).candidates_per_second), 1),
           2612.7,

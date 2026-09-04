@@ -70,12 +70,19 @@ class Derived:
 
     @property
     def anchor(self) -> int:
-        """| ``anchor = 2 * tx_fee(transfer)`` -- R8, with transfer ~= inscription.
+        """| ``anchor = claim_fee + tx_fee(transfer)`` -- R8, re-struck 2026-09-05.
+
+        The claim covers its own inclusion and delivers one average transaction of value.
+        Struck as ``2 * avg_tx_fee`` until the 2026-09 upstream claim signature made a
+        claim cost 2.03 transfers and pushed that anchor 140 lepta under the claim's own
+        fee; the re-strike (design owner, 2026-09-05) writes R1's guarantee into the
+        definition itself, so no future movement of the claim's fee ratio can reopen it --
+        the surplus is one transfer BY CONSTRUCTION, not by coincidence of the ratio.
 
         Read from the fee model at its resting prices; in a full market simulation this is
         re-read at each epoch boundary.
         """
-        return 2 * self.cfg.avg_tx_fee
+        return self.cfg.claim_fee + self.cfg.avg_tx_fee
 
     @property
     def satisfiable(self) -> bool:
