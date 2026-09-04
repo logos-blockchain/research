@@ -1,0 +1,57 @@
+Console transcript of the blend-header-verification run on the target board,
+captured 2026-09-04. The full results.json/results.csv named at the bottom
+live on the board; this transcript is the committed primary record. The
+"implied Blend bound" section speaks the tool's pre-#421 window model
+(F_1 = 3.1, kappa_max); the measured rates above it are model-independent.
+
+==============================================================================
+  Raspberry Pi 5 Model B Rev 1.1
+  aarch64  kernel 6.18.39+rpt-rpi-2712  cores [0, 1, 2, 3]
+  cpufreq governor: performance
+  logos-blockchain 87138d2  (chore: harden fixed-size deserialization (#3425
+==============================================================================
+
+verifications per second (proving excluded)
+
+benchmark                                   1 thread       4 threads
+--------------------------------------------------------------------
+bench_verify_header_signature                3,626/s        14,407/s
+bench_verify_proof_of_quota                    164/s           652/s
+bench_verify_public_header_complete            157/s           625/s
+
+per-operation latency (median across repeats)
+--------------------------------------------------------------------
+bench_verify_header_signature             275.750 µs      277.650 µs   (1-thread repeat spread 271.200 µs .. 277.500 µs)
+bench_verify_proof_of_quota                 6.116 ms        6.131 ms   (1-thread repeat spread 6.112 ms .. 6.123 ms)
+bench_verify_public_header_complete         6.388 ms        6.399 ms   (1-thread repeat spread 6.382 ms .. 6.400 ms)
+
+scaling from 1 to 4 threads (perfect would be 4.00x)
+--------------------------------------------------------------------
+bench_verify_header_signature                  3.97x
+bench_verify_proof_of_quota                    3.99x
+bench_verify_public_header_complete            3.99x
+
+peak SoC temperature: 56.8 °C
+
+==============================================================================
+  implied Blend bound (complete header verification)
+==============================================================================
+  assumptions: W = 30 rounds of 1.0s, Phi_CC^Max = 8, F_1 = 3.1/round
+
+  single_core: 157 verifications/s
+    headers verifiable per 30-round window: 4,697
+    ... divided across 8 connections: 587 per connection
+    expected honest traffic per connection: 93
+    => kappa_max ceiling from CPU capacity: 6.31
+
+  4_threads: 625 verifications/s
+    headers verifiable per 30-round window: 18,751
+    ... divided across 8 connections: 2,344 per connection
+    expected honest traffic per connection: 93
+    => kappa_max ceiling from CPU capacity: 25.20
+
+  kappa_max must sit below the ceiling above and above the ~3.87 floor
+  set by duplication and bootstrapping. If the ceiling is under the
+  floor, this hardware cannot verify every message it may accept.
+
+wrote /home/x/Logos/research/reports/blend/header-verification/results.json and /home/x/Logos/research/reports/blend/header-verification/results.csv

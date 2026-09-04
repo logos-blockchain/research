@@ -41,10 +41,10 @@ from .difficulty_control import mint_rate_per_machine
 PI5_MINT: list[tuple[int, float]] = [(100, 4.4530), (300, 1.3950), (1000, 0.4243), (3000, 0.1715)]
 ATTACKER_CORE_MINT: list[tuple[int, float]] = [(100, 3.5514), (300, 1.2694), (1000, 0.3868), (3000, 0.1114)]
 
-# Public header verification rate, one Pi 5 core. Tool:
-# tools/benchmarks/blend-header-verification (branch
-# blend-header-verification-benchmark); the figure is as recorded in #421's PR
-# description — the run's results tree is not committed to the repo.
+# Public header verification rate, one Pi 5 core: 6.388 ms median, 3.99x to
+# four threads. Primary record: reports/blend/header-verification/
+# console-RPi5.txt, measured at logos-blockchain 87138d2 (three-branch
+# circuit), performance governor.
 V_HEADER = 157.0
 # Equi-X verify, cold challenge, Pi 5, C implementation (findings.md section 3;
 # results.csv medians 54.9-55.2 us across both Pi boards).

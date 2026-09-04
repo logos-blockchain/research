@@ -19,7 +19,7 @@ PYTHONPATH=harness python3 -m pytest harness/tests/test_blend_admission.py
 | --- | --- | --- |
 | Pi 5 whole-machine mint, tokens/s | 4.45 @ 100 · 1.40 @ 300 · 0.42 @ 1000 · 0.17 @ 3000 | `benchmark-results/RPi5-16GB/main/mining.csv`, pooled; `RPi5-8GB` agrees within 0.4% on every point, and 16GB is the slower board |
 | Fastest attacker core (285HX, Rust-JIT), tokens/s | 3.55 @ 100 · 1.27 @ 300 · 0.39 @ 1000 · 0.11 @ 3000 | `benchmark-results/FedoraIntel285HX24C-256GB/main/mining.csv`, pooled ÷ 24 |
-| Public header verification, Pi 5, one core | 157/s (6.4 ms) | tool: `tools/benchmarks/blend-header-verification` (branch `blend-header-verification-benchmark`); figures as recorded in #421's PR description — the run's results tree is **not committed** (see the provenance note below) |
+| Public header verification, Pi 5, one core | 157/s (6.388 ms; 625/s on four threads, 3.99×) | `reports/blend/header-verification/console-RPi5.txt` — measured at `logos-blockchain 87138d2` (three-branch circuit), performance governor, 56.8 °C peak. Decomposition: signature 275.75 µs + proof of quota 6.116 ms |
 | Equi-X verify, cold, Pi 5 | 54.7 µs | `benchmark-findings/findings.md` §3; primary: `results.csv` medians 54.9–55.2 µs (equix-c compiled, varied challenges, both Pi boards) |
 
 Between measured efforts the curves interpolate log-log; outside, they
@@ -165,16 +165,14 @@ specification's `d_edge^Max` constraint concrete.
 
 ## Not covered here
 
-- The header-verification figure (157/s) is current — the benchmark vendors
-  the three-branch circuit (`pow_nonce`, `pow_quota`, `pow_blend_difficulty`
-  among its Groth16 inputs) and is insensitive by structure (Groth16
-  verification is constant in circuit size; the branch added two public
-  inputs, ≤ ~10% of the 6.4 ms, against ≥ 24% margin at every consumer). Its
-  **provenance gap** is different: the tool is committed but its results tree
-  is not, on any ref or worktree — the figures survive only in #421's PR
-  description, and the tool's README warns the tree on the board may be the
-  only copy. Committing `reports/blend/header-verification/` from the Pi
-  closes it; no re-run is needed.
+- The header-verification provenance is closed: the run's console transcript
+  is committed at `reports/blend/header-verification/console-RPi5.txt`, and
+  the measured ref `logos-blockchain 87138d2` contains the third branch
+  (`blend/proofs/src/quota/pow.rs`), so 157/s is the deployed circuit's
+  figure. The transcript's "implied bound" section speaks the tool's
+  pre-#421 window model; the measured rates are model-independent. The
+  board's `results.json`/`results.csv` remain worth committing for
+  per-repeat detail.
 - Honest clients giving up under high prices, mixed device fleets beyond the
   two Pi profiles, and door-selection strategies smarter than uniform are not
   modeled.
