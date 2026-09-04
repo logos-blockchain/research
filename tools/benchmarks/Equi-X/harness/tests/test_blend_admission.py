@@ -4,8 +4,9 @@ import random
 from equix_bench.blend_admission import (
     BLEND_DIFFICULTY_BASE, D_EDGE_MAX, D_EDGE_MIN, G, L_STAR, LAMBDA_E, P, W,
     EdgeDifficulty, attacker_core_rate, blend_difficulty, erlang3_tail,
-    lower_median, pi5_rate, premine_duty, quantize, runaway_epochs_uncapped,
-    simulate_door, simulate_stranded, stranded_probability, zero_median_settles_at,
+    grace_floor, lower_median, pi5_rate, premine_duty, quantize,
+    runaway_epochs_uncapped, simulate_door, simulate_stranded,
+    stranded_probability, zero_median_settles_at,
 )
 
 V = 157.0
@@ -16,7 +17,7 @@ V = 157.0
 
 def test_edge_raises_doubles_and_caps():
     c = EdgeDifficulty(d=D_EDGE_MIN)
-    hot = (L_STAR + 1) * V * W / 8 + 1          # just above the upper deadband
+    hot = (L_STAR + 2) * V * W / 8 + 1          # just above the raise threshold
     assert c.retarget(hot, V) == 2 * D_EDGE_MIN
     c.retarget(hot, V)
     assert c.d == D_EDGE_MAX                     # 1200 capped to the ceiling
@@ -26,7 +27,7 @@ def test_edge_raises_doubles_and_caps():
 
 def test_edge_decays_by_three_quarters_and_floors():
     c = EdgeDifficulty(d=D_EDGE_MAX)
-    cold = (L_STAR - 1) * V * W / 8 - 1          # just below the lower deadband
+    cold = (L_STAR + 1) * V * W / 8 - 1          # just below the decay threshold
     assert c.retarget(cold, V) == 750
     for _ in range(20):
         c.retarget(cold, V)
@@ -35,19 +36,20 @@ def test_edge_decays_by_three_quarters_and_floors():
 
 def test_edge_holds_inside_the_deadband():
     c = EdgeDifficulty(d=500)
-    assert c.retarget(L_STAR * V * W / 8, V) == 500
+    assert c.retarget((L_STAR + 1.5) * V * W / 8, V) == 500
+
+
+def test_equilibrium_load_decays_the_door():
+    # The network steers the median load to l* — below the decay threshold, so
+    # a door at any price decays there rather than freezing (the R2 property).
+    c = EdgeDifficulty(d=D_EDGE_MAX)
+    assert c.retarget(L_STAR * V * W / 8, V) == 750
 
 
 def test_grace_floor_is_min_over_G_rounds():
-    c = EdgeDifficulty(d=D_EDGE_MIN)
-    for _ in range(G):
-        c.note_round()
-    c.d = D_EDGE_MAX
-    for _ in range(G - 1):
-        c.note_round()
-    assert c.floor_over_grace() == D_EDGE_MIN    # one old round still in window
-    c.note_round()
-    assert c.floor_over_grace() == D_EDGE_MAX
+    history = [D_EDGE_MIN] * G + [D_EDGE_MAX] * (G + 1)
+    assert grace_floor(history, 2 * G - 1) == D_EDGE_MIN  # one old round in window
+    assert grace_floor(history, 2 * G) == D_EDGE_MAX      # the window is all-new
 
 
 # ----------------------------------------------------------- blend_difficulty
@@ -55,7 +57,7 @@ def test_grace_floor_is_min_over_G_rounds():
 
 def test_blend_reanchors_to_base_over_median():
     prev = BLEND_DIFFICULTY_BASE
-    assert blend_difficulty([4], prev) == (BLEND_DIFFICULTY_BASE * L_STAR) // 4
+    assert blend_difficulty([L_STAR], prev) == prev              # the fixed point
     assert blend_difficulty([8, 8, 8], prev) == prev // 2        # clamped x2 step
     assert blend_difficulty([1], prev) == prev * 2               # clamped x2 step
 
@@ -65,8 +67,8 @@ def test_blend_holds_on_empty_and_doubles_on_zero():
     assert blend_difficulty([], prev) == prev
     assert blend_difficulty([0, 0, 1], prev) == prev * 2         # lower median 0
     # The loosening never passes the level-1 fixed point.
-    assert blend_difficulty([0], 4 * BLEND_DIFFICULTY_BASE) == 4 * BLEND_DIFFICULTY_BASE
-    assert zero_median_settles_at() == 4 * BLEND_DIFFICULTY_BASE
+    assert blend_difficulty([0], L_STAR * BLEND_DIFFICULTY_BASE) == L_STAR * BLEND_DIFFICULTY_BASE
+    assert zero_median_settles_at() == L_STAR * BLEND_DIFFICULTY_BASE
 
 
 def test_lower_median_is_deterministic():
@@ -90,7 +92,7 @@ def test_small_flood_never_trips_the_raise():
 
 
 def test_large_flood_drives_price_to_ceiling_holds_and_decays():
-    tr = simulate_door(3600, lambda t: 120.0 if 600 <= t < 2400 else 0.0, seed=0)
+    tr = simulate_door(3600, lambda t: 200.0 if 600 <= t < 2400 else 0.0, seed=0)
     assert max(tr.d[600:2400]) == D_EDGE_MAX
     # The deadband holds the ceiling under constant fire: no decay-under-attack.
     assert min(tr.d[800:2400]) == D_EDGE_MAX
@@ -98,6 +100,24 @@ def test_large_flood_drives_price_to_ceiling_holds_and_decays():
     assert tr.d[-1] == D_EDGE_MIN
     # The verification budget holds: headers + token checks under one core.
     assert max(tr.cpu) < 1.0
+
+
+def test_door_decays_at_the_pow_equilibrium_ambient():
+    # Ambient at the sized operating point (~50 arrivals) sits below the decay
+    # threshold, so the price still comes home after a flood.
+    tr = simulate_door(3600, lambda t: 200.0 if 600 <= t < 2400 else 0.0,
+                       core_mean=48.0, seed=4)
+    assert max(tr.d[600:2400]) == D_EDGE_MAX
+    assert tr.d[-1] == D_EDGE_MIN
+
+
+def test_adaptive_attacker_settles_or_flutters_one_step():
+    settle = simulate_door(3600, lambda t: 120.0 if 600 <= t < 2400 else 0.0,
+                           adaptive_giveup=800, seed=0)
+    assert set(settle.d[700:2400]) == {750}       # stable just below the give-up
+    big = simulate_door(3600, lambda t: 200.0 if 600 <= t < 2400 else 0.0,
+                        adaptive_giveup=800, seed=5)
+    assert set(big.d[700:2400]) <= {750, 1000}    # bounded one-step flutter
 
 
 def test_attacker_offers_track_its_hashpower():
@@ -113,7 +133,7 @@ def test_attacker_offers_track_its_hashpower():
 def test_stranded_rate_is_small_at_the_chosen_grace():
     assert stranded_probability(1 / pi5_rate(D_EDGE_MAX)) < 1e-9  # 4 cores
     assert stranded_probability(4 / pi5_rate(D_EDGE_MAX)) < 0.002 # 1 core
-    tr = simulate_door(3600, lambda t: 120.0 if 600 <= t < 2400 else 0.0, seed=0)
+    tr = simulate_door(3600, lambda t: 200.0 if 600 <= t < 2400 else 0.0, seed=0)
     s, n = simulate_stranded(tr, lambda d: pi5_rate(d) / 4.0, seed=2)
     assert n > 0 and s / n < 0.02
 
@@ -126,7 +146,8 @@ def test_leader_budget_numbers():
 
 def test_quantize_matches_the_spec_levels():
     assert quantize(0.0) == 0
-    assert quantize(0.5) == L_STAR
+    assert quantize(0.5) == 4
+    assert quantize(L_STAR / 8) == L_STAR
     assert quantize(10.0) == 15                                   # clamped
 
 
