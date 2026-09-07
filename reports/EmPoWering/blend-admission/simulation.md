@@ -36,7 +36,9 @@ extrapolate as 1/E (the `difficulty_control` model).
 
 The door's signal is edge presentations, not load, so its trip point is fixed in
 tokens rather than in traffic: the raise fires above `2·Λ_E = 24` presentations
-per round, which at the floor price costs **~19 of the fastest measured cores**.
+per round, which at the floor price costs **~19 of the fastest measured cores**
+— a figure that holds only because a token counts towards `P_n` once, which the
+specification states and the model here assumes.
 Below that the defence is the acceptance rate and redundancy, not escalation.
 
 ![door under a 60-core flood](img/door_flood.png)
@@ -160,19 +162,21 @@ rather than smoothed over.
    `d_blend` network-wide for free. The door now checks the token first and
    the rate cap last, and `A_n` counts an edge connection only when its token
    passed — a connection must cost work to move the load.
-2. **The zero-median runaway is closed by flooring the median at level 1**
-   (study 3): the loosening never passes the fixed point `ℓ*·BASE`.
+2. **The zero-median runaway is closed by flooring the median** (study 3):
+   the loosening never passes the floor's fixed point. *Superseded by 11 — the
+   floor became `L^Min = 2`, derived from the drain condition rather than set
+   at level 1.*
 3. **The adaptive-attacker residual is a stable occupation or a one-step
    flutter, not a wide sawtooth** (study 1b) — the PR's open question is
    rephrased accordingly.
-4. **`ℓ*` is derived, and it is 3.** The branch review (R1) found `ℓ* = 4`
-   inconsistent with the `F_W = 1` sizing: the sized traffic (60 arrivals per
-   round) is level 3.06 on the reference hardware. The set point is now the
-   level of the sized traffic, stated as a derivation at the definition, and
-   the 124 MB cache floor is consistent with it.
+4. **`ℓ*` became a derivation rather than a bare value.** The branch review
+   (R1) found it stated as a result the reader had to trust. *Superseded by 9 —
+   the derivation was against per-node hardware, which does not close; against
+   the envelope it is `ℓ* = 4` and the cache floor is 187 MB.*
 5. **The door thresholds sit above the set point** (`raise > ℓ*+2`,
    `decay < ℓ*+1`, study 1c) — sharing the naive `ℓ*±1` deadband would freeze
    every door at the equilibrium the consensus controller steers to (R2).
+   *Superseded by 10 — the door left the load signal entirely for `P_n`.*
 6. **The edge node need not await the quote** — a serialized quote round trip
    would not fit `T_E`'s own derivation on a slow link (R3).
 7. **A token moves the load once.** The priced-offer rule alone left rate-refused
@@ -193,6 +197,12 @@ rather than smoothed over.
 11. **The loosening stops at `L^Min = ⌈ℓ*/F_W^Max⌉ = 2`**, derived from the drain
    condition, and the nullifier cache floor is evaluated at `F_W^Max = 2`
    (187 MB) rather than at the sized rate.
+12. **A token counts once towards the price it sets.** Deleting the priced-pair
+   record alongside the load change left `P_n` counting every presentation, and
+   a token refused at the acceptance cap never enters the spent-token cache —
+   so a stock mined once would hold a node's ceiling for the cost of the `Λ_E`
+   tokens accepted per round, about **one** fastest core rather than the ~19
+   this report's study 1 prices. `P_n` now counts distinct tokens.
 
 ## Not covered here
 
