@@ -3,7 +3,7 @@ import random
 
 from equix_bench.blend_admission import (
     BLEND_DIFFICULTY_BASE, D_EDGE_MAX, D_EDGE_MIN, G, L_STAR, LAMBDA_E, P, W,
-    EdgeDifficulty, attacker_core_rate, blend_difficulty, erlang3_tail,
+    EdgeDifficulty, attacker_core_rate, blend_difficulty, d_blend, erlang3_tail,
     grace_floor, lower_median, pi5_rate, premine_duty, quantize,
     runaway_epochs_uncapped, simulate_door, simulate_stranded,
     stranded_probability, zero_median_settles_at,
@@ -46,29 +46,37 @@ def test_equilibrium_load_decays_the_door():
     assert c.retarget(L_STAR * V * W / 8, V) == 750
 
 
-def test_grace_floor_is_min_over_G_rounds():
-    history = [D_EDGE_MIN] * G + [D_EDGE_MAX] * (G + 1)
-    assert grace_floor(history, 2 * G - 1) == D_EDGE_MIN  # one old round in window
-    assert grace_floor(history, 2 * G) == D_EDGE_MAX      # the window is all-new
+def test_grace_floor_spans_exactly_G_rounds():
+    history = [D_EDGE_MIN] * G + [D_EDGE_MAX] * G
+    assert grace_floor(history, 2 * G - 2) == D_EDGE_MIN  # round G-1 still inside
+    assert grace_floor(history, 2 * G - 1) == D_EDGE_MAX  # exactly G new rounds
 
 
 # ----------------------------------------------------------- blend_difficulty
 
 
-def test_blend_reanchors_to_base_over_median():
-    prev = BLEND_DIFFICULTY_BASE
-    assert blend_difficulty([L_STAR], prev) == prev              # the fixed point
-    assert blend_difficulty([8, 8, 8], prev) == prev // 2        # clamped x2 step
-    assert blend_difficulty([1], prev) == prev * 2               # clamped x2 step
+def test_blend_is_a_pure_function_of_the_median():
+    base = BLEND_DIFFICULTY_BASE
+    assert blend_difficulty([L_STAR]) == base                    # the fixed point
+    assert blend_difficulty([8, 8, 8]) == (base * L_STAR) // 8   # no step clamp
+    assert blend_difficulty([1]) == base * L_STAR                # the loosest value
+    assert blend_difficulty([15]) == (base * L_STAR) // 15       # the tightest value
 
 
-def test_blend_holds_on_empty_and_doubles_on_zero():
-    prev = BLEND_DIFFICULTY_BASE
-    assert blend_difficulty([], prev) == prev
-    assert blend_difficulty([0, 0, 1], prev) == prev * 2         # lower median 0
-    # The loosening never passes the level-1 fixed point.
-    assert blend_difficulty([0], L_STAR * BLEND_DIFFICULTY_BASE) == L_STAR * BLEND_DIFFICULTY_BASE
-    assert zero_median_settles_at() == L_STAR * BLEND_DIFFICULTY_BASE
+def test_blend_empty_is_base_and_zero_is_the_level_one_fixed_point():
+    base = BLEND_DIFFICULTY_BASE
+    assert blend_difficulty([]) == base                          # no information -> the prior
+    assert blend_difficulty([0, 0, 1]) == base * L_STAR          # lower median 0, floored at 1
+    assert zero_median_settles_at() == L_STAR * base
+
+
+def test_d_blend_bootstrap_epochs_and_wrapper():
+    reports = {0: [5, 5], 1: [7], 2: [3]}
+    lookup = lambda e: reports.get(e, [])
+    for s_epoch in (0, 1, 2):
+        assert d_blend(s_epoch, lookup) == BLEND_DIFFICULTY_BASE
+    assert d_blend(3, lookup) == blend_difficulty([5, 5])        # reads epoch 0
+    assert d_blend(9, lookup) == BLEND_DIFFICULTY_BASE           # epoch 6 unreported -> prior
 
 
 def test_lower_median_is_deterministic():
@@ -111,13 +119,17 @@ def test_door_decays_at_the_pow_equilibrium_ambient():
     assert tr.d[-1] == D_EDGE_MIN
 
 
-def test_adaptive_attacker_settles_or_flutters_one_step():
-    settle = simulate_door(3600, lambda t: 120.0 if 600 <= t < 2400 else 0.0,
-                           adaptive_giveup=800, seed=0)
-    assert set(settle.d[700:2400]) == {750}       # stable just below the give-up
-    big = simulate_door(3600, lambda t: 200.0 if 600 <= t < 2400 else 0.0,
-                        adaptive_giveup=800, seed=5)
-    assert set(big.d[700:2400]) <= {750, 1000}    # bounded one-step flutter
+def test_attacks_flutter_at_most_one_step():
+    # With minting priced at the grace floor (rule 2), the floor lags each rise
+    # by up to G rounds, so mid-size and adaptive attacks flutter between two
+    # adjacent steps; a large constant flood holds the ceiling. Never a wide
+    # sawtooth.
+    for cores, giveup in ((120, 800), (200, 800), (120, None)):
+        tr = simulate_door(3600, lambda t, c=cores: float(c) if 600 <= t < 2400 else 0.0,
+                           adaptive_giveup=giveup, seed=0)
+        assert set(tr.d[700:2400]) <= {750, 1000}
+    big = simulate_door(3600, lambda t: 200.0 if 600 <= t < 2400 else 0.0, seed=0)
+    assert set(big.d[700:2400]) == {D_EDGE_MAX}   # constant large flood: held
 
 
 def test_attacker_offers_track_its_hashpower():
@@ -158,8 +170,8 @@ def test_median_shift_is_bounded_below_half_collusion():
         h, s = _shift(rng, 0.30)
         diffs.append(abs(h - s))
     # At 30% colluders the shifted median moves one or two levels in nearly
-    # every trial; the x2 clamp and the re-anchoring to BASE*4/median bound
-    # the per-epoch effect either way.
+    # every trial; the pure re-anchor to BASE*l*/median bounds the effect and
+    # gives it no memory.
     assert sum(d <= 2 for d in diffs) / len(diffs) > 0.99
     assert sum(diffs) / len(diffs) <= 2.0
 

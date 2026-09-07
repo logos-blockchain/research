@@ -17,7 +17,7 @@ PYTHONPATH=harness python3 -m pytest harness/tests/test_blend_admission.py
 
 | Quantity | Value | Source |
 | --- | --- | --- |
-| Pi 5 whole-machine mint, tokens/s | 4.45 @ 100 · 1.40 @ 300 · 0.42 @ 1000 · 0.17 @ 3000 | `benchmark-results/RPi5-16GB/main/mining.csv`, pooled; `RPi5-8GB` agrees within 0.4% on every point, and 16GB is the slower board |
+| Pi 5 whole-machine mint, tokens/s | 4.45 @ 100 · 1.40 @ 300 · 0.42 @ 1000 · 0.17 @ 3000 | `benchmark-results/RPi5-16GB/main/mining.csv`, pooled; `RPi5-8GB` agrees within 0.5% on every point, and 16GB is the slower board |
 | Fastest attacker core (285HX, Rust-JIT), tokens/s | 3.55 @ 100 · 1.27 @ 300 · 0.39 @ 1000 · 0.11 @ 3000 | `benchmark-results/FedoraIntel285HX24C-256GB/main/mining.csv`, pooled ÷ 24 |
 | Public header verification, Pi 5, one core | 157/s (6.388 ms; 625/s on four threads, 3.99×) | `reports/blend/header-verification/console-RPi5.txt` — measured at `logos-blockchain 87138d2` (three-branch circuit), performance governor, 56.8 °C peak. Decomposition: signature 275.75 µs + proof of quota 6.116 ms |
 | Equi-X verify, cold, Pi 5 | 54.7 µs | `benchmark-findings/findings.md` §3; primary: `results.csv` medians 54.9–55.2 µs (equix-c compiled, varied challenges, both Pi boards) |
@@ -43,11 +43,13 @@ Above the trip point the controller does its job:
 A 200-core flood escalates floor→600→ceiling in two retargets (60 rounds),
 **holds the ceiling for the whole flood** — its offers keep the load above the
 decay threshold — and decays home in five retargets (150 rounds) once the flood
-stops. A 120-core flood instead settles at 750: the controller finds the price
-that lands the attacker's load inside the deadband, and decays home the same
-way. Peak CPU on the defending node: 35% of one Pi 5 core. During the 200-core
-flood the attacker takes ~97% of the acceptance rate and 85% of honest offers
-are refused per round (they retry; study 2 shows none are stranded).
+stops. A 120-core flood flutters one step below the ceiling: attacker minting
+is priced at the grace floor (acceptance rule 2), which lags each price move by
+up to `G` rounds, so mid-size attacks oscillate between adjacent steps rather
+than settling. Peak CPU on the defending node: 35% of one Pi 5 core. During
+the 200-core flood the attacker takes ~98% of the acceptance rate and 85% of
+honest offers are refused per round (they retry; study 2 shows none are
+stranded).
 
 ### 1c. Decay at the network equilibrium
 
@@ -72,16 +74,16 @@ integer rule does not:
 
 ![door vs an adaptive attacker](img/door_adaptive.png)
 
-With a give-up of 800 and 120 cores, the price climbs and **settles at 750 —
-the one value just below the give-up — and holds**, because the attacker's own
-presence keeps the load inside the deadband. The equilibrium is a stable,
-priced occupation: 98% attack duty, ~97% of the acceptance rate, at a sustained
-cost the attacker cannot lower — just-below-trip pressure is ~57 fastest cores
-whatever price it settles at. At 200 cores — enough to trip the raise even one
-step below the give-up — the price flutters 750↔1000 with period 2W: bounded to
-one step, against the generic controller's multi-octave sawtooth. Either way
-the mechanism cannot hand the door back; that is the acceptance-rate cap's job
-and the PR's open question on door-occupation economics.
+With a give-up of 800, both attacker sizes **flutter one step (750↔1000)**:
+minting priced at the grace floor lags each move by up to `G` rounds, so
+neither a clean settle nor the generic controller's multi-octave sawtooth
+occurs — the excursion is bounded to adjacent steps. The occupation is priced
+either way (97% attack duty, ~97% of the acceptance rate at 120 cores), and
+its cost scales with the price the attack sustains: **just-below-trip pressure
+is ~57 fastest cores at the floor and ~140 at 750** — the floor figure is the
+attacker's cost-minimizing bound, not a price-independent constant. Either way
+the mechanism cannot hand the occupied service back; that is the
+acceptance-rate cap's job and the PR's open question on occupation economics.
 
 ## 2. The grace window `G = 60` strands nobody who matters
 
@@ -90,8 +92,8 @@ solve outlives the 60 s grace with probability:
 
 | device | at the floor (300) | at the ceiling (1000) |
 | --- | --- | --- |
-| Pi 5, 4 cores | 4.5e-37 | 1e-11 |
-| Pi 5, 1 core | 9e-10 | **0.17%** |
+| Pi 5, 4 cores | 4.5e-37 | 8.8e-12 |
+| Pi 5, 1 core | 8.2e-10 | **0.17%** |
 
 Replayed through the 200-core flood trace (price stepping ×2 twice), 0 of
 3,510 four-core and 0 of 3,606 single-core solvers were stranded. The
@@ -107,21 +109,19 @@ which is why `G` is its own parameter.
 With `N ∈ {32, 100, 1000}` reporters, honest loads lognormal around the set
 point and quantized to sixteen levels, a colluding fraction reporting the
 extreme moves the lower median by one level typically and two at most (at 30%:
-mean per-epoch multiplier 0.77 tightening / 1.47 loosening at `N = 100`), and
-the controller re-anchors to `BASE·ℓ*/median` each epoch — a shifted median is
-a bounded bias, not a compounding drift. Influence is per declaration, so it is
-priced by the SDP minimum stake.
+mean per-epoch multiplier 0.77 tightening / 1.47 loosening at `N = 100`). The
+rule is a pure re-anchor to `BASE·ℓ*/max(1, median)` — a shifted median is a
+bounded bias with **no memory**: it vanishes the epoch capture ends. Influence
+is per declaration, so it is priced by the SDP minimum stake.
 
 Two findings feed back into the specification:
 
-- **The zero-median branch was the one unbounded path.** Uncapped, a sustained
-  median of 0 doubles the threshold each epoch and reaches free admission —
-  every ticket satisfying it — in exactly **19 epochs** from `BASE`
-  (`BASE = p/2¹⁹`; ~20 weeks). Reachable only past 50% collusion or on a
-  genuinely idle network, but free admission is precisely wrong for an idle
-  network. The rule now caps the loosening at the level-1 fixed point
-  `ℓ*·BASE`, where a sustained zero median settles and stays; the cap also
-  makes the old below-`p` cap unreachable.
+- **The zero-median branch was the one unbounded path.** Under the original
+  recursive rule, a sustained median of 0 doubled the threshold each epoch and
+  reached free admission — every ticket satisfying it — in exactly **19
+  epochs** from `BASE` (`BASE = p/2¹⁹`; ~20 weeks). The rule is now stateless
+  and floors the median at level 1, so a zero median sits at the fixed point
+  `ℓ*·BASE` instantly and reversibly — no doubling dynamic exists to cap.
 - **Sixteen levels are a bucket list, not a ranking:** 89% of 100
   heterogeneous reporters share their level with another, so the on-chain load
   report ranks doors only coarsely — the targeting-oracle residual the PR
@@ -131,7 +131,7 @@ Two findings feed back into the specification:
 
 | price | pre-mine duty (3 tokens per 600 s rotation) | P(3 slot-time solves > 15 s) | > 30 s |
 | --- | --- | --- | --- |
-| 300 (floor) | 0.36% | ~2e-7 | ~3e-13 |
+| 300 (floor) | 0.36% | ~2e-7 | ~6e-16 |
 | 1000 (ceiling) | 1.18% | **4.8%** | 0.03% |
 
 Solving at slot time is safe at the floor and marginal at the ceiling: 4.8% of
@@ -148,7 +148,8 @@ specification's `d_edge^Max` constraint concrete.
    `d_blend` network-wide for free. The door now checks the token first and
    the rate cap last, and `A_n` counts an edge connection only when its token
    passed — a connection must cost work to move the load.
-2. **The loosening is capped at `4·BASE`** (study 3's runaway).
+2. **The zero-median runaway is closed by flooring the median at level 1**
+   (study 3): the loosening never passes the fixed point `ℓ*·BASE`.
 3. **The adaptive-attacker residual is a stable occupation or a one-step
    flutter, not a wide sawtooth** (study 1b) — the PR's open question is
    rephrased accordingly.
@@ -162,6 +163,16 @@ specification's `d_edge^Max` constraint concrete.
    every door at the equilibrium the consensus controller steers to (R2).
 6. **The edge node need not await the quote** — a serialized quote round trip
    would not fit `T_E`'s own derivation on a slow link (R3).
+7. **A token moves the load once.** The priced-offer rule alone left rate-refused
+   tokens replayable into the load signal at zero marginal cost (a ~6×
+   understatement of the trip cost); the spec now records priced pairs and
+   counts each token once, which also makes this module's
+   fresh-mint-per-offer model exact.
+8. **The Blend difficulty became a pure function of one epoch's reports** —
+   no step clamp, no hold-on-empty, median floored at level 1. A
+   checkpoint-bootstrapped node computes it from carried ledger state alone;
+   the attacker model here prices minting at the grace floor (acceptance
+   rule 2), which reshaped the flutter results above.
 
 ## Not covered here
 

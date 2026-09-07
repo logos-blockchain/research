@@ -3,15 +3,15 @@
 
 ## 1. The door under flood
 - 200 cores: escalation floor→ceiling in 60 rounds, held for the whole flood, decay back in 150 rounds after it.
-- 120 cores: the price settles at 750 — the value that lands the attacker's own load inside the deadband — and decays home the same way.
-- During the flood the attacker takes 97% of the acceptance rate; 85% of honest offers are refused at the rate cap (retried next rounds).
+- 120 cores: the price flutters 750–1000 — minting is priced at the grace floor, which lags each move by up to G rounds — and decays home the same way.
+- During the flood the attacker takes 98% of the acceptance rate; 85% of honest offers are refused at the rate cap (retried next rounds).
 - Peak CPU 35% of one Pi 5 core (headers + token checks) — the door holds the verification budget.
 ## 1c. Decay at the network equilibrium
 - With ambient at the sized operating point (~50 arrivals/round, level ~2.6, below the decay threshold l*+1 = 4), the door still decays to the floor 150 rounds after the flood — the lifted thresholds keep the equilibrium out of the deadband.
 - The trip point over this ambient is ~38 fastest cores at the floor (vs ~57 over a quiet network).
 ## 1b. Adaptive attackers (give-up 800)
-- 120 cores: no sawtooth — the price settles at 750, the one value just below the give-up, held by the deadband; a stable, priced occupation (attack duty 98%, 97% of the acceptance rate) instead of the generic controller's wide oscillation.
-- 200 cores: enough to trip the raise even one step below the give-up, so the price flutters 750↔1000 with period 2W — bounded to one step, against the generic controller's multi-octave sawtooth.
+- Both sizes flutter one step (750↔1000): with minting priced at the grace floor, the floor lags each move by up to G rounds, so neither a clean settle nor the generic controller's multi-octave sawtooth occurs — the excursion is bounded to adjacent steps.
+- The occupation is priced either way: attack duty 97%, 97% of the acceptance rate (120 cores). Just-below-trip pressure costs ~57 fastest cores at the floor and scales roughly linearly with the price the attack sustains (~140 at 750) — the floor figure is the attacker's cost-minimizing bound.
 ## 2. Grace window
 
 | device | d | mean solve | P(stranded), worst case |
@@ -23,8 +23,8 @@
 
 - Through the flood trace: 0/3510 four-core and 0/3606 single-core solvers stranded (price steps are what strands, not the tail alone).
 ## 3. Median robustness
-- Below half the reporters, the per-epoch multiplier stays within the x2 clamp and re-anchors to BASE*3/median: at 30% colluders the mean multiplier is 0.77 (tighten) / 1.47 (loosen) at N=100.
-- The zero-median branch, uncapped, doubles per epoch and reaches free admission in 19 epochs from BASE — which is why the rule caps the loosening at the level-1 fixed point: under a sustained median of 0 it now settles at 3*BASE and stays.
+- The rule is a pure re-anchor to BASE*3/median, so a shifted median is a bounded bias with no memory: at 30% colluders the mean multiplier is 0.77 (tighten) / 1.47 (loosen) at N=100, and it vanishes the epoch capture ends.
+- The original recursive rule's zero-median branch doubled per epoch and reached free admission in 19 epochs from BASE; the median floored at level 1 closes it statelessly — a zero median sits at 3*BASE, instantly and reversibly.
 - Sixteen levels leave 89% of 100 heterogeneous reporters sharing a level — the targeting oracle sees buckets, not a ranking.
 ## 4. Edge leader
 

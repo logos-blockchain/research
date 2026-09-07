@@ -35,7 +35,7 @@ from .difficulty_control import mint_rate_per_machine
 # ----------------------------------------------------------------- calibration
 # Pooled measured mint rates (results */main/mining.csv, tokens_per_sec_machine).
 # Pi 5: the target machine, whole machine (4 workers) — RPi5-16GB, the slower of
-# the two measured boards; RPi5-8GB agrees within 0.4% on every point. 285HX:
+# the two measured boards; RPi5-8GB agrees within 0.5% on every point. 285HX:
 # the fastest measured solver, per core (machine / 24 workers) — the marginal
 # attacker.
 PI5_MINT: list[tuple[int, float]] = [(100, 4.4530), (300, 1.3950), (1000, 0.4243), (3000, 0.1715)]
@@ -65,7 +65,6 @@ F_1 = 3.0            # messages per connection per round, expected
 # BN254 scalar field modulus (the PowTarget field).
 P = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 BLEND_DIFFICULTY_BASE = P // 2**19
-BLEND_MAX_STEP = 2
 
 
 def pi5_rate(d: float) -> float:
@@ -105,29 +104,35 @@ class EdgeDifficulty:
 
 
 def grace_floor(d_history: list[int], at: int) -> int:
-    """The lowest price in force during the G rounds before `at` (acceptance
-    rule 2 of Edge Admission)."""
-    return min(d_history[max(0, at - G): at + 1])
+    """The lowest price in force during the past G rounds, `at` inclusive
+    (acceptance rule 2 of Edge Admission)."""
+    return min(d_history[max(0, at - G + 1): at + 1])
 
 
 def lower_median(values: list[int]) -> int:
     return sorted(values)[(len(values) - 1) // 2]
 
 
-def blend_difficulty(reports: list[int], previous: int) -> int:
-    """One epoch step of the Blend Difficulty rule, verbatim (exact integers).
-    The loosening is capped at the level-1 fixed point L_STAR*BASE — the fix the
-    runaway study below motivated; without it a sustained median of 0 doubles
-    every epoch and reaches free admission (every ticket below p-1) in 19
-    epochs."""
+def blend_difficulty(reports: list[int]) -> int:
+    """The Blend Difficulty rule, verbatim (exact integers): a pure function of
+    one epoch's report set. No reports -> BASE (the calibrated prior); a median
+    of 0 loosens no further than the level-1 fixed point L_STAR*BASE via the
+    max(1, .) floor. The historical recursive rule (x2 step clamp, hold on
+    empty) was dropped so a checkpoint-bootstrapped node can compute the value
+    from carried ledger state alone; runaway_epochs_uncapped() below records
+    why the pre-fix zero branch needed a cap at all."""
     if not reports:
-        return previous
-    load = lower_median(reports)
-    lo = previous // BLEND_MAX_STEP
-    hi = min(previous * BLEND_MAX_STEP, L_STAR * BLEND_DIFFICULTY_BASE)
-    if load == 0:
-        return hi
-    return max(lo, min((BLEND_DIFFICULTY_BASE * L_STAR) // load, hi))
+        return BLEND_DIFFICULTY_BASE
+    load = max(1, lower_median(reports))
+    return (BLEND_DIFFICULTY_BASE * L_STAR) // load
+
+
+def d_blend(s: int, reports_by_epoch) -> int:
+    """The epoch wrapper: BASE for the bootstrap epochs, else the pure rule on
+    the reports attesting epoch s-3."""
+    if s < 3:
+        return BLEND_DIFFICULTY_BASE
+    return blend_difficulty(reports_by_epoch(s - 3))
 
 
 # --------------------------------------------------------------- study 1: door
@@ -161,7 +166,10 @@ def simulate_door(rounds: int, attacker_cores, honest_edge_rate: float = 2.0,
     The load numerator counts core arrivals plus TOKEN-VALID edge offers only —
     the corrected Load rule: counting refused garbage offers would let a
     costless connect-flood raise the price (and, through the report, tighten
-    d_blend network-wide) without paying any work."""
+    d_blend network-wide) without paying any work. Each offer is modeled as a
+    distinct freshly minted token, which matches the spec's one-token-counts-
+    once rule; acceptance checks 1 and 3 (window rotation, spent cache) are not
+    modeled — token identity never repeats here by construction."""
     rng = random.Random(seed)
     ctrl = EdgeDifficulty()
     tr = DoorTrace()
@@ -169,11 +177,14 @@ def simulate_door(rounds: int, attacker_cores, honest_edge_rate: float = 2.0,
     if core_mean is None:
         core_mean = PHI_CC_MAX * F_1   # quiet ambient; pass PHI*(F_1+F_W*beta)=48
                                        # for the PoW-at-sizing equilibrium
+    d_hist: list[int] = []
     for t in range(rounds):
+        d_hist.append(ctrl.d)
+        mint_price = grace_floor(d_hist, len(d_hist) - 1)   # rule 2: the floor, not the spot price
         cores = attacker_cores(t)
         if adaptive_giveup is not None and cores > 0:
             cores = cores if ctrl.d < adaptive_giveup else 0.0
-        atk_offers = _poisson(rng, cores * attacker_core_rate(ctrl.d) * ROUND)
+        atk_offers = _poisson(rng, cores * attacker_core_rate(mint_price) * ROUND)
         hon_offers = _poisson(rng, honest_edge_rate * ROUND)
         core_arrivals = _poisson(rng, core_mean)
 
@@ -270,22 +281,21 @@ def median_shift(n: int, colluders: float, direction: str, rng: random.Random,
 
 
 def runaway_epochs_uncapped() -> int:
-    """Epochs of sustained median 0 until an UNCAPPED loosening (hi bounded only
-    by p-1, the rule before the fix) reaches free admission from BASE. Exact,
-    from the real modulus — the number that motivated the level-1 cap."""
+    """Epochs of sustained median 0 until the ORIGINAL recursive rule (hold
+    state, double per epoch, bounded only by p-1) reached free admission from
+    BASE. Exact, from the real modulus — the number that motivated flooring the
+    median at level 1."""
     d, epochs = BLEND_DIFFICULTY_BASE, 0
     while d < P - 1:
-        d = min(d * BLEND_MAX_STEP, P - 1)
+        d = min(d * 2, P - 1)
         epochs += 1
     return epochs
 
 
 def zero_median_settles_at() -> int:
-    """Where the capped rule settles under a sustained median of 0."""
-    d = BLEND_DIFFICULTY_BASE
-    for _ in range(30):
-        d = blend_difficulty([0], d)
-    return d
+    """Where the rule sits under a median of 0 — the level-1 fixed point,
+    instantly and statelessly."""
+    return blend_difficulty([0])
 
 
 # ------------------------------------------------------------- study 4: leader
@@ -372,8 +382,9 @@ def main(argv=None) -> int:
     # Study 1a: constant flood of 200 fastest cores, rounds [600, 2400).
     # The raise trips above level l*+2 = 5 (98 arrivals): ~57 cores at the
     # floor against quiet ambient. 200 cores escalate to the ceiling and HOLD
-    # (their offers keep the load above the decay threshold); 120 cores settle
-    # at 750 — the price that lands their load inside the deadband.
+    # (their offers keep the load above the decay threshold); 120 cores
+    # flutter one step below it — minting is priced at the grace floor, which
+    # lags each move by up to G rounds.
     flood = simulate_door(args.rounds, lambda t: 200.0 if 600 <= t < 2400 else 0.0)
     _plot_door(flood, out / "door_flood.png", "Door under a 200-core flood (rounds 600–2400)")
     settle = simulate_door(args.rounds, lambda t: 120.0 if 600 <= t < 2400 else 0.0)
@@ -387,8 +398,9 @@ def main(argv=None) -> int:
         "## 1. The door under flood",
         f"- 200 cores: escalation floor→ceiling in {ceil_round - 600} rounds, held for the whole "
         f"flood, decay back in {back_round - 2400 if back_round else '>'} rounds after it.",
-        f"- 120 cores: the price settles at {settle.d[1500]} — the value that lands the "
-        f"attacker's own load inside the deadband — and decays home the same way.",
+        f"- 120 cores: the price flutters {sorted(set(settle.d[700:2400]))[0]}"
+        f"–{sorted(set(settle.d[700:2400]))[-1]} — minting is priced at the grace floor, "
+        f"which lags each move by up to G rounds — and decays home the same way.",
         f"- During the flood the attacker takes {acc_a / max(1, acc_a + acc_h) * 100:.0f}% of the "
         f"acceptance rate; {ref_h / max(1, ref_h + acc_h) * 100:.0f}% of honest offers are refused "
         f"at the rate cap (retried next rounds).",
@@ -427,13 +439,15 @@ def main(argv=None) -> int:
     flutter = sorted(set(big.d[700:2400]))
     lines += [
         "## 1b. Adaptive attackers (give-up 800)",
-        f"- 120 cores: no sawtooth — the price settles at {adaptive.d[1500]}, the one value "
-        f"just below the give-up, held by the deadband; a stable, priced occupation (attack "
-        f"duty {atk_on / 18:.0f}%, {acc_a2 / max(1, acc_a2 + acc_h2) * 100:.0f}% of the "
-        f"acceptance rate) instead of the generic controller's wide oscillation.",
-        f"- 200 cores: enough to trip the raise even one step below the give-up, so the price "
-        f"flutters {flutter[0]}↔{flutter[-1]} with period 2W — bounded to one step, against "
-        f"the generic controller's multi-octave sawtooth.",
+        f"- Both sizes flutter one step ({flutter[0]}↔{flutter[-1]}): with minting priced at "
+        f"the grace floor, the floor lags each move by up to G rounds, so neither a clean "
+        f"settle nor the generic controller's multi-octave sawtooth occurs — the excursion "
+        f"is bounded to adjacent steps.",
+        f"- The occupation is priced either way: attack duty {atk_on / 18:.0f}%, "
+        f"{acc_a2 / max(1, acc_a2 + acc_h2) * 100:.0f}% of the acceptance rate (120 cores). "
+        f"Just-below-trip pressure costs ~57 fastest cores at the floor and scales roughly "
+        f"linearly with the price the attack sustains (~140 at 750) — the floor figure is "
+        f"the attacker's cost-minimizing bound.",
     ]
 
     # Study 2: stranded solvers, analytic worst case and through the flood trace.
@@ -456,14 +470,14 @@ def main(argv=None) -> int:
     ties16 = 1 - len(set(ranks16)) / 100
     lines += [
         "## 3. Median robustness",
-        f"- Below half the reporters, the per-epoch multiplier stays within the x2 clamp and "
-        f"re-anchors to BASE*{L_STAR}/median: at 30% colluders the mean multiplier is "
+        f"- The rule is a pure re-anchor to BASE*{L_STAR}/median, so a shifted median is a "
+        f"bounded bias with no memory: at 30% colluders the mean multiplier is "
         f"{shifts[('tighten', 100)][0.30]:.2f} (tighten) / {shifts[('loosen', 100)][0.30]:.2f} "
-        f"(loosen) at N=100.",
-        f"- The zero-median branch, uncapped, doubles per epoch and reaches free admission in "
-        f"{ra} epochs from BASE — which is why the rule caps the loosening at the level-1 "
-        f"fixed point: under a sustained median of 0 it now settles at "
-        f"{zero_median_settles_at() // BLEND_DIFFICULTY_BASE}*BASE and stays.",
+        f"(loosen) at N=100, and it vanishes the epoch capture ends.",
+        f"- The original recursive rule's zero-median branch doubled per epoch and reached free "
+        f"admission in {ra} epochs from BASE; the median floored at level 1 closes it "
+        f"statelessly — a zero median sits at "
+        f"{zero_median_settles_at() // BLEND_DIFFICULTY_BASE}*BASE, instantly and reversibly.",
         f"- Sixteen levels leave {ties16 * 100:.0f}% of 100 heterogeneous reporters sharing a "
         f"level — the targeting oracle sees buckets, not a ranking.",
     ]
