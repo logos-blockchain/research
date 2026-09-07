@@ -4,14 +4,21 @@ Simulations of the admission mechanisms specified in `blend-protocol.md` 1.7.0
 (logos-lips branch `docs/blend-load-driven-admission`): the per-node edge door
 (`Edge Difficulty`) and the consensus threshold (`Blend Difficulty`), run as
 written — exact integer rules, real BN254 modulus — against the measured Equi-X
-curves. Four studies, one per open calibration question in the specification's
-PR. Regenerate with:
+curves. Five studies. Regenerate with:
 
 ```bash
 cd tools/benchmarks/Equi-X
 PYTHONPATH=harness python3 -m equix_bench.blend_admission --out <dir>
 PYTHONPATH=harness python3 -m pytest harness/tests/test_blend_admission.py
 ```
+
+**The rules as measured here.** Load is the share of the per-round envelope a
+node's arrivals occupy: `ℓ_n = A_n/(A^Max·r_n)` with `A^Max = Φ_CC^Max·M_1^Max +
+Λ_E = 108`, quantized to sixteen levels; `A_n` counts core arrivals plus
+**accepted** edge connections. `d_blend = BASE·ℓ*/max(L^Min, median)` with
+`ℓ* = ⌊8·60/108⌋ = 4` and `L^Min = ⌈ℓ*/F_W^Max⌉ = 2`. The door retargets on
+**presentations** `P_n` — tokens passing acceptance checks 1–3, accepted or
+refused — raising above `2·Λ_E·r_n` and decaying below `Λ_E·r_n`.
 
 ## Inputs, all measured
 
@@ -27,63 +34,43 @@ extrapolate as 1/E (the `difficulty_control` model).
 
 ## 1. The door under flood
 
-A quiet node sits at load level ~1.3 (24 core-relay arrivals + 2 honest edge
-offers against V = 157), so the door rests at the floor. The raise rule trips
-when priced arrivals cross level `ℓ*+2` = 5 — **98/round, which an attacker at
-the floor price needs ~57 fastest cores to generate** over a quiet network.
-Below that, the price never moves, and the defense against door occupation is
-the acceptance-rate cap plus redundancy: 32 fastest cores saturate one door's
-`Λ_E` at the floor while the node feels nothing, but doing that to every door
-of an `N`-node network costs `N` times ~9.5 cores, forever.
+The door's signal is edge presentations, not load, so its trip point is fixed in
+tokens rather than in traffic: the raise fires above `2·Λ_E = 24` presentations
+per round, which at the floor price costs **~19 of the fastest measured cores**.
+Below that the defence is the acceptance rate and redundancy, not escalation.
 
-Above the trip point the controller does its job:
+![door under a 60-core flood](img/door_flood.png)
 
-![door under a 200-core flood](img/door_flood.png)
+A 60-core flood escalates floor→ceiling in two retargets (60 rounds), **holds
+the ceiling for the whole flood**, and decays home in five retargets (150
+rounds). A 28-core flood — just above the trip point — flutters between 750 and
+1000, since minting is priced at the grace floor, which lags each move by up to
+`G` rounds. Peak CPU on the defending node: 35% of one Pi 5 core. The attacker
+takes ~98% of the acceptance rate during the flood, and 85% of honest offers are
+refused per round (they retry; study 2 shows none are stranded).
 
-A 200-core flood escalates floor→600→ceiling in two retargets (60 rounds),
-**holds the ceiling for the whole flood** — its offers keep the load above the
-decay threshold — and decays home in five retargets (150 rounds) once the flood
-stops. A 120-core flood flutters one step below the ceiling: attacker minting
-is priced at the grace floor (acceptance rule 2), which lags each price move by
-up to `G` rounds, so mid-size attacks oscillate between adjacent steps rather
-than settling. Peak CPU on the defending node: 35% of one Pi 5 core. During
-the 200-core flood the attacker takes ~98% of the acceptance rate and 85% of
-honest offers are refused per round (they retry; study 2 shows none are
-stranded).
+### 1c. Core traffic cannot hold the price up
 
-### 1c. Decay at the network equilibrium
+![the same flood over the sized core ambient](img/door_equilibrium.png)
 
-The door thresholds sit **above** the consensus set point (`raise > ℓ*+2`,
-`decay < ℓ*+1`) precisely so that the load Blend Difficulty steers the network
-to — level `ℓ*` — stays below the door's deadband:
+The door reads only edge presentations, so core traffic at the sized operating
+point (48 arrivals/round) never enters its signal and the price decays to the
+floor exactly as over a quiet network. This is what separating the two signals
+buys: a load-driven door could be held up by core traffic it has no power to
+shed.
 
-![the same flood over the PoW-at-sizing ambient](img/door_equilibrium.png)
-
-With ambient at the sized operating point (`Φ_CC^Max·(F_1+F_W·β_max)` = 48
-core arrivals/round, level ~2.6), the door still decays fully to the floor 150
-rounds after a flood, and the trip point over this ambient is ~38 fastest cores
-at the floor. Had the thresholds been the naive `ℓ*±1`, the equilibrium itself
-would sit inside the deadband and every attack's price would freeze there —
-the interaction the branch review caught (R2).
-
-## 1b. The adaptive attacker does not sawtooth
-
-The generic exponential-gain controller oscillated against an attacker that
-pauses above a give-up price (`difficulty-control.md` run 4). The specified
-integer rule does not:
+### 1b. Adaptive attackers flutter one step
 
 ![door vs an adaptive attacker](img/door_adaptive.png)
 
-With a give-up of 800, both attacker sizes **flutter one step (750↔1000)**:
-minting priced at the grace floor lags each move by up to `G` rounds, so
-neither a clean settle nor the generic controller's multi-octave sawtooth
-occurs — the excursion is bounded to adjacent steps. The occupation is priced
-either way (97% attack duty, ~97% of the acceptance rate at 120 cores), and
-its cost scales with the price the attack sustains: **just-below-trip pressure
-is ~57 fastest cores at the floor and ~140 at 750** — the floor figure is the
-attacker's cost-minimizing bound, not a price-independent constant. Either way
-the mechanism cannot hand the occupied service back; that is the
-acceptance-rate cap's job and the PR's open question on occupation economics.
+An attacker that pauses above a give-up price produces no sawtooth — with
+minting priced at the grace floor, which lags each move by up to `G` rounds, the
+excursion is bounded to adjacent steps (750↔1000). The occupation is priced
+either way: ~92% attack duty, ~90% of the acceptance rate at 40 cores.
+Just-below-trip pressure costs ~19 fastest cores at the floor and scales roughly
+linearly with the price sustained (~48 at 750) — the floor figure is the
+attacker's cost-minimizing bound. What the price cannot do is hand the occupied
+service back; that is the acceptance rate's and redundancy's job.
 
 ## 2. The grace window `G = 60` strands nobody who matters
 
@@ -109,8 +96,8 @@ which is why `G` is its own parameter.
 With `N ∈ {32, 100, 1000}` reporters, honest loads lognormal around the set
 point and quantized to sixteen levels, a colluding fraction reporting the
 extreme moves the lower median by one level typically and two at most (at 30%:
-mean per-epoch multiplier 0.77 tightening / 1.47 loosening at `N = 100`). The
-rule is a pure re-anchor to `BASE·ℓ*/max(1, median)` — a shifted median is a
+mean per-epoch multiplier 0.75 tightening / 1.36 loosening at `N = 100`). The
+rule is a pure re-anchor to `BASE·ℓ*/max(L^Min, median)` — a shifted median is a
 bounded bias with **no memory**: it vanishes the epoch capture ends. Influence
 is per declaration, so it is priced by the SDP minimum stake.
 
@@ -120,8 +107,9 @@ Two findings feed back into the specification:
   recursive rule, a sustained median of 0 doubled the threshold each epoch and
   reached free admission — every ticket satisfying it — in exactly **19
   epochs** from `BASE` (`BASE = p/2¹⁹`; ~20 weeks). The rule is now stateless
-  and floors the median at level 1, so a zero median sits at the fixed point
-  `ℓ*·BASE` instantly and reversibly — no doubling dynamic exists to cap.
+  and floors the median at `L^Min = 2`, so a zero median sits at `2·BASE`
+  instantly and reversibly. The floor is derived, not chosen: it is where the
+  drain condition stops holding.
 - **Sixteen levels are a bucket list, not a ranking:** 89% of 100
   heterogeneous reporters share their level with another, so the on-chain load
   report ranks doors only coarsely — the targeting-oracle residual the PR
@@ -139,6 +127,30 @@ edge leaders would miss the 15-round traversal budget and fall back to a direct
 broadcast, surrendering unlinkability. Pre-mining removes the risk for at most
 1.2% of a Pi-class machine even at the ceiling — the number that makes the
 specification's `d_edge^Max` constraint concrete.
+
+## 5. The control loop, closed
+
+The earlier rounds never closed the loop `F_W → load → median → d_blend → F_W`;
+this study iterates it from all sixteen starting levels, for every peering degree
+and edge-traffic combination.
+
+| `Φ_CC` | edge 0 | edge 6 | edge 12 |
+| --- | --- | --- | --- |
+| 6 | cycle {2,4}, fixed [3] | fixed [3] | cycle {3,4} |
+| 7 | fixed [3] | cycle {3,4} | fixed [4] |
+| 8 | cycle {3,4} | fixed [4] | **fixed [4]** |
+
+The design point — full peering with the edge allowance used — is an **exact
+fixed point** at level 4, arrivals 60, `d = BASE`, `F_W = 1`. Every attractor is
+bounded: each cycle visits two levels at most, the realized `F_W` never exceeds
+`F_W^Max = 2`, and the drain condition `3.0 + 6 < 12` holds throughout. The sized
+traffic sits **44% into its quantization band** `[54, 67.5)`; under the previous
+denominator it sat 5.7% into its band, which is what made it flap.
+
+One corner is **bistable**: `Φ_CC^Min` with no edge traffic admits both a fixed
+point at level 3 and a 2↔4 cycle, depending on where the network starts. Bounded
+and drain-safe, but the only configuration without a unique attractor — stated
+rather than smoothed over.
 
 ## What went back into the specification
 
@@ -168,11 +180,19 @@ specification's `d_edge^Max` constraint concrete.
    understatement of the trip cost); the spec now records priced pairs and
    counts each token once, which also makes this module's
    fresh-mint-per-offer model exact.
-8. **The Blend difficulty became a pure function of one epoch's reports** —
-   no step clamp, no hold-on-empty, median floored at level 1. A
-   checkpoint-bootstrapped node computes it from carried ledger state alone;
-   the attacker model here prices minting at the grace floor (acceptance
-   rule 2), which reshaped the flutter results above.
+8. **The Blend difficulty became a pure function of one epoch's reports** — no
+   step clamp, no hold-on-empty; a checkpoint-bootstrapped node computes it from
+   carried ledger state alone.
+9. **Load is measured against the protocol's per-round envelope, not against
+   self-measured hardware.** The earlier denominator was the operator's
+   provisioning choice: the same traffic reported level 3 on a one-core node and
+   level 0 on a four-core one, so `d_blend` pinned at its loosest value on any
+   multi-core network. `V_n` is deleted and the loop closes (study 5).
+10. **The door reads presentations, not load** — with load counting only
+   accepted connections, a load-driven door would be inert against any flood.
+11. **The loosening stops at `L^Min = ⌈ℓ*/F_W^Max⌉ = 2`**, derived from the drain
+   condition, and the nullifier cache floor is evaluated at `F_W^Max = 2`
+   (187 MB) rather than at the sized rate.
 
 ## Not covered here
 
