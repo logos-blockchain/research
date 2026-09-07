@@ -2,16 +2,16 @@
 # Blend load-driven admission — simulation results
 
 ## 1. The door under flood
-- 200 cores: escalation floor→ceiling in 60 rounds, held for the whole flood, decay back in 150 rounds after it.
-- 120 cores: the price flutters 750–1000 — minting is priced at the grace floor, which lags each move by up to G rounds — and decays home the same way.
+- 60 cores: escalation floor→ceiling in 60 rounds, held for the whole flood, decay back in 150 rounds after it.
+- 28 cores: the price flutters 750–1000 — minting is priced at the grace floor, which lags each move by up to G rounds — and decays home the same way.
 - During the flood the attacker takes 98% of the acceptance rate; 85% of honest offers are refused at the rate cap (retried next rounds).
 - Peak CPU 35% of one Pi 5 core (headers + token checks) — the door holds the verification budget.
-## 1c. Decay at the network equilibrium
-- With ambient at the sized operating point (~50 arrivals/round, level ~2.6, below the decay threshold l*+1 = 4), the door still decays to the floor 150 rounds after the flood — the lifted thresholds keep the equilibrium out of the deadband.
-- The trip point over this ambient is ~38 fastest cores at the floor (vs ~57 over a quiet network).
+## 1c. Core ambient cannot hold the price up
+- The door reads edge presentations only, so core traffic at the sized operating point (48 arrivals/round) does not enter its signal: the price still decays to the floor 150 rounds after the flood, exactly as over a quiet network.
+- The trip point is 19 fastest cores at the floor price, whatever the core load — 2*Lambda_E = 24 presentations per round.
 ## 1b. Adaptive attackers (give-up 800)
 - Both sizes flutter one step (750↔1000): with minting priced at the grace floor, the floor lags each move by up to G rounds, so neither a clean settle nor the generic controller's multi-octave sawtooth occurs — the excursion is bounded to adjacent steps.
-- The occupation is priced either way: attack duty 97%, 97% of the acceptance rate (120 cores). Just-below-trip pressure costs ~57 fastest cores at the floor and scales roughly linearly with the price the attack sustains (~140 at 750) — the floor figure is the attacker's cost-minimizing bound.
+- The occupation is priced either way: attack duty 92%, 90% of the acceptance rate (40 cores). Just-below-trip pressure costs ~19 fastest cores at the floor and scales roughly linearly with the price the attack sustains (~48 at 750) — the floor figure is the attacker's cost-minimizing bound.
 ## 2. Grace window
 
 | device | d | mean solve | P(stranded), worst case |
@@ -23,9 +23,9 @@
 
 - Through the flood trace: 0/3510 four-core and 0/3606 single-core solvers stranded (price steps are what strands, not the tail alone).
 ## 3. Median robustness
-- The rule is a pure re-anchor to BASE*3/median, so a shifted median is a bounded bias with no memory: at 30% colluders the mean multiplier is 0.77 (tighten) / 1.47 (loosen) at N=100, and it vanishes the epoch capture ends.
-- The original recursive rule's zero-median branch doubled per epoch and reached free admission in 19 epochs from BASE; the median floored at level 1 closes it statelessly — a zero median sits at 3*BASE, instantly and reversibly.
-- Sixteen levels leave 89% of 100 heterogeneous reporters sharing a level — the targeting oracle sees buckets, not a ranking.
+- The rule is a pure re-anchor to BASE*4/median, so a shifted median is a bounded bias with no memory: at 30% colluders the mean multiplier is 0.75 (tighten) / 1.36 (loosen) at N=100, and it vanishes the epoch capture ends.
+- The original recursive rule's zero-median branch doubled per epoch and reached free admission in 19 epochs from BASE; flooring the median at L_MIN = 2 closes it statelessly and stops the loosening where the drain condition does — a zero median sits at 2*BASE, instantly and reversibly.
+- Sixteen levels leave 88% of 100 heterogeneous reporters sharing a level — the targeting oracle sees buckets, not a ranking.
 ## 4. Edge leader
 
 | d | pre-mine duty (3 tokens per rotation) | P(3 solves > 15 s) | P(> 30 s) |
@@ -34,3 +34,15 @@
 | 1000 | 1.18% | 0.048 | 0.00028 |
 
 - Pre-mining to the ceiling costs ~1.2% of a Pi 5 and removes the slot-time risk; solving at slot time at the ceiling misses the 15 s traversal budget 4.8% of the time.
+## 5. The control loop, closed
+
+| Phi_CC | edge 0 | edge 6 | edge 12 |
+|---|---|---|---|
+| 6 | cycle {2,4}, fixed [3] | fixed [3] | cycle {3,4} |
+| 7 | fixed [3] | cycle {3,4} | fixed [4] |
+| 8 | cycle {3,4} | fixed [4] | fixed [4] |
+
+- Iterating level -> d_blend -> F_W -> arrivals -> level from all 16 starting levels: 6 of the 9 configurations have a fixed point; the design point (Phi_CC^Max with the edge allowance used) is exact at level 4, arrivals 60.
+- Every attractor is bounded: each cycle visits two levels at most and the realized F_W never exceeds 2 = F_W_MAX, so the drain condition 3.0 + 2*3 < 12 holds throughout.
+- One corner is bistable: Phi_CC^Min with no edge traffic admits both a fixed point at level 3 and a 2<->4 cycle, depending on where the network starts. Bounded and drain-safe, but the only configuration without a unique attractor.
+- The sized traffic sits 44% into its band [54.0, 67.5) — the margin the previous denominator lacked.

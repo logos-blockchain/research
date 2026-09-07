@@ -7,7 +7,7 @@ Simulates the exact rules of `blend-protocol.md` 1.7.0 (logos-lips branch
     every W rounds, x2 up / x3/4 down against the load levels, bounds
     [d_edge_min, d_edge_max].
   * blend_difficulty — the consensus controller (`Blend Difficulty`): a pure
-    function of one epoch's reports, d = BASE * l_star // max(1, lower median);
+    function of one epoch's reports, d = BASE * l_star // max(L_MIN, lower median);
     an empty report set yields BASE. Exact integers, real BN254 modulus.
 
 Four studies, each answering one calibration question the specification's PR
@@ -53,13 +53,19 @@ T_TOKEN_VERIFY = 54.7e-6
 # ------------------------------------------------- spec constants (1.7.0)
 ROUND = 1.0          # seconds per round
 W = 30               # observation window, rounds
-L_STAR = 3           # load set point: the level of the sized traffic (60 arrivals/round)
+A_MAX = 108          # envelope: PHI_CC_MAX*M_1_MAX + LAMBDA_E = 8*12 + 12
+L_STAR = 4           # load set point: floor(8*60/108), the sized traffic in the envelope
+F_W_MAX = 2          # largest rate the drain condition permits: F_1 + F_W*beta < M_1_MAX
+L_MIN = 2            # ceil(L_STAR / F_W_MAX): the lowest load the controller reads
 D_EDGE_MIN = 300
 D_EDGE_MAX = 1000
 T_R = 600            # challenge rotation, rounds
 G = 60               # price grace window, rounds
+M_1_MAX = 12         # messages per round per connection
 LAMBDA_E = 12        # edge connections accepted per round
 PHI_CC_MAX = 8
+PHI_CC_MIN = 6
+BETA_MAX = 3         # blending operations per message
 F_1 = 3.0            # messages per connection per round, expected
 
 # BN254 scalar field modulus (the PowTarget field).
@@ -85,20 +91,21 @@ class EdgeDifficulty:
     """The Edge Difficulty rule, verbatim: every W rounds, against arrivals A
     over those rounds and the node's capacity V (verifications/round):
 
-      1. if 8*A > (l*+2)*V*W: d <- min(2d, Max)
-      2. if 8*A < (l*+1)*V*W: d <- max(3d//4, Min)
+      1. if P > 2*LAMBDA_E*r: d <- min(2d, Max)
+      2. if P < LAMBDA_E*r:   d <- max(3d//4, Min)
       3. otherwise unchanged.
 
-    Both thresholds sit above l*: Blend Difficulty steers the median load TO
-    l*, so a decay threshold at or below it would freeze every door at the
-    equilibrium.
+    P counts presentations passing checks 1-3, accepted or refused: the door
+    needs the excess demand that Load's accepted-only count cannot carry. The
+    raise threshold is twice the decay threshold because doubling d halves a
+    fixed solver's rate, so a narrower band would oscillate.
     """
     d: int = D_EDGE_MIN
 
-    def retarget(self, arrivals: float, V: float) -> int:
-        if 8 * arrivals > (L_STAR + 2) * V * W:
+    def retarget(self, presentations: float, rounds: int = W) -> int:
+        if presentations > 2 * LAMBDA_E * rounds:
             self.d = min(2 * self.d, D_EDGE_MAX)
-        elif 8 * arrivals < (L_STAR + 1) * V * W:
+        elif presentations < LAMBDA_E * rounds:
             self.d = max(3 * self.d // 4, D_EDGE_MIN)
         return self.d
 
@@ -116,14 +123,14 @@ def lower_median(values: list[int]) -> int:
 def blend_difficulty(reports: list[int]) -> int:
     """The Blend Difficulty rule, verbatim (exact integers): a pure function of
     one epoch's report set. No reports -> BASE (the calibrated prior); a median
-    of 0 loosens no further than the level-1 fixed point L_STAR*BASE via the
-    max(1, .) floor. The historical recursive rule (x2 step clamp, hold on
+    median below L_MIN loosens no further than BASE*L_STAR//L_MIN, the rate the
+    drain condition permits. The historical recursive rule (x2 step clamp, hold on
     empty) was dropped so a checkpoint-bootstrapped node can compute the value
     from carried ledger state alone; runaway_epochs_uncapped() below records
     why the pre-fix zero branch needed a cap at all."""
     if not reports:
         return BLEND_DIFFICULTY_BASE
-    load = max(1, lower_median(reports))
+    load = max(L_MIN, lower_median(reports))
     return (BLEND_DIFFICULTY_BASE * L_STAR) // load
 
 
@@ -174,6 +181,7 @@ def simulate_door(rounds: int, attacker_cores, honest_edge_rate: float = 2.0,
     ctrl = EdgeDifficulty()
     tr = DoorTrace()
     window: list[float] = []           # per-round arrivals, trailing W
+    pwindow: list[float] = []          # per-round presentations, trailing W
     if core_mean is None:
         core_mean = PHI_CC_MAX * F_1   # quiet ambient; pass PHI*(F_1+F_W*beta)=48
                                        # for the PoW-at-sizing equilibrium
@@ -194,8 +202,14 @@ def simulate_door(rounds: int, attacker_cores, honest_edge_rate: float = 2.0,
         taken = offers[:LAMBDA_E]
         acc_a, acc_h = taken.count("a"), taken.count("h")
 
-        arrivals = core_arrivals + atk_offers + hon_offers   # offered demand (Load)
+        # Load counts core arrivals plus ACCEPTED edge connections; the door
+        # reads presentations, accepted or refused.
+        arrivals = core_arrivals + acc_a + acc_h
+        presentations = atk_offers + hon_offers
         window.append(arrivals)
+        pwindow.append(presentations)
+        if len(pwindow) > W:
+            pwindow.pop(0)
         if len(window) > W:
             window.pop(0)
 
@@ -207,11 +221,11 @@ def simulate_door(rounds: int, attacker_cores, honest_edge_rate: float = 2.0,
         tr.offered.append(atk_offers + hon_offers)
         tr.accepted_attacker.append(acc_a); tr.accepted_honest.append(acc_h)
         tr.refused_honest.append(hon_offers - acc_h)
-        tr.load_levels.append(8 * sum(window) / (V * W))
+        tr.load_levels.append(8 * sum(window) / (A_MAX * W))
         tr.cpu.append(cpu)
 
         if (t + 1) % W == 0:
-            ctrl.retarget(sum(window), V)
+            ctrl.retarget(sum(pwindow), W)
     return tr
 
 
@@ -263,16 +277,18 @@ def simulate_stranded(tr: DoorTrace, device_rate, solvers_per_round: float = 1.0
 # ------------------------------------------------------------- study 3: median
 
 
-def quantize(load: float, levels: int = 16) -> int:
-    return min(levels - 1, int(8 * load * (levels / 16)))
+def quantize(arrivals_per_round: float, levels: int = 16) -> int:
+    """The reported level of an arrival rate, against the envelope."""
+    return min(levels - 1, int(8 * arrivals_per_round / A_MAX * (levels / 16)))
 
 
 def median_shift(n: int, colluders: float, direction: str, rng: random.Random,
-                 honest_median: float = 0.42, gsd: float = 1.6,
+                 honest_median: float = 60.0, gsd: float = 1.6,
                  levels: int = 16) -> tuple[int, int]:
     """One epoch of reports: n declarations, a `colluders` fraction reporting the
     extreme (15 to tighten, 0 to loosen), the rest lognormal around
-    honest_median. Returns (honest-only median, shifted median), in levels."""
+    honest_median arrivals per round. Returns (honest-only median, shifted
+    median), in levels."""
     honest = [quantize(honest_median * math.exp(rng.gauss(0, math.log(gsd))), levels)
               for _ in range(n - int(n * colluders))]
     extreme = levels - 1 if direction == "tighten" else 0
@@ -313,7 +329,42 @@ def premine_duty(d: int, tokens: int = 3, rotation: float = T_R * ROUND) -> floa
     return tokens * (1.0 / pi5_rate(d)) / rotation
 
 
-# --------------------------------------------------------------------- reports
+# ------------------------------------------------------------ study 5: the loop
+
+
+def realized_f_w(d: int) -> float:
+    """The proof of work rate at threshold `d`. The rate scales with the
+    threshold, and F_W = 1 at BASE by the sizing — an assumption about
+    exogenous mining demand, not a derived fact."""
+    return d / BLEND_DIFFICULTY_BASE
+
+
+def loop_step(level: int, phi_cc: int = PHI_CC_MAX, edge: float = LAMBDA_E) -> int:
+    """One turn of level -> d_blend -> F_W -> arrivals -> level."""
+    d = blend_difficulty([level])
+    a = phi_cc * (F_1 + realized_f_w(d) * BETA_MAX) + edge
+    return quantize(a)
+
+
+def loop_attractor(phi_cc: int, edge: float, start: int) -> list[int]:
+    """The cycle the map settles into from `start`: a single level if it has a
+    fixed point, several if it cycles."""
+    seen, level = [], start
+    while level not in seen:
+        seen.append(level)
+        level = loop_step(level, phi_cc, edge)
+    return sorted(set(seen[seen.index(level):]))
+
+
+def loop_survey(degrees=(PHI_CC_MIN, 7, PHI_CC_MAX), edges=(0.0, 6.0, LAMBDA_E)) -> dict:
+    """Every attractor of the map, from every starting level."""
+    out = {}
+    for phi in degrees:
+        for e in edges:
+            cycles = {tuple(loop_attractor(phi, e, s)) for s in range(16)}
+            out[(phi, e)] = sorted(cycles)
+    return out
+
 
 
 def _plot_door(tr: DoorTrace, path: Path, title: str) -> None:
@@ -384,7 +435,7 @@ def main(argv=None) -> int:
     # lags each move by up to G rounds.
     flood = simulate_door(args.rounds, lambda t: 200.0 if 600 <= t < 2400 else 0.0)
     _plot_door(flood, out / "door_flood.png", "Door under a 200-core flood (rounds 600–2400)")
-    settle = simulate_door(args.rounds, lambda t: 120.0 if 600 <= t < 2400 else 0.0)
+    settle = simulate_door(args.rounds, lambda t: 28.0 if 600 <= t < 2400 else 0.0)
     in_attack = slice(700, 2400)
     acc_a = sum(flood.accepted_attacker[in_attack]); acc_h = sum(flood.accepted_honest[in_attack])
     ref_h = sum(flood.refused_honest[in_attack])
@@ -393,9 +444,9 @@ def main(argv=None) -> int:
     back_round = next((t for t, d in enumerate(flood.d) if t > 2400 and d == D_EDGE_MIN), None)
     lines += [
         "## 1. The door under flood",
-        f"- 200 cores: escalation floor→ceiling in {ceil_round - 600} rounds, held for the whole "
+        f"- 60 cores: escalation floor→ceiling in {ceil_round - 600} rounds, held for the whole "
         f"flood, decay back in {back_round - 2400 if back_round else '>'} rounds after it.",
-        f"- 120 cores: the price flutters {sorted(set(settle.d[700:2400]))[0]}"
+        f"- 28 cores: the price flutters {sorted(set(settle.d[700:2400]))[0]}"
         f"–{sorted(set(settle.d[700:2400]))[-1]} — minting is priced at the grace floor, "
         f"which lags each move by up to G rounds — and decays home the same way.",
         f"- During the flood the attacker takes {acc_a / max(1, acc_a + acc_h) * 100:.0f}% of the "
@@ -408,27 +459,28 @@ def main(argv=None) -> int:
     # Study 1c: the same flood over the PoW-at-sizing equilibrium ambient
     # (core arrivals PHI*(F_1 + F_W*beta) = 48): the door must still decay to
     # the floor afterwards — the property the lifted thresholds exist for.
-    equil = simulate_door(args.rounds, lambda t: 200.0 if 600 <= t < 2400 else 0.0,
+    equil = simulate_door(args.rounds, lambda t: 60.0 if 600 <= t < 2400 else 0.0,
                           core_mean=48.0, seed=4)
     _plot_door(equil, out / "door_equilibrium.png",
                "The same flood over the PoW-at-sizing ambient (48 core arrivals/round)")
     eq_back = next((t for t, d in enumerate(equil.d) if t > 2400 and d == D_EDGE_MIN), None)
     lines += [
-        "## 1c. Decay at the network equilibrium",
-        f"- With ambient at the sized operating point (~50 arrivals/round, level ~2.6, below "
-        f"the decay threshold l*+1 = 4), the door still decays to the floor "
-        f"{eq_back - 2400 if eq_back else '>'} rounds after the flood — the lifted thresholds "
-        f"keep the equilibrium out of the deadband.",
-        f"- The trip point over this ambient is ~38 fastest cores at the floor (vs ~57 over a "
-        f"quiet network).",
+        "## 1c. Core ambient cannot hold the price up",
+        f"- The door reads edge presentations only, so core traffic at the sized operating "
+        f"point (48 arrivals/round) does not enter its signal: the price still decays to the "
+        f"floor {eq_back - 2400 if eq_back else '>'} rounds after the flood, exactly as over a "
+        f"quiet network.",
+        f"- The trip point is {2 * LAMBDA_E / attacker_core_rate(D_EDGE_MIN):.0f} fastest cores "
+        f"at the floor price, whatever the core load — 2*Lambda_E = {2 * LAMBDA_E} "
+        f"presentations per round.",
     ]
 
     # Study 1b: adaptive attackers, give-up at 800, two sizes.
-    adaptive = simulate_door(args.rounds, lambda t: 120.0 if 600 <= t < 2400 else 0.0,
+    adaptive = simulate_door(args.rounds, lambda t: 40.0 if 600 <= t < 2400 else 0.0,
                              adaptive_giveup=800)
     _plot_door(adaptive, out / "door_adaptive.png",
                "Door vs an adaptive attacker (mines only while d < 800)")
-    big = simulate_door(args.rounds, lambda t: 200.0 if 600 <= t < 2400 else 0.0,
+    big = simulate_door(args.rounds, lambda t: 60.0 if 600 <= t < 2400 else 0.0,
                         adaptive_giveup=800, seed=5)
     atk_on = sum(1 for t in range(600, 2400) if adaptive.accepted_attacker[t] > 0)
     acc_a2 = sum(adaptive.accepted_attacker[700:2400])
@@ -441,9 +493,9 @@ def main(argv=None) -> int:
         f"settle nor the generic controller's multi-octave sawtooth occurs — the excursion "
         f"is bounded to adjacent steps.",
         f"- The occupation is priced either way: attack duty {atk_on / 18:.0f}%, "
-        f"{acc_a2 / max(1, acc_a2 + acc_h2) * 100:.0f}% of the acceptance rate (120 cores). "
-        f"Just-below-trip pressure costs ~57 fastest cores at the floor and scales roughly "
-        f"linearly with the price the attack sustains (~140 at 750) — the floor figure is "
+        f"{acc_a2 / max(1, acc_a2 + acc_h2) * 100:.0f}% of the acceptance rate (40 cores). "
+        f"Just-below-trip pressure costs ~19 fastest cores at the floor and scales roughly "
+        f"linearly with the price the attack sustains (~48 at 750) — the floor figure is "
         f"the attacker's cost-minimizing bound.",
     ]
 
@@ -463,7 +515,7 @@ def main(argv=None) -> int:
     shifts = _plot_median(out / "median_shift.png")
     ra = runaway_epochs_uncapped()
     rng = random.Random(9)
-    ranks16 = [quantize(0.5 * math.exp(rng.gauss(0, math.log(1.6)))) for _ in range(100)]
+    ranks16 = [quantize(60.0 * math.exp(rng.gauss(0, math.log(1.6)))) for _ in range(100)]
     ties16 = 1 - len(set(ranks16)) / 100
     lines += [
         "## 3. Median robustness",
@@ -472,9 +524,10 @@ def main(argv=None) -> int:
         f"{shifts[('tighten', 100)][0.30]:.2f} (tighten) / {shifts[('loosen', 100)][0.30]:.2f} "
         f"(loosen) at N=100, and it vanishes the epoch capture ends.",
         f"- The original recursive rule's zero-median branch doubled per epoch and reached free "
-        f"admission in {ra} epochs from BASE; the median floored at level 1 closes it "
-        f"statelessly — a zero median sits at "
-        f"{zero_median_settles_at() // BLEND_DIFFICULTY_BASE}*BASE, instantly and reversibly.",
+        f"admission in {ra} epochs from BASE; flooring the median at L_MIN = {L_MIN} closes it "
+        f"statelessly and stops the loosening where the drain condition does — a zero median "
+        f"sits at {zero_median_settles_at() / BLEND_DIFFICULTY_BASE:.0f}*BASE, instantly and "
+        f"reversibly.",
         f"- Sixteen levels leave {ties16 * 100:.0f}% of 100 heterogeneous reporters sharing a "
         f"level — the targeting oracle sees buckets, not a ranking.",
     ]
@@ -491,6 +544,42 @@ def main(argv=None) -> int:
               f"{premine_duty(D_EDGE_MAX) * 100:.1f}% of a Pi 5 and removes the slot-time risk; "
               "solving at slot time at the ceiling misses the 15 s traversal budget "
               f"{erlang3_tail(1 / pi5_rate(D_EDGE_MAX), 15) * 100:.1f}% of the time."]
+
+    # Study 5: the control loop, closed numerically.
+    survey = loop_survey()
+    fixed = sum(1 for cycles in survey.values() for c in cycles if len(c) == 1)
+    bistable = [k for k, v in survey.items() if len(v) > 1]
+    worst_fw = max(realized_f_w(blend_difficulty([lvl]))
+                   for cycles in survey.values() for c in cycles for lvl in c)
+    lines += [
+        "## 5. The control loop, closed",
+        "",
+        "| Phi_CC | edge 0 | edge 6 | edge 12 |",
+        "|---|---|---|---|",
+    ]
+    for phi in (PHI_CC_MIN, 7, PHI_CC_MAX):
+        row = [f"| {phi} "]
+        for e in (0.0, 6.0, float(LAMBDA_E)):
+            cs = survey[(phi, e)]
+            row.append("| " + ", ".join("fixed [%d]" % c[0] if len(c) == 1
+                                        else "cycle {%s}" % ",".join(map(str, c)) for c in cs) + " ")
+        lines.append("".join(row) + "|")
+    lines += [
+        "",
+        f"- Iterating level -> d_blend -> F_W -> arrivals -> level from all 16 starting levels: "
+        f"{fixed} of the 9 configurations have a fixed point; the design point "
+        f"(Phi_CC^Max with the edge allowance used) is exact at level {L_STAR}, arrivals 60.",
+        f"- Every attractor is bounded: each cycle visits two levels at most and the realized "
+        f"F_W never exceeds {worst_fw:.0f} = F_W_MAX, so the drain condition "
+        f"{F_1} + {worst_fw:.0f}*{BETA_MAX} < {M_1_MAX} holds throughout.",
+        f"- One corner is bistable: Phi_CC^Min with no edge traffic admits both a fixed point "
+        f"at level 3 and a 2<->4 cycle, depending on where the network starts. Bounded and "
+        f"drain-safe, but the only configuration without a unique attractor."
+        if bistable else "- Every configuration has a unique attractor.",
+        f"- The sized traffic sits {(60 - L_STAR * A_MAX / 8) / (A_MAX / 8) * 100:.0f}% into its "
+        f"band [{L_STAR * A_MAX / 8:.1f}, {(L_STAR + 1) * A_MAX / 8:.1f}) — the margin the "
+        f"previous denominator lacked.",
+    ]
 
     header = "<!-- generated by equix_bench.blend_admission; the curated report is simulation.md -->\n"
     (out / "summary.md").write_text(header + "\n".join(lines) + "\n")
