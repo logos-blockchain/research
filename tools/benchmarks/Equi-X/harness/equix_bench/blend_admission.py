@@ -6,9 +6,9 @@ Simulates the exact rules of `blend-protocol.md` 1.7.0 (logos-lips branch
   * EdgeDifficulty  — the per-node door controller (`Edge Difficulty`): retarget
     every W rounds, x2 up / x3/4 down against the load levels, bounds
     [d_edge_min, d_edge_max].
-  * blend_difficulty — the consensus controller (`Blend Difficulty`): the lower
-    median of quantized load reports, d = BASE * l_star // median, clamped to a
-    x2 step and below the field modulus. Exact integers, real BN254 modulus.
+  * blend_difficulty — the consensus controller (`Blend Difficulty`): a pure
+    function of one epoch's reports, d = BASE * l_star // max(1, lower median);
+    an empty report set yields BASE. Exact integers, real BN254 modulus.
 
 Four studies, each answering one calibration question the specification's PR
 carries as open:
@@ -351,12 +351,9 @@ def _plot_median(path: Path, seed: int = 3) -> dict:
             mult = []
             for c in fracs:
                 trials = [median_shift(n, c, direction, rng) for _ in range(200)]
-                # d_blend multiplier vs the honest value: 4/median (level 0 -> the
-                # x2-per-epoch runaway, plotted at the plain x2 step).
-                ratios = []
-                for hm, sm in trials:
-                    hm, sm = max(hm, 1), sm
-                    ratios.append(2.0 if sm == 0 else hm / sm)
+                # d_blend multiplier vs the honest value under the stateless
+                # rule: hm / max(1, sm) — the level-1 floor caps the loosening.
+                ratios = [max(hm, 1) / max(1, sm) for hm, sm in trials]
                 mult.append(sum(ratios) / len(ratios))
             ax[i].plot([f * 100 for f in fracs], mult, color=color, label=f"N={n}")
             out[(direction, n)] = dict(zip(fracs, mult))
