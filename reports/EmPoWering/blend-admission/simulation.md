@@ -82,7 +82,7 @@ solve outlives the 60 s grace with probability:
 | Pi 5, 4 cores | 4.5e-37 | 8.8e-12 |
 | Pi 5, 1 core | 8.2e-10 | **0.17%** |
 
-Replayed through the 200-core flood trace (price stepping ×2 twice), 0 of
+Replayed through the 60-core flood trace (price stepping ×2 twice), 0 of
 3,510 four-core and 0 of 3,606 single-core solvers were stranded. The
 constraint the specification states — `G` at least the p95 solve at the ceiling
 on the slowest device — holds with a wide margin at (60, 1000); halving `G` to
@@ -110,7 +110,7 @@ Two findings feed back into the specification:
   and floors the median at `L^Min = 2`, so a zero median sits at `2·BASE`
   instantly and reversibly. The floor is derived, not chosen: it is where the
   drain condition stops holding.
-- **Sixteen levels are a bucket list, not a ranking:** 89% of 100
+- **Sixteen levels are a bucket list, not a ranking:** 88% of 100
   heterogeneous reporters share their level with another, so the on-chain load
   report ranks doors only coarsely — the targeting-oracle residual the PR
   records.
