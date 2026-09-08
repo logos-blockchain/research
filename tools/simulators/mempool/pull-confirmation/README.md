@@ -59,7 +59,7 @@ fixed count; below it the rule is a census and exact.
 At the specification's assumptions — adversarial fraction **exactly one third**
 of the attester set (the adversary count always rounds up), honest providers
 holding a broadcast transaction with probability 0.99 by the time they are
-asked, adversary withholding:
+asked, adversary withholding, targets of 3e-5 on security and 2e-4 on liveness:
 
 | constant | value |
 | --- | --- |
@@ -71,7 +71,7 @@ asked, adversary withholding:
 | attester set | security failure | liveness failure |
 | --- | --- | --- |
 | 5000 | 2.76e-05 | 1.15e-04 |
-| 1000 | 6.9e-06 | 3.1e-05 |
+| 1000 | 1.0e-05 | 5.2e-05 |
 | 300 | 6.0e-08 | 1.1e-06 |
 
 Reproduce with `make evaluate SAMPLE=16 ROUNDS=8 WITHHOLD=1` (omitting

@@ -42,8 +42,11 @@ def _base_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="model the adversary refusing to attest to transactions it holds",
     )
-    parser.add_argument("--max-security", type=float, default=1e-9)
-    parser.add_argument("--max-liveness", type=float, default=1e-6)
+    # Targets argued from the threat rather than set at a cryptographic level:
+    # a successful tag is one observation of one proposal, and estimating a
+    # proposal rate takes tens of them. See the README.
+    parser.add_argument("--max-security", type=float, default=3e-5)
+    parser.add_argument("--max-liveness", type=float, default=2e-4)
     return parser
 
 
