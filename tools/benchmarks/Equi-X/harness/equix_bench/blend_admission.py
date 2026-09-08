@@ -1,8 +1,8 @@
 """Simulations of the Blend load-driven admission mechanisms, as specified.
 
 Simulates the exact rules of `blend-protocol.md` 1.7.0 (logos-lips branch
-`docs/blend-load-driven-admission`, on the admission budget of #421) against
-the measured Equi-X curves:
+`docs/blend-load-driven-admission`, on the per-connection shares of #421)
+against the measured Equi-X curves:
 
   * quantize_report  — the Load rule: novel arrivals against a core connection's
     share r_1, sixteen levels, rounded to nearest; exact integers.
@@ -15,9 +15,9 @@ the measured Equi-X curves:
 
 Five studies:
 
-  1. door    — the door under constant and adaptive floods, over the budget and
-               the shares of #421: does the price find the flood, who gets the
-               edge share, what does the defender's CPU do?
+  1. door    — the door under constant and adaptive floods, within the shares of
+               #421: does the price find the flood, who gets the edge share,
+               what does the defender's CPU do?
   2. grace   — stranded honest solvers vs the grace window G.
   3. median  — how far a colluding fraction moves d_blend; quantization ties.
   4. leader  — the edge leader: pre-mining duty cycle, slot-time solving risk.
@@ -58,24 +58,23 @@ ROUND = 1.0          # seconds per round
 W = 30               # observation window, rounds
 DELTA_MAX = 3        # maximal blending delay, rounds
 BETA_MAX = 3         # blending operations per message
+ETA = 2              # network absorption of one hop, rounds
 F_C, R_C = 1.0, 0    # cover messages per round, replication
-F_D, R_D = 1 / 30, 0 # data messages per round, replication
-F_T = 199 / 30       # messages carrying transactions per round, whatever quota backs them
-# The rate a core connection carries (Expected Traffic).
-F_1 = max(F_C * (1 + R_C), (F_D + F_T) * (1 + R_D)) * BETA_MAX      # 20.0
+F_D, R_D = 1 / 30, 1 # block proposals per round; a proposal is replicated once
+F_T = 130 / 30       # messages carrying a transaction per round, whatever quota backs them
+# The rate a core connection carries (Expected Traffic): a block proposal
+# substitutes a cover message, so the larger of the two, plus the transactions.
+F_1 = (max(F_C * (1 + R_C), F_D * (1 + R_D)) + F_T) * BETA_MAX     # 16.0
 V = 156              # messages/s the slowest targeted node processes (one below 157 measured)
-R = 2 * V // 3       # growth of the admission budget per round: 104
-B = (V - R) * DELTA_MAX                                            # its largest value: 156
 PHI_CC = 4           # peering degree; a node holds PHI_CC-1 .. PHI_CC+1 core connections
 PHI_CC_RANGE = (PHI_CC - 1, PHI_CC, PHI_CC + 1)
-R_1 = R // (PHI_CC + 1)                                            # a core connection's share: 20
-R_E = R - R_1 * PHI_CC                                             # the edge share: 24
+R_1 = (2 * V // 3) // (PHI_CC + 1)                                 # a core connection's share: 20
+R_E = 2 * V // 3 - R_1 * PHI_CC                                    # the edge share: 24
+assert abs(F_1 - R_1 * (1 - 1 / (DELTA_MAX + ETA))) < 1e-9        # F_T sized to drain a backlog within a hop
 PHI_W = 0.25         # share of F_T sized for the proof of work branch
-F_W_SIZED = PHI_W * F_T                                            # 1.658
-F_TX = (1 - PHI_W) * F_T                                           # the rest of F_T: 4.975
-_l_star = 8 * F_1 / R_1
-assert _l_star.is_integer(), "l_star must be a level"
-L_STAR = int(_l_star)                                              # the load set point: 8
+F_W_SIZED = PHI_W * F_T                                            # 1.083
+F_TX = (1 - PHI_W) * F_T                                           # the rest of F_T: 3.25
+L_STAR = min(15, int(math.floor((16 * F_1 + R_1) / (2 * R_1))))    # the load set point: level of F_1 = 6
 L_MIN = math.ceil(L_STAR * PHI_W)                                  # the loosening floor: 2
 D_EDGE_MIN = 300
 D_EDGE_MAX = 1000
@@ -187,23 +186,21 @@ class DoorTrace:
     refused_honest: list[int] = field(default_factory=list)
     load_levels: list[int] = field(default_factory=list)    # the Load rule over trailing W
     cpu: list[float] = field(default_factory=list)          # fraction of one core
-    budget_empty: list[bool] = field(default_factory=list)
     mining: list[float] = field(default_factory=list)       # attacker cores mining this round
 
 
 def simulate_door(rounds: int, attacker_cores, honest_edge_rate: float = 2.0,
                   seed: int = 0, adaptive_giveup: int | None = None,
                   core_novel_mean: float | None = None) -> DoorTrace:
-    """The door over #421's admission. Each round the budget grows by R to at
-    most B. Core traffic: Poisson(core_novel_mean) novel messages, each read
-    once per neighbor (flooding), each connection read up to its share r_1.
-    Edge: the attacker owns `attacker_cores(t)` fastest-measured cores and
-    presents distinct valid tokens at the grace-floor price (rate-limited by its
-    hashpower); with `adaptive_giveup` it mines only while d < giveup. Honest
-    edge nodes offer Poisson(honest_edge_rate) per round with valid tokens
-    (they pre-mine; study 2 prices that). Edge connections are served in random
-    arrival order, together up to their share r_E, within the budget (checks 4
-    and admission rule 3).
+    """The door within #421's shares. Core traffic: Poisson(core_novel_mean)
+    novel messages, each read once per neighbor (flooding), each connection
+    read up to its share r_1. Edge: the attacker owns `attacker_cores(t)`
+    fastest-measured cores and presents distinct valid tokens at the
+    grace-floor price (rate-limited by its hashpower); with `adaptive_giveup`
+    it mines only while d < giveup. Honest edge nodes offer
+    Poisson(honest_edge_rate) per round with valid tokens (they pre-mine;
+    study 2 prices that). Edge connections are served in random arrival order,
+    at most r_E in a round (check 4).
 
     Load counts novel arrivals: the core novel messages plus the edge
     connections served (an edge message is novel once). The door reads the
@@ -219,10 +216,8 @@ def simulate_door(rounds: int, attacker_cores, honest_edge_rate: float = 2.0,
         # The sized operating point: F_1 novel per round in total, the honest
         # edge messages being part of F_T rather than on top of it.
         core_novel_mean = F_1 - honest_edge_rate
-    budget = B
     d_hist: list[int] = []
     for t in range(rounds):
-        budget = min(B, budget + R)
         d_hist.append(ctrl.d)
         mint_price = grace_floor(d_hist, len(d_hist) - 1)   # check 2: the floor, not the spot price
         cores = attacker_cores(t)
@@ -232,17 +227,15 @@ def simulate_door(rounds: int, attacker_cores, honest_edge_rate: float = 2.0,
         hon_offers = _poisson(rng, honest_edge_rate * ROUND)
 
         # Core: every novel message arrives once per neighbor; each connection
-        # is read up to its share, all within the budget.
+        # is read up to its share.
         core_novel = _poisson(rng, core_novel_mean)
-        core_reads = min(PHI_CC * core_novel, PHI_CC * R_1, budget)
-        budget -= core_reads
+        core_reads = min(PHI_CC * core_novel, PHI_CC * R_1)
         core_novel = min(core_novel, core_reads)
 
-        # Edge: random arrival order, together up to r_E, within the budget.
+        # Edge: random arrival order, at most r_E served in a round.
         offers = ["a"] * atk_offers + ["h"] * hon_offers
         rng.shuffle(offers)
-        taken = offers[:min(R_E, budget)]
-        budget -= len(taken)
+        taken = offers[:R_E]
         acc_a, acc_h = taken.count("a"), taken.count("h")
 
         novel = core_novel + acc_a + acc_h
@@ -263,7 +256,6 @@ def simulate_door(rounds: int, attacker_cores, honest_edge_rate: float = 2.0,
         tr.refused_honest.append(hon_offers - acc_h)
         tr.load_levels.append(quantize_report(sum(window), len(window)))
         tr.cpu.append(cpu)
-        tr.budget_empty.append(budget == 0)
         tr.mining.append(cores)
 
         if (t + 1) % W == 0:
@@ -386,19 +378,17 @@ def realized_f_w(d: int, hashpower: float = 1.0) -> float:
     return hashpower * F_W_SIZED * d / BLEND_DIFFICULTY_BASE
 
 
-def novel_rate(f_tx: float, f_w: float, cover: bool = False) -> float:
-    """Novel arrivals per round at a node: every message once per hop. With
-    `cover`, the cover traffic F_C is counted too; the specification's F_1
-    takes the larger of cover and data, not their sum."""
-    data = (F_D + f_tx + f_w) * (1 + R_D)
-    return (data + (F_C * (1 + R_C) if cover else 0.0)) * BETA_MAX
+def novel_rate(f_tx: float, f_w: float) -> float:
+    """Novel arrivals per round at a node: every message once per hop, the
+    larger of the cover and proposal rates plus the transaction messages, as
+    F_1 counts them."""
+    return (max(F_C * (1 + R_C), F_D * (1 + R_D)) + f_tx + f_w) * BETA_MAX
 
 
-def loop_step(level: int, f_tx: float = F_TX, hashpower: float = 1.0,
-              cover: bool = False) -> int:
+def loop_step(level: int, f_tx: float = F_TX, hashpower: float = 1.0) -> int:
     """One turn of level -> d_blend -> F_W -> novel arrivals -> level."""
     d = blend_difficulty([level])
-    return quantize_level(novel_rate(f_tx, realized_f_w(d, hashpower), cover))
+    return quantize_level(novel_rate(f_tx, realized_f_w(d, hashpower)))
 
 
 def loop_attractor(start: int, **kw) -> list[int]:
@@ -415,14 +405,13 @@ LOOP_DEMANDS = ((0.0, "none"), (F_TX / 2, "half"), (F_TX, "sized"), (F_T, "all o
 LOOP_HASHPOWERS = (0.5, 1.0, 2.0, 4.0, 8.0)
 
 
-def loop_survey(demands=LOOP_DEMANDS, hashpowers=LOOP_HASHPOWERS, cover: bool = False) -> dict:
+def loop_survey(demands=LOOP_DEMANDS, hashpowers=LOOP_HASHPOWERS) -> dict:
     """Every attractor of the map, from every starting level, over the
     transaction demand F_tx and the solvers' hashpower."""
     out = {}
     for f_tx, name in demands:
         for h in hashpowers:
-            cycles = {tuple(loop_attractor(s, f_tx=f_tx, hashpower=h, cover=cover))
-                      for s in range(16)}
+            cycles = {tuple(loop_attractor(s, f_tx=f_tx, hashpower=h)) for s in range(16)}
             out[(name, h)] = sorted(cycles)
     return out
 
@@ -438,10 +427,9 @@ def blend_difficulty_sqrt(reports: list[int]) -> int:
     return (BLEND_DIFFICULTY_BASE * math.isqrt((L_STAR << 40) // load)) >> 20
 
 
-def loop_step_rule(level: int, rule, f_tx: float = F_TX, hashpower: float = 1.0,
-                   cover: bool = False) -> int:
+def loop_step_rule(level: int, rule, f_tx: float = F_TX, hashpower: float = 1.0) -> int:
     d = rule([level])
-    return quantize_level(novel_rate(f_tx, realized_f_w(d, hashpower), cover))
+    return quantize_level(novel_rate(f_tx, realized_f_w(d, hashpower)))
 
 
 def loop_attractor_rule(start: int, rule, **kw) -> list[int]:
@@ -453,7 +441,7 @@ def loop_attractor_rule(start: int, rule, **kw) -> list[int]:
 
 
 def loop_attractor_two_epoch(start: tuple[int, int], f_tx: float = F_TX,
-                             hashpower: float = 1.0, cover: bool = False) -> list[int]:
+                             hashpower: float = 1.0) -> list[int]:
     """CANDIDATE, not specified: d from the mean of two consecutive epochs'
     medians (reports of s-3 and s-4; retention four epochs). The map is on
     pairs of levels; returns the levels the cycle visits."""
@@ -462,7 +450,7 @@ def loop_attractor_two_epoch(start: tuple[int, int], f_tx: float = F_TX,
         seen.append(state)
         m = (state[0] + state[1]) // 2
         d = blend_difficulty([m])
-        nxt = quantize_level(novel_rate(f_tx, realized_f_w(d, hashpower), cover))
+        nxt = quantize_level(novel_rate(f_tx, realized_f_w(d, hashpower)))
         state = (nxt, state[0])
     cyc = seen[seen.index(state):]
     return sorted({lvl for pair in cyc for lvl in pair[:1]})
@@ -482,11 +470,11 @@ def loop_survey_candidates(demands=LOOP_DEMANDS, hashpowers=LOOP_HASHPOWERS) -> 
     return out
 
 
-def loop_gain(f_tx: float = F_TX, hashpower: float = 1.0, cover: bool = False) -> float:
+def loop_gain(f_tx: float = F_TX, hashpower: float = 1.0) -> float:
     """|d level'/d level| of the continuous map at its fixed point: the share of
     the novel traffic the proof of work branch carries there. Below 1 the map
     converges; at 1 it is marginal and the quantized map cycles."""
-    base = novel_rate(f_tx, 0.0, cover) * 8 / R_1               # the inelastic part, in levels
+    base = novel_rate(f_tx, 0.0) * 8 / R_1                      # the inelastic part, in levels
     k = 8 * BETA_MAX * hashpower * F_W_SIZED * L_STAR / R_1    # elastic part = k / level
     # fixed point: level = base + k / level
     level = (base + math.sqrt(base * base + 4 * k)) / 2
@@ -587,9 +575,6 @@ def main(argv=None) -> int:
         f"{mid_acc_a / max(1, mid_acc_a + mid_acc_h) * 100:.0f}% of the share "
         f"({mid_ref_h / max(1, mid_ref_h + mid_acc_h) * 100:.0f}% of honest offers refused). "
         f"The band is where a priced occupation sits.",
-        f"- Budget-empty rounds during the 200-core flood: "
-        f"{sum(flood.budget_empty[attack])} of {2400 - 700} — the shares bound edge service "
-        f"before the budget does.",
     ]
 
     # Study 1c: the same flood over a quiet core ambient: the door reads edge
@@ -680,7 +665,6 @@ def main(argv=None) -> int:
 
     # Study 5: the control loop, closed over demand and hashpower.
     survey = loop_survey()
-    survey_cover = loop_survey(cover=True)
     cands = loop_survey_candidates()
     lines += ["## 5. The control loop, closed", "",
               "| F_tx \\ hashpower | " + " | ".join(f"×{h:g}" for h in LOOP_HASHPOWERS) + " |",
@@ -702,11 +686,12 @@ def main(argv=None) -> int:
     lines += [
         "",
         f"- The design point (sized demand, hashpower ×1) is {_fmt_cycles(design)}: "
-        f"{novel_rate(F_TX, F_W_SIZED):.1f} novel/round against r_1 = {R_1}, F_W = "
-        f"{F_W_SIZED:.2f}, d = BASE. Loop gain there {loop_gain():.2f} ≈ φ.",
-        f"- With no transaction demand the branch is the whole traffic and the gain is "
-        f"{loop_gain(0.0):.2f}: the quantized map cycles (period 2, {survey[('none', 1.0)]}), "
-        f"bounded by the floor L_MIN (d ≤ {L_STAR // L_MIN}·BASE, where F_W reaches F_T).",
+        f"{novel_rate(F_TX, F_W_SIZED):.1f} novel/round against r_1 = {R_1}, level {L_STAR}, "
+        f"F_W = {F_W_SIZED:.2f}, d = BASE. Loop gain there {loop_gain():.2f} "
+        f"(φ·F_T·β/F_1 = {PHI_W * F_T * BETA_MAX / F_1:.2f}).",
+        f"- With no transaction demand the branch carries all but the cover traffic; the gain "
+        f"is {loop_gain(0.0):.2f} and the attractors are {_fmt_cycles(survey[('none', 1.0)])}, "
+        f"bounded by the floor L_MIN (d ≤ {L_STAR / L_MIN:g}·BASE).",
         f"- The realized F_W stays below F_T in every attractor? "
         f"{'yes' if max_fw <= F_T + 1e-9 else 'NO: %.2f' % max_fw} (F_T = {F_T:.2f}). "
         f"Hashpower beyond the range's span pins the threshold at the tight end "
@@ -717,9 +702,6 @@ def main(argv=None) -> int:
         f"at the design point {_fmt_cycles(cands[('sized', 1.0)][0])} and "
         f"{_fmt_cycles(cands[('sized', 1.0)][1])}; at ×4 sized "
         f"{_fmt_cycles(cands[('sized', 4.0)][0])} and {_fmt_cycles(cands[('sized', 4.0)][1])}.",
-        f"- Counting cover traffic in the novel arrivals (F_1 takes the larger of cover and "
-        f"data, not the sum) moves the design point to {_fmt_cycles(survey_cover[('sized', 1.0)])}: "
-        f"{novel_rate(F_TX, F_W_SIZED, cover=True):.1f} novel/round, one level above ℓ*.",
     ]
 
     header = "<!-- generated by equix_bench.blend_admission; the curated report is simulation.md -->\n"

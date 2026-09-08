@@ -3,8 +3,8 @@ import math
 import random
 
 from equix_bench.blend_admission import (
-    B, BLEND_DIFFICULTY_BASE, D_EDGE_MAX, D_EDGE_MIN, F_1, F_T, F_TX, F_W_SIZED, G,
-    L_MIN, L_STAR, P, PHI_CC, PHI_W, R, R_1, R_E, V, W,
+    BETA_MAX, BLEND_DIFFICULTY_BASE, D_EDGE_MAX, D_EDGE_MIN, F_1, F_T, F_TX, F_W_SIZED, G,
+    L_MIN, L_STAR, P, PHI_CC, PHI_W, R_1, R_E, V, W,
     EdgeDifficulty, attacker_core_rate, blend_difficulty, blend_difficulty_sqrt, d_blend,
     erlang3_tail, grace_floor, hold_cores, loop_attractor, loop_attractor_two_epoch,
     loop_gain, loop_step, loop_survey, lower_median, median_shift, novel_rate, pi5_rate,
@@ -18,12 +18,11 @@ from equix_bench.blend_admission import (
 
 
 def test_constants_recompute_from_each_other():
-    assert F_1 == 20.0
-    assert R == 104 and B == 156 and B == V
+    assert abs(F_1 - 16.0) < 1e-12
     assert R_1 == 20 and R_E == 24
-    assert R_1 * PHI_CC + R_E == R
-    assert (PHI_CC + 1) * R_1 + R_E == 124 <= B          # the deliberate oversubscription
-    assert L_STAR == 8 and L_MIN == 2
+    assert R_1 * PHI_CC + R_E == 2 * V // 3
+    assert (PHI_CC + 1) * R_1 + R_E == 124 <= V          # the deliberate oversubscription
+    assert L_STAR == 6 and L_MIN == 2
     assert L_MIN == math.ceil(L_STAR * PHI_W)
     assert abs(F_TX + F_W_SIZED - F_T) < 1e-12
 
@@ -33,7 +32,7 @@ def test_constants_recompute_from_each_other():
 
 def test_quantize_report_is_round_to_nearest_integer_arithmetic():
     assert quantize_report(0, W) == 0
-    assert quantize_report(R_1 * W, W) == L_STAR              # one share: the set point
+    assert quantize_report(R_1 * W, W) == 8                   # one share is level 8; F_1 is below it
     assert quantize_report(20 * 30, 30) == 8
     # Rounding to nearest: 8*A/(r_1*S) = 8.49 -> 8, 8.5 -> 9.
     assert quantize_report(637, 30) == 8                      # 8.493
@@ -47,9 +46,10 @@ def test_quantize_level_matches_the_report_rule():
         assert quantize_level(a) == quantize_report(round(a * 1000), 1000)
 
 
-def test_set_point_sits_at_the_centre_of_its_level():
+def test_set_point_is_the_level_of_the_expected_rate():
+    assert quantize_level(F_1) == L_STAR
     lo, hi = (L_STAR - 0.5) * R_1 / 8, (L_STAR + 0.5) * R_1 / 8
-    assert lo < F_1 < hi and abs((F_1 - lo) / (hi - lo) - 0.5) < 1e-9
+    assert lo <= F_1 < hi                                  # 13.75 <= 16 < 16.25: near the top of its level
 
 
 # ------------------------------------------------------------ EdgeDifficulty
@@ -120,8 +120,9 @@ def test_loosening_stops_where_the_branch_reaches_F_T():
     loosest = (base * L_STAR) // L_MIN
     assert blend_difficulty([1]) == loosest
     assert blend_difficulty([0]) == loosest
-    assert loosest == 4 * base
-    assert abs(realized_f_w(loosest) - F_T) < 1e-9
+    assert loosest == 3 * base
+    assert realized_f_w(loosest) <= F_T                    # the floor keeps the branch within F_T
+    assert realized_f_w((base * L_STAR) // (L_MIN - 1)) > F_T   # one level lower would not
 
 
 def test_blend_empty_is_base_and_zero_is_the_floor():
@@ -165,7 +166,6 @@ def test_large_flood_drives_price_to_ceiling_holds_and_decays():
     assert min(tr.d[800:2400]) == D_EDGE_MAX       # no decay under fire
     assert tr.d[-1] == D_EDGE_MIN                  # x3/4 steps home
     assert max(tr.cpu) < 1.0                       # headers + token checks under one core
-    assert not any(tr.budget_empty)                # the shares bind before the budget
 
 
 def test_mid_flood_settles_in_the_band():
@@ -188,7 +188,7 @@ def test_door_decays_over_a_quiet_ambient_too():
 def test_sized_ambient_reports_the_set_point_and_a_flood_the_top():
     tr = simulate_door(3600, lambda t: 200.0 if 600 <= t < 2400 else 0.0, seed=0)
     before = tr.load_levels[100:600]
-    assert max(before, key=before.count) == L_STAR
+    assert abs(sum(before) / len(before) - L_STAR) < 0.6   # F_1 sits near the top of level 6
     assert max(tr.load_levels[700:2400]) == 15
 
 
@@ -229,16 +229,18 @@ def test_loop_closes_at_the_design_point():
     assert abs(novel_rate(F_TX, F_W_SIZED) - F_1) < 1e-9
     assert loop_step(L_STAR) == L_STAR
     assert loop_attractor(0) == [L_STAR]
-    assert abs(loop_gain() - PHI_W) < 0.01
+    assert abs(loop_gain() - PHI_W * F_T * BETA_MAX / F_1) < 0.02   # the branch's share of F_1
 
 
 def test_loop_gain_is_the_branch_share_of_traffic():
-    assert loop_gain(0.0) > 0.95                                  # no demand: marginal
-    assert loop_gain(F_T) < 0.2
-    assert loop_attractor(0, f_tx=0.0) != [4] or True             # bistable: see survey
+    # With no transaction demand the branch carries all but the cover traffic:
+    # the gain stays below 1 because cover is inelastic, and the map settles
+    # into a one-step flutter rather than a wide swing.
+    assert 0.5 < loop_gain(0.0) < 0.8
+    assert loop_gain(F_T) < 0.15
     cycles = loop_survey()[("none", 1.0)]
-    assert any(len(c) == 2 for c in cycles)                       # period-2 cycles exist
-    assert max(lvl for c in cycles for lvl in c) <= 8
+    assert all(len(c) <= 2 for c in cycles)
+    assert max(lvl for c in cycles for lvl in c) <= 4
 
 
 def test_loop_is_bounded_by_the_floor_at_the_sized_hashpower():
@@ -248,12 +250,12 @@ def test_loop_is_bounded_by_the_floor_at_the_sized_hashpower():
                 assert realized_f_w(blend_difficulty([lvl])) <= F_T + 1e-9
 
 
-def test_excess_hashpower_pins_the_tight_end():
-    assert loop_survey(demands=((F_TX, "sized"),), hashpowers=(8.0,))[("sized", 8.0)] == [(15,)]
-
-
-def test_cover_traffic_moves_the_design_point_one_level():
-    assert loop_attractor(L_STAR, cover=True) == [L_STAR + 1]
+def test_excess_hashpower_leaves_the_shares_to_bind():
+    # Eight times the sized hashpower: a single tight attractor at which the
+    # branch still exceeds F_T, so the wire shares bind, as intended.
+    (cycle,) = loop_survey(demands=((F_TX, "sized"),), hashpowers=(8.0,))[("sized", 8.0)]
+    assert len(cycle) == 1 and cycle[0] >= 11
+    assert realized_f_w(blend_difficulty([cycle[0]]), 8.0) > F_T
 
 
 def test_candidate_rules_remove_the_no_demand_cycle():
@@ -267,8 +269,8 @@ def test_candidate_rules_remove_the_no_demand_cycle():
 
 def test_median_shift_is_bounded_below_half_collusion():
     # At 30% colluders the lower median moves two to three levels (2.5 novel
-    # per round per level), a per-epoch multiplier of ~0.77 tightening and
-    # ~1.32 loosening at N = 100 — a bounded bias the stateless rule forgets.
+    # per round per level), a bounded per-epoch multiplier the stateless rule
+    # forgets the epoch the capture ends.
     rng = random.Random(5)
     mult = {}
     for direction in ("tighten", "loosen"):
@@ -278,5 +280,5 @@ def test_median_shift_is_bounded_below_half_collusion():
             ratios.append(max(h, L_MIN) / max(L_MIN, s))
             assert abs(h - s) <= 4
         mult[direction] = sum(ratios) / len(ratios)
-    assert 0.70 < mult["tighten"] < 0.85
-    assert 1.20 < mult["loosen"] < 1.45
+    assert 0.65 < mult["tighten"] < 0.85
+    assert 1.20 < mult["loosen"] < 1.60

@@ -1,9 +1,9 @@
 # Blend load-driven admission — the calibration studies
 
 Simulations of the admission mechanisms specified in `blend-protocol.md` 1.7.0
-(logos-lips branch `docs/blend-load-driven-admission`, on the admission budget
-and shares of #421): the per-node edge door (`Edge Difficulty`) and the
-consensus threshold (`Blend Difficulty`), run as written — exact integer rules,
+(logos-lips branch `docs/blend-load-driven-admission`, on the per-connection
+shares of #421): the per-node edge door (`Edge Difficulty`) and the consensus
+threshold (`Blend Difficulty`), run as written — exact integer rules,
 real BN254 modulus — against the measured Equi-X curves. Five studies.
 Regenerate with:
 
@@ -13,17 +13,16 @@ PYTHONPATH=harness python3 -m equix_bench.blend_admission --out <dir>
 PYTHONPATH=harness python3 -m pytest harness/tests/test_blend_admission.py
 ```
 
-**The rules as measured here.** A node's budget grows by `r = 104` messages a
-round to at most `B = 156`; the budget is divided into a share `r_1 = 20` for
-each of the `Φ_CC = 4` core connections and `r_E = 24` for the edge connections
-together. Load is the share of a core connection's allowance a node's **novel**
-arrivals occupy, `ℓ_n = A_n/(r_1·S_n)`, quantized to sixteen levels rounded to
-nearest; the sized traffic `F_1 = 20` novel per round is level `ℓ* = 8`.
-`d_blend = BASE·ℓ*/max(L^Min, median)` with `L^Min = ⌈ℓ*·φ⌉ = 2`, `φ = 1/4` the
-share of `F_T` sized for the proof of work branch. The door retargets on the
-**distinct tokens presented** `P_n` — passing checks 1–3, served or refused —
-raising above `2·r_E` per served round and decaying below `r_E`; edge
-connections are served together up to `r_E`, within the budget.
+**The rules as measured here.** A node reads at most `r_1 = 20` messages from
+each of its `Φ_CC = 4` core connections in a round and serves at most `r_E = 24`
+edge connections. Load is a node's **novel** arrivals per served round divided
+by `r_1`, `ℓ_n = A_n/(r_1·S_n)`, quantized to sixteen levels rounded to nearest;
+the sized traffic `F_1 = (max(F_C, 2·F_D) + F_T)·β_max = 16` novel a round
+(`F_T = 130/30`) is level `ℓ* = 6`. `d_blend = BASE·ℓ*/max(L^Min, median)` with
+`L^Min = ⌈ℓ*·φ⌉ = 2`, `φ = 1/4` the share of `F_T` sized for the proof of work
+branch. The door retargets on the **distinct tokens presented** `P_n` — passing
+checks 1–3, served or refused — raising above `2·r_E` per served round and
+decaying below `r_E`.
 
 ## Inputs, all measured
 
@@ -50,10 +49,9 @@ the model here assumes.
 
 A 200-core flood escalates floor→ceiling in two retargets (60 rounds), **holds
 the ceiling for the whole flood**, and decays home in five retargets (150
-rounds). The attacker takes 98% of the edge share and 72% of honest offers are
+rounds). The attacker takes 98% of the edge share and 71% of honest offers are
 refused per round (they retry; study 2 shows none are stranded). Peak CPU on the
-defending node: 37% of one Pi 5 core, headers and token checks together. The
-budget is never empty: the shares bound edge service before the budget does.
+defending node: 33% of one Pi 5 core, headers and token checks together.
 
 ![door under a 60-core flood](img/door_mid.png)
 
@@ -61,8 +59,8 @@ A 60-core flood is priced rather than repelled. The price escalates to the
 ceiling — minting is priced at the grace floor, which lags each move by up to
 `G` rounds, so the first two retargets both see the floor-price rate — then
 settles at 750 once the floor catches up: there the attacker presents ~31
-tokens a round, inside the band `[r_E, 2·r_E]`, and holds 94% of the share with
-27% of honest offers refused. The band is where a priced occupation sits; an
+tokens a round, inside the band `[r_E, 2·r_E]`, and holds 93% of the share with
+19% of honest offers refused. The band is where a priced occupation sits; an
 attacker between ~19 and ~38 cores at the floor fills the share without moving
 the price at all. That is the cost of the 2× band the stability constraint
 requires (a doubling halves a fixed solver's rate, so a narrower band would
@@ -76,11 +74,12 @@ Over a quiet core ambient (5 novel arrivals a round against the sized 20) the
 price decays home 150 rounds after the flood, exactly as over the sized
 ambient: core traffic never enters the door's signal. The **reported load** of
 the flooded node is another matter: at the sized ambient the node reports level
-8 (7–9 with Poisson noise over the 30-round window), and a full edge share adds
-`r_E/r_1 = 1.2` core shares — 9.6 levels — so a flooded door reports the top
-level, 15. A flood of valid tokens against more than half the network's doors
-would therefore tighten `d_blend` by `8/15`; at ~19 cores per door held, the
-lever is expensive and its effect bounded.
+6 (6–7 with Poisson noise over the 30-round window: `F_1 = 16` sits near the top
+of level 6, `[13.75, 16.25)`), and a full edge share adds `r_E/r_1 = 1.2` core
+shares — 9.6 levels — so a flooded door reports the top level, 15. A flood of
+valid tokens against more than half the network's doors would therefore tighten
+`d_blend` by `6/15`; at ~19 cores per door held, the lever is expensive and its
+effect bounded.
 
 ### 1b. Adaptive attackers: a priced sawtooth
 
@@ -88,9 +87,9 @@ lever is expensive and its effect bounded.
 
 An attacker of 60 cores that mines only while the price is below 500 produces a
 sawtooth: ×2 from wherever the decay re-admits it, ×3/4 steps down while it
-waits — 56 distinct prices between 379 and 966 over the flood. It mines 30% of
-the time and takes 81% of the served edge connections. Adapting buys no
-discount: 2.6 core-seconds per served attacker message against 2.7 for the
+waits — 57 distinct prices between 379 and 966 over the flood. It mines 28% of
+the time and takes 80% of the served edge connections. Adapting buys no
+discount: 2.6 core-seconds per served attacker message against 2.8 for the
 constant 60-core flood, because the grace floor prices each token at the lowest
 price the attacker waited for. No honest single-core solver is stranded by the
 sawtooth (0 of 3,606). What the price cannot do is hand an occupied share back;
@@ -132,10 +131,10 @@ Two findings feed back into the specification:
   recursive rule, a sustained median of 0 doubled the threshold each epoch and
   reached free admission — every ticket satisfying it — in exactly **19
   epochs** from `BASE` (`BASE = p/2¹⁹`; ~20 weeks). The rule is now stateless
-  and floors the median at `L^Min = 2`, so a zero median sits at `4·BASE`
-  instantly and reversibly — the threshold at which solvers of the sized
-  capacity reach the whole of `F_T`.
-- **Sixteen levels are a bucket list, not a ranking:** 87% of 100
+  and floors the median at `L^Min = 2`, so a zero median sits at `3·BASE`
+  instantly and reversibly — the last level at which solvers of the sized
+  capacity stay within `F_T`.
+- **Sixteen levels are a bucket list, not a ranking:** 86% of 100
   heterogeneous reporters share their level with another, so the on-chain load
   report ranks doors only coarsely — the targeting-oracle residual the PR
   records.
@@ -157,35 +156,36 @@ specification's `d_edge^Max` constraint concrete.
 
 The loop `level → d_blend → F_W → novel arrivals → level` is iterated from all
 sixteen starting levels over the staked transaction demand `F_tx` (none, half
-the sized `4.98`, sized, all of `F_T = 6.63`) and the solvers' hashpower
-relative to the sizing (`F_W = φ·F_T = 1.66` at `BASE`, proportional to the
-threshold). Cover traffic is excluded, as the specification's `F_1` excludes it
-(the larger of cover and data, not the sum).
+the sized `3.25`, sized, all of `F_T = 4.33`) and the solvers' hashpower
+relative to the sizing (`F_W = φ·F_T = 1.08` at `BASE`, proportional to the
+threshold). Cover traffic is counted as `F_1` counts it: the larger of the
+cover and proposal rates, plus the transaction messages.
 
 | `F_tx` \ hashpower | ×0.5 | ×1 | ×2 | ×4 | ×8 |
 | --- | --- | --- | --- | --- | --- |
-| none | cycle {2,4}, fixed [3] | cycle {2,8}, cycle {3,5}, fixed [4] | cycle {2,15}, cycle {3,11}, cycle {4,8}, cycle {5,6} | cycle {4,15}, cycle {5,13}, cycle {6,11}, cycle {7,9}, fixed [8] | cycle {9,14}, cycle {10,13}, cycle {11,12} |
-| half | fixed [5] | fixed [6] | cycle {7,8} | cycle {9,10} | cycle {12,14}, fixed [13] |
-| sized | fixed [7] | **fixed [8]** | cycle {9,10} | cycle {11,12} | fixed [15] |
-| all of `F_T` | fixed [9] | fixed [10] | fixed [11] | fixed [13] | fixed [15] |
+| none | cycle {2,3} | cycle {3,4} | cycle {4,5} | fixed [6] | cycle {6,12}, cycle {7,10}, cycle {8,9} |
+| half | fixed [4] | fixed [5] | fixed [6] | cycle {7,8} | cycle {9,10} |
+| sized | fixed [6] | **fixed [6]** | fixed [7] | fixed [9] | fixed [11] |
+| all of `F_T` | fixed [7] | cycle {7,8} | fixed [8] | fixed [10] | fixed [12] |
 
-The design point is an **exact fixed point**: 20.0 novel arrivals a round
-against `r_1 = 20`, level 8, `d = BASE`, `F_W = 1.66`. The loop gain there —
-the derivative of the map at its fixed point — is 0.25, which is `φ`: the gain
-of this proportional rule is the share of the novel traffic the proof of work
-branch carries. Two consequences, both stated rather than smoothed over:
+The design point is an **exact fixed point**: 16.0 novel arrivals a round
+against `r_1 = 20`, level 6, `d = BASE`, `F_W = 1.08`. The loop gain there —
+the derivative of the map at its fixed point — is 0.19, the share of the novel
+traffic the proof of work branch carries (`φ·F_T·β_max/F_1 = 0.20`). Two
+consequences, both stated rather than smoothed over:
 
-- **With no staked demand the branch is the whole traffic, the gain is 0.99,
-  and the quantized map cycles with period 2** — `{2,8}`, `{3,5}` or the fixed
-  point 4, depending on where the network starts. From the bootstrap value
-  `BASE` a network with no staked demand enters `{2,8}`: `d` alternates between
-  `BASE` and `4·BASE` epoch by epoch, `F_W` between the sized rate and `F_T`.
-  Bounded by `L^Min`, and no wire limit is exceeded at the sized hashpower.
-  An early network in which most senders are unstaked is in this regime.
-- **Hashpower beyond the range's span pins the threshold at the tight end**:
-  ×8 the sizing sits at level 15, `d = BASE·8/15`, and the shares bind. Inside a
-  no-demand cycle at ×4 the loose phase admits `F_W = 13.3 > F_T` for an epoch;
-  the floor `L^Min` bounds `F_W` at `F_T` only at the sized hashpower.
+- **With no staked demand the branch carries all but the cover traffic**, the
+  gain is 0.65, and the quantized map flutters one step, `{3,4}`, at the
+  sizing hashpower. The wide period-2 swing an earlier run found (between
+  `BASE` and the floor) is gone: #421 now counts the cover traffic in `F_1`,
+  and that inelastic component keeps the gain below 1. One-step flutters
+  appear at other grid points too — a quantized proportional rule near a level
+  boundary alternates between the two adjacent levels.
+- **Hashpower beyond the range's span leaves the shares to bind**: ×8 the
+  sizing settles at level 11, `d = BASE·6/11`, where the branch still exceeds
+  `F_T` (`4.7` against `4.33`); inside a no-demand cycle at ×8 the loose phase
+  admits `8.7`. The floor `L^Min` bounds `F_W` at `0.75·F_T` only at the sized
+  hashpower.
 
 Two candidate damping rules, **not specified**, run on the same grid (sqrt
 re-anchor `d = BASE·√(ℓ*/max(L^Min, median))`, gain halved and span 2.7×
@@ -194,21 +194,14 @@ epochs):
 
 | `F_tx` \ hashpower | ×0.5 | ×1 | ×2 | ×4 | ×8 |
 | --- | --- | --- | --- | --- | --- |
-| none | fixed [2] / fixed [3] | fixed [3] / fixed [4] | fixed [5] / cycle {5,6} | fixed [8] / fixed [8] | fixed [13] / cycle {11,12} |
-| half | fixed [4] / fixed [5] | cycle {5,6} / fixed [6] | fixed [7] / cycle {7,8} | fixed [10] / cycle {9,10} | fixed [15] / fixed [13] |
-| sized | fixed [7] / fixed [7] | fixed [8] / fixed [8] | fixed [10] / cycle {9,10} | cycle {12,13} / cycle {11,12} | fixed [15] / fixed [15] |
-| all of `F_T` | fixed [9] / fixed [9] | fixed [10] / fixed [10] | fixed [11] / fixed [11] | fixed [14] / fixed [13] | fixed [15] / fixed [15] |
+| none | fixed [2] / cycle {2,3} | fixed [3] / cycle {3,4} | fixed [4] / cycle {4,5} | fixed [6] / fixed [6] | cycle {9,10} / cycle {8,9} |
+| half | fixed [4] / fixed [4] | fixed [5] / fixed [5] | fixed [6] / fixed [6] | fixed [8] / cycle {7,8} | fixed [11] / cycle {9,10} |
+| sized | fixed [6] / fixed [6] | fixed [6] / fixed [6] | cycle {7,8} / fixed [7] | fixed [9] / fixed [9] | fixed [12] / fixed [11] |
+| all of `F_T` | fixed [7] / fixed [7] | fixed [8] / cycle {7,8} | fixed [9] / fixed [8] | fixed [10] / fixed [10] | fixed [13] / fixed [12] |
 
-Both remove the period-2 cycle at no demand and keep the design point; the sqrt
-rule pays with authority (at ×4 the sizing it can no longer reach the tight end
-it needs), the two-epoch mean with a fourth epoch of active-message retention
-and one-step flutters. Left to the specification's thread.
-
-**Cover traffic.** Counting `F_C = 1` cover message a round in the novel
-arrivals — the sum rather than `F_1`'s max — puts the sized traffic at 23.0
-novel a round and the design point at level 9, one above `ℓ*`: `d` settles at
-`BASE·8/9`. Whether a connection carries the sum is a question for the
-`F_1` definition upstream.
+Neither removes the one-step flutters everywhere; the sqrt rule trades the
+range's authority for fewer of them. With the wide swing gone, neither is
+pressing. Left to the specification's thread.
 
 ## What went back into the specification
 
@@ -239,13 +232,17 @@ novel a round and the design point at level 9, one above `ℓ*`: `d` settles at
    spent-token cache, so a stock mined once would hold a node's ceiling for the
    cost of the tokens served a round — about one fastest core rather than the
    ~38 study 1 prices. `P_n` counts distinct tokens.
-8. **The set point sits at the centre of its level.** The quantizer rounds to
-   nearest rather than down, so `ℓ* = 8` is the middle of `[18.75, 21.25)`
-   novel a round rather than its lower edge, where an implementation's rounding
-   would decide the reported byte.
-9. **The loop gain is the branch's share of traffic** (study 5): stable at the
-   sizing (`φ`), marginal with no staked demand. Recorded with the candidate
-   rules above; the specification is unchanged.
+8. **The quantizer rounds to nearest**, in integer arithmetic, so no
+   implementation's rounding decides the reported byte.
+9. **The loop gain is the branch's share of traffic** (study 5): 0.19 at the
+   sizing, 0.65 with no staked demand once cover traffic is counted as #421
+   counts it. Recorded with the candidate rules above; the specification is
+   unchanged.
+10. **The set point is the level of `F_1`**, `ℓ* = ⌊(16·F_1 + r_1)/(2·r_1)⌋ = 6`,
+   after #421 sized `F_T` to drain a round's backlog within a hop (`F_1 = 16`
+   against `r_1 = 20`). The `r_E` service count moved from accepting a
+   connection to serving it, so a garbage token does not consume a slot of the
+   share.
 
 ## Not covered here
 
@@ -255,9 +252,9 @@ novel a round and the design point at level 9, one above `ℓ*`: `d` settles at
   (`blend/proofs/src/quota/pow.rs`), so 157/s is the deployed circuit's
   figure. The board's `results.json`/`results.csv` remain worth committing for
   per-repeat detail.
-- The door model serves edge connections up to `r_E` a round within the budget
-  and reads each core connection up to its share; #421's round-robin between
-  readable connections is not modeled beyond that.
+- The door model serves edge connections up to `r_E` a round and reads each
+  core connection up to its share; #421's send-side share and its `η`-round
+  discard are not modeled.
 - Honest clients giving up under high prices, mixed device fleets beyond the
   two Pi profiles, and door-selection strategies smarter than uniform are not
   modeled.
