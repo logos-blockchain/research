@@ -25,6 +25,12 @@ TRIALS    ?= 100000
 # ones, so the documented constants are calibrated WITH it — reproduce the
 # headline numbers with WITHHOLD=1.
 WITHHOLD_FLAG = $(if $(WITHHOLD),--withhold)
+# MAJORITY: calibrate the sample size under a majority-of-sample rule.
+# RESAMPLE: on verify, re-sample from the whole set each round instead of an urn.
+# THRESHOLD: omit on evaluate/cost to score a majority of the sample.
+MAJORITY_FLAG  = $(if $(MAJORITY),--majority)
+RESAMPLE_FLAG  = $(if $(RESAMPLE),--resample)
+THRESHOLD_FLAG = $(if $(THRESHOLD),--threshold $(THRESHOLD))
 # FRACTIONS: optional space-separated list for the calibrate sweep; the CLI's
 # default list is used when unset.
 FRACTIONS_FLAG = $(if $(FRACTIONS),--fractions $(FRACTIONS))
@@ -39,7 +45,7 @@ install: $(VENV)
 # The headline number: the smallest stably-safe sample and threshold, across a
 # range of adversarial fractions, assuming the adversary answers honestly.
 calibrate:
-	$(RUN) calibrate --providers $(PROVIDERS) --hold $(HOLD) $(WITHHOLD_FLAG) $(FRACTIONS_FLAG)
+	$(RUN) calibrate --providers $(PROVIDERS) --hold $(HOLD) $(WITHHOLD_FLAG) $(MAJORITY_FLAG) $(FRACTIONS_FLAG)
 
 # The number to actually specify: the same search against a withholding
 # adversary. Equivalent to `make calibrate WITHHOLD=1`.
@@ -50,17 +56,17 @@ calibrate-withhold:
 #   make evaluate SAMPLE=32 ROUNDS=8 THRESHOLD=133 WITHHOLD=1
 evaluate:
 	$(RUN) evaluate --providers $(PROVIDERS) --fraction $(FRACTION) --hold $(HOLD) \
-		$(WITHHOLD_FLAG) --sample $(SAMPLE) --rounds $(ROUNDS) --threshold $(THRESHOLD)
+		$(WITHHOLD_FLAG) --sample $(SAMPLE) --rounds $(ROUNDS) $(THRESHOLD_FLAG)
 
 # Closed forms against the simulated protocol, at parameters a Monte-Carlo run
 # can resolve. This is what licenses trusting the closed forms at 1e-9.
 verify:
-	$(RUN) verify --providers $(PROVIDERS) --hold $(HOLD) $(WITHHOLD_FLAG) --trials $(TRIALS)
+	$(RUN) verify --providers $(PROVIDERS) --hold $(HOLD) $(WITHHOLD_FLAG) $(RESAMPLE_FLAG) --trials $(TRIALS)
 
 # Expected queries and rounds per transaction batch for a chosen configuration.
 cost:
 	$(RUN) cost --providers $(PROVIDERS) --fraction $(FRACTION) --hold $(HOLD) \
-		$(WITHHOLD_FLAG) --sample $(SAMPLE) --rounds $(ROUNDS) --threshold $(THRESHOLD)
+		$(WITHHOLD_FLAG) --sample $(SAMPLE) --rounds $(ROUNDS) $(THRESHOLD_FLAG)
 
 test: install
 	$(PY) -m pytest

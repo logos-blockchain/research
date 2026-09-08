@@ -42,6 +42,8 @@ from math import ceil, comb, fsum, inf, log2
 
 __all__ = [
     "Parameters",
+    "majority_threshold",
+    "majority_parameters",
     "hypergeometric_pmf",
     "hypergeometric_sf",
     "security_failure",
@@ -117,6 +119,41 @@ class Parameters:
     def reachable(self) -> bool:
         """Whether the threshold can be met at all within the round budget."""
         return self.threshold <= self.total_sampled
+
+
+def majority_threshold(sample: int) -> int:
+    """The smallest attestation count that is more than half of ``sample``.
+
+    This is the specification's rule: a transaction is confirmed when more
+    than half of the distinct providers asked about it attest. It is stated
+    relative to the sample so that no absolute count is tied to a set size —
+    the same rule is a majority of 128 on a large set and a majority of the
+    whole set on a small one.
+    """
+    if sample < 1:
+        raise ValueError("sample must be positive")
+    return sample // 2 + 1
+
+
+def majority_parameters(
+    n_providers: int,
+    adversarial_fraction: float,
+    sample_size: int,
+    max_rounds: int,
+    hold_probability: float = 1.0,
+    adversary_withholds: bool = False,
+) -> Parameters:
+    """Parameters whose threshold is the majority of the providers actually asked."""
+    total = min(sample_size * max_rounds, n_providers)
+    return Parameters(
+        n_providers=n_providers,
+        adversarial_fraction=adversarial_fraction,
+        sample_size=sample_size,
+        max_rounds=max_rounds,
+        threshold=majority_threshold(total),
+        hold_probability=hold_probability,
+        adversary_withholds=adversary_withholds,
+    )
 
 
 def hypergeometric_pmf(n_population: int, n_success: int, n_draws: int, k: int) -> float:

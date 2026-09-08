@@ -20,11 +20,19 @@ from .model import (
     attesting_count_pmf,
     hypergeometric_pmf_array,
     liveness_failure,
+    majority_parameters,
     security_failure,
     upper_tails,
 )
 
-__all__ = ["Target", "Feasible", "feasible_thresholds", "calibrate", "sweep_fraction"]
+__all__ = [
+    "Target",
+    "Feasible",
+    "feasible_thresholds",
+    "calibrate",
+    "calibrate_sample",
+    "sweep_fraction",
+]
 
 
 @dataclass(frozen=True)
@@ -33,8 +41,12 @@ class Target:
 
     ``max_security_failure`` is a cryptographic-style bound: a tagging attempt
     that succeeds once has revealed a proposer, and no retry undoes it.
-    ``max_liveness_failure`` may be looser — a transaction that fails to confirm
-    in one run is still pending, still gossiped, and confirms on a later run.
+    ``max_liveness_failure`` may be looser, but not for the reason one might
+    expect: the specification never resets a transaction's round count, so a
+    transaction that fails to confirm at a node never confirms *there*. What
+    makes the bound tolerable is that every node runs its own confirmation
+    independently, so a transaction one proposer never selects is selected by
+    another. A liveness failure is a delay at one node, not a loss.
     """
 
     max_security_failure: float = 1e-9
@@ -207,3 +219,66 @@ def sweep_fraction(
         )
         for f in fractions
     ]
+
+
+def calibrate_sample(
+    base: Parameters,
+    target: Target,
+    *,
+    max_total_sample: int = 4096,
+    stability_window: int = 4,
+) -> Feasible | None:
+    """Smallest sample from which a *majority of the sample* meets both bounds and keeps meeting them.
+
+    This is the search the specification now needs. The decision rule is fixed
+    — more than half of the distinct providers asked attest — so the only free
+    quantity is how many to ask, and that number is a confidence knob rather
+    than a property of the set: the same sample gives the same or better bounds
+    on a smaller set, and below the sample the rule is a census.
+
+    Stability is required for the reason :func:`calibrate` gives — both bounds
+    step on an integer count, so the first sample that works may be a knife
+    edge — and the predicate is monotone from the first stable sample on, so
+    the search bisects.
+    """
+    ceiling = min(max_total_sample, base.n_providers)
+
+    def probe(total: int) -> Parameters:
+        return majority_parameters(
+            base.n_providers,
+            base.adversarial_fraction,
+            min(total, ceiling),
+            1,
+            base.hold_probability,
+            base.adversary_withholds,
+        )
+
+    def ok(total: int) -> bool:
+        p = probe(total)
+        return (
+            security_failure(p) <= target.max_security_failure
+            and liveness_failure(p) <= target.max_liveness_failure
+        )
+
+    def stable(total: int) -> bool:
+        return all(ok(total + offset) for offset in range(stability_window))
+
+    upper = 1
+    while not stable(upper):
+        if upper >= ceiling:
+            return None
+        upper = min(upper * 2, ceiling)
+    lower = upper // 2 + 1
+    while lower < upper:
+        middle = (lower + upper) // 2
+        if stable(middle):
+            upper = middle
+        else:
+            lower = middle + 1
+
+    best = probe(lower)
+    return Feasible(
+        params=best,
+        security_failure=security_failure(best),
+        liveness_failure=liveness_failure(best),
+    )

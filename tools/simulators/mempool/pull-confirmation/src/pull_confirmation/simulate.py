@@ -115,6 +115,7 @@ def simulate_run(
     tagged: bool,
     rng: random.Random,
     population: _Population | None = None,
+    resample_each_round: bool = False,
 ) -> RunOutcome:
     """One node's attempt to confirm one transaction.
 
@@ -126,6 +127,15 @@ def simulate_run(
 
     ``population`` may be supplied to reuse the urn across trials; it is reset
     before returning either way.
+
+    ``resample_each_round`` runs the sampling an earlier revision of the
+    specification actually described: every round draws afresh from the whole
+    set, and a provider drawn twice is simply not asked a second time. The
+    draws are then not distinct, the effective sample is smaller than the
+    budget and shrinks with the set, and the closed forms — which assume the
+    urn — overstate liveness. The specification now excludes the providers
+    sampled in the previous ``max_rounds - 1`` rounds, which is the urn; this
+    mode exists so that the difference can be measured rather than asserted.
     """
     if population is not None and (
         len(population) != params.n_providers
@@ -146,21 +156,29 @@ def simulate_run(
     queries = 0
     rounds_used = 0
 
+    asked: set[int] = set()
     try:
         # Providers are drawn without replacement across the whole run — a node
         # does not re-query one it has already asked about this transaction —
         # and one round's batch at a time, so early stopping skips urn work for
         # providers that were never going to be queried.
         for round_index in range(1, params.max_rounds + 1):
-            remaining = params.total_sampled - queries
-            if remaining <= 0:
-                break
-            batch = urn.draw(min(params.sample_size, remaining), rng)
+            if resample_each_round:
+                batch = rng.sample(range(params.n_providers), min(params.sample_size, params.n_providers))
+            else:
+                remaining = params.total_sampled - queries
+                if remaining <= 0:
+                    break
+                batch = urn.draw(min(params.sample_size, remaining), rng)
             if not batch:
                 break
             rounds_used = round_index
 
             for provider in batch:
+                if resample_each_round:
+                    if provider in asked:
+                        continue
+                    asked.add(provider)
                 queries += 1
                 is_adversarial = urn.is_adversarial(provider)
                 if tagged:
@@ -187,6 +205,7 @@ def simulate(
     tagged: bool,
     trials: int,
     seed: int = 0,
+    resample_each_round: bool = False,
 ) -> SimulationResult:
     """Repeat :func:`simulate_run` and summarise.
 
@@ -200,7 +219,10 @@ def simulate(
     total_rounds = 0
 
     for _ in range(trials):
-        outcome = simulate_run(params, tagged=tagged, rng=rng, population=urn)
+        outcome = simulate_run(
+            params, tagged=tagged, rng=rng, population=urn,
+            resample_each_round=resample_each_round,
+        )
         confirmed += outcome.confirmed
         total_queries += outcome.queries
         total_rounds += outcome.rounds
