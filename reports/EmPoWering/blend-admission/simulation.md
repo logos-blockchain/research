@@ -1,10 +1,11 @@
 # Blend load-driven admission — the calibration studies
 
 Simulations of the admission mechanisms specified in `blend-protocol.md` 1.7.0
-(logos-lips branch `docs/blend-load-driven-admission`): the per-node edge door
-(`Edge Difficulty`) and the consensus threshold (`Blend Difficulty`), run as
-written — exact integer rules, real BN254 modulus — against the measured Equi-X
-curves. Five studies. Regenerate with:
+(logos-lips branch `docs/blend-load-driven-admission`, on the admission budget
+and shares of #421): the per-node edge door (`Edge Difficulty`) and the
+consensus threshold (`Blend Difficulty`), run as written — exact integer rules,
+real BN254 modulus — against the measured Equi-X curves. Five studies.
+Regenerate with:
 
 ```bash
 cd tools/benchmarks/Equi-X
@@ -12,13 +13,17 @@ PYTHONPATH=harness python3 -m equix_bench.blend_admission --out <dir>
 PYTHONPATH=harness python3 -m pytest harness/tests/test_blend_admission.py
 ```
 
-**The rules as measured here.** Load is the share of the per-round envelope a
-node's arrivals occupy: `ℓ_n = A_n/(A^Max·r_n)` with `A^Max = Φ_CC^Max·M_1^Max +
-Λ_E = 108`, quantized to sixteen levels; `A_n` counts core arrivals plus
-**accepted** edge connections. `d_blend = BASE·ℓ*/max(L^Min, median)` with
-`ℓ* = ⌊8·60/108⌋ = 4` and `L^Min = ⌈ℓ*/F_W^Max⌉ = 2`. The door retargets on
-**presentations** `P_n` — tokens passing acceptance checks 1–3, accepted or
-refused — raising above `2·Λ_E·r_n` and decaying below `Λ_E·r_n`.
+**The rules as measured here.** A node's budget grows by `r = 104` messages a
+round to at most `B = 156`; the budget is divided into a share `r_1 = 20` for
+each of the `Φ_CC = 4` core connections and `r_E = 24` for the edge connections
+together. Load is the share of a core connection's allowance a node's **novel**
+arrivals occupy, `ℓ_n = A_n/(r_1·S_n)`, quantized to sixteen levels rounded to
+nearest; the sized traffic `F_1 = 20` novel per round is level `ℓ* = 8`.
+`d_blend = BASE·ℓ*/max(L^Min, median)` with `L^Min = ⌈ℓ*·φ⌉ = 2`, `φ = 1/4` the
+share of `F_T` sized for the proof of work branch. The door retargets on the
+**distinct tokens presented** `P_n` — passing checks 1–3, served or refused —
+raising above `2·r_E` per served round and decaying below `r_E`; edge
+connections are served together up to `r_E`, within the budget.
 
 ## Inputs, all measured
 
@@ -34,45 +39,62 @@ extrapolate as 1/E (the `difficulty_control` model).
 
 ## 1. The door under flood
 
-The door's signal is edge presentations, not load, so its trip point is fixed in
-tokens rather than in traffic: the raise fires above `2·Λ_E = 24` presentations
-per round, which at the floor price costs **~19 of the fastest measured cores**
-— a figure that holds only because a token counts towards `P_n` once, which the
-specification states and the model here assumes.
-Below that the defence is the acceptance rate and redundancy, not escalation.
+The door's signal is edge presentations, so its trip point is fixed in tokens:
+the raise fires above `2·r_E = 48` distinct tokens per round, **~38 of the
+fastest measured cores** at the floor price; filling the edge share `r_E = 24`
+takes ~19 of them, and holding the ceiling takes ~124. The figures hold only
+because a token counts towards `P_n` once, which the specification states and
+the model here assumes.
 
-![door under a 60-core flood](img/door_flood.png)
+![door under a 200-core flood](img/door_flood.png)
 
-A 60-core flood escalates floor→ceiling in two retargets (60 rounds), **holds
+A 200-core flood escalates floor→ceiling in two retargets (60 rounds), **holds
 the ceiling for the whole flood**, and decays home in five retargets (150
-rounds). A 28-core flood — just above the trip point — flutters between 750 and
-1000, since minting is priced at the grace floor, which lags each move by up to
-`G` rounds. Peak CPU on the defending node: 35% of one Pi 5 core. The attacker
-takes ~98% of the acceptance rate during the flood, and 85% of honest offers are
-refused per round (they retry; study 2 shows none are stranded).
+rounds). The attacker takes 98% of the edge share and 72% of honest offers are
+refused per round (they retry; study 2 shows none are stranded). Peak CPU on the
+defending node: 37% of one Pi 5 core, headers and token checks together. The
+budget is never empty: the shares bound edge service before the budget does.
 
-### 1c. Core traffic cannot hold the price up
+![door under a 60-core flood](img/door_mid.png)
 
-![the same flood over the sized core ambient](img/door_equilibrium.png)
+A 60-core flood is priced rather than repelled. The price escalates to the
+ceiling — minting is priced at the grace floor, which lags each move by up to
+`G` rounds, so the first two retargets both see the floor-price rate — then
+settles at 750 once the floor catches up: there the attacker presents ~31
+tokens a round, inside the band `[r_E, 2·r_E]`, and holds 94% of the share with
+27% of honest offers refused. The band is where a priced occupation sits; an
+attacker between ~19 and ~38 cores at the floor fills the share without moving
+the price at all. That is the cost of the 2× band the stability constraint
+requires (a doubling halves a fixed solver's rate, so a narrower band would
+oscillate).
 
-The door reads only edge presentations, so core traffic at the sized operating
-point (48 arrivals/round) never enters its signal and the price decays to the
-floor exactly as over a quiet network. This is what separating the two signals
-buys: a load-driven door could be held up by core traffic it has no power to
-shed.
+### 1c. Core traffic is not the door's signal
 
-### 1b. Adaptive attackers flutter one step
+![the same flood over a quiet core ambient](img/door_quiet.png)
+
+Over a quiet core ambient (5 novel arrivals a round against the sized 20) the
+price decays home 150 rounds after the flood, exactly as over the sized
+ambient: core traffic never enters the door's signal. The **reported load** of
+the flooded node is another matter: at the sized ambient the node reports level
+8 (7–9 with Poisson noise over the 30-round window), and a full edge share adds
+`r_E/r_1 = 1.2` core shares — 9.6 levels — so a flooded door reports the top
+level, 15. A flood of valid tokens against more than half the network's doors
+would therefore tighten `d_blend` by `8/15`; at ~19 cores per door held, the
+lever is expensive and its effect bounded.
+
+### 1b. Adaptive attackers: a priced sawtooth
 
 ![door vs an adaptive attacker](img/door_adaptive.png)
 
-An attacker that pauses above a give-up price produces no sawtooth — with
-minting priced at the grace floor, which lags each move by up to `G` rounds, the
-excursion is bounded to adjacent steps (750↔1000). The occupation is priced
-either way: ~92% attack duty, ~90% of the acceptance rate at 40 cores.
-Just-below-trip pressure costs ~19 fastest cores at the floor and scales roughly
-linearly with the price sustained (~48 at 750) — the floor figure is the
-attacker's cost-minimizing bound. What the price cannot do is hand the occupied
-service back; that is the acceptance rate's and redundancy's job.
+An attacker of 60 cores that mines only while the price is below 500 produces a
+sawtooth: ×2 from wherever the decay re-admits it, ×3/4 steps down while it
+waits — 56 distinct prices between 379 and 966 over the flood. It mines 30% of
+the time and takes 81% of the served edge connections. Adapting buys no
+discount: 2.6 core-seconds per served attacker message against 2.7 for the
+constant 60-core flood, because the grace floor prices each token at the lowest
+price the attacker waited for. No honest single-core solver is stranded by the
+sawtooth (0 of 3,606). What the price cannot do is hand an occupied share back;
+that is redundancy's job (`Φ_EC` doors per message, drawn from all `N`).
 
 ## 2. The grace window `G = 60` strands nobody who matters
 
@@ -84,24 +106,25 @@ solve outlives the 60 s grace with probability:
 | Pi 5, 4 cores | 4.5e-37 | 8.8e-12 |
 | Pi 5, 1 core | 8.2e-10 | **0.17%** |
 
-Replayed through the 60-core flood trace (price stepping ×2 twice), 0 of
+Replayed through the 200-core flood trace (price stepping ×2 twice), 0 of
 3,510 four-core and 0 of 3,606 single-core solvers were stranded. The
 constraint the specification states — `G` at least the p95 solve at the ceiling
 on the slowest device — holds with a wide margin at (60, 1000); halving `G` to
 the observation window `W = 30` would push the single-core worst case to ~4%,
 which is why `G` is its own parameter.
 
-## 3. The median moves one level below half collusion
+## 3. The median moves two to three levels below half collusion
 
 ![median shift vs colluding fraction](img/median_shift.png)
 
 With `N ∈ {32, 100, 1000}` reporters, honest loads lognormal around the set
-point and quantized to sixteen levels, a colluding fraction reporting the
-extreme moves the lower median by one level typically and two at most (at 30%:
-mean per-epoch multiplier 0.75 tightening / 1.36 loosening at `N = 100`). The
-rule is a pure re-anchor to `BASE·ℓ*/max(L^Min, median)` — a shifted median is a
-bounded bias with **no memory**: it vanishes the epoch capture ends. Influence
-is per declaration, so it is priced by the SDP minimum stake.
+point (geometric σ 1.6) and quantized to sixteen levels of 2.5 novel arrivals a
+round, a colluding fraction reporting the extreme moves the lower median by two
+levels typically and three at most below 30% (at 30%: mean per-epoch
+multiplier 0.77 tightening / 1.32 loosening at `N = 100`). The rule is a pure
+re-anchor to `BASE·ℓ*/max(L^Min, median)` — a shifted median is a bounded bias
+with **no memory**: it vanishes the epoch capture ends. Influence is per
+declaration, so it is priced by the SDP minimum stake.
 
 Two findings feed back into the specification:
 
@@ -109,10 +132,10 @@ Two findings feed back into the specification:
   recursive rule, a sustained median of 0 doubled the threshold each epoch and
   reached free admission — every ticket satisfying it — in exactly **19
   epochs** from `BASE` (`BASE = p/2¹⁹`; ~20 weeks). The rule is now stateless
-  and floors the median at `L^Min = 2`, so a zero median sits at `2·BASE`
-  instantly and reversibly. The floor is derived, not chosen: it is where the
-  drain condition stops holding.
-- **Sixteen levels are a bucket list, not a ranking:** 88% of 100
+  and floors the median at `L^Min = 2`, so a zero median sits at `4·BASE`
+  instantly and reversibly — the threshold at which solvers of the sized
+  capacity reach the whole of `F_T`.
+- **Sixteen levels are a bucket list, not a ranking:** 87% of 100
   heterogeneous reporters share their level with another, so the on-chain load
   report ranks doors only coarsely — the targeting-oracle residual the PR
   records.
@@ -132,77 +155,97 @@ specification's `d_edge^Max` constraint concrete.
 
 ## 5. The control loop, closed
 
-The earlier rounds never closed the loop `F_W → load → median → d_blend → F_W`;
-this study iterates it from all sixteen starting levels, for every peering degree
-and edge-traffic combination.
+The loop `level → d_blend → F_W → novel arrivals → level` is iterated from all
+sixteen starting levels over the staked transaction demand `F_tx` (none, half
+the sized `4.98`, sized, all of `F_T = 6.63`) and the solvers' hashpower
+relative to the sizing (`F_W = φ·F_T = 1.66` at `BASE`, proportional to the
+threshold). Cover traffic is excluded, as the specification's `F_1` excludes it
+(the larger of cover and data, not the sum).
 
-| `Φ_CC` | edge 0 | edge 6 | edge 12 |
-| --- | --- | --- | --- |
-| 6 | cycle {2,4}, fixed [3] | fixed [3] | cycle {3,4} |
-| 7 | fixed [3] | cycle {3,4} | fixed [4] |
-| 8 | cycle {3,4} | fixed [4] | **fixed [4]** |
+| `F_tx` \ hashpower | ×0.5 | ×1 | ×2 | ×4 | ×8 |
+| --- | --- | --- | --- | --- | --- |
+| none | cycle {2,4}, fixed [3] | cycle {2,8}, cycle {3,5}, fixed [4] | cycle {2,15}, cycle {3,11}, cycle {4,8}, cycle {5,6} | cycle {4,15}, cycle {5,13}, cycle {6,11}, cycle {7,9}, fixed [8] | cycle {9,14}, cycle {10,13}, cycle {11,12} |
+| half | fixed [5] | fixed [6] | cycle {7,8} | cycle {9,10} | cycle {12,14}, fixed [13] |
+| sized | fixed [7] | **fixed [8]** | cycle {9,10} | cycle {11,12} | fixed [15] |
+| all of `F_T` | fixed [9] | fixed [10] | fixed [11] | fixed [13] | fixed [15] |
 
-The design point — full peering with the edge allowance used — is an **exact
-fixed point** at level 4, arrivals 60, `d = BASE`, `F_W = 1`. Every attractor is
-bounded: each cycle visits two levels at most, the realized `F_W` never exceeds
-`F_W^Max = 2`, and the drain condition `3.0 + 6 < 12` holds throughout. The sized
-traffic sits **44% into its quantization band** `[54, 67.5)`; under the previous
-denominator it sat 5.7% into its band, which is what made it flap.
+The design point is an **exact fixed point**: 20.0 novel arrivals a round
+against `r_1 = 20`, level 8, `d = BASE`, `F_W = 1.66`. The loop gain there —
+the derivative of the map at its fixed point — is 0.25, which is `φ`: the gain
+of this proportional rule is the share of the novel traffic the proof of work
+branch carries. Two consequences, both stated rather than smoothed over:
 
-One corner is **bistable**: `Φ_CC^Min` with no edge traffic admits both a fixed
-point at level 3 and a 2↔4 cycle, depending on where the network starts. Bounded
-and drain-safe, but the only configuration without a unique attractor — stated
-rather than smoothed over.
+- **With no staked demand the branch is the whole traffic, the gain is 0.99,
+  and the quantized map cycles with period 2** — `{2,8}`, `{3,5}` or the fixed
+  point 4, depending on where the network starts. From the bootstrap value
+  `BASE` a network with no staked demand enters `{2,8}`: `d` alternates between
+  `BASE` and `4·BASE` epoch by epoch, `F_W` between the sized rate and `F_T`.
+  Bounded by `L^Min`, and no wire limit is exceeded at the sized hashpower.
+  An early network in which most senders are unstaked is in this regime.
+- **Hashpower beyond the range's span pins the threshold at the tight end**:
+  ×8 the sizing sits at level 15, `d = BASE·8/15`, and the shares bind. Inside a
+  no-demand cycle at ×4 the loose phase admits `F_W = 13.3 > F_T` for an epoch;
+  the floor `L^Min` bounds `F_W` at `F_T` only at the sized hashpower.
+
+Two candidate damping rules, **not specified**, run on the same grid (sqrt
+re-anchor `d = BASE·√(ℓ*/max(L^Min, median))`, gain halved and span 2.7×
+instead of 7.5× / mean of two consecutive epochs' medians, retention four
+epochs):
+
+| `F_tx` \ hashpower | ×0.5 | ×1 | ×2 | ×4 | ×8 |
+| --- | --- | --- | --- | --- | --- |
+| none | fixed [2] / fixed [3] | fixed [3] / fixed [4] | fixed [5] / cycle {5,6} | fixed [8] / fixed [8] | fixed [13] / cycle {11,12} |
+| half | fixed [4] / fixed [5] | cycle {5,6} / fixed [6] | fixed [7] / cycle {7,8} | fixed [10] / cycle {9,10} | fixed [15] / fixed [13] |
+| sized | fixed [7] / fixed [7] | fixed [8] / fixed [8] | fixed [10] / cycle {9,10} | cycle {12,13} / cycle {11,12} | fixed [15] / fixed [15] |
+| all of `F_T` | fixed [9] / fixed [9] | fixed [10] / fixed [10] | fixed [11] / fixed [11] | fixed [14] / fixed [13] | fixed [15] / fixed [15] |
+
+Both remove the period-2 cycle at no demand and keep the design point; the sqrt
+rule pays with authority (at ×4 the sizing it can no longer reach the tight end
+it needs), the two-epoch mean with a fourth epoch of active-message retention
+and one-step flutters. Left to the specification's thread.
+
+**Cover traffic.** Counting `F_C = 1` cover message a round in the novel
+arrivals — the sum rather than `F_1`'s max — puts the sized traffic at 23.0
+novel a round and the design point at level 9, one above `ℓ*`: `d` settles at
+`BASE·8/9`. Whether a connection carries the sum is a question for the
+`F_1` definition upstream.
 
 ## What went back into the specification
 
 1. **Load counts only priced connections.** The first run of study 1 showed the
    raise rule fed by raw offers: a costless connect-flood (no valid token)
    could move a node's price and, through the reported median, tighten
-   `d_blend` network-wide for free. The door now checks the token first and
-   the rate cap last, and `A_n` counts an edge connection only when its token
-   passed — a connection must cost work to move the load.
+   `d_blend` network-wide for free. The door checks the token first, and an
+   edge connection enters the load only when served.
 2. **The zero-median runaway is closed by flooring the median** (study 3):
-   the loosening never passes the floor's fixed point. *Superseded by 11 — the
-   floor became `L^Min = 2`, derived from the drain condition rather than set
-   at level 1.*
-3. **The adaptive-attacker residual is a stable occupation or a one-step
-   flutter, not a wide sawtooth** (study 1b) — the PR's open question is
-   rephrased accordingly.
-4. **`ℓ*` became a derivation rather than a bare value.** The branch review
-   (R1) found it stated as a result the reader had to trust. *Superseded by 9 —
-   the derivation was against per-node hardware, which does not close; against
-   the envelope it is `ℓ* = 4` and the cache floor is 187 MB.*
-5. **The door thresholds sit above the set point** (`raise > ℓ*+2`,
-   `decay < ℓ*+1`, study 1c) — sharing the naive `ℓ*±1` deadband would freeze
-   every door at the equilibrium the consensus controller steers to (R2).
-   *Superseded by 10 — the door left the load signal entirely for `P_n`.*
-6. **The edge node need not await the quote** — a serialized quote round trip
-   would not fit `T_E`'s own derivation on a slow link (R3).
-7. **A token moves the load once.** The priced-offer rule alone left rate-refused
-   tokens replayable into the load signal at zero marginal cost (a ~6×
-   understatement of the trip cost); the spec now records priced pairs and
-   counts each token once, which also makes this module's
-   fresh-mint-per-offer model exact.
-8. **The Blend difficulty became a pure function of one epoch's reports** — no
+   the loosening never passes the floor. *The floor became `L^Min = ⌈ℓ*·φ⌉ = 2`,
+   where solvers of the sized capacity reach `F_T`.*
+3. **The edge node need not await the quote** — a serialized quote round trip
+   would not fit `T_E`'s own derivation on a slow link.
+4. **The Blend difficulty became a pure function of one epoch's reports** — no
    step clamp, no hold-on-empty; a checkpoint-bootstrapped node computes it from
    carried ledger state alone.
-9. **Load is measured against the protocol's per-round envelope, not against
-   self-measured hardware.** The earlier denominator was the operator's
-   provisioning choice: the same traffic reported level 3 on a one-core node and
-   level 0 on a four-core one, so `d_blend` pinned at its loosest value on any
-   multi-core network. `V_n` is deleted and the loop closes (study 5).
-10. **The door reads presentations, not load** — with load counting only
-   accepted connections, a load-driven door would be inert against any flood.
-11. **The loosening stops at `L^Min = ⌈ℓ*/F_W^Max⌉ = 2`**, derived from the drain
-   condition, and the nullifier cache floor is evaluated at `F_W^Max = 2`
-   (187 MB) rather than at the sized rate.
-12. **A token counts once towards the price it sets.** Deleting the priced-pair
-   record alongside the load change left `P_n` counting every presentation, and
-   a token refused at the acceptance cap never enters the spent-token cache —
-   so a stock mined once would hold a node's ceiling for the cost of the `Λ_E`
-   tokens accepted per round, about **one** fastest core rather than the ~19
-   this report's study 1 prices. `P_n` now counts distinct tokens.
+5. **Load is measured against a protocol constant, not against self-measured
+   hardware.** The earlier denominator was the operator's provisioning choice:
+   the same traffic reported level 3 on a one-core node and level 0 on a
+   four-core one, so `d_blend` pinned at its loosest value on any multi-core
+   network. *The constant became a core connection's share `r_1` of #421's
+   budget, and the numerator the novel arrivals, so the load is independent of
+   the peering degree.*
+6. **The door reads presentations, not load** — with load counting served
+   connections only, a load-driven door would be inert against any flood.
+7. **A token counts once towards the price it sets.** With `P_n` counting every
+   presentation, a token refused at the budget check never enters the
+   spent-token cache, so a stock mined once would hold a node's ceiling for the
+   cost of the tokens served a round — about one fastest core rather than the
+   ~38 study 1 prices. `P_n` counts distinct tokens.
+8. **The set point sits at the centre of its level.** The quantizer rounds to
+   nearest rather than down, so `ℓ* = 8` is the middle of `[18.75, 21.25)`
+   novel a round rather than its lower edge, where an implementation's rounding
+   would decide the reported byte.
+9. **The loop gain is the branch's share of traffic** (study 5): stable at the
+   sizing (`φ`), marginal with no staked demand. Recorded with the candidate
+   rules above; the specification is unchanged.
 
 ## Not covered here
 
@@ -210,10 +253,11 @@ rather than smoothed over.
   is committed at `reports/blend/header-verification/console-RPi5.txt`, and
   the measured ref `logos-blockchain 87138d2` contains the third branch
   (`blend/proofs/src/quota/pow.rs`), so 157/s is the deployed circuit's
-  figure. The transcript's "implied bound" section speaks the tool's
-  pre-#421 window model; the measured rates are model-independent. The
-  board's `results.json`/`results.csv` remain worth committing for
+  figure. The board's `results.json`/`results.csv` remain worth committing for
   per-repeat detail.
+- The door model serves edge connections up to `r_E` a round within the budget
+  and reads each core connection up to its share; #421's round-robin between
+  readable connections is not modeled beyond that.
 - Honest clients giving up under high prices, mixed device fleets beyond the
   two Pi profiles, and door-selection strategies smarter than uniform are not
   modeled.

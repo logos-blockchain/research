@@ -1,25 +1,28 @@
 """Simulations of the Blend load-driven admission mechanisms, as specified.
 
 Simulates the exact rules of `blend-protocol.md` 1.7.0 (logos-lips branch
-`docs/blend-load-driven-admission`) against the measured Equi-X curves:
+`docs/blend-load-driven-admission`, on the admission budget of #421) against
+the measured Equi-X curves:
 
-  * EdgeDifficulty  — the per-node door controller (`Edge Difficulty`): retarget
-    every W rounds, x2 up / x3/4 down against the load levels, bounds
-    [d_edge_min, d_edge_max].
+  * quantize_report  — the Load rule: novel arrivals against a core connection's
+    share r_1, sixteen levels, rounded to nearest; exact integers.
+  * EdgeDifficulty   — the per-node door controller (`Edge Difficulty`): every W
+    rounds, on the distinct tokens presented P_n, x2 above 2*r_E per served
+    round, x3/4 below r_E, bounds [d_edge_min, d_edge_max].
   * blend_difficulty — the consensus controller (`Blend Difficulty`): a pure
-    function of one epoch's reports, d = BASE * l_star // max(L_MIN, lower median);
-    an empty report set yields BASE. Exact integers, real BN254 modulus.
+    function of one epoch's reports, d = BASE * l_star // max(L_MIN, lower
+    median); an empty report set yields BASE. Exact integers, real BN254 modulus.
 
-Four studies, each answering one calibration question the specification's PR
-carries as open:
+Five studies:
 
-  1. door       — the door controller under a constant and an adaptive flood:
-                  does it hold verification load, who gets the acceptance rate?
-  2. grace      — stranded honest solvers vs the grace window G.
-  3. median     — how far a colluding fraction moves d_blend, both directions,
-                  and the quantization width's effect.
-  4. leader     — the edge-leader budget: pre-mining duty cycle and the
-                  fallback probability of solving at slot time.
+  1. door    — the door under constant and adaptive floods, over the budget and
+               the shares of #421: does the price find the flood, who gets the
+               edge share, what does the defender's CPU do?
+  2. grace   — stranded honest solvers vs the grace window G.
+  3. median  — how far a colluding fraction moves d_blend; quantization ties.
+  4. leader  — the edge leader: pre-mining duty cycle, slot-time solving risk.
+  5. loop    — level -> d_blend -> F_W -> novel arrivals -> level, closed over
+               transaction demand and solver hashpower.
 
 Run:  python -m equix_bench.blend_admission --out results/blend-admission
 """
@@ -53,20 +56,31 @@ T_TOKEN_VERIFY = 54.7e-6
 # ------------------------------------------------- spec constants (1.7.0)
 ROUND = 1.0          # seconds per round
 W = 30               # observation window, rounds
-A_MAX = 108          # envelope: PHI_CC_MAX*M_1_MAX + LAMBDA_E = 8*12 + 12
-L_STAR = 4           # load set point: floor(8*60/108), the sized traffic in the envelope
-F_W_MAX = 2          # largest rate the drain condition permits: F_1 + F_W*beta < M_1_MAX
-L_MIN = 2            # ceil(L_STAR / F_W_MAX): the lowest load the controller reads
+DELTA_MAX = 3        # maximal blending delay, rounds
+BETA_MAX = 3         # blending operations per message
+F_C, R_C = 1.0, 0    # cover messages per round, replication
+F_D, R_D = 1 / 30, 0 # data messages per round, replication
+F_T = 199 / 30       # messages carrying transactions per round, whatever quota backs them
+# The rate a core connection carries (Expected Traffic).
+F_1 = max(F_C * (1 + R_C), (F_D + F_T) * (1 + R_D)) * BETA_MAX      # 20.0
+V = 156              # messages/s the slowest targeted node processes (one below 157 measured)
+R = 2 * V // 3       # growth of the admission budget per round: 104
+B = (V - R) * DELTA_MAX                                            # its largest value: 156
+PHI_CC = 4           # peering degree; a node holds PHI_CC-1 .. PHI_CC+1 core connections
+PHI_CC_RANGE = (PHI_CC - 1, PHI_CC, PHI_CC + 1)
+R_1 = R // (PHI_CC + 1)                                            # a core connection's share: 20
+R_E = R - R_1 * PHI_CC                                             # the edge share: 24
+PHI_W = 0.25         # share of F_T sized for the proof of work branch
+F_W_SIZED = PHI_W * F_T                                            # 1.658
+F_TX = (1 - PHI_W) * F_T                                           # the rest of F_T: 4.975
+_l_star = 8 * F_1 / R_1
+assert _l_star.is_integer(), "l_star must be a level"
+L_STAR = int(_l_star)                                              # the load set point: 8
+L_MIN = math.ceil(L_STAR * PHI_W)                                  # the loosening floor: 2
 D_EDGE_MIN = 300
 D_EDGE_MAX = 1000
 T_R = 600            # challenge rotation, rounds
 G = 60               # price grace window, rounds
-M_1_MAX = 12         # messages per round per connection
-LAMBDA_E = 12        # edge connections accepted per round
-PHI_CC_MAX = 8
-PHI_CC_MIN = 6
-BETA_MAX = 3         # blending operations per message
-F_1 = 3.0            # messages per connection per round, expected
 
 # BN254 scalar field modulus (the PowTarget field).
 P = 21888242871839275222246405745257275088548364400416034343698204186575808495617
@@ -83,36 +97,54 @@ def attacker_core_rate(d: float) -> float:
     return mint_rate_per_machine(d, ATTACKER_CORE_MINT)
 
 
+# --------------------------------------------------------------------- the load
+
+
+def quantize_report(novel: int, served_rounds: int) -> int:
+    """The Load rule, verbatim: the level of A_n novel arrivals over S_n served
+    rounds against a core connection's share, sixteen levels, rounded to
+    nearest, exact integers. No served round -> 0."""
+    if served_rounds == 0:
+        return 0
+    return min(15, (16 * novel + R_1 * served_rounds) // (2 * R_1 * served_rounds))
+
+
+def quantize_level(novel_per_round: float) -> int:
+    """The same rule on a mean rate (the loop study)."""
+    return min(15, int(math.floor((16 * novel_per_round + R_1) / (2 * R_1))))
+
+
 # ------------------------------------------------------------- the controllers
 
 
 @dataclass
 class EdgeDifficulty:
-    """The Edge Difficulty rule, verbatim: every W rounds, against arrivals A
-    over those rounds and the node's capacity V (verifications/round):
+    """The Edge Difficulty rule, verbatim: every W rounds, against the distinct
+    tokens presented P over those rounds (passing checks 1-3, served or not)
+    and the served rounds S:
 
-      1. if P > 2*LAMBDA_E*r: d <- min(2d, Max)
-      2. if P < LAMBDA_E*r:   d <- max(3d//4, Min)
+      1. if P > 2*r_E*S: d <- min(2d, Max)
+      2. if P < r_E*S:   d <- max(3d//4, Min)
       3. otherwise unchanged.
 
-    P counts presentations passing checks 1-3, accepted or refused: the door
-    needs the excess demand that Load's accepted-only count cannot carry. The
-    raise threshold is twice the decay threshold because doubling d halves a
-    fixed solver's rate, so a narrower band would oscillate.
+    P counts every distinct token, served or refused: the door needs the excess
+    demand that Load's served-only count cannot carry. The raise threshold is
+    twice the decay threshold because doubling d halves a fixed solver's rate,
+    so a narrower band would oscillate.
     """
     d: int = D_EDGE_MIN
 
-    def retarget(self, presentations: float, rounds: int = W) -> int:
-        if presentations > 2 * LAMBDA_E * rounds:
+    def retarget(self, presentations: float, served_rounds: int = W) -> int:
+        if presentations > 2 * R_E * served_rounds:
             self.d = min(2 * self.d, D_EDGE_MAX)
-        elif presentations < LAMBDA_E * rounds:
+        elif presentations < R_E * served_rounds:
             self.d = max(3 * self.d // 4, D_EDGE_MIN)
         return self.d
 
 
 def grace_floor(d_history: list[int], at: int) -> int:
     """The lowest price in force during the past G rounds, `at` inclusive
-    (acceptance rule 2 of Edge Admission)."""
+    (check 2 of Edge Admission)."""
     return min(d_history[max(0, at - G + 1): at + 1])
 
 
@@ -123,11 +155,11 @@ def lower_median(values: list[int]) -> int:
 def blend_difficulty(reports: list[int]) -> int:
     """The Blend Difficulty rule, verbatim (exact integers): a pure function of
     one epoch's report set. No reports -> BASE (the calibrated prior); a median
-    median below L_MIN loosens no further than BASE*L_STAR//L_MIN, the rate the
-    drain condition permits. The historical recursive rule (x2 step clamp, hold on
-    empty) was dropped so a checkpoint-bootstrapped node can compute the value
-    from carried ledger state alone; runaway_epochs_uncapped() below records
-    why the pre-fix zero branch needed a cap at all."""
+    below L_MIN loosens no further than BASE*L_STAR//L_MIN, where the proof of
+    work branch reaches the whole of F_T. The historical recursive rule (x2 step
+    clamp, hold on empty) was dropped so a checkpoint-bootstrapped node can
+    compute the value from carried ledger state alone; runaway_epochs_uncapped()
+    below records why the pre-fix zero branch needed a cap at all."""
     if not reports:
         return BLEND_DIFFICULTY_BASE
     load = max(L_MIN, lower_median(reports))
@@ -149,80 +181,90 @@ def d_blend(s: int, reports_by_epoch) -> int:
 class DoorTrace:
     round: list[int] = field(default_factory=list)
     d: list[int] = field(default_factory=list)
-    offered: list[int] = field(default_factory=list)        # edge offers this round
-    accepted_attacker: list[int] = field(default_factory=list)
-    accepted_honest: list[int] = field(default_factory=list)
+    offered: list[int] = field(default_factory=list)        # edge presentations this round
+    served_attacker: list[int] = field(default_factory=list)
+    served_honest: list[int] = field(default_factory=list)
     refused_honest: list[int] = field(default_factory=list)
-    load_levels: list[float] = field(default_factory=list)  # 8*A/(V*W) over trailing W
+    load_levels: list[int] = field(default_factory=list)    # the Load rule over trailing W
     cpu: list[float] = field(default_factory=list)          # fraction of one core
+    budget_empty: list[bool] = field(default_factory=list)
+    mining: list[float] = field(default_factory=list)       # attacker cores mining this round
 
 
 def simulate_door(rounds: int, attacker_cores, honest_edge_rate: float = 2.0,
-                  V: float = V_HEADER, seed: int = 0,
-                  adaptive_giveup: int | None = None,
-                  core_mean: float | None = None) -> DoorTrace:
-    """The door under load. Core-relay arrivals are Poisson(PHI_CC_MAX * F_1)
-    per round. The attacker owns `attacker_cores(t)` fastest-measured cores and
-    presents valid tokens at the current price (rate-limited by its hashpower);
-    with `adaptive_giveup`, it instead watches d and only mines while
-    d < giveup. Honest edge nodes offer Poisson(honest_edge_rate) per round and
-    always present a valid token (they pre-mine; study 2 prices that).
-    Acceptance follows Edge Admission: at most LAMBDA_E per round, attacker and
-    honest offers drawn in random order.
+                  seed: int = 0, adaptive_giveup: int | None = None,
+                  core_novel_mean: float | None = None) -> DoorTrace:
+    """The door over #421's admission. Each round the budget grows by R to at
+    most B. Core traffic: Poisson(core_novel_mean) novel messages, each read
+    once per neighbor (flooding), each connection read up to its share r_1.
+    Edge: the attacker owns `attacker_cores(t)` fastest-measured cores and
+    presents distinct valid tokens at the grace-floor price (rate-limited by its
+    hashpower); with `adaptive_giveup` it mines only while d < giveup. Honest
+    edge nodes offer Poisson(honest_edge_rate) per round with valid tokens
+    (they pre-mine; study 2 prices that). Edge connections are served in random
+    arrival order, together up to their share r_E, within the budget (checks 4
+    and admission rule 3).
 
-    The load numerator counts core arrivals plus TOKEN-VALID edge offers only —
-    the corrected Load rule: counting refused garbage offers would let a
-    costless connect-flood raise the price (and, through the report, tighten
-    d_blend network-wide) without paying any work. Each offer is modeled as a
-    distinct freshly minted token, which matches the spec's one-token-counts-
-    once rule; acceptance checks 1 and 3 (window rotation, spent cache) are not
-    modeled — token identity never repeats here by construction."""
+    Load counts novel arrivals: the core novel messages plus the edge
+    connections served (an edge message is novel once). The door reads the
+    presentations. Each offer is a distinct fresh token, which matches the
+    one-token-counts-once rule; checks 1 and 3 (window rotation, spent cache)
+    are not modeled — token identity never repeats here by construction."""
     rng = random.Random(seed)
     ctrl = EdgeDifficulty()
     tr = DoorTrace()
-    window: list[float] = []           # per-round arrivals, trailing W
-    pwindow: list[float] = []          # per-round presentations, trailing W
-    if core_mean is None:
-        core_mean = PHI_CC_MAX * F_1   # quiet ambient; pass PHI*(F_1+F_W*beta)=48
-                                       # for the PoW-at-sizing equilibrium
+    window: list[int] = []             # per-round novel arrivals, trailing W
+    pwindow: list[int] = []            # per-round presentations, trailing W
+    if core_novel_mean is None:
+        # The sized operating point: F_1 novel per round in total, the honest
+        # edge messages being part of F_T rather than on top of it.
+        core_novel_mean = F_1 - honest_edge_rate
+    budget = B
     d_hist: list[int] = []
     for t in range(rounds):
+        budget = min(B, budget + R)
         d_hist.append(ctrl.d)
-        mint_price = grace_floor(d_hist, len(d_hist) - 1)   # rule 2: the floor, not the spot price
+        mint_price = grace_floor(d_hist, len(d_hist) - 1)   # check 2: the floor, not the spot price
         cores = attacker_cores(t)
         if adaptive_giveup is not None and cores > 0:
             cores = cores if ctrl.d < adaptive_giveup else 0.0
         atk_offers = _poisson(rng, cores * attacker_core_rate(mint_price) * ROUND)
         hon_offers = _poisson(rng, honest_edge_rate * ROUND)
-        core_arrivals = _poisson(rng, core_mean)
 
-        # Acceptance: random arrival order, first LAMBDA_E valid tokens win.
+        # Core: every novel message arrives once per neighbor; each connection
+        # is read up to its share, all within the budget.
+        core_novel = _poisson(rng, core_novel_mean)
+        core_reads = min(PHI_CC * core_novel, PHI_CC * R_1, budget)
+        budget -= core_reads
+        core_novel = min(core_novel, core_reads)
+
+        # Edge: random arrival order, together up to r_E, within the budget.
         offers = ["a"] * atk_offers + ["h"] * hon_offers
         rng.shuffle(offers)
-        taken = offers[:LAMBDA_E]
+        taken = offers[:min(R_E, budget)]
+        budget -= len(taken)
         acc_a, acc_h = taken.count("a"), taken.count("h")
 
-        # Load counts core arrivals plus ACCEPTED edge connections; the door
-        # reads presentations, accepted or refused.
-        arrivals = core_arrivals + acc_a + acc_h
+        novel = core_novel + acc_a + acc_h
         presentations = atk_offers + hon_offers
-        window.append(arrivals)
-        pwindow.append(presentations)
+        window.append(novel); pwindow.append(presentations)
         if len(pwindow) > W:
             pwindow.pop(0)
         if len(window) > W:
             window.pop(0)
 
-        # CPU: header verifications for core traffic and accepted edge messages,
-        # token verifications for every edge offer.
-        cpu = (core_arrivals + acc_a + acc_h) / V + (atk_offers + hon_offers) * T_TOKEN_VERIFY
+        # CPU: one header verification per novel message, one token check per
+        # presentation.
+        cpu = novel / V_HEADER + presentations * T_TOKEN_VERIFY
 
         tr.round.append(t); tr.d.append(ctrl.d)
-        tr.offered.append(atk_offers + hon_offers)
-        tr.accepted_attacker.append(acc_a); tr.accepted_honest.append(acc_h)
+        tr.offered.append(presentations)
+        tr.served_attacker.append(acc_a); tr.served_honest.append(acc_h)
         tr.refused_honest.append(hon_offers - acc_h)
-        tr.load_levels.append(8 * sum(window) / (A_MAX * W))
+        tr.load_levels.append(quantize_report(sum(window), len(window)))
         tr.cpu.append(cpu)
+        tr.budget_empty.append(budget == 0)
+        tr.mining.append(cores)
 
         if (t + 1) % W == 0:
             ctrl.retarget(sum(pwindow), W)
@@ -242,6 +284,16 @@ def _poisson(rng: random.Random, lam: float) -> int:
         k += 1
 
 
+def trip_cores(d: float = D_EDGE_MIN) -> float:
+    """Fastest-measured cores that trip the raise at price d: 2*r_E per round."""
+    return 2 * R_E / attacker_core_rate(d)
+
+
+def hold_cores(d: float = D_EDGE_MIN) -> float:
+    """Fastest-measured cores that fill the edge share at price d: r_E per round."""
+    return R_E / attacker_core_rate(d)
+
+
 # -------------------------------------------------------------- study 2: grace
 
 
@@ -254,8 +306,8 @@ def stranded_probability(mean_solve: float, grace: float = G * ROUND) -> float:
 def simulate_stranded(tr: DoorTrace, device_rate, solvers_per_round: float = 1.0,
                       seed: int = 1) -> tuple[int, int]:
     """Honest solvers through a door trace: each reads the quote at its start
-    round, solves for Exp(1/device_rate(d_quote)) seconds, and is accepted iff
-    its quote clears the lowest d in force during the G rounds before it
+    round, solves for Exp(1/device_rate(d_quote)) seconds, and passes check 2
+    iff its quote clears the lowest d in force during the G rounds before it
     presents. Returns (stranded, total)."""
     rng = random.Random(seed)
     stranded = total = 0
@@ -277,21 +329,15 @@ def simulate_stranded(tr: DoorTrace, device_rate, solvers_per_round: float = 1.0
 # ------------------------------------------------------------- study 3: median
 
 
-def quantize(arrivals_per_round: float, levels: int = 16) -> int:
-    """The reported level of an arrival rate, against the envelope."""
-    return min(levels - 1, int(8 * arrivals_per_round / A_MAX * (levels / 16)))
-
-
 def median_shift(n: int, colluders: float, direction: str, rng: random.Random,
-                 honest_median: float = 60.0, gsd: float = 1.6,
-                 levels: int = 16) -> tuple[int, int]:
+                 honest_median: float = F_1, gsd: float = 1.6) -> tuple[int, int]:
     """One epoch of reports: n declarations, a `colluders` fraction reporting the
     extreme (15 to tighten, 0 to loosen), the rest lognormal around
-    honest_median arrivals per round. Returns (honest-only median, shifted
-    median), in levels."""
-    honest = [quantize(honest_median * math.exp(rng.gauss(0, math.log(gsd))), levels)
+    honest_median novel arrivals per round. Returns (honest-only median,
+    shifted median), in levels."""
+    honest = [quantize_level(honest_median * math.exp(rng.gauss(0, math.log(gsd))))
               for _ in range(n - int(n * colluders))]
-    extreme = levels - 1 if direction == "tighten" else 0
+    extreme = 15 if direction == "tighten" else 0
     reports = honest + [extreme] * int(n * colluders)
     return lower_median(honest), lower_median(reports)
 
@@ -300,7 +346,7 @@ def runaway_epochs_uncapped() -> int:
     """Epochs of sustained median 0 until the ORIGINAL recursive rule (hold
     state, double per epoch, bounded only by p-1) reached free admission from
     BASE. Exact, from the real modulus — the number that motivated flooring the
-    median at level 1."""
+    median."""
     d, epochs = BLEND_DIFFICULTY_BASE, 0
     while d < P - 1:
         d = min(d * 2, P - 1)
@@ -309,8 +355,8 @@ def runaway_epochs_uncapped() -> int:
 
 
 def zero_median_settles_at() -> int:
-    """Where the rule sits under a median of 0 — the level-1 fixed point,
-    instantly and statelessly."""
+    """Where the rule sits under a median of 0 — the L_MIN floor, instantly and
+    statelessly."""
     return blend_difficulty([0])
 
 
@@ -332,39 +378,119 @@ def premine_duty(d: int, tokens: int = 3, rotation: float = T_R * ROUND) -> floa
 # ------------------------------------------------------------ study 5: the loop
 
 
-def realized_f_w(d: int) -> float:
-    """The proof of work rate at threshold `d`. The rate scales with the
-    threshold, and F_W = 1 at BASE by the sizing — an assumption about
-    exogenous mining demand, not a derived fact."""
-    return d / BLEND_DIFFICULTY_BASE
+def realized_f_w(d: int, hashpower: float = 1.0) -> float:
+    """The proof of work rate at threshold `d` from solvers of fixed capacity:
+    proportional to the threshold, and equal to the sized rate at BASE when
+    `hashpower` is 1 — an assumption about exogenous mining, not a derived
+    fact. `hashpower` scales the solvers against the sizing."""
+    return hashpower * F_W_SIZED * d / BLEND_DIFFICULTY_BASE
 
 
-def loop_step(level: int, phi_cc: int = PHI_CC_MAX, edge: float = LAMBDA_E) -> int:
-    """One turn of level -> d_blend -> F_W -> arrivals -> level."""
+def novel_rate(f_tx: float, f_w: float, cover: bool = False) -> float:
+    """Novel arrivals per round at a node: every message once per hop. With
+    `cover`, the cover traffic F_C is counted too; the specification's F_1
+    takes the larger of cover and data, not their sum."""
+    data = (F_D + f_tx + f_w) * (1 + R_D)
+    return (data + (F_C * (1 + R_C) if cover else 0.0)) * BETA_MAX
+
+
+def loop_step(level: int, f_tx: float = F_TX, hashpower: float = 1.0,
+              cover: bool = False) -> int:
+    """One turn of level -> d_blend -> F_W -> novel arrivals -> level."""
     d = blend_difficulty([level])
-    a = phi_cc * (F_1 + realized_f_w(d) * BETA_MAX) + edge
-    return quantize(a)
+    return quantize_level(novel_rate(f_tx, realized_f_w(d, hashpower), cover))
 
 
-def loop_attractor(phi_cc: int, edge: float, start: int) -> list[int]:
+def loop_attractor(start: int, **kw) -> list[int]:
     """The cycle the map settles into from `start`: a single level if it has a
     fixed point, several if it cycles."""
     seen, level = [], start
     while level not in seen:
         seen.append(level)
-        level = loop_step(level, phi_cc, edge)
+        level = loop_step(level, **kw)
     return sorted(set(seen[seen.index(level):]))
 
 
-def loop_survey(degrees=(PHI_CC_MIN, 7, PHI_CC_MAX), edges=(0.0, 6.0, LAMBDA_E)) -> dict:
-    """Every attractor of the map, from every starting level."""
+LOOP_DEMANDS = ((0.0, "none"), (F_TX / 2, "half"), (F_TX, "sized"), (F_T, "all of F_T"))
+LOOP_HASHPOWERS = (0.5, 1.0, 2.0, 4.0, 8.0)
+
+
+def loop_survey(demands=LOOP_DEMANDS, hashpowers=LOOP_HASHPOWERS, cover: bool = False) -> dict:
+    """Every attractor of the map, from every starting level, over the
+    transaction demand F_tx and the solvers' hashpower."""
     out = {}
-    for phi in degrees:
-        for e in edges:
-            cycles = {tuple(loop_attractor(phi, e, s)) for s in range(16)}
-            out[(phi, e)] = sorted(cycles)
+    for f_tx, name in demands:
+        for h in hashpowers:
+            cycles = {tuple(loop_attractor(s, f_tx=f_tx, hashpower=h, cover=cover))
+                      for s in range(16)}
+            out[(name, h)] = sorted(cycles)
     return out
 
+
+def blend_difficulty_sqrt(reports: list[int]) -> int:
+    """CANDIDATE, not specified: the same re-anchor with half the gain,
+    d = BASE * sqrt(l_star / max(L_MIN, median)), as integers with a 2**40
+    scale. Range [BASE*sqrt(8/15), 2*BASE] — span 2.7x against the
+    proportional rule's 7.5x."""
+    if not reports:
+        return BLEND_DIFFICULTY_BASE
+    load = max(L_MIN, lower_median(reports))
+    return (BLEND_DIFFICULTY_BASE * math.isqrt((L_STAR << 40) // load)) >> 20
+
+
+def loop_step_rule(level: int, rule, f_tx: float = F_TX, hashpower: float = 1.0,
+                   cover: bool = False) -> int:
+    d = rule([level])
+    return quantize_level(novel_rate(f_tx, realized_f_w(d, hashpower), cover))
+
+
+def loop_attractor_rule(start: int, rule, **kw) -> list[int]:
+    seen, level = [], start
+    while level not in seen:
+        seen.append(level)
+        level = loop_step_rule(level, rule, **kw)
+    return sorted(set(seen[seen.index(level):]))
+
+
+def loop_attractor_two_epoch(start: tuple[int, int], f_tx: float = F_TX,
+                             hashpower: float = 1.0, cover: bool = False) -> list[int]:
+    """CANDIDATE, not specified: d from the mean of two consecutive epochs'
+    medians (reports of s-3 and s-4; retention four epochs). The map is on
+    pairs of levels; returns the levels the cycle visits."""
+    seen, state = [], start
+    while state not in seen:
+        seen.append(state)
+        m = (state[0] + state[1]) // 2
+        d = blend_difficulty([m])
+        nxt = quantize_level(novel_rate(f_tx, realized_f_w(d, hashpower), cover))
+        state = (nxt, state[0])
+    cyc = seen[seen.index(state):]
+    return sorted({lvl for pair in cyc for lvl in pair[:1]})
+
+
+def loop_survey_candidates(demands=LOOP_DEMANDS, hashpowers=LOOP_HASHPOWERS) -> dict:
+    """Attractors of the two candidate damping rules, for comparison with the
+    specified proportional rule."""
+    out = {}
+    for f_tx, name in demands:
+        for h in hashpowers:
+            sq = {tuple(loop_attractor_rule(s, blend_difficulty_sqrt, f_tx=f_tx, hashpower=h))
+                  for s in range(16)}
+            te = {tuple(loop_attractor_two_epoch((a, b), f_tx=f_tx, hashpower=h))
+                  for a in range(16) for b in range(16)}
+            out[(name, h)] = (sorted(sq), sorted(te))
+    return out
+
+
+def loop_gain(f_tx: float = F_TX, hashpower: float = 1.0, cover: bool = False) -> float:
+    """|d level'/d level| of the continuous map at its fixed point: the share of
+    the novel traffic the proof of work branch carries there. Below 1 the map
+    converges; at 1 it is marginal and the quantized map cycles."""
+    base = novel_rate(f_tx, 0.0, cover) * 8 / R_1               # the inelastic part, in levels
+    k = 8 * BETA_MAX * hashpower * F_W_SIZED * L_STAR / R_1    # elastic part = k / level
+    # fixed point: level = base + k / level
+    level = (base + math.sqrt(base * base + 4 * k)) / 2
+    return k / (level * level)
 
 
 def _plot_door(tr: DoorTrace, path: Path, title: str) -> None:
@@ -372,16 +498,15 @@ def _plot_door(tr: DoorTrace, path: Path, title: str) -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(4, 1, figsize=(8, 9), sharex=True)
-    ax[0].plot(tr.round, tr.offered, color="#DD8452", lw=0.7, label="edge offers / round")
-    ax[0].axhline(LAMBDA_E, ls="--", color="#333", label=f"acceptance rate $\\Lambda_E$={LAMBDA_E}")
-    ax[0].set_ylabel("offers / round"); ax[0].set_title(title); ax[0].legend(fontsize=8)
+    ax[0].plot(tr.round, tr.offered, color="#DD8452", lw=0.7, label="edge presentations / round")
+    ax[0].axhline(R_E, ls="--", color="#333", label=f"edge share $r_E$={R_E}")
+    ax[0].axhline(2 * R_E, ls=":", color="#333", label=f"raise threshold $2 r_E$={2 * R_E}")
+    ax[0].set_ylabel("presentations / round"); ax[0].set_title(title); ax[0].legend(fontsize=8)
     ax[1].plot(tr.round, tr.d, color="#55A868")
     ax[1].set_ylabel("door price $d_{edge}$"); ax[1].set_ylim(0, D_EDGE_MAX * 1.1)
-    ax[2].plot(tr.round, tr.load_levels, color="#4C72B0", lw=0.8, label="load (levels of 1/8)")
+    ax[2].plot(tr.round, tr.load_levels, color="#4C72B0", lw=0.8, label="reported load level")
     ax[2].axhline(L_STAR, ls="--", color="#C44E52", label="$\\ell^*$")
-    ax[2].axhline(L_STAR + 2, ls=":", color="#C44E52", lw=0.8, label="raise / decay thresholds")
-    ax[2].axhline(L_STAR + 1, ls=":", color="#C44E52", lw=0.8)
-    ax[2].set_ylabel("load level"); ax[2].legend(fontsize=8)
+    ax[2].set_ylabel("load level"); ax[2].set_ylim(0, 15.5); ax[2].legend(fontsize=8)
     ax[3].plot(tr.round, [c * 100 for c in tr.cpu], color="#937860", lw=0.8)
     ax[3].set_ylabel("CPU, % of one core"); ax[3].set_xlabel("round (1 s)")
     for a in ax:
@@ -403,8 +528,8 @@ def _plot_median(path: Path, seed: int = 3) -> dict:
             for c in fracs:
                 trials = [median_shift(n, c, direction, rng) for _ in range(200)]
                 # d_blend multiplier vs the honest value under the stateless
-                # rule: hm / max(1, sm) — the level-1 floor caps the loosening.
-                ratios = [max(hm, 1) / max(1, sm) for hm, sm in trials]
+                # rule: the L_MIN floor caps the loosening.
+                ratios = [max(hm, L_MIN) / max(L_MIN, sm) for hm, sm in trials]
                 mult.append(sum(ratios) / len(ratios))
             ax[i].plot([f * 100 for f in fracs], mult, color=color, label=f"N={n}")
             out[(direction, n)] = dict(zip(fracs, mult))
@@ -418,6 +543,11 @@ def _plot_median(path: Path, seed: int = 3) -> dict:
     return out
 
 
+def _fmt_cycles(cycles) -> str:
+    return ", ".join("fixed [%d]" % c[0] if len(c) == 1
+                     else "cycle {%s}" % ",".join(map(str, c)) for c in cycles)
+
+
 def main(argv=None) -> int:
     import argparse
     ap = argparse.ArgumentParser(description="Blend load-driven admission simulations")
@@ -426,77 +556,81 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
     lines = ["# Blend load-driven admission — simulation results\n"]
+    attack = slice(700, 2400)
 
-    # Study 1a: constant flood of 200 fastest cores, rounds [600, 2400).
-    # The raise trips above level l*+2 = 5 (98 arrivals): ~57 cores at the
-    # floor against quiet ambient. 200 cores escalate to the ceiling and HOLD
-    # (their offers keep the load above the decay threshold); 120 cores
-    # flutter one step below it — minting is priced at the grace floor, which
-    # lags each move by up to G rounds.
+    # Study 1a: floods of 200 and 60 fastest cores, rounds [600, 2400).
     flood = simulate_door(args.rounds, lambda t: 200.0 if 600 <= t < 2400 else 0.0)
     _plot_door(flood, out / "door_flood.png", "Door under a 200-core flood (rounds 600–2400)")
-    settle = simulate_door(args.rounds, lambda t: 28.0 if 600 <= t < 2400 else 0.0)
-    in_attack = slice(700, 2400)
-    acc_a = sum(flood.accepted_attacker[in_attack]); acc_h = sum(flood.accepted_honest[in_attack])
-    ref_h = sum(flood.refused_honest[in_attack])
+    mid = simulate_door(args.rounds, lambda t: 60.0 if 600 <= t < 2400 else 0.0, seed=2)
+    _plot_door(mid, out / "door_mid.png", "Door under a 60-core flood (rounds 600–2400)")
+    acc_a = sum(flood.served_attacker[attack]); acc_h = sum(flood.served_honest[attack])
+    ref_h = sum(flood.refused_honest[attack])
     peak_cpu = max(flood.cpu) * 100
     ceil_round = next(t for t, d in enumerate(flood.d) if d == D_EDGE_MAX)
     back_round = next((t for t, d in enumerate(flood.d) if t > 2400 and d == D_EDGE_MIN), None)
+    mid_prices = sorted(set(mid.d[2000:2400]))
+    mid_acc_a = sum(mid.served_attacker[attack]); mid_acc_h = sum(mid.served_honest[attack])
+    mid_ref_h = sum(mid.refused_honest[attack])
     lines += [
         "## 1. The door under flood",
-        f"- 60 cores: escalation floor→ceiling in {ceil_round - 600} rounds, held for the whole "
-        f"flood, decay back in {back_round - 2400 if back_round else '>'} rounds after it.",
-        f"- 28 cores: the price flutters {sorted(set(settle.d[700:2400]))[0]}"
-        f"–{sorted(set(settle.d[700:2400]))[-1]} — minting is priced at the grace floor, "
-        f"which lags each move by up to G rounds — and decays home the same way.",
-        f"- During the flood the attacker takes {acc_a / max(1, acc_a + acc_h) * 100:.0f}% of the "
-        f"acceptance rate; {ref_h / max(1, ref_h + acc_h) * 100:.0f}% of honest offers are refused "
-        f"at the rate cap (retried next rounds).",
-        f"- Peak CPU {peak_cpu:.0f}% of one Pi 5 core (headers + token checks) — the door holds "
-        f"the verification budget.",
+        f"- Trip point at the floor: 2·r_E = {2 * R_E} presentations per round, "
+        f"{trip_cores():.0f} fastest cores; filling the edge share r_E = {R_E} at the floor "
+        f"takes {hold_cores():.0f}. Holding the ceiling takes {trip_cores(D_EDGE_MAX):.0f}.",
+        f"- 200 cores: floor→ceiling in {ceil_round - 600} rounds, held for the whole flood, "
+        f"home in {back_round - 2400 if back_round else '>'} rounds after it. The attacker "
+        f"takes {acc_a / max(1, acc_a + acc_h) * 100:.0f}% of the edge share; "
+        f"{ref_h / max(1, ref_h + acc_h) * 100:.0f}% of honest offers are refused per round. "
+        f"Peak CPU {peak_cpu:.0f}% of one Pi 5 core (headers + token checks).",
+        f"- 60 cores: the price escalates to the ceiling, then settles at "
+        f"{mid_prices[0] if len(mid_prices) == 1 else f'{mid_prices[0]}–{mid_prices[-1]}'} once the grace "
+        f"floor catches up, where the attacker presents between r_E and 2·r_E and holds "
+        f"{mid_acc_a / max(1, mid_acc_a + mid_acc_h) * 100:.0f}% of the share "
+        f"({mid_ref_h / max(1, mid_ref_h + mid_acc_h) * 100:.0f}% of honest offers refused). "
+        f"The band is where a priced occupation sits.",
+        f"- Budget-empty rounds during the 200-core flood: "
+        f"{sum(flood.budget_empty[attack])} of {2400 - 700} — the shares bound edge service "
+        f"before the budget does.",
     ]
 
-    # Study 1c: the same flood over the PoW-at-sizing equilibrium ambient
-    # (core arrivals PHI*(F_1 + F_W*beta) = 48): the door must still decay to
-    # the floor afterwards — the property the lifted thresholds exist for.
-    equil = simulate_door(args.rounds, lambda t: 60.0 if 600 <= t < 2400 else 0.0,
-                          core_mean=48.0, seed=4)
-    _plot_door(equil, out / "door_equilibrium.png",
-               "The same flood over the PoW-at-sizing ambient (48 core arrivals/round)")
-    eq_back = next((t for t, d in enumerate(equil.d) if t > 2400 and d == D_EDGE_MIN), None)
+    # Study 1c: the same flood over a quiet core ambient: the door reads edge
+    # presentations only, so it decays home the same way.
+    quiet = simulate_door(args.rounds, lambda t: 200.0 if 600 <= t < 2400 else 0.0,
+                          core_novel_mean=5.0, seed=4)
+    _plot_door(quiet, out / "door_quiet.png",
+               "The same flood over a quiet core ambient (5 novel/round)")
+    q_back = next((t for t, d in enumerate(quiet.d) if t > 2400 and d == D_EDGE_MIN), None)
+    sized_level = sorted(set(flood.load_levels[100:600]))
     lines += [
-        "## 1c. Core ambient cannot hold the price up",
-        f"- The door reads edge presentations only, so core traffic at the sized operating "
-        f"point (48 arrivals/round) does not enter its signal: the price still decays to the "
-        f"floor {eq_back - 2400 if eq_back else '>'} rounds after the flood, exactly as over a "
-        f"quiet network.",
-        f"- The trip point is {2 * LAMBDA_E / attacker_core_rate(D_EDGE_MIN):.0f} fastest cores "
-        f"at the floor price, whatever the core load — 2*Lambda_E = {2 * LAMBDA_E} "
-        f"presentations per round.",
+        "## 1c. Core traffic is not the door's signal",
+        f"- Over a quiet core ambient (5 novel/round) the price decays home "
+        f"{q_back - 2400 if q_back else '>'} rounds after the flood, as over the sized ambient "
+        f"({back_round - 2400 if back_round else '>'}): the door reads edge presentations only.",
+        f"- The reported load at the sized ambient sits at level {sized_level} before the "
+        f"flood (set point {L_STAR}) and reaches {max(flood.load_levels[attack])} during it: "
+        f"a full edge share is {R_E / R_1:.1f} core shares, {8 * R_E / R_1:.1f} levels, so a "
+        f"flooded door reports the top level.",
     ]
 
-    # Study 1b: adaptive attackers, give-up at 800, two sizes.
-    adaptive = simulate_door(args.rounds, lambda t: 40.0 if 600 <= t < 2400 else 0.0,
-                             adaptive_giveup=800)
+    # Study 1b: adaptive attackers, give-up at 500.
+    adaptive = simulate_door(args.rounds, lambda t: 60.0 if 600 <= t < 2400 else 0.0,
+                             adaptive_giveup=500, seed=5)
     _plot_door(adaptive, out / "door_adaptive.png",
-               "Door vs an adaptive attacker (mines only while d < 800)")
-    big = simulate_door(args.rounds, lambda t: 60.0 if 600 <= t < 2400 else 0.0,
-                        adaptive_giveup=800, seed=5)
-    atk_on = sum(1 for t in range(600, 2400) if adaptive.accepted_attacker[t] > 0)
-    acc_a2 = sum(adaptive.accepted_attacker[700:2400])
-    acc_h2 = sum(adaptive.accepted_honest[700:2400])
-    flutter = sorted(set(big.d[700:2400]))
+               "Door vs an adaptive attacker (60 cores, mines only while d < 500)")
+    core_s = sum(adaptive.mining[attack]); core_s_const = sum(mid.mining[attack])
+    acc_a2 = sum(adaptive.served_attacker[attack]); acc_h2 = sum(adaptive.served_honest[attack])
+    prices = sorted(set(adaptive.d[attack]))
+    sa, na = simulate_stranded(adaptive, lambda d: pi5_rate(d) / 4.0, seed=2)
     lines += [
-        "## 1b. Adaptive attackers (give-up 800)",
-        f"- Both sizes flutter one step ({flutter[0]}↔{flutter[-1]}): with minting priced at "
-        f"the grace floor, the floor lags each move by up to G rounds, so neither a clean "
-        f"settle nor the generic controller's multi-octave sawtooth occurs — the excursion "
-        f"is bounded to adjacent steps.",
-        f"- The occupation is priced either way: attack duty {atk_on / 18:.0f}%, "
-        f"{acc_a2 / max(1, acc_a2 + acc_h2) * 100:.0f}% of the acceptance rate (40 cores). "
-        f"Just-below-trip pressure costs ~19 fastest cores at the floor and scales roughly "
-        f"linearly with the price the attack sustains (~48 at 750) — the floor figure is "
-        f"the attacker's cost-minimizing bound.",
+        "## 1b. Adaptive attackers (give-up 500)",
+        f"- 60 cores mining only below 500: a sawtooth over {prices[0]}–{prices[-1]} "
+        f"({len(prices)} distinct prices; ×2 from wherever the decay re-admits the attacker, "
+        f"×3/4 steps down while it waits). Mining duty {core_s / core_s_const * 100:.0f}%, "
+        f"{acc_a2 / max(1, acc_a2 + acc_h2) * 100:.0f}% of served edge connections.",
+        f"- Cost per served attacker message: {core_s / max(1, acc_a2):.1f} core-seconds "
+        f"adaptive against {core_s_const / max(1, mid_acc_a):.1f} for the constant 60-core "
+        f"flood — adapting buys no discount; the grace floor prices the token at the lowest "
+        f"price the attacker waited for.",
+        f"- Honest single-core solvers through the sawtooth: {sa}/{na} stranded.",
     ]
 
     # Study 2: stranded solvers, analytic worst case and through the flood trace.
@@ -508,26 +642,25 @@ def main(argv=None) -> int:
             lines.append(f"| {name} | {d} | {mean:.2f} s | {stranded_probability(mean):.2g} |")
     s4, n4 = simulate_stranded(flood, lambda d: pi5_rate(d))
     s1, n1 = simulate_stranded(flood, lambda d: pi5_rate(d) / 4.0, seed=2)
-    lines += ["", f"- Through the flood trace: {s4}/{n4} four-core and {s1}/{n1} single-core "
-                  f"solvers stranded (price steps are what strands, not the tail alone)."]
+    lines += ["", f"- Through the 200-core flood trace: {s4}/{n4} four-core and {s1}/{n1} "
+                  f"single-core solvers stranded (price steps are what strands, not the tail alone)."]
 
     # Study 3: median manipulation, both directions; runaway; quantization ties.
     shifts = _plot_median(out / "median_shift.png")
     ra = runaway_epochs_uncapped()
     rng = random.Random(9)
-    ranks16 = [quantize(60.0 * math.exp(rng.gauss(0, math.log(1.6)))) for _ in range(100)]
+    ranks16 = [quantize_level(F_1 * math.exp(rng.gauss(0, math.log(1.6)))) for _ in range(100)]
     ties16 = 1 - len(set(ranks16)) / 100
     lines += [
         "## 3. Median robustness",
-        f"- The rule is a pure re-anchor to BASE*{L_STAR}/median, so a shifted median is a "
-        f"bounded bias with no memory: at 30% colluders the mean multiplier is "
+        f"- The rule is a pure re-anchor to BASE·{L_STAR}/max({L_MIN}, median), so a shifted "
+        f"median is a bounded bias with no memory: at 30% colluders the mean multiplier is "
         f"{shifts[('tighten', 100)][0.30]:.2f} (tighten) / {shifts[('loosen', 100)][0.30]:.2f} "
         f"(loosen) at N=100, and it vanishes the epoch capture ends.",
         f"- The original recursive rule's zero-median branch doubled per epoch and reached free "
         f"admission in {ra} epochs from BASE; flooring the median at L_MIN = {L_MIN} closes it "
-        f"statelessly and stops the loosening where the drain condition does — a zero median "
-        f"sits at {zero_median_settles_at() / BLEND_DIFFICULTY_BASE:.0f}*BASE, instantly and "
-        f"reversibly.",
+        f"statelessly — a zero median sits at {zero_median_settles_at() / BLEND_DIFFICULTY_BASE:.0f}"
+        f"·BASE, where the branch reaches F_T, instantly and reversibly.",
         f"- Sixteen levels leave {ties16 * 100:.0f}% of 100 heterogeneous reporters sharing a "
         f"level — the targeting oracle sees buckets, not a ranking.",
     ]
@@ -545,40 +678,48 @@ def main(argv=None) -> int:
               "solving at slot time at the ceiling misses the 15 s traversal budget "
               f"{erlang3_tail(1 / pi5_rate(D_EDGE_MAX), 15) * 100:.1f}% of the time."]
 
-    # Study 5: the control loop, closed numerically.
+    # Study 5: the control loop, closed over demand and hashpower.
     survey = loop_survey()
-    fixed = sum(1 for cycles in survey.values() for c in cycles if len(c) == 1)
-    bistable = [k for k, v in survey.items() if len(v) > 1]
-    worst_fw = max(realized_f_w(blend_difficulty([lvl]))
-                   for cycles in survey.values() for c in cycles for lvl in c)
+    survey_cover = loop_survey(cover=True)
+    cands = loop_survey_candidates()
+    lines += ["## 5. The control loop, closed", "",
+              "| F_tx \\ hashpower | " + " | ".join(f"×{h:g}" for h in LOOP_HASHPOWERS) + " |",
+              "|---|" + "---|" * len(LOOP_HASHPOWERS)]
+    for _, name in LOOP_DEMANDS:
+        lines.append(f"| {name} | " + " | ".join(_fmt_cycles(survey[(name, h)])
+                                                  for h in LOOP_HASHPOWERS) + " |")
+    design = survey[("sized", 1.0)]
+    worst = max(lvl for cycles in survey.values() for c in cycles for lvl in c)
+    max_fw = max(realized_f_w(blend_difficulty([lvl]), h)
+                 for (name, h), cycles in survey.items() for c in cycles for lvl in c)
+    lines += ["", "Candidate rules (sqrt re-anchor / two-epoch mean), same grid:", "",
+              "| F_tx \\ hashpower | " + " | ".join(f"×{h:g}" for h in LOOP_HASHPOWERS) + " |",
+              "|---|" + "---|" * len(LOOP_HASHPOWERS)]
+    for _, name in LOOP_DEMANDS:
+        lines.append(f"| {name} | " + " | ".join(
+            _fmt_cycles(cands[(name, h)][0]) + " / " + _fmt_cycles(cands[(name, h)][1])
+            for h in LOOP_HASHPOWERS) + " |")
     lines += [
-        "## 5. The control loop, closed",
         "",
-        "| Phi_CC | edge 0 | edge 6 | edge 12 |",
-        "|---|---|---|---|",
-    ]
-    for phi in (PHI_CC_MIN, 7, PHI_CC_MAX):
-        row = [f"| {phi} "]
-        for e in (0.0, 6.0, float(LAMBDA_E)):
-            cs = survey[(phi, e)]
-            row.append("| " + ", ".join("fixed [%d]" % c[0] if len(c) == 1
-                                        else "cycle {%s}" % ",".join(map(str, c)) for c in cs) + " ")
-        lines.append("".join(row) + "|")
-    lines += [
-        "",
-        f"- Iterating level -> d_blend -> F_W -> arrivals -> level from all 16 starting levels: "
-        f"{fixed} of the 9 configurations have a fixed point; the design point "
-        f"(Phi_CC^Max with the edge allowance used) is exact at level {L_STAR}, arrivals 60.",
-        f"- Every attractor is bounded: each cycle visits two levels at most and the realized "
-        f"F_W never exceeds {worst_fw:.0f} = F_W_MAX, so the drain condition "
-        f"{F_1} + {worst_fw:.0f}*{BETA_MAX} < {M_1_MAX} holds throughout.",
-        f"- One corner is bistable: Phi_CC^Min with no edge traffic admits both a fixed point "
-        f"at level 3 and a 2<->4 cycle, depending on where the network starts. Bounded and "
-        f"drain-safe, but the only configuration without a unique attractor."
-        if bistable else "- Every configuration has a unique attractor.",
-        f"- The sized traffic sits {(60 - L_STAR * A_MAX / 8) / (A_MAX / 8) * 100:.0f}% into its "
-        f"band [{L_STAR * A_MAX / 8:.1f}, {(L_STAR + 1) * A_MAX / 8:.1f}) — the margin the "
-        f"previous denominator lacked.",
+        f"- The design point (sized demand, hashpower ×1) is {_fmt_cycles(design)}: "
+        f"{novel_rate(F_TX, F_W_SIZED):.1f} novel/round against r_1 = {R_1}, F_W = "
+        f"{F_W_SIZED:.2f}, d = BASE. Loop gain there {loop_gain():.2f} ≈ φ.",
+        f"- With no transaction demand the branch is the whole traffic and the gain is "
+        f"{loop_gain(0.0):.2f}: the quantized map cycles (period 2, {survey[('none', 1.0)]}), "
+        f"bounded by the floor L_MIN (d ≤ {L_STAR // L_MIN}·BASE, where F_W reaches F_T).",
+        f"- The realized F_W stays below F_T in every attractor? "
+        f"{'yes' if max_fw <= F_T + 1e-9 else 'NO: %.2f' % max_fw} (F_T = {F_T:.2f}). "
+        f"Hashpower beyond the range's span pins the threshold at the tight end "
+        f"(level 15, d = BASE·{L_STAR}/15) and the shares bind, as intended.",
+        f"- Candidate damping, not specified — the sqrt re-anchor (gain halved, span 2.7×) "
+        f"and the two-epoch mean (retention 4 epochs): with no demand at ×1 they give "
+        f"{_fmt_cycles(cands[('none', 1.0)][0])} and {_fmt_cycles(cands[('none', 1.0)][1])}; "
+        f"at the design point {_fmt_cycles(cands[('sized', 1.0)][0])} and "
+        f"{_fmt_cycles(cands[('sized', 1.0)][1])}; at ×4 sized "
+        f"{_fmt_cycles(cands[('sized', 4.0)][0])} and {_fmt_cycles(cands[('sized', 4.0)][1])}.",
+        f"- Counting cover traffic in the novel arrivals (F_1 takes the larger of cover and "
+        f"data, not the sum) moves the design point to {_fmt_cycles(survey_cover[('sized', 1.0)])}: "
+        f"{novel_rate(F_TX, F_W_SIZED, cover=True):.1f} novel/round, one level above ℓ*.",
     ]
 
     header = "<!-- generated by equix_bench.blend_admission; the curated report is simulation.md -->\n"

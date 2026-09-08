@@ -2,16 +2,17 @@
 # Blend load-driven admission — simulation results
 
 ## 1. The door under flood
-- 60 cores: escalation floor→ceiling in 60 rounds, held for the whole flood, decay back in 150 rounds after it.
-- 28 cores: the price flutters 750–1000 — minting is priced at the grace floor, which lags each move by up to G rounds — and decays home the same way.
-- During the flood the attacker takes 98% of the acceptance rate; 85% of honest offers are refused at the rate cap (retried next rounds).
-- Peak CPU 35% of one Pi 5 core (headers + token checks) — the door holds the verification budget.
-## 1c. Core ambient cannot hold the price up
-- The door reads edge presentations only, so core traffic at the sized operating point (48 arrivals/round) does not enter its signal: the price still decays to the floor 150 rounds after the flood, exactly as over a quiet network.
-- The trip point is 19 fastest cores at the floor price, whatever the core load — 2*Lambda_E = 24 presentations per round.
-## 1b. Adaptive attackers (give-up 800)
-- Both sizes flutter one step (750↔1000): with minting priced at the grace floor, the floor lags each move by up to G rounds, so neither a clean settle nor the generic controller's multi-octave sawtooth occurs — the excursion is bounded to adjacent steps.
-- The occupation is priced either way: attack duty 92%, 90% of the acceptance rate (40 cores). Just-below-trip pressure costs ~19 fastest cores at the floor and scales roughly linearly with the price the attack sustains (~48 at 750) — the floor figure is the attacker's cost-minimizing bound.
+- Trip point at the floor: 2·r_E = 48 presentations per round, 38 fastest cores; filling the edge share r_E = 24 at the floor takes 19. Holding the ceiling takes 124.
+- 200 cores: floor→ceiling in 60 rounds, held for the whole flood, home in 150 rounds after it. The attacker takes 98% of the edge share; 72% of honest offers are refused per round. Peak CPU 37% of one Pi 5 core (headers + token checks).
+- 60 cores: the price escalates to the ceiling, then settles at 750 once the grace floor catches up, where the attacker presents between r_E and 2·r_E and holds 94% of the share (27% of honest offers refused). The band is where a priced occupation sits.
+- Budget-empty rounds during the 200-core flood: 0 of 1700 — the shares bound edge service before the budget does.
+## 1c. Core traffic is not the door's signal
+- Over a quiet core ambient (5 novel/round) the price decays home 150 rounds after the flood, as over the sized ambient (150): the door reads edge presentations only.
+- The reported load at the sized ambient sits at level [7, 8, 9] before the flood (set point 8) and reaches 15 during it: a full edge share is 1.2 core shares, 9.6 levels, so a flooded door reports the top level.
+## 1b. Adaptive attackers (give-up 500)
+- 60 cores mining only below 500: a sawtooth over 379–966 (56 distinct prices; ×2 from wherever the decay re-admits the attacker, ×3/4 steps down while it waits). Mining duty 30%, 81% of served edge connections.
+- Cost per served attacker message: 2.6 core-seconds adaptive against 2.7 for the constant 60-core flood — adapting buys no discount; the grace floor prices the token at the lowest price the attacker waited for.
+- Honest single-core solvers through the sawtooth: 0/3606 stranded.
 ## 2. Grace window
 
 | device | d | mean solve | P(stranded), worst case |
@@ -21,11 +22,11 @@
 | Pi 5, 1 core | 300 | 2.87 s | 8.2e-10 |
 | Pi 5, 1 core | 1000 | 9.43 s | 0.0017 |
 
-- Through the flood trace: 0/3510 four-core and 0/3606 single-core solvers stranded (price steps are what strands, not the tail alone).
+- Through the 200-core flood trace: 0/3510 four-core and 0/3606 single-core solvers stranded (price steps are what strands, not the tail alone).
 ## 3. Median robustness
-- The rule is a pure re-anchor to BASE*4/median, so a shifted median is a bounded bias with no memory: at 30% colluders the mean multiplier is 0.75 (tighten) / 1.36 (loosen) at N=100, and it vanishes the epoch capture ends.
-- The original recursive rule's zero-median branch doubled per epoch and reached free admission in 19 epochs from BASE; flooring the median at L_MIN = 2 closes it statelessly and stops the loosening where the drain condition does — a zero median sits at 2*BASE, instantly and reversibly.
-- Sixteen levels leave 88% of 100 heterogeneous reporters sharing a level — the targeting oracle sees buckets, not a ranking.
+- The rule is a pure re-anchor to BASE·8/max(2, median), so a shifted median is a bounded bias with no memory: at 30% colluders the mean multiplier is 0.77 (tighten) / 1.32 (loosen) at N=100, and it vanishes the epoch capture ends.
+- The original recursive rule's zero-median branch doubled per epoch and reached free admission in 19 epochs from BASE; flooring the median at L_MIN = 2 closes it statelessly — a zero median sits at 4·BASE, where the branch reaches F_T, instantly and reversibly.
+- Sixteen levels leave 87% of 100 heterogeneous reporters sharing a level — the targeting oracle sees buckets, not a ranking.
 ## 4. Edge leader
 
 | d | pre-mine duty (3 tokens per rotation) | P(3 solves > 15 s) | P(> 30 s) |
@@ -36,13 +37,24 @@
 - Pre-mining to the ceiling costs ~1.2% of a Pi 5 and removes the slot-time risk; solving at slot time at the ceiling misses the 15 s traversal budget 4.8% of the time.
 ## 5. The control loop, closed
 
-| Phi_CC | edge 0 | edge 6 | edge 12 |
-|---|---|---|---|
-| 6 | cycle {2,4}, fixed [3] | fixed [3] | cycle {3,4} |
-| 7 | fixed [3] | cycle {3,4} | fixed [4] |
-| 8 | cycle {3,4} | fixed [4] | fixed [4] |
+| F_tx \ hashpower | ×0.5 | ×1 | ×2 | ×4 | ×8 |
+|---|---|---|---|---|---|
+| none | cycle {2,4}, fixed [3] | cycle {2,8}, cycle {3,5}, fixed [4] | cycle {2,15}, cycle {3,11}, cycle {4,8}, cycle {5,6} | cycle {4,15}, cycle {5,13}, cycle {6,11}, cycle {7,9}, fixed [8] | cycle {9,14}, cycle {10,13}, cycle {11,12} |
+| half | fixed [5] | fixed [6] | cycle {7,8} | cycle {9,10} | cycle {12,14}, fixed [13] |
+| sized | fixed [7] | fixed [8] | cycle {9,10} | cycle {11,12} | fixed [15] |
+| all of F_T | fixed [9] | fixed [10] | fixed [11] | fixed [13] | fixed [15] |
 
-- Iterating level -> d_blend -> F_W -> arrivals -> level from all 16 starting levels: 6 of the 9 configurations have a fixed point; the design point (Phi_CC^Max with the edge allowance used) is exact at level 4, arrivals 60.
-- Every attractor is bounded: each cycle visits two levels at most and the realized F_W never exceeds 2 = F_W_MAX, so the drain condition 3.0 + 2*3 < 12 holds throughout.
-- One corner is bistable: Phi_CC^Min with no edge traffic admits both a fixed point at level 3 and a 2<->4 cycle, depending on where the network starts. Bounded and drain-safe, but the only configuration without a unique attractor.
-- The sized traffic sits 44% into its band [54.0, 67.5) — the margin the previous denominator lacked.
+Candidate rules (sqrt re-anchor / two-epoch mean), same grid:
+
+| F_tx \ hashpower | ×0.5 | ×1 | ×2 | ×4 | ×8 |
+|---|---|---|---|---|---|
+| none | fixed [2] / fixed [3] | fixed [3] / fixed [4] | fixed [5] / cycle {5,6} | fixed [8] / fixed [8] | fixed [13] / cycle {11,12} |
+| half | fixed [4] / fixed [5] | cycle {5,6} / fixed [6] | fixed [7] / cycle {7,8} | fixed [10] / cycle {9,10} | fixed [15] / fixed [13] |
+| sized | fixed [7] / fixed [7] | fixed [8] / fixed [8] | fixed [10] / cycle {9,10} | cycle {12,13} / cycle {11,12} | fixed [15] / fixed [15] |
+| all of F_T | fixed [9] / fixed [9] | fixed [10] / fixed [10] | fixed [11] / fixed [11] | fixed [14] / fixed [13] | fixed [15] / fixed [15] |
+
+- The design point (sized demand, hashpower ×1) is fixed [8]: 20.0 novel/round against r_1 = 20, F_W = 1.66, d = BASE. Loop gain there 0.25 ≈ φ.
+- With no transaction demand the branch is the whole traffic and the gain is 0.99: the quantized map cycles (period 2, [(2, 8), (3, 5), (4,)]), bounded by the floor L_MIN (d ≤ 4·BASE, where F_W reaches F_T).
+- The realized F_W stays below F_T in every attractor? NO: 13.27 (F_T = 6.63). Hashpower beyond the range's span pins the threshold at the tight end (level 15, d = BASE·8/15) and the shares bind, as intended.
+- Candidate damping, not specified — the sqrt re-anchor (gain halved, span 2.7×) and the two-epoch mean (retention 4 epochs): with no demand at ×1 they give fixed [3] and fixed [4]; at the design point fixed [8] and fixed [8]; at ×4 sized cycle {12,13} and cycle {11,12}.
+- Counting cover traffic in the novel arrivals (F_1 takes the larger of cover and data, not the sum) moves the design point to fixed [9]: 23.0 novel/round, one level above ℓ*.
