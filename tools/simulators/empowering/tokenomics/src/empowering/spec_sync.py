@@ -215,8 +215,9 @@ def run(config: str, lips: str) -> int:
             failures.append(f"guarantee phrase missing from {fname}: {phrase!r}")
 
     # robustness guarantees the specification must keep stating
-    require_phrase(mantle, "losing less than one lepton per block")
-    require_phrase(mantle, "conservation bounds every such aggregate")
+    # The Denomination subsection and the token-value arithmetic paragraph left Mantle on
+    # 2026-09-09 (review round three): the unit system is the token specification's, and the
+    # conservation argument lives in the PR description. Nothing in the tree states them now.
     require_phrase(powf, "validated against the target produced by the previous block")
     require_phrase(powf, "canonical integer representative")
     poq = "proof-of-quota.md"
@@ -224,7 +225,6 @@ def run(config: str, lips: str) -> int:
     # the ticket is the bare two-input hash, the searched nonce first.
     require_phrase(poq, "zkhash(pow_nonce, pol_epoch_nonce)")
     require_phrase(poq, "pow_nonce")
-    require_phrase(mantle, "one LGO is $`10^{9}`$ lepta")
     require_phrase(powf, "hi = min(previous * BLEND_MAX_STEP, p - 1)")
     # The unfenced `return min(new_target, p - 1)` until 2026-09; PR 400 then floored the
     # retarget at REWARD_TARGET_FLOOR = ceil(F/(P-F)) = 9 -- the fence our UPSTREAM-PENDING
