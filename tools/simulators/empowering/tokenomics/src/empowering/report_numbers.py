@@ -226,9 +226,9 @@ def build(p: Params) -> list[Claim]:
               p.blend_ops_per_message, 0),
         Claim("*", r"one message carries, `blend_ops_per_message = (" + NUM + r")`",
               p.blend_ops_per_message, 0),
-        Claim("0.0", r"~50 s and ~(" + NUM + r") messages/day per core",
+        Claim("0.6", r"~37 s and ~(" + NUM + r") messages/day per core",
               86400 / blend_secs, 2e-2),
-        Claim("0.0", r"optimiser's edge (" + NUM + r")×",
+        Claim("0.6", r"optimiser's edge is now (" + NUM + r")×",
               p.sec_per_candidate / p.sec_per_candidate_opt, 5e-3),
         # (No 4.5 candidate-count claim: "expected candidates" is a table header there, and the
         # section's blend figures are superseded by 0.0, whose numbers ARE gated above.)

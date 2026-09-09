@@ -1,0 +1,31 @@
+# board=Apple M4 Pro; os=Darwin 25.6.0; rustc=1.97.1; logos-blockchain=4e0405d51 (poseidon2 crate at 66c1307); jellyfish=8d80230; governor=n/a, unpinned
+Poseidon2 / BN254, t=3 -- single core, release build
+
+  one permutation                                                  3648 ns         274110 /s
+  blend candidate: zkhash(nonce, epoch) (3 perms)                 13368 ns          74807 /s
+  blend candidate v0.5.6: zkhash(tag, epoch, nonce) (4 perms)      16252 ns          61531 /s
+  blend candidate v0.5.6, prefix precomputed (2 perms)             8941 ns         111844 /s
+  reward candidate: kdf + zkhash(pk, block, epoch) (7 perms)      30409 ns          32885 /s
+  reward candidate, KDF prefix precomputed (6 perms)              26885 ns          37196 /s
+
+  permutations per candidate: blend 3.7 (v0.5.6 4.5, its optimiser 2.5);  reward naive 8.3, KDF prefix 7.4
+  candidates/second, one core: blend      74807   reward      32885   (blend v0.5.6 -> now: x1.22)
+
+MACHINE one_permutation_ns=3648
+MACHINE blend_naive_ns=13368
+MACHINE blend_opt_ns=13368
+MACHINE reward_naive_ns=30409
+MACHINE reward_opt_ns=26885
+MACHINE blend_v056_naive_ns=16252
+
+  Blend threshold cost, seconds per solution:
+
+       k   candidates     one core    whole board  msgs/day/core
+  ----------------------------------------------------------------
+    2^17       131072        1.8 s          0.4 s          49311
+    2^18       262144        3.5 s          0.9 s          24656
+    2^19       524288        7.0 s          1.8 s          12328
+    2^20      1048576       14.0 s          3.5 s           6164
+    2^21      2097152       28.0 s          7.0 s           3082
+    2^22      4194304       56.1 s         14.0 s           1541
+    2^23      8388608      112.1 s         28.0 s            770

@@ -48,34 +48,39 @@ def run(config: str, lips: str) -> int:
             failures.append(f"{label}: spec says {got!r}, config has {want!r}")
 
     mantle = "bedrock-v1.1-mantle-specification.md"
+    # Since 2026-09-09 (PR 400, review round two) the reward pool, the genesis seed and both
+    # difficulty controllers live in their own document; Mantle keeps the state, the
+    # acceptance window and the claim Operation. Older trees carry everything in Mantle.
+    pow = "proof-of-work.md"
+    powf = pow if (raw / pow).is_file() else mantle
     check("TARGET_CLAIMS_PER_BLOCK",
-          grab(mantle, r"TARGET_CLAIMS_PER_BLOCK: uint64 = (\d+)", "T"), p.T)
-    check("POW_SHARE", grab(mantle, r"POW_SHARE: uint64 = (\d+)", "share"), p.beta_num)
-    check("SHARE_DEN", grab(mantle, r"SHARE_DEN: uint64 = (\d+)", "den"), p.beta_den)
+          grab(powf, r"TARGET_CLAIMS_PER_BLOCK: uint64 = (\d+)", "T"), p.T)
+    check("POW_SHARE", grab(powf, r"POW_SHARE: uint64 = (\d+)", "share"), p.beta_num)
+    check("SHARE_DEN", grab(powf, r"SHARE_DEN: uint64 = (\d+)", "den"), p.beta_den)
     check("RATE_NUM",
-          grab(mantle, r"EPOCH_POW_DISTRIBUTION_RATE_NUM: uint64 = (\d+)", "rho num"),
+          grab(powf, r"EPOCH_POW_DISTRIBUTION_RATE_NUM: uint64 = (\d+)", "rho num"),
           p.rho_num)
     check("RATE_DEN",
-          grab(mantle, r"EPOCH_POW_DISTRIBUTION_RATE_DEN: uint64 = (\d+)", "rho den"),
+          grab(powf, r"EPOCH_POW_DISTRIBUTION_RATE_DEN: uint64 = (\d+)", "rho den"),
           p.rho_den)
     check("EMA_SMOOTHING_FACTOR",
-          grab(mantle, r"EMA_SMOOTHING_FACTOR: uint64 = (\d+)", "F"), p.F_ema)
+          grab(powf, r"EMA_SMOOTHING_FACTOR: uint64 = (\d+)", "F"), p.F_ema)
     check("EMA_SMOOTHING_PRECISION",
-          grab(mantle, r"EMA_SMOOTHING_PRECISION: uint64 = (\d+)", "P"), p.P_ema)
+          grab(powf, r"EMA_SMOOTHING_PRECISION: uint64 = (\d+)", "P"), p.P_ema)
     check("BLEND_DIFFICULTY_BASE exponent",
-          grab(mantle, r"BLEND_DIFFICULTY_BASE: PowTarget = p // 2\*\*(\d+)", "base"),
+          grab(powf, r"BLEND_DIFFICULTY_BASE: PowTarget = p // 2\*\*(\d+)", "base"),
           p.blend_base_exp)
     check("TARGET_TXS_PER_BLOCK",
-          grab(mantle, r"TARGET_TXS_PER_BLOCK: uint64 = (\d+)", "blend target"),
+          grab(powf, r"TARGET_TXS_PER_BLOCK: uint64 = (\d+)", "blend target"),
           p.blend_target_txs)
     check("BLEND_DAMPING_NUM",
-          grab(mantle, r"BLEND_DAMPING_NUM: uint64 = (\d+)", "a"), p.blend_damping_num)
+          grab(powf, r"BLEND_DAMPING_NUM: uint64 = (\d+)", "a"), p.blend_damping_num)
     check("BLEND_DAMPING_DEN",
-          grab(mantle, r"BLEND_DAMPING_DEN: uint64 = (\d+)", "b"), p.blend_damping_den)
+          grab(powf, r"BLEND_DAMPING_DEN: uint64 = (\d+)", "b"), p.blend_damping_den)
     check("BLEND_MAX_STEP",
-          grab(mantle, r"BLEND_MAX_STEP: uint64 = (\d+)", "step"), p.blend_max_step)
+          grab(powf, r"BLEND_MAX_STEP: uint64 = (\d+)", "step"), p.blend_max_step)
     check("reward genesis exponent",
-          grab(mantle, r"scalar field modulus divided by \$`2\^\{(\d+)\}`\$", "genesis d"),
+          grab(powf, r"scalar field modulus divided by \$`2\^\{(\d+)\}`\$", "genesis d"),
           p.reward_difficulty_exp)
 
     gas = "analysis-gas-cost-determination.md"
@@ -212,22 +217,26 @@ def run(config: str, lips: str) -> int:
     # robustness guarantees the specification must keep stating
     require_phrase(mantle, "losing less than one lepton per block")
     require_phrase(mantle, "conservation bounds every such aggregate")
-    require_phrase(mantle, "validated against the target produced by the previous block")
-    require_phrase(mantle, "canonical integer representative")
+    require_phrase(powf, "validated against the target produced by the previous block")
+    require_phrase(powf, "canonical integer representative")
     poq = "proof-of-quota.md"
-    require_phrase(poq, "BLEND_POW_V1")
+    # The domain separation tag was withdrawn on 2026-09-08 with the mining precomputation:
+    # the ticket is the bare two-input hash, the searched nonce first.
+    require_phrase(poq, "zkhash(pow_nonce, pol_epoch_nonce)")
     require_phrase(poq, "pow_nonce")
     require_phrase(mantle, "one LGO is $`10^{9}`$ lepta")
-    require_phrase(mantle, "hi = min(previous * BLEND_MAX_STEP, p - 1)")
+    require_phrase(powf, "hi = min(previous * BLEND_MAX_STEP, p - 1)")
     # The unfenced `return min(new_target, p - 1)` until 2026-09; PR 400 then floored the
     # retarget at REWARD_TARGET_FLOOR = ceil(F/(P-F)) = 9 -- the fence our UPSTREAM-PENDING
     # section 4 asked for, with a stronger floor than the max(1, .) we suggested (floors
     # 1..8 form an absorbing band under floor division).
-    require_phrase(mantle, "return min(max(new_target, REWARD_TARGET_FLOOR), p - 1)")
+    require_phrase(powf, "return min(max(new_target, REWARD_TARGET_FLOOR), p - 1)")
     check("REWARD_TARGET_FLOOR",
-          grab(mantle, r"REWARD_TARGET_FLOOR: uint64 = (\d+)", "floor"),
+          grab(powf, r"REWARD_TARGET_FLOOR: uint64 = (\d+)", "floor"),
           -(-p.F_ema // (p.P_ema - p.F_ema)))
-    require_phrase(mantle, "specified over **arbitrary-precision integers**")
+    # "specified over **arbitrary-precision integers**" until the 2026-09-09 move merged the
+    # two arithmetic paragraphs; the guarantee is the same.
+    require_phrase(powf, "as arbitrary-precision integers")
 
     # What the 2026-09 revision of the RFC newly pins, so it cannot quietly un-pin:
     # the carve-out is stated where the fees are routed, the PoW pool joins the conserved
