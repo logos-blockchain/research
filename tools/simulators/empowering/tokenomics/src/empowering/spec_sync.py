@@ -124,10 +124,11 @@ def run(config: str, lips: str) -> int:
     blendp = "blend-protocol.md"
     n_b = grab(blendp, r"which translates to \$`([\d,]+)`\$ blocks", "N_b")
     check("blocks per epoch (blend)", n_b, p.N_b)
-    crypt = "cryptarchia-v1-protocol.md"
-    raw_nb = grab(crypt, r"= 10k = ([0-9{},]+)`\$ blocks", "10k")
-    check("blocks per epoch defined in Cryptarchia",
-          raw_nb and raw_nb.replace("{", "").replace("}", ""), p.N_b)
+    # Until 2026-09-09 Cryptarchia stated the expected blocks per epoch (10k) in its Epoch
+    # Schedule; review round four dropped every change of the RFC to that document, and the
+    # constant is read where it enters consensus arithmetic instead.
+    check("EXPECTED_BLOCKS_PER_EPOCH",
+          grab(powf, r"EXPECTED_BLOCKS_PER_EPOCH: uint64 = ([\d_]+)", "N_b"), p.N_b)
     check("blend_ops_per_message",
           grab(blendp, r"beta_\{max\} = (\d+)", "blend ops per message"),
           p.blend_ops_per_message)
