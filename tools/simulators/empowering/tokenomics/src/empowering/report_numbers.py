@@ -226,7 +226,7 @@ def build(p: Params) -> list[Claim]:
               p.blend_ops_per_message, 0),
         Claim("*", r"one message carries, `blend_ops_per_message = (" + NUM + r")`",
               p.blend_ops_per_message, 0),
-        Claim("0.6", r"~37 s and ~(" + NUM + r") messages/day per core",
+        Claim("0.6", r"~38 s and ~(" + NUM + r") messages/day per core",
               86400 / blend_secs, 2e-2),
         Claim("0.6", r"optimiser's edge is now (" + NUM + r")×",
               p.sec_per_candidate / p.sec_per_candidate_opt, 5e-3),

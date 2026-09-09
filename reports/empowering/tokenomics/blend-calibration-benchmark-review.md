@@ -42,21 +42,22 @@ circuit v0.5.6 form `zkhash(BLEND_POW_V1, pol_epoch_nonce, pow_nonce)`: three in
 plus padding, four permutations. The specification now defines a two-input ticket:
 three permutations. The same Pi 5 runs timed a two-input `zkhash` at **71,318 ns**
 (median of six, spread 0.05 %), and the cost of a Poseidon2 sponge does not depend on
-which input is the searched one, so the current candidate is measured, not derived.
-`[work]` now carries it. At `p/2^19`:
+which input is the searched one. The current form was then measured directly on the
+board on 2026-09-09 (three pinned runs, spread 0.0 %): **72,752 ns**, within 2 % of the
+August line. `[work]` carries the direct measurement. At `p/2^19`:
 
 | | one Pi 5 core |
 | --- | --- |
-| expected time per solution | 37.4 s |
+| expected time per solution | 38.1 s |
 | median | 26 s |
-| 95th percentile | 112 s |
-| messages per day | 2,311 |
-| whole board (÷ measured scaling; ÷4 until the Pi run) | ~9.3 s |
+| 95th percentile | 114 s |
+| messages per day | 2,265 |
+| whole board (÷ 4.00, measured) | 9.5 s |
 
-The sentence in `proof-of-work.md` overstates the price by a quarter. Two ways to close
-it: keep the exponent and restate the sentence at about 37 s, or move to `p/2^20` for
-about 75 s. A non-power-of-two base would land nearer 50 s but breaks the
-`p // 2**k` form every controller and gate assumes; not recommended. See §3.
+The sentence in `proof-of-work.md` overstated the price by a quarter. Decided
+2026-09-09: the exponent stays at 19 and the sentence is restated at about 38 seconds in
+expectation. A non-power-of-two base would have landed nearer 50 s but breaks the
+`p // 2**k` form every controller and gate assumes.
 
 ### F2. The benchmark measures what the specification defines (verified)
 
@@ -83,7 +84,9 @@ The August result files record neither the board revision, the OS, the `rustc`, 
 crate last changed on 2026-06-10 (`66c1307`, the arkworks 0.5 bump), so every run in
 `results/` used the same code, but that is known only by inspection. `run_pi5.sh` now
 writes a provenance line as the first line of every result file, and result files from a
-development machine are named `dev-*` instead of `pi5-*`.
+development machine are named `dev-*` instead of `pi5-*`. The 2026-09-09 run records:
+Raspberry Pi 5 Model B Rev 1.1, Linux 6.18.39, rustc 1.94.0, `logos-blockchain` 6efd15a,
+`jellyfish` 8d80230, governor ondemand.
 
 ### F4. The whole-board basis was an assumed ÷4 (fixed in tooling; Pi figure pending)
 
@@ -92,7 +95,8 @@ and should scale nearly linearly, but a Pi 5 running four field-arithmetic threa
 clock lower under sustained load. The benchmark gains a `THREADS=n` aggregate run and
 `run_pi5.sh` runs it on every core after the pinned runs, reporting the measured scaling
 and using it in the board column. On the M4 Pro four threads sustain 3.97× one thread;
-the Pi's own figure is produced by the next `make pi5`.
+on the Pi 5, measured 2026-09-09, exactly 4.00×, so the board figures are one core's
+divided by four.
 
 ### F5. The calibration prices the puzzle, not the message (open; needs a Pi measurement)
 
@@ -105,7 +109,7 @@ specification's new benchmark figure gives about 630 ms per proof on one thread 
 i9-13980HX (median of ten runs), about 125 ms on eight threads. A Pi 5 core is five to
 eight times slower than a desktop core on this kind of arithmetic, so a proof there is
 of the order of three to five seconds single-threaded, and a message's three proofs ten
-to fifteen seconds: a third to a half of the puzzle's 37 s, not a rounding error. The
+to fifteen seconds: a third to a half of the puzzle's 38 s, not a rounding error. The
 calibration target ("what a message ought to cost") should be stated against the sum.
 Action: run the PoQ prove benchmark on the Pi, single-threaded, and record it beside
 the candidate cost; the exponent decision (keep `2^19`) was taken with this estimate.
@@ -125,7 +129,7 @@ implementation would bound the ratio; it would not change the honest-user calibr
 
 The number of candidates to a solution is geometric with mean `2^k`, so the wait has
 median 0.69× and 95th percentile 3.0× the expectation: at `p/2^19` a user waits more
-than 112 s one time in twenty. "About fifty seconds per solution" reads as a typical
+than 114 s one time in twenty. "About fifty seconds per solution" reads as a typical
 wait. The benchmark's table and the runner's summary now state the distribution; the
 specification's sentence should say "in expectation".
 
@@ -171,8 +175,8 @@ specification states.
 
 | option | expected per message, one Pi 5 core | messages/day per core | what changes |
 | --- | --- | --- | --- |
-| keep `p/2^19`, restate the sentence | 37.4 s | 2,311 | one sentence in `proof-of-work.md` |
-| move to `p/2^20` | 74.8 s | 1,155 | the constant, the sentence, `difficulty_base_exp`, report §0.6 and its gate |
+| keep `p/2^19`, restate the sentence (decided) | 38.1 s | 2,265 | one sentence in `proof-of-work.md` |
+| move to `p/2^20` | 76.3 s | 1,133 | the constant, the sentence, `difficulty_base_exp`, report §0.6 and its gate |
 
 Recommendation: keep `p/2^19` and restate the sentence as about 37 seconds in
 expectation on one core, pending F5. The old target was "roughly a minute" for the
@@ -181,9 +185,9 @@ near that minute at `2^19`, and `2^20` would put the on-ramp at two minutes or m
 
 ## 4. On the Pi, in order
 
-1. `git checkout EmPoWering-pooling-rewards`, then `make pi5` from the tokenomics
-   directory. Read the `blend_naive_ns` median (expected near 71 μs) and the board
-   scaling line.
+1. Done 2026-09-09: `make pi5` on the board gave 72,752 ns per candidate and 4.00× board
+   scaling. The raw run files sit on the board's `pi5-measurement-20260909-*` branch and
+   still need pushing from the Pi.
 2. In the node repository, `cargo bench -p logos-blockchain-poq` pinned to one core, and
    record the proving time per proof (F5).
 3. Decide the exponent (§3). Update `proof-of-work.md`'s constant and sentence,

@@ -69,27 +69,22 @@ max_step                = 2           # KNOWN  BLEND_MAX_STEP
 blend_ops_per_message   = 3           # KNOWN  beta_max; pow_quota = blend_ops_per_message
 
 [work]
-# MEASURED on the deployment target itself: Raspberry Pi 5 Model B, one pinned core,
-# six runs across two sessions, spreads under 0.1%, no thermal throttling
-# (tools/benchmarks/empowering/results/pi5-20260812-*). The reference basis is ONE CORE of the
-# target; a desktop-class core runs ~6x faster and is deliberately not the basis.
-#
-# Since 2026-09-09 (logos-lips PR 400) the Blend ticket is zkhash(pow_nonce, pol_epoch_nonce):
-# two inputs, the nonce first, three Poseidon2 permutations, and no sponge prefix a miner
-# can reuse across candidates. That is exactly the "zkhash of 2 inputs" line of the Pi 5
-# runs (input order does not change the cost), so the candidate is MEASURED, not derived:
-# median 71,318 ns over the six runs, spread 0.05%. The earlier 94.158e-6 was the v0.5.6
-# form, zkhash(tag, epoch_nonce, pow_nonce), four permutations.
-seconds_per_candidate        = 71.318e-6  # blend: 3 Poseidon2 permutations
-seconds_per_candidate_opt    = 71.318e-6  # blend: equal by construction, nothing to precompute
+# MEASURED on the deployment target itself: Raspberry Pi 5 Model B Rev 1.1, one pinned core,
+# three runs on 2026-09-09 with the current ticket forms, spread 0.0%, 49-55 C, Linux 6.18.39,
+# rustc 1.94.0, logos-blockchain 6efd15a, jellyfish 8d80230 (raw runs on the board's
+# pi5-measurement-20260909 branch). The reference basis is ONE CORE of the target; a
+# desktop-class core runs ~5-6x faster and is deliberately not the basis. The August runs
+# (tools/benchmarks/empowering/results/pi5-20260812-*) measured the v0.5.6 form at 94.158e-6
+# and its two-input line at 71.318e-6, within 2% of today's candidate.
+seconds_per_candidate        = 72.752e-6  # blend: zkhash(nonce, epoch), 3 Poseidon2 permutations
+seconds_per_candidate_opt    = 72.752e-6  # blend: equal by construction, nothing to precompute
 # MEASURED, naive: the key derivation zkhash(KDF, sk) plus the three-input ticket
-# zkhash(pk, block_hash, epoch_nonce), seven permutations; the ticket absorbs the key first,
-# so only the constant KDF tag can be absorbed ahead of time, which saves one permutation
-# (~143e-6 derived, not measured). The reward exponent is a seed the controller corrects,
-# so the naive figure is carried.
-seconds_per_candidate_reward = 165.658e-6 # reward, naive: kdf + ticket, 7 perms
-seconds_per_permutation      = 22.813e-6
-pi5_cores                   = 4           # board-level figures divide by this
+# zkhash(pk, block_hash, epoch_nonce), seven permutations. Absorbing the constant KDF tag ahead
+# of time saves one permutation (145.570e-6, measured); the reward exponent is a seed the
+# controller corrects, so the naive figure is carried.
+seconds_per_candidate_reward = 168.559e-6 # reward, naive: kdf + ticket, 7 perms
+seconds_per_permutation      = 22.815e-6
+pi5_cores                   = 4           # board-level figures divide by this; 4.00x measured
 
 [model]
 # ASSUMED. Traffic is exogenous here; section 4.4 of the report parameterises the ramp

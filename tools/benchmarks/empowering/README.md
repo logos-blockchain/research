@@ -29,18 +29,19 @@ machine.
 
 ## Results
 
-**Raspberry Pi 5** (Model B Rev 1.1, one pinned core, six runs across two sessions on
-2026-08-12, spreads ≤ 0.1 %, 46–57 °C, raw runs in `results/pi5-*`). The runs predate
-the ticket change but already timed the two-input hash, and input order does not change
-its cost, so the Blend candidate below is measured, not derived:
+**Raspberry Pi 5** (Model B Rev 1.1, one pinned core, three runs on 2026-09-09 with the
+current ticket forms, spread 0.0 %, 49–55 °C, Linux 6.18.39, rustc 1.94.0,
+`logos-blockchain` 6efd15a; the six August runs in `results/pi5-20260812-*` measured the
+v0.5.6 form and put the two-input hash at 71,318 ns, within 2 % of today's candidate):
 
 | | Pi 5 | permutations |
 | --- | --- | --- |
-| one permutation | 22,813 ns | 1 |
-| **Blend candidate, `zkhash(nonce, epoch)`** | **71,318 ns** | 3 |
-| Blend candidate, v0.5.6 form (for reference) | 94,158 ns | 4 |
-| reward candidate, naive | 165,658 ns | 7 |
-| reward candidate, `KDF` prefix precomputed | ~143,000 ns (derived: one permutation less) | 6 |
+| one permutation | 22,815 ns | 1 |
+| **Blend candidate, `zkhash(nonce, epoch)`** | **72,752 ns** | 3 |
+| Blend candidate, v0.5.6 form (August, for reference) | 94,158 ns | 4 |
+| reward candidate, naive | 168,559 ns | 7 |
+| reward candidate, `KDF` prefix precomputed | 145,570 ns | 6 |
+| four threads, Blend candidates | 4.00× one pinned core | |
 
 **Apple M4 Pro** performance core, two runs on 2026-09-09 (`results/m4pro-*`), five to
 six times faster than the Pi and deliberately not the calibration basis:
@@ -65,16 +66,15 @@ a solution takes 2^19 candidates in expectation:
 
 | threshold | expected, one core | median | 95th percentile | msgs/day, one core |
 | --- | --- | --- | --- | --- |
-| `p/2^18` | 18.7 s | 13 s | 56 s | 4,622 |
-| **`p/2^19`** | **37.4 s** | **26 s** | **112 s** | **2,311** |
-| `p/2^20` | 74.8 s | 52 s | 224 s | 1,155 |
+| `p/2^18` | 19.1 s | 13 s | 57 s | 4,531 |
+| **`p/2^19`** | **38.1 s** | **26 s** | **114 s** | **2,265** |
+| `p/2^20` | 76.3 s | 53 s | 229 s | 1,133 |
 
 The wait for a solution is geometric, so its median is 0.69× and its 95th percentile
-3.0× the expectation. The specification's calibration sentence still says "about fifty
-seconds", the figure of the four-permutation form; at the same exponent the two-input
-ticket costs a quarter less. Whether the exponent stays at 19 (about 37 s) or moves to
-20 (about 75 s) is a decision for the RFC. The whole-board figure divides by the
-thread scaling that `make pi5` now measures rather than by an assumed four.
+3.0× the expectation. The exponent stays at 19, and the specification's calibration
+sentence, which priced the four-permutation form at about fifty seconds, is restated at
+about 38 seconds in expectation. The whole board divides by the measured thread scaling,
+4.00× on the Pi 5.
 
 The reward candidate is unchanged in cost by the ticket change. At the genesis
 `difficulty_reward = p/2^26` it is about 3.1 hours of one Pi 5 core per solution, a
