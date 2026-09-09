@@ -100,11 +100,15 @@ A message costs one solution **and** `β_max = 3` proofs of quota, one per encap
 The proof cost is branch-independent (every branch is evaluated in every proof) and is
 not measured on the Pi anywhere in this repository or in the node; the node's
 `zk/proofs/poq/benches/prove.rs` benchmarks the core and leader provers on whatever
-machine runs it. If proving three Groth16 proofs on one Pi core takes tens of seconds,
-the puzzle at 37 s is a comparable share of the message's cost rather than the whole of
-it, and the calibration target ("what a message ought to cost") should be stated
-against the sum. Action: run the PoQ prove benchmark on the Pi, single-threaded, and
-record it beside the candidate cost before deciding the exponent.
+machine runs it. A desktop figure exists since 2026-09-09: the Proof of Quota
+specification's new benchmark figure gives about 630 ms per proof on one thread of an
+i9-13980HX (median of ten runs), about 125 ms on eight threads. A Pi 5 core is five to
+eight times slower than a desktop core on this kind of arithmetic, so a proof there is
+of the order of three to five seconds single-threaded, and a message's three proofs ten
+to fifteen seconds: a third to a half of the puzzle's 37 s, not a rounding error. The
+calibration target ("what a message ought to cost") should be stated against the sum.
+Action: run the PoQ prove benchmark on the Pi, single-threaded, and record it beside
+the candidate cost; the exponent decision (keep `2^19`) was taken with this estimate.
 
 ### F6. Implementation headroom is unbounded and unmeasured (open; a property, not a defect)
 
