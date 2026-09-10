@@ -9,7 +9,7 @@ A specification change is submitted as **two artifacts**, and this template cove
 | Artifact | What it holds | Where it lives |
 | --- | --- | --- |
 | **Pull request description** (Part A) | Motivation, Proposal, Status tracker — nothing else | the GitHub PR body |
-| **RFC document** (Part B) | Change log, Reviewer Orientation, Discussion, Details, Chores, Implementation, Affected Specifications | `raw/rfc/<subsystem>-<title>.md`, committed on the branch |
+| **RFC document** (Part B) | Change log, Reviewer Orientation, Discussion, Details, Chores, Implementation, Affected Specifications | `docs/<domain>/raw/rfc/RFC-<pr>-<subsystem>-<title>.md`, committed on the branch |
 
 The split has one purpose: the PR body answers *why this, and what is it* for someone deciding whether to read further, and the RFC document holds everything a reviewer needs to actually review. Keep them disjoint. The PR body never restates the RFC document, and the RFC document never re-argues the motivation — it links back.
 
@@ -79,7 +79,7 @@ These conventions apply to **every** section of both artifacts. They are stated 
 ```markdown
 # [RFC] Mantle: Remove the concept of a session
 
-**Full RFC:** [`raw/rfc/mantle-remove-the-concept-of-a-session.md`](raw/rfc/mantle-remove-the-concept-of-a-session.md)
+**Full RFC:** [`docs/blockchain/raw/rfc/RFC-412-mantle-remove-the-concept-of-a-session.md`](docs/blockchain/raw/rfc/RFC-412-mantle-remove-the-concept-of-a-session.md)
 ```
 
 </aside>
@@ -134,7 +134,7 @@ These conventions apply to **every** section of both artifacts. They are stated 
 
 - [ ]  🚧 **Raw (make sure that all below is completed)**
     -  Template applied
-    -  RFC document added under `raw/rfc/`
+    -  RFC document added under the domain's `raw/rfc/`, numbered by this PR
     -  Authors filled in
     -  Authors agree on the RFC content
 - [ ]  📘 **Draft (make sure that all below is completed)**
@@ -172,7 +172,13 @@ Nobody approves their own RFC. An approval binds only the revision it was given 
 
 **Purpose:** Hold everything a reviewer needs in order to review — the reading order, the reasoning, the specification of every change, the work it implies, and the documents it touches.
 
-**Filing:** commit it at `raw/rfc/<subsystem>-<title>.md` as part of the branch, where `<subsystem>` and `<title>` are the lower-cased, hyphenated form of the RFC title (`[RFC] Mantle: Remove the concept of a session` → `raw/rfc/mantle-remove-the-concept-of-a-session.md`). Create the directory if the repository does not have it yet. The document is part of the submission and is reviewed with it.
+**Filing:** commit it at `docs/<domain>/raw/rfc/RFC-<pr>-<subsystem>-<title>.md` as part of the branch.
+
+- `<domain>` is the `docs/` directory holding the specifications the change touches — `blockchain`, `anoncomms`, `storage`, and so on. `raw` is the same Raw lifecycle stage the Status tracker names, so the RFC files beside the specifications it changes. When a change spans several domains, use the one whose normative change is largest, the same tie-break as `<Subsystem>`. Create the `rfc/` directory if the domain does not have one yet.
+- `<pr>` is the number of the pull request carrying the submission, so the document is identifiable on its own and sorts by age. The number does not exist until the PR does: **open the PR first, then name the file.** For a submission whose PR is not yet open, create it with the title and the PR body, take the number it is assigned, and commit the RFC document in the next push.
+- `<subsystem>-<title>` is the lower-cased, hyphenated form of the rest of the RFC title.
+
+So `[RFC] Mantle: Remove the concept of a session`, changing a blockchain specification on PR #412, files at `docs/blockchain/raw/rfc/RFC-412-mantle-remove-the-concept-of-a-session.md`. The document is part of the submission and is reviewed with it.
 
 **Output style:** The top heading is the RFC title, identical to the PR title. Directly beneath it, one line linking back to the PR. Then the sections below, in order. Do not repeat Motivation or Proposal here — link to the PR body once, in that same line.
 

@@ -1,6 +1,6 @@
 ---
 name: rfc-pr
-description: "Draft a Logos specification-change submission from the current branch: a short PR description (Motivation, Proposal, Status tracker) pushed to GitHub, and an RFC document (Reviewer Orientation, Discussion, Details, Implementation, Affected Specifications) committed under raw/rfc/. Self-updates itself and the template from logos-blockchain/research on every run. Trigger: /rfc-pr."
+description: "Draft a Logos specification-change submission from the current branch: a short PR description (Motivation, Proposal, Status tracker) pushed to GitHub, and an RFC document (Reviewer Orientation, Discussion, Details, Implementation, Affected Specifications) committed under the spec domain's raw/rfc/ and numbered by the PR. Self-updates itself and the template from logos-blockchain/research on every run. Trigger: /rfc-pr."
 ---
 
 # /rfc-pr
@@ -11,7 +11,7 @@ submission is **two artifacts**, and this skill produces both:
 | Artifact | Sections | Destination |
 | --- | --- | --- |
 | PR description | Motivation, Proposal, Status tracker | the GitHub PR body |
-| RFC document | Change log, Reviewer Orientation, Discussion, Details, Chores, Implementation, Affected Specifications | `raw/rfc/<subsystem>-<title>.md`, committed on the branch |
+| RFC document | Change log, Reviewer Orientation, Discussion, Details, Chores, Implementation, Affected Specifications | `docs/<domain>/raw/rfc/RFC-<pr>-<subsystem>-<title>.md`, committed on the branch |
 
 The canonical template defines both. This skill applies it.
 
@@ -32,7 +32,8 @@ The canonical template defines both. This skill applies it.
 - **Skill path:** `skills/rfc-pr/SKILL.md`
 - **Template path:** `templates/RFC-PR.md`
 - **Base branch for the diff:** `origin/master`
-- **RFC document directory:** `raw/rfc/` in the repo the PR targets
+- **RFC document directory:** `docs/<domain>/raw/rfc/` in the repo the PR targets, where
+  `<domain>` is the `docs/` directory holding the specs the change touches
 
 If invoked in a repo whose template lives elsewhere, adjust the paths and ask the user
 when unsure.
@@ -111,7 +112,7 @@ git log --format='%s%n%b' "$BASE"..HEAD  # intent, from the commit messages
 - Changed specification documents are the **Affected Specifications**. Classify each from
   the diff: added file → Created, deleted → Retired, otherwise Modified.
 - Read the changed files wherever the diff alone is ambiguous.
-- Exclude `raw/rfc/<…>.md` itself from the Affected Specifications table — the RFC
+- Exclude the RFC document itself from the Affected Specifications table — the RFC
   document is the submission, not a specification it changes.
 
 ### 4. Draft both artifacts
@@ -183,49 +184,75 @@ no longer touches. Record the removals in the Change log.
 
 ### 5. Write the files
 
-- **RFC document** → `raw/rfc/<subsystem>-<title>.md` in the target repo, where the slug
-  is the lower-cased hyphenated RFC title (`[RFC] Mantle: Remove the concept of a session`
-  → `raw/rfc/mantle-remove-the-concept-of-a-session.md`). Create `raw/rfc/` if absent.
+- **RFC document** → `docs/<domain>/raw/rfc/RFC-<pr>-<subsystem>-<title>.md` in the
+  target repo. `<domain>` is the `docs/` directory holding the specs the change touches;
+  where it spans several, take the one with the largest normative change. `<pr>` is the
+  PR number — see step 6, which opens the PR first when there is none, because the
+  number has to exist before the file can be named. The rest is the lower-cased
+  hyphenated RFC title, so `[RFC] Mantle: Remove the concept of a session` against a
+  blockchain spec on PR #412 becomes
+  `docs/blockchain/raw/rfc/RFC-412-mantle-remove-the-concept-of-a-session.md`. Create the
+  `rfc/` directory if the domain does not have one.
+- Where the RFC document already exists under a **different** PR number or slug — the
+  title changed, or an earlier run guessed — `git mv` it rather than adding a second
+  copy, and note the rename in the Change log.
 - **PR description** → `$SCRATCH/RFC-PR-body.md`. It is not committed: its content lives
   in the PR body, and a second copy in the repo would be one more thing to keep in step.
 - If a root-level `RFC-PR-*.md` from the older single-artifact convention is present,
   point it out and offer to remove it. Do not delete it unprompted.
 
+Under `--no-push` there may be no PR and so no number. Write the RFC document as
+`RFC-TBD-<subsystem>-<title>.md` and say in the report that the name needs the number
+once the PR is opened; never invent one.
+
 Show the user both drafts, or a summary of each, before anything is pushed.
 
-### 6. Commit the RFC document, then push the description
+### 6. Get the PR number, then commit the RFC document
 
 Skip this whole step under `--no-push`.
 
-Committing and opening a PR are outward-facing, so **confirm with the user first**, then:
+**The PR number is part of the RFC document's file name, so the PR has to exist before
+the file can be named.** That fixes the order below: get a number first, write the file
+with it, commit, then set the body. Committing and opening a PR are outward-facing, so
+**confirm with the user before the first of them.**
+
+**Case A — no PR exists.** Push the branch and open the PR with the drafted body. The RFC
+link line in that body points at the path the file *will* have; it resolves once the next
+push lands.
 
 ```bash
-git add raw/rfc/<slug>.md
-git commit -m "docs(rfc): add the RFC document for <title>"
-git push                                    # -u origin <branch> if it has no upstream
-```
-
-Then set the PR body:
-
-**Case A — no PR exists:**
-
-```bash
+git push -u origin <branch>
 gh pr create --base master --head <branch> \
   --title "[RFC] <Subsystem>: <Title>" --body-file "$SCRATCH/RFC-PR-body.md"
 ```
+
+`gh pr create` prints the PR URL; its trailing number is `<pr>`. Never guess it in
+advance — GitHub numbers issues and PRs from one sequence, so the next number is not
+predictable.
 
 The PR title must match the `# ` heading of both artifacts exactly. Ask the user for the
 subsystem when the diff does not make it obvious; fall back to the branch name or commit
 subject for `<Title>` only, never for `<Subsystem>`.
 
-**Case B — a PR exists with an empty body:**
+**Cases B and C — a PR already exists.** The number is known, so no first push is needed.
+Set the body once the RFC document is committed:
 
 ```bash
 gh pr edit <number> --body-file "$SCRATCH/RFC-PR-body.md"
 ```
 
-**Case C — a PR exists with a non-empty body:** this overwrites author-written content.
-Ask the user to confirm before running the command in Case B.
+Under **Case C** the PR has a non-empty body, and this overwrites author-written content —
+ask the user to confirm before running it.
+
+**Then, in every case,** name the RFC document with `<pr>`, fix the back-link in its
+header and the forward link in the PR body to match, and push:
+
+```bash
+mkdir -p docs/<domain>/raw/rfc
+git add docs/<domain>/raw/rfc/RFC-<pr>-<slug>.md
+git commit -m "docs(rfc): add the RFC document for <title>"
+git push
+```
 
 Report the PR URL, the committed RFC path, and anything left as `TODO (author)`.
 
