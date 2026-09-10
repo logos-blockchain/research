@@ -80,7 +80,9 @@ def run(config: str, lips: str) -> int:
     check("BLEND_MAX_STEP",
           grab(powf, r"BLEND_MAX_STEP: uint64 = (\d+)", "step"), p.blend_max_step)
     check("reward genesis exponent",
-          grab(powf, r"scalar field modulus divided by \$`2\^\{(\d+)\}`\$", "genesis d"),
+          # "divided by" until 2026-09-10, then "the quotient of the Euclidean division of the
+          # scalar field modulus by" (review round five); the value is the same.
+          grab(powf, r"scalar field modulus (?:divided )?by \$`2\^\{(\d+)\}`\$", "genesis d"),
           p.reward_difficulty_exp)
 
     gas = "analysis-gas-cost-determination.md"
@@ -236,8 +238,9 @@ def run(config: str, lips: str) -> int:
           grab(powf, r"REWARD_TARGET_FLOOR: uint64 = (\d+)", "floor"),
           -(-p.F_ema // (p.P_ema - p.F_ema)))
     # "specified over **arbitrary-precision integers**" until the 2026-09-09 move merged the
-    # two arithmetic paragraphs; the guarantee is the same.
-    require_phrase(powf, "as arbitrary-precision integers")
+    # two arithmetic paragraphs, then a stated width on 2026-09-10 (review round five): an
+    # implementer cannot act on "arbitrary", and a fixed width is what makes two languages agree.
+    require_phrase(powf, "Every intermediate fits in **512 bits**")
 
     # What the 2026-09 revision of the RFC newly pins, so it cannot quietly un-pin:
     # the carve-out is stated where the fees are routed, the PoW pool joins the conserved
