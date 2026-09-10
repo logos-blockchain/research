@@ -19,7 +19,9 @@ from empowering_sim.config import Config, load
 #   persistent (nobody retires):  13.9% / 15.9% / 14.6% at 65 / 130 / 260 arrivals an epoch
 #                                 -- essentially FLAT: everyone keeps mining, so the field
 #                                 grows with the arrival rate and dilution cancels the gain.
-#   retiring:                     24.9% / 49.4% / 74.1% at the same rates
+#   retiring:                     24.9% / 49.3% / 64.2% at the same rates (re-measured
+#                                 2026-09 on the 3-permutation basis; the fast rate read
+#                                 74.1% on the naive one -- block space now clips it)
 #                                 -- strongly RISING: retirement frees claim share for the
 #                                 next cohort, so faster arrival converts better.
 #
@@ -28,7 +30,7 @@ from empowering_sim.config import Config, load
 # retirement it also depends on how fast nodes turn up.
 EFFICIENCY_PERSISTENT = 0.15          # flat, and what the incentives actually deliver
 EFFICIENCY_RETIRING_SLOW = 0.25       # at half the reference arrival rate
-EFFICIENCY_RETIRING_FAST = 0.74       # at twice it
+EFFICIENCY_RETIRING_FAST = 0.64       # at twice it (0.74 before block space bound)
 
 # Retiring is NOT incentivised: a bonded node can provide service and go on mining, and the
 # marginal claim pays at any plausible token price (adversarial-analysis section 2). All
@@ -68,12 +70,19 @@ class Derived:
 
     @property
     def anchor(self) -> int:
-        """| ``anchor = 2 * tx_fee(transfer)`` -- R8, with transfer ~= inscription.
+        """| ``anchor = claim_fee + tx_fee(transfer)`` -- R8, re-struck 2026-09-05.
+
+        The claim covers its own inclusion and delivers one average transaction of value.
+        Struck as ``2 * avg_tx_fee`` until the 2026-09 upstream claim signature made a
+        claim cost 2.03 transfers and pushed that anchor 140 lepta under the claim's own
+        fee; the re-strike (design owner, 2026-09-05) writes R1's guarantee into the
+        definition itself, so no future movement of the claim's fee ratio can reopen it --
+        the surplus is one transfer BY CONSTRUCTION, not by coincidence of the ratio.
 
         Read from the fee model at its resting prices; in a full market simulation this is
         re-read at each epoch boundary.
         """
-        return 2 * self.cfg.avg_tx_fee
+        return self.cfg.claim_fee + self.cfg.avg_tx_fee
 
     @property
     def satisfiable(self) -> bool:

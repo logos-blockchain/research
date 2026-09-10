@@ -25,36 +25,36 @@ from .config import Config
 def max_block_reward(cfg: Config) -> float:
     """The emission cap, in LGO per block.
 
-    | ``max_minted_per_block = max_emission_per_year * launch_supply / blocks_per_year``
+    | ``max_release_per_block = max_emission_per_year * launch_supply / blocks_per_year``
 
     A ceiling rather than a payment. The specification's block reward is
 
         A_t * I_max * S_tge * dt / f  +  (1 - A_t) * R_block
 
     (`block-rewards.md`), so this function is the first term at ``A_t = 1`` -- the emission
-    rate factor at its maximum. The second term recycles burnt fees and grows as ``A_t``
+    rate factor at its maximum. The second term recycles pooled fees and grows as ``A_t``
     falls.
     """
     return cfg.max_emission_per_year * cfg.launch_supply / cfg.blocks_per_year
 
 
-def block_reward(cfg: Config, emission_factor: float, burnt_fees_per_block: float) -> float:
+def block_reward(cfg: Config, emission_factor: float, pooled_fees_per_block: float) -> float:
     """The specification's block reward, both terms, in LGO per block.
 
-    | ``block_reward = emission_factor * max_minted_per_block + (1 - emission_factor) * burnt_fees``
+    | ``block_reward = emission_factor * max_release_per_block + (1 - emission_factor) * pooled_fees``
 
     ``emission_factor`` is the specification's ``A_t``, bounded in [0, 1] and driven by two
     key performance indicators -- how far inferred total stake sits from its target, and the
-    moving average of the burn rate. The specification's own account of the regimes:
+    moving average of the pooling rate. The specification's own account of the regimes:
 
-    - **far from target**, ``A_t -> 1``: emission is maximised and burnt fees are not minted
+    - **far from target**, ``A_t -> 1``: the reserve release is maximised and pooled fees are not distributed
       back. This is the bootstrap phase, and it is the regime the on-ramp operates in, which
       is why the analysis here runs at ``A_t = 1``.
     - **close to target**, ``A_t -> 0``: emission from inflation is minimised and most of the
-      burnt fees are minted back instead.
+      pooled fees are distributed back instead.
     """
     factor = min(1.0, max(0.0, emission_factor))
-    return factor * max_block_reward(cfg) + (1 - factor) * burnt_fees_per_block
+    return factor * max_block_reward(cfg) + (1 - factor) * pooled_fees_per_block
 
 
 def validation_apy(cfg: Config, staked_fraction: float | None = None,
@@ -145,7 +145,7 @@ def leader_income_per_epoch(cfg: Config, stake_share: float,
 
     Two streams, and the report treats them separately because only one is specified:
 
-    - **minted**, bounded by the emission cap, of which the leader takes
+    - **released**, bounded by the emission cap, of which the leader takes
       ``leader_reward_share``;
     - **fees**, of which leaders take ``leader_fee_share`` of what is not diverted into the
       proof-of-work pool.
@@ -156,10 +156,10 @@ def leader_income_per_epoch(cfg: Config, stake_share: float,
     n = cfg.txs_per_block if txs_per_block is None else txs_per_block
     blocks = cfg.blocks_per_epoch
 
-    minted = max_block_reward_base_units(cfg) * blocks * cfg.leader_reward_share
+    released = max_block_reward_base_units(cfg) * blocks * cfg.leader_reward_share
     undiverted = (1 - cfg.pow_share) * blocks * n * cfg.avg_tx_fee
     fees = undiverted * cfg.leader_fee_share
-    return stake_share * (minted + fees)
+    return stake_share * (released + fees)
 
 
 def mining_income_per_epoch(cfg: Config, hashrate_share: float,

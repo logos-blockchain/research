@@ -1,14 +1,17 @@
 PY := PYTHONPATH="src:../strategies/src" python3
 
-.PHONY: validate study plots web serve
+.PHONY: validate report-numbers study plots web serve
 
 validate: ## the gate suite: closed forms, invariants, and the pinned properties
 	$(PY) -m empowering_denovo_sim.validate
 
+report-numbers: ## every number the report quotes, against the runs that produce it
+	$(PY) -m empowering_denovo_sim.report_numbers
+
 study: ## the scenario matrix, printed
 	$(PY) -m empowering_denovo_sim.study
 
-plots: ## the report's five figures
+plots: ## the report's seven figures
 	$(PY) -m empowering_denovo_sim.plots --out ../../../../reports/empowering/denovo/figures
 
 # The calculator re-implements the closed forms in JS, so `web` regenerates its inputs from

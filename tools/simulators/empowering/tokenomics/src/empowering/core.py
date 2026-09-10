@@ -133,9 +133,16 @@ def builder_edge(p: Params, n_tx: int | None = None, tip_frac: float | None = No
 
 
 def next_reward_difficulty(d: int, claims_in_block: int, p: Params) -> int:
-    """The memoryless per-block retarget. compute_new_reward_difficulty."""
+    """The memoryless per-block retarget. compute_new_reward_difficulty.
+
+    Clamped at both ends since the 2026-09 revision: the cap keeps the representative in
+    the field, and REWARD_TARGET_FLOOR = ceil(F/(P-F)) = 9 keeps the absorbing zero -- and
+    the absorbing band 1..8 that a floor of one would leave under floor division --
+    unreachable.
+    """
     demand = max(1, (p.P_ema - p.F_ema) * claims_in_block + p.F_ema * p.T)
-    return min((p.T * d * p.P_ema) // demand, P_FIELD - 1)
+    floor = -(-p.F_ema // (p.P_ema - p.F_ema))
+    return min(max((p.T * d * p.P_ema) // demand, floor), P_FIELD - 1)
 
 
 def simulate_pool(p: Params, epochs: int | None = None, n_tx: int | None = None):

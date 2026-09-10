@@ -9,6 +9,19 @@ lepta-denominated two-market pricing), the cost estimator (`powcost`), the emiss
 service machinery, and 196 validation gates are verified components this work consumes rather
 than rebuilds.
 
+## How to read this
+
+*In plain words: this is the working notebook of the redesign — the brief it was given, the
+reasoning that produced the design, and every decision taken along the way with its date and
+its alternatives. It is kept because a design whose choices cannot be audited is a design
+nobody can safely change. If you want the finished story instead, read `denovo-report.md`;
+if you want the exact rules, `MODEL.md`.*
+
+*The shape: §0 is the brief (eight requirements, stated before any design existed). §§1–2 work
+out what the requirements force. §3 is the decision log — each open question, the options, the
+measurement that settled it, and the date. The sections after §3 are later revisions appended
+as they happened, newest last, so the file reads as a history.*
+
 ## 0. The principles, as requirements
 
 Stated by the design owner, 2026-08-18. The report validates against these by number.
@@ -94,7 +107,8 @@ borrow-forward. The phases differ in nothing but budget source and reward level.
 ### 1.5 The transition is automatic (R2)
 
 Bootstrap ends when the TGE endowment component of the pool reaches zero — by schedule at the
-expected duration, earlier under spikes. Post-bootstrap begins the next epoch: budget = last
+expected duration; spikes do not move it (the schedule re-spreads, §1.2), weak interest
+extends it at the nominal rate. Post-bootstrap begins the next epoch: budget = last
 epoch's diverted fees (R7a), reward drops from the subsidised to the anchor level. No
 transition parameter, no governance action.
 
@@ -182,7 +196,7 @@ Scenario matrix: arrivals {uniform, 10× spike, 100× cohort, front-loaded, back
 triples {satisfiable, marginal, unsatisfiable} × retirement {on, off}. The report validates
 each requirement **by number**:
 
-- R4/R6: pool trajectory, never negative, ends when scheduled or earlier under spikes;
+- R4/R6: pool trajectory, never negative, ends when scheduled (spikes borrow, they do not shorten);
 - R5: cohort admission — time-to-bond for a spike cohort vs the same nodes arriving uniformly
   (the current design's rationing, reproduced from `EmPoWering-simulator`, as the baseline);
 - R7: post-phase saturation-point distribution vs the epoch end; evenness of claims;
@@ -273,3 +287,170 @@ three more; Q7 settled 2026-08-19, Q8/Q9 pending as a coupled pair:
    `endowment == 0` is monotone, fires once, and is irreversible by construction. No guard
    band exists because the flapping it would guard against cannot occur. The single-bucket
    level test, which would need one, is recorded as the alternative it replaces.
+
+---
+
+# Revision plan: the pooling/distributing/releasing substrate (logos-lips PR 375)
+
+*Planned 2026-08-22 against PR head `2b3b698` (branch `pooling-distributing`). Status at
+planning time: thomaslavaur APPROVED after changes, madxor's review pending, the Verified
+checklist open. **Outcome: the PR merged to master 2026-08-26 at `6aaa6db`**; the plan was
+executed against the pinned head and re-verified against the merged text on 2026-08-31 —
+five drift-gate patterns widened for pre-merge formatting cleanups, no value moved, and one
+merge-day fact recorded as its own finding: the integer-section "Rederivation required" flag
+was removed without the rederivation (contradiction 4.12, UPSTREAM-PENDING §4).*
+
+## What the RFC changes
+
+`block-rewards.md` 1.1.0 (with `execution-market.md` 1.2.0, `storage-markets.md`, and the
+overview propagating): fees are no longer burned and rewards no longer minted. All Execution
+base fees and Permanent Storage fees route into a **pending rewards pool** `P_t`; block
+rewards distribute the *windowed average* of pooled fees (`R̄_t` over `T = 120` blocks, not
+the latest block's fee) topped up by a **release** `ι_t` from a finite genesis reserve
+`B_0 = I_max · S_cap · Y = 10⁹ LGO`; `S_tge` is removed and everything anchors to `S_cap`;
+and the whole system carries a conservation identity `ΔS + ΔP + ΔB = 0`. Storage-markets
+gains a Fee Routing subsection decomposing the pool inflow as
+`R_block = R̂_STR + R̂_pooled` — the first formal reconciliation of the two fee markets.
+
+## 0. The verdict first — what actually moves here (measured before planning)
+
+**No headline number in the de-novo reports moves.** Verified by execution before writing
+this plan:
+
+- `A_t` saturates at 1 over every horizon we simulate (min 0 only inside the estimator's
+  genesis-seed window, where the blend pool was ~0 anyway), so the recycled term — the one
+  term whose *mechanics* change (single-block → windowed) — never engages at a magnitude
+  that matters. The steady block reward is the release-cap term, 95.13 LGO/block, and
+  `S_tge → S_cap` is numerically identity (both 10¹⁰ LGO).
+- The blend pool therefore stays at the measured 1,235,274 LGO/epoch; `retirement.py`'s
+  constant, the service-dilution figures (6,185 / 155 / 50 LGO per provider), and every
+  retirement conclusion stand.
+- The fee-computation formulas of both markets are untouched by the RFC, so the anchor
+  (11,158 lepta), the claim fee (6,664), the fee drag (59.7%), and every de-novo closed form
+  stand.
+- The reserve's depletion horizon is ≥ Y = 10 years at maximum release; our longest run is
+  ~7.4 years. Depletion dynamics are new honesty for long horizons, not a correction to any
+  published figure.
+
+The revision is therefore structural and terminological — plus **one genuine cross-spec
+collision** and **one genuine opportunity**, which are the substance of this plan.
+
+## 1. The collision: `POW_SHARE` against "routed in full"
+
+Our fee diversion (10% of fees into the PoW `fee_accrual`, MAPPING row 13) anchors to
+`overview-cryptoeconomics` §PoW Reward Pool and intercepts fees *before* their old
+disposition (burning). The RFC now states — twice, normatively — that fees are routed **in
+full** into the pending rewards pool (`storage-markets.md` Fee Routing; `execution-market.md`
+closing derivation), and its `R_block = R̂_STR + R̂_pooled` decomposition has no PoW term.
+As specified, PR 375 and the EmPoWering fee diversion cannot both be true.
+
+**DECIDED 2026-08-24 (design owner): the pool's routing stands and EmPoWering carves its
+share out of the pooled reward flow** — resolution (ii). Fees enter the pending rewards pool
+in full, the RFC's sentences stay true, and the `POW_SHARE` is the pool's first outflow. The
+reward rule's window reads the pool's distributable inflow (fees net of the carve-out — the
+same value the pre-pooling code computed, so no figure moves), and `fee_bucket` becomes the
+EmPoWering-side view of a draw against the pending rewards pool. Recorded with the accounting
+consequences as contradiction 4.13; the one remaining upstream ask is a sentence in the RFC
+acknowledging the carve-out as a pool outflow. The options as drafted, for the record:
+
+- **(i) Pre-pool carve-out.** EmPoWering intercepts its 10% at inclusion time; the RFC's
+  "in full" gains a qualifier and the decomposition gains a term
+  (`R_block = R̂_STR + R̂_pooled − R̂_POW`, or the diversion is listed as a routing
+  exception). Smallest change to us; an upstream wording ask; keeps EmPoWering independent
+  of pool state.
+- **(ii) Distribution from the pool** *(recommended)*. The PoW fee component becomes a
+  fourth outflow of the pending rewards pool: `diverted = POW_SHARE × R_block`, drawn from
+  `P_t` at the epoch boundary. Same magnitude, cleaner provenance (the decomposition gives
+  us `R_block` exactly), no routing exception needed, and EmPoWering becomes *native* to the
+  RFC's structure rather than grandfathered beside it. Cost: a dependency on `P_t ≥ 0` —
+  which is trivially satisfied in every regime we run, because `A_t = 1` means the pool
+  retains all fees while EmPoWering draws 10% of them; the check becomes a gate, not an
+  assumption.
+
+Under either resolution the de-novo engine's arithmetic is unchanged — `diverted` has the
+same value; what changes is which stock it is accounted against and what the docs cite.
+
+## 2. The opportunity: EmPoWering is already an instance of the RFC's pattern
+
+The structural rhyme is exact. (One caveat the planning draft got wrong and the 2026-08-25
+review caught: the RFC's *text* specifies a single undivided reserve and never mentions
+sub-pools — the term appears only in its review thread, where a reviewer objected to it and
+the author replied that the accounting is up to implementers. So the sub-reserve framing below
+is **our analogy**, which stands on the structure, not the RFC's own vocabulary, which it is
+not.) Then:
+
+| RFC concept | de-novo concept, already built and gated |
+| --- | --- |
+| genesis-minted reserve `B_0`, pre-allocated from the cap | the EmPoWering endowment: a genesis-minted sub-reserve |
+| metered release `ι_t = min(schedule, B_{t−1})` | `sub_pool = endowment // (B − e)`, the linear amortisation |
+| "lasts Y years at max rate, longer when `A_t < 1`" | Q7's nominal-rate tail, verbatim in spirit |
+| depleted-reserve fallback to recycled fees | the dust fold and the fee-bucket post-phase |
+| pending rewards pool `P_t` | `fee_bucket` (the PoW-share view of it, under 1.ii) |
+| `ΔS + ΔP + ΔB = 0` | our conservation-to-the-lepton gate |
+
+The revision rewrites MAPPING.md's framing around this table: EmPoWering stops being a
+mechanism bolted beside the reward system and becomes *a second metered release from a
+dedicated sub-reserve, with its own schedule and its own demand index*. That is a materially
+stronger adoption argument than "orthogonal to the pool redesign" (the current MAPPING row,
+which the RFC has made false anyway).
+
+## 3. Code changes
+
+1. **`emission.py` (strategy sim):** implement the RFC's real-valued rule — recycled term
+   from the 120-block windowed `R̄_t` — while keeping the single-block form callable for
+   master-parity gating. NOTE: the PR itself flags its integer section "Rederivation
+   required" (the Rust body still uses the single-block fee), so the spec's real and integer
+   rules currently disagree; we implement the real rule as the stated intent and record the
+   gap in `CONTRADICTIONS.md` with the PR's own prescription as the resolution.
+2. **Pool and reserve stocks:** add `P_t`, `B_t`, `ι_t`, `B_0 = 10⁹ LGO` to the emission
+   model; depletion fallback; conservation gate `ΔS + ΔP + ΔB = 0` per step. The RFC's
+   Implementation checklist is a ready-made gate menu (window-boundary correctness, pool
+   non-negativity in the low-inflow regime, depleted-reserve fallback, integer-vs-real
+   cross-check) — take it wholesale.
+3. **Terminology in code:** `burnt_window` → `pooled_window`, docstrings burn/mint →
+   pool/distribute/release. Mechanical; gates re-pinned only where a note quotes the word.
+4. **De-novo `diverted` provenance:** re-derive against `R_block = R̂_STR + R̂_pooled`
+   (same value, spec-exact decomposition), accounted per §1's resolution.
+5. **`retirement.py`:** re-measure `BLEND_POOL_LGO_PER_EPOCH` after (1)–(2) and gate it
+   (expected unchanged: 1,235,274).
+
+## 4. Documentation changes
+
+- **MAPPING.md:** replace the "orthogonal / untouched" rows for `block-rewards` and the fee
+  markets with the §2 table and the §1 resolution; adopt "pending rewards pool" naming.
+- **MODEL.md §1:** the inherited row for `pow_share` gains its new anchor; a paragraph notes
+  the endowment is a sub-reserve by analogy — our term, not the RFC's (see §2's caveat).
+- **CONTRADICTIONS.md:** two entries — the PR's flagged integer/real divergence (with its
+  prescribed fix), and the "in full" vs `POW_SHARE` collision (with the §1 options and the
+  owner's decision once taken).
+- **denovo-report.md / SUMMARY.md:** one paragraph each: the substrate changed under the
+  design and what that does (nothing, measured) and what it offers (the §2 reframing);
+  post-phase "fees in, anchor out" language checked against pool routing (our de-novo docs
+  are already burn/mint-free — verified by grep; only `empowering_sim` code and the
+  acceleration survey carry the old vocabulary).
+- **Terminology sweep** of `empowering_sim` docstrings and the survey.
+
+## 5. Upstream contributions (outward-facing — each needs an explicit go)
+
+> **The prepared answers live in `reports/empowering/UPSTREAM-PENDING.md`**, written so they
+> can be posted without redoing the work — question, answer, evidence, and where the gates
+> are. Nothing has been sent. The list below is why each item exists; that file is what to
+> paste when the go arrives.
+
+1. **Answer the PR's open question with our machinery.** The PR asks for "explicit boundary
+   treatment" of the early-life regime where `R̄_t` exceeds cumulative inflows (`P_t ≥ 0`).
+   That is precisely the boundary class our dust fold and Q7 tail solved, and our engine can
+   measure their proposed rule in an afternoon. A comment with a small simulation attached
+   would close their one flagged review item.
+2. **The §1 collision** needs raising on the PR (or in the EmPoWering RFC) whichever
+   resolution is chosen — as written, the two specs contradict each other the day both merge.
+3. **The leader-incentive concern** (thomaslavaur, block-rewards.md:262: pool retention when
+   `A_t → 1` "making leaders not interested in tips during the adoption phase") is
+   quantifiable in the strategy sim if wanted.
+
+## 6. Order of work
+
+§1 decision (blocks the doc framing, not the code) → §3.1–3.3 with gates green after each →
+§3.4–3.5 → §4 → re-run both suites, selfcheck, blend-pool re-measure → §5 items on approval.
+Nothing in the plan moves a published number; anything that does move one is a finding, not
+a revision, and stops the line.

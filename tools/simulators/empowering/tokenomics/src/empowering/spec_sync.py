@@ -48,34 +48,41 @@ def run(config: str, lips: str) -> int:
             failures.append(f"{label}: spec says {got!r}, config has {want!r}")
 
     mantle = "bedrock-v1.1-mantle-specification.md"
+    # Since 2026-09-09 (PR 400, review round two) the reward pool, the genesis seed and both
+    # difficulty controllers live in their own document; Mantle keeps the state, the
+    # acceptance window and the claim Operation. Older trees carry everything in Mantle.
+    pow = "proof-of-work.md"
+    powf = pow if (raw / pow).is_file() else mantle
     check("TARGET_CLAIMS_PER_BLOCK",
-          grab(mantle, r"TARGET_CLAIMS_PER_BLOCK: uint64 = (\d+)", "T"), p.T)
-    check("POW_SHARE", grab(mantle, r"POW_SHARE: uint64 = (\d+)", "share"), p.beta_num)
-    check("SHARE_DEN", grab(mantle, r"SHARE_DEN: uint64 = (\d+)", "den"), p.beta_den)
+          grab(powf, r"TARGET_CLAIMS_PER_BLOCK: uint64 = (\d+)", "T"), p.T)
+    check("POW_SHARE", grab(powf, r"POW_SHARE: uint64 = (\d+)", "share"), p.beta_num)
+    check("SHARE_DEN", grab(powf, r"SHARE_DEN: uint64 = (\d+)", "den"), p.beta_den)
     check("RATE_NUM",
-          grab(mantle, r"EPOCH_POW_DISTRIBUTION_RATE_NUM: uint64 = (\d+)", "rho num"),
+          grab(powf, r"EPOCH_POW_DISTRIBUTION_RATE_NUM: uint64 = (\d+)", "rho num"),
           p.rho_num)
     check("RATE_DEN",
-          grab(mantle, r"EPOCH_POW_DISTRIBUTION_RATE_DEN: uint64 = (\d+)", "rho den"),
+          grab(powf, r"EPOCH_POW_DISTRIBUTION_RATE_DEN: uint64 = (\d+)", "rho den"),
           p.rho_den)
     check("EMA_SMOOTHING_FACTOR",
-          grab(mantle, r"EMA_SMOOTHING_FACTOR: uint64 = (\d+)", "F"), p.F_ema)
+          grab(powf, r"EMA_SMOOTHING_FACTOR: uint64 = (\d+)", "F"), p.F_ema)
     check("EMA_SMOOTHING_PRECISION",
-          grab(mantle, r"EMA_SMOOTHING_PRECISION: uint64 = (\d+)", "P"), p.P_ema)
+          grab(powf, r"EMA_SMOOTHING_PRECISION: uint64 = (\d+)", "P"), p.P_ema)
     check("BLEND_DIFFICULTY_BASE exponent",
-          grab(mantle, r"BLEND_DIFFICULTY_BASE: PowTarget = p // 2\*\*(\d+)", "base"),
+          grab(powf, r"BLEND_DIFFICULTY_BASE: PowTarget = p // 2\*\*(\d+)", "base"),
           p.blend_base_exp)
     check("TARGET_TXS_PER_BLOCK",
-          grab(mantle, r"TARGET_TXS_PER_BLOCK: uint64 = (\d+)", "blend target"),
+          grab(powf, r"TARGET_TXS_PER_BLOCK: uint64 = (\d+)", "blend target"),
           p.blend_target_txs)
     check("BLEND_DAMPING_NUM",
-          grab(mantle, r"BLEND_DAMPING_NUM: uint64 = (\d+)", "a"), p.blend_damping_num)
+          grab(powf, r"BLEND_DAMPING_NUM: uint64 = (\d+)", "a"), p.blend_damping_num)
     check("BLEND_DAMPING_DEN",
-          grab(mantle, r"BLEND_DAMPING_DEN: uint64 = (\d+)", "b"), p.blend_damping_den)
+          grab(powf, r"BLEND_DAMPING_DEN: uint64 = (\d+)", "b"), p.blend_damping_den)
     check("BLEND_MAX_STEP",
-          grab(mantle, r"BLEND_MAX_STEP: uint64 = (\d+)", "step"), p.blend_max_step)
+          grab(powf, r"BLEND_MAX_STEP: uint64 = (\d+)", "step"), p.blend_max_step)
     check("reward genesis exponent",
-          grab(mantle, r"scalar field modulus divided by \$`2\^\{(\d+)\}`\$", "genesis d"),
+          # "divided by" until 2026-09-10, then "the quotient of the Euclidean division of the
+          # scalar field modulus by" (review round five); the value is the same.
+          grab(powf, r"scalar field modulus (?:divided )?by \$`2\^\{(\d+)\}`\$", "genesis d"),
           p.reward_difficulty_exp)
 
     gas = "analysis-gas-cost-determination.md"
@@ -86,22 +93,44 @@ def run(config: str, lips: str) -> int:
           grab(gas, r"\bTRANSFER_GAS\s+= (\d+)", "transfer gas"), p.transfer_tx_gas)
 
     genesis = "bedrock-genesis-block.md"
+    # "of the supply at network launch" until 2026-09; "of the maximum supply" after PR 400
+    # restated the basis as S_cap. Same 10^10, so one config value serves both forms.
     check("POW_REWARD_POOL_GENESIS",
-          grab(genesis, r"= (\d+)/1000 of the supply at network launch", "seed"),
+          grab(genesis,
+               r"= (\d+)/1000 of the (?:supply at network launch|maximum supply)", "seed"),
           int(p.genesis_pool_fraction * 1000))
 
     rewards = "block-rewards.md"
-    check("S_tge",
-          grab(rewards, r"Token supply at TGE \| (\d+) billion LGO", "supply"),
+    # Two accepted forms: the pre-PR-375 parametrization row anchored the supply as S_tge
+    # ("Token supply at TGE"); PR 375 (merged 2026-08-26) removed S_tge and anchors
+    # everything to the hard cap ("Maximum token supply (hard cap)"). Numerically identical
+    # at the stated 10^10, so one config value serves both forms; PR 400 has since merged
+    # master, so current trees all carry the S_cap form and the alternation only serves
+    # historical snapshots.
+    check("S_tge / S_cap",
+          grab(rewards,
+               r"(?:Token supply at TGE|Maximum token supply \(hard cap\)) \| (\d+) billion LGO",
+               "supply"),
           int(p.S_tge / 1e9))
+    rewards_text = read(rewards)
+    if rewards_text and "Lifetime of the rewards reserve" in rewards_text:
+        # The PR-375 tree only: the reserve-lifetime parameter its Pool Accounting section
+        # introduces. Y = 10 sizes the reserve at I_max * S_cap * Y = 10^9 LGO, which is the
+        # RESERVE_GENESIS the strategy simulator's emission stocks carry.
+        # Accepts both $10$ (the PR head this gate was written against) and $`10`$ (the
+        # form the 2026-08-25 pre-merge cleanup switched the whole document to).
+        check("Y (reserve lifetime, PR 375)",
+              grab(rewards, r"Lifetime of the rewards reserve[^|]*\| \$`?(\d+)`?\$ years", "Y"),
+              10)
 
     blendp = "blend-protocol.md"
     n_b = grab(blendp, r"which translates to \$`([\d,]+)`\$ blocks", "N_b")
     check("blocks per epoch (blend)", n_b, p.N_b)
-    crypt = "cryptarchia-v1-protocol.md"
-    raw_nb = grab(crypt, r"= 10k = ([0-9{},]+)`\$ blocks", "10k")
-    check("blocks per epoch defined in Cryptarchia",
-          raw_nb and raw_nb.replace("{", "").replace("}", ""), p.N_b)
+    # Until 2026-09-09 Cryptarchia stated the expected blocks per epoch (10k) in its Epoch
+    # Schedule; review round four dropped every change of the RFC to that document, and the
+    # constant is read where it enters consensus arithmetic instead.
+    check("EXPECTED_BLOCKS_PER_EPOCH",
+          grab(powf, r"EXPECTED_BLOCKS_PER_EPOCH: uint64 = ([\d_]+)", "N_b"), p.N_b)
     check("blend_ops_per_message",
           grab(blendp, r"beta_\{max\} = (\d+)", "blend ops per message"),
           p.blend_ops_per_message)
@@ -109,59 +138,67 @@ def run(config: str, lips: str) -> int:
     # The reference implementation's constants are all functions of the supply; guard
     # them so a supply revision cannot leave the code behind again.
     import math
+    # `int(3e9)` before the merge, `int64(3_000_000_000)` after -- the 2026-08-26 merge of
+    # PR 375 rewrote the reference block around numpy int64. Both forms are captured and the
+    # comparison is NUMERIC, because the old string comparison ("3e9") broke on a formatting
+    # change that moved no value -- which is drift this gate should survive, not report.
+    _stake_raw = grab(rewards, r"STAKE_TARGET = int(?:64)?\(([\d_.e+]+)\)", "stake target")
     check("STAKE_TARGET (reference code)",
-          grab(rewards, r"STAKE_TARGET = int\((\S+)\)", "stake target"),
-          f"{0.3 * p.S_tge:.0e}".replace("e+", "e").replace("e0", "e"))
+          _stake_raw and float(_stake_raw.replace("_", "")), 0.3 * p.S_tge)
     infl_num = int(p.I_max * p.S_tge)
     g = math.gcd(infl_num, p.blocks_per_year)
     check("INFLATION_NUMERATOR (reference code)",
-          grab(rewards, r"INFLATION_NUMERATOR = ([\d_]+)", "inflation num"),
+          grab(rewards, r"INFLATION_NUMERATOR = (?:int64\()?([\d_]+)\)?", "inflation num"),
           str(infl_num // g))
     check("INFLATION_DENOMINATOR (reference code)",
-          grab(rewards, r"INFLATION_DENOMINATOR = ([\d_]+)", "inflation den"),
+          grab(rewards, r"INFLATION_DENOMINATOR = (?:int64\()?([\d_]+)\)?", "inflation den"),
           str(p.blocks_per_year // g))
     check("A_SCALE (reference code)",
-          grab(rewards, r"A_SCALE = ([\d_]+)", "a scale"),
+          grab(rewards, r"A_SCALE = (?:int64\()?([\d_]+)\)?", "a scale"),
           str(int(0.3 * p.S_tge * p.I_max * 4)))
 
-    # --- derived margins the specifications state in prose ------------------------
-    # These are the sentences no constant-level gate covers: each is recomputed from
-    # the config and asserted against the exact wording, so a parameter change that
-    # invalidates a margin fails here instead of leaving stale prose behind.
+    # --- derived margins ----------------------------------------------------------
+    # Until 2026-09-03 these were phrase-plus-value checks against the Mantle text, which
+    # stated each margin in prose. PR 400 then moved the design rationale out of the
+    # specification into the PR description (`b2f0f941`), so there is no spec sentence left
+    # to anchor to and these are now pure value checks: each margin is recomputed from the
+    # config and asserted against the range that makes the corresponding claim in our own
+    # reports true. Where the range itself moved, the cause is the 2026-09-04 claim change
+    # (ZkSignature proof, gas 56 -> 590: the claim fee went from 6,664 to 11,298 lepta) --
+    # and the PR description still carries the OLD figures ("6,664 lepta", "about four
+    # fifths", "five times the fee at six hundred"), stale against the PR's own change;
+    # flagged upstream rather than silently re-anchored here.
     import math
 
-    def margin(fname: str, phrase: str, value: float, lo: float, hi: float):
+    def derived(label: str, value: float, lo: float, hi: float):
         nonlocal checks
         checks += 1
-        text = read(fname)
-        if text is None:
-            return
-        if phrase not in text:
-            failures.append(f"margin phrase missing from {fname}: {phrase!r}")
-        elif not (lo <= value <= hi):
-            failures.append(f"margin {phrase!r}: recomputed {value:.3g}, "
-                            f"outside [{lo:.3g}, {hi:.3g}] — prose is stale")
+        if not (lo <= value <= hi):
+            failures.append(f"derived margin {label}: recomputed {value:.4g}, "
+                            f"outside [{lo:.3g}, {hi:.3g}] — a report claim is stale")
 
     phi_over_S = p.phi / p.S_tge
     sigma0 = p.rho * p.R0 / (p.T * p.N_b)
-    ceiling = (sigma0 / 2) / p.S_tge                       # the stated 1.157e-10 form
-    import math as _m
-    margin(mantle, "five orders of magnitude above the floor",
-           _m.log10(ceiling / phi_over_S), 4.5, 6.0)
-    margin(mantle, "6,664 lepta", p.phi * p.base_units_per_lgo, 6663, 6665)
+    ceiling = (sigma0 / 2) / p.S_tge
+    derived("price-discovery headroom, orders of magnitude above the fee floor",
+            math.log10(ceiling / phi_over_S), 4.5, 6.0)
+    derived("claim fee at the resting prices, lepta (was 6,664 before the ZkSignature)",
+            p.phi * p.base_units_per_lgo, 11_297, 11_299)
     R_min = p.phi * p.T * p.N_b / p.rho
     no_traffic_years = math.log(p.R0 / R_min) / -math.log(1 - p.rho) / p.epochs_per_year
-    margin(mantle, "for decades", no_traffic_years, 15, 80)
-    margin(mantle, "a factor of only $`1.84`$",
-           (2 ** 64 - 1) / (p.S_tge * p.base_units_per_lgo), 1.80, 1.89)
+    derived("no-traffic seed lifetime stays 'decades'", no_traffic_years, 15, 80)
+    derived("u64 headroom over the supply in lepta",
+            (2 ** 64 - 1) / (p.S_tge * p.base_units_per_lgo), 1.80, 1.89)
 
     reaches = 1 - p.T / (p.psi * p.beta * p.n_tx_ref)
-    margin(mantle, "about four fifths of the distribution reaching claimants",
-           reaches, 0.75, 0.85)
-    margin(mantle, "five times the fee at six hundred",
-           p.psi * p.beta * 600 / p.T, 4.5, 5.5)
-    margin(mantle, "two thousand claims in every block",
-           p.T * p.rho_den / p.rho_num / 1000, 1.99, 2.01)
+    derived("share of the distribution reaching claimants at the reference load "
+            "(two thirds since the claim signature; four fifths before)",
+            reaches, 0.60, 0.70)
+    derived("reward over the claim fee at six hundred transactions "
+            "(three times since the claim signature; five before)",
+            p.psi * p.beta * 600 / p.T, 2.7, 3.2)
+    derived("within-epoch drain requirement, thousands of claims per block",
+            p.T * p.rho_den / p.rho_num / 1000, 1.99, 2.01)
     # excess of a 100x-too-permissive genesis target, as a fraction of the pool
     from .core import next_reward_difficulty, sigma as _sigma
     d_eq = P_FIELD >> p.reward_difficulty_exp
@@ -170,8 +207,8 @@ def run(config: str, lips: str) -> int:
         c = min(max(0, round(p.T * d / d_eq)), p.max_block_txs)
         excess += max(0, c - p.T)
         d = next_reward_difficulty(d, c, p)
-    margin(mantle, "three thousandths of one percent of the genesis pool",
-           excess * _sigma(p.R0, p) / p.R0 * 1e5, 2.2, 3.8)
+    derived("genesis over-payment, thousandths of one percent of the pool",
+            excess * _sigma(p.R0, p) / p.R0 * 1e5, 2.2, 3.8)
 
     def require_phrase(fname: str, phrase: str):
         nonlocal checks
@@ -181,17 +218,37 @@ def run(config: str, lips: str) -> int:
             failures.append(f"guarantee phrase missing from {fname}: {phrase!r}")
 
     # robustness guarantees the specification must keep stating
-    require_phrase(mantle, "losing less than one lepton per block")
-    require_phrase(mantle, "conservation bounds every such aggregate")
-    require_phrase(mantle, "validated against the target produced by the previous block")
-    require_phrase(mantle, "canonical integer representative")
+    # The Denomination subsection and the token-value arithmetic paragraph left Mantle on
+    # 2026-09-09 (review round three): the unit system is the token specification's, and the
+    # conservation argument lives in the PR description. Nothing in the tree states them now.
+    require_phrase(powf, "validated against the target produced by the previous block")
+    require_phrase(powf, "canonical integer representative")
     poq = "proof-of-quota.md"
-    require_phrase(poq, "BLEND_POW_V1")
+    # The domain separation tag was withdrawn on 2026-09-08 with the mining precomputation:
+    # the ticket is the bare two-input hash, the searched nonce first.
+    require_phrase(poq, "zkhash(pow_nonce, pol_epoch_nonce)")
     require_phrase(poq, "pow_nonce")
-    require_phrase(mantle, "one LGO is $`10^{9}`$ lepta")
-    require_phrase(mantle, "hi = min(previous * BLEND_MAX_STEP, p - 1)")
-    require_phrase(mantle, "return min(new_target, p - 1)")
-    require_phrase(mantle, "specified over **arbitrary-precision integers**")
+    require_phrase(powf, "hi = min(previous * BLEND_MAX_STEP, p - 1)")
+    # The unfenced `return min(new_target, p - 1)` until 2026-09; PR 400 then floored the
+    # retarget at REWARD_TARGET_FLOOR = ceil(F/(P-F)) = 9 -- the fence our UPSTREAM-PENDING
+    # section 4 asked for, with a stronger floor than the max(1, .) we suggested (floors
+    # 1..8 form an absorbing band under floor division).
+    require_phrase(powf, "return min(max(new_target, REWARD_TARGET_FLOOR), p - 1)")
+    check("REWARD_TARGET_FLOOR",
+          grab(powf, r"REWARD_TARGET_FLOOR: uint64 = (\d+)", "floor"),
+          -(-p.F_ema // (p.P_ema - p.F_ema)))
+    # "specified over **arbitrary-precision integers**" until the 2026-09-09 move merged the
+    # two arithmetic paragraphs, then a stated width on 2026-09-10 (review round five): an
+    # implementer cannot act on "arbitrary", and a fixed width is what makes two languages agree.
+    require_phrase(powf, "Every intermediate fits in **512 bits**")
+
+    # What the 2026-09 revision of the RFC newly pins, so it cannot quietly un-pin:
+    # the carve-out is stated where the fees are routed, the PoW pool joins the conserved
+    # total, a claim may straddle one epoch boundary, and the claim is signed.
+    require_phrase(rewards, "net of the share diverted to the")
+    require_phrase(rewards, "S_t + P_t + B_t + W_t")
+    require_phrase(mantle, "found against the current or the previous epoch")
+    require_phrase(mantle, "The claim must be signed by the key the reward is paid to")
 
     print(f"{checks} checks against {raw}")
     if failures:

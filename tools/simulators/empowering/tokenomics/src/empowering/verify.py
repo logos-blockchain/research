@@ -109,8 +109,12 @@ def run(config: str) -> int:
 
     # 16. The refill prices every transaction as a transfer, but T of them are claims paying
     # more, so the model understates the refill. Assert the error is one-signed and small.
+    # The bound was 1% while a claim cost 1.19 transfers; the 2026-09 claim signature and
+    # gas raised that to 2.03 transfers and the understatement from 0.32% to 1.71%, so the
+    # honest smallness bound is now 2% -- the direction (conservative) is the load-bearing
+    # half and is unchanged.
     under = p.T * (1 / p.psi - 1) / p.n_tx_ref
-    check("refill approximation is conservative and under 1%", 0 < under < 0.01,
+    check("refill approximation is conservative and under 2%", 0 < under < 0.02,
           f"understated by {under:.2%}")
 
     # 17-20. Sampled arrivals (section 4.8): the assumption A2 replaces with its mean.

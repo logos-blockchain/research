@@ -61,6 +61,7 @@ def two_population_run(d: Derived, honest_rate: float, adv_rate: float, adv_acti
     rng = np.random.default_rng(seed)
     txs = cfg.txs_per_block if txs_per_block is None else txs_per_block
 
+    claim_room = max(32, cfg.max_block_txs - txs)      # MODEL 8.3 reservation
     endowment = d.endowment_genesis
     fee_bucket = 0
     claims_prev = 0
@@ -102,7 +103,8 @@ def two_population_run(d: Derived, honest_rate: float, adv_rate: float, adv_acti
         active = bool(adv_active(e, last_reward))
 
         capacity = None if bootstrap else budget // reward
-        tgt = None if bootstrap else max(1, capacity // cfg.blocks_per_epoch)
+        # ceil, matching engine.py's 2026-09-05 change -- see the comment there
+        tgt = None if bootstrap else max(1, -(-capacity // cfg.blocks_per_epoch))
         spent = 0
         h_paid = a_paid = 0
         for _ in range(cfg.blocks_per_epoch):
@@ -111,8 +113,8 @@ def two_population_run(d: Derived, honest_rate: float, adv_rate: float, adv_acti
                     if active and adv_rate > 0 else 0.0)
             ho = int(round(h_mu)) if deterministic else int(rng.poisson(h_mu)) if h_mu else 0
             ao = int(round(a_mu)) if deterministic else int(rng.poisson(a_mu)) if a_mu else 0
-            ho = min(ho, cfg.max_block_txs)
-            ao = min(ao, max(0, cfg.max_block_txs - ho))
+            ho = min(ho, claim_room)
+            ao = min(ao, max(0, claim_room - ho))
             offered = ho + ao
             if bootstrap:
                 room = (fee_bucket + endowment) // reward if reward else 0
@@ -199,10 +201,20 @@ def pump_vs_honest(d: Derived, control_fraction: float, epochs: int = 60,
                    seed: int = 90_001) -> dict:
     """Does an actor controlling ``control_fraction`` of hashrate profit by withholding?
 
-    The attacker withholds on even epochs (shrinking `claims_prev`) and floods on odd ones
-    (claiming at the raised reward). Compared against the same actor mining honestly every
-    epoch. The reward cap should keep the pump from paying: withholding forfeits a whole
-    epoch's claims to raise the next reward by a factor the cap bounds.
+    The attacker mines the opening epoch — the 11.87-LGO bonanza that withholding cannot
+    inflate, since genesis already prices at the one-claim-per-block cap — then alternates:
+    withhold to shrink `claims_prev`, flood at the raised reward, repeat. Compared against the
+    same actor mining honestly every epoch. The reward cap should keep the pump from paying:
+    withholding forfeits a whole epoch's claims to raise the next reward by a factor the cap
+    bounds.
+
+    Until 2026-08-31 the modelled attacker withheld the opening epoch too (`e % 2 == 1`) —
+    strictly weaker, since sitting out epoch 0 forfeits the bonanza and buys nothing. The gap
+    is not cosmetic: at 50% control the weak pattern reported 0.80x and the strong one reports
+    0.96x, so the published defence margin at the boundary was five times its real size. The
+    conclusion survives either way — the strong pattern still loses at every minority share
+    and its advantage decays with horizon — but the table must quote the strongest simple
+    attack, not the gentlest.
     """
     # A thousand committed miners at the honest board basis. The pump's outcome is a RATIO
     # against the same actor mining honestly, so the absolute field cancels -- shown robust
@@ -215,9 +227,9 @@ def pump_vs_honest(d: Derived, control_fraction: float, epochs: int = 60,
     # honest baseline: the attacker mines every epoch
     _, _, adv_honest = two_population_run(
         d, honest_rate, adv_rate, lambda e, r: True, epochs, seed)
-    # the pump: withhold on even epochs, flood on odd
+    # the pump: harvest the opening, then withhold/flood alternately
     rows, _, adv_pump = two_population_run(
-        d, honest_rate, adv_rate, lambda e, r: e % 2 == 1, epochs, seed)
+        d, honest_rate, adv_rate, lambda e, r: e == 0 or e % 2 == 0, epochs, seed)
 
     return dict(
         control_fraction=c,

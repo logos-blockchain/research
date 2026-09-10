@@ -1,7 +1,7 @@
 """The two fee markets, and the question they decide.
 
-The emission control function stops minting once staked value reaches its target, after which
-the block reward is exactly the fees the block burns. So whether the mechanism pays anyone
+The emission control function stops releasing from the reserve once staked value reaches
+its target, after which the block reward is exactly the fees the block pools. So whether the mechanism pays anyone
 anything in its equilibrium era turns entirely on where the fee markets settle -- and that is
 not something the block reward can answer about itself.
 
@@ -98,14 +98,15 @@ def blocks_to_reach(target_price: int, fill: float = 1.0, start: int = 7,
     return None
 
 
-def price_for_block_burn(target_burn_lepta: int, txs_per_block: int,
+def price_for_block_pool(target_pool_lepta: int, txs_per_block: int,
                          units_per_tx: int, pow_share: float) -> float:
-    """The price at which a block's burn reaches a stated size.
+    """The price at which a block's pooled fees reach a stated size.
 
-    | ``price = target_burn / (txs * units_per_tx * (1 - pow_share))``
+    | ``price = target_pool / (txs * units_per_tx * (1 - pow_share))``
 
-    The proof-of-work pool is diverted before the burn, so only the remainder is what the
-    emission model measures and mints against.
+    The proof-of-work share is carved out of the pooled flow (decided 2026-08-24: fees enter
+    the pending rewards pool in full and the EmPoWering share is its first outflow), so only
+    the remainder is what the emission model measures and distributes against.
     """
-    burnt_units = txs_per_block * units_per_tx * (1 - pow_share)
-    return target_burn_lepta / burnt_units if burnt_units else float("inf")
+    pooled_units = txs_per_block * units_per_tx * (1 - pow_share)
+    return target_pool_lepta / pooled_units if pooled_units else float("inf")

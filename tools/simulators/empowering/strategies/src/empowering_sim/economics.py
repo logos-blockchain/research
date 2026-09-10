@@ -1,4 +1,4 @@
-"""The reward pool: what a claim mints, what refills the pool, and where it settles.
+"""The reward pool: what a claim pays, what refills the pool, and where it settles.
 
 Exact integer arithmetic in base units throughout, because the ledger's is. The pool opens
 around five times ten to the sixteenth base units, which is past the point where a float
@@ -15,7 +15,7 @@ from .config import Config
 # ---------------------------------------------------------------- per-epoch quantities
 
 def reward_per_claim(pool: int, cfg: Config) -> int:
-    """What one successful claim mints, fixed for the epoch it opens.
+    """What one successful claim pays out of the pool, fixed for the epoch it opens.
 
     | ``reward_per_claim = distribution_rate * pool / (target_claims_per_block * blocks_per_epoch)``
 
