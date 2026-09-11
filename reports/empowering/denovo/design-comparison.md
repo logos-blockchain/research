@@ -117,8 +117,9 @@ The whale is the redesign's one accepted weakness, and `adversarial-analysis.md`
 | | current | de novo | **de novo\*** |
 | --- | --- | --- | --- |
 | onboarding, retiring / persistent | 27,125 / 5,465 | 24,674 / 7,643 | 24,745 / 7,643 |
-| a ×100 cohort's fate, **retiring** | the door has already closed at this arrival rate | 100% bonded, median 43 epochs | 100% bonded, median **59 epochs** |
-| a ×100 cohort's fate, **persistent** | the door has already closed | 24% bonded, median 69 epochs | 24% bonded, median 69 epochs — the bound costs it nothing |
+| time to the bond, mining alone | **share-priced against a decaying pool**: 1–2 weeks in a 300-miner field, ~1 month at 1,000, ~11 months at 10,000, never past 50,000 | **queue-priced against a flat schedule**: within the arrival epoch at flows ≤ ~256/epoch; 64-epoch median in a ×100 crunch | same — the cap adds one epoch in the crunch |
+| a ×100 cohort's fate, **retiring** | the door has already closed at this arrival rate | 100% bonded, median 64 epochs | 100% bonded, median **65 epochs** |
+| a ×100 cohort's fate, **persistent** | the door has already closed | 22% bonded, median 72 epochs | 22% bonded, median 72 epochs — the bound costs it nothing |
 | best adoption speed | **a hump** — worst rate elevates a sixth of the best | none — flat across arrival shape | none |
 | a 10× whale at its best moment | cannot happen: the flow is fixed | **9% — §8.3's room bounds it** | **9%** |
 | a 3× / 100× whale | cannot happen | 9% / 9% — the claim room flattens it | 9% / 9% — flat |

@@ -54,6 +54,27 @@ def build(cfg: Config) -> list[Claim]:
         claims.append(Claim("3", _cell(label, 2), round(med[strat] / base, 2), rel=6e-3,
                             note=f"ratio {label}"))
 
+    # --- section 5: pure mining time to the bond, the field-size closed form ------------
+    # Derived arithmetic from gated constants (216,000 claims/epoch, the pool, rho, the
+    # bond): t(N) = ln(1 - N*min_stake/genesis_pool) / ln(1 - distribution_rate).
+    import math as _m
+
+    def _t_bond(n: int) -> float:
+        return (_m.log(1 - n * cfg.min_stake_lgo / cfg.to_lgo(cfg.genesis_pool))
+                / _m.log(1 - cfg.distribution_rate))
+
+    claims += [
+        Claim("5", _cell("300 (this study's §3 population)", 1), round(_t_bond(300), 1),
+              rel=5e-2, note="mining time to the bond, 300 identical miners"),
+        Claim("5", _cell("1,000", 1), _t_bond(1_000), rel=2e-2,
+              note="mining time, one thousand miners"),
+        Claim("5", _cell("10,000", 1), _t_bond(10_000), rel=2e-2,
+              note="mining time, ten thousand"),
+        Claim("5", _cell("25,000", 1), _t_bond(25_000), rel=5e-3,
+              note="mining time, twenty-five thousand -- the pool half-life exactly, "
+                   "since 25,000 bonds cost half the pool"),
+    ]
+
     # --- section 6: the elevation regimes, and the pool's clock -------------------------
     persist = el.run(cfg, el.ElevationConfig(miners_per_epoch=100, epochs=400,
                                              retire_on_bond=False))

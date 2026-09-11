@@ -199,6 +199,18 @@ The bond is fixed at 1,000 LGO, and the two provider groups reach it by opposite
 
 So the on-ramp into the largest reward stream on the chain takes about a month, and **note aging rather than the bond is what floors it** — a miner waits nearly as long for its notes to age as it does to earn them, so lowering the bond further would buy nothing.
 
+That comfortable figure is the small-field case, and how long the climb takes is a property of the field's size, not of the mechanism. The protocol pays a fixed 216,000 claims an epoch whatever the hashrate, so a node's income is its *share* of the field — absolute hardware cancels: doubling everyone's machines changes nothing, doubling only yours halves your time — and the pool it is paid from decays at `distribution_rate` underneath the climb. For `N` identical miners the pure mining time to the 1,000-LGO bond has a closed form, `t = ln(1 − N · min_stake / genesis_pool) / ln(1 − distribution_rate)` epochs:
+
+| identical miners competing | mining time to the bond |
+| --- | --- |
+| 300 (this study's §3 population) | 1.2 epochs — one to two weeks |
+| 1,000 | 4 epochs ≈ one month |
+| 10,000 | 44.5 epochs ≈ eleven months |
+| 25,000 | 138 epochs ≈ 2.8 years — exactly the pool's half-life, because 25,000 bonds cost exactly half the pool |
+| 50,000 or more | **never** — `genesis_pool / min_stake` bonds is all the pool can ever fund, which is §6's ceiling arriving from the individual's side |
+
+Two epochs of note aging then sit on top before the stake can declare. §7's door-closing result is this same arithmetic under a growing population — the closed form assumes the field holds still, which is exactly what adoption does not do.
+
 With the bond fixed, the live question is not how high the threshold is but who turns up. The right panel drops the endowed cohort and asks whether miners can turn the service stream on by themselves.
 
 | miner cohort, nobody already inside | outcome |

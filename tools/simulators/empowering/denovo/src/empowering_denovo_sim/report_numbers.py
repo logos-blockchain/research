@@ -84,6 +84,9 @@ def build() -> list[Claim]:
               note="the triple's intent"),
         Claim("3", rf"same triple delivers ({NUM})", persistent, rel=1e-9,
               note="bonds delivered under persistence"),
+        Claim("3", rf"funds about \*\*({NUM}) bonds' worth of value\*\*",
+              d.opening_sub_pool() / cfg.min_stake, rel=5e-3,
+              note="the epoch's sub-pool over the bond -- the value-metered on-ramp rate"),
 
         # --- section 4: the same two numbers, in the arrival-shape table ----------------
         # Cross-section, deliberately: section 3 and section 4 quote the same reference run,
