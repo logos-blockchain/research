@@ -146,8 +146,7 @@ competent engineer who does not work on this subsystem.
 3. **Motivation** — 1–3 short paragraphs: the problem, why it matters, what improves.
 4. **Proposal** — 1–2 short paragraphs, optionally up to five bullets: the core idea and
    what it lands in. Not an enumeration of changes.
-5. **Status tracker** — the template's checklist verbatim, all unchecked, including the
-   approvals table beneath it.
+5. **Status tracker** — the template's checklist verbatim, all unchecked.
 
 Nothing else. No Details, no Implementation, no Affected Specifications.
 

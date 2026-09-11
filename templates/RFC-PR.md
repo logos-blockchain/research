@@ -146,23 +146,13 @@ These conventions apply to **every** section of both artifacts. They are stated 
     -  **Domain experts assigned** — research and engineering, as the change requires; cannot be authors
     -  Reviewers' comments addressed
     -  All logical changes documented
-    -  **Required approvals collected on the latest revision** (see below)
+    -  **Required approvals collected on the latest revision**
 - [ ]  🔀 **Merged (make sure that all below is completed)**
     -  Every change added to the change log, and the change log's order checked
     -  Specification version numbers assigned
     -  Implementation reviewed and merged
     -  Branch updated to master and all conflicts resolved
     -  PR merged
-
-**Required approvals — two in both cases, and both on the latest revision.**
-
-| If the author is… | Required approvals |
-| --- | --- |
-| anyone other than the Research Lead | the **lead**, plus **one** domain expert or implementer |
-| the Research Lead | **two** domain experts or implementers — the lead approval is unavailable, so a second reviewer takes its place |
-
-Nobody approves their own RFC. An approval binds only the revision it was given on: if a later revision changes anything normative, collect them again and say so in the **Change log**.
-
 
 ---
 
