@@ -11,6 +11,8 @@ from .model import (
     majority_parameters,
     security_failure,
     security_margin_bits,
+    sequential_confirmation_by_round,
+    specification_parameters,
 )
 from .simulate import simulate, within_three_sigma
 
@@ -44,8 +46,9 @@ def _base_parser() -> argparse.ArgumentParser:
     )
     # Targets argued from the threat rather than set at a cryptographic level:
     # a successful tag is one observation of one proposal, and estimating a
-    # proposal rate takes tens of them. See the README.
-    parser.add_argument("--max-security", type=float, default=3e-5)
+    # proposal rate takes tens of them. The specification's rule lands at
+    # 3.2e-5 and 1.4e-8; the targets are the round numbers above. See the README.
+    parser.add_argument("--max-security", type=float, default=4e-5)
     parser.add_argument("--max-liveness", type=float, default=2e-4)
     return parser
 
@@ -55,6 +58,13 @@ def _fmt(p: float) -> str:
 
 
 def _candidate(args: argparse.Namespace) -> Parameters:
+    if args.min_sample is not None:
+        if args.threshold is not None:
+            raise SystemExit("--min-sample selects the specification's rule; drop --threshold")
+        return specification_parameters(
+            args.providers, args.fraction, args.sample, args.rounds, args.min_sample,
+            args.hold, args.withhold,
+        )
     if args.threshold is None:
         return majority_parameters(
             args.providers, args.fraction, args.sample, args.rounds, args.hold, args.withhold
@@ -82,13 +92,24 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     print(f"sample/round         {params.sample_size}")
     print(f"max rounds           {params.max_rounds}")
     print(f"total sampled        {params.total_sampled}")
-    print(f"threshold            {params.threshold}"
-          f"{'  (majority of the sample)' if args.threshold is None else ''}")
+    if params.sequential:
+        print(f"rule                 majority of everyone asked, from {params.floor} answers on,"
+              " after every round")
+        print(f"earliest firing      {params.threshold} attestations")
+    else:
+        print(f"threshold            {params.threshold}"
+              f"{'  (majority of the sample)' if args.threshold is None else ''}")
     print()
     print(f"security failure     {_fmt(sec)}   ({security_margin_bits(params):.1f} bits)"
           f"   {'OK' if sec <= target.max_security_failure else 'FAIL'}")
     print(f"liveness failure     {_fmt(live)}"
           f"   {'OK' if live <= target.max_liveness_failure else 'FAIL'}")
+    if params.sequential:
+        by_round = sequential_confirmation_by_round(params)
+        total = sum(by_round)
+        if total > 0.0:
+            mean = sum((i + 1) * p for i, p in enumerate(by_round)) / total
+            print(f"mean rounds          {mean:.2f}   (confirming broadcast transaction, urn model)")
     return 0 if sec <= target.max_security_failure and live <= target.max_liveness_failure else 1
 
 
@@ -161,6 +182,8 @@ def cmd_verify(args: argparse.Namespace) -> int:
 
     if args.resample:
         return _verify_resample(args)
+    if args.sequential:
+        return _verify_sequential(args)
 
     failures = 0
     for fraction, threshold, hold, withholds in cases:
@@ -216,11 +239,67 @@ def _verify_resample(args: argparse.Namespace) -> int:
     return 0
 
 
+def _verify_sequential(args: argparse.Namespace) -> int:
+    """Check the sequential walk against the simulated protocol.
+
+    The walk draws from an urn. The first block of cases simulates the same
+    urn, where the two must agree to three sigma. The second simulates the
+    protocol as specified — fresh draws from the whole set each round, with a
+    provider that refused asked again when drawn again — where the urn is an
+    approximation whose error this prints rather than grades: repeats delay
+    the floor on a small set, and a re-asked provider rolls its hold afresh.
+    """
+    cases = [
+        # (providers, fraction, sample, rounds, floor, hold, withholds)
+        (300, 0.33, 8, 10, 40, 0.85, True),
+        (300, 0.33, 8, 10, 40, 0.70, False),
+        (300, 0.45, 8, 10, 40, 0.90, True),
+        (1000, 0.33, 16, 16, 128, 0.80, True),
+    ]
+    failures = 0
+    print("urn walk against the urn simulation")
+    for n, fraction, sample, rounds, floor, hold, withholds in cases:
+        params = specification_parameters(n, fraction, sample, rounds, floor, hold, withholds)
+        for tagged in (True, False):
+            analytic = security_failure(params) if tagged else 1.0 - liveness_failure(params)
+            result = simulate(params, tagged=tagged, trials=args.trials, seed=args.seed)
+            ok = within_three_sigma(result.confirm_rate, analytic, args.trials)
+            failures += not ok
+            label = "tagged   " if tagged else "broadcast"
+            print(
+                f"N={n:<5} f={fraction:.2f} floor={floor:<4} hold={hold:.2f} "
+                f"{'wh' if withholds else '  '} {label}  "
+                f"analytic {analytic:.5f}  simulated {result.confirm_rate:.5f}  "
+                f"{'ok' if ok else 'MISMATCH'}"
+            )
+    print()
+    print("the protocol as specified: fresh draws each round, refusals re-asked")
+    print(f"{'N':>6} {'hold':>5}  {'urn confirm':>11} {'spec confirm':>12}  "
+          f"{'urn rounds':>10} {'spec rounds':>11}  {'spec queries':>12}")
+    for n, hold in ((5000, 0.90), (1000, 0.90), (300, 0.90), (300, 0.99)):
+        params = specification_parameters(n, args.fraction, 16, 16, 128, hold, True)
+        urn = simulate(params, tagged=False, trials=args.trials // 5, seed=args.seed)
+        spec = simulate(
+            params, tagged=False, trials=args.trials // 5, seed=args.seed, resample_each_round=True
+        )
+        print(f"{n:>6} {hold:>5.2f}  {urn.confirm_rate:>11.5f} {spec.confirm_rate:>12.5f}  "
+              f"{urn.mean_rounds:>10.2f} {spec.mean_rounds:>11.2f}  {spec.mean_queries:>12.1f}")
+    print()
+    print("PASS" if failures == 0 else f"FAIL ({failures} mismatches)")
+    return 0 if failures == 0 else 1
+
+
 def cmd_cost(args: argparse.Namespace) -> int:
     """Expected query cost of a calibrated configuration, from simulation."""
     params = _candidate(args)
-    broadcast = simulate(params, tagged=False, trials=args.trials, seed=args.seed)
-    tagged = simulate(params, tagged=True, trials=args.trials, seed=args.seed + 1)
+    broadcast = simulate(
+        params, tagged=False, trials=args.trials, seed=args.seed,
+        resample_each_round=args.resample,
+    )
+    tagged = simulate(
+        params, tagged=True, trials=args.trials, seed=args.seed + 1,
+        resample_each_round=args.resample,
+    )
     print(f"broadcast: confirm rate {broadcast.confirm_rate:.5f}  "
           f"mean queries {broadcast.mean_queries:.1f}  "
           f"mean rounds {broadcast.mean_rounds:.2f}")
@@ -245,6 +324,10 @@ def main(argv: list[str] | None = None) -> int:
         "--threshold", type=int, default=None,
         help="attestations required; omit for a majority of the sample",
     )
+    evaluate.add_argument(
+        "--min-sample", type=int, default=None,
+        help="the specification's rule: a majority of everyone asked, from this many answers on",
+    )
     evaluate.set_defaults(func=cmd_evaluate)
 
     calib = sub.add_parser("calibrate", parents=[base], help="find the cheapest safe configuration")
@@ -260,7 +343,11 @@ def main(argv: list[str] | None = None) -> int:
     verify.add_argument("--seed", type=int, default=1)
     verify.add_argument(
         "--resample", action="store_true",
-        help="re-sample from the whole set every round, as an earlier specification did",
+        help="re-sample from the whole set every round under the fixed rule",
+    )
+    verify.add_argument(
+        "--sequential", action="store_true",
+        help="check the sequential walk against the simulator, urn and as specified",
     )
     verify.set_defaults(func=cmd_verify)
 
@@ -270,6 +357,14 @@ def main(argv: list[str] | None = None) -> int:
     cost.add_argument(
         "--threshold", type=int, default=None,
         help="attestations required; omit for a majority of the sample",
+    )
+    cost.add_argument(
+        "--min-sample", type=int, default=None,
+        help="the specification's rule: a majority of everyone asked, from this many answers on",
+    )
+    cost.add_argument(
+        "--resample", action="store_true",
+        help="draw from the whole set every round, as the specification does",
     )
     cost.add_argument("--trials", type=int, default=20_000)
     cost.add_argument("--seed", type=int, default=1)

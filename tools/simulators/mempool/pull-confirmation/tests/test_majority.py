@@ -54,12 +54,11 @@ def test_calibrate_sample_meets_its_targets():
 
 
 def test_resampling_each_round_confirms_less_often_on_a_small_set():
-    # The sampling an earlier specification described: draws are not distinct,
-    # so a small set is asked far fewer distinct providers than the budget.
-    # Under the majority rule the loss is modest — a few tenths of a percent
-    # at N=500 — where the earlier absolute threshold of 133 lost a third of
-    # all transactions there. The window rule is kept because it makes the
-    # closed forms exact, not because the majority rule cannot survive without it.
+    # Under the fixed rule draws from the whole set are not distinct, so a
+    # small set is asked far fewer distinct providers than the budget. The
+    # loss is modest — a few tenths of a percent at N=500 — where the earlier
+    # absolute threshold of 133 lost a third of all transactions there. The
+    # sequential rule re-asks instead of skipping, so this is its baseline.
     p = majority_parameters(500, 0.33333334, 16, 8, 0.99, True)
     urn = simulate(p, tagged=False, trials=20000, seed=5)
     again = simulate(p, tagged=False, trials=20000, seed=5, resample_each_round=True)

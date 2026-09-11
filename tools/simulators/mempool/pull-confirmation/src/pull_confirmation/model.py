@@ -44,11 +44,15 @@ __all__ = [
     "Parameters",
     "majority_threshold",
     "majority_parameters",
+    "specification_parameters",
     "hypergeometric_pmf",
     "hypergeometric_sf",
     "security_failure",
     "liveness_failure",
     "attesting_count_pmf",
+    "sequential_security_failure",
+    "sequential_liveness_failure",
+    "sequential_confirmation_by_round",
 ]
 
 
@@ -71,6 +75,13 @@ class Parameters:
             transaction confirm, so it does not enter the security bound; it
             costs liveness, by removing the adversary's share of the sample
             from the attesting pool.
+        min_sample: zero selects the fixed rule — ``threshold`` attestations
+            over the whole run. A positive value selects the specification's
+            rule: after every round, the transaction is confirmed when more
+            than half of the providers asked so far attest, with the
+            denominator floored at ``min_sample``. ``threshold`` is then the
+            majority of that floor, which is the earliest the rule can fire.
+            The floor is capped at the set, as ``PULL_SAMPLE`` is.
     """
 
     n_providers: int
@@ -80,6 +91,7 @@ class Parameters:
     threshold: int
     hold_probability: float = 1.0
     adversary_withholds: bool = False
+    min_sample: int = 0
 
     def __post_init__(self) -> None:
         if self.n_providers < 1:
@@ -92,6 +104,25 @@ class Parameters:
             raise ValueError("threshold must be positive")
         if not 0.0 <= self.hold_probability <= 1.0:
             raise ValueError("hold_probability must be in [0, 1]")
+        if self.min_sample < 0:
+            raise ValueError("min_sample must be non-negative")
+        if self.min_sample and self.threshold != majority_threshold(
+            min(self.min_sample, self.n_providers)
+        ):
+            raise ValueError(
+                "under the sequential rule the threshold is the majority of the floor; "
+                "build these with specification_parameters()"
+            )
+
+    @property
+    def sequential(self) -> bool:
+        """Whether the specification's rule, rather than a fixed threshold, applies."""
+        return self.min_sample > 0
+
+    @property
+    def floor(self) -> int:
+        """The denominator floor of the sequential rule, capped at the set."""
+        return min(self.min_sample, self.n_providers)
 
     @property
     def n_adversarial(self) -> int:
@@ -153,6 +184,37 @@ def majority_parameters(
         threshold=majority_threshold(total),
         hold_probability=hold_probability,
         adversary_withholds=adversary_withholds,
+    )
+
+
+def specification_parameters(
+    n_providers: int,
+    adversarial_fraction: float,
+    sample_size: int = 16,
+    max_rounds: int = 16,
+    min_sample: int = 128,
+    hold_probability: float = 1.0,
+    adversary_withholds: bool = False,
+) -> Parameters:
+    """Parameters for the rule the specification states.
+
+    A transaction is confirmed when more than half of the providers that have
+    answered a query about it attest, counting at least ``min_sample``
+    (``PULL_SAMPLE``) in the denominator, evaluated after every round for up to
+    ``max_rounds`` rounds of ``sample_size`` draws. The defaults are the
+    specification's constants.
+    """
+    if min_sample < 1:
+        raise ValueError("min_sample must be positive")
+    return Parameters(
+        n_providers=n_providers,
+        adversarial_fraction=adversarial_fraction,
+        sample_size=sample_size,
+        max_rounds=max_rounds,
+        threshold=majority_threshold(min(min_sample, n_providers)),
+        hold_probability=hold_probability,
+        adversary_withholds=adversary_withholds,
+        min_sample=min_sample,
     )
 
 
@@ -248,7 +310,13 @@ def security_failure(params: Parameters) -> float:
     Honest providers do not hold the transaction and say so, so the node's
     attestations can only come from adversarial providers. The attack therefore
     succeeds exactly when the run draws ``threshold`` or more of them.
+
+    Under the sequential rule the question is instead whether the adversarial
+    count ever exceeds half the draws at a round boundary, and the answer
+    comes from :func:`sequential_security_failure`.
     """
+    if params.sequential:
+        return sequential_security_failure(params)
     if not params.reachable:
         return 0.0
     return hypergeometric_sf(
@@ -292,6 +360,8 @@ def attesting_count_pmf(params: Parameters) -> list[float]:
 
 def liveness_failure(params: Parameters) -> float:
     """P[a genuinely broadcast transaction fails to reach the threshold]."""
+    if params.sequential:
+        return sequential_liveness_failure(params)
     if not params.reachable:
         return 1.0
     pmf = attesting_count_pmf(params)
@@ -302,3 +372,126 @@ def security_margin_bits(params: Parameters) -> float:
     """Security failure probability expressed as -log2, for readable comparison."""
     p = security_failure(params)
     return inf if p <= 0.0 else -log2(p)
+
+
+# --- the sequential rule ----------------------------------------------------
+#
+# The specification does not fix the sample and then count. It keeps asking,
+# and at the start of every round it confirms each transaction for which more
+# than half of everyone who has answered attests, with the denominator floored
+# at PULL_SAMPLE so that the first few answers cannot decide alone. Confirmation
+# is recorded and never revisited. A refusal is therefore never final: it is
+# outvoted by later draws rather than retried. Two things follow that the fixed
+# rule's closed forms cannot give. The adversary gets a chance at every round
+# boundary past the floor instead of one, so the security tail is a
+# first-passage probability over those checks. And a slow-propagating
+# transaction keeps collecting attestations after the floor, so liveness no
+# longer hinges on the hold probability at one instant.
+#
+# Both are computed exactly by walking the draw sequence as a Markov chain on
+# the running counts, removing the mass that confirms at each round boundary.
+# Checking after every response instead would roughly double the security
+# tail, which is why the specification checks once a round. Draws are without
+# replacement, as in the rest of this module. The closed forms above are the
+# special case of a single check at the last round.
+
+
+def _confirms(count: int, drawn: int, floor: int) -> bool:
+    """The specification's test: more than half of max(drawn, floor) attest."""
+    return 2 * count > max(drawn, floor)
+
+
+def _walk_tagged(params: Parameters) -> list[float]:
+    """Mass confirmed in each round for a tagged transaction.
+
+    Only adversarial draws attest, so the state is the adversarial count.
+    """
+    n, a_total = params.n_providers, params.n_adversarial
+    floor = params.floor
+    alive: dict[int, float] = {0: 1.0}
+    drawn = 0
+    out: list[float] = []
+    for _ in range(params.max_rounds):
+        for _ in range(params.sample_size):
+            if drawn >= n:
+                break
+            remaining = n - drawn
+            nxt: dict[int, float] = {}
+            for a, mass in alive.items():
+                p_adv = (a_total - a) / remaining
+                if p_adv > 0.0:
+                    nxt[a + 1] = nxt.get(a + 1, 0.0) + mass * p_adv
+                if p_adv < 1.0:
+                    nxt[a] = nxt.get(a, 0.0) + mass * (1.0 - p_adv)
+            alive = nxt
+            drawn += 1
+        out.append(fsum(m for a, m in alive.items() if _confirms(a, drawn, floor)))
+        alive = {a: m for a, m in alive.items() if not _confirms(a, drawn, floor)}
+    return out
+
+
+def _walk_broadcast(params: Parameters) -> tuple[list[float], float]:
+    """Mass confirmed in each round for a broadcast transaction, and the rest.
+
+    When the adversary cooperates every draw attests with the hold probability
+    and the state is the attestation count alone. When it withholds only honest
+    draws can attest, so the state carries the adversarial count as well.
+    """
+    n, a_total = params.n_providers, params.n_adversarial
+    floor, hold = params.floor, params.hold_probability
+    withholds = params.adversary_withholds
+    alive: dict[tuple[int, int], float] = {(0, 0): 1.0}
+    drawn = 0
+    out: list[float] = []
+    for _ in range(params.max_rounds):
+        for _ in range(params.sample_size):
+            if drawn >= n:
+                break
+            remaining = n - drawn
+            nxt: dict[tuple[int, int], float] = {}
+
+            def add(key: tuple[int, int], mass: float) -> None:
+                if mass > 0.0:
+                    nxt[key] = nxt.get(key, 0.0) + mass
+
+            for (a, y), mass in alive.items():
+                p_adv = (a_total - a) / remaining if withholds else 0.0
+                if p_adv > 0.0:
+                    add((a + 1, y), mass * p_adv)
+                p_rest = 1.0 - p_adv
+                if p_rest > 0.0:
+                    add((a, y + 1), mass * p_rest * hold)
+                    add((a, y), mass * p_rest * (1.0 - hold))
+            alive = nxt
+            drawn += 1
+        out.append(fsum(m for (_, y), m in alive.items() if _confirms(y, drawn, floor)))
+        alive = {k: m for k, m in alive.items() if not _confirms(k[1], drawn, floor)}
+    return out, fsum(alive.values())
+
+
+def sequential_security_failure(params: Parameters) -> float:
+    """P[a tagged transaction confirms at some round boundary]."""
+    if not params.sequential:
+        raise ValueError("sequential_security_failure needs min_sample > 0")
+    return min(1.0, fsum(_walk_tagged(params)))
+
+
+def sequential_liveness_failure(params: Parameters) -> float:
+    """P[a broadcast transaction is still unconfirmed after the last round]."""
+    if not params.sequential:
+        raise ValueError("sequential_liveness_failure needs min_sample > 0")
+    _, rest = _walk_broadcast(params)
+    return min(1.0, rest)
+
+
+def sequential_confirmation_by_round(params: Parameters) -> list[float]:
+    """P[a broadcast transaction confirms at round r], indexed from round 1.
+
+    Sums to one minus the liveness failure. The mean of this distribution is
+    the expected number of rounds a confirming transaction spends, which is the
+    latency figure the deployment pays.
+    """
+    if not params.sequential:
+        raise ValueError("sequential_confirmation_by_round needs min_sample > 0")
+    out, _ = _walk_broadcast(params)
+    return out

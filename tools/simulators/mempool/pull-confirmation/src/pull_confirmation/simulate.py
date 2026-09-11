@@ -10,6 +10,11 @@ Early stopping cannot change *whether* a run confirms — a run confirms iff its
 draws contain enough attesters, and stopping early only skips draws that were
 never going to be needed. It does change how many queries a run costs, which is
 the number the deployment cares about and which the closed form does not give.
+
+The sequential rule (``Parameters.min_sample > 0``) is also run as written:
+after every round the run confirms when more than half of everyone asked so
+far attests, the denominator floored at ``min_sample``, and a provider that
+refused may be asked again when the sampling draws it again.
 """
 
 from __future__ import annotations
@@ -128,14 +133,14 @@ def simulate_run(
     ``population`` may be supplied to reuse the urn across trials; it is reset
     before returning either way.
 
-    ``resample_each_round`` runs the sampling an earlier revision of the
-    specification actually described: every round draws afresh from the whole
-    set, and a provider drawn twice is simply not asked a second time. The
-    draws are then not distinct, the effective sample is smaller than the
-    budget and shrinks with the set, and the closed forms — which assume the
-    urn — overstate liveness. The specification now excludes the providers
-    sampled in the previous ``max_rounds - 1`` rounds, which is the urn; this
-    mode exists so that the difference can be measured rather than asserted.
+    ``resample_each_round`` draws afresh from the whole set every round, which
+    is what the specification says. Under the fixed rule a provider drawn twice
+    is not asked again, so the draws are not distinct and the effective sample
+    shrinks with the set — the closed forms assume the urn and overstate
+    liveness, which this mode measures. Under the sequential rule a provider
+    that refused is asked again when it is drawn again and rolls its hold
+    afresh, as the specification's re-query does; the urn is then the model's
+    approximation and this mode is the protocol.
     """
     if population is not None and (
         len(population) != params.n_providers
@@ -157,6 +162,7 @@ def simulate_run(
     rounds_used = 0
 
     asked: set[int] = set()
+    attested: set[int] = set()
     try:
         # Providers are drawn without replacement across the whole run — a node
         # does not re-query one it has already asked about this transaction —
@@ -176,7 +182,9 @@ def simulate_run(
 
             for provider in batch:
                 if resample_each_round:
-                    if provider in asked:
+                    # The fixed rule never re-asks; the sequential rule re-asks
+                    # anyone who has not attested, as the specification does.
+                    if provider in (attested if params.sequential else asked):
                         continue
                     asked.add(provider)
                 queries += 1
@@ -190,9 +198,19 @@ def simulate_run(
                 else:
                     attests = rng.random() < params.hold_probability
                 if attests:
-                    attestations += 1
-                    if attestations >= params.threshold:
+                    attested.add(provider)
+                    attestations = len(attested) if resample_each_round else attestations + 1
+                    if not params.sequential and attestations >= params.threshold:
                         return RunOutcome(True, attestations, queries, round_index)
+
+            if params.sequential:
+                # The specification's test, applied once a round to the
+                # answers in hand: more than half of everyone who answered,
+                # the denominator floored at PULL_SAMPLE. Confirmation is
+                # recorded and never revisited.
+                answered = len(asked) if resample_each_round else queries
+                if 2 * attestations > max(answered, params.floor):
+                    return RunOutcome(True, attestations, queries, round_index)
 
         return RunOutcome(False, attestations, queries, rounds_used)
     finally:
