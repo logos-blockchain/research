@@ -75,6 +75,11 @@ class EpochRow:
     miners_live: int
     difficulty_target: int
     endowment_drawn: int            # what this epoch took from the endowment bucket
+    offered_mu: float = 0.0         # UNCLIPPED expected claims per block from the live rate.
+                                    # The engine clips offered at max_block_txs before paying,
+                                    # so demand above the cap is invisible to everything below;
+                                    # this records it for the acceptance-window study, which
+                                    # prices what the clip discards (window.py).
     persisting: float = 0.0         # of those bonded by this epoch's end, the share that
                                     # MINED during it -- measured from the live mask, so it is
                                     # truthful under every mode: an outcome under a
@@ -153,6 +158,14 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
     rate_prev = 0.0                 # last epoch's live hashrate; what a decider actually knows
 
     # ---- consensus state (MODEL.md section 2)
+    # MODEL 8.3, the reservation rule (2026-09-05): a block admits claims only into the
+    # space its ordinary transactions leave, with a guaranteed floor so claims can never be
+    # starved outright. The engine's fee flow has always assumed `txs_per_block` ordinary
+    # transactions in every block; clipping claims at `max_block_txs` alone let a burst
+    # displace the very traffic that funds the pool. Ordinary traffic now has priority by
+    # construction and the crowding defect this closes was gated, not hidden.
+    claim_room = max(32, cfg.max_block_txs - cfg.txs_per_block)
+
     endowment = d.endowment_genesis
     fee_bucket = 0
     claims_prev = 0
@@ -210,7 +223,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
             bonded_now = (pop.arrived >= 0) & (pop.bonded_at != NOT_SET)
             pop.refuses_to_retire = retirement_policy.keeps_mining(
                 d, pop.hashrate, bonded_now, budget, rate_prev,
-                providers=int(bonded_now.sum()))
+                providers=int(bonded_now.sum()), epoch=e)
             retire_on_bond = True
 
         # ---- the epoch, block by block (MODEL.md section 4)
@@ -224,7 +237,13 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
         wsum = weights.sum()
 
         capacity = budget // reward if reward else 0
-        target = max(1, capacity // cfg.blocks_per_epoch)
+        # CEIL, not floor (2026-09-05, with the anchor re-strike): the old two-transfer
+        # anchor made capacity/blocks exactly 30 and the floor was invisible. Off-integer
+        # (19.83 at the new anchor) the floored target steered the throttle to offer LESS
+        # than the budget funds, the epoch chronically under-spent, and R7b's saturation
+        # became intermittent. The ceiling keeps expected offers at or above capacity, so
+        # admission still closes late in the epoch at any anchor.
+        target = max(1, -(-capacity // cfg.blocks_per_epoch))
 
         spent = 0
         paid_total = 0
@@ -242,7 +261,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
                 offered = np.full(cfg.blocks_per_epoch, int(round(mu)), dtype=np.int64)
             else:
                 offered = rng.poisson(mu, cfg.blocks_per_epoch).astype(np.int64)
-            np.minimum(offered, cfg.max_block_txs, out=offered)
+            np.minimum(offered, claim_room, out=offered)   # MODEL 8.3 reservation
             # de novo*: bound what the endowment may give up this epoch. Beyond it the epoch
             # stops admitting, but the claimants persist and claim again next epoch -- by
             # which time claims_prev has risen and the reward has fallen. The cap converts
@@ -280,7 +299,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
                     offered_b = int(round(mu)) if deterministic else int(rng.poisson(mu))
                 else:
                     offered_b = 0
-                offered_b = min(offered_b, cfg.max_block_txs)
+                offered_b = min(offered_b, claim_room)     # MODEL 8.3 reservation
                 room = (budget - spent) // reward if reward else 0
                 paid = min(offered_b, max(0, room))
                 if paid:
@@ -324,6 +343,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
 
         # The newly bonded were live this epoch by construction -- mining is how they bonded --
         # so `live[bonded]` is the truthful "did this bonded miner mine" for every mode.
+        epoch_mu = work.expected_claims(rate, difficulty, cfg) if rate > 0 else 0.0
         bonded_mask = pop.bonded_at != NOT_SET
         persisting = float(live[bonded_mask].mean()) if bonded_mask.any() else 0.0
         rows.append(EpochRow(
@@ -332,7 +352,7 @@ def run(d: Derived, arrivals: np.ndarray, hashrate_draw, epochs: int,
             claims_paid=paid_total, spent=spent, saturation_block=saturation,
             max_block_claims=max_block_claims, bonds_total=bonds_total, bonds_new=bonds_total - bonds_before,
             miners_live=int(live.sum()), difficulty_target=difficulty,
-            endowment_drawn=endowment_drawn, persisting=persisting))
+            endowment_drawn=endowment_drawn, offered_mu=epoch_mu, persisting=persisting))
 
         # boundary rollover: unspent F stays; the epoch's accrual joins it (MODEL.md section 3)
         fee_bucket = fee_bucket + fee_accrual

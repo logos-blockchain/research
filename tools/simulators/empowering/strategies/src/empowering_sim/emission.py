@@ -1,9 +1,36 @@
-"""The KPI-driven block reward, and the stake estimate that drives it.
+"""The KPI-driven block reward, the pool and reserve stocks, and the stake estimate.
 
-Transcribed from `block-rewards.md`'s normative integer form and
+Transcribed from `block-rewards.md`'s normative form and
 `cryptarchia-total-stake-inference.md`'s estimator, with the decisions in
 `docs/CONTRADICTIONS.md` applied: the deviation coefficient is 1/4 (4.2), the split is floored
 per block (4.6), and the genesis stake estimate is the total distributed at genesis (4.3).
+
+**Pooling, not burning (lips PR 375, `block-rewards.md` 1.1.0).** Fees are routed into a
+pending rewards pool rather than burned, and rewards are distributed from that pool plus a
+metered release from a finite genesis reserve rather than minted. Three consequences land
+here: the recycled term of the block reward is the WINDOWED AVERAGE of pooled fees, not the
+latest block's (`block_reward_lgo`); the pool and reserve are explicit stocks with a
+conservation identity (`Stocks`); and the vocabulary is pooled, not burnt. The PR's own
+integer reference STILL uses the single-block fee -- PR 375 merged on 2026-08-26 with the
+"Rederivation required" flag REMOVED (2026-08-25) but the rederivation never applied, so
+master now carries the divergence unflagged -- and the superseded form is kept callable as
+`block_reward_lgo_single_block` for parity with `master`, and the divergence is recorded as
+contradiction 4.12.
+
+**What the fee window carries, and why it is a decision rather than a reading.** The RFC
+defines `R_block = D_{1,t}` as the fees *routed to the pool*, and under the 2026-08-24
+carve-out decision -- fees enter the pool in full, the EmPoWering share is its first outflow
+-- that quantity is GROSS. This module feeds the window the NET figure instead, fees after
+the carve-out, which is what the pre-pooling code measured (the diversion happened before the
+burn) and what makes the recycled term equal what is actually distributable. The alternative
+reading is defensible and arguably more literal: KPI-2 measures the *pooling rate*, which is
+a gross quantity, so the factor could read gross while the recycled term distributes net.
+
+Measured, the choice costs nothing where these studies live: identical at `A_t = 1` (the
+reward is the release cap and fees do not enter), 0.0005% apart near the target, and 11.1%
+apart only at `A_t = 0` -- the genesis-seed transient, where the absolute figure is ~0.0003
+LGO a block. No published number moves either way; the note is here because the first version
+of this module presented net as forced when it is chosen.
 
 **Units.** The block-reward function is denominated in LGO -- its literal `3e9` is three
 billion LGO -- while ledger quantities are lepta. No conversion rule is stated anywhere
@@ -23,40 +50,183 @@ A_SCALE = 120_000_000
 INFLATION_NUMERATOR = 62_500
 INFLATION_DENOMINATOR = 657
 FEE_AVG_NUMERATOR = 10_512
-STAKE_TARGET_LGO = 3_000_000_000          # D_0,target = 30% of a 10^10 supply
-BURN_WINDOW = 120                          # T, the look-back in blocks
+STAKE_TARGET_LGO = 3_000_000_000          # D_0,target = 30% of S_cap (10^10 LGO, the hard cap)
+POOL_WINDOW = 120                          # T, the look-back in blocks
+
+# The rewards reserve (PR 375): pre-allocated at genesis from the cap, drawn down by the
+# release, never refilled. B_0 = I_max * S_cap * Y, DERIVED rather than written down -- the
+# release cap per block is INFLATION_NUMERATOR/INFLATION_DENOMINATOR = 95.1294 LGO, which is
+# I_max * S_cap / blocks_per_year by construction, so multiplying it back out by the year and
+# the lifetime recovers B_0 without restating either I_max or S_cap. At Y = 10 this is
+# 10^9 LGO, a tenth of the cap, and it funds the cap for exactly Y years at A_t = 1 (longer
+# whenever A_t < 1). Both facts are gated. Written as a literal until 2026-08-25, beside a
+# lifetime constant nothing read -- so the spec_sync pin on Y bound nothing.
+RESERVE_LIFETIME_YEARS = 10
+BLOCKS_PER_YEAR = 365 * 2880              # 30-second blocks, as `Delta_t` assumes
+RESERVE_GENESIS_LGO = (INFLATION_NUMERATOR / INFLATION_DENOMINATOR
+                       * BLOCKS_PER_YEAR * RESERVE_LIFETIME_YEARS)
 
 
-def emission_factor_scaled(total_stake_lgo: float, burnt_window_lgo: list[float]) -> int:
+def pooled_inflow_lgo(cfg: Config, txs_per_block: int) -> float:
+    """What one block leaves DISTRIBUTABLE in the pool, in LGO -- the reward window's input.
+
+    The carve-out convention, in one place. Fees enter the pending rewards pool in full and
+    the EmPoWering `pow_share` is its first outflow (decided 2026-08-24; the net-vs-gross
+    reading and its measured cost are contradiction 4.13), so what the reward rule averages
+    over its window is the fees NET of that share.
+
+    Both simulators spelled this out separately until a mutation test showed that neither
+    spelling was pinned: feeding the window GROSS fees changed no gate in either suite. One
+    named function, called from both and gated, is the fix.
+    """
+    fees = txs_per_block * cfg.avg_tx_fee
+    diverted = fees * cfg.pow_share_num // cfg.pow_share_den
+    return cfg.to_lgo(fees - diverted)
+
+
+def emission_factor_scaled(total_stake_lgo: float, pooled_window_lgo: list[float]) -> int:
     """``A_t'``, the emission rate factor before scaling. Integer, as the consensus rule is.
 
-    | ``A_t' = min(A_SCALE, max(0, STAKE_TARGET - total_stake + FEE_AVG_NUMERATOR * sum(burnt_window)))``
+    | ``A_t' = min(A_SCALE, max(0, STAKE_TARGET - total_stake + FEE_AVG_NUMERATOR * sum(pooled_window)))``
 
-    The first term is the stake deviation and the second the burn average. Both are read in
-    LGO. Clamped to ``[0, A_SCALE]`` on both sides, so it saturates rather than inverting.
+    The first term is the stake deviation and the second the pooling-rate average. Both are
+    read in LGO. Clamped to ``[0, A_SCALE]`` on both sides, so it saturates rather than
+    inverting. Unchanged by PR 375 -- this KPI was windowed all along.
     """
     raw = (STAKE_TARGET_LGO - total_stake_lgo
-           + FEE_AVG_NUMERATOR * sum(burnt_window_lgo[-BURN_WINDOW:]))
+           + FEE_AVG_NUMERATOR * sum(pooled_window_lgo[-POOL_WINDOW:]))
     return int(min(A_SCALE, max(0, raw)))
 
 
-def emission_factor(total_stake_lgo: float, burnt_window_lgo: list[float]) -> float:
-    """``A_t`` in [0, 1]: one is pure minting, zero is pure recycling of the block's burn."""
-    return emission_factor_scaled(total_stake_lgo, burnt_window_lgo) / A_SCALE
+def emission_factor(total_stake_lgo: float, pooled_window_lgo: list[float]) -> float:
+    """``A_t`` in [0, 1]: one is maximum reserve release, zero is pure fee recycling."""
+    return emission_factor_scaled(total_stake_lgo, pooled_window_lgo) / A_SCALE
 
 
-def block_reward_lgo(total_stake_lgo: float, burnt_window_lgo: list[float]) -> float:
-    """Total reward minted for one block, in LGO.
+def windowed_average_lgo(pooled_window_lgo: list[float]) -> float:
+    """``R-bar``: the moving average of pooled fees over the look-back window.
 
-    | ``reward = (62500 * A_t' + 657 * (A_SCALE - A_t') * burnt_this_block) / (657 * A_SCALE)``
+    | ``R_bar = sum(window[-T:]) / T`` -- always divided by T
 
-    At ``A_t = 1`` this is 62500/657 = 95.1294 LGO and the burn does not enter. At ``A_t = 0``
-    it is exactly the block's own burnt fees, minted back.
+    The window-boundary rule, decided here because the specification's sum runs from
+    ``t - T + 1`` without saying what pre-genesis entries are: they are zero. A shorter
+    history therefore averages against the full T, ramping the recycled term in smoothly
+    from genesis instead of letting one early fee spike masquerade as a hot hour.
     """
-    a = emission_factor_scaled(total_stake_lgo, burnt_window_lgo)
-    burnt_now = burnt_window_lgo[-1] if burnt_window_lgo else 0.0
-    return ((INFLATION_NUMERATOR * a + INFLATION_DENOMINATOR * (A_SCALE - a) * burnt_now)
+    return sum(pooled_window_lgo[-POOL_WINDOW:]) / POOL_WINDOW
+
+
+def block_reward_lgo(total_stake_lgo: float, pooled_window_lgo: list[float]) -> float:
+    """Total reward distributed for one block, in LGO. PR 375's equation (1).
+
+    | ``reward = (62500 * A_t' + 657 * (A_SCALE - A_t') * R_bar) / (657 * A_SCALE)``
+
+    At ``A_t = 1`` this is 62500/657 = 95.1294 LGO -- the reserve-release cap -- and the fees
+    do not enter. At ``A_t = 0`` it is the windowed average of pooled fees, distributed back.
+    The single-block form this replaces is `block_reward_lgo_single_block`.
+    """
+    a = emission_factor_scaled(total_stake_lgo, pooled_window_lgo)
+    r_bar = windowed_average_lgo(pooled_window_lgo)
+    return ((INFLATION_NUMERATOR * a + INFLATION_DENOMINATOR * (A_SCALE - a) * r_bar)
             / (INFLATION_DENOMINATOR * A_SCALE))
+
+
+def block_reward_lgo_single_block(total_stake_lgo: float,
+                                  pooled_window_lgo: list[float]) -> float:
+    """The superseded recycled term: the LATEST block's fee, not the windowed average.
+
+    This is what `master`'s integer reference STILL computes after PR 375 merged
+    (2026-08-26): the merge rewrote that block around int64 and renamed the window to
+    `pooled_fees_window`, removed the "Rederivation required" flag (2026-08-25) -- and left
+    `last_pooled_fee` in the recycled term. The specification's real-valued rule and its
+    consensus-level reference therefore disagree on master, now without the callout that
+    admitted it (contradiction 4.12). Kept callable so the parity gate
+    can pin the divergence instead of letting it hide.
+    """
+    a = emission_factor_scaled(total_stake_lgo, pooled_window_lgo)
+    fee_now = pooled_window_lgo[-1] if pooled_window_lgo else 0.0
+    return ((INFLATION_NUMERATOR * a + INFLATION_DENOMINATOR * (A_SCALE - a) * fee_now)
+            / (INFLATION_DENOMINATOR * A_SCALE))
+
+
+@dataclass
+class Stocks:
+    """The pending rewards pool and the genesis reserve, as explicit state (PR 375).
+
+    The RFC's conservation identity is the point: with ``S`` the circulating supply,
+    ``delta_S + delta_P + delta_B = 0`` at every step -- tokens move between circulation,
+    the pool and the reserve, and none are created or destroyed.
+
+    **All three stocks are carried, and that is deliberate.** A first version tracked only
+    the pool and the reserve and accumulated the three deltas into a residual; the residual
+    was identically zero *by construction* -- the terms cancel symbolically -- so the gate
+    on it could not fail for any modelling reason and reported perfect conservation even for
+    a state that violated the RFC's own ``P_t >= 0``. `supply_lgo` is therefore a real stock
+    now, moved by its own flows, and `total_lgo` is compared against `genesis_total_lgo`:
+    that comparison CAN fail, because the two are computed by different routes.
+
+    **Scope.** This class is exercised by the gate suite, not by `elevation` or `strategies`:
+    no study here tracks the pool and reserve block by block, because the reserve outlives
+    every horizon they model. It is a fidelity check against the RFC, not a component of the
+    published results -- stated so the distinction is not left to be discovered.
+
+    ``guard_pool`` is the RFC's one open boundary question, made runnable. The specification
+    states ``P_t >= 0`` but the early-life regime can violate it: after a fee spike falls
+    silent, the windowed average keeps distributing history the pool never banked (a spike
+    then silence at ``A_t = 0`` drives the unguarded balance negative -- measured in the
+    gate). Guarded, the distribution is clipped to what the pool actually holds, which is
+    this simulator's boundary treatment and the shape of an answer to the open question:
+    the same move the de-novo engine's room cap makes.
+    """
+
+    reserve_lgo: float = RESERVE_GENESIS_LGO
+    pool_lgo: float = 0.0
+    supply_lgo: float = 0.0          # circulating; only its CHANGES carry meaning
+    guard_pool: bool = True
+
+    def __post_init__(self) -> None:
+        # Captured, not assumed. This returned the DEFAULT reserve until 2026-08-25, so any
+        # instance built with a different one -- every boundary test below does -- reported a
+        # conservation error of minus the whole default reserve. The gates papered over it by
+        # writing their own totals by hand; the property was simply wrong.
+        self._genesis_total_lgo = self.supply_lgo + self.pool_lgo + self.reserve_lgo
+
+    @property
+    def genesis_total_lgo(self) -> float:
+        """What ``S + P + B`` was for THIS instance before any step ran."""
+        return self._genesis_total_lgo
+
+    @property
+    def total_lgo(self) -> float:
+        """The controlled total now. The RFC's claim is that this never moves."""
+        return self.supply_lgo + self.pool_lgo + self.reserve_lgo
+
+    def step(self, total_stake_lgo: float, pooled_window_lgo: list[float]) -> float:
+        """Advance one block: route the fee in, release and distribute, return the reward.
+
+        Each stock is moved by its own flow rather than by a shared residual, so a
+        mis-signed or unbalanced flow shows up as `total_lgo` drifting from
+        `genesis_total_lgo` instead of cancelling itself out.
+        """
+        fee_in = pooled_window_lgo[-1] if pooled_window_lgo else 0.0
+        a = emission_factor(total_stake_lgo, pooled_window_lgo)
+        r_bar = windowed_average_lgo(pooled_window_lgo)
+
+        release = min(a * INFLATION_NUMERATOR / INFLATION_DENOMINATOR, self.reserve_lgo)
+        distribution = (1.0 - a) * r_bar
+        if self.guard_pool:
+            distribution = min(distribution, self.pool_lgo + fee_in)
+
+        reward = distribution + release
+        self.supply_lgo += reward - fee_in     # paid out, less what circulation gave up
+        self.pool_lgo += fee_in - distribution  # fees in, distribution out
+        self.reserve_lgo -= release             # the release, and nothing else
+        return reward
+
+    @property
+    def conservation_error_lgo(self) -> float:
+        """How far the controlled total has drifted from genesis. Zero iff conserved."""
+        return self.total_lgo - self.genesis_total_lgo
 
 
 def split(reward_lgo: float, cfg: Config) -> tuple[float, float]:

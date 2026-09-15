@@ -25,6 +25,18 @@ def expected_claims(hashrate: float, difficulty_target: int, cfg: Config) -> flo
     return hashrate * cfg.block_seconds * (difficulty_target / FIELD_MODULUS)
 
 
+def reward_target_floor(cfg: Config) -> int:
+    """`REWARD_TARGET_FLOOR`, mantle's lower clamp on the retarget: ceil(F / (P - F)).
+
+    The smallest target the empty-block easing strictly lifts under floor division --
+    `floor(t * P/F)` returns `t` unchanged for every `t < F/(P-F)`, so a floor of one would
+    replace the absorbing point at zero with an absorbing band 1..8. 9 at the specified
+    smoothing. Added upstream 2026-09 (PR 400); before that the map had no lower clamp and
+    zero was absorbing, which this suite's history records.
+    """
+    return -(-cfg.smoothing_factor // (cfg.smoothing_precision - cfg.smoothing_factor))
+
+
 def next_difficulty_target(difficulty_target: int, claims_in_block: int, cfg: Config) -> int:
     """The per-block retarget, in the specification's exact integer form.
 
@@ -32,13 +44,15 @@ def next_difficulty_target(difficulty_target: int, claims_in_block: int, cfg: Co
 
     The report shows this one-state map is exactly a normalised exponential moving average of
     demand with weight ``smoothing``, storing the smoothed estimate inside the target itself.
-    The ``max`` guards a block that draws no claims at all from dividing by zero, and the
-    ``min`` keeps the target inside the field.
+    The ``max`` guards a block that draws no claims at all from dividing by zero; the result
+    is clamped at both ends per the specification -- capped inside the field, and floored at
+    `REWARD_TARGET_FLOOR` so the absorbing zero (and the absorbing band a floor of one would
+    leave) stays unreachable.
     """
     demand = max(1, (cfg.smoothing_precision - cfg.smoothing_factor) * claims_in_block
                  + cfg.smoothing_factor * cfg.target_claims_per_block)
     stepped = (cfg.target_claims_per_block * difficulty_target * cfg.smoothing_precision) // demand
-    return min(stepped, FIELD_MODULUS - 1)
+    return min(max(stepped, reward_target_floor(cfg)), FIELD_MODULUS - 1)
 
 
 def draw_claims_in_block(rng: np.random.Generator, hashrate: float,

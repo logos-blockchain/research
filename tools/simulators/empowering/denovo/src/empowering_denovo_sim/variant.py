@@ -45,7 +45,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from . import arrivals, engine, study
+from . import arrivals, engine, study, power
 from .params import Derived
 from .scenarios import CohortDraw
 
@@ -71,7 +71,11 @@ def whale_run(d: Derived, whale_epoch: int, multiple: float, cap: float,
     """A whale against a field of committed boards, with the variant's cap applied."""
     cfg = d.cfg
     base = study.hashrate_draw(cfg)
-    mean_rate = 24_146.0 * (1.0 + 1.0 / 0.16)          # Pareto(1.16) mean at the board floor
+    # Pareto(1.16) mean at the board floor, derived from the config so the whale scales
+    # with the field's basis. This was hardcoded at the naive-miner board rate (24,146)
+    # until 2026-09, which quietly shrank the whale 2.4-fold relative to the field when
+    # the 3-permutation basis landed -- a stale constant, not a finding.
+    mean_rate = power.board(cfg).candidates_per_second * (1.0 + 1.0 / 0.16)
     a = arrivals.uniform(epochs, per_epoch)
     a[whale_epoch] += 1
     draw = CohortDraw(base, specials={whale_epoch: multiple * per_epoch * whale_epoch * mean_rate})

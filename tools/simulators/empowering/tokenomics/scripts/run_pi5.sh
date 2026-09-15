@@ -23,10 +23,13 @@ TEMP_LIMIT_C=${TEMP_LIMIT_C:-80}
 COOL_TO_C=${COOL_TO_C:-65}
 DEV=${PI5_DEV:-0}
 STAMP=$(date +%Y%m%d-%H%M)
+# Result files are named after what produced them: a development-machine run must not
+# look like a Pi 5 measurement.
+PREFIX=pi5; [ "$DEV" = 1 ] && PREFIX=dev
 BENCH=../../../benchmarks/empowering
 OUT=$BENCH/results
 mkdir -p "$OUT"
-LOG="$OUT/pi5-$STAMP.log"
+LOG="$OUT/$PREFIX-$STAMP.log"
 
 say() { printf '%s\n' "$*" | tee -a "$LOG"; }
 
@@ -65,6 +68,14 @@ say "== building benchmark (first build compiles arkworks; minutes on a Pi) =="
 PIN=""
 if command -v taskset >/dev/null; then PIN="taskset -c $CORE"; else say "WARN: no taskset; unpinned"; fi
 
+# Provenance, written as the first line of every result file: the number is only
+# reproducible against the code and the toolchain that produced it.
+BOARD=$(tr -d '\0' </proc/device-tree/model 2>/dev/null || uname -m)
+LB_REV=$(git -C ../../../../../logos-blockchain rev-parse --short HEAD 2>/dev/null || echo unknown)
+JF_REV=$(sed -n 's/.*jellyfish.git", rev = "\([0-9a-f]\{7\}\).*/\1/p' "$BENCH/Cargo.toml")
+PROV="# board=$BOARD; os=$(uname -sr); rustc=$(rustc --version | cut -d' ' -f2); logos-blockchain=$LB_REV; jellyfish=$JF_REV; governor=$governor"
+say "provenance: $PROV"
+
 # ---------- guarded runs ----------
 declare -a FILES=()
 attempt=0
@@ -74,9 +85,9 @@ while [ "${#FILES[@]}" -lt "$RUNS" ]; do
     while [ "$(temp_c)" -gt "$COOL_TO_C" ]; do say "cooling: $(temp_c) C > $COOL_TO_C C"; sleep 20; done
   fi
   t0=$(temp_c)
-  f="$OUT/pi5-$STAMP-run$attempt.txt"
+  f="$OUT/$PREFIX-$STAMP-run$attempt.txt"
   say "-- run $attempt (start ${t0} C)"
-  $PIN "$BENCH/target/release/pow-bench" >"$f" 2>&1 || { say "run failed, see $f"; exit 1; }
+  { echo "$PROV"; $PIN "$BENCH/target/release/pow-bench"; } >"$f" 2>&1 || { say "run failed, see $f"; exit 1; }
   t1=$(temp_c)
   if [ "$DEV" != 1 ] && [ "$t1" -gt "$TEMP_LIMIT_C" ]; then
     say "   DISCARDED: finished at ${t1} C > ${TEMP_LIMIT_C} C (throttle risk)"
@@ -85,11 +96,17 @@ while [ "${#FILES[@]}" -lt "$RUNS" ]; do
   fi
 done
 
+# ---------- whole-board run: all cores, unpinned, for the board basis ----------
+CORES=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+TFILE="$OUT/$PREFIX-$STAMP-threads$CORES.txt"
+say "-- whole-board run ($CORES threads, unpinned)"
+{ echo "$PROV"; THREADS=$CORES "$BENCH/target/release/pow-bench"; } >"$TFILE" 2>&1 || say "   board run failed, see $TFILE"
+
 # ---------- medians, config, derivation, commit ----------
 say "== results =="
-python3 - "$STAMP" "$DEV" "${FILES[@]}" <<'PY' | tee -a "$LOG"
+python3 - "$STAMP" "$DEV" "$TFILE" "${FILES[@]}" <<'PY' | tee -a "$LOG"
 import re, statistics, sys, pathlib, subprocess, datetime
-stamp, dev, files = sys.argv[1], sys.argv[2] == "1", sys.argv[3:]
+stamp, dev, tfile, files = sys.argv[1], sys.argv[2] == "1", sys.argv[3], sys.argv[4:]
 keys = ["one_permutation_ns", "blend_naive_ns", "blend_opt_ns", "reward_naive_ns", "reward_opt_ns"]
 runs = []
 for f in files:
@@ -102,6 +119,15 @@ label = "dev-machine" if dev else "raspberry-pi-5"
 for k in keys:
     flag = "  (!! spread >5%, consider rerunning)" if spread[k] > 0.05 else ""
     print(f"  {k:<22} median {med[k]:>10,.0f} ns   spread {spread[k]:.1%}{flag}")
+board = None
+try:
+    ttxt = pathlib.Path(tfile).read_text()
+    nthreads = int(re.search(r"MACHINE blend_threads=(\d+)", ttxt).group(1))
+    agg = float(re.search(r"MACHINE blend_aggregate_per_s=(\d+)", ttxt).group(1))
+    board = agg * med["blend_naive_ns"] / 1e9
+    print(f"  whole board: {nthreads} threads sustain {agg:,.0f} candidates/s = {board:.2f}x one pinned core")
+except (OSError, AttributeError):
+    print("  whole board: no thread run (see log)")
 
 # generated config: specified values with the measured [work]
 base = pathlib.Path("configs/specified.toml").read_text()
@@ -124,16 +150,17 @@ print(f"\n  wrote configs/pi5.toml  ({label})")
 # the re-derivation table the whole exercise exists for
 n = med["blend_naive_ns"] / 1e9
 print(f"\n  threshold re-derivation (naive basis {n*1e6:.1f} us/candidate):")
-print(f"  {'k':>6} {'sec/msg 1 core':>15} {'msgs/day 1 core':>16} {'sec/msg 4 cores':>16}")
+print(f"  {'k':>6} {'sec/msg 1 core':>15} {'msgs/day 1 core':>16} {'sec/msg board':>16}")
 for k in range(18, 25):
     s = (2**k) * n
-    print(f"  {'p/2^'+str(k):>6} {s:>15,.0f} {86400/s:>16,.0f} {s/4:>16,.0f}")
+    print(f"  {'p/2^'+str(k):>6} {s:>15,.0f} {86400/s:>16,.0f} {s/(board or 4):>16,.0f}")
 import math
-for target, basis, cores in ((60, "one core", 1), (60, "whole board", 4)):
+for target, basis, cores in ((60, "one core", 1), (60, "whole board", board or 4)):
     kk = round(math.log2(target * cores / n))
     print(f"  ~60 s per message on {basis}: p/2^{kk}")
+print("  (seconds per message are expectations; the wait is exponential, median 0.69x, 95th percentile 3.0x)")
 print("\n  next: make blend CONFIG=configs/pi5.toml ; then decide the reference basis")
-print("  and, if the exponent moves, update BLEND_DIFFICULTY_BASE in the Mantle spec.")
+print("  and, if the exponent moves, update BLEND_DIFFICULTY_BASE in proof-of-work.md.")
 PY
 
 # ---------- local commit on a dated branch; push attempted, failure tolerated ----------
