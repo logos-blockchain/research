@@ -1,0 +1,291 @@
+<title>DA Pipelines Animated</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#f4f5f7;--paper:#ffffff;--ink:#1d222b;--mute:#66707c;--line:#d9dde3;--code:#eceef2;
+--kzg:#c8473f;--new:#2b7de9;--ok:#2f8f5b;--warn:#d98a1f;--cell:#cfd6e0;--cellx:#e9edf2}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#14171c;--paper:#1b1f26;--ink:#e4e7ec;--mute:#98a1ae;--line:#2c323c;--code:#242a33;
+--kzg:#ef7b73;--new:#7fb0ff;--ok:#5fc48a;--warn:#f0b35a;--cell:#3a4350;--cellx:#2a313b}}
+:root[data-theme="dark"]{--bg:#14171c;--paper:#1b1f26;--ink:#e4e7ec;--mute:#98a1ae;--line:#2c323c;--code:#242a33;
+--kzg:#ef7b73;--new:#7fb0ff;--ok:#5fc48a;--warn:#f0b35a;--cell:#3a4350;--cellx:#2a313b}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;line-height:1.5}
+header{padding:20px 28px 10px}
+h1{font-size:20px;margin:0 0 4px;font-weight:600}
+header p{margin:0;color:var(--mute);font-size:13px;max-width:90ch}
+.tabs{display:flex;gap:6px;padding:12px 28px 0;flex-wrap:wrap}
+.tab{font:inherit;font-size:13px;padding:7px 14px;border:1px solid var(--line);background:var(--paper);color:var(--mute);border-radius:6px;cursor:pointer}
+.tab.on{color:var(--ink);border-color:var(--ink);font-weight:500}
+.tab:focus-visible,.ctl button:focus-visible{outline:2px solid var(--new)}
+.ctl{display:flex;gap:8px;align-items:center;padding:10px 28px;flex-wrap:wrap}
+.ctl button{font:inherit;font-size:13px;padding:6px 12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:6px;cursor:pointer}
+.ctl .step{color:var(--mute);font-size:13px;margin-left:6px;font-variant-numeric:tabular-nums}
+.ctl label{color:var(--mute);font-size:13px;margin-left:auto}
+.lanes{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:6px 28px 24px}
+.lane{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px 14px 10px;min-width:0}
+.lane h2{font-size:14px;margin:0 0 6px;font-weight:600;display:flex;align-items:center;gap:8px}
+.lane h2 .dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+.lane svg{width:100%;height:auto;display:block}
+.desc{min-height:66px;font-size:13px;color:var(--ink);border-top:1px solid var(--line);margin-top:8px;padding-top:8px}
+.desc b{font-weight:600}
+.desc .n{font-family:"IBM Plex Mono",monospace;font-size:12px;background:var(--code);padding:0 4px;border-radius:3px}
+.legend{padding:0 28px 30px;color:var(--mute);font-size:12.5px;display:flex;gap:18px;flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px;border-radius:2px;background:var(--x)}
+@media (max-width:900px){.lanes{grid-template-columns:1fr}}
+</style>
+<header>
+<h1>DA pipelines, first design and proposal, stage by stage</h1>
+<p>Illustrative geometry: 6 rows × 8 data columns, extended to 16 (one subnetwork per column, 3 DA nodes drawn per subnetwork). The figures in the captions are the measured or specified values for the real parameters: 1 MiB blob, 2 048 subnetworks, <span class="n">R = 5</span>, <span class="n">S = 20</span>, Apple M3, one thread.</p>
+</header>
+<div class="tabs" id="tabs"></div>
+<div class="ctl">
+  <button id="play">Play</button><button id="prev">◀ Step</button><button id="next">Step ▶</button><button id="restart">Restart stage</button>
+  <span class="step" id="stepLabel"></span>
+  <label>speed <select id="speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="2" selected>2×</option></select></label>
+</div>
+<div class="lanes">
+  <div class="lane"><h2><span class="dot" style="background:var(--kzg)"></span>First design: BLS12-381 KZG row commitments, FK20 column proofs</h2><svg id="svgK" viewBox="0 0 560 330"></svg><div class="desc" id="descK"></div></div>
+  <div class="lane"><h2><span class="dot" style="background:var(--new)"></span>Proposal: Goldilocks RS, BLAKE2b Merkle root over columns, check row</h2><svg id="svgN" viewBox="0 0 560 330"></svg><div class="desc" id="descN"></div></div>
+</div>
+<div class="legend"><span style="--x:var(--cell)">data chunk</span><span style="--x:var(--cellx)">RS parity chunk</span><span style="--x:var(--kzg)">group operations (MSM, FK20, pairing)</span><span style="--x:var(--new)">hash / field operations, check row</span><span style="--x:var(--ok)">verified</span><span style="--x:var(--warn)">sampled / in flight</span></div>
+
+<script>
+// ---------- geometry ----------
+const ROWS=6, K=8, N=16, CELL=13, GX=40, GY=34;   // matrix grid
+const SUBY=190, SUBW=26, SUBGAP=6, SUBX0=GX;      // subnet row
+const NODE_R=3.2;
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const col=(name)=>`var(${name})`;
+const S=(tag,attrs={},txt)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(txt!=null)e.textContent=txt;return e;};
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+function seeded(n){let s=n*9301+49297;return()=>{s=(s*9301+49297)%233280;return s/233280;};}
+const SAMPLE=[1,3,6,9,12,14];   // sampled columns (illustrative S=6 of 16)
+const RECON=[0,1,2,4,5,7,9,10]; // any K=8 columns (illustrative)
+
+// ---------- primitives ----------
+function grid(g,opts){
+  const {ext=1,hlCols=[],hlColor=null,dimData=false,checkRow=false,checkRowProg=0,rowTokens=0,mismatchCol=-1}=opts;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<N;c++){
+    if(c>=K && (c-K)/(N-K)>=ext) continue;
+    const isX=c>=K; const x=GX+c*(CELL+1), y=GY+r*(CELL+1);
+    let fill=isX?col('--cellx'):col('--cell');
+    if(hlCols.includes(c)&&hlColor) fill=col(hlColor);
+    if(mismatchCol===c && r===2) fill=col('--kzg');
+    g.appendChild(S('rect',{x,y,width:CELL,height:CELL,rx:1.5,fill,opacity:dimData&&!hlCols.includes(c)?0.35:1}));
+  }
+  g.appendChild(S('text',{x:GX,y:GY-8,'font-size':10,fill:'currentColor','fill-opacity':.7},`ℓ × k data${ext>0?'  →  2k = N columns':''}`));
+  g.appendChild(S('line',{x1:GX+K*(CELL+1)-1,y1:GY-3,x2:GX+K*(CELL+1)-1,y2:GY+ROWS*(CELL+1)+2,stroke:'currentColor','stroke-opacity':.5,'stroke-dasharray':'2 2'}));
+  if(checkRow){
+    const y=GY+ROWS*(CELL+1)+8;
+    for(let c=0;c<N;c++){ if(c/N>checkRowProg) break;
+      g.appendChild(S('rect',{x:GX+c*(CELL+1),y,width:CELL,height:CELL-3,rx:1.5,fill:col('--new'),opacity:hlCols.length&&!hlCols.includes(c)?.45:1}));}
+    g.appendChild(S('text',{x:GX,y:y+CELL+9,'font-size':10,fill:col('--new')},'check row c_j = Σ hⁱ·data_i^j  (one entry per column)'));
+  }
+  if(rowTokens>0){
+    for(let r=0;r<ROWS;r++){ if((r+1)/ROWS>rowTokens+1e-9) break;
+      g.appendChild(S('rect',{x:GX-24,y:GY+r*(CELL+1)+1,width:18,height:CELL-2,rx:2,fill:col('--kzg')}));
+    }
+    g.appendChild(S('text',{x:GX-24,y:GY+ROWS*(CELL+1)+12,'font-size':10,fill:col('--kzg')},'com_i'));
+  }
+}
+function subnets(g,opts){
+  const {hl=[],hlColor='--warn',nodesOk=[],label=true,received=[],recvColor='--ok'}=opts;
+  for(let j=0;j<N;j++){
+    const x=SUBX0+j*(SUBW+SUBGAP);
+    const inHl=hl.includes(j), got=received.includes(j);
+    g.appendChild(S('rect',{x,y:SUBY,width:SUBW,height:34,rx:4,fill:'none',stroke:inHl?col(hlColor):(got?col(recvColor):'currentColor'),'stroke-opacity':inHl||got?1:.35,'stroke-width':inHl||got?1.6:1}));
+    for(let n=0;n<3;n++){
+      const ok=nodesOk.includes(j);
+      g.appendChild(S('circle',{cx:x+6+n*7,cy:SUBY+24,r:NODE_R,fill:ok?col('--ok'):'currentColor','fill-opacity':ok?1:.35}));
+    }
+    g.appendChild(S('text',{x:x+SUBW/2,y:SUBY+12,'font-size':8,'text-anchor':'middle',fill:'currentColor','fill-opacity':.8},`s${j}`));
+  }
+  if(label) g.appendChild(S('text',{x:SUBX0,y:SUBY-6,'font-size':10,fill:'currentColor','fill-opacity':.7},'N subnetworks, one column each, R DA nodes per subnetwork'));
+}
+function actor(g,x,y,w,label,opts={}){
+  g.appendChild(S('rect',{x,y,width:w,height:24,rx:5,fill:col('--paper'),stroke:opts.stroke?col(opts.stroke):'currentColor','stroke-opacity':opts.stroke?1:.6}));
+  g.appendChild(S('text',{x:x+w/2,y:y+16,'font-size':11,'text-anchor':'middle',fill:'currentColor','font-weight':600},label));
+}
+function packet(g,x1,y1,x2,y2,t,color,label){
+  const x=x1+(x2-x1)*t, y=y1+(y2-y1)*t;
+  g.appendChild(S('line',{x1,y1,x2,y2,stroke:col(color),'stroke-opacity':.35,'stroke-dasharray':'3 3'}));
+  g.appendChild(S('rect',{x:x-5,y:y-5,width:10,height:10,rx:2,fill:col(color)}));
+  if(label) g.appendChild(S('text',{x:x+8,y:y-6,'font-size':9,fill:col(color)},label));
+}
+function bar(g,x,y,w,t,color,label,sub){
+  g.appendChild(S('rect',{x,y,width:w,height:10,rx:3,fill:col('--code')}));
+  g.appendChild(S('rect',{x,y,width:w*clamp(t,0,1),height:10,rx:3,fill:col(color)}));
+  g.appendChild(S('text',{x,y:y-4,'font-size':10,fill:'currentColor'},label));
+  if(sub) g.appendChild(S('text',{x:x+w+8,y:y+9,'font-size':10,fill:col(color)},sub));
+}
+function chain(g,text,color){
+  g.appendChild(S('rect',{x:GX,y:296,width:480,height:20,rx:4,fill:col('--code')}));
+  g.appendChild(S('text',{x:GX+8,y:310,'font-size':10,fill:'currentColor'},'on chain: '));
+  g.appendChild(S('text',{x:GX+62,y:310,'font-size':10,fill:col(color),'font-family':'IBM Plex Mono'},text));
+}
+function merkle(g,x,y,prog,hlLeaf=-1){
+  // drawn to the right of the grid: 16 leaves at the bottom, root at the top
+  const levels=[16,8,4,2,1]; const X0=300, W=236, Y0=112;
+  g.appendChild(S('text',{x:X0,y:36,'font-size':10,fill:'currentColor','fill-opacity':.7},'Merkle tree over the N columns'));
+  for(let L=0;L<levels.length;L++){
+    const n=levels[L]; const step=W/n;
+    for(let i=0;i<n;i++){
+      const cx=X0+step*i+step/2, cy=Y0-L*15;
+      const built=(L*n+i)/(levels.length*16)<=prog || L===0;
+      const onPath=hlLeaf>=0 && (hlLeaf>>L)===i;
+      g.appendChild(S('circle',{cx,cy,r:L===0?2.4:3,fill:onPath?col('--new'):(built?'currentColor':col('--code')),'fill-opacity':onPath?1:(L===0?.6:.8)}));
+      if(L>0 && built){
+        const cs=W/levels[L-1];
+        for(const k of [2*i,2*i+1]){g.appendChild(S('line',{x1:cx,y1:cy,x2:X0+cs*k+cs/2,y2:cy+15,stroke:onPath&&(hlLeaf>>(L-1))===k?col('--new'):'currentColor','stroke-opacity':onPath&&(hlLeaf>>(L-1))===k?.9:.25}));}
+      }
+    }
+  }
+  g.appendChild(S('text',{x:X0+W/2+10,y:Y0-4*15+4,'font-size':10,fill:col('--new')},prog>=1?'R_cols, 32 B':'building…'));
+}
+
+// ---------- stage definitions ----------
+// each step: {dur (ms at 1x), K:{draw(g,t), text}, N:{draw(g,t), text}}
+const stages=[
+{name:'Encoding',steps:[
+ {dur:1400,
+  K:{text:'<b>1. Chunk and interpolate.</b> 31-byte chunks become BLS12-381 scalars; each row of 1 024 chunks is one polynomial f_i of degree < 1 024.',
+     draw:(g,t)=>{grid(g,{ext:0});}},
+  N:{text:'<b>1. Chunk.</b> 8-byte chunks are Goldilocks elements (63-bit packing in a real encoder); each row is 1 024 evaluations, no interpolation object is kept.',
+     draw:(g,t)=>{grid(g,{ext:0});}}},
+ {dur:1600,
+  K:{text:'<b>2. Reed–Solomon extension.</b> Evaluate every f_i on the 2 048-point domain. <span class="n">16 ms</span> for 33 rows.',
+     draw:(g,t)=>{grid(g,{ext:ease(t)});}},
+  N:{text:'<b>2. Reed–Solomon extension.</b> Same code, same domain, NTT over Goldilocks. <span class="n">4.3 ms</span> for 128 rows.',
+     draw:(g,t)=>{grid(g,{ext:ease(t)});}}},
+ {dur:2600,
+  K:{text:'<b>3. Row commitments.</b> com_i = KZG(f_i): one multi-scalar multiplication of 1 024 G1 points per row, against the SRS of a trusted setup. <span class="n">784 ms</span>.',
+     draw:(g,t)=>{grid(g,{ext:1,rowTokens:ease(t)});bar(g,GX,280,200,t,'--kzg','MSM per row','784 ms');}},
+  N:{text:'<b>3. Column hashes and Merkle tree.</b> BLAKE2b over each of the 2 048 columns, then the tree, root R_cols. <span class="n">3.1 ms</span>.',
+     draw:(g,t)=>{grid(g,{ext:1,hlCols:t<1?[Math.floor(t*N)]:[],hlColor:'--new'});merkle(g,GX,178,ease(t));bar(g,GX,280,200,t,'--new','hash 2 048 columns + tree','3.1 ms');}}},
+ {dur:1600,
+  K:{text:'<b>4. Challenge.</b> h = BLAKE2b("DA_V1" ‖ com_1 ‖ … ‖ com_ℓ). The combined polynomial f_C = Σ hⁱ f_i is formed for the next stage. On chain goes the hash of the row commitments.',
+     draw:(g,t)=>{grid(g,{ext:1,rowTokens:1});chain(g,'H(com_1 … com_ℓ)','--kzg');g.appendChild(S('text',{x:GX,y:280,'font-size':11,fill:col('--kzg')},'h = H(com_1 ‖ … ‖ com_ℓ)   f_C = Σ hⁱ f_i'));}},
+  N:{text:'<b>4. Challenge and check row.</b> h = H(R_cols) in F_p²; c_j = Σ hⁱ·data_i^j for every column. <span class="n">0.6 ms</span>. c is an RS codeword. On chain: R_cols ‖ H(c), 64 B.',
+     draw:(g,t)=>{grid(g,{ext:1,checkRow:true,checkRowProg:ease(t)});merkle(g,GX,178,1);chain(g,'R_cols ‖ H(c)  (64 B)','--new');}}},
+]},
+{name:'Proof generation',steps:[
+ {dur:3200,
+  K:{text:'<b>FK20.</b> Open f_C at all 2 048 columns at once: three FFTs over G1 of size 4 096. One 48-byte proof π_j per column. <span class="n">7 384 ms</span> single-threaded, 2.3 s on 8 cores, independent of the blob size. This is 90% of the encoder.',
+     draw:(g,t)=>{grid(g,{ext:1,rowTokens:1});bar(g,GX,280,300,t,'--kzg','FK20: G1 FFT ×3','7 384 ms');
+       const done=Math.floor(ease(t)*N); for(let j=0;j<done;j++){g.appendChild(S('rect',{x:GX+j*(CELL+1),y:GY+ROWS*(CELL+1)+8,width:CELL,height:CELL-3,rx:1.5,fill:col('--kzg')}));}
+       g.appendChild(S('text',{x:GX,y:GY+ROWS*(CELL+1)+8+CELL+9,'font-size':10,fill:col('--kzg')},'one KZG proof π_j per column, 48 B each'));}},
+  N:{text:'<b>No proof generation.</b> The proof of column j is the Merkle path (11 hashes) plus c_j and its path in the check-row tree. Everything is read from what encoding already produced: <span class="n">0 ms</span>.',
+     draw:(g,t)=>{const j=Math.floor(clamp(t,0,.999)*N);grid(g,{ext:1,checkRow:true,checkRowProg:1,hlCols:[j],hlColor:'--new'});merkle(g,GX,178,1,j);
+       g.appendChild(S('text',{x:GX,y:280,'font-size':11,fill:col('--new')},`proof_${j} = path (11 × 32 B) + c_${j} (16 B) + path (11 × 32 B)`));}}},
+ {dur:1400,
+  K:{text:'<b>Encoder output per blob.</b> 2 048 columns, 2 048 proofs, ℓ row commitments. Encode total <span class="n">8.2 s</span> (1 MiB), of which proofs 7.4 s.',
+     draw:(g,t)=>{grid(g,{ext:1,rowTokens:1});for(let j=0;j<N;j++)g.appendChild(S('rect',{x:GX+j*(CELL+1),y:GY+ROWS*(CELL+1)+8,width:CELL,height:CELL-3,rx:1.5,fill:col('--kzg')}));
+       g.appendChild(S('text',{x:GX,y:280,'font-size':11},'per blob: columns + 2 048 × π_j (96 KiB) + ℓ × 48 B commitments'));}},
+  N:{text:'<b>Encoder output per blob.</b> 2 048 columns, the Merkle trees (2 × 128 KiB in memory), the check row (32 KiB). Encode total <span class="n">8 ms</span> (1 MiB), <span class="n">44 ms</span> at 8 MiB.',
+     draw:(g,t)=>{grid(g,{ext:1,checkRow:true,checkRowProg:1});merkle(g,GX,178,1);
+       g.appendChild(S('text',{x:GX,y:280,'font-size':11},'per blob: columns + check row (32 KiB) + two Merkle trees; 64 B on chain'));}}},
+]},
+{name:'Dispersal',steps:[
+ {dur:2600,
+  K:{text:'<b>Executor → subnetwork j.</b> One packet per column: column (1 KiB) + π_j (48 B) + all row commitments (1.5 KiB) = <span class="n">2.6 KiB</span>. 2 048 packets, <span class="n">5.2 MiB</span> per 1 MiB blob.',
+     draw:(g,t)=>{grid(g,{ext:1,dimData:true});actor(g,GX,148,70,'executor');subnets(g,{label:false});
+       const j=Math.floor(clamp(t,0,.999)*N), tt=(t*N)%1; packet(g,GX+35,160,SUBX0+j*(SUBW+SUBGAP)+SUBW/2,SUBY,tt,'--kzg');g.appendChild(S('text',{x:GX+80,y:164,'font-size':10,fill:col('--kzg')},'packet j: column 1 KiB + π_j 48 B + com_1…com_ℓ 1.5 KiB'));
+       subnets(g,{label:false,received:[...Array(j).keys()]});}},
+  N:{text:'<b>Executor → subnetwork j.</b> Column (1 KiB) + Merkle path (352 B) + c_j and its path (368 B) = <span class="n">1.7 KiB</span>. 2 048 packets, <span class="n">3.5 MiB</span> per 1 MiB blob. The check row is split like the data.',
+     draw:(g,t)=>{grid(g,{ext:1,dimData:true,checkRow:true,checkRowProg:1});actor(g,GX,148,70,'executor');
+       const j=Math.floor(clamp(t,0,.999)*N), tt=(t*N)%1; packet(g,GX+35,160,SUBX0+j*(SUBW+SUBGAP)+SUBW/2,SUBY,tt,'--new');g.appendChild(S('text',{x:GX+80,y:164,'font-size':10,fill:col('--new')},'packet j: column 1 KiB + path 352 B + c_j and its path 368 B'));
+       subnets(g,{label:false,received:[...Array(j).keys()]});}}},
+ {dur:2000,
+  K:{text:'<b>DA node verifies on receipt.</b> com_C = Σ hⁱ com_i (an MSM over ℓ commitments), v_j = Σ hⁱ data_i^j, then one pairing check of π_j. <span class="n">3.6 ms</span> per column.',
+     draw:(g,t)=>{grid(g,{ext:1,dimData:true});subnets(g,{label:false,received:[...Array(N).keys()],nodesOk:[...Array(Math.floor(ease(t)*N)).keys()]});
+       bar(g,GX,262,220,t,'--kzg','MSM(ℓ) + pairing','3.6 ms / column');}},
+  N:{text:'<b>DA node verifies on receipt.</b> Merkle path to R_cols, then Σ hⁱ data_i^j = c_j. 12 hashes and 256 field multiplications: <span class="n">3.8 µs</span> per column. No codeword test here; that is the sampler\'s job.',
+     draw:(g,t)=>{grid(g,{ext:1,dimData:true,checkRow:true,checkRowProg:1});subnets(g,{label:false,received:[...Array(N).keys()],nodesOk:[...Array(Math.floor(ease(t)*N)).keys()]});
+       bar(g,GX,262,220,t,'--new','path + RLC','3.8 µs / column');}}},
+ {dur:1800,
+  K:{text:'<b>Replication inside the subnetwork.</b> The receiving node forwards the same 2.6 KiB to the other R−1 = 4 nodes. Per DA node per blob: receive 2.6 KiB, send up to 4 × 2.6 KiB.',
+     draw:(g,t)=>{grid(g,{ext:1,dimData:true});subnets(g,{label:false,received:[...Array(N).keys()],nodesOk:[...Array(N).keys()]});
+       for(let j=0;j<N;j+=3){const x=SUBX0+j*(SUBW+SUBGAP)+6;for(let n=1;n<3;n++)packet(g,x,SUBY+24,x+n*7,SUBY+24,ease(t),'--kzg');}
+       g.appendChild(S('text',{x:GX,y:262,'font-size':11},'replicate to R−1 peers: 4 × 2.6 KiB'));}},
+  N:{text:'<b>Replication inside the subnetwork.</b> Same flow, 1.7 KiB per packet. The subnetwork now holds column j, c_j and both paths; it can answer samplers without any computation.',
+     draw:(g,t)=>{grid(g,{ext:1,dimData:true,checkRow:true,checkRowProg:1});subnets(g,{label:false,received:[...Array(N).keys()],nodesOk:[...Array(N).keys()]});
+       for(let j=0;j<N;j+=3){const x=SUBX0+j*(SUBW+SUBGAP)+6;for(let n=1;n<3;n++)packet(g,x,SUBY+24,x+n*7,SUBY+24,ease(t),'--new');}
+       g.appendChild(S('text',{x:GX,y:262,'font-size':11},'replicate to R−1 peers: 4 × 1.7 KiB'));}}},
+]},
+{name:'Sampling',steps:[
+ {dur:1600,
+  K:{text:'<b>Once per blob.</b> The validator fetches the ℓ row commitments (<span class="n">1.5 KiB</span>) and checks their hash against the chain.',
+     draw:(g,t)=>{subnets(g,{label:false,received:[...Array(N).keys()]});actor(g,GX,262,80,'validator');chain(g,'H(com_1 … com_ℓ)','--kzg');
+       packet(g,SUBX0+7*(SUBW+SUBGAP)+SUBW/2,SUBY+34,GX+40,262,ease(t),'--kzg');g.appendChild(S('text',{x:GX+100,y:278,'font-size':11},'fetch com_1 … com_ℓ (1.5 KiB), check H(com) against the chain'));}},
+  N:{text:'<b>Once per blob.</b> The validator fetches the check row c (<span class="n">32 KiB</span>), checks H(c) against the chain, and checks that c is an RS codeword with one inverse NTT (<span class="n">0.09 ms</span>). This step cannot be sampled: 20 entries say nothing about the degree of c.',
+     draw:(g,t)=>{subnets(g,{label:false,received:[...Array(N).keys()]});actor(g,GX,262,80,'validator');chain(g,'R_cols ‖ H(c)','--new');
+       packet(g,SUBX0+7*(SUBW+SUBGAP)+SUBW/2,SUBY+34,GX+40,262,ease(t),'--new');g.appendChild(S('text',{x:GX+100,y:278,'font-size':11},'fetch check row c (32 KiB), check H(c) against the chain'));
+       if(t>.6){const y=GY+ROWS*(CELL+1)+8;for(let c=0;c<N;c++)g.appendChild(S('rect',{x:GX+c*(CELL+1),y,width:CELL,height:CELL-3,rx:1.5,fill:col('--new')}));g.appendChild(S('text',{x:GX,y:y+CELL+9,'font-size':10,fill:col('--ok')},'c ∈ RS code ✓ (one inverse NTT)'));}}}},
+ {dur:3000,
+  K:{text:'<b>S = 20 random subnetworks.</b> Each returns its column + π_j (<span class="n">1.07 KiB</span>); the validator repeats the MSM + pairing (<span class="n">3.6 ms</span> each). Accept if ≥ τ succeed. Per blob: <span class="n">23 KiB</span>, 72 ms.',
+     draw:(g,t)=>{const k=Math.floor(clamp(t,0,.999)*SAMPLE.length), tt=(t*SAMPLE.length)%1;subnets(g,{label:false,received:[...Array(N).keys()],hl:SAMPLE.slice(0,k+1),nodesOk:SAMPLE.slice(0,k)});actor(g,GX,262,80,'validator');
+       const j=SAMPLE[k];packet(g,SUBX0+j*(SUBW+SUBGAP)+SUBW/2,SUBY+34,GX+40,262,tt,'--kzg');
+       g.appendChild(S('text',{x:GX+100,y:278,'font-size':11},`verified ${k} / ${SAMPLE.length}  (real: S = 20, τ per calculator)`));}},
+  N:{text:'<b>S = 20 random subnetworks.</b> Each returns column + paths + c_j (<span class="n">1.4 KiB</span>); the validator checks the path and Σ hⁱ data_i^j = c_j (<span class="n">3.8 µs</span> each). Per blob: <span class="n">59 KiB</span>, 0.2 ms. Withholding statistics identical to the first design.',
+     draw:(g,t)=>{const k=Math.floor(clamp(t,0,.999)*SAMPLE.length), tt=(t*SAMPLE.length)%1;subnets(g,{label:false,received:[...Array(N).keys()],hl:SAMPLE.slice(0,k+1),nodesOk:SAMPLE.slice(0,k)});actor(g,GX,262,80,'validator');
+       const j=SAMPLE[k];packet(g,SUBX0+j*(SUBW+SUBGAP)+SUBW/2,SUBY+34,GX+40,262,tt,'--new');
+       g.appendChild(S('text',{x:GX+100,y:278,'font-size':11},`verified ${k} / ${SAMPLE.length}  (real: S = 20, τ per calculator)`));}}},
+ {dur:2400,
+  K:{text:'<b>Misencoding encoder.</b> Not a separate case: a KZG proof only verifies against the committed polynomial, so an inconsistent column cannot carry a valid π_j. Binding settles it with one pairing.',
+     draw:(g,t)=>{subnets(g,{label:false,received:[...Array(N).keys()],hl:SAMPLE,nodesOk:SAMPLE});actor(g,GX,262,80,'validator');
+       g.appendChild(S('text',{x:GX+100,y:278,'font-size':11,fill:col('--ok')},'any column that verifies is a symbol of the committed blob'));}},
+  N:{text:'<b>Misencoding encoder (Attack C).</b> A matrix far from the code with a codeword c: each sampled column catches it with probability q/n, a mismatch is a succinct fraud proof and rejects outright (no τ). Miss probability <span class="n">(3/4)^S</span>: 2⁻⁸·³ at S = 20, 2⁻¹³·³ at S = 32. S is still to be decided.',
+     draw:(g,t)=>{const caught=t>.5;subnets(g,{label:false,received:[...Array(N).keys()],hl:SAMPLE,hlColor:caught?'--kzg':'--warn',nodesOk:caught?[]:SAMPLE});actor(g,GX,262,80,'validator');
+       grid(g,{ext:1,checkRow:true,checkRowProg:1,dimData:true,hlCols:[9],hlColor:'--warn',mismatchCol:caught?9:-1});
+       g.appendChild(S('text',{x:GX+100,y:278,'font-size':11,fill:caught?col('--kzg'):'currentColor'},caught?'column 9: Σ hⁱ data_i ≠ c_9  →  fraud proof, blob rejected':'sampled columns checked against c …'));}}},
+]},
+{name:'Reconstruction',steps:[
+ {dur:2600,
+  K:{text:'<b>Gather any K = 1 024 columns.</b> From whichever subnetworks answer. Each column is checked with its π_j before use.',
+     draw:(g,t)=>{const k=Math.floor(clamp(t,0,.999)*RECON.length);subnets(g,{label:false,received:[...Array(N).keys()],hl:RECON.slice(0,k+1),hlColor:'--ok',nodesOk:RECON.slice(0,k)});actor(g,GX,262,90,'reconstructor');
+       const j=RECON[k];packet(g,SUBX0+j*(SUBW+SUBGAP)+SUBW/2,SUBY+34,GX+45,262,(t*RECON.length)%1,'--kzg');g.appendChild(S('text',{x:GX+100,y:278,'font-size':11},`columns gathered: ${k} / ${RECON.length}  (real: any 1 024 of 2 048)`));grid(g,{ext:1,dimData:true,hlCols:RECON.slice(0,k),hlColor:'--ok'});}},
+  N:{text:'<b>Gather any K = 1 024 columns that agree with c.</b> After the sampling checks passed, ZODA\'s decoding guarantee applies: even columns chosen by an adversary after seeing the sampler\'s randomness decode to the unique blob, error p + p′ + m/|F|.',
+     draw:(g,t)=>{const k=Math.floor(clamp(t,0,.999)*RECON.length);subnets(g,{label:false,received:[...Array(N).keys()],hl:RECON.slice(0,k+1),hlColor:'--ok',nodesOk:RECON.slice(0,k)});actor(g,GX,262,90,'reconstructor');
+       const j=RECON[k];packet(g,SUBX0+j*(SUBW+SUBGAP)+SUBW/2,SUBY+34,GX+45,262,(t*RECON.length)%1,'--new');g.appendChild(S('text',{x:GX+100,y:278,'font-size':11},`columns gathered: ${k} / ${RECON.length}  (real: any 1 024 of 2 048)`));grid(g,{ext:1,dimData:true,checkRow:true,checkRowProg:1,hlCols:RECON.slice(0,k),hlColor:'--ok'});}}},
+ {dur:2000,
+  K:{text:'<b>Decode each row.</b> Reed–Solomon erasure decoding from 1 024 of 2 048 evaluations; one interpolation per row, then re-derive the original chunks. Unchanged between the two designs.',
+     draw:(g,t)=>{grid(g,{ext:1-ease(t),hlCols:[],dimData:false});bar(g,GX,262,220,t,'--ok','RS erasure decode, per row','≈ 1 ms / row');
+       g.appendChild(S('text',{x:GX,y:296,'font-size':11},'result: the original ℓ × k matrix, bound to H(com_1 … com_ℓ) on chain'));}},
+  N:{text:'<b>Decode each row.</b> Same erasure decoding. Optionally re-hash the columns and recompute R_cols and c to re-attest the blob; both take milliseconds, so a repaired encoding can be re-served without any prover.',
+     draw:(g,t)=>{grid(g,{ext:1-ease(t),hlCols:[],dimData:false});bar(g,GX,262,220,t,'--ok','RS erasure decode, per row','≈ 1 ms / row');
+       g.appendChild(S('text',{x:GX,y:296,'font-size':11},'result: the original ℓ × k matrix, bound to R_cols ‖ H(c) on chain'));}}},
+]},
+];
+
+// ---------- engine ----------
+let stageIdx=0, stepIdx=0, prog=0, playing=false, last=0, speed=2;
+const svgK=document.getElementById('svgK'), svgN=document.getElementById('svgN');
+const descK=document.getElementById('descK'), descN=document.getElementById('descN');
+const tabs=document.getElementById('tabs'), stepLabel=document.getElementById('stepLabel');
+stages.forEach((s,i)=>{const b=document.createElement('button');b.className='tab';b.textContent=`${i+1}. ${s.name}`;b.addEventListener('click',()=>{stageIdx=i;stepIdx=0;prog=0;render();});tabs.appendChild(b);});
+function render(){
+  [...tabs.children].forEach((b,i)=>b.classList.toggle('on',i===stageIdx));
+  const st=stages[stageIdx].steps[stepIdx];
+  for(const [svg,lane,desc] of [[svgK,'K',descK],[svgN,'N',descN]]){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    const g=S('g',{fill:'currentColor'}); svg.appendChild(g);
+    st[lane].draw(g,prog); desc.innerHTML=st[lane].text;
+  }
+  stepLabel.textContent=`${stages[stageIdx].name} · step ${stepIdx+1} / ${stages[stageIdx].steps.length}`;
+  document.getElementById('play').textContent=playing?'Pause':'Play';
+}
+function tick(ts){
+  if(!playing) return;
+  if(!last) last=ts; const dt=(ts-last)*speed; last=ts;
+  const st=stages[stageIdx].steps[stepIdx];
+  prog+=dt/st.dur;
+  if(prog>=1){ prog=1; render(); playing=false; setTimeout(()=>{ if(stepIdx<stages[stageIdx].steps.length-1){stepIdx++;prog=0;playing=true;last=0;requestAnimationFrame(tick);} else if(stageIdx<stages.length-1){stageIdx++;stepIdx=0;prog=0;playing=true;last=0;requestAnimationFrame(tick);} else render(); },600); return; }
+  render(); requestAnimationFrame(tick);
+}
+document.getElementById('play').addEventListener('click',()=>{playing=!playing;last=0;if(playing){if(prog>=1){prog=0;}requestAnimationFrame(tick);}render();});
+document.getElementById('next').addEventListener('click',()=>{playing=false;if(prog<1){prog=1;}else if(stepIdx<stages[stageIdx].steps.length-1){stepIdx++;prog=1;}else if(stageIdx<stages.length-1){stageIdx++;stepIdx=0;prog=1;}render();});
+document.getElementById('prev').addEventListener('click',()=>{playing=false;if(stepIdx>0){stepIdx--;}else if(stageIdx>0){stageIdx--;stepIdx=stages[stageIdx].steps.length-1;}prog=1;render();});
+document.getElementById('restart').addEventListener('click',()=>{stepIdx=0;prog=0;playing=true;last=0;render();requestAnimationFrame(tick);});
+document.getElementById('speed').addEventListener('change',e=>{speed=parseFloat(e.target.value);});
+const mq=window.matchMedia('(prefers-reduced-motion: reduce)'); if(mq.matches){prog=1;}
+render();
+</script>
