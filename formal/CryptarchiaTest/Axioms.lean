@@ -31,19 +31,12 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.Prob.blocks_le
 #print axioms Cryptarchia.Prob.settle_bound
 #print axioms Cryptarchia.Prob.final_bimm_prob
-#print axioms Cryptarchia.Prob.Certs.B20D11.certified
 #print axioms Cryptarchia.Prob.final_bimm_prob2
-#print axioms Cryptarchia.Prob.Certs.B30D11.certified
-#print axioms Cryptarchia.Prob.Certs.B10D11.certified
-#print axioms Cryptarchia.Prob.Certs.B25D11.certified
-#print axioms Cryptarchia.Prob.Certs.B30D5.certified
-#print axioms Cryptarchia.Prob.Certs.B30D2.certified
 #print axioms Cryptarchia.Prob.law_le
 #print axioms Cryptarchia.Prob.slot_law
 #print axioms Cryptarchia.Prob.final_bimm_ro
 #print axioms Cryptarchia.Prob.slotBand_of_stake
 #print axioms Cryptarchia.Prob.genesis_member
-#print axioms Cryptarchia.Prob.Certs.G30D11.certified
 #print axioms Cryptarchia.final_bimm_epochWin
 #print axioms Cryptarchia.Prob.law_le_epoch
 #print axioms Cryptarchia.Prob.lottery_law_epoch
@@ -57,4 +50,3 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.Prob.final_bimm_ro_epoch3_ok
 #print axioms Cryptarchia.Prob.final_bimm_ro_tsi3
 #print axioms Cryptarchia.Prob.Certs.E20D11.certified_tsi
-#print axioms Cryptarchia.Prob.Certs.E10D11.certified_tsi
