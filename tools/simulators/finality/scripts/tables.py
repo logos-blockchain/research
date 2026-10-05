@@ -357,17 +357,17 @@ def b5sweep() -> None:
         return f"{v * 24:.0f} h" if v < 2 else f"{v:.0f}"
     for c in (1.0, 0.1):
         sub = t[(t.model == "random, specification") & (t.window_h == 4) & (t.c == c)]
-        out = pd.DataFrame({"α": [f"{a:.2f}" for a in sub.alpha.unique()]})
-        for tau in sub.tau_per_day.unique():
-            col = sub[sub.tau_per_day == tau].set_index("alpha")["h_days_1e-09"]
-            out[f"{tau * 100:g} %/day"] = [days(col.loc[a]) for a in sub.alpha.unique()]
+        out = pd.DataFrame({"turnover per day": [f"{x * 100:g} %" for x in sub.tau_per_day.unique()]})
+        for a in sub.alpha.unique():
+            col = sub[sub.alpha == a].set_index("tau_per_day")["h_days_1e-09"]
+            out[f"α = {a:.2f}"] = [days(col.loc[x]) for x in sub.tau_per_day.unique()]
         print(md(out))
         print()
     sub = t[(t.model == "random, specification") & (t.alpha == 0.25) & (t.c == 1.0)]
-    out = pd.DataFrame({"window": [f"{w} h" for w in sub.window_h.unique()]})
-    for tau in sub.tau_per_day.unique():
-        col = sub[sub.tau_per_day == tau].set_index("window_h")["h_days_1e-09"]
-        out[f"{tau * 100:g} %/day"] = [days(col.loc[w]) for w in sub.window_h.unique()]
+    out = pd.DataFrame({"turnover per day": [f"{x * 100:g} %" for x in sub.tau_per_day.unique()]})
+    for w in sub.window_h.unique():
+        col = sub[sub.window_h == w].set_index("tau_per_day")["h_days_1e-09"]
+        out[f"{w} h window"] = [days(col.loc[x]) for x in sub.tau_per_day.unique()]
     print(md(out))
 
 

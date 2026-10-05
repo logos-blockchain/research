@@ -420,32 +420,48 @@ also holds `1e-6`, windows of 1–8 hours and the worst case at 10 s):
 
 Every freed key reaches the adversary (`c = 1`):
 
-| α | 0.01 %/day | 0.03 %/day | 0.1 %/day | 0.3 %/day | 1 %/day | 3 %/day | 10 %/day |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 0.10 | ≥ 3650 | 1320 | 406 | 139 | 43 | 15 | 4 |
-| 0.20 | 1787 | 621 | 195 | 68 | 21 | 7 | 2 |
-| 0.25 | 724 | 265 | 87 | 32 | 10 | 4 | 29 h |
-| 0.30 | 5 h | 5 h | 5 h | 5 h | 4 h | 3 h | 2 h |
-| 0.33 | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h |
+| turnover per day | α = 0.10 | α = 0.20 | α = 0.25 | α = 0.30 | α = 0.33 |
+| --- | --- | --- | --- | --- | --- |
+| 0.01 % | ≥ 3650 | 1787 | 724 | 5 h | < 1 h |
+| 0.03 % | 1320 | 621 | 265 | 5 h | < 1 h |
+| 0.05 % | 801 | 380 | 166 | 5 h | < 1 h |
+| 0.1 % | 406 | 195 | 87 | 5 h | < 1 h |
+| 0.125 % | 327 | 157 | 71 | 5 h | < 1 h |
+| 0.243 % | 170 | 83 | 38 | 5 h | < 1 h |
+| 0.3 % | 139 | 68 | 32 | 5 h | < 1 h |
+| 1 % | 43 | 21 | 10 | 4 h | < 1 h |
+| 3 % | 15 | 7 | 4 | 3 h | < 1 h |
+| 10 % | 4 | 2 | 29 h | 2 h | < 1 h |
 
 A tenth of the freed keys reaches the adversary (`c = 0.1`):
 
-| α | 0.01 %/day | 0.03 %/day | 0.1 %/day | 0.3 %/day | 1 %/day | 3 %/day | 10 %/day |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 0.10 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 |
-| 0.20 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 |
-| 0.25 | ≥ 3650 | 2961 | 1048 | 407 | 145 | 57 | 21 |
-| 0.30 | 5 h | 5 h | 5 h | 5 h | 5 h | 5 h | 4 h |
-| 0.33 | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h |
+| turnover per day | α = 0.10 | α = 0.20 | α = 0.25 | α = 0.30 | α = 0.33 |
+| --- | --- | --- | --- | --- | --- |
+| 0.01 % | ≥ 3650 | ≥ 3650 | ≥ 3650 | 5 h | < 1 h |
+| 0.03 % | ≥ 3650 | ≥ 3650 | 2961 | 5 h | < 1 h |
+| 0.05 % | ≥ 3650 | ≥ 3650 | 1906 | 5 h | < 1 h |
+| 0.1 % | ≥ 3650 | ≥ 3650 | 1048 | 5 h | < 1 h |
+| 0.125 % | ≥ 3650 | ≥ 3650 | 865 | 5 h | < 1 h |
+| 0.243 % | ≥ 3650 | ≥ 3650 | 488 | 5 h | < 1 h |
+| 0.3 % | ≥ 3650 | ≥ 3650 | 407 | 5 h | < 1 h |
+| 1 % | ≥ 3650 | ≥ 3650 | 145 | 5 h | < 1 h |
+| 3 % | ≥ 3650 | ≥ 3650 | 57 | 5 h | < 1 h |
+| 10 % | ≥ 3650 | ≥ 3650 | 21 | 4 h | < 1 h |
 
 The window, against a quarter of the stake with every freed key (`c = 1`):
 
-| window | 0.01 %/day | 0.03 %/day | 0.1 %/day | 0.3 %/day | 1 %/day | 3 %/day | 10 %/day |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h |
-| 2 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h |
-| 4 h | 724 | 265 | 87 | 32 | 10 | 4 | 29 h |
-| 8 h | 2012 | 692 | 215 | 74 | 23 | 8 | 2 |
+| turnover per day | 1 h window | 2 h window | 4 h window | 8 h window |
+| --- | --- | --- | --- | --- |
+| 0.01 % | < 1 h | < 1 h | 724 | 2012 |
+| 0.03 % | < 1 h | < 1 h | 265 | 692 |
+| 0.05 % | < 1 h | < 1 h | 166 | 421 |
+| 0.1 % | < 1 h | < 1 h | 87 | 215 |
+| 0.125 % | < 1 h | < 1 h | 71 | 173 |
+| 0.243 % | < 1 h | < 1 h | 38 | 91 |
+| 0.3 % | < 1 h | < 1 h | 32 | 74 |
+| 1 % | < 1 h | < 1 h | 10 | 23 |
+| 3 % | < 1 h | < 1 h | 4 | 8 |
+| 10 % | < 1 h | < 1 h | 29 h | 2 |
 
 - **Turnover sets the horizon once the window holds the adversary.** Against a quarter of the stake,
   a 4-hour window allows 87 days at 0.1 % of the stake moving per day and 10 days at 1 %, if every
@@ -454,5 +470,36 @@ The window, against a quarter of the stake with every freed key (`c = 1`):
   for more than about 5 hours of history, and a third not at all. Windows of 1 and 2 hours hold a
   quarter for less than an hour.
 
+**How fast stake moves elsewhere.** Per day, as a share of stake or supply, read 2026-10-05:
+
+| chain | what moves | per day | kind |
+| --- | --- | --- | --- |
+| Ethereum | exits, at most 256 ETH per 6.4-minute epoch (consensus-specs @ `71c0019`) | 0.13 % | cap |
+| Ethereum | the largest exit queue, 7.5 % of stake on 2025-09-13, drained at that cap over 46 days (validatorqueue.com @ `3f32aef`) | 0.13–0.16 % | measured |
+| Cosmos Hub | ATOM unbonding started in the 21 days to 2026-10-05: 2.1 % of bonded stake | 0.10 % | measured |
+| Polkadot | nominator unbonding requests, eras 2296–2314, median per daily era | 0.05 % | measured |
+| Cardano | net stake leaving pools, median per 5-day epoch, 2023-03 to 2026-09 (a lower bound) | 0.11 % | measured |
+| Solana | stake deactivated, mean per epoch of about 1.9 days over the last 100 epochs | 0.27 % | measured |
+| Bitcoin | supply last moved within a month (7.0 %) or a year (36.7 %), 2026-09-18 | 0.24 % / 0.13 % | measured |
+
+Sources: Ethereum consensus-specs @ `71c0019` (`electra/beacon-chain.md`,
+`electra/weak-subjectivity.md`) and github.com/etheralpha/validatorqueue-com @ `3f32aef`; Cosmos
+Hub staking REST (cosmoshub-4, height 33,271,284); Polkadot Asset Hub staking ledgers, eras
+2296–2314; Koios `pool_history`, epochs 400–657; Solana's `StakeHistory` sysvar, epochs 950–1049;
+CryptoSlate's supply-age series (Glassnode method), 2026-09-18; Cardano's Shelley genesis
+(`slotsPerKESPeriod`) and Algorand's participation-key documentation for the key rules below. The
+Cosmos, Polkadot, Cardano and Solana rows are chain scans of a single period.
+
+Staked value elsewhere moves at 0.05–0.3 % a day, and Bitcoin's supply, the closest match to
+Cryptarchia's notes, at 0.13–0.24 % a day over a month to a year. At Bitcoin's rates a 4-hour window
+holds a quarter of the stake for a horizon of 38 to 71 days if every freed key can be bought, and
+of 16 months to 2.4 years if a tenth can. Across 0.05–0.3 % a day the first range widens to 32–166
+days. Ethereum bounds the same exposure with bonded stake and an
+exit cap: its weak subjectivity period, 15.7 days, lets at most 5 % of the stake leave. Chains
+whose stake is never locked protect leader keys instead: Cardano's keys evolve every 36 hours, and
+Algorand deletes each round's key once the round ends. A forward-secure leader key would free the
+horizon from turnover altogether.
+
 **H6** holds with the trigger of rules 1–6 and fails as the plan first stated it. The self-healing
-horizon then stops bounding `k`; `H` takes its place, and `H` waits on data about stake turnover.
+horizon then stops bounding `k`, and `H` takes its place: 38 to 71 days at Bitcoin's turnover,
+against a quarter of the stake with a 4-hour window and every freed key for sale.

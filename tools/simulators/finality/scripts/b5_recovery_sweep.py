@@ -29,7 +29,8 @@ from finality_sim.recovery import log_failure
 HERE = pathlib.Path(__file__).resolve().parent.parent
 F = 1 / 30
 ALPHAS = (0.10, 0.20, 0.25, 0.30, 1 / 3)
-TAUS = (1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2, 1e-1)       # share of stake moved per day
+# share of stake moved per day; 0.125 % and 0.243 % are Bitcoin's yearly and monthly rates
+TAUS = (1e-4, 3e-4, 5e-4, 1e-3, 1.25e-3, 2.43e-3, 3e-3, 1e-2, 3e-2, 1e-1)
 CS = (0.1, 1.0)                                          # share of freed keys the adversary gets
 WINDOWS_H = (1, 2, 4, 8)                                 # density window, hours
 EPS = (1e-6, 1e-9)

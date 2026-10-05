@@ -36,7 +36,7 @@ Against a quarter of the stake on the specification's Blend (3 hops of up to 3 r
 | route | what changes | time until final | what it costs | what remains open |
 | --- | --- | --- | --- | --- |
 | settlement rule ([§3](#s3)) | a client depth; nothing in consensus | 18 min at `1e-3`, 59 min at `1e-9` under random delay; 4.6 h guaranteed at `Δ = 10` s | nothing | the adversary's share and the delay model are assumptions the client accepts |
-| smaller `k` ([§4](#s4)) | `k`, the epoch unless decoupled, and a recovery trigger | in proportion to `k`: 1.8–2.1 h at `k = 216`, which holds 32 % of the stake at `1e-9` under random delay and 17–22 % guaranteed | a weaker guarantee; less precise stake inference if the epoch shrinks too | a look-back horizon against posterior corruption |
+| smaller `k` ([§4](#s4)) | `k`, the epoch unless decoupled, and a recovery trigger | in proportion to `k`: 1.8–2.1 h at `k = 216`, which holds 32 % of the stake at `1e-9` under random delay and 17–22 % guaranteed | a weaker guarantee; less precise stake inference if the epoch shrinks too | a look-back horizon of 38–71 days at Bitcoin-like turnover |
 | regular block intervals ([§5](#s5)) | the lottery coefficient becomes a curve of the slots since the parent | 12 min instead of 18 at `1e-3` | 30 % more blocks; a new stake inference | no worst-case bound |
 | faster blocks ([§5](#s5)) | `f` | best at 15–20 s blocks: 46–48 min at `1e-9` against 51 | more forks | — |
 | certificates ([§6](#s6)) | anonymous-seat votes through Blend | about 6 min with 10-minute rounds | ×269 Blend cover traffic | rounds stall under a partition or a delay-scheduling adversary |
@@ -150,17 +150,30 @@ divergence and has been spent since can sign for it on the fork, where the note 
 keeps the failure over all divergence points at or below `1e-9`. The window is 4 hours, the
 specification's Blend, and the adversary obtains every freed key:
 
-| α | 0.01 %/day | 0.03 %/day | 0.1 %/day | 0.3 %/day | 1 %/day | 3 %/day | 10 %/day |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 0.10 | ≥ 3650 | 1320 | 406 | 139 | 43 | 15 | 4 |
-| 0.20 | 1787 | 621 | 195 | 68 | 21 | 7 | 2 |
-| 0.25 | 724 | 265 | 87 | 32 | 10 | 4 | 29 h |
-| 0.30 | 5 h | 5 h | 5 h | 5 h | 4 h | 3 h | 2 h |
-| 0.33 | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h |
+| turnover per day | α = 0.10 | α = 0.20 | α = 0.25 | α = 0.30 | α = 0.33 |
+| --- | --- | --- | --- | --- | --- |
+| 0.01 % | ≥ 3650 | 1787 | 724 | 5 h | < 1 h |
+| 0.03 % | 1320 | 621 | 265 | 5 h | < 1 h |
+| 0.05 % | 801 | 380 | 166 | 5 h | < 1 h |
+| 0.1 % | 406 | 195 | 87 | 5 h | < 1 h |
+| 0.125 % | 327 | 157 | 71 | 5 h | < 1 h |
+| 0.243 % | 170 | 83 | 38 | 5 h | < 1 h |
+| 0.3 % | 139 | 68 | 32 | 5 h | < 1 h |
+| 1 % | 43 | 21 | 10 | 4 h | < 1 h |
+| 3 % | 15 | 7 | 4 | 3 h | < 1 h |
+| 10 % | 4 | 2 | 29 h | 2 h | < 1 h |
 
 The window caps the horizon whatever the turnover: a 4-hour window holds 30 % of the stake for
 only about 5 hours of history, and a third not at all. A longer window lifts the cap, within the
 bound of rule 5.
+
+Staked value on other chains moves at 0.05–0.3 % a day: Ethereum's exits are capped at 0.13 %, and
+Cosmos, Polkadot, Cardano and Solana showed 0.05–0.27 % in single-period scans. Bitcoin's supply,
+the closest match to Cryptarchia's notes, moves at 0.13–0.24 % a day over a month to a year. At
+Bitcoin's rates the horizon against a quarter of the stake is 38 to 71 days. Ethereum's weak
+subjectivity period, set by its exit cap, is 15.7 days. Chains whose stake is never locked protect
+leader keys instead: Cardano's evolve every 36 hours, and Algorand erases each round's key. A
+forward-secure leader key would free the horizon from turnover altogether.
 
 ---
 
@@ -291,8 +304,9 @@ With the first reading, against a quarter of the stake on the specification's Bl
 
 - **The emission budget.** Votes and the DAG both pay in Blend cover traffic. Which multiple is
   acceptable is a budget decision, not a measurement.
-- **Stake turnover.** The recovery horizon rests on how fast staked notes are spent and how many of
-  their old keys an adversary could buy. [§4](#s4) gives the horizon as a function of both.
+- **Turnover in Cryptarchia itself.** The recovery horizon rests on how fast staked notes are spent,
+  measured elsewhere at 0.05–0.3 % a day, and on how many of their old keys an adversary could buy.
+  [§4](#s4) gives the horizon as a function of both.
 - **A worst-case analysis of the DAG.** The DAG is measured against a private race, with honest
   delays random or uniformly maximal. An adversary that splits honest views between two subDAGs, the
   attack that sets the chain's worst case, is not modelled.
