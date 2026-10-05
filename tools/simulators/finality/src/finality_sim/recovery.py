@@ -56,9 +56,14 @@ def honest_logpmf(w: int, ph: float, growth: float | None = None,
 
 
 def log_failure(w: int, alpha: float, f: float, growth: float | None = None,
-                delta: int | None = None) -> float:
-    """Natural log of P(N_a > N_h): the adversary's fork is strictly denser in a window of w."""
-    pa, ph = occupancy(f, alpha), occupancy(f, 1.0 - alpha)
+                delta: int | None = None, honest: float | None = None) -> float:
+    """Natural log of P(N_a > N_h): the adversary's fork is strictly denser in a window of w.
+
+    The fork carries the share ``alpha``; the honest chain the share ``honest``, by default
+    ``1 - alpha``. They differ when the fork also signs with keys of stake that was honest then.
+    """
+    pa = occupancy(f, alpha)
+    ph = occupancy(f, 1.0 - alpha if honest is None else honest)
     n = np.arange(w + 1)
     return float(special.logsumexp(honest_logpmf(w, ph, growth, delta)
                                    + stats.binom.logsf(n, w, pa)))

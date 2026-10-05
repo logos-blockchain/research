@@ -1,6 +1,7 @@
 """Markdown tables for the study's notes, read straight from runs/ (no hand transcription).
 
-    python scripts/tables.py a1 | c1 | c1settle | c3 | c4 | b3 | b3delay | b2 | b5 | b5rec | d0 | d6
+    python scripts/tables.py a1 | c1 | c1settle | c3 | c4 | b3 | b3delay | b2 | b5 | b5rec | b5sweep |
+                             d0 | d6 | e2 | e5
 """
 
 from __future__ import annotations
@@ -270,6 +271,107 @@ def d6() -> None:
     print(md(pd.DataFrame(rows)))
 
 
+def _depths(g: pd.DataFrame, kmax: int, per_slot: float, eps_list=(1e-3, 1e-4)) -> str:
+    tot = g.sum(numeric_only=True)
+    p = np.array([tot[f"s{k}"] / tot.scored for k in range(1, kmax + 1)])
+    cells = []
+    for eps in eps_list:
+        hit = np.nonzero(p <= eps)[0]
+        cells.append(f"{hit[0] + 1} ({(hit[0] + 1) / per_slot / 60:.1f})" if hit.size
+                     else f"> {kmax}")
+    return " / ".join(cells)
+
+
+def e2() -> None:
+    s = pd.read_csv(RUNS / "e2" / "structure.csv")
+    base = 1 - (1 - 1 / 30) ** 1.0
+    rows = []
+    for (f, blend), g in s.groupby(["f", "blend"], sort=False):
+        own = g[g.window == g.window.max()]
+        narrow = g[g.window == 30]
+        rows.append({"f_A": f"{f:.3g}", "Blend": blend, "window": int(own.window.iloc[0]),
+                     "blocks per slot / Cryptarchia's": f"{own.blocks_per_slot.mean() / base:.2f}",
+                     "s per layer": f"{1 / own.layers_per_slot.mean():.1f}",
+                     "references mean / p99": f"{own.refs_mean.mean():.2f} / "
+                                              f"{own.refs_p99.mean():.1f}",
+                     "long only, w = 30 / own w": f"{narrow.long_ref_share.mean():.3f} / "
+                                                  f"{own.long_ref_share.mean():.3f}"})
+    print(md(pd.DataFrame(rows)))
+    print()
+    r = pd.read_csv(RUNS / "e2" / "race.csv")
+    c = pd.read_csv(RUNS / "c4" / "race.csv")
+    chain = {"constant": 1 / 30, "constant, 20 s": 1 / 20, "constant, 15 s": 1 / 15}
+    rows = []
+    for (f, blend), g in r[r.horizon == "since the fork"].groupby(["f", "blend"], sort=False):
+        row = {"structure": "DAG", "f": f"{f:.3g}", "Blend": blend}
+        for a, ga in g.groupby("alpha", sort=False):
+            row[f"α = {a:.2f}"] = _depths(ga, 60, ga.layers_per_slot.mean())
+        rows.append(row)
+    for (curve, blend), g in c[c.curve.isin(list(chain))].groupby(["curve", "blend"], sort=False):
+        row = {"structure": "chain", "f": f"{chain[curve]:.3g}", "Blend": blend}
+        for a, ga in g.groupby("alpha", sort=False):
+            row[f"α = {a:.2f}"] = _depths(ga, 60, ga.honest_per_f.mean() / 30)
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    t = pd.read_csv(RUNS / "e2" / "fit.csv")
+    rows = []
+    for (st, f, blend), g in t.groupby(["structure", "f", "blend"], sort=False):
+        row = {"structure": st, "f": f"{f:.3g}", "Blend": blend}
+        for _, x in g.iterrows():
+            row[f"α = {x.alpha:.2f}"] = ("–" if np.isnan(x["depth_1e-09"]) else
+                                       f"{x['depth_1e-09']:.0f} ({x['minutes_1e-09']:.0f})")
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    rows = []
+    for (f, blend), g in r[r.horizon == "last w slots"].groupby(["f", "blend"], sort=False):
+        row = {"f": f"{f:.3g}", "Blend": blend}
+        for a, ga in g.groupby("alpha", sort=False):
+            tot = ga.sum(numeric_only=True)
+            row[f"α = {a:.2f}"] = (f"{tot.s10 / tot.scored:.2f} / {tot.s40 / tot.scored:.2f}")
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+
+
+def e5() -> None:
+    t = pd.read_csv(RUNS / "e5" / "race.csv")
+    rows = []
+    for (f, d), g in t.groupby(["f", "delay_s"], sort=False):
+        row = {"f": f"{f:.3g}", "Δ": f"{int(d)} s", "s per layer":
+               f"{1 / g.layers_per_slot.mean():.1f}"}
+        for a, ga in g.groupby("alpha", sort=False):
+            row[f"α = {a:.2f}"] = _depths(ga, 60, ga.layers_per_slot.mean(), (1e-3,))
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+
+
+def b5sweep() -> None:
+    t = pd.read_csv(RUNS / "b5" / "recovery_sweep.csv")
+
+    def days(v):
+        if np.isinf(v):
+            return "≥ 3650"
+        if v < 1 / 24:
+            return "< 1 h"
+        return f"{v * 24:.0f} h" if v < 2 else f"{v:.0f}"
+    for c in (1.0, 0.1):
+        sub = t[(t.model == "random, specification") & (t.window_h == 4) & (t.c == c)]
+        out = pd.DataFrame({"α": [f"{a:.2f}" for a in sub.alpha.unique()]})
+        for tau in sub.tau_per_day.unique():
+            col = sub[sub.tau_per_day == tau].set_index("alpha")["h_days_1e-09"]
+            out[f"{tau * 100:g} %/day"] = [days(col.loc[a]) for a in sub.alpha.unique()]
+        print(md(out))
+        print()
+    sub = t[(t.model == "random, specification") & (t.alpha == 0.25) & (t.c == 1.0)]
+    out = pd.DataFrame({"window": [f"{w} h" for w in sub.window_h.unique()]})
+    for tau in sub.tau_per_day.unique():
+        col = sub[sub.tau_per_day == tau].set_index("window_h")["h_days_1e-09"]
+        out[f"{tau * 100:g} %/day"] = [days(col.loc[w]) for w in sub.window_h.unique()]
+    print(md(out))
+
+
 if __name__ == "__main__":
     {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b5": b5,
-     "b5rec": b5rec, "d0": d0, "d6": d6}[sys.argv[1]]()
+     "b5rec": b5rec, "b5sweep": b5sweep, "d0": d0, "d6": d6,
+     "e2": e2, "e5": e5}[sys.argv[1]]()

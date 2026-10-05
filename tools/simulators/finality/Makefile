@@ -2,7 +2,8 @@
 # consumed as a library (PLAN.md). Every number in the study's notes comes from one of these
 # targets; `make tables` prints the notes' tables from runs/, and `make check-tables` checks that
 # each appears verbatim in a note.
-.PHONY: install test mutations firstlook mapping a1 b2 b3 b5 recovery c1 c3 c4 d0 d6 all tables check-tables clean
+.PHONY: install test mutations firstlook mapping a1 b2 b3 b5 recovery c1 c3 c4 d0 d6 e2 e5 all \
+        tables check-tables octave-reference clean
 
 VENV   ?= .venv
 PYTHON ?= $(HOME)/.pyenv/versions/3.13.7/bin/python
@@ -54,8 +55,9 @@ b3: install                   # SETTLEMENT.md, B3 (about 10 minutes on 14 cores)
 b5: install                   # SETTLEMENT.md, B5 (needs a1 and b2)
 	$(PY) scripts/b5_what_k_holds.py
 
-recovery: install             # SETTLEMENT.md, B5 automatic recovery (about 15 s; needs a1)
+recovery: install             # SETTLEMENT.md, B5 automatic recovery (about 30 s; needs a1)
 	$(PY) scripts/b5_recovery.py
+	$(PY) scripts/b5_recovery_sweep.py
 
 d0: install                   # CERTIFIED.md, D0 and D2
 	$(PY) scripts/d0_emission_map.py
@@ -63,10 +65,20 @@ d0: install                   # CERTIFIED.md, D0 and D2
 d6: install                   # CERTIFIED.md, D6 (about a minute on 14 cores)
 	$(PY) scripts/d6_votes.py
 
-all: a1 c1 c3 c4 b2 b3 b5 recovery d0 d6
+e2: install                   # DAG.md, E1 and E2 (about 2 minutes on 14 cores; needs c4)
+	$(PY) scripts/e2_areon.py
+	$(PY) scripts/e2_fit.py
+
+e5: install                   # DAG.md, E5 (about 10 s)
+	$(PY) scripts/e5_delay.py
+
+octave-reference:             # the original LCanalysis in Octave, in the background (hours)
+	sh scripts/octave_reference.sh
+
+all: a1 c1 c3 c4 b2 b3 b5 recovery d0 d6 e2 e5
 
 tables: install
-	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b5 b5rec d0 d6; do $(PY) scripts/tables.py $$t; done
+	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b5 b5rec b5sweep d0 d6 e2 e5; do $(PY) scripts/tables.py $$t; done
 
 check-tables: install
 	$(PY) scripts/check_tables.py

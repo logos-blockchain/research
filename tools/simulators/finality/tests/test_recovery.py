@@ -77,3 +77,12 @@ def test_worst_case_pmf_holds_at_the_longest_window():
     lp = honest_logpmf(259_200, occupancy(F, 0.9), delta=1)
     assert not np.isnan(lp).any()
     assert np.exp(lp).sum() == pytest.approx(1.0, abs=1e-9)
+
+
+def test_bought_keys_raise_the_fork_without_lowering_the_honest_chain():
+    w, f = 3000, 1 / 30
+    base = log_failure(w, 0.25, f, growth=0.845)
+    assert log_failure(w, 0.25, f, growth=0.845, honest=0.75) == pytest.approx(base, rel=1e-12)
+    bought = log_failure(w, 0.35, f, growth=0.845, honest=0.75)
+    # worse than the fork alone, better than an adversary that holds 0.35 of the stake outright
+    assert base < bought < log_failure(w, 0.35, f, growth=0.845)

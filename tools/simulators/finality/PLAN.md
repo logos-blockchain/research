@@ -55,8 +55,8 @@ Phase by phase:
 | D1, D1b, D3, D4, D5 | sketched, open questions listed; D3 prices verification with the Raspberry Pi 5 measurement of Blend, proving on it is not measured |
 | D6 simulation | done: votes on a target 30 slots back never split under random delay; a round certifies within one Blend delivery; an adversary that schedules delays splits shallow rounds |
 | E0 audit of the Areon simulator | done |
-| E1–E6 | waiting on the owner's decision in `DAG.md` |
-| F report | follows E |
+| E1–E6 Areon-Base on the engine | done: built on the TSI engine (the owner's choice); the private race, the §5.6 fit, worst-case delay, eligibility, ledger and cost |
+| F report | open |
 
 Findings about the protocol as it stands:
 
@@ -80,7 +80,7 @@ Hypotheses:
 | H4 | refuted: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control |
 | H5 | waits on the budget line of Q7 |
 | H6 | holds with the trigger of `SETTLEMENT.md` B5: a density test below `B_imm` within a horizon `H`, with a window set apart from `k`. Fails as first stated, a switch to the Bootstrap rule. `H` waits on data about stake turnover |
-| H7 | cannot be judged from the paper's numbers (E0) |
+| H7 | holds for the weight accumulated since the fork, with each `ρ_LEAD` counted once: against 25 % at `ε = 1e-9`, 38 minutes at Cryptarchia's block rate against 59 on the chain. Fails for the paper's prose horizon (the last `w` slots), which settles no depth. The emission line is the owner's |
 
 Three notions of finality carry the document. They are measured separately and never mixed.
 
