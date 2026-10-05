@@ -38,6 +38,7 @@ import Cryptarchia.Proof.Final
 import Cryptarchia.Proof.LotteryE
 import Cryptarchia.Proof.FinalE
 import Cryptarchia.Proof.TimeFinal
+import Cryptarchia.Proof.Recur
 -- The probability layer
 import Cryptarchia.Prob.InferClose
 import Cryptarchia.Prob.Kernel
