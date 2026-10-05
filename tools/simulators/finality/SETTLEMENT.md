@@ -25,6 +25,11 @@ Gates (`tests/test_lcbounds.py`, mutations in `scripts/check_mutations.py`):
 - **Table 1.** The port reproduces all 152 proof-of-stake cells of the revision's Table 1 within
   `1e-3` relative: both bounds, 10 % and 20 % adversary, 2 s and 5 s delay, depths 2–20. Three
   mutations of the port each fail this gate.
+- **The original code.** LCanalysis itself, run in Octave 11.3 with the two pdf functions Octave
+  lacks (`octave/`, `scripts/octave_reference.sh`), reproduces Table 1 at the points run so far.
+  The port matches it within `7e-14` relative, at Table 1's 20 % point to depth 20 and at a
+  quarter of the stake with `D = 1/3` (`tests/data/lcanalysis_octave.csv`). One mutation fails
+  this gate.
 - **Convergence.** The original follows the Section 4.7 attack for 80 phases, enough for Table 1
   (depth at most 20) and not beyond it. At a third of the stake and depth 60 the lower bound
   collapses from `6.8e-3` to `5e-12` at 80 phases. The port follows the attack for

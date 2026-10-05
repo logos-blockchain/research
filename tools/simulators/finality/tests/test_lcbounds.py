@@ -58,3 +58,15 @@ def test_lower_bound_converges_in_phases_at_depth():
     lb = error_lb(k, sp, ALPHABET, 30)
     assert lb == pytest.approx(error_lb(k, sp, ALPHABET, 30, steps=2 * 4 * k), rel=1e-9)
     assert lb > 1e-3
+
+
+def test_port_matches_the_original_code_run_in_octave():
+    """``data/lcanalysis_octave.csv``: LCanalysis @ 35cfc83 run in Octave 11.3 with the two pdf
+    functions of ``octave/`` (``scripts/octave_reference.sh``), beyond Table 1's points."""
+    ref = pd.read_csv(pathlib.Path(__file__).parent / "data" / "lcanalysis_octave.csv")
+    for (honest, d, a, s), g in ref.groupby(["honest", "D", "alphabet", "states"]):
+        sp = slot_pdf(honest, d, int(a))
+        for _, r in g.iterrows():
+            got = (error_ub(int(r.K), sp, int(a), int(s)) if r.bound == "ub" else
+                   error_lb(int(r.K), sp, int(a), int(s), steps=int(r.lb_steps)))
+            assert got == pytest.approx(r.value, rel=1e-9), (honest, d, r.bound, r.K)
