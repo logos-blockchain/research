@@ -1,0 +1,19 @@
+name = "formal"
+defaultTargets = ["Cryptarchia"]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.34.1"
+
+# Cryptarchia: specification, settlement, deterministic and probabilistic safety.
+[[lean_lib]]
+name = "Cryptarchia"
+
+# Generated numeric certificates (slow: hours). Not a default target.
+[[lean_lib]]
+name = "CryptarchiaCerts"
+
+# Axiom checks and differential tests against the specification's pseudocode.
+[[lean_lib]]
+name = "CryptarchiaTest"
