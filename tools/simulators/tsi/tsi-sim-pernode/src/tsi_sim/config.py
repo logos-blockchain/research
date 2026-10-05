@@ -22,6 +22,7 @@ UncleStrategy = Literal["oldest", "random"]
 UncleModel = Literal["countable", "old"]
 Topology = Literal["full_mesh", "regular", "blend"]
 LinkLatencyDist = Literal["fixed", "uniform", "exp", "geo"]
+BlendDelayDist = Literal["continuous", "rounds"]
 JitterDist = Literal["exp", "poisson"]
 ChurnMode = Literal["sine", "ramp", "step"]
 InitDest = Literal["common", "heterogeneous"]
@@ -106,6 +107,11 @@ class SimConfig:
     blend_hops: int = 3                 # number of random relay hops in the mix cascade
     adversary_strategy: AdversaryStrategy = "suppress"   # how adversary_frac attacks (see above)
     blend_delay_max: float = 3.0        # max per-relay mixing delay (slots); delay ~ U(0, this)
+    # How a relay draws its mixing delay. "continuous" (default, every historical run):
+    # Uniform(0, blend_delay_max). "rounds": a whole number of 1-slot rounds, uniform on
+    # [1, blend_delay_max], as the node's release delayer does (blend/scheduling,
+    # release_delayer.rs). Appended to key() only when non-default.
+    blend_delay_dist: BlendDelayDist = "continuous"
     # Mean one-way per-link latency in SLOTS (1 slot = 1 s). Realistic direct-gossip links are
     # sub-slot (~0.04-0.15 slot = 40-150 ms); whole-slot values (1, 2, ...) model routing over
     # the Blend mixnet, where each hop costs seconds. Arrivals are kept sub-slot (float).
@@ -337,6 +343,12 @@ class SimConfig:
                              f"{self.uncle_window_anchor!r}")
         if self.ref_scope not in ("window", "chain"):
             raise ValueError(f"ref_scope must be window|chain, got {self.ref_scope!r}")
+        if self.blend_delay_dist not in ("continuous", "rounds"):
+            raise ValueError(f"blend_delay_dist must be continuous|rounds, got "
+                             f"{self.blend_delay_dist!r}")
+        if self.blend_delay_dist == "rounds" and (self.blend_delay_max < 1
+                                                  or self.blend_delay_max != int(self.blend_delay_max)):
+            raise ValueError("blend_delay_dist='rounds' needs a whole blend_delay_max >= 1")
         if self.adversary_selection not in ("random", "whale"):
             raise ValueError(f"adversary_selection must be random|whale, got "
                              f"{self.adversary_selection!r}")
@@ -456,6 +468,9 @@ class SimConfig:
         # "random"-coalition run's key must stay byte-identical to every historical run's.
         if self.adversary_selection != "random":
             base = base + (self.adversary_selection,)
+        # Same discipline: a continuous-delay run keeps its historical key byte-identical.
+        if self.blend_delay_dist != "continuous":
+            base = base + (self.blend_delay_dist,)
         # Same append-only-when-non-default discipline: a run at the default precision keeps a
         # byte-identical key, so no committed result is reseeded by adding the knob.
         if self.f_precision != 1_000_000:

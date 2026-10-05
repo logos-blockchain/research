@@ -221,6 +221,7 @@ def _perturb(v):
         # "random" — uncle_strategy defaults to "oldest" and keeps its own flip above.
         "random": "whale",
         "uncle": "parent",   # uncle_window_anchor
+        "continuous": "rounds",  # blend_delay_dist
     }
     if isinstance(v, str) and v in flips:
         return flips[v]

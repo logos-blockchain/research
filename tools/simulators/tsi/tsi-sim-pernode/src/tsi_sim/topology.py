@@ -158,9 +158,13 @@ def _blend_arrival_column(
     relays = rng.choice(pool, size=hops, replace=False)
     t = float(slot)
     src = int(producer)
+    rounds = config.blend_delay_dist == "rounds"
     for r in relays.tolist():                     # transport leg, then this relay's mix delay
         t += float(path_latency[src, r])
-        t += float(rng.uniform(0.0, delay_max))
+        if rounds:                                # whole rounds, uniform on [1, delay_max]
+            t += float(rng.integers(1, int(delay_max) + 1))
+        else:
+            t += float(rng.uniform(0.0, delay_max))
         src = r
     last = int(relays[-1])
     return t + path_latency[last].astype(np.float64)       # final gossip floods from the last relay
