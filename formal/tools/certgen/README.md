@@ -16,8 +16,8 @@ Example: `python3 plan.py 0.3 11 > plan_0.3_11.json && python3 mkcfg.py 0.3 11 B
   
   It also returns the in-epoch bounds `ei`, taken from the `vpost` tables, and the crossing bound `pat0 = min_k slo_k · elo_k^Δ`.
 - `planE.py BETA DELTA DELTA_TSI K N` plans the potential's constants on the top member's band. It builds the exact tables and computes the in-epoch contraction `lpi`. It then picks the span, window, empty-run and growth parameters against the weakest band (`stage2`), and prints the seven terms of `settleEps3E` and the band term `Ne · bandEps`.
-- `emitE.py BETA DELTA DELTA_TSI K N NAME OUTDIR [main]` writes `Certs/NAME/Fam.lean`, `Certs/NAME/I<i>.lean` (one file per phase index) and `Certs/NAME.lean`. The last holds the potential `P`, the certificates `C : Cert2E` and `D3 : Cert3E`, the numbers `eps_le`, the band constants `Tb` with `band_le`, and the theorems `certified` and `certified_tsi`. With `main`, only `NAME.lean` is rewritten, from the cached plan `res_NAME.pkl`.
+- `emitE.py BETA DELTA DELTA_TSI K N NAME OUTDIR [all|main] [MU]` writes `Certs/NAME/Fam.lean`, `Certs/NAME/I<i>.lean` (one file per phase index) and `Certs/NAME.lean`. The last holds the potential `P`, the certificates `C : Cert2E` and `D3 : Cert3E`, the numbers `eps_le`, the band constants `Tb` with `band_le`, and the theorems `certified` and `certified_tsi`. With `main`, only `NAME.lean` is rewritten, from the cached plan `res_NAME.pkl`.
 
 Build the files one at a time; each table file takes a few minutes and a few GB.
 
-Example: `python3 emitE.py 0.2 11 0.09 6 31536000 E20D11 ../../Cryptarchia/Prob/Certs`
+Example (the committed certificate, with μ = 0.1): `python3 emitE.py 0.2 11 0.09 6 31536000 E20D11 ../../Cryptarchia/Prob/Certs all 0.1`. The arguments are β, Δ, the TSI band δ, the number of band members, the horizon, the name, the output directory, `all` or `main`, and μ.

@@ -389,10 +389,10 @@ def emit_tsi(cfg, T, D, K, M, tgt, Gp, J, Lw, r, Tg, x, yy, G):
         a0s.append(a0); Qs.append((Q, hyp, base)); chains.append("\n".join(lines))
     BX = rup(1 / Qs[0][0] + 1 / Qs[1][0], 4)
     Ne = M // EL + 1
-    tb = f"⟨{q(T['llo'])}, {q(T['lhi'])}, 0, {q(beta)}, {q(delta)}, 1 / 10 ^ 70, 1 / 10 ^ 16⟩"
+    tb = f"⟨{q(T['llo'])}, {q(T['lhi'])}, {q(T['mu'])}, {q(beta)}, {q(delta)}, 1 / 10 ^ 70, 1 / 10 ^ 16⟩"
     simpsT = "Tb, TBand.Yh, TBand.Ya, TBand.ylo, TBand.clo, TBand.chi, errHi, errLo"
     fieldsT = ['lo_pos', 'hi0', 'μ0', 'μ1', 'β0', 'β1', 'δ0', 'δ1', 'η0', 'ζ0', 'Yh_le', 'Ya_le', 'eHi', 'eLoH', 'eLoA', 'clo0']
-    s = f"""/-- The estimate's band: `λV/D ∈ [ℓlo, ℓhi]`, μ = 0, β = {float(beta)}, δ = {float(delta)}. -/
+    s = f"""/-- The estimate's band: `λV/D ∈ [ℓlo, ℓhi]`, μ = {float(T['mu'])}, β = {float(beta)}, δ = {float(delta)}. -/
 noncomputable def Tb : TBand := {tb}
 
 theorem TbOK : Tb.OK where
@@ -422,10 +422,11 @@ theorem lot : LotConsts Config.spec (1 / 10 ^ 70) where
 /-- **Certified multi-epoch finality from a random oracle and the stake estimate.**
 β = {float(beta)}, Δ = {D}, k = 2160, executions up to slot {cfg['N']} ({Ne} epochs). Beyond the
 random oracle, fresh lotteries and Δ-delivery, the hypotheses are those of
-`final_bimm_ro_tsi3`: states satisfy `StateOK`, genesis is in band, each estimate update
-follows `Recur` (counts between `(1-μ)` honest and all occupied slots, full withholding
-allowed), the stake path satisfies `StakePath`, and `pick` assigns in-band states their
-member. Then a finality violation has probability at most `{tgt} + {Ne} · {float(BX):.3e}`. -/
+`final_bimm_ro_tsi4`: states satisfy `StateOK`, genesis is in band, canonical prefixes are
+consistent (`hcons`), the canonical chain's occupied-slot count lies between `(1-μ)` times
+the honest occupied slots and all occupied slots plus genesis (`hlo`, `hhi`; μ = {float(T['mu'])},
+full withholding allowed), the stake path satisfies `StakePath`, and `pick` assigns in-band
+states their member. Then a finality violation has probability at most `{tgt} + {Ne} · {float(BX):.3e}`. -/
 theorem certified_tsi {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measure Ω}}
     [MeasureTheory.IsProbabilityMeasure μ] {{O : Ω → Oracle}} (E : Env) (hc : E.c = Config.spec) (hΔ : E.Δ = {D})
     (hA : Assm E) (es : Ω → List Event) (hNF : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ {cfg['N']})
@@ -434,15 +435,20 @@ theorem certified_tsi {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.M
     (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω)) (pick : EpochState → Fin {K})
     (hst : ∀ ω i, StateOK E Tb i (σE (E.withO (O ω)) (es ω) i))
     (h0 : ∀ ω, InB E Tb (σE (E.withO (O ω)) (es ω)) 0)
-    (hrec : ∀ ω e, e + 1 < {Ne} → Recur E Tb (σE (E.withO (O ω)) (es ω))
-      (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e)
+    (hcons : ∀ ω e, e + 1 < {Ne} → 1 ≤ e →
+      prefixBelow (CP (E.withO (O ω)) (es ω) (e + 1)) (E.c.cut e) = CP (E.withO (O ω)) (es ω) e)
+    (hlo : ∀ ω e, e + 1 < {Ne} → (1 - Tb.μ) *
+      hcnt E (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e ≤
+        (occupied E.c (CP (E.withO (O ω)) (es ω) (e + 1)) e : ℝ))
+    (hhi : ∀ ω e, e + 1 < {Ne} → (occupied E.c (CP (E.withO (O ω)) (es ω) (e + 1)) e : ℝ) ≤
+      wcnt E (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e + 1)
     (hpath : ∀ ω e, e + 1 < {Ne} → StakePath E Tb (σE (E.withO (O ω)) (es ω)) e)
     (hpick : ∀ ω n, n < {M} → InB E Tb (σE (E.withO (O ω)) (es ω)) ((n + 1) / E.c.epochLength) →
       SlotBand (fam (pick (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1) (σE (E.withO (O ω)) (es ω) (n + 1))) :
     μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal {tgt} + (({Ne} : ℕ) : ENNReal) * ENNReal.ofReal {q(BX)} := by
   have hEL : E.c.epochLength = {EL} := by rw [hc]; rfl
   have hP : E.c.period = {PERIOD} := by rw [hc]; rfl
-  refine (final_bimm_ro_tsi3 (M := {M}) (Ne := {Ne}) hA es hNF hdel hO hσm hfresh hΔ (D3 E.c.epochLength hEL)
+  refine (final_bimm_ro_tsi4 (M := {M}) (Ne := {Ne}) hA es hNF hdel hO hσm hfresh hΔ (D3 E.c.epochLength hEL)
     (fun k => by fin_cases k; exacts [{", ".join(f"prod{kk}" for kk in range(K))}]) pick
     (G' := {Gp}) (J := {J}) (Lw := {Lw}) (r := {r}) (T := {Tg}) (x := {q(x)}) (yy := {q(yy)})
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
@@ -450,7 +456,7 @@ theorem certified_tsi {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.M
     (by rw [hc]; exact lot) TbOK (by rw [hc]; rfl) (by rw [hc]; norm_num [Config.spec])
     (by rw [hc]; norm_num [Config.spec, Config.period, Config.kf])
     (by rw [hP]; norm_num) (by rw [hP, hEL]; norm_num)
-    hst h0 (by rw [hEL]; norm_num) hrec hpath hpick).trans ?_
+    hst h0 (by rw [hEL]; norm_num) hcons hlo hhi hpath hpick).trans ?_
   rw [hP]
   refine add_le_add (ENNReal.ofReal_le_ofReal (eps_le E hc)) ?_
   gcongr
@@ -465,11 +471,12 @@ if __name__ == "__main__":
     beta, D, delta, K, N = float(sys.argv[1]), int(sys.argv[2]), float(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
     name, out_dir = sys.argv[6], sys.argv[7]
     mode = sys.argv[8] if len(sys.argv) > 8 else 'all'
+    mu = float(sys.argv[9]) if len(sys.argv) > 9 else 0.0
     pk = f"res_{name}.pkl"
     if mode == 'main' and os.path.exists(pk):
         res = pickle.load(open(pk, 'rb'))
     else:
-        res = planE.make(beta, D, delta, K, N)
+        res = planE.make(beta, D, delta, K, N, mu=mu)
         pickle.dump(res, open(pk, 'wb'))
     cfg, T, fam, B, P, Ts = res
     tot = sum(Ts)

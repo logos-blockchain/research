@@ -19,7 +19,7 @@ The Logos blockchain's consensus protocol, modelled rule by rule from its specif
 | `Spec/` | **The protocol as specified**, as computable definitions: parameters, the lottery threshold, total stake inference, chains, fork choice, epoch states, honest nodes, executions (time, delivery, adversary). | `Config.spec` and its derived constants, checked by `decide`. |
 | `Settle/` | **Settlement combinatorics** on proof-of-stake trees, after Gaži, Ren and Russell (*Practical Settlement Bounds for Longest-Chain Consensus*, CRYPTO 2023): reach and margin recurrences, upper bounds only. | `bnd_sound`, `settled` |
 | `Proof/` | **Deterministic safety.** Every execution builds a valid PoS tree, and finality holds on a good event of the lottery string alone, over any number of epochs. | `agree_now`, `bimm_final`, `final_bimm`, `final_bimm_epochs`, `time_final_epochs` |
-| `Prob/` | **The probability layer.** It covers the lottery as a random oracle and worst-case kernels over a band of slot laws. It proves the settlement bound, the band from stake fractions, and that the stake estimate stays in band. | `final_bimm_ro`, `lottery_law_epoch`, `slotBand_of_stake`, `prob_out_of_band`, `final_bimm_ro_tsi3` |
+| `Prob/` | **The probability layer.** It covers the lottery as a random oracle and worst-case kernels over a band of slot laws. It proves the settlement bound, the band from stake fractions, and that the stake estimate stays in band. | `final_bimm_ro`, `lottery_law_epoch`, `slotBand_of_stake`, `prob_out_of_band`, `final_bimm_ro_tsi4` |
 | `Prob/Certs/` | **A certified number** at the specification's parameters (library `CryptarchiaCerts`). | `E20D11.certified_tsi` |
 
 ## The deterministic layer
@@ -44,14 +44,17 @@ The assumptions on the environment are the fields of `Assm E`:
 | `final_bimm_ro_epoch_ok`, `final_bimm_ro_epoch3_ok` (`Prob/Final2E`, `Final3E`) | P(violation) ≤ settlement bound + P(some epoch state out of band). Phases inside an epoch use each member's own contraction, and phases near a boundary pay a bounded ratio. |
 | `prob_out_of_band` (`Prob/TSIRO`) | **Total stake inference.** The probability that the stake estimate leaves its band in some epoch is at most `Ne · bandEps`. The proof uses Chernoff bounds with predictable rates and a deterministic band step through the specification's fixed-point update (`infer_close`). The adversary may withhold all its blocks. |
 | `final_bimm_ro_tsi3` (`Prob/FinalTSI`) | Joins the two: P(violation) ≤ `settleEps3E + Ne · bandEps`. |
+| `final_bimm_ro_tsi4` (`Prob/FinalTSI`) | The same bound, with the estimate's update stated about the canonical chain (`recur_of`, from `cs_succ_D` in `Proof/Recur`). |
 
-The hypotheses of `final_bimm_ro_tsi3` beyond the random oracle, fresh lotteries and Δ-delivery are explicit:
+The hypotheses of `final_bimm_ro_tsi4` beyond the random oracle, fresh lotteries and Δ-delivery are explicit:
 
 | Hypothesis | Meaning | Status |
 |---|---|---|
 | `InB … 0` | genesis is in band | a genesis check |
 | `StateOK` | distinct note ids, small notes, adversary ≤ β of participating stake | stake assumption |
-| `Recur` | `D_{e+1} = infer(D_e, N_e)` on the canonical prefix, with `(1−μ)` × honest occupied slots ≤ `N_e` ≤ occupied slots + 1 | **assumed**, see open items |
+| `hcons` | epoch `e+1`'s canonical prefix, cut at epoch `e`'s cut, is epoch `e`'s canonical prefix | proven while settlement holds (`cp_consistent`); linking it to the good event is open |
+| `hlo` | the canonical chain's occupied-slot count in epoch `e`'s window is at least `(1 − μ)` × the honest-won slots, μ = 0.1 | **assumed**, with simulation evidence (`tools/forksim`): about 1 % in normal operation, up to about 10 % under worst-case scheduling or a balance attack; chain growth alone proves μ ≈ 0.25 |
+| `hhi` | that count is at most the occupied slots + 1 (genesis) | derivable: every counted block and uncle carries a valid win; not yet in Lean |
 | `StakePath` | the stake at each slot of epoch `e+1` is covered by epoch `e`'s window estimate | stake-drift assumption |
 | `hpick` | an in-band state is within its assigned member's band | checked per certificate |
 
@@ -59,9 +62,9 @@ The hypotheses of `final_bimm_ro_tsi3` beyond the random oracle, fresh lotteries
 
 One configuration is certified, as a Lean theorem with standard axioms only (`Prob/Certs/E20D11.lean`, `certified_tsi`):
 
-> f = 1/30, k = 2160, Δ = 11 slots, β = 0.2, executions up to slot 31,536,000 (one year, 49 epochs), with the specification's stake inference and the adversary free to withhold all its blocks: **P(finality violation) ≤ 1e-13 + 49 × 3.8e-16**.
+> f = 1/30, k = 2160, Δ = 11 slots, β = 0.2, executions up to slot 31,536,000 (one year, 49 epochs), with the specification's stake inference and the adversary free to withhold all its blocks: **P(finality violation) ≤ 1e-9 + 49 × 4.2e-16**.
 
-The band of slot rates is derived from the stake estimate (TSI band δ = 9 %, six band members), with μ = 0 (every honest win is counted). The remaining hypotheses are those of `final_bimm_ro_tsi3` above.
+The band of slot rates is derived from the stake estimate (TSI band δ = 9 %, six band members), with μ = 0.1 (at most 10 % of honest wins go uncounted). The remaining hypotheses are those of `final_bimm_ro_tsi4` above. Assuming every honest win is counted (μ = 0) would give about 1e-13; the simulation shows that assumption fails under worst-case forks.
 
 Other configurations are generated by `tools/certgen` (one-epoch, genesis and multi-epoch variants; see its README). Indicative values from the same method include:
 - β = 0.1 over a year: about 1e-40;
@@ -116,10 +119,10 @@ Each point is resolved so that theorems cover both readings, or in the adversary
 1. **Restarts within T_offline** (the specification's 20-minute rule). A restarting node's local chain is stale, and its fork choice could be captured.
 2. **The bootstrap rule** (density-based fork choice over `s_gen` slots).
 3. **Nonce grinding.**
-4. **`Recur` from the execution.** This needs two derivations:
-   - canonical-prefix consistency of `stakeEstimate` across epochs;
-   - the count sandwich: chain blocks need winning tickets, and honest wins are seen directly or as uncles.
+4. **The estimate's update from the execution.** The recursion (`cs_succ_D`) and canonical-prefix consistency (`cp_consistent`) are proven. Three steps remain:
+   - Derive `hhi`: every counted block and uncle carries a valid win under the canonical state.
+   - Link `hcons` and `hhi` to the settlement good event. They hold only while settlement holds, but `final_bimm_ro_tsi4` assumes them for every execution.
+   - Replace the assumed μ = 0.1 in `hlo` with a proof. Chain growth gives μ ≈ 0.25. The uncle rule counts only forks whose parent is on the chain, so deeper forks are lost; `tools/forksim` measures this.
 5. **Tighter bounds.** The current method has two known sources of slack:
    - one window length shared across epochs of different rates; counting the window in occupied slots would remove it;
    - the two-term potential, against the exact chain.
-6. **μ > 0 certificates.**
