@@ -26,6 +26,62 @@ and the order of work. The finished story will be `../../../reports/finality/`.*
 | §6 | what depends on `k` today, in the specifications and in the node |
 | §7 | literature to reproduce before it is relied on |
 
+## Status
+
+Executed on 2026-10-05. Results live in five notes beside this plan:
+
+- `MAPPING.md`: A2, A3.
+- `RATE.md`: A1, C1–C4.
+- `SETTLEMENT.md`: B1–B5.
+- `CERTIFIED.md`: D0–D6.
+- `DAG.md`: E0–E6.
+
+Phase by phase:
+
+| phase | status |
+| --- | --- |
+| A1 baseline | done; reproduces the TSI report's and the specification's measured orphan shares |
+| A2, A3 map and self-healing horizon | done |
+| B1 bounds | done; the port reproduces all 152 proof-of-stake cells of the paper's Table 1 |
+| B2 depth over share and delay | done, worst case |
+| B3 engine validation | done: the private-chain attack under random delays, and the delay-scheduling attacker of the lower bound on the slot lottery |
+| B4 confirmation rule | drafted |
+| B5 smaller `k` | done: the share each `k` holds, both routes of Q8, and a trigger for automatic recovery |
+| C1 rate surface | done |
+| C2 Blend parameters | the delay map is done; the privacy trade is with the Blend owners |
+| C3 GHOST | done |
+| C4 Taktikos | done: no fewer orphans; a regular interval settles faster on the specification's Blend at more blocks |
+| D0 emission map, D2 committee realism | done |
+| D1, D1b, D3, D4, D5 | sketched, open questions listed; D3 prices verification with the Raspberry Pi 5 measurement of Blend, proving on it is not measured |
+| D6 simulation | done: votes on a target 30 slots back never split under random delay; a round certifies within one Blend delivery; an adversary that schedules delays splits shallow rounds |
+| E0 audit of the Areon simulator | done |
+| E1–E6 | waiting on the owner's decision in `DAG.md` |
+| F report | follows E |
+
+Findings about the protocol as it stands:
+
+- A restart, even with `--bootstrap`, does not return a node from the losing side of a split deeper
+  than `k`; only a re-sync from genesis or a checkpoint does (`SETTLEMENT.md` B5).
+- At testnet's `k = 120` the Bootstrap rule's density window is 15 minutes, and a quarter of the
+  stake wins about one such window in 460 (B5).
+- `maxvalid-bg` reads the depth of the local branch, so after a split the two sides can choose
+  different chains until both pass `k` (B5).
+- LCanalysis follows its lower-bound attack for 80 phases, too few past Table 1's depths: at a
+  third of the stake and depth 60 the bound falls from `6.8e-3` to `5e-12`. It also scores the
+  attack only at the moment of confirmation (B1, B3).
+
+Hypotheses:
+
+| hypothesis | verdict |
+| --- | --- |
+| H1 | fails for the guarantee: at 25 % and `ε = 1e-9` the upper bound exceeds 216 blocks at every delay. Holds for the best known attack up to about 20 s |
+| H2 | holds for delays up to about 14 s |
+| H3 | holds |
+| H4 | refuted: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control |
+| H5 | waits on the budget line of Q7 |
+| H6 | holds with the trigger of `SETTLEMENT.md` B5: a density test below `B_imm` within a horizon `H`, with a window set apart from `k`. Fails as first stated, a switch to the Bootstrap rule. `H` waits on data about stake turnover |
+| H7 | cannot be judged from the paper's numbers (E0) |
+
 Three notions of finality carry the document. They are measured separately and never mixed.
 
 - **k-finality.** The latest immutable block `B_imm` of the Cryptarchia specification, the block
@@ -395,9 +451,9 @@ Exit: `o` and `D_vis` per configuration, with replicates and standard errors, an
 ### Phase B — settlement (`SETTLEMENT.md`)
 
 - **B1.** Reproduce Table 1 of the 2025-05-02 revision of Gaži, Ren and Russell with the
-  authors' `LCanalysis` code (MATLAB/Octave; Octave is not installed on this machine). The code
-  takes the honest ratio and `D = f·Δ` as its inputs, so Cryptarchia's cases are new values of
-  `D`. Gate: the table reproduces, and a mutation of the code's inputs fails it.
+  authors' `LCanalysis` code (MATLAB/Octave). The code takes the honest ratio and `D = f·Δ` as
+  its inputs, so Cryptarchia's cases are new values of `D`. Gate: the table reproduces, and a
+  mutation of the code's inputs fails it.
 - **B2.** Tables of `d(α, Δ, ε)` at `f = 1/30` over a range of `Δ`, as upper and lower bounds,
   with the reference points of Q3 marked. Add the `(α, ε)` that `k = 2160` and `k = 120` hold at
   each `Δ`, and the largest `Δ` for H1 and H2. Where the bounds stay far apart, the lower bound

@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "finality-sim"
+version = "0.1.0"
+description = "Exploratory study of faster finality for Cryptarchia (see PLAN.md)"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Logos" }]
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pandas>=2.1",
+    "pyarrow>=14",
+    "matplotlib>=3.8",
+    "pyyaml>=6.0",
+    "joblib>=1.3",
+    "numba>=0.60",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/finality_sim"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
