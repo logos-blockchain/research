@@ -1,5 +1,5 @@
 name = "Formal"
-defaultTargets = ["StochasticRecurrence", "MiningOnboarding"]
+defaultTargets = ["StochasticRecurrence", "MiningOnboarding", "Cryptarchia"]
 
 [[require]]
 name = "mathlib"
@@ -11,3 +11,15 @@ name = "StochasticRecurrence"
 
 [[lean_lib]]
 name = "MiningOnboarding"
+
+# Cryptarchia: specification, settlement, deterministic and probabilistic safety.
+[[lean_lib]]
+name = "Cryptarchia"
+
+# Generated numeric certificates (slow: hours). Not a default target.
+[[lean_lib]]
+name = "CryptarchiaCerts"
+
+# Axiom checks and differential tests against the specification's pseudocode.
+[[lean_lib]]
+name = "CryptarchiaTest"
