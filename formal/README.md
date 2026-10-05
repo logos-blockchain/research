@@ -10,7 +10,7 @@ Machine-checked definitions and proofs for the Logos blockchain, in Lean 4 with 
 | Library | Contents |
 |---|---|
 | [`Cryptarchia`](Cryptarchia/README.md) | The consensus protocol: its specification, settlement combinatorics, deterministic safety over executions, and the probability layer, including total stake inference (TSI). |
-| `CryptarchiaCerts` | Generated numeric certificates for Cryptarchia's settlement theorems at the specification's parameters. These are slow to build (hours) and are not a default target. |
+| `CryptarchiaCerts` | A generated numeric certificate for Cryptarchia's settlement theorem at the specification's parameters (`E20D11`: β = 0.2, one year). It takes about an hour to build and is not a default target. |
 | `CryptarchiaTest` | Axiom checks, and differential tests of the specification's definitions against an independent transliteration of the pseudocode. |
 
 Each protocol component is its own Lean library at the top level of this folder. New components (for example the Mantle ledger or Blend networking) go next to `Cryptarchia`, not inside it.
@@ -26,7 +26,7 @@ formal/
     Settle/               settlement combinatorics (PoS trees)
     Proof/                deterministic safety over executions
     Prob/                 probability layer: random oracle, kernels, bounds, TSI
-    Prob/Certs/           generated certificates (library CryptarchiaCerts)
+    Prob/Certs/           generated certificate (library CryptarchiaCerts)
   CryptarchiaCerts.lean   certificate library root
   CryptarchiaTest/        axiom checks, differential tests
   tools/
@@ -56,7 +56,7 @@ cd formal
 nix-shell                         # elan and Python, with ELAN_HOME=formal/.elan
 lake exe cache get                # Mathlib's prebuilt .olean files (about 5 GB)
 lake build                        # Cryptarchia (default target)
-lake build CryptarchiaCerts       # the certificates: hours, a few GB of memory per file
+lake build CryptarchiaCerts       # the certificate: about an hour, a few GB of memory per file
 lake env lean CryptarchiaTest/Axioms.lean    # axioms of every headline theorem
 ```
 
