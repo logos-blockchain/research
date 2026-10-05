@@ -68,9 +68,9 @@ def stage2(Bw, D, N, tau, lp_eff, e17, e2, stat, Gfix=None, k=2160, fden=30, tar
             if grow_best is None or v < grow_best[0]: grow_best = (v, T, yy)
     return dict(Lw=Lw, J=J, x=x, Gp=Gp, G=G, T=grow_best[1], yy=grow_best[2], tot=tot, goal=goal)
 
-def make(beta, D, delta, K, N, refined=True):
+def make(beta, D, delta, K, N, refined=True, mu=0):
     t0 = time.time()
-    T = tband(beta, delta)
+    T = tband(beta, delta, mu=Fr(mu).limit_denominator(1000))
     fam = epoch_members(T, K)
     bands = [m['B'] for m in fam]
     B = weakest(bands)

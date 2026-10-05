@@ -32,6 +32,7 @@ formal/
   tools/
     certgen/              Python generator for Prob/Certs
     difftest/             Python generator for CryptarchiaTest/Diff.lean
+    forksim/              fork simulator: how many honest wins the TSI count sees
   shell.nix               pinned dev shell (elan, Python with numpy and scipy)
 ```
 

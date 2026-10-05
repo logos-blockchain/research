@@ -51,3 +51,5 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.Prob.Certs.E20D11.certified_tsi
 #print axioms Cryptarchia.cs_succ_D
 #print axioms Cryptarchia.cp_consistent
+#print axioms Cryptarchia.Prob.recur_of
+#print axioms Cryptarchia.Prob.final_bimm_ro_tsi4
