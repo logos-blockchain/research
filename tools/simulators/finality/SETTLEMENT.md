@@ -409,5 +409,50 @@ What the trigger costs:
 - A split heals only once the window after its divergence point has passed: 1.7 h against a
   quarter of the stake at `1e-9` per window on the specification's Blend, 4.9 h against a third.
 
+**The horizon against stake turnover.** `scripts/b5_recovery_sweep.py` turns rule 6 into numbers.
+A share `μ(a) = 1 − e^{−τa}` of the stake moves within an age `a`, at a turnover rate `τ` per day.
+An adversary holding `α` that obtains a fraction `c` of the freed keys signs the fork with
+`α + c(1 − α)μ(a)`, while the honest chain kept `1 − α`. Over the horizon, the chance of a denser
+fork is at most the sum, over divergence points of age up to `H` (one per honest block), of the
+window's chance at that point's age. The longest `H`, in days, that keeps it at or below `1e-9`,
+with a 4-hour window on the specification's Blend and random delay (`runs/b5/recovery_sweep.csv`
+also holds `1e-6`, windows of 1–8 hours and the worst case at 10 s):
+
+Every freed key reaches the adversary (`c = 1`):
+
+| α | 0.01 %/day | 0.03 %/day | 0.1 %/day | 0.3 %/day | 1 %/day | 3 %/day | 10 %/day |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.10 | ≥ 3650 | 1320 | 406 | 139 | 43 | 15 | 4 |
+| 0.20 | 1787 | 621 | 195 | 68 | 21 | 7 | 2 |
+| 0.25 | 724 | 265 | 87 | 32 | 10 | 4 | 29 h |
+| 0.30 | 5 h | 5 h | 5 h | 5 h | 4 h | 3 h | 2 h |
+| 0.33 | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h |
+
+A tenth of the freed keys reaches the adversary (`c = 0.1`):
+
+| α | 0.01 %/day | 0.03 %/day | 0.1 %/day | 0.3 %/day | 1 %/day | 3 %/day | 10 %/day |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.10 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 |
+| 0.20 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 | ≥ 3650 |
+| 0.25 | ≥ 3650 | 2961 | 1048 | 407 | 145 | 57 | 21 |
+| 0.30 | 5 h | 5 h | 5 h | 5 h | 5 h | 5 h | 4 h |
+| 0.33 | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h |
+
+The window, against a quarter of the stake with every freed key (`c = 1`):
+
+| window | 0.01 %/day | 0.03 %/day | 0.1 %/day | 0.3 %/day | 1 %/day | 3 %/day | 10 %/day |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h |
+| 2 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h | < 1 h |
+| 4 h | 724 | 265 | 87 | 32 | 10 | 4 | 29 h |
+| 8 h | 2012 | 692 | 215 | 74 | 23 | 8 | 2 |
+
+- **Turnover sets the horizon once the window holds the adversary.** Against a quarter of the stake,
+  a 4-hour window allows 87 days at 0.1 % of the stake moving per day and 10 days at 1 %, if every
+  freed key can be bought.
+- **The window sets a ceiling no horizon escapes.** A 4-hour window cannot hold 30 % of the stake
+  for more than about 5 hours of history, and a third not at all. Windows of 1 and 2 hours hold a
+  quarter for less than an hour.
+
 **H6** holds with the trigger of rules 1–6 and fails as the plan first stated it. The self-healing
 horizon then stops bounding `k`; `H` takes its place, and `H` waits on data about stake turnover.

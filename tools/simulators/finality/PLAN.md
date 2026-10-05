@@ -46,7 +46,7 @@ Phase by phase:
 | B2 depth over share and delay | done, worst case |
 | B3 engine validation | done: the private-chain attack under random delays, and the delay-scheduling attacker of the lower bound on the slot lottery |
 | B4 confirmation rule | drafted |
-| B5 smaller `k` | done: the share each `k` holds, both routes of Q8, and a trigger for automatic recovery |
+| B5 smaller `k` | done: the share each `k` holds, both routes of Q8, a trigger for automatic recovery, and its horizon against stake turnover |
 | C1 rate surface | done |
 | C2 Blend parameters | the delay map is done; the privacy trade is with the Blend owners |
 | C3 GHOST | done |
@@ -56,7 +56,7 @@ Phase by phase:
 | D6 simulation | done: votes on a target 30 slots back never split under random delay; a round certifies within one Blend delivery; an adversary that schedules delays splits shallow rounds |
 | E0 audit of the Areon simulator | done |
 | E1–E6 Areon-Base on the engine | done: built on the TSI engine (the owner's choice); the private race, the §5.6 fit, worst-case delay, eligibility, ledger and cost |
-| F report | open |
+| F report | `reports/finality/README.md` |
 
 Findings about the protocol as it stands:
 
