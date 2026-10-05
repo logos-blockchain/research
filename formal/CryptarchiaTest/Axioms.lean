@@ -16,7 +16,6 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.final_agree
 #print axioms Cryptarchia.Settle.cold_of_window
 #print axioms Cryptarchia.Settle.step_cases
-#print axioms Cryptarchia.Prob.window_of_occ
 #print axioms Cryptarchia.bimm_final_epochs
 #print axioms Cryptarchia.final_bimm_epochs
 #print axioms Cryptarchia.stage
