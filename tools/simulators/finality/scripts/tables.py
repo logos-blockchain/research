@@ -1,7 +1,7 @@
 """Markdown tables for the study's notes, read straight from runs/ (no hand transcription).
 
     python scripts/tables.py a1 | c1 | c1settle | c3 | c4 | b3 | b3delay | b2 | b5 | b5rec | b5sweep |
-                             b6 | d0 | d6 | e2 | e5 | e5balance
+                             b6 | d0 | d1b | d5 | d6 | e2 | e5 | e5balance
 """
 
 from __future__ import annotations
@@ -294,6 +294,48 @@ def b6() -> None:
     print(md(pd.DataFrame(rows)))
 
 
+def duration(days: float) -> str:
+    if days >= 10:
+        return f"{days:,.0f} d"
+    if days >= 1:
+        return f"{days:.1f} d"
+    if days * 24 >= 1:
+        return f"{days * 24:.1f} h"
+    if days * 1440 >= 1:
+        return f"{days * 1440:.0f} min"
+    return f"{days * 86400:.0f} s"
+
+
+def d5() -> None:
+    t = pd.read_csv(RUNS / "d5" / "times.csv")
+    rows = []
+    for s, g in t.groupby("share", sort=False):
+        row = {"share": f"{100 * s:g} %"}
+        for _, x in g.iterrows():
+            row[x.setting] = f"{duration(x.identify_days)} / {duration(x.size_days)}"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    e = pd.read_csv(RUNS / "d5" / "epoch.csv")
+    print(md(pd.DataFrame({
+        "model": e.model, "votes": e.setting,
+        "confidence for a 1.26 % holder": e.confidence.map(lambda v: f"{v:.2f}"),
+        "nodes it must split into": e.nodes.map(lambda v: f"{v:,}"),
+        "largest share an observer cannot size": e.largest_hidden.map(lambda v: f"{100 * v:.2g} %")})))
+
+
+def d1b() -> None:
+    t = pd.read_csv(RUNS / "d1b" / "committee.csv")
+    rows = []
+    for a, g in t.groupby("alpha", sort=False):
+        row = {"α": f"{a:.2f}"}
+        for _, x in g.iterrows():
+            row[f"uptime {x.uptime:g}"] = ("impossible" if np.isinf(x.honest_share)
+                                           else f"{x.honest_share:.2f} / {x.holders:,.0f}")
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+
+
 def d0() -> None:
     m = pd.read_csv(RUNS / "d0" / "emission_map.csv")
     d = m[(m.awake == 1.0) & (m.eps == 1e-9)]
@@ -455,5 +497,5 @@ def e5balance() -> None:
 
 if __name__ == "__main__":
     {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b5": b5,
-     "b5rec": b5rec, "b5sweep": b5sweep, "b6": b6, "d0": d0, "d6": d6,
+     "b5rec": b5rec, "b5sweep": b5sweep, "b6": b6, "d0": d0, "d1b": d1b, "d5": d5, "d6": d6,
      "e2": e2, "e5": e5, "e5balance": e5balance}[sys.argv[1]]()

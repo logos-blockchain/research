@@ -53,7 +53,9 @@ Phase by phase:
 | C3 GHOST | done |
 | C4 Taktikos | done: no fewer orphans; a regular interval settles faster on the specification's Blend at more blocks |
 | D0 emission map, D2 committee realism | done |
-| D1, D1b, D3, D4, D5 | sketched, open questions listed; D3 prices verification with the Raspberry Pi 5 measurement of Blend, proving on it is not measured |
+| D1b opt-in committee | done: the share of the stake that must declare, and how many of the largest holders that takes |
+| D5 privacy | done: votes sample stake at D0's multiple; times to identify and size a holder through Blend and by direct gossip |
+| D1, D3, D4 | sketched, open questions listed; D3 prices verification with the Raspberry Pi 5 measurement of Blend, proving on it is not measured |
 | D6 simulation | done: votes on a target 30 slots back never split under random delay; a round certifies within one Blend delivery; an adversary that schedules delays splits shallow rounds |
 | E0 audit of the Areon simulator | done |
 | E1–E6 Areon-Base on the engine | done: built on the TSI engine (the owner's choice); the private race, the §5.6 fit, worst-case delay, eligibility, ledger and cost |
@@ -63,7 +65,7 @@ Before review, in this order:
 
 1. **The DAG's worst case.** Done (E5): the balancing attack.
 2. **Grinding the epoch nonce.** Done (B6).
-3. **The opt-in committee and the privacy of votes** (D1b, D5), measured.
+3. **The opt-in committee and the privacy of votes.** Done (D1b, D5).
 4. **A confirmation rule that reads elapsed time** (B4), which could settle sooner when blocks come
    fast.
 5. **Proving a vote on a Raspberry Pi 5** (D3): a benchmark for the reference hardware.

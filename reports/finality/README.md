@@ -39,7 +39,7 @@ Against a quarter of the stake on the specification's Blend (3 hops of up to 3 r
 | smaller `k` ([§4](#s4)) | `k`, the epoch unless decoupled, and a recovery trigger | in proportion to `k`: 1.8–2.1 h at `k = 216`, which holds 32 % of the stake at `1e-9` under random delay and 17–22 % guaranteed; 27 % and 16–21 % once grinding is counted | a weaker guarantee; less precise stake inference if the epoch shrinks too | a look-back horizon of 57–108 days at Bitcoin-like turnover, with an 8-hour window and grinding counted |
 | regular block intervals ([§5](#s5)) | the lottery coefficient becomes a curve of the slots since the parent | 12 min instead of 18 at `1e-3` | 30 % more blocks; a new stake inference | no worst-case bound |
 | faster blocks ([§5](#s5)) | `f` | best at 15–20 s blocks: 46–48 min at `1e-9` against 51 | more forks | — |
-| certificates ([§6](#s6)) | anonymous-seat votes through Blend | about 6 min with 10-minute rounds | ×269 Blend cover traffic | rounds stall under a partition or a delay-scheduling adversary |
+| certificates ([§6](#s6)) | anonymous-seat votes through Blend | about 6 min with 10-minute rounds | ×269 Blend cover traffic; votes give an observer even odds of sizing any stake above 0.1 % within an epoch | rounds stall under a partition or a delay-scheduling adversary |
 | multi-proposer DAG ([§7](#s7)) | replaces the chain and its fork choice | 38 min at `1e-9` at today's block rate; 15 min at ×3.2 the blocks | ×1 to ×8.6 emissions | against an adversary that schedules delays up to 10 s, safe against 40–45 % of the stake at today's rate, but only 3–6 % at ×8.6 the blocks |
 
 Five candidates for specification work follow from the study:
@@ -242,6 +242,16 @@ anonymity ceiling.
   each an Ed25519 signature and a Groth16 proof (`blend-protocol.md`). Against a quarter of the
   stake, votes then take 6 % of a core with 10-minute rounds and 38 % with 90 s rounds. Proving on
   the Pi 5 is not measured.
+- **Votes make stake learnable.** A seat is a lottery win, so every vote is a sample of its
+  sender's stake: with 10-minute rounds, votes multiply an observer's samples by 269. In the Blend
+  report's model of linking, an observer then sizes a 0.1 % holder's stake to ±10 % in 16 days
+  instead of 4,340, and has better than even odds of sizing every share above 0.1 % within an
+  epoch, against 26 % from blocks alone. Gossiped directly, the same votes size a 0.1 % holder in
+  3 hours.
+- **An opt-in public committee needs most of the honest stake.** If volunteers vote under their
+  identity and the adversary declares all its stake, two thirds of the honest stake must declare
+  against a quarter of the stake, 78 % at 95 % uptime; from 30 % any downtime breaks it. Holders
+  who stay private then cast no vote, so the leak above does not reach them.
 - **Forward security matters more for votes.** Without it, whoever later gathers the keys of past
   voters can forge a past certificate. A per-round key erased after voting, or certificates trusted
   only within a window, would close it.

@@ -1,8 +1,8 @@
 # Certified finality
 
-Phase D of `PLAN.md`. Tables come from `scripts/d0_emission_map.py` and `scripts/d6_votes.py`
-through `scripts/tables.py`. Status: D0, D2 and D6 are measured. D1, D1b, D3, D4 and D5 are
-sketched with the open questions they leave.
+Phase D of `PLAN.md`. Tables come from `scripts/d0_emission_map.py`, `scripts/d1b_committee.py`,
+`scripts/d5_privacy.py` and `scripts/d6_votes.py` through `scripts/tables.py`. Status: D0, D1b,
+D2, D5 and D6 are measured. D1, D3 and D4 are sketched with the open questions they leave.
 
 ## D0 — the emission budget
 
@@ -112,17 +112,47 @@ finality (`MAPPING.md` §6).
 Holders who choose to reveal their stake register it, for example as a declaration with a locked
 note, and vote under their identity; everyone else stays private. Public votes need no seats, so
 the committee can be weighted by stake, signatures can be aggregated, and votes can be gossiped
-directly. Questions for this variant:
+directly. A certificate needs two thirds of the declared stake.
 
-- **Safety and liveness.** A certificate means two thirds of the volunteers' stake signed. Safety
-  then rests on the volunteers, not on the chain's honest majority. Liveness needs the
-  volunteers online.
-- **The private chain.** It must never revert a certified block. A corrupted committee (a third
-  of volunteer stake or more) could certify two forks, and the private chain would then split.
-- **What volunteers reveal.** Their stake, and their network addresses if they gossip directly.
+**The share that must declare.** An adversary holding `α` declares all of it. Honest holders
+declare a share `v` of the honest stake, of which a share `u` is online. Two conflicting
+certificates need the adversary to hold a third of the declared stake, and a certificate needs the
+online honest stake to reach two thirds of it. Both hold when `v ≥ 2α / ((1 − α)(3u − 2))`
+(`src/finality_sim/privacy.py`). Each cell gives `v`, then the number of the largest holders that
+reach it if the honest stake is spread as Cardano's 2,522 pool stakes are (the analysis
+`analysis-cryptarchia-de-anonymisation-of-relative-stake.md`, its `pools.csv`;
+`scripts/d1b_committee.py`):
+
+| α | uptime 1 | uptime 0.95 | uptime 0.9 |
+| --- | --- | --- | --- |
+| 0.10 | 0.22 / 72 | 0.26 / 85 | 0.32 / 106 |
+| 0.20 | 0.50 / 184 | 0.59 / 232 | 0.71 / 318 |
+| 0.25 | 0.67 / 284 | 0.78 / 379 | 0.95 / 688 |
+| 0.30 | 0.86 / 461 | impossible | impossible |
+| 0.33 | impossible | impossible | impossible |
+
+- **Against a quarter of the stake, two thirds of the honest stake must declare** if every
+  volunteer is always online, and 78 % at 95 % uptime. On Cardano's spread that is the 284 or 379
+  largest holders.
+- **From 30 % any downtime breaks it, and a third cannot be held at all.**
+
+Gates (`tests/test_privacy.py`): at the frontier the adversary holds exactly a third of the declared
+stake at full uptime and liveness is tight; just below it liveness fails; the count of holders
+matches a hand count. Two mutations fail them.
+
+What the variant changes:
+
+- **Safety rests on the volunteers**, not on the chain's honest majority, and liveness needs them
+  online. They are named, so they can be targeted.
+- **The private chain must never revert a certified block.** A committee in which the adversary
+  holds a third of the declared stake could certify two forks, and the private chain would then
+  split.
+- **Volunteers reveal their stake**, and their network addresses if they gossip directly.
   Leadership should use other notes, so that their block wins stay private.
-- **Everyone else.** Volunteer stake leaves the anonymity set of leaders. The private stake that
-  remains is smaller, and so easier to profile.
+- **Everyone else casts no vote, so D5's leak does not reach them.** If declared notes leave the
+  leader lottery, a private holder's share of the lottery, and so of the blocks, rises by the
+  factor `1/(1 − V)`, where `V` is the declared share of all stake. Every time in the first
+  column of D5's first table then falls by the factor `1 − V`.
 
 ## D3 — the cost model
 
@@ -161,14 +191,65 @@ naming the voter. Punishment needs the note locked for the round.
 
 ## D5 — privacy
 
-- **Counts.** Every vote is an emission. If the cover rate does not rise by the multiple of D0,
-  the quota ceiling falls by that multiple. Nodes above the lowered ceiling then become
-  distinguishable by emission count alone (Blend report §3.10).
-- **Views.** A vote reveals which block its sender saw. That is the signal the specification's
-  tagging attack exploits (Limitations of Cryptarchia V1).
-- **Direct gossip (Q6).** Votes sent outside Blend would tie seat wins, and so stake, to network
-  addresses. The size of that leak is to be measured with the Blend report's time-to-link and
-  stake-learning machinery (§3.6, §3.7).
+**Counts.** Every vote is an emission. If the cover rate does not rise by the multiple of D0, the
+quota ceiling falls by that multiple. Nodes above the lowered ceiling then become distinguishable
+by emission count alone (Blend report §3.10).
+
+**Votes sample stake.** A seat is a lottery win as a block is. A holder of stake share `s` makes
+`s·f` blocks a slot and `s·n` votes a round of `R` slots, so an observer who attributes a node's
+votes samples its stake `1 + n/(R·f)` times as fast: D0's multiple, ×269 for the committee of
+5,355 seats against a quarter of the stake in 10-minute rounds.
+
+The Blend report's model of linking (§3.6–§3.7, `blend.linkability` loaded from
+`tools/simulators/blend`): each emission of a node with an adversarial peer is attributed to it
+with probability `q`, and `N` attributions size its stake to `1/√N`. Through Blend
+`q = f_adv^hops`, `0.008` at `f_adv = 0.2` and 3 hops for blocks and votes alike. A vote gossiped
+directly has no blend path, so `q = 1`. Mean time until a holder is identified (`N = 1`) / its
+stake is known to ±10 % (`N = 100`), counting its blocks and its votes (`scripts/d5_privacy.py`):
+
+| share | blocks only, through Blend | with votes through Blend, 1 h rounds | with votes through Blend, 10 min rounds | with votes through Blend, 90 s rounds | with votes gossiped directly, 10 min rounds |
+| --- | --- | --- | --- | --- | --- |
+| 5 % | 20.8 h / 87 d | 27 min / 1.9 d | 5 min / 7.8 h | 42 s / 1.2 h | 2 s / 4 min |
+| 1 % | 4.3 d / 434 d | 2.3 h / 9.5 d | 23 min / 1.6 d | 3 min / 5.8 h | 11 s / 19 min |
+| 0.1 % | 43 d / 4,340 d | 22.8 h / 95 d | 3.9 h / 16 d | 35 min / 2.4 d | 2 min / 3.1 h |
+| 0.01 % | 434 d / 43,403 d | 9.5 d / 951 d | 1.6 d / 161 d | 5.8 h / 24 d | 19 min / 1.3 d |
+
+The analysis `analysis-cryptarchia-de-anonymisation-of-relative-stake.md` asks a related question:
+the probability that a naive estimate of a node's stake lies within ±10 % after `T` slots of which
+a share `q` is observed, and how many nodes a holder must split into to keep it at 0.5 or below.
+Each observed round of votes adds a Poisson count of mean `n·α` to the slots' information. Over
+one epoch at `f = 1/30` with `q = 0.008`, beside the analysis's own example (`f = 0.05`,
+`T = 432,000` slots, `q = 0.657`):
+
+| model | votes | confidence for a 1.26 % holder | nodes it must split into | largest share an observer cannot size |
+| --- | --- | --- | --- | --- |
+| Cryptarchia, one epoch | blocks only, through Blend | 0.12 | 1 | 26 % |
+| Cryptarchia, one epoch | with votes through Blend, 1 h rounds | 0.68 | 3 | 0.58 % |
+| Cryptarchia, one epoch | with votes through Blend, 10 min rounds | 0.98 | 13 | 0.098 % |
+| Cryptarchia, one epoch | with votes through Blend, 90 s rounds | 1.00 | 86 | 0.015 % |
+| Cryptarchia, one epoch | with votes gossiped directly, 10 min rounds | 1.00 | 1,602 | 0.00079 % |
+| the analysis's example | blocks only | 0.82 | 5 | 0.31 % |
+| the analysis's example | with votes, 10 min rounds | 1.00 | 706 | 0.0018 % |
+
+- **Votes make stake learnable.** Through Blend, block wins alone give an observer better than
+  even odds of sizing a stake to ±10 % within an epoch only above 26 % of all stake. With
+  10-minute rounds every share above 0.098 % has those odds, and a 0.1 % holder is sized in 16
+  days on average instead of 4,340. The analysis's 1.26 % holder must split into 706 nodes
+  instead of 5.
+- **Blend buys a factor of `f_adv^-hops`.** Gossiped directly, the same votes identify a 0.1 %
+  holder in 2 minutes and size it in 3 hours: about 125 times as fast as through Blend at
+  `f_adv = 0.2` and 3 hops.
+- **Longer rounds leak less, in proportion.** With rounds of an hour, the shares an observer has
+  even odds of sizing within an epoch start at 0.58 %.
+
+Gates (`tests/test_privacy.py`): the Blend report's §3.7 times and the analysis's example
+(confidence 0.824, five nodes) are reproduced as printed; votes speed sizing by D0's multiples; the
+confidence a vote count adds matches the exact Poisson probability. Three mutations fail them.
+
+**Views.** A vote reveals which block its sender saw. That is the signal the specification's
+tagging attack exploits (Limitations of Cryptarchia V1), and votes give it the same `1 + n/(R·f)`
+samples. A tag needs the voters to see different blocks at the target's depth: under random
+delay, votes on a target 30 slots back never split (D6).
 
 ## D6 — votes on the engine's chains
 
@@ -206,8 +287,8 @@ Certificates at `L = 60`, with D0's committee at `ε = 1e-9` and the adversary's
   on the specification's, 17–19 s at the heavy point.
 - **A block is certified `L` slots after its publication, plus the wait for the next round, plus
   that delivery.** With 600-slot rounds that is about 6 minutes on average, at ×269 cover against
-  25 % (D0); with 90-slot rounds, about 2 minutes at ×1,786. On the specification's Blend, settlement
-  against 25 % takes 18 minutes at `1e-3` and 51 at `1e-9` (`RATE.md`, C1 and C4).
+  25 % (D0); with 90-slot rounds, about 2 minutes at ×1,786. On the specification's Blend,
+  settlement against 25 % takes 18 minutes at `1e-3` and 51 at `1e-9` (`RATE.md`, C1 and C4).
 
 Where rounds fail:
 
