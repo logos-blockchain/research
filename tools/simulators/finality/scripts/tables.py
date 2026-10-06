@@ -478,9 +478,8 @@ def e2() -> None:
 def e5() -> None:
     t = pd.read_csv(RUNS / "e5" / "race.csv")
     rows = []
-    for (f, d), g in t.groupby(["f", "delay_s"], sort=False):
-        row = {"f": f"{f:.3g}", "Δ": f"{int(d)} s", "s per layer":
-               f"{1 / g.layers_per_slot.mean():.1f}"}
+    for (f, d, w), g in t.groupby(["f", "delay_s", "window"], sort=False):
+        row = {"f": f"{f:.3g}", "Δ": f"{int(d)} s", "window": f"{int(w)}"}
         for a, ga in g.groupby("alpha", sort=False):
             row[f"α = {a:.2f}"] = _depths(ga, 60, ga.layers_per_slot.mean(), (1e-3,))
         rows.append(row)

@@ -150,29 +150,39 @@ def children_csr(dag: Dag) -> tuple[np.ndarray, np.ndarray]:
 
 
 @njit(cache=True)
-def _dag_race(slot, height, ch_ptr, child, parent_slot, weight, adv, adv_weight, k_max, give_up,
+def _dag_race(slot, height, ch_ptr, child, parent_slot, weight, adv, window, k_max, give_up,
               premine, win_at, recent, first, last, descendants_only):
     """Successes per depth K (index K-1) and the number of scored targets.
 
     ``slot``, ``height`` and ``weight`` (0 or 1) are per honest block in slot order (index 0 is
     genesis); ``parent_slot`` is the slot of each block's latest parent; ``adv`` holds the
-    coalition's win slots, sorted, and ``adv_weight`` their weights. Targets are the blocks
-    ``first..last-1``.
+    coalition's win slots, sorted. A win weighs one if the latest block on the coalition's side is
+    at most ``window`` slots older. Targets are the blocks ``first..last-1``.
     """
     n, n_a = slot.size, adv.size
     succ = np.zeros(k_max, np.int64)
     scored = 0
     stamp = np.zeros(n, np.int64)
     queue = np.empty(n, np.int64)
-    # premined lead just before each honest block, over every honest block (all of them count)
+    # premined lead, and the latest block on the coalition's side, just before each honest block;
+    # a coalition with no lead starts again from the public tip
     lead_before = np.zeros(n, np.int64)
-    lead, ia = 0, 0
+    side_before = np.zeros(n, np.int64)
+    lead, ia, side = 0, 0, slot[0]
     for i in range(1, n):
         while ia < n_a and adv[ia] <= slot[i]:            # wins count first within a slot
-            lead += adv_weight[ia]
+            if adv[ia] - side <= window:
+                lead += 1
+            side = adv[ia]
             ia += 1
         lead_before[i] = lead
-        lead = lead - weight[i] if lead > weight[i] else 0
+        side_before[i] = side
+        if lead > weight[i]:
+            lead -= weight[i]
+        else:
+            lead = 0
+            side = slot[i]
+    aw = np.zeros(n_a, np.int64)                           # this target's win weights
     big = np.int64(1) << 62
     for b in range(first, last):
         # descendants of b, in id order (id order is slot order)
@@ -195,11 +205,18 @@ def _dag_race(slot, height, ch_ptr, child, parent_slot, weight, adv, adv_weight,
                     tail += 1
         ja = 0
         since_parent = 0
+        side = parent_slot[b]                              # the fork point
         while ja < n_a and adv[ja] <= slot[b]:
             if adv[ja] > parent_slot[b]:
-                since_parent += adv_weight[ja]
+                if adv[ja] - side <= window:
+                    since_parent += 1
+                side = adv[ja]
             ja += 1
-        r = (lead_before[b] if premine else since_parent) - weight[b]
+        if premine:
+            r = lead_before[b] - weight[b]
+            side = side_before[b]
+        else:
+            r = since_parent - weight[b]
         best_after = np.full(k_max, -(np.int64(1) << 40), np.int64)
         depth = 0
         ih = b + 1                                         # next honest block (any)
@@ -213,7 +230,9 @@ def _dag_race(slot, height, ch_ptr, child, parent_slot, weight, adv, adv_weight,
                 break
             if t_a <= t_h:
                 t = t_a
-                r += adv_weight[ja]
+                aw[ja] = 1 if t_a - side <= window else 0
+                side = t_a
+                r += aw[ja]
                 ja += 1
             else:
                 t = t_h
@@ -233,7 +252,7 @@ def _dag_race(slot, height, ch_ptr, child, parent_slot, weight, adv, adv_weight,
                     win_lo_h += 1
                 score = 0
                 for x in range(win_lo_a, ja):
-                    score += adv_weight[x]
+                    score += aw[x]
                 for x in range(win_lo_h, ih):
                     score -= weight[x]
             for kk in range(min(depth, k_max)):
@@ -252,15 +271,11 @@ def _dag_race(slot, height, ch_ptr, child, parent_slot, weight, adv, adv_weight,
     return succ, scored
 
 
-def race_weights(dag: Dag, window: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Honest block weights, the coalition's sorted wins, and their weights (see ``dag_race``)."""
-    adv = np.sort(dag.adv_slots)
-    adv_weight = np.ones(adv.size, np.int64)
-    if adv.size:
-        adv_weight[1:] = (np.diff(adv) <= window).astype(np.int64)
+def race_weights(dag: Dag) -> tuple[np.ndarray, np.ndarray]:
+    """Honest block weights and the coalition's sorted wins (see ``dag_race``)."""
     weight = (~dag.long_ref).astype(np.int64)
     weight[0] = 0
-    return weight, adv, adv_weight
+    return weight, np.sort(dag.adv_slots)
 
 
 def dag_race(dag: Dag, k_max: int, window: int, give_up: int = 60, premine: bool = True,
@@ -270,7 +285,8 @@ def dag_race(dag: Dag, k_max: int, window: int, give_up: int = 60, premine: bool
 
     A block weighs one if it short-references a block at most ``window`` slots older, and nothing
     otherwise. An honest block weighs one unless it carries only a long reference. The coalition's
-    block weighs one if its previous win is at most ``window`` slots older. With
+    block weighs one if the latest block on its side is at most ``window`` slots older: its previous
+    win, the fork point, or, while premining with no lead, the public tip. With
     ``descendants_only``, an honest block after ``B`` that does not descend from it weighs nothing
     for either side: the coalition could reference it and so make it common to both subDAGs.
     """
@@ -278,7 +294,7 @@ def dag_race(dag: Dag, k_max: int, window: int, give_up: int = 60, premine: bool
     parent_slot = np.full(dag.n_blocks, -1, np.int64)
     for b in range(1, dag.n_blocks):
         parent_slot[b] = dag.slot[dag.refs[dag.ref_ptr[b]:dag.ref_ptr[b + 1]]].max()
-    weight, adv, adv_weight = race_weights(dag, window)
-    return _dag_race(dag.slot, dag.height, ptr, child, parent_slot, weight, adv, adv_weight,
+    weight, adv = race_weights(dag)
+    return _dag_race(dag.slot, dag.height, ptr, child, parent_slot, weight, adv, window,
                      k_max, give_up, premine, win_at, 0 if recent is None else int(recent),
                      first, dag.n_blocks if last is None else last, descendants_only)

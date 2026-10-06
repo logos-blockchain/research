@@ -12,6 +12,7 @@ Status: E0–E6 done. The owner chose to build Areon-Base on the TSI engine (E1)
 Each item below is marked by how it was established:
 
 - **[verified]** read again in the notebook source for this note;
+- **[verified, earlier]** read in the notebook source during the audit, and not again;
 - **[audit]** established by the audit's re-runs and measurements, which this note has not
   repeated;
 - **[preliminary]** an audit experiment too small to rely on.
@@ -22,7 +23,7 @@ Cell and line numbers are the notebook's.
 
 - **No fork choice runs.** [verified] The Areon cells hold no closest-common-ancestor comparison,
   no conflicted-tips resolution and no preferred frontier; "conflict" appears only in a
-  docstring. Honest blocks reference the maximum antichain of the visible blocks in the window.
+  docstring and a comment (cell 11, lines 334–335 and 399). Honest blocks reference the maximum antichain of the visible blocks in the window.
   An attack is scored afterwards as a race of cumulative windowed weights, which honest nodes
   never see or react to. The paper's fork choice (§2.2.3, Alg. 7) is therefore not what the
   figures measure.
@@ -96,12 +97,17 @@ and Blend delays, and plays B3's private race on it (`scripts/e2_areon.py`). Whe
 a rule open, the implementation makes this choice:
 
 - **Weight.** The subDAG weight of §2.2.3 sums over `Desc*(i)`, which for a tip `i` is `{i}`. The
-  drift argument (Def. 5.3, Lemma 5.5) needs the subDAG between the closest common ancestor and the
-  tip. That subDAG is weighed here.
+  drift argument (Def. 5.3, Lemma 5.5) needs the weight accumulated since the fork. Here the fork
+  point is the target's parent. The honest side weighs the target and the blocks that descend from
+  it. The coalition's side weighs its own blocks since the fork, or since its premining began. A
+  coalition block that references an honest block does not move that block to its side.
 - **Unit.** §2.2.3 counts a block's short references; §5.3 counts each block once (`wref ∈ {0,
   1}`). Here each block with a short reference counts once, and a block with only a long reference
   counts nothing. Counting references would let a coalition shape its private DAG wide: `m` blocks
-  each referencing the same `m` others give `m²` references for `2m` blocks.
+  each referencing the same `m` others give `m²` references for `2m` blocks. A coalition block
+  counts once if the latest block on its side is at most `w` slots older: its previous block, the
+  fork point or, while it premines with no lead, the public tip. An honest block references only
+  what its producer has seen, so it counts in fewer cases.
 - **Horizon.** §5.3 says only references of the last `w` slots count; the drift argument
   accumulates the gap since the fork. Both are measured.
 - **References.** Alg. 5 references a maximum antichain of the windowed DAG. Here an honest block
@@ -112,18 +118,20 @@ a rule open, the implementation makes this choice:
 
 The race: a coalition holding `α` withholds its wins and builds a private subDAG that conflicts
 with the target. It may hold a premined lead. Honest blocks that do not descend from the target
-count for neither side, because the coalition could reference them. The receiver accepts the
-target at depth `K`; the attack succeeds if the coalition's weight then exceeds the honest weight.
+count for neither side. Counted for the honest side instead, they lower E2's depths by at most 2
+layers (`runs/e2/race.csv`). The receiver accepts the target at depth `K`; the attack succeeds if
+the coalition's weight then exceeds the honest weight.
 
 Gates (`tests/test_areon.py`): honest blocks reference exactly the tips their producer holds, and
 heights and arrivals follow the parents. A full mesh delays each block by its latency, and without
 delay a block references the last occupied slot. On a chain-shaped DAG the race equals B3's chain
-race, count for count. The weight rules and the recent-window score match hand-counted cases. Nine
-mutations fail them.
+race, count for count. The weight rules, the coalition's window and the recent-window score match
+hand-counted cases. Eleven mutations fail them.
 
 ## E2 — at Cryptarchia's parameters
 
-The production coefficient `f_A` runs from Cryptarchia's `1/30` to the paper's 0.25. The window is
+The production coefficient `f_A`, written `f` in the tables, runs from Cryptarchia's `1/30` to the
+paper's 0.25. The window is
 the paper's 30 slots at 0.25, stretched with the block interval (`w = 7.5/f_A`). Four runs per row,
 Pareto stake, 0.1 s links:
 
@@ -147,25 +155,25 @@ Pareto stake, 0.1 s links:
 
 - **The window must span the block interval, not only `Δ`.** At `f_A = 1/30` a 30-slot window
   leaves 36–56 % of honest blocks with only a long reference, and so without weight.
-- **The DAG is narrow.** A block references 1.0–3.2 tips on average, and about 7 at the 99th
+- **The DAG is narrow.** A block references 1.0–3.2 tips on average, and 2.0–7.2 at the 99th
   percentile.
 
-The private race, about 60,000 targets per point: the depth in layers (DAG) or blocks (chain) at
+The private race, 40,720–73,071 targets per point: the depth in layers (DAG) or blocks (chain) at
 which the share of displaced targets falls to `1e-3` / `1e-4`, with the time to that depth in
 minutes. The chain rows are C4's constant lotteries (`RATE.md`), raced the same way:
 
 | structure | f | Blend | α = 0.10 | α = 0.25 | α = 0.33 |
 | --- | --- | --- | --- | --- | --- |
-| DAG | 0.0333 | testnet | 3 (1.7) / 5 (2.9) | 16 (10.8) / 20 (13.5) | 40 (30.4) / 52 (39.5) |
-| DAG | 0.0333 | specification | 3 (2.0) / 6 (4.0) | 15 (11.6) / 19 (14.7) | 39 (33.2) / 48 (40.9) |
-| DAG | 0.05 | testnet | 3 (1.2) / 4 (1.5) | 17 (7.8) / 24 (11.0) | 45 (23.1) / 54 (27.7) |
-| DAG | 0.05 | specification | 3 (1.4) / 7 (3.4) | 15 (8.3) / 19 (10.5) | 36 (21.7) / 44 (26.6) |
-| DAG | 0.0667 | testnet | 4 (1.2) / 6 (1.8) | 16 (5.5) / 19 (6.6) | 48 (18.6) / 57 (22.1) |
-| DAG | 0.0667 | specification | 3 (1.1) / 7 (2.7) | 16 (7.0) / 19 (8.3) | 36 (17.1) / 41 (19.5) |
-| DAG | 0.1 | testnet | 3 (0.6) / 6 (1.2) | 16 (3.8) / 26 (6.1) | 39 (10.2) / 45 (11.7) |
-| DAG | 0.1 | specification | 3 (0.9) / 5 (1.5) | 14 (4.6) / 18 (5.9) | 35 (12.3) / 43 (15.1) |
-| DAG | 0.25 | testnet | 3 (0.3) / 5 (0.4) | 14 (1.4) / 22 (2.3) | 42 (4.7) / 53 (5.9) |
-| DAG | 0.25 | specification | 3 (0.5) / 5 (0.9) | 10 (1.9) / 12 (2.3) | 28 (5.6) / 39 (7.8) |
+| DAG | 0.0333 | testnet | 4 (2.3) / 6 (3.4) | 16 (10.8) / 21 (14.2) | 40 (30.4) / 53 (40.3) |
+| DAG | 0.0333 | specification | 4 (2.7) / 6 (4.0) | 15 (11.6) / 19 (14.7) | 40 (34.1) / 48 (40.9) |
+| DAG | 0.05 | testnet | 3 (1.2) / 5 (1.9) | 17 (7.8) / 24 (11.0) | 46 (23.6) / 54 (27.7) |
+| DAG | 0.05 | specification | 4 (1.9) / 7 (3.4) | 15 (8.3) / 19 (10.5) | 36 (21.7) / 45 (27.2) |
+| DAG | 0.0667 | testnet | 4 (1.2) / 6 (1.8) | 16 (5.5) / 20 (6.9) | 49 (19.0) / 57 (22.1) |
+| DAG | 0.0667 | specification | 4 (1.5) / 7 (2.7) | 16 (7.0) / 19 (8.3) | 37 (17.6) / 42 (20.0) |
+| DAG | 0.1 | testnet | 4 (0.8) / 6 (1.2) | 17 (4.0) / 26 (6.1) | 40 (10.4) / 45 (11.7) |
+| DAG | 0.1 | specification | 4 (1.2) / 5 (1.5) | 15 (4.9) / 19 (6.2) | 36 (12.7) / 44 (15.5) |
+| DAG | 0.25 | testnet | 4 (0.4) / 6 (0.5) | 15 (1.5) / 22 (2.3) | 43 (4.8) / 53 (5.9) |
+| DAG | 0.25 | specification | 4 (0.7) / 5 (0.9) | 11 (2.1) / 13 (2.5) | 28 (5.6) / 39 (7.8) |
 | chain | 0.0333 | testnet | 4 (2.3) / 6 (3.4) | 19 (13.0) / 27 (18.4) | 48 (36.5) / 59 (44.9) |
 | chain | 0.0333 | specification | 4 (2.6) / 6 (4.0) | 23 (17.7) / 32 (24.6) | 58 (49.6) / > 60 |
 | chain | 0.05 | testnet | 4 (1.5) / 6 (2.3) | 19 (8.7) / 27 (12.4) | 50 (25.6) / > 60 |
@@ -175,27 +183,30 @@ minutes. The chain rows are C4's constant lotteries (`RATE.md`), raced the same 
 
 - **At the same block rate the DAG settles faster than the chain.** Against 25 % on the
   specification's Blend at `f = 1/30`, 15 layers (11.6 minutes) against 23 blocks (17.7). Against
-  a third, 33 minutes against 50. No honest block is wasted, while the chain discards its orphans.
-- **Raising the block rate keeps paying on the DAG.** Against 25 % on the specification's Blend:
-  4.6 minutes at `f_A = 0.1` and 1.9 at 0.25. The chain's gain flattens: C1 finds its best
-  interval at 15–20 s on that Blend.
+  a third, 34 minutes against 50. No honest block is wasted, while the chain discards its orphans.
+- **Raising the block rate pays more on the DAG.** Against 25 % on the specification's Blend, at
+  30, 20 and 15 s blocks the DAG needs 11.6, 8.3 and 7.0 minutes and the chain 17.7, 14.2 and
+  12.2; the DAG needs 4.9 minutes at `f_A = 0.1` and 2.1 at 0.25.
 
 The paper's §5.6 procedure fits `P(d) ≈ A·e^{−ϱd}` to each curve and reads
-`d*(ε) = ln(A/ε)/ϱ`. Extrapolated to `ε = 1e-9`, the depth and, in brackets, the minutes
-(`scripts/e2_fit.py`, `runs/e2/fit.csv`; the same fit is applied to the chain):
+`d*(ε) = ln(A/ε)/ϱ`, here over the depths whose share lies in `[1e-4, 1e-1]`. Applied to the
+chain's premined race in closed form at B3's measured `q`, the fit lands 3–5 % short of the exact
+depth at `1e-9` (`tests/test_e2_fit.py`). At `α = 0.10` each fit rests on 3–7 depths. Extrapolated
+to `ε = 1e-9`, the depth and, in brackets, the minutes (`scripts/e2_fit.py`, `runs/e2/fit.csv`; the
+same fit is applied to the chain):
 
 | structure | f | Blend | α = 0.10 | α = 0.25 | α = 0.33 |
 | --- | --- | --- | --- | --- | --- |
-| DAG | 0.0333 | testnet | 15 (9) | 56 (37) | 132 (100) |
-| DAG | 0.0333 | specification | 16 (10) | 49 (38) | 124 (106) |
-| DAG | 0.05 | testnet | 11 (4) | 57 (26) | 150 (77) |
-| DAG | 0.05 | specification | 15 (7) | 52 (29) | 112 (68) |
-| DAG | 0.0667 | testnet | 19 (5) | 55 (19) | 161 (62) |
-| DAG | 0.0667 | specification | 18 (7) | 54 (24) | 116 (55) |
-| DAG | 0.1 | testnet | 15 (3) | 65 (15) | 122 (32) |
-| DAG | 0.1 | specification | 15 (4) | 47 (15) | 110 (39) |
-| DAG | 0.25 | testnet | 15 (1) | 57 (6) | 141 (16) |
-| DAG | 0.25 | specification | 12 (2) | 30 (6) | 100 (20) |
+| DAG | 0.0333 | testnet | 17 (10) | 57 (38) | 132 (101) |
+| DAG | 0.0333 | specification | 15 (10) | 49 (38) | 124 (106) |
+| DAG | 0.05 | testnet | 12 (5) | 58 (27) | 149 (77) |
+| DAG | 0.05 | specification | 16 (8) | 52 (29) | 115 (70) |
+| DAG | 0.0667 | testnet | 20 (6) | 55 (19) | 163 (63) |
+| DAG | 0.0667 | specification | 19 (7) | 53 (23) | 121 (58) |
+| DAG | 0.1 | testnet | 15 (3) | 66 (15) | 123 (32) |
+| DAG | 0.1 | specification | 15 (4) | 48 (16) | 111 (39) |
+| DAG | 0.25 | testnet | 16 (1) | 59 (6) | 141 (16) |
+| DAG | 0.25 | specification | 11 (2) | 31 (6) | 100 (20) |
 | chain | 0.0333 | testnet | 16 (9) | 67 (46) | 152 (116) |
 | chain | 0.0333 | specification | 18 (12) | 77 (59) | 188 (160) |
 | chain | 0.05 | testnet | 15 (6) | 69 (32) | 175 (89) |
@@ -204,10 +215,11 @@ The paper's §5.6 procedure fits `P(d) ≈ A·e^{−ϱd}` to each curve and read
 | chain | 0.0667 | specification | 20 (8) | 92 (40) | 302 (144) |
 
 Against 25 % on the specification's Blend, the DAG reaches `1e-9` in 38 minutes at Cryptarchia's
-block rate, against 59 for the chain, and in 15 and 6 minutes at ×3.2 and ×8.6 the blocks.
+block rate, against 59 for the chain, and in 16 and 6 minutes at ×3.2 and ×8.6 the blocks.
 
 **The paper's prose horizon gives no finality.** Counting only the last `w` slots, the share of
-targets the coalition displaces at depth 10 / 40 (premining, strictly heavier):
+targets the coalition displaces at depth 10 / 40 (strictly heavier, concurrent honest blocks
+counted for the honest side):
 
 | f | Blend | α = 0.10 | α = 0.25 | α = 0.33 |
 | --- | --- | --- | --- | --- |
@@ -222,9 +234,9 @@ targets the coalition displaces at depth 10 / 40 (premining, strictly heavier):
 | 0.25 | testnet | 0.20 / 0.19 | 0.99 / 0.98 | 1.00 / 1.00 |
 | 0.25 | specification | 0.22 / 0.18 | 1.00 / 0.99 | 1.00 / 1.00 |
 
-The share does not fall with depth: a coalition that keeps its private subDAG alive eventually
-outweighs the honest side in some window. Theorem 5.6 holds only for the weight accumulated since
-the fork.
+The share does not fall with depth: a coalition that keeps its private subDAG alive outweighs the
+honest side in some window of the 60 after the target. Theorem 5.6 holds only for the weight
+accumulated since the fork.
 
 ## E3 — private eligibility
 
@@ -235,44 +247,56 @@ the fork.
   neither. Without the second rule one win keeps two subDAGs balanced at no cost: GHOST "provides
   no security (for any parameters) with unconstrained equivocation" (Gaži, Motaqy and Russell,
   ePrint 2024/1830, p. 5).
-- **A split coalition gets exactly its share.** Under the per-note lottery a coalition's blocks
-  per slot are proportional to its stake: their ratio to honest blocks was within 2 % of
-  `α/(1 − α)` at every `f_A` (`runs/e2/race.csv`). The single-identity bias of the paper's §6.3
-  does not arise.
+- **A coalition in small notes gets its share.** A note holding `s` of the stake wins a slot with
+  probability `1 − (1 − f_A)^s`, so many small notes win at `−s·ln(1 − f_A)` per slot, linear in
+  `s`. E2's coalition, 0.1 % of the stake per node, made blocks within 3 % of `α/(1 − α)` of the
+  honest side's at every `f_A` (`runs/e2/race.csv`). The single-identity bias of the paper's §6.3
+  then does not arise.
 
 ## E4 — the ledger
 
 - **Order.** Mantle executes transactions in order. A total order over `Anc*(F_t)` can be
   topological, with ties broken by `(slot, y)`; a transaction that conflicts with an earlier one is
-  skipped.
+  skipped. The order must place a block after every block settled before it was first referenced;
+  otherwise a late block with an early slot would skip a transaction already settled.
 - **Conflicts.** The fork choice must have settled every conflict before the order is read. Alg. 5
   as written references a maximum antichain of the whole windowed DAG, defeated subDAGs included.
   Honest blocks would then merge both sides of a double spend, and the order alone would decide
   which one stands. Honest blocks must reference only their preferred frontier, as E1 does.
 - **Stake inference.** No honest block is orphaned, so the inference can count blocks instead of
-  occupied slots. Their expectation, `−s·ln(1 − f_A)` per slot for participating share `s`, is
-  linear in `s`.
+  occupied slots. Their expectation, `−s·ln(1 − f_A)` per slot for participating share `s` held in
+  small notes, is linear in `s` (E3).
 
 ## E5 — delay chosen by an adversary
 
 A full mesh whose links take `Δ` slots delivers every honest block exactly `Δ` late
-(`scripts/e5_delay.py`; the race of E2, the window at least `Δ + 1`). The depth at which the
-displaced share falls to `1e-3`, with minutes:
+(`scripts/e5_delay.py`; the race of E2, the window E2's and at least `Δ + 1`, and at `f_A = 0.25`
+also `Δ + 30`). The depth at which the displaced share falls to `1e-3`, with minutes:
 
-| f | Δ | s per layer | α = 0.10 | α = 0.25 | α = 0.33 |
+| f | Δ | window | α = 0.10 | α = 0.25 | α = 0.33 |
 | --- | --- | --- | --- | --- | --- |
-| 0.0333 | 1 s | 38.7 | 3 (1.7) | 19 (12.6) | 42 (31.5) |
-| 0.0333 | 5 s | 42.6 | 3 (1.9) | 16 (11.6) | 34 (27.5) |
-| 0.0333 | 10 s | 47.7 | 3 (2.1) | 14 (11.4) | 39 (34.8) |
-| 0.0333 | 20 s | 57.7 | 3 (2.6) | 13 (12.7) | 38 (40.0) |
-| 0.25 | 1 s | 5.0 | 3 (0.2) | 18 (1.5) | 42 (4.0) |
-| 0.25 | 5 s | 9.1 | 3 (0.4) | 13 (2.0) | 35 (5.7) |
-| 0.25 | 10 s | 14.0 | 3 (0.7) | 11 (2.6) | 21 (5.2) |
-| 0.25 | 20 s | 23.9 | 5 (1.9) | 15 (6.0) | 32 (13.1) |
+| 0.0333 | 1 s | 225 | 4 (2.2) | 19 (12.6) | 42 (31.5) |
+| 0.0333 | 5 s | 225 | 4 (2.5) | 16 (11.6) | 34 (27.5) |
+| 0.0333 | 10 s | 225 | 4 (2.8) | 15 (12.2) | 39 (34.8) |
+| 0.0333 | 20 s | 225 | 4 (3.5) | 13 (12.7) | 38 (40.0) |
+| 0.25 | 1 s | 30 | 4 (0.3) | 18 (1.5) | 42 (4.0) |
+| 0.25 | 1 s | 31 | 4 (0.3) | 18 (1.5) | 46 (4.4) |
+| 0.25 | 5 s | 30 | 3 (0.4) | 13 (2.0) | 35 (5.7) |
+| 0.25 | 5 s | 35 | 3 (0.4) | 13 (2.0) | 34 (5.5) |
+| 0.25 | 10 s | 30 | 4 (0.9) | 11 (2.6) | 21 (5.2) |
+| 0.25 | 10 s | 40 | 4 (0.9) | 11 (2.6) | 19 (4.7) |
+| 0.25 | 20 s | 30 | 5 (1.9) | 15 (6.0) | 32 (13.1) |
+| 0.25 | 20 s | 50 | 3 (1.2) | 7 (2.8) | 16 (6.6) |
 
-The delay widens each layer, but against the private race the time to settle against 25 % stays
-at 11–13 minutes for `Δ` from 1 to 20 s at `f_A = 1/30`. Every honest block still counts, so a
-uniform delay costs the honest side a lag of about `Δ`, not a share of its rate.
+- **At `f_A = 1/30` a uniform delay costs the honest side time, not rate.** The delay widens each
+  layer, but the time to settle against 25 % stays at 12–13 minutes for `Δ` from 1 to 20 s.
+- **The window must exceed `Δ` by several block intervals.** At `f_A = 0.25` a 30-slot window
+  leaves a producer 10 slots of blocks it has seen at `Δ = 20` s, about two honest block
+  intervals. The time against 25 % then rises from 1.5 minutes at 1 s to 6.0. A window of
+  `Δ + 30` slots brings it to 2.8. The paper's condition `w ≥ Δ` is not enough.
+- **A depth in layers holds only at the delay it was set for.** A wider DAG needs fewer layers. At
+  `f_A = 1/30` against 25 %, 13 layers hold `1e-3` at `Δ = 20` s and leave `4.7e-3` at 1 s
+  (`runs/e5/race.csv`). A depth in layers must be set at the shortest delay.
 
 **The balancing attack.** An adversary that schedules each delay can do far more. Weighing every
 honest block of a subDAG is what GHOST does with a subtree, and Gaži, Motaqy and Russell give tight
@@ -280,9 +304,10 @@ attacks on GHOST (ePrint 2024/1830, §5). The adversary keeps two conflicting su
 weight: it holds each honest block back until the next one appears, so that the honest blocks of a
 phase land alternately on the two sides, and it spends a withheld block of its own when a phase
 ends one apart. While the balance holds no block settles, and the adversary chooses which side
-wins. The balance holds forever with positive probability once the adversary's blocks per phase
-outnumber the phases that cost it a block. `src/finality_sim/balance.py` gives that edge in closed
-form for the slot lottery (`scripts/e5_balance.py`). Gates (`tests/test_balance.py`): the phase
+wins. A phase closes after `Δ` slots without an honest block. The balance holds forever with
+positive probability once the adversary's expected blocks per phase exceed the chance that a phase
+costs it one. `src/finality_sim/balance.py` gives that edge in closed form for the slot lottery
+(`scripts/e5_balance.py`). Gates (`tests/test_balance.py`): the phase
 statistics match a simulation of the lottery, slots a hundred times finer reach the paper's
 continuous-time region, and the balance holds only above the edge. Four mutations fail them.
 
@@ -297,7 +322,8 @@ broken by a fixed rule, beside the longest-chain rule's region at the same block
 | 0.1 | 0.459 / 0.479 / 0.487 | 0.430 / 0.465 / 0.474 | 0.341 / 0.416 / 0.435 | 0.208 / 0.320 / 0.376 | 0.067 / 0.133 / 0.285 |
 | 0.25 | 0.383 / 0.440 / 0.464 | 0.303 / 0.393 / 0.430 | 0.125 / 0.228 / 0.339 | 0.026 / 0.055 / 0.239 | 0.001 / 0.003 / 0.144 |
 
-The share of 1,000 attempts, begun with an empty reserve, that keep the balance for an hour / a day,
+The share of 1,000 attempts, begun with an empty reserve at evenly spaced phases of one draw of
+4.8 days, so that they overlap, that keep the balance for an hour / a day,
 with ties steered by the adversary:
 
 | f_A | Δ | α = 0.10 | α = 0.25 |
@@ -307,31 +333,36 @@ with ties steered by the adversary:
 | 0.25 | 5 s | 0.00 / 0.00 | 0.57 / 0.57 |
 | 0.25 | 10 s | 0.74 / 0.74 | 0.92 / 0.92 |
 
-- **At today's block rate the DAG's region is close to the chain's:** 0.40–0.45 at `Δ = 10` s,
-  against 0.46.
+- **At today's block rate the attack needs nearly the chain's share:** 0.40–0.45 at `Δ = 10` s,
+  against the chain's region of 0.46. The attack bounds the DAG's safe region from above; no proof
+  covers the DAG below it.
 - **Where the DAG is fast, the region collapses.** At `f_A = 0.25` and `Δ = 10` s an adversary
   with 3–6 % of the stake keeps the balance; with 10 %, three attempts in four hold it for a day.
-  At `Δ = 5` s the edge is 12.5–23 %.
+  At `Δ = 5` s the edge is 12–23 %.
 - **The chain loses less.** At the same block rates the longest-chain rule keeps 0.24 at 10 s and
-  0.34 at 5 s. Honest blocks that tie split the DAG's weight, while on the chain they only waste
-  it.
+  0.34 at 5 s, in continuous time. Honest blocks that tie split the DAG's weight, while on the
+  chain they only waste it.
 
 ## E6 — the cost
 
 - **Emissions.** Every block is a lottery win and so a Blend emission. The cover rate must rise
   with the blocks per slot: ×1 at `f_A = 1/30`, ×3.2 at 0.1, ×8.6 at 0.25 (E2). Votes cost ×34 to
   ×1,786 (`CERTIFIED.md`, D0).
-- **References.** 1.0–3.2 per block on average, and about 7 at the 99th percentile. A header grows
-  by 32 bytes per reference.
+- **References.** A header grows by 32 bytes per reference (E2 gives the counts).
 - **Computation.** Referencing the tips of the window needs one pass over its blocks. The maximum
   antichain of Alg. 5 is not needed.
 
 ## H7
 
-H7 fails by its own test (E5): under a delay chosen by an adversary the DAG's safe region is
-GHOST's, narrower than the chain's at every block rate. At today's block rate it narrows little:
-the DAG holds 0.40–0.45 of the stake at `Δ = 10` s against the chain's 0.46, and settles against
-25 % in 38 minutes at `ε = 1e-9` under random delay, against 59 on the chain. At the block rates
-that make the DAG fast it collapses, to 3–6 % at `f_A = 0.25`. Two further conditions hold
-regardless: the weight must accumulate since the fork, as the paper's prose horizon settles no
-depth, and a lottery win must weigh once across both sides of a conflict.
+H7 fails by two of its three tests.
+
+- **The safe region (E5).** Under a delay chosen by an adversary, the balancing attack needs no
+  more than GHOST's share, less than the chain's region at every block rate. At today's block rate
+  it needs 0.40–0.45 of the stake at `Δ = 10` s, against the chain's 0.46. At `f_A = 0.25` and
+  `Δ = 10` s it needs 3–6 %.
+- **One weight per win (E3).** As specified, one win can add weight on both sides of a conflict.
+  The `ρ_LEAD` rule of E3 stops it.
+- **The time (E2).** Passed: under random delay the DAG settles against 25 % in 38 minutes at
+  `ε = 1e-9`, against 59 for the chain under the same delay and B2's 6.2 hours at `Δ = 10` s.
+
+The weight must also accumulate since the fork: the paper's prose horizon settles no depth (E2).

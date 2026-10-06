@@ -117,29 +117,31 @@ What the surface says:
 
 ## C2 — which Blend parameters set the delay
 
-The A1 table maps Blend's hops and per-hop rounds to the mean and p99 delay, so the study can
-state the delay each lever needs and read off a Blend setting that delivers it. Choosing between
-those settings trades privacy against delay. That trade is the Blend owners' to make, and C2
-leaves it with them.
+A Blend setting delivers a delay `Δ` when its p99 full delay in A1 is at most `Δ`. Testnet's
+Blend, 1 hop of 1 round, delivers 1.8 s. The specification's, 3 hops of up to 3 rounds, delivers
+10.2 s, within the 13 s up to which `k = 2160` holds a third of the stake without grinding
+(`SETTLEMENT.md`, B2). The trade between privacy and delay is the Blend owners'.
 
 ## C3 — a fork choice that weighs referenced uncles
 
 Gaži, Motaqy and Russell give the exact consistency regions of GHOST and of the longest-chain rule
 when an adversary delays honest blocks by up to `Δ` (ePrint 2024/1830, revision 2025-02-20).
-Translated into the largest tolerable stake share at `f = 1/30`:
+Translated into the largest tolerable stake share at `f = 1/30`, the lottery's wins Poisson at
+`−ln(1 − f)` per slot:
 
 | rule | 1 s | 2 s | 3 s | 5 s | 8 s | 10 s | 15 s | 20 s | 30 s |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| longest chain | 0.4958 | 0.4917 | 0.4875 | 0.4792 | 0.4668 | 0.4586 | 0.4384 | 0.4189 | 0.3820 |
-| GHOST, deterministic ties | 0.4958 | 0.4915 | 0.4872 | 0.4783 | 0.4644 | 0.4547 | 0.4291 | 0.4016 | 0.3410 |
-| GHOST, adversarial ties | 0.4916 | 0.4831 | 0.4744 | 0.4567 | 0.4294 | 0.4108 | 0.3638 | 0.3171 | 0.2320 |
+| longest chain | 0.4958 | 0.4915 | 0.4873 | 0.4788 | 0.4663 | 0.4579 | 0.4374 | 0.4176 | 0.3802 |
+| GHOST, deterministic ties | 0.4957 | 0.4914 | 0.4870 | 0.4779 | 0.4637 | 0.4538 | 0.4278 | 0.3996 | 0.3377 |
+| GHOST, adversarial ties | 0.4915 | 0.4828 | 0.4740 | 0.4560 | 0.4282 | 0.4093 | 0.3613 | 0.3140 | 0.2280 |
 
 The longest-chain row equals the private-attack threshold of Dembo et al. (gated). GHOST never
 tolerates more. The analysis is for proof of work. For proof of stake the paper adds that GHOST
 "provides no security (for any parameters) with unconstrained equivocation". Cryptarchia's lottery
 lets one win sign blocks on any branch, so a weighted fork choice would also need each win to add
-weight once (`PLAN.md` E3 names the tag that could enforce it, `ρ_LEAD`). H4 is refuted. Per the plan's
-rule, no engine experiment follows.
+weight once (`PLAN.md` E3 names the tag that could enforce it, `ρ_LEAD`). H4 is refuted for a delay
+chosen by an adversary. Under random delay it was not tested on the chain; E2's DAG, which weighs
+every honest block, settles sooner than the chain at the same block rate (`DAG.md`).
 
 ## C4 — Ouroboros Taktikos
 
@@ -191,11 +193,13 @@ on average (`scripts/c4_taktikos.py`, `runs/c4/curves.csv`). Eight runs per row,
 - **The intervals become regular** under Topl's shape and a plain 10-slot gap: the 99th
   percentile falls from 139 s to 72–100 s. The short cutoffs stall the chain instead.
 
-The private race of B3 against 25 % and a third of the stake, at the share of runs it wins:
-the depth, and the time to it at the honest chain's rate. 64 runs per point, about `1e5` targets,
-so a depth at `1e-4` rests on about ten successes. The coalition's chain is drawn from its own last
-block. A coalition that falls back to the public tip restarts its interval there, so for the
-curves these numbers favour the attacker.
+The private race of B3 against 25 % and a third of the stake, at the share of targets it
+displaces: the depth, and the time to it at the honest chain's rate. 64 runs per point, about
+`1e5` targets, so a depth at `1e-4` rests on about ten successes. The coalition's chain is drawn
+from its own last block, while a coalition that falls back to the public tip would restart its
+interval there. For the 10-slot gap, whose coefficient only rises, these numbers therefore favour
+the attacker. For the curves that fall after their cutoff, Topl's shape and the short cutoffs,
+they favour the honest side.
 
 | curve | Blend | α = 0.25: 1e-3 / 1e-4 | α = 0.33: 1e-3 / 1e-4 |
 | --- | --- | --- | --- |
@@ -221,6 +225,9 @@ curves these numbers favour the attacker.
   `1e-3`.
 - **The short cutoffs** cut a lone coalition's rate to a quarter of today's (0.065 against 0.25 of
   `f` at 25 %). The honest chain stalls too, and they settle no faster than Topl's shape.
+- **Topl's shape raises a lone coalition's rate** to 0.378 of `f` against 0.253 at 25 %
+  (`runs/c4/curves.csv`). Against a third on the specification's Blend it does not reach `1e-3`
+  within 60 blocks, where today's lottery needs 58.
 - **L3 through Taktikos:** fewer orphans fails. What remains is a regular block interval that,
-  on the specification's Blend, settles in two thirds of the time at more blocks. It needs a new
-  stake inference and has no worst-case bound.
+  on the specification's Blend, settles against a quarter of the stake in two thirds of the time,
+  at the cost of more blocks. It needs a new stake inference and has no worst-case bound.

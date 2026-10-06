@@ -4,9 +4,9 @@
 
 A full mesh whose every link takes Delta slots: each honest block reaches every other node exactly
 Delta slots after its slot. Equal stake, a coalition holding alpha withholds its wins; the window
-is that of E2 (w = 7.5 / f_A) and at least Delta + 1. The race of E2: premining, a strictly
-heavier coalition, honest blocks that do not descend from the target counting for neither side.
-1,000 nodes, about 60,000 targets per point.
+is that of E2 (w = 7.5 / f_A) and at least Delta + 1, and at f_A = 0.25 also Delta + 7.5 / f_A. The
+race of E2: premining, a strictly heavier coalition, honest blocks that do not descend from the
+target counting for neither side. 1,000 nodes, about 60,000 targets per point.
 """
 
 from __future__ import annotations
@@ -24,18 +24,19 @@ FS = (1 / 30, 0.25)
 DELAYS = (1, 5, 10, 20)
 ALPHAS = (0.10, 0.25, 1 / 3)
 K_MAX = 60
+WIDE = (0.25,)                      # block rates at which the window also runs Delta + 7.5 / f_A
 
 
-def window(f: float, delta: int) -> int:
-    return max(round(30 * 0.25 / f), delta + 1)
+def window(f: float, delta: int, wide: bool = False) -> int:
+    return round(30 * 0.25 / f) + delta if wide else max(round(30 * 0.25 / f), delta + 1)
 
 
-def one(f: float, delta: int, alpha: float, rep: int) -> dict:
+def one(f: float, delta: int, alpha: float, rep: int, wide: bool) -> dict:
     cfg = SimConfig(n_nodes=1000, topology="full_mesh", latency=float(delta), epochs=1, f=f,
                     k=max(16, round(2000 * f)),
                     max_uncles=0, prune_arrival=False, stake_dist="uniform",
                     adversary_frac=alpha, adversary_strategy="withhold", replicate=rep)
-    w = window(f, delta)
+    w = window(f, delta, wide)
     d = build_dag(cfg, w)
     first = d.n_blocks // 10
     span = d.slot[-1] - d.slot[first]
@@ -48,12 +49,13 @@ def one(f: float, delta: int, alpha: float, rep: int) -> dict:
 
 
 def main() -> None:
-    rows = Parallel(n_jobs=-2)(delayed(one)(f, d, a, r) for f in FS for d in DELAYS
+    rows = Parallel(n_jobs=-2)(delayed(one)(f, d, a, r, wide) for f in FS for d in DELAYS
+                               for wide in ((False, True) if f in WIDE else (False,))
                                for a in ALPHAS for r in range(round(16 * 0.25 / f)))
     t = pd.DataFrame(rows)
     OUT.mkdir(parents=True, exist_ok=True)
     t.to_csv(OUT / "race.csv", index=False)
-    g = t.groupby(["f", "delay_s", "alpha"], sort=False).sum(numeric_only=True)
+    g = t.groupby(["f", "delay_s", "window", "alpha"], sort=False).sum(numeric_only=True)
     for k in (5, 10, 20, 40):
         g[f"p{k}"] = g[f"s{k}"] / g.scored
     print(g[["scored", "p5", "p10", "p20", "p40"]])

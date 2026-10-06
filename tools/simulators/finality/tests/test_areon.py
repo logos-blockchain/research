@@ -106,16 +106,32 @@ def test_recent_window_scores_only_the_last_w_slots():
 
 def test_blocks_without_a_short_reference_weigh_nothing():
     d, _, _ = _chain(2000, 0.03, 0.02, 5)
-    d.adv_slots = np.array([100, 130, 161, 200, 231], np.int64)
     d.long_ref[3] = True
-    weight, adv, adv_weight = race_weights(d, 30)
-    assert adv_weight.tolist() == [1, 1, 0, 0, 0]
+    weight, _ = race_weights(d)
     assert weight[0] == 0 and weight[3] == 0 and weight[1:3].tolist() == [1, 1]
     # an honest chain of long references never gains weight, so a single win displaces anything
     long_only = Dag(**{**d.__dict__, "long_ref": np.ones(d.n_blocks, dtype=bool),
                        "adv_slots": np.array([5], np.int64)})
     succ, scored = dag_race(long_only, 5, window=30, premine=True, first=1, last=10)
     assert scored > 0 and succ.tolist() == [scored] * 5
+
+
+@pytest.mark.parametrize("premine", [False, True])
+def test_a_win_weighs_one_within_the_window_of_its_side(premine):
+    """Honest blocks every 10 slots; the target at slot 100, its parent at 90; window 2. The
+    coalition wins slots 5, 92 and 94. The latest block on its side at slot 92 is the fork point
+    at 90, or, premining with no lead, the public tip at 90; both wins lie exactly the window after
+    a block on that side, so both weigh one and tie the target's child at 110. Weighed from the win
+    at 5, the first would weigh nothing."""
+    hs = np.arange(10, 310, 10, dtype=np.int64)
+    n = hs.size + 1
+    d = Dag(slot=np.concatenate(([-1], hs)), height=np.arange(n, dtype=np.int64),
+            producer=np.zeros(n, np.int64),
+            ref_ptr=np.concatenate(([0, 0], np.arange(1, n, dtype=np.int64))),
+            refs=np.arange(n - 1, dtype=np.int64), long_ref=np.zeros(n, dtype=bool),
+            adv_slots=np.array([5, 92, 94], np.int64), tips_seen=np.ones(n, np.int64))
+    succ, scored = dag_race(d, 1, window=2, premine=premine, win_at=0, first=10, last=11)
+    assert scored == 1 and succ.tolist() == [1]
 
 
 def test_concurrent_honest_blocks_can_be_left_out():
