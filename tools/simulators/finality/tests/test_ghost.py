@@ -19,8 +19,8 @@ def test_longest_chain_region_is_the_private_attack_threshold(delta):
 
 
 @pytest.mark.parametrize("rho_h_delta,want", [
-    # (rho_h Delta) -> rho_a Delta bounds LCR / GHOST-det / GHOST-adv, read off the paper's
-    # formulas at the points of its Fig. 1 axis (agent transcription, recomputed here)
+    # (rho_h Delta) -> rho_a Delta bounds LCR / GHOST-det / GHOST-adv: the inequality on p. 3 and
+    # equations (2) and (1) of revision 2026-09-11 at the middle of its Fig. 1 axis
     (1.0, (0.5, math.exp(-1), math.exp(-1) / (2 - math.exp(-1)))),
 ])
 def test_region_formulas_at_unit_honest_load(rho_h_delta, want):

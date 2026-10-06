@@ -1,12 +1,12 @@
 """Phase E5: the balancing attack of Gaži, Motaqy and Russell on the slot lottery (PLAN.md E5).
 
-ePrint 2024/1830 (revision 2025-02-20), §5.1: against GHOST with adversarial tie-breaking, an
-adversary that delays each honest block until the next one is produced plays the honest blocks of
-a phase alternately into two subtrees, and spends one withheld block of its own whenever a phase
-ends with the subtrees one apart. Its reserve follows ``A' = A + #a(phase) - (#h(phase) mod 2)``,
-and the subtrees stay balanced, so nothing settles, as long as the reserve never falls below zero.
-The attack holds forever with positive probability exactly when
-``E[#a(phase)] > P(#h(phase) is odd)``; in continuous time that is
+ePrint 2024/1830 (revision 2026-09-11), §5.1 and App. D.1: against GHOST with adversarial
+tie-breaking, an adversary that delays each honest block until the next one is produced plays the
+honest blocks of a phase alternately into two subtrees, and spends one withheld block of its own
+whenever a phase ends with the subtrees one apart. Its reserve follows
+``A' = A + #a(phase) - (#h(phase) mod 2)``, and the subtrees stay balanced, so nothing settles, as
+long as the reserve never falls below zero. The attack holds forever with positive probability
+exactly when ``E[#a(phase)] > P(#h(phase) is odd)``; in continuous time that is
 ``rho_a > rho_h exp(-rho_h Delta) / (2 - exp(-rho_h Delta))`` (``finality_sim.ghost``).
 
 Here the phases come from Cryptarchia's per-note lottery: a slot holds a Poisson number of honest
@@ -108,8 +108,8 @@ def phase_stats(f: float, alpha: float, delta: int) -> tuple[float, float, float
 def threshold(f: float, delta: int, ties: str) -> float:
     """The smallest adversary share whose reserve drifts upward: the edge of the safe region.
 
-    ``ties="adversarial"``: a phase costs a block when its honest count is odd (§5.1);
-    ``ties="deterministic"``: when it holds any honest block (§5.2).
+    ``ties="adversarial"``: a phase costs a block when its honest count is odd (App. D.1);
+    ``ties="deterministic"``: when it holds any honest block (App. D.2).
     """
     def gain(alpha):
         a, odd, busy = phase_stats(f, alpha, delta)

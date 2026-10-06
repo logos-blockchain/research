@@ -246,7 +246,7 @@ accumulated since the fork.
   `ρ_LEAD` once in a subDAG, and a tag found in both of two conflicting subDAGs must weigh in
   neither. Without the second rule one win keeps two subDAGs balanced at no cost: GHOST "provides
   no security (for any parameters) with unconstrained equivocation" (Gaži, Motaqy and Russell,
-  ePrint 2024/1830, p. 5).
+  ePrint 2024/1830, revision 2026-09-11, p. 8).
 - **A coalition in small notes gets its share.** A note holding `s` of the stake wins a slot with
   probability `1 − (1 − f_A)^s`, so many small notes win at `−s·ln(1 − f_A)` per slot, linear in
   `s`. E2's coalition, 0.1 % of the stake per node, made blocks within 3 % of `α/(1 − α)` of the

@@ -729,7 +729,8 @@ In the node:
 - Gaži, Ren, Russell, "Practical Settlement Bounds for Longest-Chain Consensus", CRYPTO 2023;
   ePrint 2022/1571, revised 2025-05-02; code `github.com/renling/LCanalysis`. B1's method.
 - Gaži, Motaqy, Russell, "A Tight Analysis of GHOST Consistency", ePrint 2024/1830, revision
-  2025-02-20. GHOST's safe region is inferior to the longest-chain rule's; C3.
+  2026-09-11 (PDF SHA-1 `93a92b8a…`). GHOST's safe region is inferior to the longest-chain rule's;
+  C3.
 - CIP-0140, "Ouroboros Peras – Faster Settlement", status Proposed. Committee `n = 900`, quorum
   `τ = 675`, round `U = 90` slots, boost `B = 15` blocks, cool-down `K = 780` rounds. Fast
   settlement against up to a quarter of the stake, Praos-like behaviour above it. Settlement

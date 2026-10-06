@@ -125,7 +125,8 @@ Blend, 1 hop of 1 round, delivers 1.8 s. The specification's, 3 hops of up to 3 
 ## C3 — a fork choice that weighs referenced uncles
 
 Gaži, Motaqy and Russell give the exact consistency regions of GHOST and of the longest-chain rule
-when an adversary delays honest blocks by up to `Δ` (ePrint 2024/1830, revision 2025-02-20).
+when an adversary delays honest blocks by up to `Δ` (ePrint 2024/1830, revision 2026-09-11, p. 3
+and equations (1) and (2)).
 Translated into the largest tolerable stake share at `f = 1/30`, the lottery's wins Poisson at
 `−ln(1 − f)` per slot:
 
