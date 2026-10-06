@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from finality_sim.lcbounds import error_lb, error_ub, skipped_mass, slot_pdf
+from finality_sim.lcbounds import error_lb, error_ub, skipped_mass, slot_pdf, ub_curve
 
 TABLE = pd.read_csv(pathlib.Path(__file__).parent / "data" / "grr2022-1571_rev20250502_table1.tsv",
                     sep="\t")
@@ -70,3 +70,25 @@ def test_port_matches_the_original_code_run_in_octave():
             got = (error_ub(int(r.K), sp, int(a), int(s)) if r.bound == "ub" else
                    error_lb(int(r.K), sp, int(a), int(s), steps=int(r.lb_steps)))
             assert got == pytest.approx(r.value, rel=1e-9), (honest, d, r.bound, r.K)
+
+
+def test_the_curve_is_the_port_at_every_depth():
+    """``ub_curve`` against ``error_ub``: every depth to 25 at Table 1's 20 % and 5 s, and
+    ``data/lcbounds_deep.csv``, the port at depths 160 to 640 in three of B2's cells
+    (``scripts/b2_deep.py``)."""
+    sp = slot_pdf(0.8, 0.25, ALPHABET)
+    want = [error_ub(k, sp, ALPHABET, STATES) for k in range(1, 26)]
+    assert ub_curve(25, sp, ALPHABET, STATES) == pytest.approx(want, rel=1e-12)
+    ref = pd.read_csv(pathlib.Path(__file__).parent / "data" / "lcbounds_deep.csv",
+                      float_precision="round_trip")
+    for (honest, d, a, s, cut), g in ref.groupby(["honest", "D", "alphabet", "states", "min_prob"]):
+        got = ub_curve(int(g.K.max()), slot_pdf(honest, d, int(a)), int(a), int(s), cut)
+        assert got[g.K.to_numpy() - 1] == pytest.approx(g.ub.to_numpy(), rel=1e-10), (honest, d)
+
+
+def test_the_curve_stops_at_its_floor():
+    sp = slot_pdf(0.8, 0.25, ALPHABET)
+    full = ub_curve(40, sp, ALPHABET, STATES)
+    cut = ub_curve(40, sp, ALPHABET, STATES, floor=full[29])
+    assert cut.size == 30
+    assert cut == pytest.approx(full[:30], rel=1e-14)

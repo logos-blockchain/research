@@ -121,8 +121,7 @@ def warmup(pad: np.ndarray, alphabet: int, states: int, upper: bool) -> np.ndarr
     return np.linalg.matrix_power(q, WARMUP_STEPS) @ st0
 
 
-def final_ub(pad: np.ndarray, st2: np.ndarray, alphabet: int, states: int) -> float:
-    """Port of ``PoWMCFinalUB``: the chance the adversary is ever ahead after confirmation."""
+def _final_matrix(pad: np.ndarray, alphabet: int, states: int) -> np.ndarray:
     z = states
     q = np.zeros((2 * states + 1, 2 * states + 1))
     for i in range(alphabet):
@@ -132,8 +131,13 @@ def final_ub(pad: np.ndarray, st2: np.ndarray, alphabet: int, states: int) -> fl
                     continue
                 dst = k + i - j if (k < -i or k > j) else min(0, k) + i
                 q[z + dst, z + k] += pad[i, j]
-    st = np.linalg.matrix_power(q, FINAL_STEPS) @ st2
-    return float(st[z:].sum())
+    return np.linalg.matrix_power(q, FINAL_STEPS)
+
+
+def final_ub(pad: np.ndarray, st2: np.ndarray, alphabet: int, states: int) -> float:
+    """Port of ``PoWMCFinalUB``: the chance the adversary is ever ahead after confirmation."""
+    st = _final_matrix(pad, alphabet, states) @ st2
+    return float(st[states:].sum())
 
 
 @njit(cache=True)
@@ -291,6 +295,129 @@ def error_ub(K: int, sp: SlotPdf, alphabet: int, states: int, min_prob: float = 
     st0 = warmup(sp.pad, alphabet, states, upper=True)
     st2 = _confirm_ub(K, sp.pa_only, sp.ph, sp.pd, sp.pa, st0, alphabet, states, min_prob)
     return final_ub(sp.pad, st2, alphabet, states)
+
+
+@njit(cache=True)
+def _general_move(x, y, h, j, i, states):
+    """Where a general symbol takes the state (x, y) of ``_confirm_ub``; ok False drops it."""
+    if x >= 0:                                                    # the positive diagonal
+        if abs(x + i - j) > states or (x == 0 and h == 1 and i == 0):
+            return False, 0, 0
+        dst = x + i - j if x > j else i
+        return True, dst, dst
+    if x < -i:
+        dst_x, dst_y = x + i - j, max(0, y + i - j)
+    else:
+        dst_x = max(0, y + i - j)
+        dst_y = dst_x
+    if min(dst_x, dst_y) < -states or max(dst_x, dst_y) > states:
+        return False, 0, 0
+    return True, dst_x, dst_y
+
+
+@njit(cache=True)
+def _ub_levels(k_max, floor, pa_only, ph, pd, pa, st0, v, alphabet, states, min_prob):
+    """``_confirm_ub`` followed by ``final_ub``, at every depth 1..k_max in one pass.
+
+    Every symbol lowers the remaining count by n >= 1, so the count a path has used is a level
+    it passes once. Mass at level l reaches depth K's confirmation by a symbol of count
+    n >= K - l, and carries on to level l + n otherwise; v weighs each confirmed lead by
+    ``final_ub``. The pass stops once the bound is at most ``floor`` (0 runs to k_max).
+    """
+    z = states
+    w = 2 * states + 1
+    count = 0
+    for h in range(1, alphabet + 1):
+        for j in range(1, max(1, h - 1) + 1):
+            for i in range(alphabet):
+                if ph[h - 1] * pd[h - 1, j - 1] * pa[h - 1, j - 1, i] > min_prob:
+                    count += 1
+    sh, sj, si = np.empty(count, np.int64), np.empty(count, np.int64), np.empty(count, np.int64)
+    sp = np.empty(count)
+    c = 0
+    n_max = 2
+    for h in range(1, alphabet + 1):
+        for j in range(1, max(1, h - 1) + 1):
+            for i in range(alphabet):
+                prob = ph[h - 1] * pd[h - 1, j - 1] * pa[h - 1, j - 1, i]
+                if prob > min_prob:
+                    sh[c], sj[c], si[c], sp[c] = h, j, i, prob
+                    n_max = max(n_max, h + 2 * i)
+                    c += 1
+    p_h = ph[0] * pa[0, 0, 0]
+
+    # absorb[m, x, y]: the weight of the symbols of count at least m from state (x, y)
+    absorb = np.zeros((n_max + 2, w, w))
+    for x in range(-states, states + 1):
+        for y in range(0, states + 1):
+            if x >= 0 and y != x:
+                continue
+            if x >= 0 and x < states:                             # (a=1, h=0), count 2
+                absorb[2, z + x, z + y] += pa_only * v[z + x + 1]
+            if x == -1 and y < states:
+                absorb[2, z + x, z + y] += pa_only * v[z + y + 1]
+            if x < -1 and y < states:
+                absorb[2, z + x, z + y] += pa_only * v[z + x + 1]
+            if x == 0:                                            # (a=0, h=1), count 1
+                absorb[1, z, z] += p_h * v[z - 1]
+            for s in range(count):
+                ok, dx, dy = _general_move(x, y, sh[s], sj[s], si[s], states)
+                if ok:
+                    absorb[sh[s] + 2 * si[s], z + x, z + y] += sp[s] * v[z + dx]
+    for m in range(n_max - 1, 0, -1):
+        absorb[m] += absorb[m + 1]
+
+    ring = np.zeros((n_max + 1, w, w))
+    out = np.zeros(k_max + n_max + 1)
+    last = k_max
+    for level in range(k_max):
+        cur = level % (n_max + 1)
+        if level <= states:
+            ring[cur, z + level, z + level] += st0[z + level]
+        for x in range(-states, states + 1):
+            for y in range(0, states + 1):
+                u = ring[cur, z + x, z + y]
+                if u == 0.0:
+                    continue
+                for m in range(1, n_max + 1):
+                    out[level + m] += u * absorb[m, z + x, z + y]
+                if x >= 0 and x < states:
+                    ring[(level + 2) % (n_max + 1), z + x + 1, z + x + 1] += u * pa_only
+                elif x == -1 and y < states:
+                    ring[(level + 2) % (n_max + 1), z + y + 1, z + y + 1] += u * pa_only
+                elif x < -1 and y < states:
+                    ring[(level + 2) % (n_max + 1), z + x + 1, z + y + 1] += u * pa_only
+                if x == 0:
+                    ring[(level + 1) % (n_max + 1), z - 1, z] += u * p_h
+                for s in range(count):
+                    ok, dx, dy = _general_move(x, y, sh[s], sj[s], si[s], states)
+                    if ok:
+                        ring[(level + sh[s] + 2 * si[s]) % (n_max + 1), z + dx, z + dy] += u * sp[s]
+                ring[cur, z + x, z + y] = 0.0
+        direct = 0.0
+        for i in range(level + 1, states + 1):                    # leads confirmed on arrival
+            direct += st0[z + i] * v[z + i]
+        if floor > 0.0 and out[level + 1] + direct <= floor:
+            last = level + 1
+            break
+    res = out[1:last + 1].copy()
+    for k in range(1, last + 1):
+        for i in range(k, states + 1):
+            res[k - 1] += st0[z + i] * v[z + i]
+    return res
+
+
+def ub_curve(k_max: int, sp: SlotPdf, alphabet: int, states: int, min_prob: float = 0.0,
+             floor: float = 0.0) -> np.ndarray:
+    """``error_ub`` at depths 1..k_max (entry K - 1 holds depth K), in time linear in k_max.
+
+    Not part of the port: ``tests/test_lcbounds.py`` checks it against ``error_ub``. With
+    ``floor`` > 0 it stops at the first depth whose bound is at most ``floor``.
+    """
+    st0 = warmup(sp.pad, alphabet, states, upper=True)
+    v = _final_matrix(sp.pad, alphabet, states)[states:].sum(axis=0)
+    return _ub_levels(k_max, floor, sp.pa_only, sp.ph, sp.pd, sp.pa, st0, v, alphabet, states,
+                      min_prob)
 
 
 def lb_steps(K: int) -> int:

@@ -24,7 +24,10 @@ run() {
     > "$OUT/$name.log" 2>&1 &
 }
 # Table 1's 20 % column at 2 s (D = 0.1), the code's default alphabet and states.
+run check "lc_points(0.8, 0.1, 10, 19, [2 3], '$OUT/check.csv')"
 run table1 "lc_points(0.8, 0.1, 10, 19, [4 8 12 16 20], '$OUT/table1.csv')"
+# Table 1's 10 % column at 5 s (D = 0.25), where the port's lower bound sits above the table.
+run five "lc_points(0.9, 0.25, 10, 19, [2 3], '$OUT/five.csv')"
 # A quarter of the stake at 10 s and f = 1/30 (D = 1/3).
 run quarter "lc_points(0.75, 1/3, 16, 19, [5 10 20], '$OUT/quarter.csv')"
 # A third of the stake at 1 s (D = 1/30), depth 60: the original 80 phases, and 240.

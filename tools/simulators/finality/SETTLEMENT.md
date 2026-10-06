@@ -23,20 +23,28 @@ honest messages.
 Gates (`tests/test_lcbounds.py`, mutations in `scripts/check_mutations.py`):
 
 - **Table 1.** The port reproduces all 152 proof-of-stake cells of the revision's Table 1 within
-  `1e-3` relative: both bounds, 10 % and 20 % adversary, 2 s and 5 s delay, depths 2–20. Three
-  mutations of the port each fail this gate.
+  `1e-3` relative: both bounds, 10 % and 20 % adversary, 2 s and 5 s delay, depths 2–20. The
+  lower bound at 5 s lies above the table by 4.5–5.0e-4 relative at 10 % and by 1.6–2.1e-4 at
+  20 %. Every other cell is within `4.3e-5`. Three mutations of the port each fail this gate.
 - **The original code.** LCanalysis itself, run in Octave 11.3 with the two pdf functions Octave
-  lacks (`octave/`, `scripts/octave_reference.sh`), reproduces Table 1's 20 % point at 2 s, both
-  bounds to depth 20. The port matches all 23 of its values within `7e-14` relative: that point,
-  a quarter of the stake with `D = 1/3` to depth 20, and a third with `D = 1/30` at depth 60
-  (`tests/data/lcanalysis_octave.csv`). One mutation fails this gate.
+  lacks (`octave/`, `scripts/octave_reference.sh`), gives 27 values
+  (`tests/data/lcanalysis_octave.csv`): Table 1's 20 % column at 2 s to depth 20, its 10 % column
+  at 5 s at depths 2 and 3, a quarter of the stake with `D = 1/3` to depth 20, and a third with
+  `D = 1/30` at depth 60. The port matches all 27 within `7e-14` relative, including the lower
+  bound at 5 s that lies above the table. One mutation fails this gate.
 - **Convergence.** The original follows the Section 4.7 attack for 80 phases, enough for Table 1
-  (depth at most 20) and not beyond it. At a third of the stake and depth 60 the lower bound
-  collapses from `6.8e-3` to `5e-12` at 80 phases. The original code shows the same at 19 states:
-  `5.4e-13` with its 80 phases, `6.87e-3` with 240. The port follows the attack for
+  (depth at most 20) and not beyond it. At a third of the stake and depth 60, with 30 states, the
+  lower bound is `6.9e-3`, and `5.5e-12` at 80 phases. The original code shows the same at 19
+  states: `5.4e-13` with its 80 phases, `6.87e-3` with 240. The port follows the attack for
   `max(80, 4K)` phases, which leaves Table 1 unchanged and converges past it. A gate checks that
   doubling the phases changes nothing at depth 60, and the 80-phase mutation fails it.
 
+- **Every depth at once.** The port's upper bound takes time quadratic in the depth `K`.
+  `ub_curve` computes it at every depth up to `K` in one pass, in time linear in `K`: every symbol
+  lowers the count still to go by at least one, so the count a path has used passes each value
+  once. It matches the port within `1e-12` relative at depths 1–25, and within `1e-10` at depths
+  160–640 in three of B2's cells (`tests/data/lcbounds_deep.csv`, `scripts/b2_deep.py`). Three
+  mutations fail this gate.
 The paper does not state the alphabet and state counts behind its table. The code's defaults
 (10 and 19) reproduce it, and 20 and 49 change no cell by more than `5e-5` relative. Beyond the
 paper's delays the alphabet must grow, because honest runs lengthen with `D`. B2 sizes it per
@@ -47,59 +55,66 @@ exceed the states.
 
 The bounds at `f = 1/30` for delays `Δ` from 1 s to 20 s. Each cell reads *lower – upper*, in
 canonical blocks on top of the target. The paper's attack succeeds out to the lower depth; no
-attack succeeds past the upper one. Depths 20–120 were computed. `*` marks a depth extrapolated
-past 120 along the measured per-block decay, and `≤ 20` a depth below the computed range.
+attack succeeds past the upper one. The upper bound is computed at every depth (B1). The lower
+bound is computed at depths 20, 40, …, 120 and interpolated between them; `*` marks a lower depth
+extrapolated past 120 along its last four computed depths, and `≤ 20` one below 20.
 
 ε = 1e-06
 
 | α | 1 s | 2 s | 3 s | 5 s | 8 s | 10 s | 15 s | 20 s |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0.05 | ≤ 20 – 29 | ≤ 20 – 30 | ≤ 20 – 32 | ≤ 20 – 35 | ≤ 20 – 42 | ≤ 20 – 47 | ≤ 20 – 66 | ≤ 20 – 93 |
-| 0.10 | 20 – 48 | 20 – 50 | 21 – 52 | 21 – 57 | 22 – 67 | 22 – 75 | 23 – 101 | 24 – 140* |
-| 0.15 | 31 – 75 | 31 – 78 | 32 – 82 | 32 – 90 | 34 – 104 | 35 – 116 | 37 – 156* | 41 – 217* |
-| 0.20 | 46 – 116 | 47 – 122* | 48 – 128* | 50 – 141* | 53 – 165* | 56 – 185* | 62 – 251* | 70 – 356* |
-| 0.25 | 72 – 187* | 74 – 197* | 76 – 207* | 81 – 231* | 88 – 274* | 94 – 310* | 110 – 434* | 131* – 638* |
-| 0.30 | 121* – 318* | 126* – 338* | 131* – 359* | 142* – 406* | 160* – 496* | 175* – 572* | 222* – 850* | 290* – 1348* |
-| 0.33 | 182* – 480* | 191* – 513* | 201* – 550* | 222* – 634* | 261* – 798* | 293* – 942* | 402* – 1501* | 584* – 2627* |
+| 0.05 | ≤ 20 – 29 | ≤ 20 – 31 | ≤ 20 – 32 | ≤ 20 – 36 | ≤ 20 – 42 | ≤ 20 – 48 | ≤ 20 – 66 | ≤ 20 – 93 |
+| 0.10 | 20 – 48 | 20 – 51 | 20 – 53 | 21 – 58 | 21 – 67 | 21 – 75 | 23 – 101 | 24 – 141 |
+| 0.15 | 30 – 75 | 31 – 79 | 31 – 82 | 32 – 90 | 33 – 105 | 34 – 117 | 37 – 157 | 40 – 218 |
+| 0.20 | 46 – 117 | 47 – 123 | 48 – 128 | 50 – 142 | 53 – 166 | 55 – 185 | 62 – 252 | 70 – 357 |
+| 0.25 | 72 – 188 | 74 – 198 | 76 – 209 | 80 – 233 | 88 – 276 | 93 – 313 | 109 – 438 | 131* – 645 |
+| 0.30 | 121* – 324 | 125* – 344 | 130* – 366 | 141* – 416 | 160* – 509 | 174* – 589 | 221* – 878 | 290* – 1,398 |
+| 0.33 | 182* – 497 | 191* – 533 | 200* – 572 | 222* – 663 | 260* – 841 | 292* – 997 | 402* – 1,608 | 584* – 2,845 |
 
 ε = 1e-09
 
 | α | 1 s | 2 s | 3 s | 5 s | 8 s | 10 s | 15 s | 20 s |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0.05 | ≤ 20 – 45 | ≤ 20 – 47 | ≤ 20 – 49 | ≤ 20 – 54 | 20 – 64 | 20 – 72 | 21 – 100 | 21 – 140* |
-| 0.10 | 31 – 74 | 31 – 77 | 32 – 81 | 32 – 88 | 33 – 102 | 34 – 114 | 35 – 153* | 37 – 212* |
-| 0.15 | 47 – 115 | 48 – 120* | 48 – 125* | 50 – 137* | 52 – 159* | 53 – 176* | 58 – 236* | 63 – 328* |
-| 0.20 | 71 – 179* | 72 – 187* | 74 – 196* | 77 – 215* | 82 – 251* | 85 – 280* | 95 – 379* | 108 – 536* |
-| 0.25 | 111 – 285* | 114 – 300* | 117 – 316* | 124* – 351* | 135* – 416* | 143* – 469* | 168* – 654* | 201* – 961* |
-| 0.30 | 185* – 484* | 192* – 513* | 200* – 545* | 216* – 616* | 245* – 750* | 267* – 864* | 338* – 1280* | 443* – 2027* |
-| 0.33 | 278* – 728* | 292* – 778* | 306* – 833* | 338* – 959* | 397* – 1205* | 446* – 1420* | 612* – 2257* | 888* – 3945* |
+| 0.05 | ≤ 20 – 45 | ≤ 20 – 47 | ≤ 20 – 49 | ≤ 20 – 54 | 20 – 64 | 20 – 73 | 20 – 100 | 21 – 140 |
+| 0.10 | 31 – 75 | 31 – 78 | 31 – 81 | 32 – 89 | 33 – 102 | 33 – 114 | 35 – 153 | 37 – 212 |
+| 0.15 | 47 – 116 | 47 – 121 | 48 – 126 | 49 – 138 | 51 – 159 | 53 – 177 | 57 – 236 | 62 – 328 |
+| 0.20 | 70 – 179 | 72 – 188 | 73 – 197 | 76 – 216 | 81 – 252 | 85 – 281 | 95 – 380 | 107 – 537 |
+| 0.25 | 110 – 288 | 113 – 303 | 116 – 319 | 123* – 354 | 134* – 420 | 143* – 474 | 168* – 661 | 200* – 971 |
+| 0.30 | 185* – 495 | 192* – 525 | 199* – 558 | 216* – 632 | 244* – 773 | 266* – 892 | 338* – 1,325 | 442* – 2,105 |
+| 0.33 | 278* – 758 | 291* – 812 | 306* – 871 | 338* – 1,008 | 397* – 1,275 | 445* – 1,510 | 612* – 2,426 | 887* – 4,282 |
 
 Checks:
 
 - Doubling the attack's phases at depth 120 changes no lower bound.
 - The skipped symbol mass is below `2e-14` per step.
-- Between depths 60–80 and 100–120 the per-block decay ratio changes by at most 0.0009, so the
-  extrapolation follows a stable geometric tail. The ratio still rises slowly at the largest
-  shares, so the extrapolated depths there are slightly optimistic.
+- Doubling the states moves no upper depth below 30 % of the stake, at `1e-9` or at `1e-30`. From
+  30 % it adds at most 0.2 %: 6 blocks at a third, 20 s and `1e-9`, and 23 at `1e-30`
+  (`runs/b2/states.csv`).
+- In every cell with an extrapolated lower depth, the log of the lower bound is convex in the depth
+  over 20–120. The extrapolation then falls short of the attack's depth. At a quarter of the stake
+  and 10 s, the lower bound computed at depths 140 and 150 puts the attack's depth at `1e-9` at
+  143, as the extrapolation does (`runs/b2/lower.csv`).
 
 Reading:
 
-- **The proven depth is set by the attacker the protocol must face.** At `ε = 1e-9` and delays
-  of 1–10 s it is 74–114 blocks against 10 % of the stake, 285–469 against 25 %, and
-  728–1,420 against a third.
-- **The attack is not far below the proof.** The gap between the two bounds is a factor of 2.4
-  to 3.3 in every cell.
-- **In time, at the specification's Blend** (a canonical block every 35.5 s on average, A1;
-  `Δ = 10` s):
-  - against 25 %, the guarantee takes 469 blocks, about 4.6 h; the attack needs 143, about 1.4 h;
-  - against 10 %, 114 blocks (67 min) against 34 (20 min);
-  - under random delays and the private attack (`RATE.md`, C1), 51 and 11 minutes;
-  - k-finality takes 18–21 h on the same Blend.
-- **H1 fails for the guarantee.** At 25 % and `ε = 1e-9` the upper bound exceeds `k/10 = 216`
-  at every delay, from 285 blocks at 1 s. The attack stays below 216 up to about 20 s.
-- **H2 holds up to a delay of about 14 s.** At a third of the stake the upper bound is 1,420
-  blocks at 10 s and 2,257 at 15 s. So `k = 2160` holds `ε = 1e-9` against a third of the stake
-  for delays up to about 14 s, and not beyond. The finding is a latency, within that delay.
+- At `ε = 1e-9` and delays of 1–10 s the upper bound is 75–114 blocks against 10 % of the stake,
+  288–474 against 25 %, and 758–1,510 against a third.
+- **The attack is not far below the proof.** Where the lower depth is computed, the upper one is
+  2.4–3.6 times it at delays up to 10 s, and up to 6.6 times at 20 s.
+- **In time**, on the honest chain while the coalition withholds, at the specification's Blend
+  (`30 s / ((1 − α) · 0.845)` a block, A1) and `Δ = 10` s:
+  - against 25 %, the guarantee takes 474 blocks, 6.2 h at 47.3 s a block; the attack reaches 143,
+    1.9 h;
+  - against 10 %, 114 blocks, 75 min at 39.4 s a block, against 33, 22 min;
+  - under random delays and the private attack (`RATE.md`, C1), 68 and 12 minutes;
+  - k-finality takes 28 h and 24 h.
+- **H1 fails for the guarantee.** At 25 % and `ε = 1e-9` the upper bound exceeds `k/10 = 216` at
+  every delay, from 288 blocks at 1 s. The paper's attack falls below `1e-9` by depth 216 at
+  every delay up to 20 s (`runs/b2/lower.csv`).
+- **H2 holds up to a delay of 13 s.** At a third of the stake the upper bound at `1e-9` is 1,987
+  blocks at 13 s and 2,192 at 14 s (`runs/b2/third.csv`). Past 14 s the guarantee needs more than
+  `k = 2160` blocks, while the paper's attack needs 612 at 15 s and 887 at 20 s. Within 13 s the
+  first finding is therefore a latency, not a safety margin (`PLAN.md`, H2). B6 counts grinding.
 
 ## B3 — the attacks, simulated
 

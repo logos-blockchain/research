@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import math
 import pathlib
 import sys
 
@@ -145,15 +146,15 @@ def b2() -> None:
     d = pd.read_csv(RUNS / "b2" / "depths.csv")
     for eps in (1e-6, 1e-9):
         t = d[d.eps == eps].copy()
-        first = 20                                   # the first computed depth (B2 DEPTHS)
+        first = 20                                   # the lower bound's first computed depth
 
-        def show(v, extra):
+        def lower(v, extra):
             if v <= first:
                 return f"≤ {first}"
-            return f"{v:.0f}{'*' if extra else ''}"
+            return f"{math.floor(v + 1e-9)}{'*' if extra else ''}"   # the attack reaches it
 
-        t["cell"] = t.apply(lambda r: f"{show(r.lb_depth, r.lb_extrapolated)} – "
-                                      f"{show(r.ub_depth, r.ub_extrapolated)}", axis=1)
+        t["cell"] = [f"{lower(r.lb_depth, r.lb_extrapolated)} – {int(r.ub_depth):,}"
+                     for _, r in t.iterrows()]
         p = t.pivot(index="adv", columns="delay_s", values="cell").reset_index()
         p["adv"] = p["adv"].map(lambda v: f"{v:.2f}")
         p.columns = ["α"] + [f"{int(c)} s" for c in p.columns[1:]]

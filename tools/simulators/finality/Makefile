@@ -45,8 +45,9 @@ c3: install                   # RATE.md, C3
 c4: install                   # RATE.md, C4 (about 3 minutes on 14 cores)
 	$(PY) scripts/c4_taktikos.py
 
-b2: install                   # SETTLEMENT.md, B2 (about an hour on 14 cores)
+b2: install                   # SETTLEMENT.md, B2 (about 25 minutes on 14 cores)
 	$(PY) scripts/b2_settlement.py
+	$(PY) scripts/b2_lower.py
 
 b3: install                   # SETTLEMENT.md, B3 (about 10 minutes on 14 cores)
 	$(PY) scripts/b3_race.py
