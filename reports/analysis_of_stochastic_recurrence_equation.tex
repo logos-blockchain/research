@@ -1,0 +1,2461 @@
+\documentclass[10pt]{iopart}
+
+\usepackage{epsfig,graphicx}
+\usepackage{algpseudocode}
+\usepackage{amsfonts}
+%\usepackage{amsmath}
+\usepackage{amsbsy}
+\usepackage{dsfont}
+\usepackage{color}
+\usepackage{comment}
+\usepackage{float}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+\usepackage{amsthm}
+
+% for using amsmath
+%\expandafter\let\csname equation*\endcsname\relax
+%\expandafter\let\csname endequation*\endcsname\relax
+%\usepackage{amsmath}
+
+\newcommand{\new}{\textcolor{blue}}
+\newcommand{\Cyan}{\textcolor{cyan}}
+\newcommand{\old}{\textcolor{red}}
+
+
+\newcommand{\sgn}{\textrm{sgn}}
+
+\newcommand{\1}{\mathbf{1}}
+\newcommand{\nullv}{\mathbf{0}}
+\newcommand{\Ind}{\mathds{1}}
+
+\newcommand{\Prob}{\mathrm{P}}
+
+\newcommand{\xiv}{  \ensuremath{\boldsymbol{\xi}}   }
+
+\newcommand{\W}{\mathrm{W}}
+
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\mv}{\ensuremath{\mathbf{m}}}
+\newcommand{\cv}{\ensuremath{\mathbf{c}}}
+\newcommand{\sv}{\ensuremath{\mathbf{s}}}
+\newcommand{\Sm}{\ensuremath{\mathbf{S}}}
+%\newcommand{\etav}{\ensuremath{\boldsymbol{\eta}}}
+\newcommand{\etav}{  \ensuremath{\boldsymbol{\eta}}   }
+\newcommand\at[2]{\left.#1\right|_{#2}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\mathrm{Var}}
+
+\newtheorem{prop}{Proposition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{cor}{Corollary}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{assumption}{Assumption}[section]
+\newtheorem{remark}{Remark}[section]
+
+
+\begin{document}
+
+\title[Stochastic recurrence equation]{Analysis of stochastic recurrence equation}
+%
+
+
+\author{Alexander Mozeika}
+\address{$^1$Status.im}
+
+
+\ead{alexander.mozeika@status.im}
+
+
+
+
+\date{\today}
+
+%\maketitle
+
+\begin{abstract}
+We consider...  
+\end{abstract}
+
+\tableofcontents
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Statistical properties of the leader election process \label{section:election-process}}
+Start with the leader lottery equation:
+
+\begin{equation}
+\phi(\alpha)=1-(1-f)^\alpha,
+\end{equation}
+Where $\alpha\in[0,1]$ is relative stake and $f\in[0,1]$ is the \emph{active slots coefficient}.
+To estimate the number of leaders per slot, we can look at the system evolved over time:
+
+\begin{comment}
+\begin{matrix}
+    & \tau_0 & \tau_1 & \tau_2 & \tau_3 & \cdots \\
+n_0 & 0 & 0 & 1 & 0 & \cdots \\
+n_1 & 1 & 0 & \cdots \\
+n_2 & 0 & 0 & \cdots \\
+n_3 & 0 & 1 & \cdots \\
+\vdots & \vdots & \vdots \\
+n_N & 1 & 0 & \cdots\\
+    & \vec{s^0} & \vec{s^1} & \vec{s^2} & \cdots
+\end{matrix}
+\end{comment}
+
+\begin{center}
+\begin{tabular}{ c c c c c}
+         & $\tau_0$     & $\tau_1$      & $\tau_2$      & $\cdots$ \\ 
+   $n_0$ & 0            & 0             & 1             & $\cdots$ \\
+   $n_1$ & 1            & 0             & 0             & $\cdots$ \\
+   $n_2$ & 0            & 0             & 0             & $\cdots$ \\
+$\vdots$ & $\vdots$     & $\vdots$      & $\vdots$      &          \\
+   $n_N$ & 1            & 0             & 0             & $\cdots$ \\
+         & $\sv(0)$  & $\sv(1)$   & $\sv(2)$   & $\cdots$ \\
+\end{tabular}
+\end{center}
+
+A $1$ in slot $\tau_i$ for node $n_j$ means $n_j$ was a leader for slot $\tau_i$, conversely, a $0$ means the corresponding node was not a leader in that slot.
+
+The vector $\sv(t)$ gives a snapshot of all leaders/non-leaders for slot $\tau_t$.
+
+With the system model in place, we can derive the distribution for $\sv(t)$:
+
+\begin{eqnarray}
+\Prob(\sv(t))&=&\prod_{i=1}^N \Prob(s_i(t))\nonumber\\
+&=&\prod_{i=1}^N\left[\phi(\alpha_i)\,\delta_{1;s_i(t)}+(1-\phi(\alpha_i))\,\delta_{0;s_i(t)}\right]\label{def:Prob-s},
+\end{eqnarray}
+%
+Where $\alpha_i\geq0$ is the relative stake of node $i$ and $\sum_{i=1}^N\alpha_i=1$. We note that $\alpha_i=w_i/\sum_{j=1}^Nw_j$, where $w_i>0$
+ is stake of node $i$ and $\sum_{j=1}^Nw_j$ is the \emph{total} stake.  With this we can compute the average of random variable $\sum_{i=1}^N s_i(t)$, i.e. the \new{average} number of leaders in slot $t$, as follows 
+%
+\begin{eqnarray}
+%
+\left\langle\sum_{i=1}^N s_i(t)\right\rangle_{\sv(t)}&=& \sum_{\sv(t)}\Prob(\sv(t))\sum_{i=1}^N s_i(t) \nonumber\\
+&=&\sum_{i=1}^N \sum_{\sv(t)} \Prob(\sv(t))s_i(t)  \nonumber\\
+&=&\sum_{i=1}^N \sum_{s_i(t)} \Prob(s_i(t))s_i(t)\nonumber \\
+&=&\sum_{i=1}^N\phi(\alpha_i)
+%
+\end{eqnarray}
+%
+Which intuitively makes sense, the expected number of leaders is the sum of running the lottery function for every node $n_i$. Thus the average is given by 
+%
+\begin{eqnarray}
+%
+\left\langle\sum_{i=1}^N s_i(t)\right\rangle_{\sv(t)}
+&=&\sum_{i=1}^N\phi(\alpha_i)\label{eqn:aver}.
+%
+\end{eqnarray}
+%
+
+We also would like to know the variance 
+%
+\begin{eqnarray}
+%
+\mathrm{Var}\left[\sum_{i=1}^N s_i(t)\right]&=&\left\langle\left(\sum_{i=1}^N s_i(t)\right)^2\right\rangle_{\sv(t)} -\left\langle\sum_{i=1}^N s_i(t)\right\rangle_{\sv(t)}^2 \label{def:Var}
+%
+\end{eqnarray}
+%
+which  can be computed as follows. First, we consider the second moment  
+%
+\begin{eqnarray}
+%
+\left\langle\left(\sum_{i=1}^N s_i(t)\right)^2\right\rangle_{\sv(t)}&=&\sum_{i=1}^N\sum_{j=1}^N \sum_{\sv(t)} \Prob(\sv(t))s_i(t)s_j(t)  \nonumber\\
+&=&\sum_{i=1}^N\sum_{j=1}^N \left\langle s_i(t)s_j(t)\right\rangle_{\sv(t)}
+%
+\end{eqnarray}
+%
+Now the average 
+%
+\begin{eqnarray}
+%
+\left\langle s_i(t)s_j(t)\right\rangle_{\sv(t)}&=&\delta_{i;j} \sum_{s_i(t)} \Prob(s_i(t))s_i(t)\nonumber \\
+&& +(1-\delta_{i;j})\sum_{s_i(t)} \Prob(s_i(t))s_i(t)\sum_{s_j(t)} \Prob(s_j(t))s_j(t)\nonumber\\
+&=&\delta_{i;j} \phi(\alpha_i) +(1-\delta_{i;j})\phi(\alpha_i)\phi(\alpha_j)
+%
+\end{eqnarray}
+%
+and hence 
+%
+\begin{eqnarray}
+%
+\left\langle\left(\sum_{i=1}^N s_i(t)\right)^2\right\rangle_{\sv(t)}&=&\sum_{i=1}^N\sum_{j=1}^N \Big[\delta_{i;j} \phi(\alpha_i)\nonumber\\
+&&+(1-\delta_{i;j})\phi(\alpha_i)\phi(\alpha_j) \Big] \nonumber\\
+&=&\sum_{i=1}^N\phi(\alpha_i)+\left(\sum_{i=1}^N \phi(\alpha_i)\right)^2\nonumber\\
+&& -\sum_{i=1}^N\phi^2_f(\alpha_i).
+%
+\end{eqnarray}
+%
+Second, using above result  and the average  (\ref{eqn:aver}) in the definition  (\ref{def:Var}) gives us 
+%
+\begin{eqnarray}
+%
+\mathrm{Var}\left[\sum_{i=1}^N s_i(t)\right]
+&=&\sum_{i=1}^N\phi(\alpha_i)+\left(\sum_{i=1}^N \phi(\alpha_i)\right)^2 -\sum_{i=1}^N\phi^2_f(\alpha_i)\nonumber\\
+%
+&&-\left(\sum_{i=1}^N \phi(\alpha_i)\right)^2\nonumber\\
+%
+&=&\sum_{i=1}^N\left[\phi(\alpha_i)-\phi^2_f(\alpha_i)\right]
+%
+\end{eqnarray}
+%
+and hence 
+%
+\begin{eqnarray}
+%
+\mathrm{Var}\left[\sum_{i=1}^N s_i(t)\right]&=&\sum_{i=1}^N\phi(\alpha_i)\left[1-\phi(\alpha_i)\right]\label{eqn:Var}
+%
+\end{eqnarray}
+%
+
+
+
+\section{Stochastic recurrence equation}
+
+For $h>0$ we consider the equation 
+%
+\begin{eqnarray}
+%
+    D_{\ell+1}[\Sm(\ell)]&=& D_{\ell}[\Sm(\ell-1)]-h\, D_{\ell}[\Sm(\ell-1)]\nonumber\\
+    &&\times\left(f-\frac{1}{T}\sum_{t=1}^T\1\left[\sum_{i=1}^N s^{\ell}_i(t)\ge1\right]\right)\label{eq:SRE},
+    %
+\end{eqnarray}
+%\Sm(\ell)=\{\sv^\ell(t)\}
+where in above $\Sm(\ell)\equiv \{\sv^{\ell}(1),\ldots,\sv^{\ell}(T)\}$ with $\sv^{\ell}(t)\in\{0,1\}^N$. The distribution of $\Sm(\ell)$ is given by 
+%
+\begin{eqnarray}
+\Prob\left(\Sm(\ell)\vert D_{\ell}[\Sm(\ell-1)]\right)&=&\prod_{t=1}^T\Prob(\sv^\ell(t)\vert D_{\ell}[\Sm(\ell-1)])\nonumber\\
+%
+&=&\prod_{t=1}^T\prod_{i=1}^N \Prob(s^\ell_i(t)\vert D_{\ell}[\Sm(\ell-1)])\label{def:Prob-S},
+\end{eqnarray}
+%
+where 
+\begin{eqnarray}
+\Prob(s_i(t)\vert D)&=&\phi(w_i/D)\,\delta_{1;s_i(t)}+(1-\phi(w_i/D))\,\delta_{0;s_i(t)}.
+\end{eqnarray}
+%
+We note $\Prob(s_i(t)\vert D)$ can be written in the form
+%
+\begin{eqnarray}
+\Prob(s_i(t)\vert D)&=&\frac{\rme^{s_i(t)\,h(w_i/D)}}{1+\rme^{h(w_i/D)}},
+\end{eqnarray}
+%
+where  
+%
+\begin{eqnarray}
+h(w_i/D)&=&\log\left(\frac{\phi(w_i/D)}{1-\phi(w_i/D)}\right).
+\end{eqnarray}
+%
+We note that $1+\rme^{h(w_i/D)}=\frac{1}{1-\phi(w_i/D)}$. 
+
+For $D_0$  independent  from $\Sm(0)$ above gives us 
+%
+\begin{eqnarray}
+%
+    D_{1}[\Sm(0)]&=&D_{0}-h\,D_{0} \left(f-\frac{1}{T}\sum_{t=1}^T\1\left[\sum_{i=1}^N s^0_i(t)\ge1\right]\right).
+    %
+\end{eqnarray}
+%
+
+For $\ell=1$ we obtain 
+%
+\begin{eqnarray}
+%
+    D_{2}[\Sm(1)]&=& D_{1}[\Sm(0)]-h \,D_{1}[\Sm(0)]\left(\!f-\frac{1}{T}\sum_{t=1}^T\1\left[\sum_{i=1}^N s^1_i(t)\ge1\right]\right),
+    %
+\end{eqnarray}
+%
+where
+%
+\begin{eqnarray}
+\Prob\left(\Sm(1)\vert D_{1}[\Sm(0)]\right)&=&\prod_{t=1}^T\Prob(\sv^1(t)\vert D_{1}[\Sm(0)]).
+\end{eqnarray}
+%
+The joint probability of $\Sm(1)$ and $\Sm(0)$ is given by 
+%
+\begin{eqnarray}
+\Prob\left[\Sm(1),\Sm(0)\right]&=&\Prob\left(\Sm(1)\vert D_{1}[\Sm(0)]\right)\Prob(\Sm(0)),
+\end{eqnarray}
+%
+where 
+%
+\begin{eqnarray}
+\Prob_0(\Sm(0))&=&\Prob\left(\Sm(0)\vert D_0\right).
+\end{eqnarray}
+%
+Furthermore, for $L\ge1$ we have the joint probability
+%
+\begin{eqnarray}
+\Prob\left[\Sm(L),\ldots,\Sm(0)\right]&=&\Prob_0(\Sm(0))\prod_{\ell=1}^L\Prob\left[\Sm(\ell)\vert D_{\ell}[\Sm(\ell-1)]\right]\label{def:prob-path}.
+\end{eqnarray}
+%
+Above is the probability of the path $\Sm(0)\to\cdots\to\Sm(L)$. Now we can define the joint probability 
+%
+\begin{eqnarray}
+\Prob\left[\Sm(L),\ldots,\Sm(0);D_{L},\ldots,D_{1}\vert D_{0}\right]&=&\Prob_0(\Sm(0))\prod_{\ell=1}^L\Prob\left[\Sm(\ell)\vert D_{\ell}\right]\nonumber\\
+&&\times\delta\left(D_{\ell}-D_{\ell}[\Sm(\ell-1)]\right)\label{def:prob-path-joint}
+\end{eqnarray}
+%
+from which follows the probability distribution 
+%
+\begin{eqnarray}
+\Prob\left[D_{L},\ldots,D_{1}\vert D_{0}\right]&=&\sum_{\Sm(0)}\cdots\sum_{\Sm(L)}\Prob_0(\Sm(0))\prod_{\ell=1}^L\Prob\left[\Sm(\ell)\vert D_{\ell}\right]\nonumber\\
+&&~~~~~~~~~\times\delta\left(D_{\ell}-D_{\ell}[\Sm(\ell-1)]\right)\label{def:prob-path-D}.
+\end{eqnarray}
+%
+For the above probability distribution  we can show the following result. 
+
+\subsection{The binomial reduction}
+
+\begin{prop}
+%
+\label{prop:D-distr}
+The stochastic recurrence equation (\ref{eq:SRE}) is equivalent to the equation 
+%
+\begin{eqnarray}
+%
+D_{\ell+1}&=& D_{\ell}- h\,D_{\ell}\left(f- 1+\frac{k_{\ell}}{T}\right),
+%
+\end{eqnarray}
+%
+where $k_{\ell}\in\{0,1,\ldots,T\}$ is a random variable from the binomial distribution
+%
+\begin{eqnarray}
+\Prob[k_{\ell}\vert D_{\ell}]={T\choose k}\left[1-\phi\left(\frac{\sum_{i=1}^Nw_i}{D_{\ell}}\right)\right]^k\phi^{T-k}\left(\frac{\sum_{i=1}^Nw_i}{D_{\ell}}\right).
+\end{eqnarray}
+% 
+
+\end{prop}
+
+
+\begin{prop}[Binomial reduction]
+\label{prop:D-distr}
+Conditioned on $D_\ell$, the evolution of the total stake estimator is completely determined by the number of empty slots in the epoch. More precisely, let
+\begin{equation}
+k_\ell
+=
+\sum_{t=1}^T
+\1\left[
+\sum_{i=1}^N s_i^\ell(t)=0
+\right]
+\label{eq:k_definition}
+\end{equation}
+denote the number of empty slots in epoch $\ell$. Then
+\begin{equation}
+k_\ell\mid D_\ell
+\sim
+\mathrm{Bin}
+\left(
+T,\,
+1-\phi\!\left(\frac{\sum_{i=1}^N w_i}{D_\ell}\right)
+\right),
+\label{eq:k_binomial_prop}
+\end{equation}
+that is,
+\begin{equation}
+\Prob[k_\ell=k\mid D_\ell]
+=
+{T\choose k}
+\left[
+1-\phi\!\left(\frac{\sum_{i=1}^N w_i}{D_\ell}\right)
+\right]^k
+\phi^{\,T-k}\!\left(\frac{\sum_{i=1}^N w_i}{D_\ell}\right).
+\label{eq:k_distribution_prop}
+\end{equation}
+Consequently, the stochastic recurrence equation (\ref{eq:SRE}) is exactly equivalent to
+\begin{equation}
+D_{\ell+1}
+=
+D_\ell
+-
+hD_\ell
+\left(
+f-1+\frac{k_\ell}{T}
+\right).
+\label{eq:SRE_binomial}
+\end{equation}
+\end{prop}
+
+\old{Check the proof!}
+\begin{proof}
+For a fixed iteration $\ell$ and slot $t$, define the indicator of an empty slot by
+\begin{equation}
+X_\ell(t)
+=
+\1\left[
+\sum_{i=1}^N s_i^\ell(t)=0
+\right].
+\label{eq:empty_indicator}
+\end{equation}
+
+Conditioned on $D_\ell$, the random variables $s_i^\ell(t)$ are independent. Therefore
+\begin{eqnarray}
+\Prob\left[X_\ell(t)=1\mid D_\ell\right]
+&=&
+\prod_{i=1}^N
+\left[
+1-\phi\left(\frac{w_i}{D_\ell}\right)
+\right]
+\nonumber\\
+&=&
+\prod_{i=1}^N
+(1-f)^{w_i/D_\ell}
+\nonumber\\
+&=&
+(1-f)^{\sum_{i=1}^N w_i/D_\ell}
+\nonumber\\
+&=&
+1-\phi\left(
+\frac{\sum_{i=1}^N w_i}{D_\ell}
+\right).
+\label{eq:empty_probability}
+\end{eqnarray}
+
+Hence, conditioned on $D_\ell$, the variables
+\begin{equation}
+X_\ell(1),\ldots,X_\ell(T)
+\end{equation}
+are independent and identically distributed Bernoulli random variables with parameter
+\begin{equation}
+p(D_\ell)
+=
+1-\phi\left(
+\frac{\sum_{i=1}^N w_i}{D_\ell}
+\right).
+\label{eq:empty_prob_parameter}
+\end{equation}
+
+Define
+\begin{equation}
+k_\ell
+=
+\sum_{t=1}^T X_\ell(t).
+\label{eq:k_empty_slots}
+\end{equation}
+
+Thus $k_\ell$ is the number of empty slots in the epoch and, conditioned on $D_\ell$,
+\begin{equation}
+k_\ell
+\sim
+\mathrm{Bin}\left(
+T,
+1-\phi\left(
+\frac{\sum_{i=1}^N w_i}{D_\ell}
+\right)
+\right).
+\label{eq:k_binomial}
+\end{equation}
+
+Therefore
+\begin{equation}
+\Prob[k_\ell=k\mid D_\ell]
+=
+{T\choose k}
+\left[
+1-\phi\left(
+\frac{\sum_{i=1}^N w_i}{D_\ell}
+\right)
+\right]^k
+\phi^{T-k}\left(
+\frac{\sum_{i=1}^N w_i}{D_\ell}
+\right).
+\label{eq:k_distribution}
+\end{equation}
+
+The number of non-empty slots is
+\begin{eqnarray}
+\sum_{t=1}^T
+\1\left[
+\sum_{i=1}^N s_i^\ell(t)\ge1
+\right]
+&=&
+T-k_\ell.
+\label{eq:nonempty_count}
+\end{eqnarray}
+
+Substituting \ref{eq:nonempty_count} into the stochastic recurrence
+\ref{eq:SRE}, we obtain
+\begin{eqnarray}
+D_{\ell+1}
+&=&
+D_\ell
+-
+hD_\ell
+\left(
+f-\frac{T-k_\ell}{T}
+\right)
+\nonumber\\
+&=&
+D_\ell
+-
+hD_\ell
+\left(
+f-1+\frac{k_\ell}{T}
+\right).
+\label{eq:binomial_recurrence}
+\end{eqnarray}
+
+This proves the stated binomial reduction.
+\end{proof}
+
+
+
+\subsection{Saddle-point mean-field theory}
+%
+For a test function $\mathcal{F}[D_{L},\ldots,D_{1}]$ we consider the average 
+%
+\begin{eqnarray}
+%
+&&\langle\mathcal{F}[D_{L},\ldots,D_{1}]\rangle\nonumber\\
+&&~~~~~~~~~~~~~~=\int\rmd D_{L}\cdots\int\rmd D_{1}\Prob\left[D_{L},\ldots,D_{1}\vert D_{0}\right]
+\,\mathcal{F}[D_{L},\ldots,D_{1}]\label{def:F-aver}
+%
+\end{eqnarray}
+%
+as follows
+%
+\begin{eqnarray}
+&&\langle\mathcal{F}[D_{L},\ldots,D_{1}]\rangle\nonumber\\
+%
+&=&\int\rmd D_{L}\cdots\int\rmd D_{1}\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&\times\prod_{\ell=0}^{L-1}\delta\left(D_{\ell+1}- D_{\ell}+ h\,D_{\ell}\left(f- 1+\frac{k_{\ell}}{T}\right)\right)\nonumber\\
+%
+&&\times \mathcal{F}[D_{L},\ldots,D_{1}]\nonumber\\
+%
+&=&\int\rmd D_{L}\cdots\int\rmd D_{1}\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&\times\prod_{\ell=0}^{L-1}\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{\rmi T\hat{D}_\ell\left(D_{\ell+1}- D_{\ell}+ h\,D_{\ell}\left(f- 1+\frac{k_{\ell}}{T}\right)\right)}
+\nonumber\\
+%
+&&\times \mathcal{F}[D_{L},\ldots,D_{1}]\nonumber\\
+%
+&=&\int\rmd D_{L}\cdots\int\rmd D_{1}\prod_{\ell=0}^{L-1}\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{\rmi T\hat{D}_\ell\left(D_{\ell+1}- D_{\ell}+ h\,D_{\ell}\left(f- 1\right)\right)}\nonumber\\
+&&\times\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell] \rme^{\rmi \hat{D}_\ell h\,D_{\ell}k_{\ell} }
+\nonumber\\
+%
+&&\times \mathcal{F}[D_{L},\ldots,D_{1}]\nonumber\\
+%
+&=&\int\rmd D_{L}\cdots\int\rmd D_{1}\prod_{\ell=0}^{L-1}\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{\rmi T\hat{D}_\ell\left(D_{\ell+1}- D_{\ell}+ h\,D_{\ell}\left(f- 1\right)\right)}\nonumber\\
+&&\times\prod_{\ell=0}^{L-1}\left\{ \phi\left(\sum_{i=1}^Nw_i/D_\ell\right)+\left[1-\phi\left(\sum_{i=1}^Nw_i/D_\ell\right)\right]\rme^{\rmi \hat{D}_\ell h\,D_{\ell}}\right\}^T
+\nonumber\\
+%
+&&\times \mathcal{F}[D_{L},\ldots,D_{1}]\nonumber\\
+%
+&=&\int\rmd D_{L}\cdots\int\rmd D_{1}\prod_{\ell=0}^{L-1}\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\nonumber\\
+&&\times\rme^{T\Psi\left[D_{L},\ldots,D_{1};\hat{D}_{L-1},\ldots,\hat{D}_0\right]} \mathcal{F}[D_{L},\ldots,D_{1}]
+%
+\end{eqnarray}
+%
+where in above we defined 
+%
+\begin{eqnarray}
+&&\Psi\left[D_{L},\ldots,D_{1};\hat{D}_{L-1},\ldots,\hat{D}_0\right]\nonumber\\
+%
+&&~~~=\rmi \sum_{\ell=0}^{L-1}\hat{D}_\ell\left(D_{\ell+1}- D_{\ell}+ h\,D_{\ell}\left(f- 1\right)\right)\nonumber\\
+&&~~~~~+\sum_{\ell=0}^{L-1}\log\left( \phi\left(\sum_{i=1}^Nw_i/D_\ell\right)+\left[1-\phi\left(\sum_{i=1}^Nw_i/D_\ell\right)\right]\rme^{\rmi \hat{D}_\ell h\,D_{\ell}}\right)\label{def:Psi}.
+%
+\end{eqnarray}
+%
+Now using the normalisation property 
+%
+\begin{eqnarray}
+%
+&&\int\rmd D_{L}\cdots\int\rmd D_{1}\Prob\left[D_{L},\ldots,D_{1}\vert D_{0}\right]\nonumber\\
+%
+&&=\int\rmd D_{L}\cdots\int\rmd D_{1}\prod_{\ell=0}^{L-1}\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{T\Psi\left[D_{L},\ldots,D_{1};\hat{D}_{L-1},\ldots,\hat{D}_0\right]} =1
+%
+\end{eqnarray}
+%
+we obtain
+%
+\begin{eqnarray}
+&&\langle\mathcal{F}[D_{L},\ldots,D_{1}]\rangle\nonumber\\
+%
+&&~~~~~~~~~~~~=\mathcal{C}_T\int\rmd D_{L}\cdots\int\rmd D_{1}\int\rmd \hat{D}_{L-1}\cdots\int\rmd \hat{D}_{0}\nonumber\\
+ &&~~~~~~~~~~~~~~~~~\times\rme^{T\Psi\left[D_{L},\ldots,D_{1};\hat{D}_{L-1},\ldots,\hat{D}_0\right]}\mathcal{F}[D_{L},\ldots,D_{1}]\label{eq:SP-integral},
+%
+\end{eqnarray}
+%
+where we defined
+%
+\begin{eqnarray}
+%
+\mathcal{C}_T&=&\int\!\rmd D_{L}\!\cdots\!\int\!\rmd D_{1}\int\!\rmd \hat{D}_{L-1}\!\cdots\!\int\!\rmd \hat{D}_{0} \rme^{T\Psi\left[D_{L},\ldots,D_{1};\hat{D}_{L-1},\ldots,\hat{D}_0\right]}.
+%
+\end{eqnarray}
+%
+For $T\to\infty$ the integral (\ref{eq:SP-integral}) is dominated by extremum of $\Psi\left[\cdots;\cdots\right]$. To find the latter we consider the derivative
+%
+\begin{eqnarray}
+&&\nonumber\\
+%
+&&\frac{\partial}{\partial \hat{D}_\ell}\Psi\left[\cdots;\cdots\right]=\rmi \left(D_{\ell+1}- D_{\ell}+ h\,D_{\ell}\left(f- 1\right)\right)\nonumber\\
+&&~~~~~~~~~~~~~+ \frac{\rmi h\,D_{\ell}\left[1-\phi\left(\sum_{i=1}^Nw_i/D_\ell\right)\right]\rme^{\rmi \hat{D}_\ell h\,D_{\ell}}}{\phi\left(\sum_{i=1}^Nw_i/D_\ell\right)+\left[1-\phi\left(\sum_{i=1}^Nw_i/D_\ell\right)\right]\rme^{\rmi \hat{D}_\ell h\,D_{\ell}}}\label{eq:Psi-der-D-hat}.
+%
+\end{eqnarray}
+%
+then solving $\frac{\partial}{\partial \hat{D}_\ell}\Psi\left[\cdots;\cdots\right]=0$ gives us the equation 
+%
+\begin{eqnarray}
+%
+&&D_{\ell+1}=D_{\ell}- h\,D_{\ell}\left(f- 1\right)\nonumber\\
+&&~~~~~~~~~~~~~- \frac{h\,D_{\ell}\left[1-\phi\left(\sum_{i=1}^Nw_i/D_\ell\right)\right]\rme^{\rmi \hat{D}_\ell h\,D_{\ell}}}{\phi\left(\sum_{i=1}^Nw_i/D_\ell\right)+\left[1-\phi\left(\sum_{i=1}^Nw_i/D_\ell\right)\right]\rme^{\rmi \hat{D}_\ell h\,D_{\ell}}}\label{eq:SP-D}.
+%
+\end{eqnarray}
+%
+Furthermore, $\frac{\partial}{\partial D_L}\Psi\left[\cdots;\cdots\right]=\rmi \hat{D}_{L-1}$ and hence solving $\frac{\partial}{\partial D_L}\Psi\left[\cdots;\cdots\right]=0$ gives us $ \hat{D}_{L-1}=0$. Using the latter in (\ref{eq:SP-D}) we obtain the equation 
+%
+\begin{eqnarray}
+%
+D_{L}&=&D_{L-1}- h\,D_{L-1}\left(f- \phi\left(\sum_{i=1}^Nw_i/D_{L-1}\right)\right)\label{eq:SP-D-L+1}.
+%
+\end{eqnarray}
+%
+Let us consider the derivative
+%
+\begin{eqnarray}
+&&\frac{\partial}{\partial D_{L-1}}\Psi\left[D_{L},\ldots,D_{1};\hat{D}_{L-1},\ldots,\hat{D}_0\right]\nonumber\\
+%
+&&~~~~~~~~~~~~~~=\rmi \hat{D}_{L-1}\left(- 1+ h\,\left(f- 1\right)\right)+\rmi \hat{D}_{L-2}\nonumber\\
+&&~~~~~~~~~~~~~~~~~~~~~~+\frac{\partial}{\partial D_{L-1}}\log\left( \phi+\left[1-\phi\right]\rme^{\rmi \hat{D}_{L-1} h\,D_{L-1} }\right),
+%
+\end{eqnarray}
+%
+where in above $\phi\equiv\phi\left(\sum_{i=1}^Nw_i/D_{L-1}\right)$. The second term in above can be computed as follows
+%
+\begin{eqnarray}
+%
+&&\frac{\partial}{\partial D_{L-1}}\log\left( \phi+\left[1-\phi\right]\rme^{\rmi \hat{D}_{L-1} h\,D_{L-1} }\right)\nonumber\\
+%
+&&=
+\frac{\frac{\partial}{\partial D_{L-1}}\phi+\frac{\partial}{\partial D_{L-1}}\left[1-\phi\right]\rme^{\rmi \hat{D}_{L-1} h\,D_{L-1} }}{\phi+\left[1-\phi\right]\rme^{\rmi \hat{D}_{L-1} h\,D_{L-1} }}\nonumber\\
+%
+&&=
+\frac{\frac{\partial}{\partial D_{L-1}}\phi\left[1-\rme^{\rmi \hat{D}_{L-1} h\,D_{L-1} }\right]+\left[1-\phi\right]\rme^{\rmi \hat{D}_{L-1} h\,D_{L-1} }\rmi \hat{D}_{L-1} h}{\phi+\left[1-\phi\right]\rme^{\rmi \hat{D}_{L-1} h\,D_{L-1} }}.
+%
+\end{eqnarray}
+%
+The condition for extremum $\frac{\partial}{\partial D_{L-1}}\Psi\left[D_{L},\ldots,D_{1};\hat{D}_{L-1},\ldots,\hat{D}_0\right]=0$ gives us the equation
+%
+\begin{eqnarray}
+&&\rmi \hat{D}_{L-1}\left(- 1+ h\,\left(f- 1\right)\right)+\rmi \hat{D}_{L-2}\nonumber\\
+&&~~~=-\frac{\frac{\partial}{\partial D_{L-1}}\phi\left[1-\rme^{\rmi \hat{D}_{L-1} h\,D_{L-1} }\right]+\left[1-\phi\right]\rme^{\rmi \hat{D}_{L-1} h\,D_{L-1} }\rmi \hat{D}_{L-1} h}{\phi+\left[1-\phi\right]\rme^{\rmi \hat{D}_{L-1} h\,D_{L-1} }}.
+%
+\end{eqnarray}
+%
+However, we found earlier that $\hat{D}_{L-1}=0$ and hence above gives us $\hat{D}_{L-2}=0$. The latter implies that $\hat{D}_{\ell}=0$ for $\ell\in\{0,1,\ldots,L-1\}$ and using this in the equation (\ref{eq:SP-D-simpl}) gives us 
+%
+\begin{eqnarray}
+%
+D_{\ell+1}&=&D_{\ell}- h\,D_{\ell}\left(f- \phi\left(\frac{\sum_{i=1}^Nw_i}{D_{\ell}}\right)\right)\label{eq:SP-D-simpl}.
+%
+\end{eqnarray}
+%
+We note that on one hand, by (\ref{eq:SP-integral}), we have 
+%
+\begin{eqnarray}
+%
+\lim_{T\to\infty}
+\langle\mathcal{F}[D_{L},\ldots,D_{1}]\rangle&=&\mathcal{F}[D_{L},\ldots,D_{1}],
+%
+\end{eqnarray}
+%
+where $D_{\ell}$ variables on the right hand side are computed by the equation (\ref{eq:SP-D-simpl}), but on other hand for  $\mathcal{F}[D_{L},\ldots,D_{1}]=D_{\ell}$ one the left hand side we have $\langle D_{\ell} \rangle=D_{\ell}$. Hence from the latter follows that  (\ref{eq:SP-D-simpl}) is the mean-field equation 
+%
+%
+\begin{eqnarray}
+%
+\langle D_{\ell+1}\rangle&=&\langle D_{\ell}\rangle- h\,\langle D_{\ell}\rangle\left(f- \phi\left(\frac{\sum_{i=1}^Nw_i}{\langle D_{\ell}\rangle}\right)\right)\label{eq:MF}.
+%
+\end{eqnarray}
+%
+The derivation presented in this section is based on a saddle-point approximation and is therefore formal rather than rigorous. Its main purpose is to identify the candidate deterministic mean-field recursion governing the evolution of the total stake estimator. In Section~\ref{sec:concentration}, we provide a rigorous justification of this recursion. Specifically, we prove that, over any fixed time horizon, the stochastic estimator $D_\ell$ concentrates around the deterministic mean-field trajectory $d_\ell$ with fluctuations of order $T^{-1/2}$. Furthermore, we show that the expectation of the estimator converges to the mean-field solution as $T\rightarrow\infty$. Thus, although the saddle-point analysis is heuristic, it correctly identifies the deterministic large-$T$ limit of the stochastic recurrence. The subsequent concentration analysis establishes this limit rigorously and demonstrates that the deterministic recursion provides an accurate asymptotic description of the Total Stake Inference algorithm.
+
+\subsection{Mean-field approximation and concentration\label{sec:concentration}}
+%
+Let
+\begin{equation}
+W=\sum_{i=1}^N w_i,
+\qquad
+\phi(u)=1-(1-f)^u,
+\qquad
+0<f<1.
+\label{eq:phi_def}
+\end{equation}
+
+We consider the stochastic recurrence
+\begin{equation}
+D_{\ell+1}
+=
+D_\ell-hD_\ell
+\left(
+f-1+\frac{k_\ell}{T}
+\right),
+\label{eq:stochastic_recursion}
+\end{equation}
+where, conditionally on $D_\ell$,
+\begin{equation}
+k_\ell\mid D_\ell
+\sim
+\mathrm{Bin}(T,p(D_\ell)),
+\label{eq:binomial_model}
+\end{equation}
+with
+\begin{equation}
+p(D)=1-\phi(W/D).
+\label{eq:p_def}
+\end{equation}
+
+We define the deterministic mean-field map
+\begin{equation}
+g(D)
+=
+D-hD(f-\phi(W/D)),
+\label{eq:g_def}
+\end{equation}
+and the deterministic mean-field recursion
+\begin{equation}
+d_{\ell+1}=g(d_\ell),
+\qquad
+d_0=D_0>0.
+\label{eq:mean_field_recursion}
+\end{equation}
+
+Assume
+\begin{equation}
+h<\frac1f.
+\label{eq:h_condition}
+\end{equation}
+
+For a fixed finite horizon $L\ge1$, define
+\begin{equation}
+D_{\min}
+:=
+D_0(1-hf)^L,
+\label{eq:Dmin_def}
+\end{equation}
+and
+\begin{equation}
+D_{\max}
+:=
+D_0(1+h(1-f))^L.
+\label{eq:Dmax_def}
+\end{equation}
+
+Let
+\begin{equation}
+A=-\log(1-f)>0.
+\label{eq:c_def}
+\end{equation}
+
+We define the critical value $D_c$ by the condition
+\begin{equation}
+g'(D_c)=1.
+\label{eq:Dc_definition}
+\end{equation}
+
+Solving this equation yields
+\begin{equation}
+D_c
+=
+\frac{
+W\,A
+}{
+-\mathcal W_{-1}\!\left(-\frac{1-f}{e}\right)-1
+},
+\label{eq:Dc_formula}
+\end{equation}
+where $\mathcal W_{-1}$ denotes the $-1$ branch of the Lambert $W$-function.
+
+We assume
+\begin{equation}
+D_{\min}>D_c.
+\label{eq:contractive_assumption}
+\end{equation}
+\old{Check the following proposition!}
+\begin{prop}[Bounds on the critical ratio]
+\label{prop:Dc_bounds}
+Let $0<f<1$ and define
+\begin{equation}
+c=-\log(1-f),
+\qquad
+q_f(u)=1-(1+cu)e^{-cu}.
+\label{eq:qf_def}
+\end{equation}
+Let $u_c>0$ be the unique solution of
+\begin{equation}
+q_f(u_c)=f.
+\label{eq:uc_critical}
+\end{equation}
+Then
+\begin{equation}
+\frac{D_c}{W}=\frac{1}{u_c}.
+\label{eq:Dc_uc_relation}
+\end{equation}
+
+Let $0<a<b$. If
+\begin{equation}
+q_f\left(\frac{1}{b}\right)
+<
+f
+<
+q_f\left(\frac{1}{a}\right),
+\label{eq:Dc_bound_condition}
+\end{equation}
+then
+\begin{equation}
+a
+<
+\frac{D_c}{W}
+<
+b.
+\label{eq:Dc_general_bounds}
+\end{equation}
+\end{prop}
+
+\begin{proof}
+Differentiating $q_f$ in (\ref{eq:qf_def}) gives
+\begin{equation}
+q_f'(u)
+=
+c^2u e^{-cu}>0,
+\qquad
+u>0.
+\label{eq:qf_monotonicity}
+\end{equation}
+Thus $q_f$ is strictly increasing on $(0,\infty)$. Using
+(\ref{eq:uc_critical}), condition (\ref{eq:Dc_bound_condition}) can
+therefore be written as
+\begin{equation}
+q_f\left(\frac{1}{b}\right)
+<
+q_f(u_c)
+<
+q_f\left(\frac{1}{a}\right).
+\label{eq:Dc_bound_monotonicity}
+\end{equation}
+Strict monotonicity of $q_f$ implies
+\begin{equation}
+\frac{1}{b}
+<
+u_c
+<
+\frac{1}{a}.
+\label{eq:uc_bounds}
+\end{equation}
+Since all quantities in (\ref{eq:uc_bounds}) are positive, taking
+reciprocals reverses the inequalities and gives
+\begin{equation}
+a
+<
+\frac{1}{u_c}
+<
+b.
+\label{eq:inverse_uc_bounds}
+\end{equation}
+Using (\ref{eq:Dc_uc_relation}) proves
+(\ref{eq:Dc_general_bounds}).
+\end{proof}
+
+For the active-slot coefficient
+\begin{equation}
+f=\frac{1}{30},
+\label{eq:f_numerical}
+\end{equation}
+we have
+\begin{equation}
+c=-\log\left(\frac{29}{30}\right).
+\label{eq:c_numerical}
+\end{equation}
+Taking
+\begin{equation}
+a=0.119,
+\qquad
+b=0.1205,
+\label{eq:ab_numerical}
+\end{equation}
+and verifying
+\begin{equation}
+q_{1/30}\left(\frac{1}{0.1205}\right)
+<
+\frac{1}{30}
+<
+q_{1/30}\left(\frac{1}{0.119}\right),
+\label{eq:Dc_numerical_verification}
+\end{equation}
+Proposition~\ref{prop:Dc_bounds} yields
+\begin{equation}
+0.119
+<
+\frac{D_c}{W}
+<
+0.1205.
+\label{eq:Dc_certified_bounds}
+\end{equation}
+Thus the critical ratio is approximately
+\begin{equation}
+\frac{D_c}{W}\simeq 0.12.
+\label{eq:Dc_approximation}
+\end{equation}
+
+\begin{theorem}[Concentration in the contractive regime]
+\label{th:concentration}
+Assume (\ref{eq:h_condition}) and (\ref{eq:contractive_assumption}). Then, for every fixed horizon $L$,
+\begin{equation}
+\sup_{0\le \ell\le L}
+|D_\ell-d_\ell|
+=
+O_{\mathbb P}(T^{-1/2}).
+\label{eq:main_concentration}
+\end{equation}
+
+Furthermore, if
+\begin{equation}
+m_\ell:=\mathbb E[D_\ell],
+\label{eq:mell_def}
+\end{equation}
+then
+\begin{equation}
+m_\ell-d_\ell
+=
+O(T^{-1/2}),
+\qquad
+0\le \ell\le L.
+\label{eq:mean_estimate}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+
+Since
+\begin{equation}
+0\le \frac{k_\ell}{T}\le 1,
+\label{eq:k_bounds}
+\end{equation}
+we obtain
+\begin{equation}
+f-1
+\le
+f-1+\frac{k_\ell}{T}
+\le
+f.
+\label{eq:middle_bounds}
+\end{equation}
+
+Multiplying (\ref{eq:middle_bounds}) by $-h$ gives
+\begin{equation}
+-hf
+\le
+-h\left(f-1+\frac{k_\ell}{T}\right)
+\le
+h(1-f).
+\label{eq:middle_bounds2}
+\end{equation}
+
+Adding $1$ to (\ref{eq:middle_bounds2}) yields
+\begin{equation}
+1-hf
+\le
+1-h\left(f-1+\frac{k_\ell}{T}\right)
+\le
+1+h(1-f).
+\label{eq:middle_bounds3}
+\end{equation}
+
+Using (\ref{eq:stochastic_recursion}), we conclude that
+\begin{equation}
+D_\ell(1-hf)
+\le
+D_{\ell+1}
+\le
+D_\ell(1+h(1-f)).
+\label{eq:D_bounds_step}
+\end{equation}
+
+Iterating (\ref{eq:D_bounds_step}) gives
+\begin{equation}
+D_0(1-hf)^\ell
+\le
+D_\ell
+\le
+D_0(1+h(1-f))^\ell.
+\label{eq:D_bounds_iterated}
+\end{equation}
+
+Since (\ref{eq:h_condition}) implies
+\begin{equation}
+1-hf>0,
+\label{eq:positive_factor}
+\end{equation}
+we obtain from (\ref{eq:D_bounds_iterated}) that
+\begin{equation}
+D_{\min}\le D_\ell\le D_{\max},
+\qquad
+0\le \ell\le L.
+\label{eq:D_interval}
+\end{equation}
+
+Similarly, the deterministic recursion (\ref{eq:mean_field_recursion}) satisfies
+\begin{equation}
+d_{\ell+1}
+=
+d_\ell
+\left(
+1-h(f-\phi(W/d_\ell))
+\right).
+\label{eq:d_step}
+\end{equation}
+
+Since
+\begin{equation}
+0\le \phi(W/d_\ell)\le 1,
+\label{eq:phi_bounds}
+\end{equation}
+we obtain
+\begin{equation}
+1-hf
+\le
+1-h(f-\phi(W/d_\ell))
+\le
+1+h(1-f),
+\label{eq:d_factor_bounds}
+\end{equation}
+and hence
+\begin{equation}
+D_{\min}\le d_\ell\le D_{\max},
+\qquad
+0\le \ell\le L.
+\label{eq:d_interval}
+\end{equation}
+
+We now analyze the derivative of $g$. Differentiating (\ref{eq:g_def}) gives
+\begin{equation}
+g'(D)
+=
+1-hf+h\phi(W/D)
+-h\frac{W}{D}\phi'(W/D).
+\label{eq:gprime1}
+\end{equation}
+
+From (\ref{eq:phi_def}),
+\begin{equation}
+\phi'(u)
+=
+-(1-f)^u\log(1-f).
+\label{eq:phi_prime}
+\end{equation}
+
+Substituting (\ref{eq:phi_prime}) into (\ref{eq:gprime1}) yields
+\begin{equation}
+g'(D)
+=
+1-hf+h\phi(W/D)
++
+h\frac{W}{D}(1-f)^{W/D}\log(1-f).
+\label{eq:gprime2}
+\end{equation}
+
+Let
+\begin{equation}
+u=\frac{W}{D}.
+\label{eq:u_def}
+\end{equation}
+
+Using (\ref{eq:c_def}), we have
+\begin{equation}
+(1-f)^u=e^{-Au},
+\label{eq:exp_form}
+\end{equation}
+and therefore
+\begin{equation}
+g'(D)
+=
+1-hf+hq(u),
+\label{eq:gprime_q}
+\end{equation}
+where
+\begin{equation}
+q(u)=1-(1+Au)e^{-Au}.
+\label{eq:q_def}
+\end{equation}
+
+Differentiating (\ref{eq:q_def}) gives
+\begin{equation}
+q'(u)=A^2ue^{-Au}>0.
+\label{eq:qprime}
+\end{equation}
+
+Hence $q(u)$ is strictly increasing in $u$. Since $u=W/D$ is strictly decreasing in $D$, equation (\ref{eq:gprime_q}) implies that $g'(D)$ is strictly decreasing in $D$.
+
+Moreover,
+\begin{equation}
+q(u)\ge0,
+\label{eq:q_positive}
+\end{equation}
+and therefore
+\begin{equation}
+g'(D)\ge 1-hf>0.
+\label{eq:gprime_positive}
+\end{equation}
+
+Thus
+\begin{equation}
+|g'(D)|=g'(D).
+\label{eq:absolute_removed}
+\end{equation}
+
+The critical value $D_c$ is defined by (\ref{eq:Dc_definition}), namely
+\begin{equation}
+1-hf+hq(W/D_c)=1.
+\label{eq:Dc_equation}
+\end{equation}
+
+Since $h>0$, this reduces to
+\begin{equation}
+q(W/D_c)=f.
+\label{eq:Dc_equation2}
+\end{equation}
+
+Let
+\begin{equation}
+u_c=\frac{W}{D_c}.
+\label{eq:uc_def}
+\end{equation}
+
+Using (\ref{eq:q_def}), equation (\ref{eq:Dc_equation2}) becomes
+\begin{equation}
+1-(1+Au_c)e^{-Au_c}=f.
+\label{eq:uc_equation}
+\end{equation}
+
+Equivalently,
+\begin{equation}
+(1+Au_c)e^{-Au_c}=1-f.
+\label{eq:uc_equation2}
+\end{equation}
+
+Define
+\begin{equation}
+z=1+Au_c.
+\label{eq:z_def}
+\end{equation}
+
+Then (\ref{eq:uc_equation2}) becomes
+\begin{equation}
+ze^{-z}=\frac{1-f}{e}.
+\label{eq:z_equation}
+\end{equation}
+
+Multiplying by $-1$ and applying the Lambert $W$-function gives
+\begin{equation}
+-z
+=
+\mathcal W_{-1}
+\left(
+-\frac{1-f}{e}
+\right).
+\label{eq:z_solution}
+\end{equation}
+
+Substituting back yields (\ref{eq:Dc_formula}).
+
+Since $g'(D)$ is strictly decreasing and $g'(D_c)=1$, assumption (\ref{eq:contractive_assumption}) implies
+\begin{equation}
+0<g'(D)<1,
+\qquad
+D\in[D_{\min},D_{\max}].
+\label{eq:contractive_region}
+\end{equation}
+
+Define
+\begin{equation}
+L_g
+:=
+\sup_{D\in[D_{\min},D_{\max}]}
+|g'(D)|.
+\label{eq:Lg_def}
+\end{equation}
+
+Using (\ref{eq:contractive_region}), we obtain
+\begin{equation}
+L_g<1.
+\label{eq:Lg_less_1}
+\end{equation}
+
+Define the fluctuation
+\begin{equation}
+\epsilon_\ell=D_\ell-d_\ell.
+\label{eq:error_def}
+\end{equation}
+
+Write
+\begin{equation}
+\frac{k_\ell}{T}
+=
+p(D_\ell)+\eta_\ell,
+\label{eq:eta_decomposition}
+\end{equation}
+where
+\begin{equation}
+\eta_\ell
+=
+\frac{k_\ell}{T}-p(D_\ell).
+\label{eq:eta_def}
+\end{equation}
+
+Substituting (\ref{eq:eta_decomposition}) into (\ref{eq:stochastic_recursion}) gives
+\begin{equation}
+D_{\ell+1}
+=
+g(D_\ell)-hD_\ell\eta_\ell.
+\label{eq:D_with_eta}
+\end{equation}
+
+Subtracting (\ref{eq:mean_field_recursion}) from (\ref{eq:D_with_eta}), we obtain
+\begin{equation}
+\epsilon_{\ell+1}
+=
+g(D_\ell)-g(d_\ell)
+-
+hD_\ell\eta_\ell.
+\label{eq:error_recursion}
+\end{equation}
+
+Using (\ref{eq:Lg_less_1}),
+%
+\begin{equation}
+|g(D_\ell)-g(d_\ell)|
+\le
+L_g|\epsilon_\ell|.
+\label{eq:lipschitz_estimate}
+\end{equation}
+
+Combining (\ref{eq:error_recursion}), (\ref{eq:lipschitz_estimate}), and (\ref{eq:D_interval}), we obtain
+\begin{equation}
+|\epsilon_{\ell+1}|
+\le
+L_g|\epsilon_\ell|
++
+hD_{\max}|\eta_\ell|.
+\label{eq:error_recursive_bound}
+\end{equation}
+
+\begin{comment}
+\begin{eqnarray}
+|e_{1}|
+&\le&
+hD_{\max}|\eta_0|\\
+%
+|e_{2}|
+&\le&
+L_g|e_1|
++
+hD_{\max}|\eta_1| \le hD_{\max} (L_g|\eta_0|
++
+|\eta_1| )\\
+%
+|e_{3}|
+&\le&
+L_g|e_2|
++
+hD_{\max}|\eta_2|\le  hD_{\max} (L^2_g|\eta_0|
++
+L_g|\eta_1| 
++
+|\eta_2|)
+%
+\end{eqnarray}
+\end{comment}
+
+Since $\epsilon_0=0$,  iterating (\ref{eq:error_recursive_bound}) yields
+%
+\begin{equation}
+|\epsilon_\ell|
+\le
+hD_{\max}
+\sum_{r=0}^{\ell-1}
+L_g^{\ell-1-r}
+|\eta_r|.
+\label{eq:error_series}
+\end{equation}
+
+From the binomial model (\ref{eq:binomial_model}),
+\begin{equation}
+\mathbb E[\eta_\ell\mid D_\ell]=0,
+\label{eq:eta_mean}
+\end{equation}
+and
+\begin{equation}
+\mathrm{Var}(\eta_\ell\mid D_\ell)
+=
+\frac{p(D_\ell)(1-p(D_\ell))}{T}.
+\label{eq:eta_variance}
+\end{equation}
+
+Since $p(1-p)\le \frac14$, we obtain
+\begin{equation}
+\mathrm{Var}(\eta_\ell\mid D_\ell)
+\le
+\frac1{4T}.
+\label{eq:eta_variance_bound}
+\end{equation}
+%
+Also, $|\eta_\ell|\le1$.
+
+
+Let us define
+%
+\begin{equation}
+a_{\ell,r}
+=
+hD_{\max}L_g^{\ell-1-r}
+\label{eq:a_def}
+\end{equation}
+%
+then (\ref{eq:error_series}) becomes
+\begin{equation}
+|\epsilon_\ell|
+\le
+\sum_{r=0}^{\ell-1}
+a_{\ell,r}|\eta_r|.
+\label{eq:error_series2}
+\end{equation}
+%
+Squaring both sides in above and applying the Cauchy--Schwarz inequality  gives us
+%
+\begin{equation}
+|\epsilon_\ell|^2
+\le
+\left(
+\sum_{r=0}^{\ell-1}a_{\ell,r}^2
+\right)
+\left(
+\sum_{r=0}^{\ell-1}\eta_r^2
+\right).
+\label{eq:cauchy_estimate}
+\end{equation}
+
+Since $L_g<1$, we have 
+\begin{equation}
+\sum_{r=0}^{\ell-1}a_{\ell,r}^2
+=
+h^2D_{\max}^2
+\sum_{r=0}^{\ell-1}
+L_g^{2(\ell-1-r)}
+\le
+\frac{h^2D_{\max}^2}{1-L_g^2}.
+\label{eq:geometric_bound}
+\end{equation}
+
+Taking expectation in (\ref{eq:cauchy_estimate}), using (\ref{eq:eta_variance_bound}), and recalling that $L$ is fixed, we obtain
+\begin{equation}
+\mathbb E[\epsilon_\ell^2]
+=
+O(T^{-1}).
+\label{eq:e_second_moment}
+\end{equation}
+
+By Chebyshev's inequality,
+\begin{equation}
+\vert\epsilon_\ell\vert
+=
+O_{\mathbb P}(T^{-1/2}).
+\label{eq:e_op}
+\end{equation}
+
+Since $L$ is fixed,
+\begin{equation}
+\sup_{0\le \ell\le L}|\epsilon_\ell|
+=
+O_{\mathbb P}(T^{-1/2}).
+\label{eq:sup_e}
+\end{equation}
+
+Using (\ref{eq:error_def}), we obtain (\ref{eq:main_concentration}).
+
+Finally,
+\begin{equation}
+m_\ell-d_\ell
+=
+\mathbb E[\epsilon_\ell].
+\label{eq:m_minus_d}
+\end{equation}
+
+Applying Cauchy--Schwarz and using (\ref{eq:e_second_moment}),
+\begin{equation}
+|m_\ell-d_\ell|
+\le
+\mathbb E|\epsilon_\ell|
+\le
+\sqrt{\mathbb E[\epsilon_\ell^2]}
+=
+O(T^{-1/2}),
+\label{eq:mean_bound_final}
+\end{equation}
+which proves (\ref{eq:mean_estimate}).
+\end{proof}
+
+\begin{remark}[Role of the contractive regime]
+The assumption
+\begin{equation}
+D_{\min}>D_c,
+\label{eq:remark_contractivity}
+\end{equation}
+or equivalently
+\begin{equation}
+L_g<1,
+\label{eq:remark_Lg}
+\end{equation}
+is not essential for proving concentration over a fixed finite horizon. Indeed, the proof remains valid for any finite Lipschitz constant $L_g$ of the mean-field map $g$ on the interval $[D_{\min},D_{\max}]$. In this case, the estimate
+\begin{equation}
+\sum_{m=0}^{\infty}L_g^{2m}
+=
+\frac{1}{1-L_g^2}
+\label{eq:remark_geometric}
+\end{equation}
+used in the proof is replaced by the finite sum
+\begin{equation}
+\sum_{m=0}^{L-1}L_g^{2m},
+\label{eq:remark_finite_sum}
+\end{equation}
+which is finite for every fixed horizon $L$. Consequently, the concentration estimate
+\begin{equation}
+\sup_{0\le\ell\le L}|D_\ell-d_\ell|
+=
+O_{\mathbb P}(T^{-1/2})
+\label{eq:remark_concentration}
+\end{equation}
+continues to hold for every fixed $L$, regardless of whether $L_g$ is smaller or larger than one.
+
+Nevertheless, the contractive regime $L_g<1$ is particularly desirable from the perspective of protocol design. In this regime, perturbations generated by the stochastic leader election process are attenuated by the dynamics, so previously accumulated estimation errors are progressively forgotten. Consequently, the stochastic estimator $D_\ell$ remains more tightly concentrated around its deterministic mean-field trajectory $d_\ell$, and the estimator becomes more robust to stochastic fluctuations, modelling inaccuracies and perturbations of the initial condition. By contrast, when $L_g>1$, previously accumulated perturbations are amplified, leading to larger constants in the concentration bounds and increased sensitivity of the estimator to accumulated noise.
+
+Therefore, although the concentration theorem itself remains valid without the contractivity assumption, the condition $L_g<1$ identifies the preferred operating regime of the Total Stake Inference algorithm. In this regime the estimator is self-correcting, in the sense that stochastic perturbations are damped by the dynamics rather than amplified.
+\end{remark}
+
+Theorem~\ref{th:concentration} establishes that, in the contractive operating regime
+\[
+D_{\min}>D_c,
+\]
+the stochastic recurrence (\ref{eq:stochastic_recursion}) is well approximated by the deterministic mean-field recursion (\ref{eq:mean_field_recursion}), with fluctuations of order $T^{-1/2}$. Thus the heuristic saddle-point mean-field equation is replaced by a rigorous concentration result. The condition $D_{\min}>D_c$ has a clear dynamical interpretation: the estimator operates in the contractive region of the mean-field map $g$, where previously accumulated stochastic perturbations are progressively attenuated rather than amplified. Consequently, the estimator remains more tightly concentrated around its deterministic mean-field trajectory, making the mean-field approximation both quantitatively accurate and dynamically robust.
+
+Moreover, the threshold becomes particularly mild in the sparse-block regime. Indeed, from (\ref{eq:Dc_formula}),
+\begin{equation}
+\frac{D_c}{W}
+=
+\frac{
+-\log(1-f)
+}{
+-\mathcal W_{-1}\!\left(-\frac{1-f}{e}\right)-1
+},
+\label{eq:Dc_over_W}
+\end{equation}
+one obtains the asymptotic behaviour
+\begin{equation}
+\frac{D_c}{W}
+\sim
+\sqrt{\frac{f}{2}},
+\qquad
+f\rightarrow0.
+\label{eq:Dc_asymptotic}
+\end{equation}
+Hence
+\begin{equation}
+\frac{D_c}{W}\rightarrow0,
+\qquad
+f\rightarrow0,
+\label{eq:Dc_limit}
+\end{equation}
+implying that, for sufficiently small active-slot coefficient $f$, the contractive region occupies almost the entire positive half-line. In particular, for the practically relevant value $f=1/30$, the formal analysis gives
+\begin{equation}
+0.119
+<
+\frac{D_c}{W}
+<
+0.1205,
+\label{eq:Dc_numerical}
+\end{equation}
+so that
+\[
+\frac{D_c}{W}\simeq 0.12.
+\]
+Thus the estimator may substantially underestimate the true stake and still remain in the stable, self-correcting operating regime.
+\section*{Acknowledgements}
+Authors would like to thank... 
+
+\appendix
+
+\section{The Binomial reduction proof via the  Fourier transform}
+Using the Fourier representation 
+%
+\begin{eqnarray}
+\delta\left(D_{\ell}-D_{\ell}[\Sm(\ell-1)]\right)=\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{\rmi T\hat{D}_\ell\left(D_{\ell}-D_{\ell}[\Sm(\ell-1)]\right)}.
+\end{eqnarray}
+%
+in (\ref{def:prob-path-D}) we obtain
+%
+\begin{eqnarray}
+\Prob\left[D_{L},\ldots,D_{1}\vert D_{0}\right]&=&\sum_{\Sm(0)}\cdots\sum_{\Sm(L)}\Prob_0(\Sm(0))\prod_{\ell=1}^L\Prob\left[\Sm(\ell)\vert D_{\ell}\right]\nonumber\\
+&&~~~~~~~~~\times\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{\rmi T\hat{D}_\ell\left(D_{\ell}-D_{\ell}[\Sm(\ell-1)]\right)}\nonumber\\%\label{def:prob-path-D},
+%
+&=&\left\{\prod_{\ell=1}^L\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{\rmi T\hat{D}_\ell D_{\ell}}\right\}\nonumber\\
+&&\times\sum_{\Sm(0)}\cdots\sum_{\Sm(L)}\Prob_0(\Sm(0))\prod_{\ell=1}^L\Prob\left[\Sm(\ell)\vert D_{\ell}\right]\nonumber\\
+&&~~~~~~~~~\times\rme^{-\rmi T\hat{D}_\ell D_{\ell}[\Sm(\ell-1)]}
+%
+\end{eqnarray}
+%
+Let us consider the sum 
+%
+\begin{eqnarray}
+&&\sum_{\Sm(0)}\cdots\sum_{\Sm(L)}\Prob_0(\Sm(0))\prod_{\ell=1}^L\Prob\left[\Sm(\ell)\vert D_{\ell}\right]\rme^{-\rmi T\hat{D}_\ell D_{\ell}[\Sm(\ell-1)]}\nonumber\\
+%
+&&=\sum_{\Sm(0)}\cdots\sum_{\Sm(L)}\Prob_0(\Sm(0))\prod_{\ell=1}^L\Prob\left[\Sm(\ell)\vert D_{\ell}\right]\nonumber\\
+%
+&&\times\prod_{\ell=0}^{L-1}\rme^{-\rmi T\hat{D}_{\ell+1} D_{\ell+1}[\Sm(\ell)]}
+%
+\end{eqnarray}
+%
+First we consider
+%
+\begin{eqnarray}
+&&\sum_{\Sm(0)}\Prob_0(\Sm(0))\,\rme^{-\rmi T\hat{D}_{1} D_{1}[\Sm(0)]}\nonumber\\
+&&~=\rme^{-\rmi T\hat{D}_{1} \left\{D_{0}-h\,D_{0}f \right\}}\nonumber\\
+%
+&&~~~\times\sum_{\Sm(0)}\Prob_0(\Sm(0))\,\rme^{-\rmi h\,\hat{D}_{1} \,D_{0} \sum_{t=1}^T\1\left[\sum_{i=1}^N s_i^0(t)\ge1\right]}\nonumber\\
+%
+&&~=\rme^{-\rmi T\hat{D}_{1} \left\{D_{0}-h\,D_{0}f \right\}}\nonumber\\
+%
+&&~~~\times\sum_{\Sm(0)}\prod_{t=1}^T\left\{\prod_{i=1}^N\frac{\rme^{s^0_i(t)\,h(w_i/D_0)}}{1+\rme^{h(w_i/D_0)}}\right\}\,\rme^{-\rmi h\,\hat{D}_{1} \,D_{0} \1\left[\sum_{i=1}^N s_i^0(t)\ge1\right]}\nonumber\\
+%
+&&~=\rme^{-\rmi T\hat{D}_{1} \left\{D_{0}-h\,D_{0}f \right\}}\nonumber\\
+%
+&&~~~\times\prod_{t=1}^T\sum_{\sv^0(t)}\left\{\prod_{i=1}^N\frac{\rme^{s^0_i(t)\,h(w_i/D_0)}}{1+\rme^{h(w_i/D_0)}}\right\}\,\rme^{-\rmi h\,\hat{D}_{1} \,D_{0} \1\left[\sum_{i=1}^N s_i^0(t)\ge1\right]}\nonumber\\
+%
+&&~=\rme^{-\rmi T\hat{D}_{1} \left\{D_{0}-h\,D_{0}f \right\}}\nonumber\\
+%
+&&~~~\times\prod_{t=1}^T\Bigg[\left\{\prod_{i=1}^N\frac{1}{1+\rme^{h(w_i/D_0)}}\right\}\nonumber\\
+%
+&&~~~+\sum_{\sv^0(t)}\1\left[\sum_{i=1}^N s_i^0(t)\ge1\right]\left\{\prod_{i=1}^N\frac{\rme^{s^0_i(t)\,h(w_i/D_0)}}{1+\rme^{h(w_i/D_0)}}\right\}\,\rme^{-\rmi h\,\hat{D}_{1} \,D_{0} }\Bigg]\nonumber\\
+%
+&&~=\rme^{-\rmi T\hat{D}_{1} \left\{D_{0}-h\,D_{0}f \right\}}\nonumber\\
+%
+&&~~~\times\prod_{t=1}^T\left[\left\{\prod_{i=1}^N\frac{1}{1+\rme^{h(w_i/D_0)}}\right\}+\left\{1-\prod_{i=1}^N\frac{1}{1+\rme^{h(w_i/D_0)}}\right\}\,\rme^{-\rmi h\,\hat{D}_{1} \,D_{0} }\right]\nonumber\\
+%
+&&~=\rme^{-\rmi T\hat{D}_{1} \left\{D_{0}-h\,D_{0}f \right\}}\nonumber\\
+%
+&&~~~\times\left[\prod_{i=1}^N\left[1-\phi(w_i/D_0)\right]+\left\{1-\prod_{i=1}^N\left[1-\phi(w_i/D_0)\right]\right\}\,\rme^{-\rmi h\,\hat{D}_{1} \,D_{0} }\right]^T\nonumber\\
+%
+&&~=\rme^{-\rmi T\hat{D}_{1} \left\{D_{0}-h\,D_{0}f \right\}}\nonumber\\
+%
+&&~~~\times\left[\Prob(\mathbf{0}\vert D_0)+\left(1-\Prob(\mathbf{0}\vert D_0)\right)\,\rme^{-\rmi h\,\hat{D}_{1} \,D_{0} }\right]^T\nonumber\\
+%
+&&~=\rme^{-\rmi T\hat{D}_{1} \left\{D_{0}-h\,D_{0}f \right\}}\sum_{k=0}^T{T\choose k}\Prob^k(\mathbf{0}\vert D_0)\left[1-\Prob(\mathbf{0}\vert D_0)\right]^{T-k}\,\rme^{-\rmi h\,\hat{D}_{1} \,D_{0} (T-k)},
+%
+\end{eqnarray}
+%
+where in above we defined the prob.
+%
+\begin{eqnarray}
+\Prob(\mathbf{0}\vert D_0)=\prod_{i=1}^N\left[1-\phi(w_i/D_0)\right]. 
+\end{eqnarray}
+%
+We note that 
+\begin{eqnarray}
+1-\Prob(\mathbf{0}\vert D_0)=\phi\left(\sum_{i=1}^Nw_i/D_0\right). 
+\end{eqnarray}
+%
+
+
+Hence from above follows that 
+%
+\begin{eqnarray}
+&&\sum_{\Sm(0)}\Prob\left(\Sm(0)\vert D_0\right)\,\rme^{-\rmi T\hat{D}_{1} D_{1}[\Sm(0)]}\nonumber\\
+&&~=\rme^{-\rmi T\hat{D}_{1} \left\{D_{0}-h\,D_{0}f \right\}}\sum_{k=0}^T{T\choose k}\Prob^k(\mathbf{0}\vert D_0)\left[1-\Prob(\mathbf{0}\vert D_0)\right]^{T-k}\nonumber\\
+&&~~~~~~~~~~~~\times\rme^{-\rmi h\,\hat{D}_{1} \,D_{0} (T-k)}.
+%
+\end{eqnarray}
+%
+Furthermore, using similar steps we obtain 
+%
+\begin{eqnarray}
+&&\sum_{\Sm(\ell)}\Prob\left[\Sm(\ell)\vert D_\ell\right]\,\rme^{-\rmi T\hat{D}_{\ell+1} D_{\ell+1}[\Sm(\ell)]}\nonumber\\
+&&~=\rme^{-\rmi T\hat{D}_{\ell+1} \left\{D_{\ell}-h\,D_{\ell}f \right\}}\sum_{k=0}^T{T\choose k}\Prob^k(\mathbf{0}\vert D_\ell)\left[1-\Prob(\mathbf{0}\vert D_\ell)\right]^{T-k}\nonumber\\
+&&~~~~~~~~~~~~\times\rme^{-\rmi h\,\hat{D}_{\ell+1} \,D_{\ell} (T-k)},
+%
+\end{eqnarray}
+%
+where in above we defined the prob. 
+$\Prob(\mathbf{0}\vert D_\ell)=\prod_{i=1}^N\left[1-\phi(w_i/D_\ell)\right]$.
+
+%
+\begin{eqnarray}
+&&\prod_{\ell=0}^{L-1}\sum_{\Sm(\ell)}\Prob\left[\Sm(\ell)\vert D_\ell\right]\,\rme^{-\rmi T\hat{D}_{\ell+1} D_{\ell+1}[\Sm(\ell)]}\nonumber\\
+&&~=\prod_{\ell=0}^{L-1}\rme^{-\rmi T\hat{D}_{\ell+1} \left\{D_{\ell}-h\,D_{\ell}f \right\}}\sum_{k=0}^T{T\choose k}\Prob^k(\mathbf{0}\vert D_\ell)\left[1-\Prob(\mathbf{0}\vert D_\ell)\right]^{T-k}\nonumber\\
+&&~~~~~~~~~~~~\times\rme^{-\rmi h\,\hat{D}_{\ell+1} \,D_{\ell} (T-k)}.
+%
+\end{eqnarray}
+%
+Now consider 
+%
+\begin{eqnarray}
+&&\Prob\left[D_{L},\ldots,D_{1}\vert D_{0}\right]\nonumber\\
+%
+&&=\left\{\prod_{\ell=1}^L\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{\rmi T\hat{D}_\ell D_{\ell}}\right\}\nonumber\\
+&&\times\prod_{\ell=0}^{L-1}\sum_{k=0}^T{T\choose k}\Prob^k(\mathbf{0}\vert D_\ell)\left[1-\Prob(\mathbf{0}\vert D_\ell)\right]^{T-k}\nonumber\\
+&&~~~\times\rme^{-\rmi T\hat{D}_{\ell+1} \left\{D_{\ell}-h\,D_{\ell}f \right\}-\rmi h\,\hat{D}_{\ell+1} \,D_{\ell} (T-k)}\nonumber\\
+%
+&&=\left\{\prod_{\ell=1}^L\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{\rmi T\hat{D}_\ell D_{\ell}}\right\}\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&~~~\times\prod_{\ell=0}^{L-1}\rme^{-\rmi T\hat{D}_{\ell+1} \left\{D_{\ell}-h\,D_{\ell}f \right\}-\rmi h\,\hat{D}_{\ell+1} \,D_{\ell} (T-k_\ell)}\nonumber\\
+%
+&&=\left\{\prod_{\ell=1}^L\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{\rmi T\hat{D}_\ell D_{\ell}}\right\}\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&~~~\times\prod_{\ell=1}^{L}\rme^{-\rmi T\hat{D}_{\ell} \left\{D_{\ell-1}-h\,D_{\ell-1}f \right\}-\rmi h\,\hat{D}_{\ell} \,D_{\ell-1} (T-k_{\ell-1})}\nonumber\\
+%
+&&+\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&~~~\times\prod_{\ell=1}^{L}\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{\rmi T\hat{D}_\ell D_{\ell}-\rmi T\hat{D}_{\ell} \left\{D_{\ell-1}-h\,D_{\ell-1}f \right\}-\rmi T\hat{D}_{\ell} \,h\,D_{\ell-1} (1-k_{\ell-1}/T)}\nonumber\\
+%
+&&=\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&~~~\times\prod_{\ell=1}^{L}\int_{-\infty}^{\infty}\frac{\rmd\hat{D}_\ell}{2\pi/T}\rme^{\rmi T\hat{D}_\ell \left[D_{\ell}- \left\{D_{\ell-1}-h\,D_{\ell-1}f \right\}- \,h\,D_{\ell-1} (1-k_{\ell-1}/T)\right]}\nonumber\\
+%
+&&=\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&~~~\times\prod_{\ell=1}^{L}\delta\left(D_{\ell}- \left\{D_{\ell-1}-h\,D_{\ell-1}f \right\}- \,h\,D_{\ell-1} (1-k_{\ell-1}/T)\right)\nonumber\\
+%
+&&=\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&~~~\times\prod_{\ell=0}^{L-1}\delta\left(D_{\ell+1}- \left\{D_{\ell}-h\,D_{\ell}f \right\}- \,h\,D_{\ell} (1-k_{\ell}/T)\right),
+%
+\end{eqnarray}
+%
+where in above we defined 
+%
+\begin{eqnarray}
+\Prob[k\vert D_\ell]={T\choose k}\left[1-\phi\left(\sum_{i=1}^Nw_i/D_\ell\right)\right]^k\phi^{T-k}\left(\sum_{i=1}^Nw_i/D_\ell\right).
+\end{eqnarray}
+%
+Thus from above follows that 
+%
+\begin{eqnarray}
+\Prob\left[D_{L},\ldots,D_{1}\vert D_{0}\right]
+%
+&=&\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&\times\prod_{\ell=0}^{L-1}\delta\left(D_{\ell+1}- D_{\ell}+ h\,D_{\ell}\left(f- 1+\frac{k_{\ell}}{T}\right)\right),
+%
+\end{eqnarray}
+%
+where $\Prob[k\vert D]$ is the binomial distribution
+%
+\begin{eqnarray}
+\Prob[k\vert D]={T\choose k}\left[1-\phi\left(\sum_{i=1}^Nw_i/D\right)\right]^k\phi^{T-k}\left(\sum_{i=1}^Nw_i/D\right).
+\end{eqnarray}
+%
+
+
+\section{Average}
+%
+Let us consider
+%
+\begin{eqnarray}
+&&\int\rmd D_{L}\cdots\int\rmd D_{1}\Prob\left[D_{L},\ldots,D_{1}\vert D_{0}\right]
+\,D_{L}\nonumber\\
+&&=\int\rmd D_{L}\cdots\int\rmd D_{1}\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&\times\prod_{\ell=0}^{L-1}\delta\left(D_{\ell+1}- D_{\ell}+ h\,D_{\ell}\left[f- 1+\frac{k_{\ell}}{T}\right]\right)\nonumber\\
+&&\times D_{L}\nonumber\\
+%
+&&=\int\rmd D_{L-1}\cdots\int\rmd D_{1}\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&\times\prod_{\ell=0}^{L-2}\delta\left(D_{\ell+1}- D_{\ell}+ h\,D_{\ell}\left[f- 1+\frac{k_{\ell}}{T}\right]\right)\nonumber\\
+%
+&&\times \left(D_{L-1}- h\,D_{L-1}\left[f- 1+\frac{k_{L-1}}{T}\right]\right)\nonumber\\
+%
+\end{eqnarray}
+%
+Let us define the function  
+
+\begin{eqnarray}
+%
+F[D_{\ell},k_{\ell}]= D_{\ell}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}\label{def:F}
+%
+\end{eqnarray}
+%
+and consider
+%
+\begin{eqnarray}
+\Prob\left[k_{L-1},\ldots,k_{0}\vert D_{0}\right]
+%
+&=&\int\rmd D_{L}\cdots\int\rmd D_{1}\prod_{\ell=0}^{L-1}\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&\times\prod_{\ell=0}^{L-1}\delta\left(D_{\ell+1}- F[D_{\ell},k_{\ell}]\right)\nonumber\\
+%
+&=&\int\rmd D_{L-1}\cdots\int\rmd D_{1}\prod_{\ell=0}^{L-1}\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&\times\prod_{\ell=1}^{L-1}\delta\left(D_{\ell}- F[D_{\ell-1},k_{\ell-1}]\right)
+%
+\end{eqnarray}
+%
+For $L=2$ above gives us 
+%
+\begin{eqnarray}
+\Prob\left[k_{1},k_{0}\vert D_{0}\right]
+%
+&=&\int\rmd D_{1}\prod_{\ell=0}^{1}\Prob[k_\ell\vert D_\ell]\delta\left(D_{1}- F[D_{0},k_{0}]\right)\nonumber\\
+%
+&=&\Prob[k_1\vert F[D_{0},k_{0}]]\,\Prob[k_0\vert D_0]. 
+%
+\end{eqnarray}
+%
+and for $L=3$ we get 
+%
+\begin{eqnarray}
+\Prob\left[k_{2},k_{1},k_{0}\vert D_{0}\right]
+%
+&=&\int\rmd D_{2}\int\rmd D_{1}\prod_{\ell=0}^{2}\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&\times\prod_{\ell=1}^{2}\delta\left(D_{\ell}- F[D_{\ell-1},k_{\ell-1}]\right)\nonumber\\
+%
+&=&\int\rmd D_{2}\int\rmd D_{1}\Prob[k_2\vert D_2]\,\Prob[k_1\vert D_1]\,\Prob[k_0\vert D_0]\nonumber\\
+&&\times\delta\left(D_{2}- F[D_{1},k_{1}]\right)\delta\left(D_{1} - F[D_{0},k_{0}]\right)\nonumber\\
+%
+&=&\Prob[k_2\vert F[F[D_{0},k_{0}],k_{1}]]\,\Prob[k_1\vert F[D_{0},k_{0}]]\,\Prob[k_0\vert D_0]
+%
+\end{eqnarray}
+%
+Consider 
+%
+\begin{eqnarray}
+%
+F[F[D_{0},k_{0}],k_{1}]&=& F[D_{0},k_{0}]\left\{1- h\,\left[f- 1+\frac{k_{1}}{T}\right]\right\}\nonumber\\
+%
+&=& D_{0}\left\{1- h\left[f- 1+\frac{k_{0}}{T}\right]\right\}\left\{1- h\,\left[f- 1+\frac{k_{1}}{T}\right]\right\}\nonumber\\
+%
+&=& D_{0}\prod_{\ell=0}^1\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}.
+%
+\end{eqnarray}
+%
+Using above
+%
+\begin{eqnarray}
+%
+F[F[F[D_{0},k_{0}],k_{1}],k_{2}]&=& F\left[D_{0}\prod_{\ell=0}^1\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\},k_2\right]\nonumber\\
+%
+&=& D_{0}\prod_{\ell=0}^2\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}\nonumber\\
+%
+\end{eqnarray}
+%
+Now from above it is clear that 
+%
+\begin{eqnarray}
+%
+F[\cdots,k_{L}]&=& D_{0}\prod_{\ell=0}^L\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\},
+%
+\end{eqnarray}
+%
+where  $F[\cdots,k_{0}]= D_{0}$, and from above follows
+%
+\begin{eqnarray}
+\Prob\left[k_{L-1},\ldots,k_{0}\vert D_{0}\right]&=&\prod_{\ell=0}^{L-1}\Prob[k_\ell\vert F[\cdots,k_{\ell-1}]]\nonumber\\
+%
+&=&\prod_{\ell=0}^{L-1}\Prob\left[k_\ell\Bigg\vert D_{0}\prod_{\tilde{\ell}=0}^{\ell-1}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right].
+%
+\end{eqnarray}
+%
+Finally, using the definition (\ref{def:F}) we consider
+%
+\begin{eqnarray}
+\Prob\left[D_{L},\ldots,D_{1}\vert D_{0}\right]
+%
+&=&\prod_{\ell=0}^{L-1}\sum_{k_\ell=0}^T\Prob[k_\ell\vert D_\ell]\nonumber\\
+&&\times\prod_{\ell=0}^{L-1}\delta\left(D_{\ell+1}- F[D_{\ell},k_{\ell}]\right)\nonumber\\
+%
+&=&\sum_{k_0=0}^T\cdots \sum_{k_{L-1}=0}^T\Prob\left[k_{L-1},\ldots,k_{0}\vert D_{0}\right]\nonumber\\
+&&\times\prod_{\ell=0}^{L-1}\delta\left(D_{\ell+1}- F[D_{\ell},k_{\ell}]\right)\nonumber\\
+%
+&=&\prod_{\ell=0}^{L-1}\sum_{k_{\ell}=0}^T\Prob\left[k_\ell\Bigg\vert D_{0}\prod_{\tilde{\ell}=0}^{\ell-1}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right]\nonumber\\
+&&\times\prod_{\ell=0}^{L-1}\delta\left(D_{\ell+1}- D_{0}\prod_{\tilde{\ell}=0}^{\ell}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right)
+%
+\end{eqnarray}
+%
+Thus
+%
+\begin{eqnarray}
+&&\Prob\left[D_{L},\ldots,D_{1}\vert D_{0}\right]\nonumber\\
+&&~~~~~~~~=\prod_{\ell=0}^{L-1}\sum_{k_{\ell}=0}^T\Prob\left[k_\ell\Bigg\vert D_{0}\prod_{\tilde{\ell}=0}^{\ell-1}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right]\nonumber\\
+&&~~~~~~~~~~~~~\times\prod_{\ell=0}^{L-1}\delta\left(D_{\ell+1}- D_{0}\prod_{\tilde{\ell}=0}^{\ell}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right).
+%
+\end{eqnarray}
+%
+From above follows that for average 
+%
+\begin{eqnarray}
+\langle D_{L}\rangle&=&\int\rmd D_{L}\cdots \int\rmd D_{1} \Prob\left[D_{L},\ldots,D_{1}\vert D_{0}\right]\,D_{L}
+%
+\end{eqnarray}
+%
+we obtain 
+%
+\begin{eqnarray}
+%
+\langle D_{L}\rangle&=&\prod_{\ell=0}^{L-1}\sum_{k_{\ell}=0}^T\Prob\left[k_\ell\Bigg\vert D_{0}\prod_{\tilde{\ell}=0}^{\ell-1}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right]\nonumber\\
+&&\times D_{0}\prod_{\ell=0}^{L-1}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}\label{eq:aver-D}.
+%
+\end{eqnarray}
+%
+and
+%
+\begin{eqnarray}
+%
+\langle D_{L+1}\rangle&=&\prod_{\ell=0}^{L}\sum_{k_{\ell}=0}^T\Prob\left[k_\ell\Bigg\vert D_{0}\prod_{\tilde{\ell}=0}^{\ell-1}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right]\nonumber\\
+&&\times D_{0}\prod_{\ell=0}^{L}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}.
+%
+\end{eqnarray}
+%
+Consider 
+%
+\begin{eqnarray}
+%
+\langle D_{L+1}\rangle&=&\prod_{\ell=0}^{L}\sum_{k_{\ell}=0}^T\Prob\left[k_\ell\Bigg\vert D_{0}\prod_{\tilde{\ell}=0}^{\ell-1}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right]\nonumber\\
+&&\times D_{0}\prod_{\ell=0}^{L}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}\nonumber\\
+%
+&=&\prod_{\ell=0}^{L}\sum_{k_{\ell}=0}^T\Prob\left[k_\ell\Bigg\vert D_{0}\prod_{\tilde{\ell}=0}^{\ell-1}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right]\nonumber\\
+&&\times D_{0}\left\{\prod_{\ell=0}^{L-1}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}\right\}\left\{1- h\left[f- 1+\frac{k_{L}}{T}\right]\right\}\nonumber\\
+%
+&=&\langle D_{L}\rangle- h\langle D_{L}\rangle(f- 1)\nonumber\\
+%
+&&-h\prod_{\ell=0}^{L}\sum_{k_{\ell}=0}^T\Prob\left[k_\ell\Bigg\vert D_{0}\prod_{\tilde{\ell}=0}^{\ell-1}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right]\nonumber\\
+%
+&&\times D_{0}\left\{\prod_{\ell=0}^{L-1}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}\right\}\frac{k_L}{T}
+%
+\end{eqnarray}
+%
+Now consider the average
+%
+\begin{eqnarray}
+%
+&&\prod_{\ell=0}^{L}\sum_{k_{\ell}=0}^T\Prob\left[k_\ell\Bigg\vert D_{0}\prod_{\tilde{\ell}=0}^{\ell-1}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right]\nonumber\\
+%
+&&\times D_{0}\left\{\prod_{\ell=0}^{L-1}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}\right\}\frac{k_L}{T}\nonumber\\
+%
+&&=\prod_{\ell=0}^{L-1}\sum_{k_{\ell}=0}^T\Prob\left[k_\ell\Bigg\vert D_{0}\prod_{\tilde{\ell}=0}^{\ell-1}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right]\nonumber\\
+%
+&&\times D_{0}\prod_{\ell=0}^{L-1}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}\nonumber\\
+%
+&&\times\left[1-\phi\left(\frac{\sum_{i=1}^Nw_i}{D_{0}\prod_{\ell=0}^{L-1}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}}\right)\right]\nonumber\\
+%
+\end{eqnarray}
+%
+We note that the function $D(1-\phi(\sum_{i=1}^Nw_i/D))$ is convex in $D$. Hence the average 
+%
+\begin{eqnarray}
+%
+&&\prod_{\ell=0}^{L-1}\sum_{k_{\ell}=0}^T\Prob\left[k_\ell\Bigg\vert D_{0}\prod_{\tilde{\ell}=0}^{\ell-1}\left\{1- h\left[f- 1+\frac{k_{\tilde{\ell}}}{T}\right]\right\}\right]\nonumber\\
+%
+&&~~~~~\times D_{0}\prod_{\ell=0}^{L-1}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}\nonumber\\
+%
+&&~~~~~~~~~\times\left[1-\phi\left(\frac{\sum_{i=1}^Nw_i}{D_{0}\prod_{\ell=0}^{L-1}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}}\right)\right]\nonumber\\
+%
+&&~~~~~~~~~~~~~~~~~~~~~~~~~~~\geq \langle D_{L}\rangle\left[1-\phi\left(\frac{\sum_{i=1}^Nw_i}{\langle D_{L}\rangle}\right)\right]
+%
+\end{eqnarray}
+%
+
+
+Let us consider the product 
+%
+%
+\begin{eqnarray}
+%
+\prod_{\ell=0}^{L-1}\left\{1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right\}&=&\rme^{\sum_{\ell=0}^{L-1}\log\left(1- h\left[f- 1+\frac{k_{\ell}}{T}\right]\right)}
+%
+\end{eqnarray}
+
+\section{Mean-field approximation and concentration}
+
+Let
+\begin{equation}
+W=\sum_{i=1}^N w_i,
+\qquad
+\phi(u)=1-(1-f)^u .
+\label{eq-app:phi_def}
+\end{equation}
+
+Consider the stochastic recurrence
+\begin{equation}
+D_{\ell+1}
+=
+D_\ell-hD_\ell
+\left(
+f-1+\frac{k_\ell}{T}
+\right),
+\label{eq-app:stochastic_recursion}
+\end{equation}
+where, conditionally on $D_\ell$,
+\begin{equation}
+k_\ell
+\sim
+\mathrm{Bin}(T,p(D_\ell)),
+\label{eq-app:binomial_def}
+\end{equation}
+with
+\begin{equation}
+p(D)=1-\phi(W/D).
+\label{eq-app:p_def}
+\end{equation}
+
+Define the deterministic mean-field recursion
+\begin{equation}
+d_{\ell+1}
+=
+d_\ell-hd_\ell
+\left(
+f-\phi(W/d_\ell)
+\right),
+\label{eq-app:meanfield_recursion}
+\end{equation}
+with deterministic initial condition
+\begin{equation}
+d_0=D_0>0.
+\label{eq-app:init_cond}
+\end{equation}
+
+Define also
+\begin{equation}
+g(D)=D-hD(f-\phi(W/D)).
+\label{eq-app:g_def}
+\end{equation}
+
+Assume
+\begin{equation}
+h<\frac1f.
+\label{eq-app:h_assumption}
+\end{equation}
+
+Let $L\ge1$ be fixed.
+
+For the stochastic recurrence (\ref{eq-app:stochastic_recursion}), the extremal updates occur when
+\begin{equation}
+k_\ell=0
+\label{eq:k_zero}
+\end{equation}
+or
+\begin{equation}
+k_\ell=T.
+\label{eq-app:k_T}
+\end{equation}
+
+Since
+\begin{equation}
+0\le \frac{k_\ell}{T}\le 1,
+\label{eq-app:k_bounds}
+\end{equation}
+equation (\ref{eq-app:stochastic_recursion})  implies
+\begin{equation}
+1-hf
+\le
+1-h\left(f-1+\frac{k_\ell}{T}\right)
+\le
+1+h(1-f).
+\label{eq-app:update_factor_bounds}
+\end{equation}
+
+Hence
+\begin{equation}
+D_\ell(1-hf)
+\le
+D_{\ell+1}
+\le
+D_\ell(1+h(1-f)).
+\label{eq-app:D_step_bounds}
+\end{equation}
+
+Iterating (\ref{eq-app:D_step_bounds}) gives
+\begin{equation}
+D_0(1-hf)^\ell
+\le
+D_\ell
+\le
+D_0(1+h(1-f))^\ell.
+\label{eq-app:D_global_bounds}
+\end{equation}
+
+Since (\ref{eq-app:h_assumption}) implies
+\begin{equation}
+1-hf>0,
+\label{eq-app:positive_factor}
+\end{equation}
+we may define
+\begin{equation}
+D_{\min}
+:=
+D_0(1-hf)^L
+>0,
+\label{eq-app:Dmin}
+\end{equation}
+and
+\begin{equation}
+D_{\max}
+:=
+D_0(1+h(1-f))^L.
+\label{eq-app:Dmax}
+\end{equation}
+
+Therefore,
+\begin{equation}
+D_\ell\in[D_{\min},D_{\max}],
+\qquad
+0\le \ell\le L.
+\label{eq-app:D_interval}
+\end{equation}
+
+Similarly, since
+\begin{equation}
+0\le \phi(W/d_\ell)\le 1,
+\label{eq-app:phi_bounds}
+\end{equation}
+the deterministic recursion satisfies
+\begin{equation}
+d_\ell(1-hf)
+\le
+d_{\ell+1}
+\le
+d_\ell(1+h(1-f)),
+\label{eq-app:d_step_bounds}
+\end{equation}
+hence
+\begin{equation}
+d_\ell\in[D_{\min},D_{\max}],
+\qquad
+0\le \ell\le L.
+\label{eq-app:d_interval}
+\end{equation}
+
+Define the interval
+\begin{equation}
+I=[D_{\min},D_{\max}].
+\label{eq-app:I_def}
+\end{equation}
+
+Assume furthermore that $g$ is Lipschitz on $I$ with constant
+\begin{equation}
+L_g
+=
+\sup_{D\in I}|g'(D)|
+<
+1.
+\label{eq-app:Lg_assumption}
+\end{equation}
+
+The condition $L_g<1$ means that the deterministic mean-field dynamics is locally contractive on $I$. In particular, if
+\begin{equation}
+x_{\ell+1}=g(x_\ell),
+\qquad
+y_{\ell+1}=g(y_\ell),
+\label{eq-app:two_traj}
+\end{equation}
+then
+\begin{equation}
+|x_{\ell+1}-y_{\ell+1}|
+\le
+L_g|x_\ell-y_\ell|,
+\label{eq-app:contraction}
+\end{equation}
+and therefore
+\begin{equation}
+|x_\ell-y_\ell|
+\le
+L_g^\ell |x_0-y_0|.
+\label{eq-app:geom_decay}
+\end{equation}
+
+Thus perturbations decay geometrically under the deterministic dynamics. This property is essential because stochastic fluctuations are injected at every iteration through the binomial noise. The contractive condition $L_g<1$ ensures that previously generated fluctuations decay rather than accumulate.
+
+\begin{prop}
+Assume (\ref{eq-app:h_assumption}) and (\ref{eq-app:Lg_assumption}). Then, for every fixed horizon $L$,
+\begin{equation}
+\sup_{0\le \ell\le L}|D_\ell-d_\ell|
+=
+O_{\mathbb P}(T^{-1/2}).
+\label{eq-app:main_concentration}
+\end{equation}
+
+Furthermore, defining
+\begin{equation}
+m_\ell:=\mathbb E[D_\ell],
+\label{eq-app:m_def}
+\end{equation}
+we have
+\begin{equation}
+m_\ell-d_\ell
+=
+O(T^{-1/2}),
+\qquad
+0\le \ell\le L.
+\label{eq-app:mean_concentration}
+\end{equation}
+\end{prop}
+
+\begin{proof}
+
+Define the fluctuation
+\begin{equation}
+\epsilon_\ell=D_\ell-d_\ell.
+\label{eq-app:e_def}
+\end{equation}
+
+Using
+\begin{equation}
+\frac{k_\ell}{T}
+=
+p(D_\ell)+\eta_\ell,
+\label{eq-app:eta_decomp}
+\end{equation}
+where
+\begin{equation}
+\eta_\ell
+=
+\frac{k_\ell}{T}-p(D_\ell),
+\label{eq-app:eta_def}
+\end{equation}
+substituting (\ref{eq-app:eta_decomp}) into
+\ref{eq-app:stochastic_recursion} gives
+\begin{equation}
+D_{\ell+1}
+=
+D_\ell
+-
+hD_\ell
+\left(
+f-1+p(D_\ell)+\eta_\ell
+\right).
+\label{eq-app:substituted}
+\end{equation}
+
+Using (\ref{eq-app:p_def}),
+\begin{equation}
+f-1+p(D)
+=
+f-\phi(W/D).
+\label{eq-app:simplify_p}
+\end{equation}
+
+Hence
+\begin{equation}
+D_{\ell+1}
+=
+D_\ell
+-
+hD_\ell
+\left(
+f-\phi(W/D_\ell)
+\right)
+-
+hD_\ell\eta_\ell.
+\label{eq-app:stochastic_eta}
+\end{equation}
+
+Using (\ref{eq-app:g_def}),
+\begin{equation}
+D_{\ell+1}
+=
+g(D_\ell)-hD_\ell\eta_\ell.
+\label{eq-app:g_eta}
+\end{equation}
+
+Subtracting the deterministic recursion
+(\ref{eq-app:meanfield_recursion}) gives
+\begin{equation}
+e_{\ell+1}
+=
+g(D_\ell)-g(d_\ell)
+-
+hD_\ell\eta_\ell.
+\label{eq-app:e_recursion}
+\end{equation}
+
+Since $g$ is Lipschitz on $I$,
+\begin{equation}
+|g(D_\ell)-g(d_\ell)|
+\le
+L_g|\epsilon_\ell|.
+\label{eq-app:g_lipschitz}
+\end{equation}
+
+Using also $D_\ell\le D_{\max}$,
+equation (\ref{eq-app:e_recursion}) yields
+\begin{equation}
+|e_{\ell+1}|
+\le
+L_g|\epsilon_\ell|
++
+hD_{\max}|\eta_\ell|.
+\label{eq-app:e_ineq}
+\end{equation}
+
+Since
+\begin{equation}
+e_0=D_0-d_0=0,
+\label{eq-app:e0}
+\end{equation}
+iterating (\ref{eq-app:e_ineq}) gives
+\begin{equation}
+|\epsilon_\ell|
+\le
+hD_{\max}
+\sum_{r=0}^{\ell-1}
+L_g^{\ell-1-r}
+|\eta_r|.
+\label{eq-app:e_sum}
+\end{equation}
+
+Because
+\begin{equation}
+k_\ell\mid D_\ell
+\sim
+\mathrm{Bin}(T,p(D_\ell)),
+\label{eq-app:binomial_repeat}
+\end{equation}
+we have
+\begin{equation}
+\mathbb E[\eta_\ell\mid D_\ell]=0,
+\label{eq-app:eta_mean}
+\end{equation}
+and
+\begin{equation}
+\mathrm{Var}(\eta_\ell\mid D_\ell)
+=
+\frac{p(D_\ell)(1-p(D_\ell))}{T}.
+\label{eq-app:eta_var}
+\end{equation}
+
+Since
+\begin{equation}
+0\le p(D_\ell)\le 1,
+\label{eq-app:p_bounds}
+\end{equation}
+the elementary inequality
+\begin{equation}
+p(1-p)\le \frac14
+\label{eq-app:pineq}
+\end{equation}
+implies
+\begin{equation}
+\mathrm{Var}(\eta_\ell\mid D_\ell)
+\le
+\frac{1}{4T}.
+\label{eq-app:eta_var_bound}
+\end{equation}
+
+Also,
+\begin{equation}
+|\eta_\ell|\le 1.
+\label{eq-app:eta_abs}
+\end{equation}
+
+Define
+\begin{equation}
+a_{\ell,r}
+=
+hD_{\max}L_g^{\ell-1-r},
+\qquad
+r=0,\ldots,\ell-1.
+\label{eq-app:a_def}
+\end{equation}
+
+Then (\ref{eq-app:e_sum}) becomes
+\begin{equation}
+|\epsilon_\ell|
+\le
+\sum_{r=0}^{\ell-1}
+a_{\ell,r}|\eta_r|.
+\label{eq-app:e_sum2}
+\end{equation}
+
+Squaring both sides gives
+\begin{equation}
+|\epsilon_\ell|^2
+\le
+\left(
+\sum_{r=0}^{\ell-1}
+a_{\ell,r}|\eta_r|
+\right)^2.
+\label{eq-app:square}
+\end{equation}
+
+Applying Cauchy--Schwarz,
+\begin{equation}
+\left(
+\sum_{r=0}^{\ell-1}
+a_{\ell,r}|\eta_r|
+\right)^2
+\le
+\left(
+\sum_{r=0}^{\ell-1}a_{\ell,r}^2
+\right)
+\left(
+\sum_{r=0}^{\ell-1}\eta_r^2
+\right).
+\label{eq-app:CS}
+\end{equation}
+
+Therefore
+\begin{equation}
+|\epsilon_\ell|^2
+\le
+\left(
+\sum_{r=0}^{\ell-1}a_{\ell,r}^2
+\right)
+\left(
+\sum_{r=0}^{\ell-1}\eta_r^2
+\right).
+\label{eq-app:e_square_bound}
+\end{equation}
+
+Now
+\begin{equation}
+\sum_{r=0}^{\ell-1}a_{\ell,r}^2
+=
+h^2D_{\max}^2
+\sum_{r=0}^{\ell-1}
+L_g^{2(\ell-1-r)}.
+\label{eq-app:a_sum}
+\end{equation}
+
+Changing variable
+\begin{equation}
+m=\ell-1-r,
+\label{eq-app:m_change}
+\end{equation}
+gives
+\begin{equation}
+\sum_{r=0}^{\ell-1}a_{\ell,r}^2
+=
+h^2D_{\max}^2
+\sum_{m=0}^{\ell-1}L_g^{2m}.
+\label{eq-app:a_sum2}
+\end{equation}
+
+Since $\ell\le L$,
+\begin{equation}
+\sum_{m=0}^{\ell-1}L_g^{2m}
+\le
+\sum_{m=0}^{L-1}L_g^{2m}
+\le
+\sum_{m=0}^{\infty}L_g^{2m}
+=
+\frac{1}{1-L_g^2}.
+\label{eq-app:geom_sum}
+\end{equation}
+
+Therefore
+\begin{equation}
+\sum_{r=0}^{\ell-1}a_{\ell,r}^2
+\le
+\frac{h^2D_{\max}^2}{1-L_g^2}.
+\label{eq-app:a_uniform}
+\end{equation}
+
+Furthermore,
+\begin{equation}
+\mathbb E[\eta_r^2]
+=
+\mathrm{Var}(\eta_r)
+=
+O(T^{-1}),
+\label{eq-app:eta_second}
+\end{equation}
+hence
+\begin{equation}
+\sum_{r=0}^{\ell-1}\mathbb E[\eta_r^2]
+\le
+\sum_{r=0}^{L-1}\mathbb E[\eta_r^2]
+=
+O(L/T).
+\label{eq-app:eta_sum}
+\end{equation}
+
+Since $L$ is fixed,
+\begin{equation}
+O(L/T)=O(T^{-1}).
+\label{eq-app:L_fixed}
+\end{equation}
+
+Taking expectation in (\ref{eq-app:e_square_bound}) gives
+\begin{equation}
+\mathbb E[\epsilon_\ell^2]
+=
+O(T^{-1}).
+\label{eq-app:e_second}
+\end{equation}
+
+Applying Chebyshev's inequality yields
+\begin{equation}
+\epsilon_\ell
+=
+O_{\mathbb P}(T^{-1/2}).
+\label{eq-app:e_prob}
+\end{equation}
+
+Since the horizon $L$ is fixed,
+\begin{equation}
+\sup_{0\le \ell\le L}|\epsilon_\ell|
+=
+O_{\mathbb P}(T^{-1/2}).
+\label{eq-app:e_sup}
+\end{equation}
+
+Using \ref{eq-app:e_def},
+\begin{equation}
+\sup_{0\le \ell\le L}|D_\ell-d_\ell|
+=
+O_{\mathbb P}(T^{-1/2}),
+\label{eq-app:final_main}
+\end{equation}
+which proves (\ref{eq-app:main_concentration}).
+
+Finally, from \ref{eq-app:e_second},
+\begin{equation}
+\mathbb E|\epsilon_\ell|
+\le
+\sqrt{\mathbb E[\epsilon_\ell^2]}
+=
+O(T^{-1/2}),
+\label{eq-app:e_first}
+\end{equation}
+where the inequality follows from the Cauchy--Schwarz inequality
+\[
+|\mathbb E[XY]|^2
+\le
+\mathbb E[X^2]\mathbb E[Y^2]
+\]
+applied with $X=|\epsilon_\ell|$ and $Y=1$.
+
+Since
+\begin{equation}
+m_\ell-d_\ell
+=
+\mathbb E[\epsilon_\ell],
+\label{eq-app:m_minus_d}
+\end{equation}
+we obtain
+\begin{equation}
+|m_\ell-d_\ell|
+\le
+\mathbb E|\epsilon_\ell|
+=
+O(T^{-1/2}),
+\label{eq-app:final_mean}
+\end{equation}
+which proves \ref{eq-app:mean_concentration}.
+
+\end{proof}
+
+
+%---------------------------------------------------------------------
+\section*{References}
+
+%\bibliographystyle{unsrt} 
+
+%\bibliography{ppos}
+
+\end{document}

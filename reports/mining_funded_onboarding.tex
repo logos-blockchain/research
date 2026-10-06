@@ -1,0 +1,1225 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=25mm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{amsthm}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\usepackage{booktabs,tabularx,array}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{needspace}
+\usepackage[hidelinks]{hyperref}
+\newcommand{\Tau}{\mathrm{T}}
+\newcommand{\ind}{\mathbf{1}}
+\newcommand{\rmd}{\mathrm{d}}
+\newcommand{\new}{\textcolor{blue}}
+\newcommand{\Red}{\textcolor{red}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\setlist{itemsep=2pt,topsep=4pt}
+\setlength{\emergencystretch}{2em}
+\widowpenalty=10000
+\clubpenalty=10000
+\raggedbottom
+\title{Mining-funded onboarding:\\from a fixed genesis population to continuing newcomer arrivals}
+\author{Alexander Mozeika}
+\date{\today}
+\begin{document}
+\maketitle
+
+\tableofcontents
+\section{Modelling objective}
+We want to determine whether a participant starting with no tokens can:
+\begin{enumerate}
+\item Earn locked LOGOS through mining.
+\item Stake those tokens immediately.
+\item Earn unlocked PoS leadership rewards.
+\item Accumulate the unlocked balance $K_B$ required for Blend before its mined tokens begin unlocking.
+\end{enumerate}
+We first develop an analytically solvable model with a fixed population present at genesis. We then progressively relax the fixed-population assumption, ending with a model in which newcomers arrive every epoch.
+
+The derivation through Section~12 retains the all-locked baseline ($\beta=0$). Section~\ref{sec:beta} introduces the immediately unlocked mining fraction $\beta\in[0,1]$. The subsequent cohort equations include this extension. The delay $L$ applies only to the locked portion of each reward, while the onboarding deadline remains $T<L$.
+
+The model describes \textbf{meeting the balance requirement for Blend}, not operating a Blend provider.
+
+Throughout, derivatives are written in Leibniz notation: for example, $ds_i/dt$ denotes the rate of change of participant $i$'s stake.
+
+\section{Fixed population at genesis: assumptions and notation}
+\subsection{Population}
+The population consists of three groups:
+\begin{itemize}
+\item $\mathcal N$: initially tokenless newcomers who mine and stake.
+\item $\mathcal C$: capitalised participants who mine and stake.
+\item Non-mining incumbents, represented by their aggregate stake $S_E(t)$.
+\end{itemize}
+Let
+\begin{equation}
+\mathcal I=\mathcal N\cup\mathcal C
+\end{equation}
+be the set of all miners. Initially, no participants arrive or leave after genesis.
+
+\subsection{Time and balances}
+Time $t$ is measured in epochs, with $t=0$ at genesis.
+
+For miner $i$:
+\begin{itemize}
+\item $s_i(t)$: total staked balance.
+\item $b_i(t)$: unlocked balance, assumed fully staked.
+\item $k_i(t)$: locked, stakeable balance.
+\item $m_i$: constant retained mining income per epoch.
+\end{itemize}
+Therefore,
+\begin{equation}
+\boxed{s_i(t)=k_i(t)+b_i(t).}
+\end{equation}
+The unlocked balance is already included in total stake.
+
+At network level:
+\begin{itemize}
+\item $S_0$: total active stake at genesis.
+\item $R_0$: initial PoW reward pool.
+\item $R(t)$: remaining reward pool.
+\item $P_L$: total leadership income per epoch.
+\item $M$: total mining income per epoch.
+\item $L$: lock duration of each mining reward.
+\item $K_B$: required unlocked balance for Blend.
+\end{itemize}
+Balances are measured in LOGOS; income rates are measured in LOGOS per epoch.
+
+\subsection{Economic and behavioural assumptions}
+The all-locked baseline model (until Section~\ref{sec:beta}) assumes:
+\begin{enumerate}
+\item Mining incomes $m_i$ are constant.
+\item The leadership pot $P_L$ is constant.
+\item Mining rewards are locked for $L$ epochs from receipt.
+\item Locked mining rewards are immediately stakeable.
+\item Leadership rewards are unlocked and immediately reinvested.
+\item Unlocked holdings remain staked.
+\item Participants do not withdraw, spend, or leave.
+\item Claim fees and reward-pool replenishment are neglected.
+\item Mining and leadership rewards are represented by deterministic expected flows.
+\item The equations are initially considered before mining unlocks and before pool exhaustion.
+\end{enumerate}
+Leadership rewards are treated as entering active stake without modelling offsetting fee payments from the same tracked staked balances.
+
+\subsection{Initial conditions}
+Tokenless newcomers satisfy
+\begin{equation}
+s_i(0)=b_i(0)=0,\qquad i\in\mathcal N.
+\end{equation}
+Capitalised miners receive unlocked, fully staked genesis allocations:
+\begin{equation}
+s_j(0)=b_j(0)=a_j>0,\qquad j\in\mathcal C.
+\end{equation}
+Both cases can be written as
+\begin{equation}
+s_i(0)=b_i(0)=a_i\ge0,
+\end{equation}
+with $a_i=0$ for newcomers.
+
+Initial stake must be counted only once:
+\begin{equation}
+\boxed{S_E(0)+\sum_{j\in\mathcal C}a_j=S_0.}
+\end{equation}
+The pool starts at
+\begin{equation}
+R(0)=R_0.
+\end{equation}
+
+\section{Deriving the leadership-income approximation}
+\subsection{Slot-level elections}
+For an individual participant,
+\begin{equation}
+\alpha_i(t)=\frac{s_i(t)}{S_{\mathrm{tot}}(t)}
+\end{equation}
+is its relative stake.
+
+The slot-winning probability is
+\begin{equation}
+\boxed{\phi(\alpha_i)=1-(1-f)^{\alpha_i},}
+\end{equation}
+where $f$ is the active-slot parameter.
+
+Across all individual active PoS participants,
+\begin{equation}
+\sum_i\alpha_i=1.
+\end{equation}
+Assuming independent participant elections, the probability that at least one participant wins a slot is
+\begin{equation}
+1-\prod_i[1-\phi(\alpha_i)]=1-(1-f)^{\sum_i\alpha_i}=f.
+\end{equation}
+Several participants may win the same slot.
+
+\subsection{From election wins to reward shares}
+Let an epoch contain $\Tau$ slots. Assuming approximately constant stake shares within the epoch,
+\begin{equation}
+\mathbb E[W_i]=\Tau\phi(\alpha_i),
+\end{equation}
+where $W_i$ is participant $i$'s number of wins.
+
+If the leadership pot is distributed proportionally to rewarded wins, replacing random counts by their expectations gives
+\begin{equation}
+\mathbb E[I_i^L]\approx P_L\frac{\phi(\alpha_i)}{\sum_j\phi(\alpha_j)}.
+\end{equation}
+Here $I_i^L$ is epoch leadership income, and the sum includes all active participants.
+
+This is a ratio-of-expectations approximation. If only canonical-chain wins receive rewards, an additional assumption is that inclusion effects do not materially distort these relative shares.
+
+\subsection{Linearisation}
+Define
+\begin{equation}
+c=-\log(1-f).
+\end{equation}
+Then
+\begin{equation}
+\phi(\alpha_i)=1-e^{-c\alpha_i}=c\alpha_i-\frac{c^2\alpha_i^2}{2}+\cdots.
+\end{equation}
+When $c\alpha_i\ll1$,
+\begin{equation}
+\phi(\alpha_i)\approx c\alpha_i.
+\end{equation}
+Consequently,
+\begin{equation}
+\frac{\phi(\alpha_i)}{\sum_j\phi(\alpha_j)}\approx\frac{c\alpha_i}{c\sum_j\alpha_j}=\alpha_i.
+\end{equation}
+Thus,
+\begin{equation}
+\boxed{\mathbb E[I_i^L]\approx P_L\frac{s_i}{S_{\mathrm{tot}}}.}
+\end{equation}
+We approximate the \textbf{normalised reward share}, not the slot-winning probability itself, by relative stake.
+
+This approximation also allows non-mining incumbents to be represented by aggregate stake $S_E$. Retaining nonlinear $\phi$ generally requires their individual stake distribution.
+
+\section{The fixed-population ODE system}
+Total active stake is
+\begin{equation}
+\boxed{S_{\mathrm{tot}}(t)=S_E(t)+\sum_{i\in\mathcal I}s_i(t)}.
+\end{equation}
+Each miner satisfies
+\begin{equation}
+\boxed{\frac{\rmd s_i(t)}{\rmd t}=m_i+P_L\frac{s_i(t)}{S_{\mathrm{tot}}(t)}.}
+\end{equation}
+The first term is locked mining income; the second is reinvested leadership income.
+
+Before mining unlocks,
+\begin{equation}
+\boxed{\frac{\rmd b_i(t)}{\rmd t}=P_L\frac{s_i(t)}{S_{\mathrm{tot}}(t)}.}
+\end{equation}
+Non-mining incumbents satisfy
+\begin{equation}
+\boxed{\frac{\rmd S_E(t)}{\rmd t}=P_L\frac{S_E(t)}{S_{\mathrm{tot}}(t)}.}
+\end{equation}
+Define
+\begin{equation}
+M=\sum_{i\in\mathcal I}m_i.
+\end{equation}
+The reward pool evolves as
+\begin{equation}
+\boxed{\frac{\rmd R(t)}{\rmd t}=-M.}
+\end{equation}
+
+\section{Aggregate stake and pool dynamics}
+Summing all stake equations,
+\begin{equation}
+\frac{\rmd S_{\mathrm{tot}}(t)}{\rmd t}=M+P_L\frac{S_E(t)+\sum_i s_i(t)}{S_{\mathrm{tot}}(t)}.
+\end{equation}
+The fraction equals one, so
+\begin{equation}
+\frac{\rmd S_{\mathrm{tot}}(t)}{\rmd t}=M+P_L.
+\end{equation}
+Integrating gives
+\begin{equation}
+\boxed{S_{\mathrm{tot}}(t)=S_0+(M+P_L)t.}\label{eq:Stot}
+\end{equation}
+Similarly,
+\begin{equation}
+\boxed{R(t)=R_0-Mt.}
+\end{equation}
+The \emph{pool-exhaustion time} is
+\begin{equation}
+\boxed{t_{\mathrm{exhaust}}=\frac{R_0}{M}},
+\end{equation}
+for $M>0$.
+
+The constant-mining solution is valid only while the pool can fund its payouts. In particular, sustaining it until $T$ requires
+\begin{equation}
+\boxed{MT\le R_0.}
+\end{equation}
+
+\section{Exact individual stake trajectories}
+Substituting total stake into the individual equation gives
+\begin{equation}
+\frac{\rmd s_i(t)}{\rmd t}-\frac{P_L}{S_0+(M+P_L)t}s_i(t)=m_i.
+\end{equation}
+This is a linear, non-autonomous ODE.
+
+\subsection{Homogeneous growth factor}
+Define
+\begin{equation}
+g(t)=\exp\!\left(\int_0^t\frac{P_L}{S_0+(M+P_L)u}\,\rmd u\right).
+\end{equation}
+Evaluating the integral,
+\begin{equation}
+\boxed{g(t)=\left(1+\frac{(M+P_L)t}{S_0}\right)^{P_L/(M+P_L)}.}
+\end{equation}
+The factor $g(t)$ describes growth of initially staked tokens through reinvested leadership income.
+
+\subsection{Integrating-factor solution}
+Dividing the ODE by $g(t)$,
+\begin{equation}
+\frac{\rmd}{\rmd t}\left(\frac{s_i(t)}{g(t)}\right)=\frac{m_i}{g(t)}.
+\end{equation}
+Using $s_i(0)=a_i$,
+\begin{equation}
+s_i(t)=g(t)\left[a_i+m_i\int_0^t\frac{\rmd u}{g(u)}\right].
+\end{equation}
+For $M>0$, evaluating the remaining integral yields
+\begin{equation}
+\boxed{s_i(t)=a_i g(t)+\frac{m_i}{M}\left[S_0+(M+P_L)t-S_0g(t)\right].}
+\end{equation}
+The first term is initial stake and its reinvested income. The second is mining-funded stake and the income generated by it.
+
+Non-mining incumbent stake is
+\begin{equation}
+\boxed{S_E(t)=S_E(0)g(t).}
+\end{equation}
+
+\section{Unlocked balances and the meaning of \texorpdfstring{$A(t;M)$}{A(t;M)}}
+Subtracting the balance equations,
+\begin{equation}
+\frac{\rmd s_i(t)}{\rmd t}-\frac{\rmd b_i(t)}{\rmd t}=m_i.
+\end{equation}
+Since $s_i(0)=b_i(0)=a_i$,
+\begin{equation}
+s_i(t)-b_i(t)=m_it.
+\end{equation}
+Therefore,
+\begin{equation}
+b_i(t)=s_i(t)-m_it.
+\end{equation}
+Define
+\begin{equation}
+\boxed{A(t;M)=S_0+P_Lt-S_0g(t).}
+\end{equation}
+Equivalently,
+\begin{equation}
+A(t;M)=S_0+P_Lt-S_0\left(1+\frac{(M+P_L)t}{S_0}\right)^{P_L/(M+P_L)}\label{def:A}.
+\end{equation}
+The individual solutions become
+\begin{equation}
+\boxed{b_i(t)=a_i g(t)+\frac{m_i}{M}A(t;M),}
+\end{equation}
+\begin{equation}
+\boxed{s_i(t)=a_i g(t)+m_it+\frac{m_i}{M}A(t;M).}
+\end{equation}
+
+\subsection*{Interpretation of $A$}
+Total leadership income by time $t$ is $P_Lt$.
+
+Leadership income attributable to genesis-funded stake is
+\begin{equation}
+S_0[g(t)-1].
+\end{equation}
+Hence,
+\begin{equation}
+A(t;M)=P_Lt-S_0[g(t)-1].
+\end{equation}
+Thus, $A(t;M)$ is \textbf{leadership income attributable to mining-funded stake}, including reinvestment. It excludes mining principal.
+
+For a tokenless newcomer, $a_i=0$, so
+\begin{equation}
+\boxed{b_i(t)=\frac{m_i}{M}A(t;M),\qquad s_i(t)=m_it+b_i(t).}
+\end{equation}
+
+\section{Newcomer payout share and income inequality}
+Define
+\begin{equation}
+M_{\mathcal N}=\sum_{i\in\mathcal N}m_i,\qquad M_{\mathcal C}=\sum_{j\in\mathcal C}m_j.
+\end{equation}
+Then
+\begin{equation}
+M=M_{\mathcal N}+M_{\mathcal C}.
+\end{equation}
+For $M>0$, the newcomer payout share is
+\begin{equation}
+\boxed{\gamma=\frac{M_{\mathcal N}}{M}.}
+\end{equation}
+For $M_{\mathcal N}>0$, define
+\begin{equation}
+w_i=\frac{m_i}{M_{\mathcal N}},\qquad\sum_{i\in\mathcal N}w_i=1.
+\end{equation}
+Therefore,
+\begin{equation}
+m_i=\gamma w_iM,
+\end{equation}
+and
+\begin{equation}
+\boxed{b_i(t)=\gamma w_iA(t;M).}
+\end{equation}
+Here:
+\begin{itemize}
+\item $\gamma$ measures allocation between newcomers and capitalised miners.
+\item $w_i$ measures allocation among newcomers.
+\end{itemize}
+The combined newcomer unlocked balance is
+\begin{equation}
+\boxed{B_{\mathcal N}(t):=\sum_{i\in\mathcal N}b_i(t)=\gamma A(t;M).}
+\end{equation}
+If $N_{\mathcal N}=|\mathcal N|$ newcomers receive equal incomes,
+\begin{equation}
+w_i=\frac1{N_{\mathcal N}},\qquad m_i=m,
+\end{equation}
+and
+\begin{equation}
+\boxed{M=\frac{N_{\mathcal N}m}{\gamma},\qquad b_i(t)=\frac{\gamma}{N_{\mathcal N}}A(t;M).}
+\end{equation}
+
+\section{Qualification conditions and minimum mining income}\label{sec:qualification}
+A newcomer qualifies by deadline $T<L$ if
+\begin{equation}
+b_i(T)\ge K_B.
+\end{equation}
+For specified total payout $M>0$, with $A(T;M)>0$,
+\begin{equation}
+\boxed{m_i\ge m_{\mathrm{req}}(T;M)=\frac{MK_B}{A(T;M)}.}
+\end{equation}
+Let
+\begin{equation}
+m_{\mathrm{low}}=\min_{i\in\mathcal N}m_i.
+\end{equation}
+Every newcomer qualifies if
+\begin{equation}
+m_{\mathrm{low}}\ge m_{\mathrm{req}}(T;M),\qquad MT\le R_0.
+\end{equation}
+For equal newcomer incomes and $\gamma>0$, $m_{\min}$ solves
+\begin{equation}
+\boxed{\frac{\gamma}{N_{\mathcal N}}A\!\left(T;\frac{N_{\mathcal N}m_{\min}}{\gamma}\right)=K_B.}
+\end{equation}
+
+\subsection*{Leadership-income feasibility}
+For finite $M$, positive initial stake, and $T>0$,
+\begin{equation}
+A(T;M)<P_LT.
+\end{equation}
+Consequently, an equal-income solution requires
+\begin{equation}
+\boxed{\gamma P_LT>N_{\mathcal N}K_B.}
+\end{equation}
+This is separate from the budget condition
+\begin{equation}
+\boxed{\frac{N_{\mathcal N}m_{\min}}{\gamma}T\le R_0.}
+\end{equation}
+A target may therefore fail because too little leadership income exists, or because sufficient mining-funded stake is too expensive.
+
+\section{Small-growth approximations}
+Define
+\begin{equation}
+\varepsilon=\frac{(M+P_L)T}{S_0}.
+\end{equation}
+When $\varepsilon\ll1$, expansion of the exact solution gives
+\begin{equation}
+A(T;M)=\frac{MP_LT^2}{2S_0}\left[1-\frac{(2M+P_L)T}{3S_0}+O(\varepsilon^2)\right].
+\end{equation}
+Multiplying by $m_i/M$,
+\begin{equation}
+b_i(T)\approx\frac{m_iP_LT^2}{2S_0}\left[1-\frac{(2M+P_L)T}{3S_0}\right].
+\end{equation}
+
+We note that by the equation  (\ref{eq:Stot}) we have 
+%
+\begin{equation}
+\frac{S_{\mathrm{tot}}(t)}{S_0}=1+\frac{(M+P_L)t}{S_0}=1+\epsilon
+\end{equation}
+%
+and hence $\varepsilon\ll1$ is equivalent to $\frac{S_{\mathrm{tot}}(t)}{S_0}\approx1$.
+
+
+\subsection*{Leading estimate}
+Ignoring the correction,
+\begin{equation}
+\boxed{m_0(T)=\frac{2K_BS_0}{P_LT^2}.}
+\end{equation}
+At this order, population size and $\gamma$ disappear because growth of competing stake has been neglected.
+
+\subsection*{First correction for equal newcomers}
+Substitute $M=N_{\mathcal N}m/\gamma$ and invert perturbatively:
+\begin{equation}
+\boxed{m_{\min}(T,\gamma)\approx m_0(T)\left[1+\frac{4N_{\mathcal N}K_B}{3\gamma P_LT}+\frac{P_LT}{3S_0}\right].}
+\end{equation}
+The corrections account for mining-funded stake growth and reinvested leadership income.
+
+This approximation becomes unreliable for large $\varepsilon$, especially near the leadership-income feasibility boundary, where the exact required rate diverges.
+
+\section{Mining income and mining difficulty}\label{sec:difficulty}
+Let:
+\begin{itemize}
+\item $h_i$: candidate attempts by miner $i$ per epoch.
+\item $p$: size of the approximately uniform ticket-output space.
+\item $d$: ticket acceptance threshold.
+\item $\sigma$: gross reward per claim.
+\item $\varphi$: claim fee.
+\item $w=\sigma-\varphi>0$: retained reward per claim.
+\end{itemize}
+Assuming every winning ticket becomes a paid claim,
+\begin{equation}
+\boxed{m_i=h_i\frac{d}{p}w.}
+\end{equation}
+The ratio $d/p$ is success probability per attempt. Increasing $d$ makes mining easier.
+
+To support a minimum expected newcomer income $m_\star$, define
+\begin{equation}
+h_{\min}=\min_{i\in\mathcal N}h_i>0.
+\end{equation}
+Choosing
+\begin{equation}
+d=\frac{p\,m_\star}{h_{\min}w}
+\end{equation}
+gives
+\begin{equation}
+m_i=m_\star\frac{h_i}{h_{\min}}.
+\end{equation}
+If
+\begin{equation}
+H=\sum_{i\in\mathcal I}h_i,
+\end{equation}
+total retained income is
+\begin{equation}
+M=m_\star\frac{H}{h_{\min}}.
+\end{equation}
+This construction requires a feasible threshold, sufficient processing capacity, and enough pool funds. It targets expected income, not guaranteed payouts.
+
+It is also a policy different from simply targeting a fixed claim count. If reward size changes, maintaining constant incomes requires threshold adjustment.
+
+Our numerical experiments neglected claim fees, so retained mining income equalled gross pool expenditure.
+
+\section{Numerical results for the all-locked fixed-population model}\label{sec:numerics}
+\subsection{Reference parameters}
+We used
+\begin{equation}
+S_0=99.5\times10^6,\qquad R_0=50\times10^6,\qquad P_L=28.92,\qquad K_B=1.
+\end{equation}
+An epoch lasts $7.5$ days. A deadline of $q$ months corresponds to
+\begin{equation}
+T=q\frac{365}{12\times7.5}.
+\end{equation}
+The leadership pot is a fees-only illustrative assumption; separately minted leadership rewards are excluded.
+
+\subsection{Incumbent competition at fixed total payout}
+For 100 identical newcomers and
+\begin{equation}
+M=10^6\text{ LOGOS per epoch},
+\end{equation}
+we varied $\gamma$.
+
+\Needspace{12\baselineskip}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}YYYY@{}}
+\toprule
+Newcomer payout share & Individual mining income, LOGOS/epoch & Unlocked balance just before one year & Qualification time\\
+\midrule
+100\% & 10,000 & 2.617 LOGOS & 7.05 months\\
+75\% & 7,500 & 1.962 LOGOS & 8.25 months\\
+50\% & 5,000 & 1.308 LOGOS & 10.32 months\\
+25\% & 2,500 & 0.654 LOGOS & Not before one year\\
+10\% & 1,000 & 0.262 LOGOS & Not before one year\\
+\bottomrule
+\end{tabularx}
+\end{center}
+At the one-year boundary, approximately 1.333 million LOGOS remain in the pool in every scenario.
+
+Newcomers must receive more than approximately $38.22\%$ of payouts to qualify strictly before one year under these assumptions.
+
+This experiment shows that identical pool expenditure can produce different onboarding outcomes depending on payout allocation.
+
+\subsection{Six-month target}
+For 100 equal-income newcomers and $\gamma=1$, the exact required rate is approximately
+\begin{equation}
+m_{\min}=14{,}255.75
+\end{equation}
+LOGOS per newcomer per epoch.
+
+Using the rounded value $m=14{,}256$, after six months:
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}Yr@{}}
+\toprule
+Quantity & Result\\
+\midrule
+Locked mining income per newcomer & 346,896 LOGOS\\
+Unlocked balance per newcomer & 1.000014 LOGOS\\
+Total stake per newcomer & 346,897.000014 LOGOS\\
+Remaining pool & 15.3104 million LOGOS\\
+\bottomrule
+\end{tabularx}
+\end{center}
+The leading approximation gives $m_0\approx11{,}621$; the first-corrected approximation gives approximately $13{,}823$, about $3\%$ below the exact rate.
+
+These are deterministic expected-flow results, not individual qualification guarantees.
+
+\section{Probability of depleting the reward pool}\label{sec:depletion}
+The budget condition $MT\le R_0$ of Section~\ref{sec:qualification} treats mining payouts as deterministic expected flows. Claims are random, so even when the expected spend fits in the pool, a run of lucky tickets could exhaust it early. This section bounds the probability of that event. All results in this section are machine-checked in Lean (\texttt{formal/MiningOnboarding/PoolDepletion.lean}).
+
+\subsection{Random claims}
+Following Section~\ref{sec:difficulty}, let $\mathcal A$ be the finite set of mining attempts made before the horizon $T$, across all miners and epochs. We assume:
+\begin{enumerate}
+\item Attempt $j\in\mathcal A$ wins with probability $q_j\in[0,1]$ (for a uniform ticket, $q_j=d/p$), independently of all other attempts.
+\item A winning attempt draws a reward $\sigma_j$ from the pool, with $0\le\sigma_j\le\bar\sigma$.
+\item The attempts, the $q_j$ and the $\sigma_j$ are fixed in advance; in particular, they are not adapted to earlier outcomes.
+\end{enumerate}
+Thresholds and rewards may therefore differ between attempts, for example between epochs. Let $Y_j\in\{0,1\}$ indicate that attempt $j$ wins. The total spend before $T$ and its expectation are
+\begin{equation}
+X=\sum_{j\in\mathcal A}\sigma_jY_j,\qquad \bar X=\mathbb E[X]=\sum_{j\in\mathcal A}q_j\sigma_j.
+\end{equation}
+In the deterministic model, $\bar X=MT$. Write
+\begin{equation}
+\nu=\frac{\bar X}{\bar\sigma},\qquad \kappa=\frac{R_0}{\bar\sigma}
+\end{equation}
+for the expected spend and the pool, both measured in maximal claims.
+
+\begin{lemma}[Depletion is decided at the horizon]\label{lem:depletion-horizon}
+Let attempt $j$ be made at time $\tau_j$, so that the pool at time $t$ is $R(t)=R_0-\sum_{j:\,\tau_j\le t}\sigma_jY_j$. Then $R(t)<0$ for some $t\le T$ if and only if $R(T)<0$, that is, if and only if $X>R_0$.
+\end{lemma}
+\begin{proof}
+Since $\sigma_jY_j\ge0$, $R$ is nonincreasing in $t$, so $R(t)<0$ for some $t\le T$ implies $R(T)\le R(t)<0$. The converse takes $t=T$.
+\end{proof}
+Consequently, one tail bound on $X$ covers the whole horizon. We bound $\Pr(X\ge R_0)\ge\Pr(X>R_0)$.
+
+\subsection{Tail bounds}
+\begin{lemma}[Moment generating function]\label{lem:mgf}
+For every $\lambda\ge0$,
+\begin{equation}
+\mathbb E\big[e^{\lambda X}\big]=\prod_{j\in\mathcal A}\left[1+q_j\left(e^{\lambda\sigma_j}-1\right)\right]\le\exp\!\left(\nu\left(e^{\lambda\bar\sigma}-1\right)\right).
+\end{equation}
+\end{lemma}
+\begin{proof}
+By independence, $\mathbb E[e^{\lambda X}]=\prod_j\mathbb E[e^{\lambda\sigma_jY_j}]=\prod_j[(1-q_j)+q_je^{\lambda\sigma_j}]$, which is the stated product.
+
+For the bound, convexity of the exponential on the segment $[0,\lambda\bar\sigma]$, at the point $\lambda\sigma_j=\theta_j\lambda\bar\sigma$ with $\theta_j=\sigma_j/\bar\sigma\in[0,1]$, gives
+\begin{equation}
+e^{\lambda\sigma_j}-1\le\frac{\sigma_j}{\bar\sigma}\left(e^{\lambda\bar\sigma}-1\right).
+\end{equation}
+Since $q_j\ge0$ and $1+x\le e^x$,
+\begin{equation}
+0\le1-q_j\le1+q_j\left(e^{\lambda\sigma_j}-1\right)\le1+\frac{q_j\sigma_j}{\bar\sigma}\left(e^{\lambda\bar\sigma}-1\right)\le\exp\!\left(\frac{q_j\sigma_j}{\bar\sigma}\left(e^{\lambda\bar\sigma}-1\right)\right).
+\end{equation}
+The factors are nonnegative, so the product of the left-hand sides is at most the product of the right-hand sides, which is $\exp(\nu(e^{\lambda\bar\sigma}-1))$.
+\end{proof}
+
+\begin{theorem}[Chernoff and Bennett bounds]\label{thm:bennett}
+For every $\lambda\ge0$,
+\begin{equation}
+\Pr(X\ge R_0)\le\exp\!\left(\nu\left(e^{\lambda\bar\sigma}-1\right)-\lambda R_0\right).\label{eq:chernoff}
+\end{equation}
+If $0<\bar X\le R_0$, then
+\begin{equation}
+\boxed{\Pr(X\ge R_0)\le\exp\!\left(-\left[\kappa\log\frac{\kappa}{\nu}-\kappa+\nu\right]\right).}\label{eq:bennett}
+\end{equation}
+\end{theorem}
+\begin{proof}
+For $\lambda\ge0$, $\ind\{X\ge R_0\}\le e^{\lambda(X-R_0)}$: when $X\ge R_0$ the right-hand side is at least one, and otherwise it is positive. Taking expectations and applying Lemma~\ref{lem:mgf} gives \eqref{eq:chernoff}.
+
+If $0<\bar X\le R_0$ then $\kappa/\nu\ge1$, so $\lambda=\log(\kappa/\nu)/\bar\sigma\ge0$ is admissible. With $e^{\lambda\bar\sigma}=\kappa/\nu$ and $\lambda R_0=\kappa\log(\kappa/\nu)$, the exponent in \eqref{eq:chernoff} becomes $\nu(\kappa/\nu-1)-\kappa\log(\kappa/\nu)$, which is \eqref{eq:bennett}.
+\end{proof}
+
+\begin{lemma}\label{lem:log}
+For $\varepsilon\ge0$, $\log(1+\varepsilon)\ge\dfrac{2\varepsilon}{2+\varepsilon}$.
+\end{lemma}
+\begin{proof}
+Let $F(\varepsilon)=\log(1+\varepsilon)-2\varepsilon/(2+\varepsilon)$. Then $F(0)=0$ and
+\begin{equation}
+F'(\varepsilon)=\frac1{1+\varepsilon}-\frac4{(2+\varepsilon)^2}=\frac{\varepsilon^2}{(1+\varepsilon)(2+\varepsilon)^2}\ge0,
+\end{equation}
+so $F(\varepsilon)\ge0$ for $\varepsilon\ge0$.
+\end{proof}
+
+\subsection{The headline result: a reserve buffer}
+\begin{theorem}[Pool depletion]\label{thm:depletion}
+Let $\Lambda\ge0$. If the pool exceeds the expected spend by the buffer
+\begin{equation}
+\boxed{R_0\ge\bar X+\sqrt{2\bar\sigma\bar X\Lambda}+\bar\sigma\Lambda,}\label{eq:buffer}
+\end{equation}
+then the probability that the pool is depleted before $T$ is at most $e^{-\Lambda}$:
+\begin{equation}
+\Pr\big(R(t)<0\text{ for some }t\le T\big)\le\Pr(X\ge R_0)\le e^{-\Lambda}.
+\end{equation}
+\end{theorem}
+\begin{proof}
+The first inequality is Lemma~\ref{lem:depletion-horizon}.
+
+If $\bar X=0$, then $q_j\sigma_j=0$ for every $j$, so $X=0$ with probability one. If $\Lambda>0$ then $R_0\ge\bar\sigma\Lambda>0=X$ and the probability is zero; if $\Lambda=0$ the bound $e^{0}=1$ is trivial.
+
+Let $\bar X>0$. Dividing \eqref{eq:buffer} by $\bar\sigma$, and writing $s=\sqrt{2\nu\Lambda}$ and $t=\kappa-\nu$,
+\begin{equation}
+t\ge s+\Lambda\ge0,
+\end{equation}
+since $\sqrt{2\bar\sigma\bar X\Lambda}/\bar\sigma=\sqrt{2\nu\Lambda}$. In particular $\bar X\le R_0$, and Theorem~\ref{thm:bennett} applies. With $\varepsilon=t/\nu$ we have $\kappa=\nu(1+\varepsilon)$, and Lemma~\ref{lem:log} bounds the exponent of \eqref{eq:bennett}:
+\begin{equation}
+\kappa\log\frac{\kappa}{\nu}-\kappa+\nu=\kappa\log(1+\varepsilon)-t\ge\kappa\frac{2\varepsilon}{2+\varepsilon}-t=\frac{2(\nu+t)t}{2\nu+t}-t=\frac{t^2}{2\nu+t}.
+\end{equation}
+Finally, $t-\Lambda\ge s\ge0$ and $t\ge s$ give $t(t-\Lambda)\ge s\cdot s=2\nu\Lambda$, that is, $t^2\ge\Lambda(2\nu+t)$. Hence the exponent is at least $\Lambda$, and $\Pr(X\ge R_0)\le e^{-\Lambda}$.
+\end{proof}
+
+The buffer grows like $\sqrt{\bar\sigma\bar X}$, so relative to the expected spend it vanishes as the claims become small: $(R_0-\bar X)/\bar X\gtrsim\sqrt{2\bar\sigma\Lambda/\bar X}$. The probability of depletion is controlled by the size of a single claim, not by the number of claims.
+
+\begin{corollary}[A $10^{-12}$ target]\label{cor:1e-12}
+Taking $\Lambda=28$ in \eqref{eq:buffer} gives $\Pr(\text{depletion})<10^{-12}$.
+\end{corollary}
+\begin{proof}
+Since $e>2.7182818283$, $e^{28}>2.7182818283^{28}>10^{12}$, so $e^{-28}<10^{-12}$.
+\end{proof}
+
+\begin{corollary}[Reference parameters]\label{cor:reference}
+Let $R_0=50\times10^6$, let the expected spend be $\bar X\le48\times10^6$ (for example $M=10^6$ per epoch for $48$ epochs, about $11.8$ months), and let every claim draw at most $\bar\sigma=1000$ LOGOS. Then the pool is depleted with probability below $10^{-12}$.
+\end{corollary}
+\begin{proof}
+With $\Lambda=28$, $\sqrt{2\bar\sigma\bar X\Lambda}\le\sqrt{2\cdot1000\cdot48\times10^6\cdot28}<1.7\times10^6$ and $\bar\sigma\Lambda=28{,}000$. Therefore $\bar X+\sqrt{2\bar\sigma\bar X\Lambda}+\bar\sigma\Lambda<48\times10^6+1.728\times10^6<R_0$, and Corollary~\ref{cor:1e-12} applies.
+\end{proof}
+
+\subsection{Numerical illustration}
+The bound \eqref{eq:bennett} is sharper than the buffer \eqref{eq:buffer}, and can be evaluated directly. For the one-year horizon of Section~\ref{sec:numerics} ($M=10^6$, $\bar X\approx48.67\times10^6$, leaving $1.333$ million LOGOS above the expected spend), the largest claim reward $\bar\sigma$ for which \eqref{eq:bennett} is at most $\delta$ is:
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}YYY@{}}
+\toprule
+Target $\delta$ & Largest $\bar\sigma$, $\bar X=48.67\times10^6$ & Largest $\bar\sigma$, $\bar X=48\times10^6$\\
+\midrule
+$10^{-6}$ & 1,310 LOGOS & 2,975 LOGOS\\
+$10^{-9}$ & 873 LOGOS & 1,983 LOGOS\\
+$10^{-12}$ & 655 LOGOS & 1,487 LOGOS\\
+\bottomrule
+\end{tabularx}
+\end{center}
+Conversely, at $M=10^6$ LOGOS per epoch and $\delta=10^{-12}$, the longest horizon for which \eqref{eq:bennett} is at most $\delta$ is:
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}YY@{}}
+\toprule
+Largest claim reward $\bar\sigma$ & Longest safe horizon\\
+\midrule
+1 LOGOS & 12.32 months\\
+100 LOGOS & 12.20 months\\
+1,000 LOGOS & 11.92 months\\
+10,000 LOGOS & 11.08 months\\
+\bottomrule
+\end{tabularx}
+\end{center}
+The deterministic exhaustion time $R_0/M$ is $12.33$ months.
+
+\subsection{Scope}
+\begin{itemize}
+\item The theorem requires the expected spend $\bar X$, which grows with total hashrate. A design must therefore also cap the attempts that can be made, or the payout they can claim.
+\item Independence fails if the threshold $d$ is retargeted from observed claims. That case needs a martingale version of the argument.
+\item If claim fees return to the pool, $\sigma_j$ overstates the net draw, and the bound is conservative.
+\end{itemize}
+
+\input{unlocked-mining.tex}
+
+\section{First extension: a cohort joins an existing network}
+We can redefine $t=0$ as the arrival of a cohort rather than genesis.
+
+Then:
+\begin{itemize}
+\item $S_0$ is active stake when the cohort joins.
+\item $R_0$ is the pool remaining at that time.
+\item New cohort members start at zero.
+\item Existing miners have initial stake $a_j>0$.
+\end{itemize}
+Existing participants may have locked holdings, so generally
+\begin{equation}
+s_j(0)=a_j,\qquad b_j(0)=u_j,\qquad 0\le u_j\le a_j.
+\end{equation}
+If we track only their stake, the distinction between locked and unlocked holdings does not affect the stake equation, provided all tokens remain staked.
+
+If no further participants arrive and mining rates remain constant, the same analytical newcomer solution applies.
+
+In this interpretation, $A(t;M)$ measures leadership income attributable to mining-funded stake accumulated \textbf{since cohort arrival}, not necessarily since genesis.
+
+\section{Second extension: newcomers arrive every epoch}
+Let
+\begin{equation}
+\mathcal N_e
+\end{equation}
+be the cohort joining at the beginning of epoch $e$, with
+\begin{equation}
+n_e=|\mathcal N_e|.
+\end{equation}
+Participant $i$ arrives at $t_i=e$ and satisfies
+\begin{equation}
+\boxed{s_i(t_i)=b_i(t_i)=0.}
+\end{equation}
+Assuming no departures,
+\begin{equation}
+\mathcal I(t)=\mathcal C\cup\bigcup_{e\le t}\mathcal N_e.
+\end{equation}
+Calendar time is $t$; participant age is $t-t_i$.
+
+A tokenless arrival creates no immediate jump in stake, but may change mining payouts and their allocation.
+
+\subsection*{Time-dependent equations}
+Allow mining income and leadership revenue to depend on time:
+\begin{equation}
+\boxed{\frac{\rmd s_i(t)}{\rmd t}=m_i(t)+P_L(t)\frac{s_i(t)}{S_{\mathrm{tot}}(t)}.}
+\end{equation}
+Before participant $i$'s first locked reward matures,
+\begin{equation}
+\boxed{\frac{\rmd b_i(t)}{\rmd t}=\beta m_i(t)+P_L(t)\frac{s_i(t)}{S_{\mathrm{tot}}(t)}.}
+\end{equation}
+Here $\beta$ is a common, constant immediately unlocked fraction; both portions remain staked. The remaining equations are
+\begin{equation}
+S_{\mathrm{tot}}(t)=S_E(t)+\sum_{i\in\mathcal I(t)}s_i(t),
+\end{equation}
+\begin{equation}
+\frac{\rmd S_E(t)}{\rmd t}=P_L(t)\frac{S_E(t)}{S_{\mathrm{tot}}(t)},
+\end{equation}
+\begin{equation}
+\frac{\rmd R(t)}{\rmd t}=-M(t),\qquad M(t)=\sum_{i\in\mathcal I(t)}m_i(t).
+\end{equation}
+Consequently,
+\begin{equation}
+\boxed{S_{\mathrm{tot}}(t)=S_0+\int_0^t[M(u)+P_L(u)]\,\rmd u,}
+\end{equation}
+and
+\begin{equation}
+\boxed{R(t)=R_0-\int_0^tM(u)\,\rmd u.}
+\end{equation}
+The pool is shared across cohorts and is never reset at an arrival.
+
+\section{Closing the model: how entry changes mining income}
+An arrival schedule alone is insufficient. We must specify a mining-allocation policy.
+
+\subsection{Fixed total payout}
+Suppose total payout $M(t)$ is specified and distributed proportionally to hashrate:
+\begin{equation}
+m_i(t)=M(t)\frac{h_i(t)}{H(t)},\qquad H(t)=\sum_{j\in\mathcal I(t)}h_j(t).
+\end{equation}
+This allocation assumes $H(t)>0$.
+
+New arrivals reduce existing miners' shares if their hashrates stay unchanged.
+
+If $M$ is constant,
+\begin{equation}
+R(t)=R_0-Mt.
+\end{equation}
+This controls expenditure but dilutes individual mining income as the population grows.
+
+\subsection{Fixed individual mining income}
+Alternatively, every newcomer receives a fixed rate $m$. Then
+\begin{equation}
+M_{\mathcal N}(t)=m\sum_{e\le t}n_e,
+\end{equation}
+and
+\begin{equation}
+M(t)=M_{\mathcal N}(t)+M_{\mathcal C}(t).
+\end{equation}
+Here the sum counts newcomers who have arrived and continue mining.
+
+This protects individual mining income but increases total expenditure and competing stake.
+
+The model cannot maintain both fixed individual income and fixed total payout as the mining population grows without another adjustment.
+
+\subsection{Time-dependent payout shares}
+For $M(t)>0$, define
+\begin{equation}
+\gamma(t)=\frac{M_{\mathcal N}(t)}{M(t)}.
+\end{equation}
+For a particular cohort,
+\begin{equation}
+M_{\mathcal N_e}(t)=\sum_{i\in\mathcal N_e}m_i(t),\qquad\gamma_e(t)=\frac{M_{\mathcal N_e}(t)}{M(t)}.
+\end{equation}
+The aggregate share $\gamma(t)$ measures allocation to all newcomers, while $\gamma_e(t)$ exposes competition between early and late cohorts.
+
+\section{General newcomer solution with continuing entry}
+Define
+\begin{equation}
+r(t)=\frac{P_L(t)}{S_{\mathrm{tot}}(t)}.
+\end{equation}
+For a newcomer arriving at $t_i$, the stake equation is
+\begin{equation}
+\frac{\rmd s_i(t)}{\rmd t}-r(t)s_i(t)=m_i(t),\qquad s_i(t_i)=0.
+\end{equation}
+Applying an integrating factor gives
+\begin{equation}
+\boxed{s_i(t)=\int_{t_i}^{t}m_i(u)\exp\!\left(\int_u^t r(v)\,\rmd v\right)\,\rmd u.}
+\end{equation}
+A mining payment received at time $u$ is amplified by reinvested leadership income earned between $u$ and $t$.
+
+Before mining unlocks,
+\begin{equation}
+\boxed{b_i(t)=\int_{t_i}^{t}m_i(u)\left[\exp\!\left(\int_u^t r(v)\,\rmd v\right)-(1-\beta)\right]\rmd u.}
+\end{equation}
+Subtracting $1-\beta$ removes only locked mining principal. The balance includes direct unlocked mining and leadership income, before locked rewards mature.
+
+These formulas accommodate different arrival times and time-varying income. They replace the common-arrival, constant-$M$ formula when entry changes network conditions.
+
+\section{Third extension: unlocking after one year}
+The locked fraction $1-\beta$ of each mining reward unlocks $L$ epochs after receipt; the fraction $\beta$ is immediately unlocked.
+
+For a newcomer,
+\begin{equation}
+\boxed{\frac{\rmd b_i(t)}{\rmd t}=\beta m_i(t)+P_L(t)\frac{s_i(t)}{S_{\mathrm{tot}}(t)}+\ind\{t\ge t_i+L\}(1-\beta)m_i(t-L).}
+\end{equation}
+The three terms are direct unlocked mining, leadership income, and maturation of the locked income received one lock period earlier. The indicator equals one when its condition is true and zero otherwise; mining income before arrival is taken to be zero.
+
+The remaining locked balance is
+\begin{equation}
+\boxed{k_i(t)=(1-\beta)\int_{\max(t_i,t-L)}^t m_i(u)\,\rmd u.}
+\end{equation}
+Thus,
+\begin{equation}
+b_i(t)=s_i(t)-k_i(t).
+\end{equation}
+Unlocking changes the classification of holdings, not total stake, provided tokens remain staked.
+
+Tracking unlocking requires mining-income history. If initially locked incumbent balances are also tracked, their remaining maturation schedules are needed.
+
+\section{Cohort aggregation}
+If members of cohort $e$ have identical incomes and behaviour, we can track one representative:
+\begin{itemize}
+\item $s_e(t)$: stake per member.
+\item $b_e(t)$: unlocked balance per member.
+\item $m_e(t)$: mining income per member.
+\end{itemize}
+The cohort contributes $n_es_e(t)$ to total stake and $n_em_e(t)$ to total mining payout.
+
+Its equations are
+\begin{equation}
+\boxed{\frac{\rmd s_e(t)}{\rmd t}=m_e(t)+P_L(t)\frac{s_e(t)}{S_{\mathrm{tot}}(t)},}
+\end{equation}
+\begin{equation}
+\boxed{\frac{\rmd b_e(t)}{\rmd t}=\beta m_e(t)+P_L(t)\frac{s_e(t)}{S_{\mathrm{tot}}(t)}+\ind\{t\ge e+L\}(1-\beta)m_e(t-L),}
+\end{equation}
+with
+\begin{equation}
+s_e(e)=b_e(e)=0.
+\end{equation}
+This is an exact reduction within the deterministic model when cohort members are identical. Heterogeneous cohorts require multiple representative types or individual tracking.
+
+\section{Measuring success by cohort}
+Define participant $i$'s waiting time to qualification:
+\begin{equation}
+\boxed{\tau_i=\inf\{a\ge0:b_i(t_i+a)\ge K_B\}.}
+\end{equation}
+Here $a$ measures time since arrival. If qualification never occurs, $\tau_i=\infty$.
+
+The fraction of cohort $e$ qualifying before its first anniversary is
+\begin{equation}
+\boxed{Q_e=\frac1{n_e}\sum_{i\in\mathcal N_e}\ind\{\tau_i<L\}.}
+\end{equation}
+Useful outputs include:
+\begin{itemize}
+\item Qualification time by arrival cohort.
+\item Unlocked balance at a fixed age.
+\item Qualification fraction $Q_e$.
+\item Mining expenditure per cohort.
+\item Pool-exhaustion time.
+\item Sensitivity to incumbent mining and newcomer entry rates.
+\end{itemize}
+Identical deterministic cohort members qualify together, so their $Q_e$ is either zero or one. Heterogeneity or stochastic rewards can produce intermediate fractions.
+
+Late cohorts must be followed for their full evaluation window; ending the simulation early is not evidence that they fail.
+
+\section{Current status and next experiment}
+The fixed-population model has analytical solutions and completed numerical experiments.
+
+The \href{https://amozeika.github.io/onboarding-calculator/}{interactive calculator} now includes $\beta$ in all calculation modes, plots, deadline/share tables, and CSV exports, with separate direct unlocked mining and leadership readouts. It defaults to $\beta=0$. Tests cover the original results, $\beta=1$, zero leadership, balance conservation, pool exhaustion, and independent ODE integration. Continuing arrivals and delayed maturation are formulated here but not yet implemented in the calculator.
+
+The continuing-entry model has been formulated but not yet simulated. A first experiment should specify:
+\begin{enumerate}
+\item A fixed number of identical newcomers arriving every epoch.
+\item Initial network stake and remaining pool.
+\item A constant leadership pot.
+\item Incumbent mining participation.
+\item Either fixed total payouts or fixed individual mining income.
+\item Mining stopping at pool exhaustion.
+\item A specified immediately unlocked fraction $\beta$, with the remainder unlocking after $L$ epochs and all tokens remaining staked.
+\item No departures or behavioural changes after qualification.
+\end{enumerate}
+The central comparison is:
+
+\textbf{Does the policy preserve onboarding opportunities for later cohorts, or do declining payout shares, competing stake, and pool depletion progressively close that opportunity?}
+
+The framework answers this first at the level of deterministic expected balances. A later stochastic extension is needed to estimate individual probabilities of qualification under random mining claims and leadership elections.
+
+\section{Appendix}
+
+\subsection{Analysis of the function \texorpdfstring{$A(t;M)$}{A(t;M)}}
+\label{sec:A-analysis}
+
+This section collects the analytical properties of the auxiliary function
+\begin{equation}
+\boxed{
+A(t;M)=S_0+P_Lt-S_0\left(1+\frac{(M+P_L)t}{S_0}\right)^{P_L/(M+P_L)}
+}
+\label{eq:A-def}
+\end{equation}
+that appears in the newcomer solution \eqref{def:A} of Section~7. All parameters $S_0,P_L,M,t$ are positive.
+
+It is convenient to introduce the auxiliary quantities
+\begin{equation}
+r=\frac{P_L}{M+P_L}\in(0,1),
+\qquad
+k=\frac{M+P_L}{S_0}>0,
+\qquad
+c=(M+P_L)t>0,
+\end{equation}
+so that
+\begin{equation}
+A=S_0+tP_L-S_0(1+kt)^r.
+\end{equation}
+
+\subsubsection{Role in the model}
+The balance identities in this appendix refer to the original $\beta=0$ baseline. For $\beta>0$, add $\beta m_it$ to the newcomer unlocked balance as in Section~\ref{sec:beta}; the function $A$ itself is unchanged at fixed total mining income.
+For a tokenless newcomer ($a_i=0$),
+\begin{equation}
+b_i(t)=\frac{m_i}{M}A(t;M),
+\qquad
+s_i(t)=m_it+b_i(t).
+\end{equation}
+The ODE for the newcomer's unlocked balance, before mining unlocks, is
+\begin{equation}
+\frac{\rmd b_i(t)}{\rmd t}=P_L\frac{s_i(t)}{S_{\mathrm{tot}}(t)}\ge0.
+\end{equation}
+Since $b_i(0)=0$, this implies $b_i(t)\ge0$ for all $t\ge0$. Therefore $A(t;M)\ge0$ is required for consistency with the ODE, and $A<0$ is unphysical: it would imply a negative unlocked balance for a tokenless newcomer.
+
+\subsubsection{Dependence on $t$ (fixed $S_0,M,P_L>0$)}
+At $t=0$,
+\begin{equation}
+A(0)=S_0-S_0(1)^r=0.
+\end{equation}
+Differentiating \eqref{eq:A-def},
+\begin{equation}
+A'(t)=P_L-S_0\,r(1+kt)^{r-1}k.
+\end{equation}
+Since $S_0k=M+P_L$ and $r(M+P_L)=P_L$,
+\begin{equation}
+\boxed{
+A'(t)=P_L\left[1-(1+kt)^{r-1}\right].
+}
+\end{equation}
+Because $r-1<0$, we have $(1+kt)^{r-1}<1$ for $t>0$, hence
+\begin{equation}
+A'(t)>0\quad(t>0),
+\qquad
+A'(0)=0.
+\end{equation}
+Differentiating once more,
+\begin{equation}
+A''(t)=-P_L(r-1)(1+kt)^{r-2}k>0,
+\end{equation}
+so $A(t)$ is convex (concave upward) on $t\ge0$.
+
+As $t\to\infty$, since $0<r<1$,
+\begin{equation}
+A(t)\sim P_Lt-S_0(kt)^r+S_0\to\infty,
+\end{equation}
+and
+\begin{equation}
+A(t)-P_Lt=S_0\left[1-(1+kt)^r\right]\to-\infty
+\end{equation}
+sublinearly. For small $t$,
+\begin{equation}
+(1+kt)^r=1+rkt+\frac{r(r-1)}{2}(kt)^2+\cdots,
+\end{equation}
+and the linear terms cancel, giving
+\begin{equation}
+A(t)\approx\frac{MP_Lt^2}{2S_0}
+\left[1-\frac{(2M+P_L)t}{3S_0}+O(\varepsilon^2)\right],
+\qquad
+\varepsilon=\frac{(M+P_L)t}{S_0}.
+\end{equation}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}YY@{}}
+\toprule
+Property & Result\\
+\midrule
+Domain & $t\ge0$, physically $t\in[0,T]$ with $T<L$\\
+Initial value & $A(0)=0$\\
+First derivative & $A'(t)=P_L[1-(1+kt)^{r-1}]$\\
+Sign of $A'$ & $A'(t)>0$ for $t>0$; $A'(0)=0$\\
+Monotonicity & strictly increasing for $t>0$\\
+Second derivative & $A''(t)>0$ for all $t\ge0$\\
+Convexity & convex\\
+Limit as $t\to\infty$ & $A(t)\sim P_Lt-S_0(kt)^r\to\infty$\\
+Growth & initially quadratic; eventually linear with slope $P_L$\\
+Comparison with $P_Lt$ & $A(t)<P_Lt$ for $t>0$\\
+Sign & $A(t)>0$ for all $t>0$\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsubsection{Dependence on $S_0$ (fixed $t,M,P_L>0$)}
+Write
+\begin{equation}
+r=\frac{P_L}{M+P_L}\in(0,1),
+\qquad
+c=(M+P_L)t>0,
+\qquad
+A(S_0)=S_0+tP_L-S_0\left(1+\frac{c}{S_0}\right)^r.
+\end{equation}
+As $S_0\to\infty$,
+\begin{equation}
+\left(1+\frac{c}{S_0}\right)^r=1+\frac{rc}{S_0}+O(S_0^{-2}),
+\end{equation}
+and $rc=r(M+P_L)t=P_Lt$, so
+\begin{equation}
+A(S_0)\to tP_L-rc=0.
+\end{equation}
+As $S_0\to0^+$, writing $x=1/S_0\to\infty$,
+\begin{equation}
+S_0(1+cx)^r\sim c^rS_0^{1-r}\to0,
+\end{equation}
+hence
+\begin{equation}
+A(S_0)\to tP_L>0.
+\end{equation}
+
+Let
+\begin{equation}
+f(S_0)=S_0\left(1+\frac{c}{S_0}\right)^r.
+\end{equation}
+Then $A'(S_0)=1-f'(S_0)$, with
+\begin{equation}
+f'(S_0)=\left(1+\frac{c}{S_0}\right)^{r-1}
+\left[1+\frac{(1-r)c}{S_0}\right].
+\end{equation}
+Put $u=c/S_0>0$ and
+\begin{equation}
+g(u)=(1+u)^{r-1}\left[1+(1-r)u\right].
+\end{equation}
+Then $A'(S_0)=1-g(u)$. Taking logarithms,
+\begin{equation}
+\ln g(u)=(r-1)\ln(1+u)+\ln\left[1+(1-r)u\right],
+\end{equation}
+and differentiating,
+\begin{equation}
+\frac{g'(u)}{g(u)}
+=(1-r)\left[\frac{1}{1+(1-r)u}-\frac{1}{1+u}\right]>0.
+\end{equation}
+Since $g(0)=1$, we have $g(u)>1$ for all $u>0$, hence
+\begin{equation}
+A'(S_0)<0\quad(S_0>0),
+\end{equation}
+so $A$ is strictly decreasing in $S_0$. Moreover $A'(S_0)=1-g(c/S_0)$ is increasing in $S_0$, so $A''(S_0)>0$ and $A$ is convex in $S_0$.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}YY@{}}
+\toprule
+Property & Result\\
+\midrule
+Domain & $S_0>0$\\
+Limit as $S_0\to0^+$ & $A\to tP_L>0$\\
+Limit as $S_0\to\infty$ & $A\to0^+$\\
+Monotonicity & strictly decreasing\\
+Convexity & convex\\
+Sign & $A>0$ for all $S_0>0$\\
+Range & $0<A(S_0)<tP_L$\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsubsection{Dependence on $P_L$ (fixed $S_0,M,t>0$)}
+The function is positive and strictly increasing in $P_L$. In particular, there is no positive critical leadership pot at which $A$ crosses zero. The earlier negative-limit argument incorrectly inferred a sign from an unsigned big-$O$ remainder.
+
+For a direct monotonicity proof, let $r_P(v)=P_L/[S_0+(M+P_L)v]$ denote the leadership return per unit stake. Then
+\begin{equation}
+\frac{\partial r_P(v)}{\partial P_L}
+=\frac{S_0+Mv}{[S_0+(M+P_L)v]^2}>0.
+\end{equation}
+The integrating-factor solution for a tokenless miner gives the equivalent representation
+\begin{equation}
+A(t;M)=M\int_0^t\left[\exp\!\left(\int_u^t r_P(v)\,\rmd v\right)-1\right]\rmd u.
+\end{equation}
+Its integrand is positive for $u<t$ and increases with $P_L$. This proves both $A>0$ and $\partial A/\partial P_L>0$ for positive parameters.
+
+For small $P_L$,
+\begin{equation}
+A(P_L)=P_L\left[t-\frac{S_0}{M}\log\left(1+\frac{Mt}{S_0}\right)\right]+O(P_L^2).
+\end{equation}
+The bracket is positive because $y-\log(1+y)>0$ for $y=Mt/S_0>0$. Thus $A\to0^+$ as $P_L\to0^+$.
+
+For the large-$P_L$ limit, write $a=M+P_L$ and
+\begin{equation}
+z=\frac{M}{a}\log\left(1+\frac{at}{S_0}\right).
+\end{equation}
+Rearranging the exact expression, without subtracting large nearly equal terms numerically,
+\begin{equation}
+A=(S_0+at)(1-e^{-z})-Mt.
+\end{equation}
+As $a\to\infty$, $z\to0$ and $(S_0+at)z^2\to0$. Hence
+\begin{align}
+A&=Mt\log\left(1+\frac{at}{S_0}\right)-Mt+o(1)\\
+ &=Mt\left[\log\left(\frac{P_Lt}{S_0}\right)-1\right]+o(1)
+ \longrightarrow+\infty.
+\end{align}
+The divergence is logarithmic, while $A/(P_Lt)\to0$.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}YY@{}}
+\toprule
+Property & Result\\
+\midrule
+Domain & Every $P_L>0$ for the mathematical solution\\
+Limit as $P_L\to0^+$ & $A\to0^+$\\
+Limit as $P_L\to\infty$ & $A\to+\infty$ logarithmically\\
+Monotonicity & Strictly increasing\\
+Sign & $A>0$ for all positive parameters\\
+Positive zero $P_L^*$ & Does not exist\\
+\bottomrule
+\end{tabularx}
+\end{center}
+As elsewhere, applying the constant-mining trajectory physically requires a funded pool and the appropriate reward-maturity equations.
+
+\subsubsection{Physical interpretation of $A$}
+Total leadership income by time $t$ is $P_Lt$. Leadership income attributable to genesis-funded stake is $S_0[g(t)-1]$. Hence
+\begin{equation}
+A(t;M)=P_Lt-S_0[g(t)-1],
+\end{equation}
+so $A(t;M)$ is the leadership income attributable to mining-funded stake, including reinvestment, and excluding mining principal. The condition $A\ge0$ states that mining-funded stake cannot receive negative leadership income.
+
+Positivity of $A(T;M)$ is not equivalent to the onboarding feasibility condition. It only guarantees positive leadership income when a newcomer mines. For the all-locked case, the separate condition
+\begin{equation}
+\gamma P_LT>N_{\mathcal N}K_B
+\end{equation}
+is necessary for a finite equal-income solution with an unlimited pool. Funding through the deadline additionally requires $MT\le R_0$. With $\beta>0$, directly unlocked mining removes the leadership-only ceiling but not the pool constraint.
+
+\subsubsection{Consistency with the ODE system}
+For the all-locked baseline,
+\begin{equation}
+\frac{\rmd b_i(t)}{\rmd t}=P_L\frac{s_i(t)}{S_{\mathrm{tot}}(t)}\ge0,
+\qquad b_i(t)=\frac{m_i}{M}A(t;M).
+\end{equation}
+The exact formula satisfies this for every positive $S_0,M,P_L,t$. Concavity of $x^r$ for $0<r<1$ gives
+\begin{equation}
+(1+kt)^r<1+rkt,\qquad
+A=S_0[1+rkt-(1+kt)^r]>0.
+\end{equation}
+Negative computed values therefore indicate an algebraic or numerical error, not a new physical regime or a critical leadership-income threshold. At small parameter values, cancellation in $S_0+P_Lt-S_0g(t)$ should be avoided using stable numerical formulas.
+
+For the generalised model,
+\begin{equation}
+b_i(t)=\beta m_it+\frac{m_i}{M}A(t;M),
+\qquad
+\frac{\rmd b_i(t)}{\rmd t}=\beta m_i+P_L\frac{s_i(t)}{S_{\mathrm{tot}}(t)}\ge0
+\end{equation}
+before delayed maturation. The added directly unlocked principal leaves $A$ unchanged.
+
+\subsubsection{Key takeaways}
+\begin{enumerate}
+\item $A$ is positive for every positive $S_0,M,P_L,t$.
+\item As a function of $t$, $A$ starts at zero, increases strictly, is convex, and eventually grows with limiting slope $P_L$.
+\item As a function of $S_0$, $A$ decreases strictly from $P_Lt$ to zero and is convex.
+\item As a function of $P_L$, $A$ increases strictly from zero and diverges logarithmically to positive infinity. There is no positive root $P_L^*$.
+\item Positivity of leadership income is distinct from earning enough to meet the Blend threshold by a deadline.
+\item The $\beta$ extension adds direct unlocked mining income; it does not change these properties at fixed total mining income.
+\end{enumerate}
+
+\end{document}
