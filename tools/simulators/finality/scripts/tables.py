@@ -295,10 +295,8 @@ def b6() -> None:
     print(md(pd.DataFrame(rows)))
     print()
     r = pd.read_csv(RUNS / "b6" / "recovery.csv")
-    r = r[(r.model == "random, specification")].sort_values(["k", "alpha", "c", "window_h"],
-                                                              ascending=[False, True, False, True])
-    r = r.groupby(["k", "alpha", "c", "window_h"]).filter(
-        lambda g: np.isfinite(g[["h_days", "h_days_ground"]].to_numpy()).any())
+    longest = {2160: 72, 1620: 54, 1080: 36, 432: 14.4, 216: 7.2, 120: 4}
+    r = r[(r.model == "random, specification") & (r.c == 1.0)]
 
     def days(v):
         if np.isinf(v):
@@ -306,12 +304,19 @@ def b6() -> None:
         if v < 1 / 24:
             return "< 1 h"
         return f"{24 * v:.0f} h" if v < 2 else f"{v:,.0f}"
+
+    def turnover(g, col):
+        lo, hi = (g[g.tau_per_day == tau][col].iloc[0] for tau in (2.43e-3, 1.25e-3))
+        if 1 / 24 <= lo < 2 <= hi < 10:
+            return f"{24 * lo:.0f}–{24 * hi:.0f} h"
+        lo, hi = days(lo), days(hi)
+        return lo if lo == hi else f"{lo}–{hi}"
     rows = []
-    for (k, a, c, w), g in r.groupby(["k", "alpha", "c", "window_h"], sort=False):
-        row = {"k": f"{k}", "window": f"{w:g} h", "α": f"{a:.2f}", "freed keys bought": f"{c:g}"}
-        for tau in sorted(g.tau_per_day.unique()):
-            x = g[g.tau_per_day == tau].iloc[0]
-            row[f"{100 * tau:.3g} % a day"] = f"{days(x.h_days)} / {days(x.h_days_ground)}"
+    for k, w in longest.items():
+        row = {"k": f"{k}", "window": f"{w:g} h"}
+        for a in (0.20, 0.25, 0.30, 0.3333):
+            g = r[(r.k == k) & (r.window_h == w) & (r.alpha.round(4) == a)]
+            row[f"α = {a:.2f}"] = f"{turnover(g, 'h_days')} / {turnover(g, 'h_days_ground')}"
         rows.append(row)
     print(md(pd.DataFrame(rows)))
 

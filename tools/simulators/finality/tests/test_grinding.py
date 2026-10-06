@@ -5,8 +5,9 @@ import math
 import numpy as np
 import pytest
 
-from finality_sim.grinding import (PER_BIT, bounds, factors, lead_pmf, pair_bounds, post_cutoff,
-                                   simulate, tail)
+from finality_sim.grinding import (PER_BIT, _choices, _max_tail, _max_tail_mixed, _place, _table,
+                                   _union, _union_before, _ztable, bounds, factors, lead_pmf,
+                                   pair_bounds, post_cutoff, simulate, tail, walk)
 
 F, ALPHA = 1 / 30, 0.25
 MODELS = {"random": dict(growth=0.845), "worst": dict(delta=10)}
@@ -41,60 +42,70 @@ def test_the_largest_choice_matches_the_simulation(run):
 
 
 def test_the_bounds_hold_the_simulated_chance(run):
-    """The lower bound holds the choices complete at the cut-off; the upper bound also those the
-    coalition completes after it, which exceed what the cut-off alone allows."""
-    kw, log2g, log2m, log2gz = run[0], run[2], run[3], run[4]
+    """At the cut-off, and with the forks the coalition completes after it, the simulated chance
+    lies between the bounds; the later forks take it above the bound that leaves them out. Each
+    lower bound is E[min(1, uM)] on a grid of 1/16 bit, from below; with the later forks that is
+    tight only where the lead after the cut-off is exact, under random delay."""
+    kw, log2g, log2m, log2gz, log2mz = run[0], run[2], run[3], run[4], run[6]
     ts, lower, upper, _ = bounds(F, ALPHA, budget_bits=40, **kw)
-    _, _, upper_at_cutoff, _ = bounds(F, ALPHA, budget_bits=40, after_cutoff=False, **kw)
-    assert np.all(lower <= upper)
+    _, lower_at, upper_at, _ = bounds(F, ALPHA, budget_bits=40, after_cutoff=False, **kw)
+    assert np.all(lower <= upper) and np.all(lower_at <= lower) and np.all(upper_at <= upper)
     for t in (4, 8, 12):
         i = int(np.searchsorted(ts, t))
-        at, after = np.minimum(1.0, 2.0 ** (log2g - t)), np.minimum(1.0, 2.0 ** (log2gz - t))
-        se_at, se_after = at.std() / math.sqrt(at.size), after.std() / math.sqrt(after.size)
-        assert lower[i] - 4 * se_at <= at.mean() <= upper_at_cutoff[i] + 4 * se_at
-        assert after.mean() <= upper[i] + 4 * se_after
+        for lo, up, lg, lm, tight in ((lower_at, upper_at, log2g, log2m, True),
+                                      (lower, upper, log2gz, log2mz, "growth" in kw)):
+            g = np.minimum(1.0, 2.0 ** (lg - t))
+            se = g.std() / math.sqrt(g.size)
+            assert lo[i] - 4 * se <= g.mean() <= up[i] + 4 * se
+            m = np.where(np.isfinite(lm), np.minimum(1.0, 2.0 ** (lm - t)), 0.0)
+            se_m = m.std() / math.sqrt(m.size)
+            assert lo[i] - 4 * se_m <= m.mean()
+            if tight:
+                assert m.mean() <= lo[i] * 2 ** (1 / PER_BIT) + 4 * se_m
         if t == 8:                                   # where the later forks are clearly seen
-            assert after.mean() > upper_at_cutoff[i] + 4 * se_after
-        # the lower bound is E[min(1, uM)] on a grid of 1/16 bit, from below
-        m = np.where(np.isfinite(log2m), np.minimum(1.0, 2.0 ** (log2m - t)), 0.0)
-        se_m = m.std() / math.sqrt(m.size)
-        assert lower[i] - 4 * se_m <= m.mean() <= lower[i] * 2 ** (1 / PER_BIT) + 4 * se_m
+            after = np.minimum(1.0, 2.0 ** (log2gz - t))
+            assert after.mean() > upper_at[i] + 4 * after.std() / math.sqrt(after.size)
 
 
 def test_the_pair_bounds_hold_two_simulated_epochs(run):
     """Two independent histories, one per cut-off: the chance against a schedule that needs both
     nonces lies between the pair's bounds, and above what one epoch's upper bound allows."""
-    kw, log2g, log2gz = run[0], run[2], run[4]
-    h = log2g.size // 2
+    kw, log2gz, log2mz = run[0], run[4], run[6]
+    h = log2gz.size // 2
     ts, _, upper, lower2, upper2 = pair_bounds(F, ALPHA, budget_bits=40, **kw)
     assert np.all(lower2 <= upper2)
+    m = np.maximum(0.0, np.nan_to_num(log2mz, neginf=0.0))   # log2 max(1, M)
     for t in (10, 14, 18):
         i = int(np.searchsorted(ts, t))
-        at = np.minimum(1.0, 2.0 ** (log2g[:h] + log2g[h:] - t))
         after = np.minimum(1.0, 2.0 ** (log2gz[:h] + log2gz[h:] - t))
-        se_at, se_after = at.std() / math.sqrt(h), after.std() / math.sqrt(h)
-        assert lower2[i] - 4 * se_at <= at.mean()
-        assert after.mean() <= upper2[i] + 4 * se_after
-        assert after.mean() > upper[i] + 4 * se_after
+        se = after.std() / math.sqrt(h)
+        assert lower2[i] - 4 * se <= after.mean() <= upper2[i] + 4 * se
+        assert after.mean() > upper[i] + 4 * se
+        # the lower bound is E[min(1, u max(1, M) max(1, M'))] on the grid, from below
+        mm = np.minimum(1.0, 2.0 ** (m[:h] + m[h:] - t))
+        se_m = mm.std() / math.sqrt(h)
+        assert lower2[i] - 4 * se_m <= mm.mean()
+        if "growth" in kw:                           # the lead after the cut-off is exact
+            assert mm.mean() <= lower2[i] * 2 ** (2 / PER_BIT) + 4 * se_m
 
 
 def test_the_lead_after_the_cut_off_is_the_forward_walk(run):
     kw, zs = run[0], run[5]
-    pz = post_cutoff(F, ALPHA, **kw)
+    pz, pz_lo = post_cutoff(F, ALPHA, **kw), post_cutoff(F, ALPHA, lower=True, **kw)
     for z in (1, 2, 3):
-        want = pz[z:].sum()
+        want, low = pz[z:].sum(), pz_lo[z:].sum()
         got = (zs >= z).mean()
         se = math.sqrt(want * (1 - want) / zs.size)
         if "growth" in kw:                           # memoryless gaps: exact
-            assert got == pytest.approx(want, abs=4 * se)
-        else:                                        # the first gap taken whole: from above
-            assert got <= want + 4 * se
+            assert got == pytest.approx(want, abs=4 * se) and low == want
+        else:                                        # the first gap taken whole, and left out
+            assert low - 4 * se <= got <= want + 4 * se and low < want
 
 
 def test_the_truncation_of_the_walk_moves_no_bound():
     kw = MODELS["worst"]
-    a = bounds(F, 0.3, budget_bits=40, **kw)
-    b = bounds(F, 0.3, budget_bits=40, floor=200, cap=400, **kw)
+    a = bounds(F, 0.3, budget_bits=40, per_bit=4, **kw)
+    b = bounds(F, 0.3, budget_bits=40, per_bit=4, floor=200, cap=400, **kw)
     for x, y in zip(a[1:3], b[1:3]):
         assert np.allclose(x, y, rtol=1e-9, atol=0)
 
@@ -120,9 +131,53 @@ def test_the_lower_bound_is_below_its_integral():
     """M is an integer, so E[min(1, uM)] = u (P(M >= 1) + ... + P(M >= 1/u)) exactly; the lower
     bound integrates the same tail on a grid of 1/16 bit, from below."""
     kw = MODELS["random"]
-    ts, lower, _, _ = bounds(F, ALPHA, budget_bits=40, **kw)
+    ts, lower, _, _ = bounds(F, ALPHA, budget_bits=40, after_cutoff=False, **kw)
     for t in (6, 8):
         n = np.arange(1, 2 ** t + 1)
         exact = 2.0 ** -t * tail(F, ALPHA, np.log2(n), **kw).sum()
         low = lower[int(np.searchsorted(ts, t))]
         assert low <= exact * (1 + 1e-12) and exact <= 1.1 * low, (t, low, exact)
+
+
+def test_the_shifted_table_counts_the_choices_after_the_cut_off():
+    """log2 S_d given Z = z, by depth and lead, against the choices counted directly."""
+    depths, cap, floor = 40, 60, 30
+    for z in (0, 1, 3, 7):
+        tab = _ztable(_table(depths, cap + z), z, depths, cap, floor)
+        for d in range(depths + 1):
+            for lead in range(-floor, cap + 1):
+                wins = lead + d
+                want = _choices(wins, d, z) if wins >= 0 else 0.0
+                got = tab[d, lead + floor]
+                if want == 0.0:
+                    assert got == -np.inf, (z, d, lead)
+                else:
+                    assert got == pytest.approx(math.log2(want), rel=1e-9, abs=1e-9), (z, d, lead)
+
+
+@pytest.mark.parametrize("model", list(MODELS))
+def test_one_walk_mixes_the_leads_after_the_cut_off(model):
+    """P(M >= 2^x) and the union's sums mixed over Z, against a walk for each Z on its own table.
+    The union's terms above every threshold are left out: there the truncations differ."""
+    kw = MODELS[model]
+    depths, cap, floor, xs = 2000, 80, 60, np.arange(41) / 2
+    first, step = walk(F, ALPHA, **kw)
+    pz = post_cutoff(F, ALPHA, **kw)[:12]
+    zmax = pz.size - 1
+    base = _table(depths, cap + zmax)
+    tab = _ztable(base, 0, depths, cap + zmax, floor)
+    got, reach = _max_tail_mixed(first, step, base, tab, xs, floor, cap, pz)
+    d_before, m_before, init = _union_before(first, step, base, xs, floor, cap, pz)
+    d_after, m_after, reach_u = _union(init, 0.0, step, tab, xs)
+    assert max(reach, reach_u) <= depths
+    want, diff, mass = np.zeros(xs.size), np.zeros(xs.size + 1), np.zeros(xs.size)
+    for z, w in enumerate(pz):
+        tz = _ztable(base, z, depths, cap, floor)
+        init_z, over_z = _place(first, floor, tz.shape[1])
+        t, r = _max_tail(init_z, over_z, step, tz, xs)
+        dz, mz, ru = _union(init_z, over_z, step, tz, xs)
+        assert max(r, ru) <= depths
+        want, diff, mass = want + w * t, diff + w * dz, mass + w * mz
+    assert np.allclose(got, want, rtol=1e-9, atol=0)
+    assert np.allclose((d_before + d_after)[:-1], diff[:-1], rtol=1e-9, atol=0)
+    assert np.allclose(m_before + m_after, mass, rtol=1e-9, atol=0)

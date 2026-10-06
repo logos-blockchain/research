@@ -14,15 +14,17 @@ that holds eps / R is read off the attack's own chance at depth:
 - worst case of Delta: B2's upper bound (runs/b2/ub.parquet).
 
 grinding.csv holds both factors and both depths for three delay models. delays.csv holds the
-worst case at every share and delay of B2, and with B = 2^40 for a quarter and a third. race_h is
+worst case at every share and delay of B2, and with B = 2^40 from a quarter of the stake. race_h is
 how long the two-epoch depth takes at the canonical rate while the coalition withholds
 (b5_recovery_sweep.canonical_rate). shares.csv gives the largest share each k holds at 1e-9:
 without grinding, as B5 finds it, and with one and two ground nonces. Under random delay ln R is
-interpolated over shares 0.05 to 0.43 in steps of 0.01; in the worst case over shares 0.05 to 1/3
-in steps of 0.01, onto B5's grid of B2's bound (runs/b5/worst_logs.csv).
+interpolated over shares from 0.05 in steps of 0.01, to 0.43 on testnet's Blend and to 0.41 on the
+specification's; in the worst case over shares 0.05 to 1/3 in steps of 0.01, onto B5's grid of B2's
+bound (runs/b5/worst_logs.csv). A share above the grid is reported as the grid's top.
 
 recovery.csv: SETTLEMENT.md B5's recovery horizon with every epoch's nonce ground, for k = 2160,
-216 and 120, the epoch 10 floor(k/f) slots long and the window at most 4 floor(k/f) slots (rule 5).
+1620, 1080, 432, 216 and 120, the epoch 10 floor(k/f) slots long and the window at most 4 floor(k/f) slots
+(rule 5): each k at that longest window, and at 4 and 8 hours where they fit.
 A divergence point within one window of its epoch's end has a window that reaches the next epoch,
 whose nonce is fixed before the point, so its chance meets both nonces. Over a horizon the chance
 is at most the sum over epochs of the upper bound on phi at the sum of the chances of the epoch's
@@ -52,14 +54,15 @@ EPS = (1e-6, 1e-9)
 BUDGET_BITS = 64
 TAUS = (1.25e-3, 2.43e-3)                                   # Bitcoin's yearly and monthly turnover
 CS = (0.1, 1.0)
-WINDOWS_H = {2160: (4, 8), 216: (4, 7.2), 120: (4,)}        # 4 floor(k/f) slots: 72, 7.2, 4 h
+WINDOWS_H = {2160: (4, 8, 72), 1620: (54,), 1080: (36,), 432: (14.4,), 216: (4, 7.2), 120: (4,)}
+RANDOM_TOP = {"random, testnet": 0.43, "random, specification": 0.41}
 PHASES = 48
 
 
 def point(kw: dict, alpha: float, budget_bits: int = BUDGET_BITS, per_bit: int = PER_BIT,
-          depths: int = 4000) -> dict:
-    ts, lower, upper, lower2, upper2 = pair_bounds(F, alpha, budget_bits=budget_bits,
-                                                   depths=depths, per_bit=per_bit, **kw)
+          depths: int = 4000, floor: int = 100) -> dict:
+    ts, lower, upper, lower2, upper2 = pair_bounds(F, alpha, budget_bits=budget_bits, depths=depths,
+                                                   floor=floor, per_bit=per_bit, **kw)
     p = tail(F, alpha, np.array([0.0, float(budget_bits)]), depths=depths, **kw)
     row = dict(alpha=round(alpha, 4), budget_bits=budget_bits, p_choice=p[0], p_over_budget=p[1])
     for eps in EPS:
@@ -180,7 +183,7 @@ def main() -> None:
         print(t.to_string(index=False, float_format=lambda v: f"{v:.3g}"), end="\n\n")
 
     dpts = [(a, d, BUDGET_BITS) for a in ADV for d in DELAYS_S] + \
-        [(a, d, 40) for a in (0.25, 1 / 3) for d in DELAYS_S]
+        [(a, d, 40) for a in (0.25, 0.30, 1 / 3) for d in DELAYS_S]
     drows = Parallel(n_jobs=-2)(delayed(point)(dict(delta=d), a, b) for a, d, b in dpts)
     for (a, d, _), r in zip(dpts, drows):
         r.pop("_upper"), r.pop("_upper2")
@@ -194,15 +197,17 @@ def main() -> None:
         print(d.to_string(index=False, float_format=lambda v: f"{v:.4g}"), end="\n\n")
 
     held = []
-    rgrid = np.round(np.arange(0.05, 0.4301, 0.01), 4)       # walks at 0.43 last up to 30,000 blocks
-    rpts = [(m, a) for m in growth for a in rgrid]
-    rrows = Parallel(n_jobs=-2)(delayed(point)(models[m], a, per_bit=4, depths=32_000) for m, a in rpts)
+    # walks at 0.43 last up to 30,000 blocks; the lead after the cut-off passes 100 blocks from 0.40
+    rgrid = {m: np.round(np.arange(0.05, top + 1e-9, 0.01), 4) for m, top in RANDOM_TOP.items()}
+    rpts = [(m, a) for m in growth for a in rgrid[m]]
+    rrows = Parallel(n_jobs=-2)(delayed(point)(models[m], a, per_bit=4, depths=32_000,
+                                               floor=200 if a >= 0.38 else 100) for m, a in rpts)
     for m, g in growth.items():
         rs = [r for (mm, _), r in zip(rpts, rrows) if mm == m]
         lnr = {key: np.log([r[f"{key}_hi_1e-09"] for r in rs]) for key in ("factor", "pair")}
         for k in KS:
             held.append(dict(model=m, k=k, held_without=max_alpha(k, g, 1e-9),
-                             **{f"held_{n}": held_random(rgrid, lnr[key], g, k)
+                             **{f"held_{n}": held_random(rgrid[m], lnr[key], g, k)
                                 for n, key in (("one", "factor"), ("two", "pair"))}))
     wgrid = np.append(np.round(np.arange(0.05, 1 / 3, 0.01), 4), 1 / 3)
     wpts = [(dl, a) for dl in DELAYS_S for a in wgrid]
@@ -222,7 +227,7 @@ def main() -> None:
     print(h.to_string(index=False), end="\n\n")
 
     jobs = [(m, models[m], a, k, w, tau, c) for m in ("random, specification", "worst, 10 s")
-            for a in (0.10, 0.20, 0.25) for k, ws in WINDOWS_H.items() for w in ws
+            for a in ALPHAS for k, ws in WINDOWS_H.items() for w in ws
             for tau in TAUS for c in CS]
     rec = Parallel(n_jobs=-2)(delayed(horizons)(m, kw, a, k, w, tau, c, *curves[(m, round(a, 4))])
                               for m, kw, a, k, w, tau, c in jobs)

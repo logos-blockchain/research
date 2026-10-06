@@ -59,7 +59,7 @@ b4: install                   # SETTLEMENT.md, B4 elapsed time (about 15 s; need
 b5: install                   # SETTLEMENT.md, B5 (about 3 minutes on 14 cores; needs a1)
 	$(PY) scripts/b5_what_k_holds.py
 
-b6: install                   # SETTLEMENT.md, B6 grinding (about 20 minutes on 14 cores; needs a1, b2, b5)
+b6: install                   # SETTLEMENT.md, B6 grinding (about 4 minutes on 14 cores; needs a1, b2, b5)
 	$(PY) scripts/b6_grinding.py
 
 recovery: install             # SETTLEMENT.md, B5 automatic recovery (about 30 s; needs a1)

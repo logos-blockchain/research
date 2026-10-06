@@ -33,17 +33,27 @@ the gap's length. With ``M = max_d S_d`` and ``x = min(1/u, B)``, the walk gives
 keeps winning after the cut-off can complete a fork that holds no more than ``d`` of its wins: it
 needs ``j + Z > d``, where ``Z`` is the most its private chain ever leads the public one after the
 cut-off. ``Z`` is the walk run forwards, independent of the history before the cut-off
-(``post_cutoff``). Counting the coalition's later wins as earlier ones only adds choices, so the
-upper bound runs the walk from ``L_0 + Z``; the lower bound counts the choices complete at the
-cut-off. Orphaned honest blocks as fork points, and slots the coalition wins twice, are not
-counted.
+(``post_cutoff``). Given ``Z = z``, a fork point ``d >= z`` offers the table's choices at depth
+``d - z`` and lead ``L_d + z``, a fork point ``1 <= d < z`` offers ``2^W_d``, and the last honest
+block offers ``2^W_0 - 1`` (``_ztable``). Both bounds mix these over ``z`` up to the ``z`` past which
+``Z`` lies with probability below ``ZCUT``; the upper bounds count that rest at ``min(1, uB)``. One
+walk serves every ``z``: the walks agree before depth ``z``, and from it each reads the table at depth
+``d - z`` with its lead raised by ``z`` (``_before``). Under random delay ``Z`` is exact. Under a worst
+case of ``delta`` the upper bound takes the first gap after the cut-off whole, and the lower bound
+leaves the coalition's wins in it out. Orphaned honest blocks as fork points, and slots the
+coalition wins twice, are not counted.
 
 **Two epochs.** An attack whose schedule spans two epochs meets two nonces, ground at two cut-offs
 with independent choices ``G`` and ``G'``. It succeeds with probability at most
 ``phi_2(u) = E[min(1, u min(G, B) min(G', B))] = E[phi(u min(G', B))]`` (``pair_bounds``). ``phi`` is
-concave with ``phi(0) = 0``, so ``phi_2(u) <= phi(u) + sum_d E[phi(u min(S'_d, B))]``, with each
-``phi`` at most the upper bound at the next larger ``u``. From below, ``G >= max(1, M)`` in both
-epochs.
+concave with ``phi(0) = 0``, so ``phi(u (1 + Y)) <= phi(u) (1 + Y)`` and ``phi`` is subadditive. Two
+upper bounds follow, and the smaller is taken:
+
+    phi_2(u) <= phi(u) + sum_d E[phi(u min(S'_d, B))],
+    phi_2(u) <= phi(uB) P(M' >= x) + phi(u) (1 + sum_d E[S'_d; S'_d < x])    for every x,
+
+each ``phi`` at most the upper bound at the next larger ``u``. From below, ``G >= max(1, M)`` in both
+epochs, ``M`` counting the forks completed after the cut-off.
 """
 
 from __future__ import annotations
@@ -60,6 +70,7 @@ from finality_sim.recovery import occupancy
 PER_BIT = 16          # grid points per bit, for the thresholds x and for u
 TINY = 1e-40          # a walk ends once less probability than this is left
 ROUND = 1e-9          # log2 S this close below a threshold counts as reaching it
+ZCUT = 1e-12          # the post-cut-off lead is followed until less probability than this is left
 
 
 def walk(f: float, alpha: float, growth: float | None = None,
@@ -83,16 +94,13 @@ def walk(f: float, alpha: float, growth: float | None = None,
 
 
 @njit(cache=True)
-def _climb(step, z, floor):
-    """P(the forward walk ever reaches a lead of z): V_1 = Y_1, V_(k+1) = V_k + Y_(k+1) - 1."""
-    n = floor + z
+def _ladder(step, floor):
+    """The first height above 0 that the walk with steps Y - 1 reaches from 0, by height; its sum
+    is below one, the walk never rising otherwise. The walk is dropped once it trails by floor."""
+    n = floor + 1                                    # index i holds the lead i - floor <= 0
     p = np.zeros(n)
-    hit = 0.0
-    for y in range(step.size):
-        if y >= z:
-            hit += step[y]
-        else:
-            p[y + floor] += step[y]
+    p[floor] = 1.0
+    h = np.zeros(step.size)
     while True:
         q = np.zeros(n)
         for i in range(n):
@@ -100,8 +108,8 @@ def _climb(step, z, floor):
                 continue
             for y in range(step.size):
                 j = i + y - 1
-                if j >= n:
-                    hit += p[i] * step[y]
+                if j > floor:
+                    h[j - floor] += p[i] * step[y]
                 elif j >= 0:
                     q[j] += p[i] * step[y]
         left = 0.0
@@ -109,19 +117,33 @@ def _climb(step, z, floor):
             left += q[i]
         p = q
         if left < TINY:
-            return hit
+            return h
+
+
+@njit(cache=True)
+def _renewal(h):
+    """The pmf of the walk's all-time maximum from 0: a geometric number of independent heights h."""
+    stay = 1.0 - h.sum()
+    u = [1.0]                                        # P(some sum of heights equals m)
+    while len(u) < h.size or u[-1] * stay > TINY:
+        m = len(u)
+        v = 0.0
+        for j in range(1, min(m, h.size - 1) + 1):
+            v += h[j] * u[m - j]
+        u.append(v)
+    return stay * np.array(u)
 
 
 def post_cutoff(f: float, alpha: float, growth: float | None = None, delta: int | None = None,
-                floor: int = 200) -> np.ndarray:
+                floor: int = 200, lower: bool = False) -> np.ndarray:
     """The pmf of ``Z``, the most the coalition's private chain leads the public one after the
-    cut-off: the lead just before each later canonical honest block, the first gap taken whole."""
+    cut-off: the lead just before each later canonical honest block, ``V_1 = Y_1`` and then
+    ``V_(k+1) = V_k + Y_(k+1) - 1``. ``Z`` is ``Y_1`` plus the all-time maximum of the walk with steps
+    ``Y - 1`` from 0. The first gap is taken whole, exact under random delay and from above under a
+    worst case; ``lower`` leaves the coalition's wins in it out under a worst case, from below."""
     _, step = walk(f, alpha, growth, delta)
-    ge = [1.0]
-    while ge[-1] > TINY:
-        ge.append(_climb(step, len(ge), floor))
-    ge = np.array(ge + [0.0])
-    return ge[:-1] - ge[1:]
+    top = _renewal(_ladder(step, floor))
+    return top if (lower and delta is not None) else np.convolve(step, top)
 
 
 @njit(cache=True)
@@ -145,18 +167,44 @@ def _table(depths: int, cap: int) -> np.ndarray:
     return _log2_s(depths, cap)
 
 
+def _ztable(base: np.ndarray, z: int, depths: int, cap: int, floor: int) -> np.ndarray:
+    """log2 S_d given Z = z, by depth d = 0..depths and lead index i (the lead i - floor); -inf
+    where a fork point offers no choice. ``base`` is ``_table`` with leads up to cap + z."""
+    n = floor + cap + 1
+    lead = np.arange(n) - floor
+    out = np.full((depths + 1, n), -np.inf)
+    ok = lead >= 1
+    out[0, ok] = base[0, lead[ok]]                                       # 2^W_0 - 1
+    top = min(z, depths + 1)
+    if top > 1:
+        w = lead[None, :] + np.arange(1, top)[:, None]                   # 2^W_d below depth z
+        out[1:top] = np.where(w >= 0, w, -np.inf)
+    if z <= depths:
+        rows = np.arange(max(z, 1), depths + 1)
+        cols = np.nonzero(lead + z >= 1)[0]
+        out[np.ix_(rows, cols)] = base[(rows - z)[:, None], (lead[cols] + z)[None, :]]
+    return out
+
+
+def _place(first: np.ndarray, floor: int, n: int) -> tuple[np.ndarray, float]:
+    """The first lead on a lattice of n leads from -floor, and the probability past its top."""
+    init = np.zeros(n)
+    k = min(first.size, n - floor)
+    init[floor:floor + k] = first[:k]
+    return init, float(first[k:].sum())
+
+
 @njit(cache=True)
-def _absorbed(first, step, tab, x, floor):
-    """P(M >= 2^x): the walk stops on reaching a lead whose S is at least 2^x."""
-    depths, cap = tab.shape[0] - 1, tab.shape[1] - 1
-    n = floor + cap + 1                               # index i holds the lead i - floor
-    p = np.zeros(n)
-    hit = 0.0
-    for y in range(first.size):
-        if y >= 1 and (y > cap or tab[0, y] >= x - ROUND):
-            hit += first[y]
-        else:
-            p[y + floor] += first[y]
+def _absorbed(init, over, step, tab, x):
+    """P(M >= 2^x): the walk from ``init`` stops on reaching a lead whose S is at least 2^x; a lead
+    past the table's, and ``over``, reach every threshold."""
+    depths, n = tab.shape[0] - 1, tab.shape[1]                 # index i holds the lead i - floor
+    p = init.copy()
+    hit = over
+    for i in range(n):
+        if p[i] > 0.0 and tab[0, i] >= x - ROUND:
+            hit += p[i]
+            p[i] = 0.0
     for d in range(1, depths + 1):
         q = np.zeros(n)
         for i in range(n):
@@ -168,8 +216,8 @@ def _absorbed(first, step, tab, x, floor):
                     hit += p[i] * step[z]
                 elif j >= 0:
                     q[j] += p[i] * step[z]
-        for i in range(floor + 1, n):
-            if tab[d, i - floor] >= x - ROUND:
+        for i in range(n):
+            if q[i] > 0.0 and tab[d, i] >= x - ROUND:
                 hit += q[i]
                 q[i] = 0.0
         left = 0.0
@@ -182,63 +230,34 @@ def _absorbed(first, step, tab, x, floor):
 
 
 @njit(cache=True, parallel=True)
-def _max_tail(first, step, tab, xs, floor):
+def _max_tail(init, over, step, tab, xs):
     out = np.zeros(xs.size)
     reach = np.zeros(xs.size, np.int64)
     for k in prange(xs.size):
-        out[k], reach[k] = _absorbed(first, step, tab, xs[k], floor)
+        out[k], reach[k] = _absorbed(init, over, step, tab, xs[k])
     return out, reach.max()
 
 
 @njit(cache=True)
-def _union(first, step, tab, xs, floor):
-    """sum over d of E[S_d; S_d < 2^x] for each threshold x."""
-    depths, cap = tab.shape[0] - 1, tab.shape[1] - 1
-    n = floor + cap + 1
-    diff = np.zeros(xs.size + 1)
-    p = np.zeros(n)
-    for y in range(min(first.size, cap + 1)):
-        p[y + floor] += first[y]
-    for d in range(depths + 1):
-        for i in range(floor + 1, n):
-            if p[i] > 0.0:
-                s = tab[d, i - floor]
-                diff[np.searchsorted(xs, s + ROUND, side="right")] += p[i] * 2.0 ** s
-        q = np.zeros(n)
-        for i in range(n):
-            if p[i] == 0.0:
-                continue
-            for z in range(step.size):
-                j = i + z - 1
-                if 0 <= j < n:
-                    q[j] += p[i] * step[z]
-        left = 0.0
-        for i in range(n):
-            left += q[i]
-        p = q
-        if left < TINY:
-            return np.cumsum(diff)[:xs.size], d
-    return np.cumsum(diff)[:xs.size], depths + 1
+def _bin(diff, mass, xs, s, w):
+    diff[np.searchsorted(xs, s + ROUND, side="right")] += w * 2.0 ** s
+    mass[min(np.searchsorted(xs, s - ROUND), xs.size - 1)] += w
 
 
 @njit(cache=True)
-def _union_mass(first, step, tab, xs, floor):
-    """The sum over d of P(S_d >= 1) by bin: bin k holds 2^xs[k-1] < S_d <= 2^xs[k], and the last
-    bin also every S_d above it."""
-    depths, cap = tab.shape[0] - 1, tab.shape[1] - 1
-    n = floor + cap + 1
-    hist = np.zeros(xs.size)
-    p = np.zeros(n)
-    for y in range(first.size):
-        if y > cap:
-            hist[-1] += first[y]
-        else:
-            p[y + floor] += first[y]
+def _union(init, over, step, tab, xs):
+    """By threshold, the increments over x of sum over d of E[S_d; S_d < 2^x]; and by bin, sum over d
+    of P(S_d >= 1), bin k holding 2^xs[k-1] < S_d <= 2^xs[k], the last bin also every S_d above it
+    and ``over``."""
+    depths, n = tab.shape[0] - 1, tab.shape[1]
+    diff = np.zeros(xs.size + 1)
+    mass = np.zeros(xs.size)
+    mass[-1] += over
+    p = init.copy()
     for d in range(depths + 1):
-        for i in range(floor + 1, n):
-            if p[i] > 0.0:
-                k = np.searchsorted(xs, tab[d, i - floor] - ROUND)
-                hist[min(k, xs.size - 1)] += p[i]
+        for i in range(n):
+            if p[i] > 0.0 and tab[d, i] > -np.inf:
+                _bin(diff, mass, xs, tab[d, i], p[i])
         q = np.zeros(n)
         for i in range(n):
             if p[i] == 0.0:
@@ -246,7 +265,7 @@ def _union_mass(first, step, tab, xs, floor):
             for z in range(step.size):
                 j = i + z - 1
                 if j >= n:
-                    hist[-1] += p[i] * step[z]
+                    mass[-1] += p[i] * step[z]
                 elif j >= 0:
                     q[j] += p[i] * step[z]
         left = 0.0
@@ -254,20 +273,144 @@ def _union_mass(first, step, tab, xs, floor):
             left += q[i]
         p = q
         if left < TINY:
-            return hist, d
-    return hist, depths + 1
+            return diff, mass, d
+    return diff, mass, depths + 1
+
+
+@njit(cache=True)
+def _before(first, step, base, x, floor, cap, pz):
+    """The walk before the post-cut-off lead z takes over, for every z at once. The last honest
+    block's choices absorb it at depth 0, and 2^W_d at depths 1..z-1. Returns sum_z pz[z]
+    P(absorbed before depth z); and sum_z pz[z] times the walk left at depth z, its lead raised by
+    z, on a lattice of floor + cap + zmax + 1 leads (at z = 0, the first lead)."""
+    zmax = pz.size - 1
+    n = floor + cap + 1
+    out = np.zeros(n + zmax)
+    hit, before = 0.0, 0.0
+    p = np.zeros(n)
+    for y in range(first.size):
+        i = y + floor
+        if i < n + zmax:
+            out[i] += pz[0] * first[y]
+        else:
+            before += pz[0] * first[y]
+        if i >= n or (i - floor >= 1 and base[0, i - floor] >= x - ROUND):
+            hit += first[y]
+        else:
+            p[i] += first[y]
+    for z in range(1, zmax + 1):
+        q = np.zeros(n)
+        for i in range(n):
+            if p[i] == 0.0:
+                continue
+            for y in range(step.size):
+                j = i + y - 1
+                if j >= n:
+                    hit += p[i] * step[y]
+                elif j >= 0:
+                    q[j] += p[i] * step[y]
+        p = q
+        before += pz[z] * hit
+        for i in range(n):
+            out[i + z] += pz[z] * p[i]
+            if p[i] > 0.0 and i - floor + z >= x - ROUND:     # W_z = L_z + z
+                hit += p[i]
+                p[i] = 0.0
+    return before, out
+
+
+@njit(cache=True, parallel=True)
+def _max_tail_mixed(first, step, base, tab, xs, floor, cap, pz):
+    out = np.zeros(xs.size)
+    reach = np.zeros(xs.size, np.int64)
+    for k in prange(xs.size):
+        before, init = _before(first, step, base, xs[k], floor, cap, pz)
+        after, reach[k] = _absorbed(init, 0.0, step, tab, xs[k])
+        out[k] = before + after
+    return out, reach.max()
+
+
+@njit(cache=True)
+def _union_before(first, step, base, xs, floor, cap, pz):
+    """``_union``'s terms before the post-cut-off lead takes over, each depth weighted by the
+    probability of the z it precedes; and the walk handed over as in ``_before``, unabsorbed."""
+    zmax = pz.size - 1
+    n = floor + cap + 1
+    ge = np.zeros(zmax + 2)                                     # ge[d] = P(d <= Z <= zmax)
+    for z in range(zmax, -1, -1):
+        ge[z] = ge[z + 1] + pz[z]
+    diff = np.zeros(xs.size + 1)
+    mass = np.zeros(xs.size)
+    out = np.zeros(n + zmax)
+    p = np.zeros(n)
+    for y in range(first.size):
+        i = y + floor
+        if i < n + zmax:
+            out[i] += pz[0] * first[y]
+        else:
+            mass[-1] += pz[0] * first[y]
+        if i < n:
+            p[i] += first[y]
+        else:
+            mass[-1] += ge[1] * first[y]
+    for i in range(n):
+        if p[i] > 0.0 and i - floor >= 1:
+            _bin(diff, mass, xs, base[0, i - floor], ge[1] * p[i])
+    for z in range(1, zmax + 1):
+        q = np.zeros(n)
+        for i in range(n):
+            if p[i] == 0.0:
+                continue
+            for y in range(step.size):
+                j = i + y - 1
+                if j >= n:
+                    mass[-1] += ge[z] * p[i] * step[y]
+                elif j >= 0:
+                    q[j] += p[i] * step[y]
+        p = q
+        for i in range(n):
+            out[i + z] += pz[z] * p[i]
+            if p[i] > 0.0 and ge[z + 1] > 0.0:
+                _bin(diff, mass, xs, float(i - floor + z), ge[z + 1] * p[i])
+    return diff, mass, out
+
+
+def _mixture(f, alpha, growth, delta, xs, depths, floor, cap, lower, union):
+    """P(M >= 2^x), and with ``union`` the union's sums by threshold and its mass by bin, each mixed
+    over the post-cut-off lead; and the probability of the leads past the mixture."""
+    first, step = walk(f, alpha, growth, delta)
+    pz = post_cutoff(f, alpha, growth, delta, lower=lower)
+    tail_mass = np.cumsum(pz[::-1])[::-1]
+    zmax = int(np.nonzero(tail_mass > ZCUT)[0][-1])
+    if zmax >= floor:
+        raise ValueError("the post-cut-off lead outruns the walk's floor")
+    base = _table(depths, cap + zmax)
+    tab = _ztable(base, 0, depths, cap + zmax, floor)
+    pz_in = pz[:zmax + 1].copy()
+    tail, reach = _max_tail_mixed(first, step, base, tab, xs, floor, cap, pz_in)
+    below, mass = np.zeros(xs.size), np.zeros(xs.size)
+    if union:
+        d_before, m_before, init = _union_before(first, step, base, xs, floor, cap, pz_in)
+        d_after, m_after, r = _union(init, 0.0, step, tab, xs)
+        below, mass = np.cumsum(d_before + d_after)[:xs.size], m_before + m_after
+        reach = max(reach, r)
+    if reach > depths:
+        raise ValueError("the walk outlasted the depths tabulated")
+    return tail, below, mass, float(pz[zmax + 1:].sum())
 
 
 def tail(f: float, alpha: float, xs: np.ndarray, growth: float | None = None,
          delta: int | None = None, depths: int = 4000, floor: int = 100,
          cap: int = 300) -> np.ndarray:
-    """``P(M >= 2^x)`` for each x in xs.
+    """``P(M >= 2^x)`` for each x in xs, over the choices complete at the cut-off.
 
     The walk is dropped once it trails by ``floor`` blocks, and a lead above ``cap`` counts as
     reaching every threshold. A walk that has not ended within ``depths`` blocks raises.
     """
     first, step = walk(f, alpha, growth, delta)
-    out, reach = _max_tail(first, step, _table(depths, cap), np.asarray(xs, float), floor)
+    tab = _ztable(_table(depths, cap), 0, depths, cap, floor)
+    init, over = _place(first, floor, tab.shape[1])
+    out, reach = _max_tail(init, over, step, tab, np.asarray(xs, float))
     if reach > depths:
         raise ValueError("the walk outlasted the depths tabulated")
     return out
@@ -275,14 +418,21 @@ def tail(f: float, alpha: float, xs: np.ndarray, growth: float | None = None,
 
 def _bounds(f, alpha, growth, delta, budget_bits, depths, floor, cap, per_bit, after_cutoff, extra_bits):
     xs = np.arange(budget_bits * per_bit + 1) / per_bit
-    first, step = walk(f, alpha, growth, delta)
-    tab = _table(depths, cap)
-    tail_lo, reach = _max_tail(first, step, tab, xs, floor)
-    first_up = np.convolve(first, post_cutoff(f, alpha, growth, delta)) if after_cutoff else first
-    tail_up, reach_t = _max_tail(first_up, step, tab, xs, floor)
-    below, reach_u = _union(first_up, step, tab, xs, floor)
-    if max(reach, reach_t, reach_u) > depths:
-        raise ValueError("the walk outlasted the depths tabulated")
+    if after_cutoff:
+        tail_up, below, mass, rest = _mixture(f, alpha, growth, delta, xs, depths, floor, cap,
+                                              False, True)
+        tail_lo = tail_up if delta is None else _mixture(f, alpha, growth, delta, xs, depths, floor,
+                                                         cap, True, False)[0]
+    else:
+        first, step = walk(f, alpha, growth, delta)
+        tab = _ztable(_table(depths, cap), 0, depths, cap, floor)
+        init, over = _place(first, floor, tab.shape[1])
+        tail_up, reach = _max_tail(init, over, step, tab, xs)
+        diff, mass, reach_u = _union(init, over, step, tab, xs)
+        if max(reach, reach_u) > depths:
+            raise ValueError("the walk outlasted the depths tabulated")
+        below = np.cumsum(diff)[:xs.size]
+        tail_lo, rest = tail_up, 0.0
     x = 2.0 ** xs
     # the integral of P(M >= y) over 0 <= y <= x_k, from below: P(M >= y) >= P(M >= x_{k+1}) on a step
     area = np.concatenate(([tail_lo[0]], tail_lo[0] + np.cumsum(np.diff(x) * tail_lo[1:])))
@@ -290,9 +440,9 @@ def _bounds(f, alpha, growth, delta, budget_bits, depths, floor, cap, per_bit, a
     u = 2.0 ** -ts
     k = np.minimum(np.arange(ts.size), xs.size - 1)   # x = min(1/u, B)
     lower = np.maximum(u, u * area[k])
-    upper = np.minimum(1.0, u * x[-1]) * tail_up[k] + u + u * below[k]
+    upper = np.minimum(1.0, u * x[-1]) * (tail_up[k] + rest) + u + u * below[k]
     upper = np.minimum(upper, np.minimum(1.0, u * x[-1]))
-    return ts, lower, upper, tail_lo, first_up, step, tab, xs
+    return ts, lower, upper, tail_lo, tail_up, below, mass, rest, xs
 
 
 def bounds(f: float, alpha: float, growth: float | None = None, delta: int | None = None,
@@ -301,11 +451,11 @@ def bounds(f: float, alpha: float, growth: float | None = None, delta: int | Non
            after_cutoff: bool = True) -> tuple[np.ndarray, np.ndarray, np.ndarray, float]:
     """Lower and upper bounds on ``phi(u)`` at ``u = 2^-t``, for t on a grid of ``1/per_bit`` bit up
     to ``budget_bits + 60``, and ``P(G > 1)`` for the choices complete at the cut-off. With
-    ``after_cutoff`` the upper bound also counts forks completed after it. The walk is truncated as
-    in ``tail``."""
-    ts, lower, upper, tail_lo = _bounds(f, alpha, growth, delta, budget_bits, depths, floor, cap,
-                                        per_bit, after_cutoff, 60)[:4]
-    return ts, lower, upper, float(tail_lo[0])
+    ``after_cutoff`` both bounds count the forks completed after it. The walk is truncated as in
+    ``tail``."""
+    ts, lower, upper = _bounds(f, alpha, growth, delta, budget_bits, depths, floor, cap, per_bit,
+                               after_cutoff, 60)[:3]
+    return ts, lower, upper, float(tail(f, alpha, np.zeros(1), growth, delta, depths, floor, cap)[0])
 
 
 def pair_bounds(f: float, alpha: float, growth: float | None = None, delta: int | None = None,
@@ -314,18 +464,20 @@ def pair_bounds(f: float, alpha: float, growth: float | None = None, delta: int 
     """Lower and upper bounds on ``phi(u)``, then on ``phi_2(u)``, at ``u = 2^-t`` for t on a grid of
     ``1/per_bit`` bit up to ``2 budget_bits + 60``: one epoch's nonce, then two independently
     ground ones."""
-    ts, lower, upper, tail_lo, first_up, step, tab, xs = _bounds(
+    ts, lower, upper, tail_lo, tail_up, below, mass, rest, xs = _bounds(
         f, alpha, growth, delta, budget_bits, depths, floor, cap, per_bit, True, budget_bits + 60)
-    mass, reach = _union_mass(first_up, step, tab, xs, floor)
-    if reach > depths:
-        raise ValueError("the walk outlasted the depths tabulated")
     n = ts.size
 
     def at(v, k):                                     # v at u 2^xs[k]; one where that exceeds 1
         return np.concatenate((np.ones(k), v[:n - k]))
 
     hat = np.minimum.accumulate(upper)                # the least upper bound at any larger u
+    hat_b = at(hat, xs.size - 1)                      # at u B
     upper2 = hat + sum(m * at(hat, k) for k, m in enumerate(mass) if m > 0.0)
+    thr = np.full(n, np.inf)
+    for k in range(xs.size):
+        thr = np.minimum(thr, hat_b * tail_up[k] + hat * (1.0 + below[k]))
+    upper2 = np.minimum(upper2, thr) + rest * hat_b
     # max(1, M') rounded down to the grid
     m_lo = np.append(-np.diff(tail_lo), tail_lo[-1])
     m_lo[0] += 1.0 - tail_lo[0]
@@ -373,6 +525,7 @@ def _simulate(n_samples, h, a, dead, n_slots, d_out, seed):
     log2g = np.empty(n_samples)
     log2gz = np.empty(n_samples)
     log2m = np.full(n_samples, -np.inf)
+    log2mz = np.full(n_samples, -np.inf)
     zs = np.empty(n_samples, np.int64)
     canon = np.zeros(n_slots, np.bool_)
     adv = np.zeros(n_slots, np.bool_)
@@ -394,7 +547,7 @@ def _simulate(n_samples, h, a, dead, n_slots, d_out, seed):
                 lead -= 1
             t += 1
         zs[s] = z
-        total, total_z, best, wins, d = 1.0, 1.0, 0.0, 0, 0
+        total, total_z, best, best_z, wins, d = 1.0, 1.0, 0.0, 0.0, 0, 0
         for t in range(n_slots - 1, 0, -1):          # the cut-off is slot n_slots
             if canon[t]:
                 if d <= d_out:
@@ -402,7 +555,9 @@ def _simulate(n_samples, h, a, dead, n_slots, d_out, seed):
                 term = _choices(wins, d, 0)
                 total += term
                 best = max(best, term)
-                total_z += _choices(wins, d, z)
+                term_z = _choices(wins, d, z)
+                total_z += term_z
+                best_z = max(best_z, term_z)
                 d += 1
             if adv[t]:
                 wins += 1
@@ -410,7 +565,9 @@ def _simulate(n_samples, h, a, dead, n_slots, d_out, seed):
         log2gz[s] = math.log2(total_z)
         if best > 0.0:
             log2m[s] = math.log2(best)
-    return leads, log2g, log2m, log2gz, zs
+        if best_z > 0.0:
+            log2mz[s] = math.log2(best_z)
+    return leads, log2g, log2m, log2gz, zs, log2mz
 
 
 def simulate(f: float, alpha: float, n_samples: int, n_slots: int, d_out: int, seed: int,
@@ -418,7 +575,7 @@ def simulate(f: float, alpha: float, n_samples: int, n_slots: int, d_out: int, s
              delta: int | None = None) -> tuple[np.ndarray, ...]:
     """Slot by slot, forwards from a canonical honest block: ``L_d`` for ``d <= d_out``; ``log2 G``
     and ``log2 M`` over the forks the ``n_slots`` slots before the cut-off hold; ``log2 G`` with the
-    forks the coalition completes after the cut-off as well; and ``Z``."""
+    forks the coalition completes after the cut-off as well; ``Z``; and ``log2 M`` with those forks."""
     if (growth is None) == (delta is None):
         raise ValueError("set exactly one of growth and delta")
     ph = occupancy(f, 1.0 - alpha)

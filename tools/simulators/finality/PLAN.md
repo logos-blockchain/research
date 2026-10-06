@@ -47,7 +47,7 @@ Phase by phase:
 | B3 engine validation | done: the private-chain attack under random delays, and the delay-scheduling attacker of the lower bound on the slot lottery |
 | B4 confirmation rule | done: the depth table, and a rule that reads elapsed time |
 | B5 smaller `k` | done: the share each `k` holds, both routes of Q8, a trigger for automatic recovery, and its horizon against stake turnover |
-| B6 grinding | done: the nonces a coalition can choose between, bounded from both sides for an attack that meets one ground nonce and for one that meets two; what they add to the depths and take from the recovery horizon |
+| B6 grinding | done: the nonces a coalition can choose between, bounded from both sides given its lead after the cut-off, for an attack that meets one ground nonce and for one that meets two; what they add to the depths and take from the recovery horizon |
 | C1 rate surface | done |
 | C2 Blend parameters | the delay map is done; the privacy trade is with the Blend owners |
 | C3 GHOST | done |
@@ -81,9 +81,10 @@ Findings about the protocol as it stands:
   stake wins about one such window in 460 (B5).
 - `maxvalid-bg` reads the depth of the local branch, so after a split the two sides can choose
   different chains until both pass `k` (B5).
-- The epoch nonce can be ground. Against a quarter of the stake at `1e-9`, a block whose race
-  meets two ground nonces needs 161–199 blocks instead of 86 under random delay on the
-  specification's Blend, and 806–988 instead of 474 under the worst case at 10 s (B6).
+- The epoch nonce can be ground. Against a third of the stake at `1e-9`, a block whose race meets
+  two ground nonces needs 1,164–1,239 blocks instead of 269 under random delay on the
+  specification's Blend, and 5,732–6,287 instead of 1,510 under the worst case at 10 s. Against
+  30 % under that worst case it needs 2,424–2,825, more than `k` (B6).
 - LCanalysis follows its lower-bound attack for 80 phases, too few past Table 1's depths: at a
   third of the stake, `Δ = 1` s and depth 60, the port at 30 states falls from `6.9e-3` to
   `5.5e-12`, and the original code run in Octave at its 19 states to `5.4e-13`. It also scores the
@@ -93,12 +94,12 @@ Hypotheses:
 
 | hypothesis | verdict |
 | --- | --- |
-| H1 | fails for the guarantee: at 25 % and `ε = 1e-9` the upper bound exceeds 216 blocks at every delay, from 288 at 1 s; with two nonces ground by a coalition that evaluates `2^64` nonces an epoch, 498–988 blocks at 1–10 s. Holds for the best known attack, without grinding, at least to 20 s |
-| H2 | holds for delays up to 13 s without grinding. With one ground nonce, up to 5 s against a coalition that evaluates `2^40` nonces an epoch and up to 2 s against `2^64`; with two, at no delay. At the specification's Blend (`Δ = 10` s) it therefore fails once grinding is counted |
+| H1 | fails for the guarantee: at 25 % and `ε = 1e-9` the upper bound exceeds 216 blocks at every delay, from 288 at 1 s; with two nonces ground by a coalition that evaluates `2^64` nonces an epoch, 477–950 blocks at 1–10 s. Holds for the best known attack, without grinding, at least to 20 s |
+| H2 | holds for delays up to 13 s without grinding. With today's nonce B6's bounds prove it with one ground nonce up to 5 s against a coalition that evaluates `2^40` nonces an epoch and up to 2 s against `2^64`, and with two only at 1 s against `2^40`. At the specification's Blend (`Δ = 10` s) these bounds cannot prove it once grinding is counted |
 | H3 | holds |
 | H4 | refuted for a delay chosen by an adversary: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control. Untested on the chain under random delay |
 | H5 | fails against Blend's present budget: with the cover raised by D0's multiple, every committee exceeds the read limit `r_1` of a core connection, against a quarter of the stake unless rounds last 33 hours (D3). Whether that budget may grow is the owner's line (Q7) |
-| H6 | holds with the trigger of `SETTLEMENT.md` B5: a density test below `B_imm` within a horizon `H`, with a window set apart from `k`. Fails as first stated, a switch to the Bootstrap rule. At Bitcoin's turnover, against 25 % with every freed key for sale, `H` is 46 to 87 days with an 8-hour window at `k = 2160` once grinding is counted (B6), and 38 to 71 days with a 4-hour window without it. At `k = 120`, whose window is at most 4 hours, no horizon holds a quarter with grinding |
+| H6 | holds with the trigger of `SETTLEMENT.md` B5: a density test below `B_imm` within a horizon `H`, with a window set apart from `k`. Fails as first stated, a switch to the Bootstrap rule. At Bitcoin's turnover, against 25 % with every freed key for sale, `H` is 48 to 92 days with an 8-hour window at `k = 2160` once grinding is counted (B6), and 38 to 71 days with a 4-hour window without it. At `k = 120`, whose window is at most 4 hours, no horizon holds a quarter with grinding |
 | H7 | fails by two of its three tests (`DAG.md`, H7). Under a delay chosen by an adversary (E5) the balancing attack needs no more than GHOST's share, less than the chain's region at every block rate: 0.40–0.45 at today's rate and `Δ = 10` s against 0.46, and 3–6 % at `f_A = 0.25`. As specified, one win can add weight on both sides of a conflict (E3). Under random delay the DAG settles against 25 % in 38 minutes at `1e-9`, against 59 on the chain (E2) |
 
 Three notions of finality carry the document. They are measured separately and never mixed.
