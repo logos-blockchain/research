@@ -248,7 +248,7 @@ anonymity ceiling.
 - **Verification fits the node.** One core of a Raspberry Pi 5 verifies 157 Blend headers a second,
   each an Ed25519 signature and a Groth16 proof (`blend-protocol.md`). Against a quarter of the
   stake, votes then take 6 % of a core with 10-minute rounds and 38 % with 90 s rounds. Proving on
-  the Pi 5 awaits a run of `tools/benchmarks/pol-proving`; an Apple M4 Pro proves in 73 ms.
+  the Pi 5 awaits a run of `tools/benchmarks/pol-proving`; an Apple M4 Pro proves in 72.5 ms.
 - **Votes make stake learnable.** A seat is a lottery win, so every vote is a sample of its
   sender's stake: with 10-minute rounds, votes multiply an observer's samples by 269. In the Blend
   report's model of linking, an observer then sizes a 0.1 % holder's stake to ±10 % in 16 days

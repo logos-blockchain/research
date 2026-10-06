@@ -68,9 +68,12 @@ def machine(repo: str) -> dict:
 
 
 def thermals() -> dict:
+    """SoC temperature, and `vcgencmd get_throttled` on a Raspberry Pi: bits 0-3 say what holds
+    now, bits 16-19 what has happened since boot."""
     raw = _read("/sys/class/thermal/thermal_zone0/temp")
-    return dict(temp_c=int(raw) / 1000 if raw and raw.isdigit() else None,
-                throttled=_run(["vcgencmd", "get_throttled"]))
+    flags = _run(["vcgencmd", "get_throttled"])
+    value = int(flags.split("=")[1], 16) if flags and "=" in flags else None
+    return dict(temp_c=int(raw) / 1000 if raw and raw.isdigit() else None, throttled=value)
 
 
 def parse(output: str) -> dict:
@@ -95,8 +98,13 @@ def measure(prefix: list[str], exe: str, sample_count: int) -> dict:
                          capture_output=True, text=True, check=True)
     row = parse(out.stdout)
     after = thermals()
+    # a throttle event during the run: a "now" bit set after it, or a "since boot" bit it set
+    during = None
+    if after["throttled"] is not None:
+        new = (after["throttled"] >> 16) & ~((before["throttled"] or 0) >> 16)
+        during = bool((after["throttled"] & 0xF) or (new & 0xF))
     return row | dict(wall_s=round(time.monotonic() - start, 1), temp_before_c=before["temp_c"],
-                      temp_after_c=after["temp_c"], throttled_after=after["throttled"])
+                      temp_after_c=after["temp_c"], throttled_during=during)
 
 
 def main() -> None:
@@ -128,9 +136,9 @@ def main() -> None:
             runs.append(dict(config=name, repeat=r) | row)
             print(f"  {name:9s} repeat {r}: median {row['median_ms']:.1f} ms "
                   f"(samples {row['samples']}, {row['wall_s']} s)", flush=True)
-            if row["throttled_after"] not in (None, "throttled=0x0"):
-                print(f"  WARNING: the board reports {row['throttled_after']}; "
-                      "treat this run as a lower bound", file=sys.stderr)
+            if row["throttled_during"]:
+                print("  WARNING: the board throttled during this run; its times overstate the "
+                      "proving time", file=sys.stderr)
 
     summary = {}
     for name, _ in configs:

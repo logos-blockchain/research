@@ -91,7 +91,7 @@ octave-reference:             # the original LCanalysis in Octave, in the backgr
 all: a1 c1 c3 c4 b2 b3 b4 b5 recovery d0 d1b d5 d6 e2 e5 b6
 
 tables: install
-	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b6 d0 d1b d5 d6 e2 e5 e5balance; do \
+	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b6 d0 d1b d3 d5 d6 e2 e5 e5balance; do \
 		$(PY) scripts/tables.py $$t; done
 
 check-tables: install

@@ -11,9 +11,9 @@
   "sample_count": 20,
   "summary": {
     "all cores": {
-      "median_ms": 73.24,
-      "min_ms": 72.47,
-      "max_ms": 74.13,
+      "median_ms": 72.45,
+      "min_ms": 70.5,
+      "max_ms": 73.04,
       "repeats": 3
     }
   },
@@ -21,44 +21,44 @@
     {
       "config": "all cores",
       "repeat": 0,
-      "fastest_ms": 69.19,
-      "slowest_ms": 79.96,
-      "median_ms": 72.47,
-      "mean_ms": 72.41,
+      "fastest_ms": 68.82,
+      "slowest_ms": 83.74,
+      "median_ms": 73.04,
+      "mean_ms": 73.14,
       "samples": 20,
       "iters": 20,
       "wall_s": 1.7,
       "temp_before_c": null,
       "temp_after_c": null,
-      "throttled_after": null
+      "throttled_during": null
     },
     {
       "config": "all cores",
       "repeat": 1,
-      "fastest_ms": 71.06,
-      "slowest_ms": 76.88,
-      "median_ms": 74.13,
-      "mean_ms": 74.2,
+      "fastest_ms": 68.88,
+      "slowest_ms": 74.72,
+      "median_ms": 70.5,
+      "mean_ms": 71.44,
       "samples": 20,
       "iters": 20,
       "wall_s": 1.5,
       "temp_before_c": null,
       "temp_after_c": null,
-      "throttled_after": null
+      "throttled_during": null
     },
     {
       "config": "all cores",
       "repeat": 2,
-      "fastest_ms": 69.78,
-      "slowest_ms": 79.56,
-      "median_ms": 73.24,
-      "mean_ms": 73.12,
+      "fastest_ms": 69.0,
+      "slowest_ms": 76.07,
+      "median_ms": 72.45,
+      "mean_ms": 72.2,
       "samples": 20,
       "iters": 20,
       "wall_s": 1.5,
       "temp_before_c": null,
       "temp_after_c": null,
-      "throttled_after": null
+      "throttled_during": null
     }
   ]
 }

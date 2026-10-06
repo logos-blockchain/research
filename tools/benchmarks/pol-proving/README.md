@@ -8,7 +8,8 @@ seat costs its holder once per round. The reference hardware is a Raspberry Pi 5
 ## Usage
 
 Self-contained: `make` fetches and builds `logos-blockchain` itself. A fresh Raspberry Pi needs
-only `git`, `curl`, `unzip`, `cargo`/`rustc` and `python3`.
+`make`, a C toolchain, `git`, `curl`, `unzip`, `cargo`/`rustc` and `python3`; `make check` names
+what is missing.
 
 ```
 make check     # read-only: is the toolchain here?
@@ -51,7 +52,8 @@ commit measured, and divan's fastest, slowest, median and mean for every repeat.
   `linux-aarch64`; a 32-bit system has neither.
 - **Governor.** `make check` reports it. On anything but `performance` the times are a ceiling:
   `sudo cpupower frequency-set -g performance` if the tooling is installed.
-- **Cooling.** The run records `vcgencmd get_throttled` after every repeat and warns if the board
-  throttled. A throttled run overstates the time.
+- **Cooling.** The run reads `vcgencmd get_throttled` around every repeat and warns if the board
+  throttled during it; a throttled run overstates the proving time. The flags it reads from boot
+  are kept apart from those a run sets.
 - **First build.** Compiling the dependencies takes a while on a Pi; `make smoke` first shows how
   long.

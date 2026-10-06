@@ -1,7 +1,7 @@
 """Markdown tables for the study's notes, read straight from runs/ (no hand transcription).
 
     python scripts/tables.py a1 | c1 | c1settle | c3 | c4 | b3 | b3delay | b2 | b4 | b5 | b5rec | b5sweep |
-                             b6 | d0 | d1b | d5 | d6 | e2 | e5 | e5balance
+                             b6 | d0 | d1b | d3 | d5 | d6 | e2 | e5 | e5balance
 """
 
 from __future__ import annotations
@@ -336,17 +336,18 @@ def d5() -> None:
     print()
     e = pd.read_csv(RUNS / "d5" / "epoch.csv")
     print(md(pd.DataFrame({
-        "model": e.model, "votes": e.setting,
+        "votes": e.setting,
         "confidence for a 1.26 % holder": e.confidence.map(lambda v: f"{v:.2f}"),
-        "nodes it must split into": e.nodes.map(lambda v: f"{v:,}"),
-        "largest share an observer cannot size": e.largest_hidden.map(lambda v: f"{100 * v:.2g} %")})))
+        "nodes it must split into": e.nodes.map(lambda v: "–" if np.isnan(v) else f"{v:,.0f}"),
+        "every share above it sized": e.sized_above.map(
+            lambda v: "–" if np.isnan(v) else f"{100 * v:.2g} %")})))
 
 
 def d1b() -> None:
     t = pd.read_csv(RUNS / "d1b" / "committee.csv")
     rows = []
     for a, g in t.groupby("alpha", sort=False):
-        row = {"α": f"{a:.2f}"}
+        row = {"α": "1/3" if abs(a - 1 / 3) < 1e-3 else f"{a:.2f}"}
         for _, x in g.iterrows():
             row[f"uptime {x.uptime:g}"] = ("impossible" if np.isinf(x.honest_share)
                                            else f"{x.honest_share:.2f} / {x.holders:,.0f}")
@@ -356,17 +357,32 @@ def d1b() -> None:
 
 def d0() -> None:
     m = pd.read_csv(RUNS / "d0" / "emission_map.csv")
-    d = m[(m.awake == 1.0) & (m.eps == 1e-9)]
+    d = m[(m.awake == 1.0) & (m.inflation == 1.0) & (m.eps == 1e-9)]
     t = pd.DataFrame({"α": d.alpha, "seats": d.seats.map(lambda v: f"{v:,.0f}"),
                       **{f"{r} s": d[f"x_R{r}"].map(lambda v: f"×{v:,.0f}")
                          for r in (90, 600, 3600)}})
     print(md(t))
     print()
-    d = m[m.eps == 1e-9].pivot(index="alpha", columns="awake", values="seats")
+    d = m[m.eps == 1e-9].pivot_table(index="alpha", columns=["awake", "inflation"], values="seats",
+                                     dropna=False)
     t = pd.DataFrame({"α": d.index.map(lambda v: f"{v:.2f}")})
-    for awake, name in ((1.0, "all honest seats vote"), (0.9, "90 % vote"), (0.8, "80 % vote")):
-        t[name] = [("none" if np.isnan(v) else f"{v:,.0f}") for v in d[awake]]
+    for (awake, infl), name in (((1.0, 1.0), "all count"), ((1.0, 1.05), "all count, D/D̂ ≤ 1.05"),
+                                ((0.9, 1.0), "90 % count"), ((0.9, 1.05), "90 % count, D/D̂ ≤ 1.05"),
+                                ((0.8, 1.0), "80 % count")):
+        t[name] = [("none" if np.isnan(v) else f"{v:,.0f}") for v in d[(awake, infl)]]
     print(md(t))
+
+
+def d3() -> None:
+    b = pd.read_csv(RUNS / "d0" / "blend_load.csv")
+    b = b[b.alpha.isin((0.10, 0.20, 0.25, 0.30))]
+    print(md(pd.DataFrame({
+        "α": b.alpha.map(lambda v: f"{v:.2f}"), "round": b.round_s.map(lambda v: f"{v // 60:.0f} min"),
+        "votes / s": b.votes.map(lambda v: f"{v:.2f}"),
+        "votes on top of cover: F_1 / verifications per s": [
+            f"{a:.1f} / {c:.0f}" for a, c in zip(b.f1_on_top, b.verify_on_top)],
+        "cover raised: F_1 / verifications per s": [
+            f"{a:,.0f} / {c:,.0f}" for a, c in zip(b.f1_in_cover, b.verify_in_cover)]})))
 
 
 def d6() -> None:
@@ -515,5 +531,5 @@ def e5balance() -> None:
 
 if __name__ == "__main__":
     {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b4": b4, "b5": b5,
-     "b5rec": b5rec, "b5sweep": b5sweep, "b6": b6, "d0": d0, "d1b": d1b, "d5": d5, "d6": d6,
+     "b5rec": b5rec, "b5sweep": b5sweep, "b6": b6, "d0": d0, "d1b": d1b, "d3": d3, "d5": d5, "d6": d6,
      "e2": e2, "e5": e5, "e5balance": e5balance}[sys.argv[1]]()

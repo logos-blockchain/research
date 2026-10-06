@@ -9,7 +9,7 @@ D2, D5 and D6 are measured. D1, D3 and D4 are sketched with the open questions t
 A vote is a private lottery win: one seat per note per round, Poisson in number. Honest seats vote
 once; adversarial seats vote for both sides; offline honest seats cast nothing. Two conflicting
 quorums of `Q` need `H + 2A ≥ 2Q`, and a round stalls when `H < Q`
-(`src/finality_sim/committee.py`, gated against a direct convolution in `firstlook.py`). Every vote
+(`src/finality_sim/committee.py`; gates in D2). Every vote
 is a Blend emission, so votes multiply a node's lottery emissions by `1 + n/(R·f)` for `n` seats
 per round of `R` slots. Blend hides a node's emissions only while they fit its cover quota
 (`reports/blend/README.md` §3.10), so the cover rate every node carries must rise by that factor
@@ -28,8 +28,7 @@ cover multiple at three round lengths:
 | 0.3 | 33,473 | ×11,159 | ×1,675 | ×280 |
 
 `runs/d0/emission_map.csv` holds the full map, also at `ε = 1e-6` and `2^-40`, at round lengths
-from 30 s to an hour, and with 10 % and 20 % of honest votes lost. The owner draws the budget line
-on it (Q7).
+from 30 s to an hour, and with the losses of D2. The owner draws the budget line on it (Q7).
 
 Design (a) of D1 certifies a block `L` slots after its publication, plus half a round on average,
 plus one Blend delivery (D6). The two-round gadget (b) adds a round. With 10-minute rounds and
@@ -48,25 +47,34 @@ can be split (D6), and settlement on the chain is slower too (`SETTLEMENT.md`, B
 
 ## D2 — committee realism: the share of honest votes that count
 
-Offline stake, votes lost in Blend, and honest votes split between forks all lower the share of
-honest seats whose votes count. In the seat model they act as one factor. Seats per round at
-`ε = 1e-9`:
+Offline stake and votes lost in Blend cast nothing. Honest votes split between forks are cast,
+but each counts for one side only. A round stalls when the honest votes that count for one side
+fall short of `Q`. Safety must count every honest seat, because split votes can fill both
+conflicting certificates. Expected seats are `n` times `D/D̂`, the true over the inferred total
+stake, so at a fixed `Q` a low estimate makes two quorums easier to reach. The inference holds the
+true stake to within ±0.9 % per epoch (TSI report §2.2); 1.05 is about six standard deviations.
+The quorum holds safety at the largest `D/D̂` it is sized for, and liveness at `D/D̂ = 1`. Seats per
+round at `ε = 1e-9`:
 
-| α | all honest seats vote | 90 % vote | 80 % vote |
-| --- | --- | --- | --- |
-| 0.05 | 443 | 510 | 598 |
-| 0.10 | 665 | 801 | 997 |
-| 0.15 | 1,097 | 1,400 | 1,910 |
-| 0.20 | 2,085 | 3,003 | 4,878 |
-| 0.25 | 5,355 | 10,110 | 28,465 |
-| 0.30 | 33,473 | 345,443 | none |
+| α | all count | all count, D/D̂ ≤ 1.05 | 90 % count | 90 % count, D/D̂ ≤ 1.05 | 80 % count |
+| --- | --- | --- | --- | --- | --- |
+| 0.05 | 443 | 514 | 691 | 833 | 1,273 |
+| 0.10 | 665 | 801 | 1,137 | 1,453 | 2,484 |
+| 0.15 | 1,097 | 1,392 | 2,156 | 3,056 | 6,617 |
+| 0.20 | 2,085 | 2,945 | 5,458 | 9,921 | 46,075 |
+| 0.25 | 5,355 | 9,728 | 31,617 | 229,888 | none |
+| 0.30 | 33,473 | 279,488 | none | none | none |
 
-At 25 % of the stake, losing a fifth of the honest votes multiplies the committee by 5.3; at 30 %
-no committee survives it. Error in the inferred total stake works the other way. The inference
-never exceeds the true stake (TSI report §2.2), so a low estimate inflates every note's seat
-odds, honest and adversarial alike. Expected seats grow by `D/D̂`. That raises the cover cost,
-not the risk. A sudden loss of stake before the inference adapts acts as offline stake, for up
-to an epoch.
+- **Against a quarter of the stake,** a tenth of the honest votes not counting multiplies the
+  committee by 5.9, and the inference's noise by 1.8. Losing a fifth leaves no committee.
+- **Against 30 %,** a committee exists only while every honest vote counts.
+- A sudden loss of stake acts as offline stake until the inference reads it. The inference reads
+  the first `6⌊k/f⌋` slots of each epoch (`cryptarchia-total-stake-inference.md`, `PERIOD`), so a
+  loss just after them lasts about 1.4 epochs.
+
+Gates (`tests/test_committee.py`): the safety tail equals a direct convolution, with and without
+inflation; liveness counts only the votes that count; the committee is the smallest that holds
+both tails; no committee exists once the quorum cannot fit. Three mutations fail them.
 
 ## D1 — design sketches
 
@@ -77,7 +85,9 @@ Blend (Q6), and a failed round stalls finality without halting the chain.
 
 - **Seat.** A note wins a seat in round `r` when
   `hash(VOTE_V1 ‖ η ‖ r ‖ noteID ‖ sk)` falls below a threshold. The threshold is set from the
-  inferred stake so that all stake together expects `n` seats.
+  inferred stake so that all stake together expects `n` seats. A note holds at most one seat a
+  round. The Poisson seat counts of D0 and D2, and the vote counts of D5, assume each note is far
+  below `1/n` of the stake: 0.019 % at 5,355 seats.
 - **Tag.** `ρ_VOTE = hash(VOTE_TAG_V1 ‖ r ‖ noteID ‖ sk)`, the construction of `ρ_LEAD` under a
   vote domain. It is fixed per note and round, so a node counts each seat once and sees a seat
   that votes twice. Tags of different rounds are unlinkable.
@@ -117,11 +127,11 @@ directly. A certificate needs two thirds of the declared stake.
 **The share that must declare.** An adversary holding `α` declares all of it. Honest holders
 declare a share `v` of the honest stake, of which a share `u` is online. Two conflicting
 certificates need the adversary to hold a third of the declared stake, and a certificate needs the
-online honest stake to reach two thirds of it. Both hold when `v ≥ 2α / ((1 − α)(3u − 2))`
-(`src/finality_sim/privacy.py`). Each cell gives `v`, then the number of the largest holders that
-reach it if the honest stake is spread as Cardano's 2,522 pool stakes are (the analysis
-`analysis-cryptarchia-de-anonymisation-of-relative-stake.md`, its `pools.csv`;
-`scripts/d1b_committee.py`):
+online honest stake to reach two thirds of it. Both hold when `v` exceeds
+`2α / ((1 − α)(3u − 2))` (`src/finality_sim/privacy.py`). Each cell gives `v`, then the number of
+the largest pools that reach it if the honest stake is spread as Cardano's 2,522 pools are, 31 of
+them empty (the analysis `analysis-cryptarchia-de-anonymisation-of-relative-stake.md`, its
+`pools.csv`; `scripts/d1b_committee.py`):
 
 | α | uptime 1 | uptime 0.95 | uptime 0.9 |
 | --- | --- | --- | --- |
@@ -129,16 +139,16 @@ reach it if the honest stake is spread as Cardano's 2,522 pool stakes are (the a
 | 0.20 | 0.50 / 184 | 0.59 / 232 | 0.71 / 318 |
 | 0.25 | 0.67 / 284 | 0.78 / 379 | 0.95 / 688 |
 | 0.30 | 0.86 / 461 | impossible | impossible |
-| 0.33 | impossible | impossible | impossible |
+| 1/3 | impossible | impossible | impossible |
 
 - **Against a quarter of the stake, two thirds of the honest stake must declare** if every
   volunteer is always online, and 78 % at 95 % uptime. On Cardano's spread that is the 284 or 379
-  largest holders.
-- **From 30 % any downtime breaks it, and a third cannot be held at all.**
+  largest pools.
+- **Against 30 %, uptime below 95.2 % breaks it.** A third cannot be held at all.
 
-Gates (`tests/test_privacy.py`): at the frontier the adversary holds exactly a third of the declared
-stake at full uptime and liveness is tight; just below it liveness fails; the count of holders
-matches a hand count. Two mutations fail them.
+Gates (`tests/test_privacy.py`): just above the frontier the adversary holds less than a third of
+the declared stake and liveness is tight; just below it liveness fails; the count of pools matches
+a hand count. Two mutations fail them.
 
 What the variant changes:
 
@@ -147,33 +157,54 @@ What the variant changes:
 - **The private chain must never revert a certified block.** A committee in which the adversary
   holds a third of the declared stake could certify two forks, and the private chain would then
   split.
+- **Declared notes must stay in the leader lottery.** If they left it, an adversary that declares
+  nothing would hold `α / (1 − v(1 − α))` of the lottery: 0.13, 0.33 and 0.50 against 10 %, 20 %
+  and 25 % of the stake at the frontier for full uptime.
 - **Volunteers reveal their stake**, and their network addresses if they gossip directly.
-  Leadership should use other notes, so that their block wins stay private.
-- **Everyone else casts no vote, so D5's leak does not reach them.** If declared notes leave the
-  leader lottery, a private holder's share of the lottery, and so of the blocks, rises by the
-  factor `1/(1 − V)`, where `V` is the declared share of all stake. Every time in the first
-  column of D5's first table then falls by the factor `1 − V`.
+- **Everyone else casts no vote, so D5's leak does not reach them.**
 
 ## D3 — the cost model
 
 - **A vote** is at least a Groth16 proof (128 bytes, the size of the proof inside
   `ProofOfLeadership`), a tag (32), a block id (32) and a round number: about 200 bytes before
   Blend's padding and cover.
-- **Proving.** A seat winner proves once per round. The specification's benchmark for the proof
-  of leadership (`cryptarchia-proof-of-leadership.md`, Benchmarks) puts it at about 0.68 s on one
-  thread of an i9-13980HX, and 0.17–0.18 s at 23–30 threads (read off its figure).
+- **Proving.** A seat proves once per round, so a holder of share `s` proves `s·n` times a round:
+  67 proofs for a 1.26 % holder at 5,355 seats. The specification's benchmark for the proof of
+  leadership (`cryptarchia-proof-of-leadership.md`, Benchmarks) puts one proof at about 0.68 s on
+  one thread of an i9-13980HX, and 0.16–0.18 s at 23–30 threads (read off its figure).
   `tools/benchmarks/pol-proving` times the node's proof of leadership at the study's commit, on
-  all cores and pinned to one, and writes to `reports/finality/pol-proving/`. On an Apple M4 Pro
-  a proof takes 73 ms on all cores. The reference node of Q7 is still to be run.
-- **Verification.** Every node verifies `n/R` votes per second: 9 per second at 5,355 seats and
-  10-minute rounds, 60 at 90 s. One core of a Raspberry Pi 5 verifies 157 Blend headers per
-  second, each an Ed25519 signature and a Groth16 proof (`blend-protocol.md`, `V`). A vote's proof
-  is a Groth16 proof as well, so one core verifies on the order of 157 votes per second: the votes
-  take 6 % of a core with 10-minute rounds and 38 % with 90 s rounds.
-- **Bandwidth.** `n × 200 B / R` per node before Blend overhead: 1.8 KB/s at 5,355 seats and
-  10-minute rounds, 12 KB/s at 90 s.
+  all cores and pinned to one, and writes to `reports/finality/pol-proving/`. On an Apple M4 Pro a
+  proof takes 72.5 ms on all cores. The reference node of Q7 is still to be run.
 - **Aggregation** (recursive proofs, or a Groth16 aggregation scheme) would shrink certificates
   for light clients and bootstrapping nodes. It does not reduce what each vote costs to emit.
+
+**Blend's own budget.** A vote is a Blend message: every node verifies its header once for each
+of the `β_max = 3` blending operations, and its proof once. Blend sizes a core connection for
+`F_1 = 16` messages a round against a read limit of `r_1 = 20`, and a node for `V = 156`
+verifications a second, one core of a Raspberry Pi 5 (`blend-protocol.md`, Expected Traffic).
+Today a node makes 16 verifications a second. The committees of D0 at `ε = 1e-9`, with votes sent
+on top of today's cover (the quota ceiling then falls, D0) or with the cover raised by D0's
+multiple to carry them (`runs/d0/blend_load.csv`):
+
+| α | round | votes / s | votes on top of cover: F_1 / verifications per s | cover raised: F_1 / verifications per s |
+| --- | --- | --- | --- | --- |
+| 0.10 | 10 min | 1.11 | 19.3 / 20 | 116 / 117 |
+| 0.10 | 60 min | 0.18 | 16.6 / 17 | 33 / 33 |
+| 0.20 | 10 min | 3.48 | 26.4 / 30 | 329 / 332 |
+| 0.20 | 60 min | 0.58 | 17.7 / 18 | 68 / 69 |
+| 0.25 | 10 min | 8.93 | 42.8 / 52 | 819 / 828 |
+| 0.25 | 60 min | 1.49 | 20.5 / 22 | 150 / 151 |
+| 0.30 | 10 min | 55.79 | 183.4 / 239 | 5,037 / 5,093 |
+| 0.30 | 60 min | 9.30 | 43.9 / 53 | 853 / 862 |
+
+- **Votes on top of the cover fit `r_1` only while `n/R` stays below 1.33 votes a second:**
+  10-minute rounds against a tenth of the stake, hour-long rounds against a fifth.
+- **With the cover raised, no committee fits.** Against a quarter of the stake with 10-minute
+  rounds, a connection carries 41 times `r_1` and a node verifies 5.3 times `V`. Votes then fit
+  `r_1` only in rounds of at least `22.5·n` seconds: 33 hours against a quarter.
+- **Bandwidth.** A Blend message is 19,318 bytes, so a core connection carries 0.31 MB/s today,
+  0.83 MB/s with the votes above on top, and 16 MB/s with the cover raised, against a quarter with
+  10-minute rounds. A node holds `Φ_CC = 4` core connections.
 
 ## D4 — forward security and accountability
 
@@ -197,61 +228,71 @@ naming the voter. Punishment needs the note locked for the round.
 quota ceiling falls by that multiple. Nodes above the lowered ceiling then become distinguishable
 by emission count alone (Blend report §3.10).
 
-**Votes sample stake.** A seat is a lottery win as a block is. A holder of stake share `s` makes
-`s·f` blocks a slot and `s·n` votes a round of `R` slots, so an observer who attributes a node's
-votes samples its stake `1 + n/(R·f)` times as fast: D0's multiple, ×269 for the committee of
-5,355 seats against a quarter of the stake in 10-minute rounds.
+**Votes sample stake.** A seat is a lottery win as a block is. A holder of share `s` makes `s·f`
+blocks a slot and casts `s·n` votes a round of `R` slots, so an observer who attributes a node's
+messages samples its stake from votes `n/(R·f)` times as often as from blocks.
 
-The Blend report's model of linking (§3.6–§3.7, `blend.linkability` loaded from
-`tools/simulators/blend`): each emission of a node with an adversarial peer is attributed to it
-with probability `q`, and `N` attributions size its stake to `1/√N`. Through Blend
-`q = f_adv^hops`, `0.008` at `f_adv = 0.2` and 3 hops for blocks and votes alike. A vote gossiped
-directly has no blend path, so `q = 1`. Mean time until a holder is identified (`N = 1`) / its
-stake is known to ±10 % (`N = 100`), counting its blocks and its votes (`scripts/d5_privacy.py`):
+The Blend report's model of linking (§3.6–§3.7): a message of a node with an adversarial peer is
+attributed to it when its whole blend path is adversarial, with probability
+`q = f_adv^hops = 0.008` at `f_adv = 0.2` and 3 hops, and `N` attributions size its stake to
+`1/√N`. A block proposal is sent twice (`R_D = 1`, `blend-protocol.md`), so it is attributed with
+probability `1 − (1 − q)² = 0.016`. A vote is sent once through Blend; gossiped directly, it is
+taken as attributed with probability one, as the Blend report's whole-path capture takes an
+adversarial peer as proof of origin (its §3.4 gives that reading 0.53 confidence). The times hold
+for a node with an adversarial peer: at the specification's peering degree of 4, 59 % of nodes at
+`f_adv = 0.2`. Votes are cast together at each round's start, and the observer starts at a random
+point of a round. Mean time until a holder is identified (`N = 1`) / its stake is known to ±10 %
+(`N = 100`), counting its blocks and its votes (`src/finality_sim/privacy.py`,
+`scripts/d5_privacy.py`):
 
 | share | blocks only, through Blend | with votes through Blend, 1 h rounds | with votes through Blend, 10 min rounds | with votes through Blend, 90 s rounds | with votes gossiped directly, 10 min rounds |
 | --- | --- | --- | --- | --- | --- |
-| 5 % | 20.8 h / 87 d | 27 min / 1.9 d | 5 min / 7.8 h | 42 s / 1.2 h | 2 s / 4 min |
-| 1 % | 4.3 d / 434 d | 2.3 h / 9.5 d | 23 min / 1.6 d | 3 min / 5.8 h | 11 s / 19 min |
-| 0.1 % | 43 d / 4,340 d | 22.8 h / 95 d | 3.9 h / 16 d | 35 min / 2.4 d | 2 min / 3.1 h |
-| 0.01 % | 434 d / 43,403 d | 9.5 d / 951 d | 1.6 d / 161 d | 5.8 h / 24 d | 19 min / 1.3 d |
+| 5 % | 10.5 h / 44 d | 36 min / 1.9 d | 6 min / 7.7 h | 57 s / 1.2 h | 5 min / 5 min |
+| 1 % | 2.2 d / 218 d | 2.3 h / 9.3 d | 24 min / 1.6 d | 4 min / 5.8 h | 5 min / 17 min |
+| 0.1 % | 22 d / 2,179 d | 22.3 h / 93 d | 3.9 h / 16 d | 35 min / 2.4 d | 5 min / 3.1 h |
+| 0.01 % | 218 d / 21,789 d | 9.3 d / 931 d | 1.6 d / 161 d | 5.8 h / 24 d | 19 min / 1.3 d |
 
 The analysis `analysis-cryptarchia-de-anonymisation-of-relative-stake.md` asks a related question:
-the probability that a naive estimate of a node's stake lies within ±10 % after `T` slots of which
-a share `q` is observed, and how many nodes a holder must split into to keep it at 0.5 or below.
-Each observed round of votes adds a Poisson count of mean `n·α` to the slots' information. Over
-one epoch at `f = 1/30` with `q = 0.008`, beside the analysis's own example (`f = 0.05`,
-`T = 432,000` slots, `q = 0.657`):
+the probability that an estimate of a node's stake lies within ±10 % after `T` slots, and how many
+nodes a holder must split into to keep it at 0.5 or below. Over one epoch at `f = 1/30`, from the
+exact Poisson count of the holder's attributed blocks and votes (its estimate solves for the
+stake that count implies):
 
-| model | votes | confidence for a 1.26 % holder | nodes it must split into | largest share an observer cannot size |
-| --- | --- | --- | --- | --- |
-| Cryptarchia, one epoch | blocks only, through Blend | 0.12 | 1 | 26 % |
-| Cryptarchia, one epoch | with votes through Blend, 1 h rounds | 0.68 | 3 | 0.58 % |
-| Cryptarchia, one epoch | with votes through Blend, 10 min rounds | 0.98 | 13 | 0.098 % |
-| Cryptarchia, one epoch | with votes through Blend, 90 s rounds | 1.00 | 86 | 0.015 % |
-| Cryptarchia, one epoch | with votes gossiped directly, 10 min rounds | 1.00 | 1,602 | 0.00079 % |
-| the analysis's example | blocks only | 0.82 | 5 | 0.31 % |
-| the analysis's example | with votes, 10 min rounds | 1.00 | 706 | 0.0018 % |
+| votes | confidence for a 1.26 % holder | nodes it must split into | every share above it sized |
+| --- | --- | --- | --- |
+| blocks only, through Blend | 0.19 | 1 | 14 % |
+| with votes through Blend, 1 h rounds | 0.68 | 3 | 0.6 % |
+| with votes through Blend, 10 min rounds | 0.99 | 12 | 0.11 % |
+| with votes through Blend, 90 s rounds | 1.00 | 92 | 0.016 % |
+| with votes gossiped directly, 10 min rounds | 1.00 | 1,743 | 0.00083 % |
+| with votes through Blend, 10 min rounds, the holder's stake in 1 note | 0.11 | – | – |
+| with votes through Blend, 10 min rounds, the holder's stake in 10 notes | 0.04 | – | – |
+| with votes through Blend, 10 min rounds, the holder's stake in 100 notes | 0.85 | – | – |
 
 - **Votes make stake learnable.** Through Blend, block wins alone give an observer better than
-  even odds of sizing a stake to ±10 % within an epoch only above 26 % of all stake. With
-  10-minute rounds every share above 0.098 % has those odds, and a 0.1 % holder is sized in 16
-  days on average instead of 4,340. The analysis's 1.26 % holder must split into 706 nodes
-  instead of 5.
-- **Blend buys a factor of `f_adv^-hops`.** Gossiped directly, the same votes identify a 0.1 %
-  holder in 2 minutes and size it in 3 hours: about 125 times as fast as through Blend at
-  `f_adv = 0.2` and 3 hops.
-- **Longer rounds leak less, in proportion.** With rounds of an hour, the shares an observer has
-  even odds of sizing within an epoch start at 0.58 %.
+  even odds of sizing a stake to ±10 % within an epoch only above 14 % of all stake. With
+  10-minute rounds every share above 0.11 % has those odds, and a 0.1 % holder is sized in 16
+  days on average instead of 2,179. The analysis' 1.26 % holder must split into 12 nodes, where
+  blocks alone need no split.
+- **Blend slows the leak by about `f_adv^-hops`, 125.** Gossiped directly, the same votes
+  identify a holder of 0.1 % or more within the first round, about 5 minutes, and size a 0.1 %
+  holder in 3 hours instead of 16 days.
+- **Longer rounds leak less, in proportion.** With rounds of an hour, every share above 0.6 % is
+  sized within an epoch at better than even odds.
+- **A holder with few large notes leaks less.** Each note wins a seat in nearly every round, so the
+  count of its votes says little about its stake: a 1.26 % holder in one note or ten is sized
+  within an epoch with probability 0.11 or 0.04, and in 100 notes with 0.85.
 
-Gates (`tests/test_privacy.py`): the Blend report's §3.7 times and the analysis's example
-(confidence 0.824, five nodes) are reproduced as printed; votes speed sizing by D0's multiples; the
-confidence a vote count adds matches the exact Poisson probability. Three mutations fail them.
+Gates (`tests/test_privacy.py`): without votes the times are the Blend report's §3.7, as printed;
+the analysis' example (confidence 0.824, five nodes) is reproduced with its own formula, and the
+exact confidence agrees with it at its large counts; votes speed sizing by D0's multiples when
+attributed alike; one attribution waits for the first round start as a closed form says; the
+confidence equals a simulated estimate's, with many notes and with ten. Four mutations fail them.
 
-**Views.** A vote reveals which block its sender saw. That is the signal the specification's
-tagging attack exploits (Limitations of Cryptarchia V1), and votes give it the same `1 + n/(R·f)`
-samples. A tag needs the voters to see different blocks at the target's depth: under random
-delay, votes on a target 30 slots back never split (D6).
+**Views.** A vote names the block its sender saw `L` slots back. The specification's tagging
+attack reads a leader's view from the transactions in its block (Limitations of Cryptarchia V1).
+A vote carries no transaction, so a tag needs voters to see different blocks `L` slots back:
+under random delay, votes on a target 30 slots back never split (D6).
 
 ## D6 — votes on the engine's chains
 

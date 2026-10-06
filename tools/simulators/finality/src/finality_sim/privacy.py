@@ -32,6 +32,7 @@ import pathlib
 from functools import lru_cache
 
 import numpy as np
+from scipy import stats
 
 BLEND = (pathlib.Path(__file__).resolve().parents[3] / "blend" / "src" / "blend" / "linkability.py")
 
@@ -45,12 +46,34 @@ def linkability():
     return module
 
 
-def stake_days(stake: float, n_obs: int, q_blocks: float, f: float = 1 / 30, seats: float = 0.0,
-               round_s: float = 1.0, q_votes: float = 0.0) -> float:
-    """Mean days until ``n_obs`` of a holder's blocks and votes are attributed to it, with blocks
-    at ``f`` a second and ``seats`` votes a round of ``round_s`` seconds network-wide."""
-    per_second = q_blocks * f + q_votes * seats / round_s
-    return linkability().time_to_stake_seconds(stake, per_second, n_obs, slot_seconds=1.0) / 86400
+def attribution_days(stake: float, n_obs: int, q_blocks: float, f: float = 1 / 30,
+                     seats: float = 0.0, round_s: float = 1.0, q_votes: float = 0.0,
+                     notes: float = math.inf, phases: int = 64) -> float:
+    """Mean days until ``n_obs`` of a holder's blocks and votes are attributed to it.
+
+    Blocks come at ``f`` a second network-wide, a share ``stake`` of them the holder's, each
+    attributed with ``q_blocks``. Votes are cast together at the start of each round of
+    ``round_s`` seconds: the holder's ``notes`` equal notes each win a seat with probability
+    ``1 - exp(-seats·stake/notes)``, at most one a round, and each vote is attributed with
+    ``q_votes``. The observer starts at a uniformly random point of a round. Without votes this
+    is the Blend report's ``time_to_stake_seconds``.
+    """
+    rate = stake * q_blocks * f                         # attributed blocks per second
+    if math.isinf(notes):
+        batch = seats * stake * q_votes                 # attributed votes per round
+    else:
+        batch = notes * (1 - math.exp(-seats * stake / notes)) * q_votes
+    if batch == 0.0:
+        return linkability().time_to_stake_seconds(stake, q_blocks * f, n_obs, 1.0) / 86400
+    mean_rate = rate + batch / round_s
+    t_max = (n_obs + 12 * math.sqrt(n_obs) + 40) / mean_rate + 2 * round_s
+    if t_max > 2000 * round_s:                         # many rounds: the batches average out
+        return n_obs / mean_rate / 86400
+    t = np.linspace(0.0, t_max, int(min(400_001, max(20_001, 40 * t_max / round_s))))
+    phi = (np.arange(phases) + 0.5) / phases * round_s
+    rounds = np.floor((t[None, :] - phi[:, None]) / round_s) + 1   # round starts by t
+    survive = stats.poisson.cdf(n_obs - 1, rate * t[None, :] + batch * rounds)
+    return float(np.trapezoid(survive, t, axis=1).mean()) / 86400
 
 
 def spec_confidence(alpha: float, gamma: float, T: float, q: float, f: float) -> float:
@@ -65,16 +88,27 @@ def spec_confidence(alpha: float, gamma: float, T: float, q: float, f: float) ->
     return numerator / denominator
 
 
-def confidence(alpha: float, gamma: float, T: float, q: float, f: float, seats: float = 0.0,
-               round_slots: float = 1.0, q_votes: float | None = None) -> float:
-    """P(the estimate lies within ``±γ·α``) with the slots' and the observed rounds' Fisher
-    information added, in the Gaussian limit of ``spec_confidence``. Rounds are observed with
-    ``q_votes``, by default ``q``."""
-    phi = 1 - (1 - f) ** alpha
-    dphi = -((1 - f) ** alpha) * math.log(1 - f)
-    qv = q if q_votes is None else q_votes
-    info = T * q * dphi ** 2 / (phi * (1 - phi)) + T / round_slots * qv * seats / alpha
-    return math.erf(gamma * alpha * math.sqrt(info / 2.0))
+def confidence(alpha: float, gamma: float, T: float, q_blocks: float, f: float,
+               seats: float = 0.0, round_slots: float = 1.0, q_votes: float | None = None,
+               notes: float = math.inf) -> float:
+    """P(the estimate lies within ``±γ·α``) after ``T`` slots, from the exact Poisson count of the
+    holder's attributed wins.
+
+    The count has mean ``Λ(α) = T·q_blocks·φ(α) + (T/round_slots)·q_votes·v(α)``, where ``φ`` is
+    the lottery function and ``v(α)`` the holder's expected votes a round (one at most per note,
+    as in ``attribution_days``). The estimate solves ``Λ(α̂) = N``, so it lies within ``±γ``
+    exactly when ``Λ(α(1 − γ)) ≤ N ≤ Λ(α(1 + γ))``. Rounds are attributed with ``q_votes``, by
+    default ``q_blocks``.
+    """
+    qv = q_blocks if q_votes is None else q_votes
+
+    def lam(a):
+        votes = seats * a if math.isinf(notes) else notes * (1 - math.exp(-seats * a / notes))
+        return T * q_blocks * (1 - (1 - f) ** a) + T / round_slots * qv * votes
+
+    m = lam(alpha)
+    hi, lo = math.floor(lam(alpha * (1 + gamma))), math.ceil(lam(alpha * (1 - gamma)))
+    return float(stats.poisson.cdf(hi, m) - stats.poisson.cdf(lo - 1, m))
 
 
 def split(alpha0: float, theta: float, conf) -> int:

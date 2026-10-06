@@ -55,7 +55,7 @@ where: ## print where this tool fetches, builds and writes
 
 check: ## verify the toolchain is present (read-only; installs nothing)
 	@ok=0; \
-	for tool in git cargo rustc curl unzip $(PY); do \
+	for tool in make cc git cargo rustc curl unzip $(PY); do \
 	  if command -v $$tool >/dev/null 2>&1; then \
 	    case $$tool in unzip) v=$$(unzip -v 2>&1 | head -1) ;; *) v=$$($$tool --version 2>&1 | head -1) ;; esac; \
 	    printf '  %-8s %s\n' "$$tool" "$$v"; \
