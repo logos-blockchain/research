@@ -1,0 +1,30 @@
+import MiningOnboarding
+
+#print axioms Onboarding.fixedPopulation_solution
+#print axioms Onboarding.closedForm_isSolution
+#print axioms Onboarding.A_pos
+#print axioms Onboarding.A_lt
+#print axioms Onboarding.A_strictMonoOn
+#print axioms Onboarding.A_strictConvexOn
+#print axioms Onboarding.A_strictAntiOn_S0
+#print axioms Onboarding.A_strictMonoOn_M
+#print axioms Onboarding.tendsto_A_M_atTop
+#print axioms Onboarding.qualify_iff
+#print axioms Onboarding.feasibility_necessary
+#print axioms Onboarding.exists_unique_mmin
+#print axioms Onboarding.qualify_iff_ge_mmin
+#print axioms Onboarding.feasible_iff
+#print axioms Onboarding.A_le_quadratic
+#print axioms Onboarding.quadratic_correction_le_A
+#print axioms Onboarding.m0_le_of_qualifies
+#print axioms Onboarding.qualifies_of_ge
+#print axioms Onboarding.newcomer_income
+#print axioms Onboarding.stakeInt_unique
+#print axioms Onboarding.hasDerivAt_unlockedBal
+#print axioms Onboarding.cohort_exact
+#print axioms Onboarding.Qe_identical
+#print axioms Onboarding.stakeInt_eq_stake
+#print axioms Onboarding.depletion_le_mgf
+#print axioms Onboarding.depletion_le_bennett
+#print axioms Onboarding.depletion_le_of_buffer
+#print axioms Onboarding.reference_depletion
