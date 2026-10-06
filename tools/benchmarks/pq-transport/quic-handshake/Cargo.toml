@@ -1,0 +1,17 @@
+[package]
+name = "quic-handshake-bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+quinn = { version = "0.11", default-features = false, features = ["rustls-aws-lc-rs", "runtime-tokio"] }
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std"] }
+rcgen = "0.13"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+
+# The structural results (datagrams, bytes, round trips) are protocol-determined
+# and identical on any machine. Only wall-clock varies, and on loopback that is
+# dominated by scheduler noise -- see README.
+[profile.release]
+codegen-units = 1
+lto = "fat"
