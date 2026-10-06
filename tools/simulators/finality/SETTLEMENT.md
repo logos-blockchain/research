@@ -127,20 +127,22 @@ recorded. A win can sign a block on any branch, and a chain holds one block per 
 private chain grows by one block per slot the coalition wins.
 
 For each canonical block, the race asks whether the coalition ever releases a chain that
-displaces it, once `K` blocks lie on top of it. The race is scored against the best-informed node,
-so it bounds what a node with any view can see. It has two settings:
+displaces it, once `K` blocks lie on top of it. The race is scored against the best-informed node.
+A node that sees blocks later is beaten at least as often, so for a real client the race's success
+rate is a lower bound. It has two settings:
 
 - **Premining.** Before the target, the coalition keeps a private lead that a public block
   erodes. Without premining, it starts at the target's parent.
 - **Ties.** Cryptarchia's Online rule keeps the first-seen chain on ties, so the coalition must be
   strictly longer. With ties to the attacker, as in Rosenfeld's race, a tie suffices.
 
-Gates (`tests/test_race.py`): on independent Bernoulli timelines the race reproduces Rosenfeld's
-closed form with ties to the attacker, and its strict counterpart, at depths 1–8 and attacker
-shares 0.10 and 0.25. Premining never lowers the attacker's success. Two mutations fail these
-gates.
+Gates (`tests/test_race.py`): on independent Bernoulli timelines the race reproduces the closed
+forms at attacker shares 0.10 and 0.25, wherever a depth of 1–8 expects at least 100 successes:
+with ties to the attacker or strictly longer, without and with a premined lead. Without the lead
+they are Rosenfeld's race and its strict counterpart. With it, the lead at the target is
+stationary, geometric with ratio `q/(1 − q)`. Three mutations fail these gates.
 
-64 engine runs per cell, equal stake, 0.1 s links, `f = 1/30`. "q" is the coalition's share of
+64 engine runs per cell, equal stake, `f = 1/30`. "q" is the coalition's share of
 chain-extending blocks. Depths at which the success rate falls to `1e-3` and `1e-4`:
 
 | configuration | α | q | orphan share | no lead, ties ≤ 1e-03 | no lead, strict ≤ 1e-03 | premined, strict ≤ 1e-03 | no lead, ties ≤ 1e-04 | no lead, strict ≤ 1e-04 | premined, strict ≤ 1e-04 |
@@ -158,16 +160,18 @@ chain-extending blocks. Depths at which the success rate falls to `1e-3` and `1e
 | heavy | 0.25 | 0.322 | 0.301 | 34 | 31 | 32 | 60 | 58 | 58 |
 | heavy | 0.3 | 0.372 | 0.285 | > 60 | > 60 | > 60 | > 60 | > 60 | > 60 |
 
-"testnet" is 1 hop of 1 round; "spec" is 3 hops of up to 3 rounds; "heavy" is the TSI report's 3
-hops of up to 8 s with 0.5 s links.
+"testnet" is 1 hop of 1 round and "spec" 3 hops of up to 3 rounds, both with 0.1 s links. "heavy"
+is the TSI report's 3 hops of up to 8 s with 0.5 s links.
 
-- On testnet's and the specification's Blend, Rosenfeld's closed form at the measured `q` lands
-  within one to three blocks of the race, usually on the deep side.
-- At the heavy point it asks for up to six blocks more than the race at `1e-3`.
-- Premining adds one to four blocks, and the strict tie rule removes one to three.
+- At `1e-3`, Rosenfeld's closed form at the measured `q` asks for 0–3 blocks more than the race on
+  testnet's and the specification's Blend, and 0–6 more at the heavy point. It never asks for
+  fewer.
+- Premining adds zero to four blocks, and the strict tie rule removes one to four.
+- A crossing of `1e-4` rests on 2–21 successes, and successes come in clusters, one attack
+  episode covering consecutive targets. The `1e-4` columns are not compared with the closed form.
 
-Under random delay, the first look's model (`firstlook.py`) is therefore a sound, slightly
-conservative guide to this attack. `RATE.md` (C1) uses it over block rate and delay.
+At `f = 1/30` and `1e-3` the closed form is therefore a slightly conservative guide to this attack
+under random delay. `RATE.md` (C1) uses its strict counterpart over block rate and delay.
 
 ### The delay-scheduling attacker
 
@@ -202,7 +206,8 @@ success at depth 10 / 40 (`runs/b3/delay.csv`):
 | 0.33 | 10 s | 4.2e-01 / 9.2e-02 | 4.2e-01 / 9.3e-02 | 4.9e-01 / 1.1e-01 | 3.1e-01 / 2.8e-02 | 7.8e-01 / 4.7e-01 |
 
 - On Cryptarchia's slots the attack lands within 7 % of the lower bound wherever the bound exceeds
-  `1e-4` (ratios 0.93–1.02). B2's bounds, computed in continuous time, describe the slot lottery.
+  `1e-4` (ratios 0.93–1.02). At these nine points B2's lower bound, computed in continuous time,
+  describes the slot lottery.
 - No run exceeds the upper bound.
 - The private attack alone, on the same draws and delays, is far weaker: about 30 times less
   successful at 25 % and 10 s at depth 40. The second chain is what the delay model adds. When
@@ -211,68 +216,71 @@ success at depth 10 / 40 (`runs/b3/delay.csv`):
 
 ## B4 — a client confirmation rule
 
-Today the node exposes two levels, the tip and the LIB (`MAPPING.md` §3). The rule adds a third:
-a block is *settled* for `(α, ε)` once `d(α, ε)` canonical blocks lie on top of it. A client that
-uses it accepts these assumptions:
+Today the node exposes two levels, the tip and the latest immutable block `B_imm`, which its API
+calls `lib` (`MAPPING.md` §3). The rule adds a third: a block is *settled* for `(α, ε)` and a delay
+model once `d` canonical blocks lie on top of it, where `d` holds the chance of its displacement to
+`ε`. A client that uses it accepts these assumptions:
 
-- the adversary holds at most `α` of the active stake;
-- the delay model the table was computed under: random Blend delays (B3, `RATE.md`) or a worst
-  case of `Δ` (B2);
-- grinding of the epoch randomness no stronger than the table includes (B6);
-- a per-block failure probability of `ε`;
+- the coalition holds at most `α` of the active stake;
+- the attack and delay model the depth was computed for: under random Blend delays the private
+  race from the target's parent without a premined lead (B5's closed form); under a worst case of
+  `Δ`, any attack (B2);
+- grinding of the epoch nonce no stronger than the depth includes (B6);
 - the node's own view is not eclipsed.
 
-The depth table is the RFC candidate: B2 for the worst case, B3 and `RATE.md` for random delay. An
+The depth table is the RFC candidate: B2 for the worst case, B5's closed form for random delay. An
 API would expose it as a configured `(α, ε)` and a settled level beside `lib` in
 `/cryptarchia/info`, with a stream like `lib-stream`.
 
 **Reading elapsed time.** A depth rule holds `ε` on average over the times at which blocks arrive,
-and a client sees those times. In B5's private race the coalition forks at the target's parent.
-When the `n`-th canonical block counting the target appears `t` slots after that parent, the
-coalition holds a Poisson number of blocks of mean `a·t`, whatever the times of the honest blocks.
-The client can therefore compute the coalition's chance exactly (Grunspan and Pérez-Marco, "Double
-spend races", 2018) and accept at the first block where it is at most `ε`
-(`src/finality_sim/elapsed.py`). Averaged over arrival times, that chance is the depth table's.
-Given the history, the coalition's wins are still Poisson, so the rule holds `ε` for every
-history.
+and a client sees those times. Per slot, the coalition wins with probability `a = α·λ` and the
+canonical chain grows with probability `h = (1 − α)·g·λ`, where `λ = −ln(1 − f)` and `g` is A1's
+growth on the specification's Blend; `q = a/(a + h)` is then B5's. Let the coalition fork at the
+target's parent without a premined lead and withhold every win. When the `n`-th canonical block
+counting the target appears `t` slots after that parent, the coalition holds a Poisson number of
+blocks of mean `a·t`, whatever the times of the honest blocks. The client computes the coalition's
+chance exactly (Grunspan and Pérez-Marco, "Double spend races", 2018) and accepts at the first
+block where it is at most `ε` (`src/finality_sim/elapsed.py`). It reads `t` on its own clock when
+it evaluates. Averaged over arrival times, that chance is the depth table's. Given any history of
+honest blocks up to acceptance, it is at most `ε` as well.
 
-Both rules use the coalition's slot rate `a` and the canonical rate `h` of A1's growth on the
-specification's Blend, and the depth rule waits for B5's closed-form depth. They are played on 64
-timelines per share, one epoch at `k = 256`: the engine's, on the specification's Blend with the
-coalition withholding, and independent slots of the model both rules assume. The race scores each
-acceptance itself (`scripts/b4_elapsed.py`):
+The depth rule waits for B5's closed-form depth. Both rules are played on 64 timelines per share,
+one epoch at `k = 256`: the engine's, on the specification's Blend with the coalition withholding,
+and independent slots of the model both rules assume. The race scores each acceptance itself
+(`scripts/b4_elapsed.py`). A cell of 0 means no success among about 100,000 targets:
 
 | timelines | α | ε | depth rule: blocks | depth rule: minutes, mean / p90 | elapsed-time rule: blocks, mean | elapsed-time rule: minutes, mean / p90 | race beats the rule, depth / elapsed |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| engine | 0.10 | 1e-3 | 4 | 2.6 / 4.1 | 3.6 | 2.4 / 4.5 | 5.9e-04 / 4.7e-04 |
+| engine | 0.10 | 1e-3 | 4 | 2.6 / 4.1 | 3.6 | 2.4 / 4.5 | 5.9e-04 / 5.0e-04 |
 | engine | 0.10 | 1e-6 | 12 | 7.9 / 10.4 | 9.5 | 6.3 / 9.8 | 0 / 0 |
 | engine | 0.10 | 1e-9 | 19 | 12.5 / 15.7 | 15.5 | 10.2 / 14.9 | 0 / 0 |
-| model | 0.10 | 1e-3 | 4 | 2.6 / 4.4 | 3.6 | 2.3 / 4.9 | 9.7e-04 / 7.3e-04 |
-| model | 0.10 | 1e-6 | 12 | 7.9 / 10.9 | 9.5 | 6.2 / 10.5 | 0 / 0 |
-| model | 0.10 | 1e-9 | 19 | 12.5 / 16.2 | 15.4 | 10.1 / 15.6 | 0 / 0 |
-| engine | 0.25 | 1e-3 | 23 | 17.7 / 21.8 | 16.6 | 12.8 / 21.3 | 6.4e-04 / 4.9e-04 |
-| engine | 0.25 | 1e-6 | 55 | 42.3 / 48.6 | 37.2 | 28.6 / 41.6 | 0 / 0 |
-| engine | 0.25 | 1e-9 | 88 | 67.8 / 75.6 | 58.0 | 44.6 / 61.0 | 0 / 0 |
-| model | 0.25 | 1e-3 | 23 | 18.0 / 22.9 | 17.1 | 13.4 / 23.7 | 6.6e-04 / 7.9e-04 |
-| model | 0.25 | 1e-6 | 55 | 43.1 / 50.5 | 38.2 | 29.9 / 45.9 | 0 / 0 |
-| model | 0.25 | 1e-9 | 88 | 69.0 / 78.0 | 59.5 | 46.6 / 66.8 | 0 / 0 |
+| model | 0.10 | 1e-3 | 4 | 2.6 / 4.3 | 3.5 | 2.3 / 4.8 | 9.5e-04 / 7.4e-04 |
+| model | 0.10 | 1e-6 | 12 | 7.8 / 10.7 | 9.4 | 6.1 / 10.2 | 0 / 0 |
+| model | 0.10 | 1e-9 | 19 | 12.3 / 16.0 | 15.3 | 9.9 / 15.2 | 0 / 0 |
+| engine | 0.25 | 1e-3 | 23 | 17.7 / 21.8 | 16.7 | 12.8 / 21.4 | 6.4e-04 / 4.9e-04 |
+| engine | 0.25 | 1e-6 | 54 | 41.6 / 47.7 | 37.3 | 28.7 / 41.8 | 0 / 0 |
+| engine | 0.25 | 1e-9 | 86 | 66.2 / 74.0 | 58.2 | 44.8 / 61.4 | 0 / 0 |
+| model | 0.25 | 1e-3 | 23 | 17.8 / 22.6 | 16.8 | 13.0 / 23.1 | 5.0e-04 / 6.8e-04 |
+| model | 0.25 | 1e-6 | 54 | 41.8 / 49.0 | 37.6 | 29.0 / 44.5 | 0 / 0 |
+| model | 0.25 | 1e-9 | 86 | 66.6 / 75.5 | 58.5 | 45.3 / 64.9 | 0 / 0 |
 
 - **Reading elapsed time settles about a third sooner against a quarter of the stake.** At `1e-9`
-  the depth rule waits 88 blocks, 68 minutes on the engine's timelines. The elapsed-time rule
+  the depth rule waits 86 blocks, 66 minutes on the engine's timelines. The elapsed-time rule
   accepts after 58 blocks on average, in 45 minutes, and its 90th percentile, 61 minutes, is below
-  the depth rule's 76. At `1e-3` it takes 13 minutes instead of 18.
+  the depth rule's 74. At `1e-3` it takes 13 minutes instead of 18.
 - **Against a tenth of the stake it settles about a fifth sooner** at `1e-6` and `1e-9`. At
-  `1e-3` it gains 8 % on average, and its 90th percentile is half a minute longer.
-- **Both rules hold `ε` where it can be measured.** At `1e-3` the race beats the depth rule on
-  6.4e-4 of the engine's targets and the elapsed-time rule on 4.9e-4.
-- **The rule needs the delay model of its table.** Its chance uses the canonical growth under
-  random delay. Under a worst case of `Δ` it would need B2's model instead, which is not derived
-  here.
+  `1e-3` it gains 11 % on average, and its 90th percentile is 0.4 minutes longer.
+- **Both rules hold `ε` where it can be measured.** At `1e-3` and a quarter of the stake, the race
+  beats the depth rule on 6.4e-4 of the engine's targets and the elapsed-time rule on 4.9e-4.
+- **The per-history guarantee holds inside the rule's model only.** A coalition that also extends
+  the public chain changes the history the client reads. Under a worst case of `Δ` the rule would
+  need B2's model, which is not derived here.
 
 Gates (`tests/test_elapsed.py`): averaged over arrival times, the chance is the depth table's
 closed form; each deadline is the latest time that settles; the race's per-target depths count
 what the race counts; on the model's timelines the rule holds `ε = 0.01`, which it would not with
-its clock started at the target. Four mutations fail them.
+its clock started at the target; in each of five bands of how fast the blocks came, the rule holds
+`ε = 0.01`, while the depth rule exceeds `3ε` in the slowest band. Five mutations fail them.
 
 ## B5 — a smaller `k`
 

@@ -77,37 +77,41 @@ Orphan share · growth / f, 0.1 s links, 8 replicates per cell, by block interva
 
 Minutes to settle under random Blend delays. Depth is that of the private race from the target's
 parent, without a premined lead, and Cryptarchia's strict tie rule, at the attacker's share of
-chain-extending blocks `q = α / (α + (1 − α) · growth)`. Phase B3 found this closed form within a
-few blocks of the race played on the engine's own timelines (`SETTLEMENT.md`). Time per canonical
-block is the interval over the growth.
+chain-extending blocks `q = α / (α + (1 − α) · growth / f)`. Time per canonical block is the honest
+chain's while the coalition withholds: the interval over `(1 − α) · growth / f`.
 
-α = 0.1, ε = 1e-9:
-
-| hops | Δ_max | 60 s | 45 s | 30 s | 20 s | 15 s | 10 s |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 17 | 13 | 9 | 6 | 5 | 3 |
-| 3 | 1 | 18 | 14 | 10 | 7 | 6 | 5 |
-| 3 | 3 | 20 | 15 | 11 | 9 | 8 | 7 |
-| 3 | 8 | 23 | 20 | 15 | 14 | 14 | 13 |
-
-α = 0.25, ε = 1e-9:
+α = 0.1, ε = 1e-9
 
 | hops | Δ_max | 60 s | 45 s | 30 s | 20 s | 15 s | 10 s |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 1 | 65 | 49 | 34 | 24 | 19 | 13 |
-| 3 | 1 | 73 | 57 | 41 | 31 | 27 | 23 |
-| 3 | 3 | 83 | 67 | 51 | 48 | 46 | 53 |
-| 3 | 8 | 109 | 100 | 88 | 101 | 137 | 247 |
+| 1 | 1 | 19 | 14 | 10 | 7 | 5 | 4 |
+| 3 | 1 | 20 | 15 | 11 | 8 | 6 | 5 |
+| 3 | 3 | 22 | 17 | 12 | 10 | 9 | 8 |
+| 3 | 8 | 25 | 23 | 17 | 15 | 15 | 15 |
+
+α = 0.25, ε = 1e-9
+
+| hops | Δ_max | 60 s | 45 s | 30 s | 20 s | 15 s | 10 s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 87 | 65 | 45 | 32 | 26 | 18 |
+| 3 | 1 | 97 | 76 | 55 | 42 | 36 | 31 |
+| 3 | 3 | 111 | 90 | 68 | 64 | 61 | 70 |
+| 3 | 8 | 145 | 134 | 117 | 135 | 182 | 329 |
 
 What the surface says:
 
-- **The block rate is a lever only while the delay is short.** On testnet's Blend, 10 s blocks
-  settle against 25 % of the stake in 13 minutes, against 34 at 30 s. On the specification's
-  Blend the best interval is 15–20 s, at 46–48 minutes against 51 at 30 s. With heavier mixing,
-  faster blocks fork more than they gain, and settlement slows.
-- **H3 holds.** At 30 s blocks the time to settle grows faster than `1/(1 − o)` with the orphan
-  share: from testnet's to the specification's Blend, `1/(1 − o)` rises by a factor of 1.17 and
-  the time to settle by 1.5.
+- **On testnet's Blend, faster blocks settle sooner.** Against 25 % of the stake at `1e-9`, 10 s
+  blocks settle in 18 minutes against 45 at 30 s. The race on the engine's timelines needs within
+  two blocks of the same depths at 30, 20 and 15 s (`DAG.md`, E2).
+- **On the specification's Blend the closed form over-asks as orphans rise.** B3 checked it at
+  30 s blocks only. At 30, 20 and 15 s it needs 86, 110 and 130 blocks, where the race needs 77,
+  88 and 92: 68, 64 and 61 minutes against the race's 59, 48 and 40. The chain keeps gaining at
+  least to 15 s blocks.
+- **With 3 hops of up to 8 rounds the closed form slows as blocks speed up,** from 117 minutes at
+  30 s to 329 at 10 s. The race was not run there.
+- **H3 holds.** At 30 s blocks the time to settle against a quarter of the stake grows faster than
+  `1/(1 − o)` with the orphan share: from testnet's to the specification's Blend, `1/(1 − o)` rises
+  by a factor of 1.17, the race's time by 1.29 and the closed form's by 1.5.
 - These are random-delay numbers. Under a delay chosen by an adversary, the bounds of Phase B2
   apply instead (`SETTLEMENT.md`).
 

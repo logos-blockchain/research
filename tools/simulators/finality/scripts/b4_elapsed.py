@@ -5,8 +5,9 @@
 Both rules face B5's private race with the strict tie rule, the coalition forking at the target's
 parent (src/finality_sim/elapsed.py). The depth rule waits for the depth of B5's closed form; the
 elapsed-time rule accepts at the first canonical block whose time since the parent leaves the
-coalition a chance of at most eps. Both use the coalition's slot rate a = 1 - (1 - f)^alpha and the
-canonical rate h = g (1 - (1 - f)^(1 - alpha)), g being A1's growth on the specification's Blend.
+coalition a chance of at most eps. Both use B5's rates: the coalition wins at a = alpha lambda per
+slot and the canonical chain grows at h = (1 - alpha) g lambda, with lambda = -ln(1 - f) and g A1's
+growth on the specification's Blend, so q = a / (a + h) is B5's.
 
 They are played on two kinds of timeline, 64 of each per share, one epoch at k = 256: the engine's
 (scripts/b3_race.py's specification Blend, the coalition withholding), and independent slots with
@@ -57,7 +58,8 @@ def main() -> None:
                 & (s.blend_delay_max == 3)].growth_per_f.iloc[0])
     rows = []
     for alpha in ALPHAS:
-        a, h = 1 - (1 - F) ** alpha, g * (1 - (1 - F) ** (1 - alpha))
+        lam = -math.log(1 - F)
+        a, h = alpha * lam, (1 - alpha) * g * lam
         q = a / (a + h)
         rules = {}
         for eps in EPS:

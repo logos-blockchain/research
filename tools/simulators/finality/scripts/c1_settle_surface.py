@@ -5,8 +5,9 @@
 Depth comes from the private race from the target's parent, without a premined lead, and
 Cryptarchia's strict tie rule, which B3 found within a few blocks of the closed form at the
 attacker's share of chain-extending blocks, ``q = a / (a + (1 - a) g)``, where ``g`` is the
-measured canonical growth per occupied-slot rate. Time per canonical block is ``interval / g``. H3
-asks whether the time falls at least as fast as ``1 / (1 - o)`` as the orphan share ``o`` falls.
+measured canonical growth per occupied-slot rate. Time per canonical block is the honest chain's
+while the coalition withholds, ``interval / ((1 - a) g)``. H3 asks whether the time falls at least
+as fast as ``1 / (1 - o)`` as the orphan share ``o`` falls.
 """
 
 from __future__ import annotations
@@ -48,7 +49,7 @@ def main() -> None:
                 d = depth(q, eps)
                 rows.append(dict(hops=r.hops, delta_max=r.delta_max, interval=r.interval,
                                  orphan=r.orphan_share, growth=g, alpha=a, eps=eps, depth=d,
-                                 minutes=d * r.interval / g / 60))
+                                 minutes=d * r.interval / ((1 - a) * g) / 60))
     t = pd.DataFrame(rows)
     t.to_csv(HERE / "runs" / "c1" / "settle_surface.csv", index=False)
     for a in ALPHAS:

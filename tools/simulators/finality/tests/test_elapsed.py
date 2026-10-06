@@ -69,3 +69,25 @@ def test_the_rule_holds_eps_for_the_race_it_assumes(timelines):
         n += int(ok.sum())
     assert n > 50_000
     assert fails / n <= eps
+
+
+def test_the_rule_holds_eps_however_fast_the_blocks_came(timelines):
+    """Banded by how long the depth rule's blocks took, the elapsed-time rule still holds eps in
+    every band; the depth rule holds it only on average, and fails in the slowest band."""
+    eps, depth = 0.01, 10
+    dl = deadlines(A, H, eps, 200)
+    k_all, d_all, slow = [], [], []
+    for canon, adv in timelines:
+        deepest = race_depths(canon, adv, 120, premine=False)
+        k, _, t_depth = settle(canon, dl, depth)
+        ok = (k >= 1) & (deepest >= 0) & (t_depth >= 0)
+        k_all.append(deepest[ok] >= k[ok])
+        d_all.append(deepest[ok] >= depth)
+        slow.append(t_depth[ok])
+    k_all, d_all, slow = (np.concatenate(x) for x in (k_all, d_all, slow))
+    edges = np.quantile(slow, [0, 0.25, 0.5, 0.75, 0.95, 1])
+    band = np.clip(np.searchsorted(edges, slow, side="right") - 1, 0, 4)
+    for b in range(5):
+        fail = k_all[band == b]
+        assert fail.mean() <= eps + 4 * np.sqrt(eps / fail.size), (b, fail.mean())
+    assert d_all[band == 4].mean() > 3 * eps
