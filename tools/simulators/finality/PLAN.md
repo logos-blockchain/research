@@ -56,7 +56,21 @@ Phase by phase:
 | D6 simulation | done: votes on a target 30 slots back never split under random delay; a round certifies within one Blend delivery; an adversary that schedules delays splits shallow rounds |
 | E0 audit of the Areon simulator | done |
 | E1–E6 Areon-Base on the engine | done: built on the TSI engine (the owner's choice); the private race, the §5.6 fit, worst-case delay, eligibility, ledger and cost |
-| F report | `reports/finality/README.md` |
+| F report | `reports/finality/README.md`, a draft |
+
+Before review, in this order:
+
+1. **The DAG's worst case.** An adversary that splits honest views between two conflicting
+   subDAGs, signing one win into both; and what a weight counting references would hand it.
+   Decides the rest of H7.
+2. **Grinding the epoch nonce.** How many nonces a last-revealing coalition can choose between, and
+   what that adds to the settlement depths and takes from the recovery horizon.
+3. **The opt-in committee and the privacy of votes** (D1b, D5), measured.
+4. **A confirmation rule that reads elapsed time** (B4), which could settle sooner when blocks come
+   fast.
+5. **Proving a vote on a Raspberry Pi 5** (D3): a benchmark for the reference hardware.
+
+Then an independent review of the notes, the report and the code, and the owner's review.
 
 Findings about the protocol as it stands:
 
@@ -411,7 +425,8 @@ decision and what it changes.
 - **Q5 — Are protocol changes in scope?** *Settled 2026-10-05 by the owner:* yes; L2, L5 and L6
   change the protocol, and all are explored (Q1, Q9). The study ends in a ranked report that
   names RFC candidates. No specification is edited on this branch; RFCs are written later in
-  `logos-lips`.
+  `logos-lips`. *2026-10-06, the owner:* no RFC is drafted until the study is complete and
+  reviewed.
 - **Q6 — Do votes travel through Blend?** *Settled 2026-10-05 by the owner:* anonymous votes
   travel through Blend, as C4 requires. The opt-in committee's votes are public and may be
   gossiped directly (D1b). Anonymous votes sent by direct gossip are described as an
