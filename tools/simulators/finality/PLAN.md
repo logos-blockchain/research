@@ -416,7 +416,8 @@ decision and what it changes.
 - **Q2 — Which attacker share `α` and failure probability `ε` head the results?** *Settled
   2026-10-05 by the owner:* no headline pair. Every result is reported as curves across `α` and
   `ε`. `ε` is per block for settlement and per round for votes, each with its yearly failure
-  rate. The hypotheses of §2 keep `α = 0.25` and `ε = 1e-9` as test points only.
+  rate. The hypotheses of §2 keep `α = 0.25` and `ε = 1e-9` as test points only. *2026-10-06, the
+  owner:* the findings are reviewed against at most a third of the stake, 30 % at the loosest.
 - **Q3 — Which delay model, and which Blend?** *Settled 2026-10-05 by the owner:* `Δ` is a
   variable, not Blend's present deadline. Every result is reported as a function of `Δ`. The
   study derives the `Δ` each lever needs, and Blend's parameters are adapted to it (C2). Inside

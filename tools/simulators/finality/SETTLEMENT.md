@@ -248,31 +248,49 @@ honest blocks up to acceptance, it is at most `ε` as well.
 The depth rule waits for B5's closed-form depth. Both rules are played on 64 timelines per share,
 one epoch at `k = 256`: the engine's, on the specification's Blend with the coalition withholding,
 and independent slots of the model both rules assume. The race scores each acceptance itself
-(`scripts/b4_elapsed.py`). A cell of 0 means no success among about 100,000 targets:
+(`scripts/b4_elapsed.py`). A cell of 0 means no success among 59,000–124,000 targets:
 
 | timelines | α | ε | depth rule: blocks | depth rule: minutes, mean / p90 | elapsed-time rule: blocks, mean | elapsed-time rule: minutes, mean / p90 | race beats the rule, depth / elapsed |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | engine | 0.10 | 1e-3 | 4 | 2.6 / 4.1 | 3.6 | 2.4 / 4.5 | 5.9e-04 / 5.0e-04 |
 | engine | 0.10 | 1e-6 | 12 | 7.9 / 10.4 | 9.5 | 6.3 / 9.8 | 0 / 0 |
 | engine | 0.10 | 1e-9 | 19 | 12.5 / 15.7 | 15.5 | 10.2 / 14.9 | 0 / 0 |
-| model | 0.10 | 1e-3 | 4 | 2.6 / 4.3 | 3.5 | 2.3 / 4.8 | 9.5e-04 / 7.4e-04 |
+| model | 0.10 | 1e-3 | 4 | 2.6 / 4.3 | 3.5 | 2.3 / 4.8 | 9.0e-04 / 6.9e-04 |
 | model | 0.10 | 1e-6 | 12 | 7.8 / 10.7 | 9.4 | 6.1 / 10.2 | 0 / 0 |
 | model | 0.10 | 1e-9 | 19 | 12.3 / 16.0 | 15.3 | 9.9 / 15.2 | 0 / 0 |
-| engine | 0.25 | 1e-3 | 23 | 17.7 / 21.8 | 16.7 | 12.8 / 21.4 | 6.4e-04 / 4.9e-04 |
+| engine | 0.25 | 1e-3 | 23 | 17.7 / 21.8 | 16.7 | 12.8 / 21.4 | 6.5e-04 / 4.9e-04 |
 | engine | 0.25 | 1e-6 | 54 | 41.6 / 47.7 | 37.3 | 28.7 / 41.8 | 0 / 0 |
-| engine | 0.25 | 1e-9 | 86 | 66.2 / 74.0 | 58.2 | 44.8 / 61.4 | 0 / 0 |
-| model | 0.25 | 1e-3 | 23 | 17.8 / 22.6 | 16.8 | 13.0 / 23.1 | 5.0e-04 / 6.8e-04 |
-| model | 0.25 | 1e-6 | 54 | 41.8 / 49.0 | 37.6 | 29.0 / 44.5 | 0 / 0 |
-| model | 0.25 | 1e-9 | 86 | 66.6 / 75.5 | 58.5 | 45.3 / 64.9 | 0 / 0 |
+| engine | 0.25 | 1e-9 | 86 | 66.2 / 73.9 | 58.2 | 44.8 / 61.4 | 0 / 0 |
+| model | 0.25 | 1e-3 | 23 | 17.8 / 22.6 | 16.8 | 13.0 / 23.1 | 5.1e-04 / 6.9e-04 |
+| model | 0.25 | 1e-6 | 54 | 41.8 / 49.0 | 37.6 | 29.1 / 44.6 | 0 / 0 |
+| model | 0.25 | 1e-9 | 86 | 66.6 / 75.5 | 58.6 | 45.3 / 65.0 | 0 / 0 |
+| engine | 0.30 | 1e-3 | 44 | 36.0 / 42.2 | 30.0 | 24.6 / 40.0 | 4.0e-04 / 1.1e-03 |
+| engine | 0.30 | 1e-6 | 102 | 83.4 / 92.7 | 65.3 | 53.4 / 77.3 | 0 / 0 |
+| engine | 0.30 | 1e-9 | 161 | 131.6 / 143.0 | 100.6 | 82.3 / 112.3 | 0 / 0 |
+| model | 0.30 | 1e-3 | 44 | 36.2 / 43.1 | 30.0 | 24.6 / 42.0 | 4.2e-04 / 8.1e-04 |
+| model | 0.30 | 1e-6 | 102 | 83.9 / 94.2 | 65.6 | 53.9 / 80.8 | 0 / 0 |
+| model | 0.30 | 1e-9 | 161 | 132.4 / 145.0 | 101.5 | 83.4 / 117.1 | 0 / 0 |
+| engine | 0.33 | 1e-3 | 75 | 64.1 / 72.5 | 47.9 | 41.0 / 65.6 | 3.3e-05 / 5.9e-04 |
+| engine | 0.33 | 1e-6 | 171 | 146.3 / 158.8 | 103.0 | 88.2 / 125.3 | 0 / 0 |
+| engine | 0.33 | 1e-9 | 269 | 230.2 / 245.9 | 158.6 | 135.7 / 184.1 | 0 / 0 |
+| model | 0.33 | 1e-3 | 75 | 65.5 / 74.9 | 50.5 | 44.0 / 73.4 | 5.4e-04 / 8.0e-04 |
+| model | 0.33 | 1e-6 | 171 | 149.3 / 163.5 | 109.1 | 95.2 / 141.4 | 0 / 0 |
+| model | 0.33 | 1e-9 | 269 | 234.7 / 252.1 | 167.7 | 146.3 / 205.3 | 0 / 0 |
 
 - **Reading elapsed time settles about a third sooner against a quarter of the stake.** At `1e-9`
   the depth rule waits 86 blocks, 66 minutes on the engine's timelines. The elapsed-time rule
   accepts after 58 blocks on average, in 45 minutes, and its 90th percentile, 61 minutes, is below
   the depth rule's 74. At `1e-3` it takes 13 minutes instead of 18.
+- **Against 30 % and a third it settles about 40 % sooner.** At `1e-9` against a third the depth
+  rule waits 269 blocks, 3.8 hours on the engine's timelines. The elapsed-time rule accepts after
+  159 blocks on average, in 2.3 hours, and its 90th percentile, 3.1 hours, is below the depth
+  rule's mean. Against 30 % the two rules take 2.2 and 1.4 hours.
 - **Against a tenth of the stake it settles about a fifth sooner** at `1e-6` and `1e-9`. At
   `1e-3` it gains 11 % on average, and its 90th percentile is 0.4 minutes longer.
 - **Both rules hold `ε` where it can be measured.** At `1e-3` and a quarter of the stake, the race
-  beats the depth rule on 6.4e-4 of the engine's targets and the elapsed-time rule on 4.9e-4.
+  beats the depth rule on 6.5e-4 of the engine's targets and the elapsed-time rule on 4.9e-4. At
+  30 % it beats the elapsed-time rule on 1.1e-3 of 79,208 targets, within one standard error of
+  `1e-3`.
 - **The per-history guarantee holds inside the rule's model only.** A coalition that also extends
   the public chain changes the history the client reads. Under a worst case of `Δ` the rule would
   need B2's model, which is not derived here.

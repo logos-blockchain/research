@@ -34,14 +34,13 @@ from finality_sim.race import race_depths, withhold_timelines
 HERE = pathlib.Path(__file__).resolve().parent.parent
 OUT = HERE / "runs" / "b4"
 F = 1 / 30
-ALPHAS = (0.10, 0.25)
+ALPHAS = (0.10, 0.25, 0.30, 1 / 3)
 EPS = (1e-3, 1e-6, 1e-9)
 REPLICATES = 64
-K_MAX = 150
 SLOTS = BASE["epochs"] * 10 * int(BASE["k"] / F)
 
 
-def timelines(kind: str, alpha: float, rep: int, a: float, h: float):
+def timelines(kind: str, alpha: float, rep: int, a: float, h: float, k_max: int):
     if kind == "engine":
         cfg = SimConfig(**BASE, **CONFIGS["spec"], adversary_frac=alpha, replicate=rep)
         canon, adv, _ = withhold_timelines(cfg)
@@ -49,7 +48,7 @@ def timelines(kind: str, alpha: float, rep: int, a: float, h: float):
         rng = np.random.default_rng([rep, int(alpha * 1000)])
         canon = np.nonzero(rng.random(SLOTS) < h)[0].astype(np.int64)
         adv = np.nonzero(rng.random(SLOTS) < a)[0].astype(np.int64)
-    return canon, race_depths(canon, adv, K_MAX, premine=False, win_at=1)
+    return canon, race_depths(canon, adv, k_max, premine=False, win_at=1)
 
 
 def main() -> None:
@@ -65,8 +64,10 @@ def main() -> None:
         for eps in EPS:
             d = next(k for k in range(1, 10_000) if log_strict(q, k + 1) <= math.log(eps))
             rules[eps] = (d, deadlines(a, h, eps, 3 * d + 60))
+        k_max = 2 * max(d for d, _ in rules.values())
         for kind in ("engine", "model"):
-            runs = Parallel(n_jobs=-2)(delayed(timelines)(kind, alpha, r, a, h) for r in range(REPLICATES))
+            runs = Parallel(n_jobs=-2)(delayed(timelines)(kind, alpha, r, a, h, k_max)
+                                       for r in range(REPLICATES))
             for eps, (d, dl) in rules.items():
                 k_t, t_t, t_d, deep = [], [], [], []
                 for canon, deepest in runs:
@@ -74,7 +75,7 @@ def main() -> None:
                     ok = (kt >= 1) & (td >= 0) & (deepest >= 0)
                     k_t.append(kt[ok]), t_t.append(tt[ok]), t_d.append(td[ok]), deep.append(deepest[ok])
                 k_t, t_t, t_d, deep = (np.concatenate(x) for x in (k_t, t_t, t_d, deep))
-                if k_t.max() > K_MAX:
+                if k_t.max() > k_max:
                     raise ValueError("the rule accepted past the race's depth")
                 rows.append(dict(timelines=kind, alpha=alpha, eps=eps, targets=k_t.size, depth=d,
                                  depth_mean_min=t_d.mean() / 60, depth_p50_min=np.median(t_d) / 60,

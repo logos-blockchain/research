@@ -53,7 +53,7 @@ b3: install                   # SETTLEMENT.md, B3 (about 10 minutes on 14 cores)
 	$(PY) scripts/b3_race.py
 	cd scripts && ../$(PY) b3_delay.py
 
-b4: install                   # SETTLEMENT.md, B4 elapsed time (about 15 s; needs a1)
+b4: install                   # SETTLEMENT.md, B4 elapsed time (about a minute; needs a1)
 	$(PY) scripts/b4_elapsed.py
 
 b5: install                   # SETTLEMENT.md, B5 (about 3 minutes on 14 cores; needs a1)

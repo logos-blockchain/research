@@ -59,14 +59,16 @@ def c1() -> None:
 
 def c1settle() -> None:
     t = pd.read_csv(RUNS / "c1" / "settle_surface.csv")
-    for a in (0.10, 0.25):
+    for a in sorted(t.alpha.unique()):
         p = t[(t.alpha == a) & (t.eps == 1e-9)].pivot_table(
             index=["hops", "delta_max"], columns="interval", values="minutes")
-        p = p[sorted(p.columns, reverse=True)].round(0).astype(int).reset_index()
+        p = p[sorted(p.columns, reverse=True)].reset_index()
         p["hops"] = p["hops"].astype(int)
         p["delta_max"] = p["delta_max"].astype(int)
+        for c in p.columns[2:]:
+            p[c] = p[c].map(lambda v: "–" if np.isnan(v) else f"{v:,.0f}")
         p.columns = ["hops", "Δ_max"] + [f"{int(c)} s" for c in p.columns[2:]]
-        print(f"α = {a}, ε = 1e-9\n")
+        print(f"α = {a:.2f}, ε = 1e-9\n")
         print(md(p))
         print()
 

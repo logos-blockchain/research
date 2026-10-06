@@ -19,7 +19,7 @@ import pandas as pd
 from scipy import stats
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
-ALPHAS = (0.10, 0.25)
+ALPHAS = (0.10, 0.25, 0.30, 1 / 3)
 EPS = (1e-6, 1e-9)
 
 
@@ -49,7 +49,7 @@ def main() -> None:
                 d = depth(q, eps)
                 rows.append(dict(hops=r.hops, delta_max=r.delta_max, interval=r.interval,
                                  orphan=r.orphan_share, growth=g, alpha=a, eps=eps, depth=d,
-                                 minutes=d * r.interval / ((1 - a) * g) / 60))
+                                 minutes=d * r.interval / ((1 - a) * g) / 60 if d > 0 else np.nan))
     t = pd.DataFrame(rows)
     t.to_csv(HERE / "runs" / "c1" / "settle_surface.csv", index=False)
     for a in ALPHAS:

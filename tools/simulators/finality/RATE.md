@@ -78,9 +78,10 @@ Orphan share · growth / f, 0.1 s links, 8 replicates per cell, by block interva
 Minutes to settle under random Blend delays. Depth is that of the private race from the target's
 parent, without a premined lead, and Cryptarchia's strict tie rule, at the attacker's share of
 chain-extending blocks `q = α / (α + (1 − α) · growth / f)`. Time per canonical block is the honest
-chain's while the coalition withholds: the interval over `(1 − α) · growth / f`.
+chain's while the coalition withholds: the interval over `(1 − α) · growth / f`. A dash marks more
+than 5,000 blocks.
 
-α = 0.1, ε = 1e-9
+α = 0.10, ε = 1e-9
 
 | hops | Δ_max | 60 s | 45 s | 30 s | 20 s | 15 s | 10 s |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -98,6 +99,24 @@ chain's while the coalition withholds: the interval over `(1 − α) · growth /
 | 3 | 3 | 111 | 90 | 68 | 64 | 61 | 70 |
 | 3 | 8 | 145 | 134 | 117 | 135 | 182 | 329 |
 
+α = 0.30, ε = 1e-9
+
+| hops | Δ_max | 60 s | 45 s | 30 s | 20 s | 15 s | 10 s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 157 | 118 | 82 | 60 | 48 | 33 |
+| 3 | 1 | 180 | 141 | 106 | 82 | 74 | 68 |
+| 3 | 3 | 212 | 174 | 136 | 143 | 146 | 213 |
+| 3 | 8 | 295 | 290 | 274 | 402 | 800 | – |
+
+α = 0.33, ε = 1e-9
+
+| hops | Δ_max | 60 s | 45 s | 30 s | 20 s | 15 s | 10 s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 249 | 187 | 131 | 97 | 78 | 55 |
+| 3 | 1 | 292 | 230 | 176 | 140 | 133 | 133 |
+| 3 | 3 | 354 | 295 | 239 | 283 | 318 | 669 |
+| 3 | 8 | 525 | 555 | 582 | 1,219 | – | – |
+
 What the surface says:
 
 - **On testnet's Blend, faster blocks settle sooner.** Against 25 % of the stake at `1e-9`, 10 s
@@ -109,6 +128,10 @@ What the surface says:
   least to 15 s blocks.
 - **With 3 hops of up to 8 rounds the closed form slows as blocks speed up,** from 117 minutes at
   30 s to 329 at 10 s. The race was not run there.
+- **From 30 % of the stake faster blocks gain little on the specification's Blend.** The closed
+  form needs 136, 143 and 146 minutes against 30 % at 30, 20 and 15 s, and 239, 283 and 318
+  against a third. The race, fitted in E2, needs 160, 153 and 144 minutes against a third
+  (`DAG.md`).
 - **H3 holds.** At 30 s blocks the time to settle against a quarter of the stake grows faster than
   `1/(1 − o)` with the orphan share: from testnet's to the specification's Blend, `1/(1 − o)` rises
   by a factor of 1.17, the race's time by 1.29 and the closed form's by 1.5.
