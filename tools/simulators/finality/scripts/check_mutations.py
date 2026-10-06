@@ -154,6 +154,35 @@ MUTATIONS = [
     ("balance: odd phases cost nothing", HERE / "src/finality_sim/balance.py",
      "reserve += a[j] - (h[j] % 2)", "reserve += a[j]",
      "tests/test_balance.py::test_the_balance_holds_only_above_the_threshold"),
+    ("grinding: the walk drops the coalition's win in an honest block's slot",
+     HERE / "src/finality_sim/grinding.py",
+     "step = np.convolve(stats.binom.pmf(np.arange(dead + 2), dead + 1, a), geo)",
+     "step = np.convolve(stats.binom.pmf(np.arange(dead + 1), dead, a), geo)",
+     "tests/test_grinding.py::test_the_walk_matches_a_slot_by_slot_simulation"),
+    ("grinding: the walk ignores slots both win", HERE / "src/finality_sim/grinding.py",
+     "r = a * (1.0 - h) / (a * (1.0 - h) + h)", "r = a / (a + h)",
+     "tests/test_grinding.py::test_the_walk_matches_a_slot_by_slot_simulation"),
+    ("grinding: the cut-off falls at the start of a gap", HERE / "src/finality_sim/grinding.py",
+     "pm = np.where(m <= dead, 1.0, (1.0 - h) ** (m - dead)) / (dead + 1.0 / h)",
+     "pm = np.where(m < dead, 0.0, h * (1.0 - h) ** (m - dead))",
+     "tests/test_grinding.py::test_the_walk_matches_a_slot_by_slot_simulation"),
+    ("grinding: a fork needs only as many wins as honest blocks", HERE / "src/finality_sim/grinding.py",
+     "math.lgamma(lead) - math.lgamma(w - lead + 2)) / math.log(2)\n"
+     "            ratio, total = 1.0, 1.0                  # C(w, i) / C(w, lead - 1), from i = lead - 1 down\n"
+     "            for i in range(lead - 1, 0, -1):",
+     "math.lgamma(lead + 1) - math.lgamma(w - lead + 1)) / math.log(2)\n"
+     "            ratio, total = 1.0, 1.0\n"
+     "            for i in range(lead, 0, -1):",
+     "tests/test_grinding.py::test_the_largest_choice_matches_the_simulation"),
+    ("grinding: the upper bound leaves out choices below the threshold",
+     HERE / "src/finality_sim/grinding.py",
+     "upper = np.minimum(1.0, u * x[-1]) * tail_x[k] + u + u * below[k]",
+     "upper = np.minimum(1.0, u * x[-1]) * tail_x[k] + u",
+     "tests/test_grinding.py::test_the_bounds_hold_the_simulated_chance"),
+    ("grinding: the walk is dropped soon after it trails", HERE / "src/finality_sim/grinding.py",
+     "budget_bits: int = 64, depths: int = 4000, floor: int = 100,",
+     "budget_bits: int = 64, depths: int = 4000, floor: int = 5,",
+     "tests/test_grinding.py::test_the_truncation_of_the_walk_moves_no_bound"),
 ]
 
 

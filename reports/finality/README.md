@@ -35,8 +35,8 @@ Against a quarter of the stake on the specification's Blend (3 hops of up to 3 r
 
 | route | what changes | time until final | what it costs | what remains open |
 | --- | --- | --- | --- | --- |
-| settlement rule ([§3](#s3)) | a client depth; nothing in consensus | 18 min at `1e-3`, 59 min at `1e-9` under random delay; 4.6 h guaranteed at `Δ = 10` s | nothing | the adversary's share and the delay model are assumptions the client accepts |
-| smaller `k` ([§4](#s4)) | `k`, the epoch unless decoupled, and a recovery trigger | in proportion to `k`: 1.8–2.1 h at `k = 216`, which holds 32 % of the stake at `1e-9` under random delay and 17–22 % guaranteed | a weaker guarantee; less precise stake inference if the epoch shrinks too | a look-back horizon of 38–71 days at Bitcoin-like turnover |
+| settlement rule ([§3](#s3)) | a client depth; nothing in consensus | 18 min at `1e-3`, 59 min at `1e-9` under random delay; 4.6 h guaranteed at `Δ = 10` s; 1.8 h and 7.7 h once grinding of the epoch nonce is counted | nothing | the adversary's share, the delay model and how far the nonce can be ground are assumptions the client accepts |
+| smaller `k` ([§4](#s4)) | `k`, the epoch unless decoupled, and a recovery trigger | in proportion to `k`: 1.8–2.1 h at `k = 216`, which holds 32 % of the stake at `1e-9` under random delay and 17–22 % guaranteed; 27 % and 16–21 % once grinding is counted | a weaker guarantee; less precise stake inference if the epoch shrinks too | a look-back horizon of 57–108 days at Bitcoin-like turnover, with an 8-hour window and grinding counted |
 | regular block intervals ([§5](#s5)) | the lottery coefficient becomes a curve of the slots since the parent | 12 min instead of 18 at `1e-3` | 30 % more blocks; a new stake inference | no worst-case bound |
 | faster blocks ([§5](#s5)) | `f` | best at 15–20 s blocks: 46–48 min at `1e-9` against 51 | more forks | — |
 | certificates ([§6](#s6)) | anonymous-seat votes through Blend | about 6 min with 10-minute rounds | ×269 Blend cover traffic | rounds stall under a partition or a delay-scheduling adversary |
@@ -110,23 +110,32 @@ stake is settled against in 59 minutes under random delay and in 4.6 hours under
   the 1 s slot lottery, lands within 7 % of the bound computed in continuous time.
 - **`k = 2160` holds a third of the stake at `1e-9` only for delays up to about 14 s.**
 
+**Grinding the epoch nonce adds to every depth.** A coalition that withholds its wins chooses
+which of them end the chain at the cut-off that fixes the next epoch's nonce, and so chooses among
+many schedules. Against a quarter of the stake at `1e-9`, the 77 blocks of the specification's
+Blend become 130–138, and the 469 of the worst case at 10 s become 741–785. That assumes a
+coalition that can evaluate `2^64` nonces an epoch. From 30 % of the stake only that budget bounds
+the choice. Once grinding is counted, `k = 2160` holds a third of the stake only up to about 7 s
+against a coalition that evaluates `2^40` nonces an epoch, and below 4 s against `2^64`.
+
 The rule a client accepts (B4 in `SETTLEMENT.md`) assumes the adversary's share, the delay model,
-no grinding of the epoch randomness beyond the model, and a view that is not eclipsed. The node
-would expose a third level, *settled*, beside the tip and `B_imm`.
+how far the epoch nonce can be ground, and a view that is not eclipsed. The node would expose a
+third level, *settled*, beside the tip and `B_imm`.
 
 ---
 
 <a id="s4"></a>
 ## 4. A smaller `k`, and recovery from a split
 
-**What a smaller `k` holds.** The largest adversary each `k` withstands at `ε = 1e-9`:
+**What a smaller `k` holds.** The largest adversary each `k` withstands at `ε = 1e-9`, without
+and with grinding of the epoch nonce (`2^64` nonces evaluated an epoch):
 
-| `k` | random delay, the specification's Blend | guaranteed, `Δ` = 1–10 s |
-| --- | --- | --- |
-| 2160 | 0.41 | at least a third |
-| 432 | 0.36 | 0.24–0.29 |
-| 216 | 0.32 | 0.17–0.22 |
-| 120 | 0.28 | 0.11–0.15 |
+| `k` | random delay, the specification's Blend | guaranteed, `Δ` = 1–10 s | random delay, with grinding | guaranteed, with grinding |
+| --- | --- | --- | --- | --- |
+| 2160 | 0.41 | at least a third | 0.38 | 0.30 to at least a third |
+| 432 | 0.36 | 0.24–0.29 | 0.30 | 0.22–0.25 |
+| 216 | 0.32 | 0.17–0.22 | 0.27 | 0.16–0.21 |
+| 120 | 0.28 | 0.11–0.15 | 0.24 | 0.10–0.15 |
 
 **What a smaller `k` breaks.** A split heals by itself only while the losing side has made fewer
 than `k` blocks: 35.7 hours for an even split at `k = 2160`, 2 hours at `k = 120`. Past that, a node
@@ -142,7 +151,8 @@ Bootstrap rule. Six rules make it safe:
 2. Read the depth of the deeper branch, so that every node holding either chain decides alike.
 3. Compare densities only once both chains hold the whole window.
 4. Size the window for `(α, ε)`: about 1.7 hours holds a quarter of the stake at `1e-9` per window
-   on the specification's Blend, 4.9 hours a third.
+   on the specification's Blend, 4.9 hours a third. Grinding lengthens it: against a quarter of
+   the stake, 4 hours no longer suffices and 8 hours does.
 5. Keep the window within `4⌊k/f⌋` slots, before a fork's own nonce and inferred stake take effect.
 6. Bound the horizon `H` against keys that become free (below).
 
@@ -150,7 +160,7 @@ Bootstrap rule. Six rules make it safe:
 divergence and has been spent since can sign for it on the fork, where the note is unspent. A share
 `μ(a)` of the stake moves within an age `a`. The table gives the longest horizon, in days, that
 keeps the failure over all divergence points at or below `1e-9`. The window is 4 hours, the
-specification's Blend, and the adversary obtains every freed key:
+specification's Blend, the adversary obtains every freed key, and the epoch nonce is not ground:
 
 | turnover per day | α = 0.10 | α = 0.20 | α = 0.25 | α = 0.30 | α = 0.33 |
 | --- | --- | --- | --- | --- | --- |
@@ -172,7 +182,9 @@ bound of rule 5.
 Staked value on other chains moves at 0.05–0.3 % a day: Ethereum's exits are capped at 0.13 %, and
 Cosmos, Polkadot, Cardano and Solana showed 0.05–0.27 % in single-period scans. Bitcoin's supply,
 the closest match to Cryptarchia's notes, moves at 0.13–0.24 % a day over a month to a year. At
-Bitcoin's rates the horizon against a quarter of the stake is 38 to 71 days. Ethereum's weak
+Bitcoin's rates the horizon against a quarter of the stake is 38 to 71 days. Once grinding of the
+epoch nonce is counted, a 4-hour window holds a quarter of the stake for only 3 to 5 days, and an
+8-hour window for 57 to 108 days. Ethereum's weak
 subjectivity period, set by its exit cap, is 15.7 days. Chains whose stake is never locked protect
 leader keys instead: Cardano's evolve every 36 hours, and Algorand erases each round's key. A
 forward-secure leader key would free the horizon from turnover altogether.
@@ -302,10 +314,16 @@ With the first reading, against a quarter of the stake on the specification's Bl
   node's own branch. When one side of a split has passed `k` blocks and the other has not, nodes on
   the short side follow the longer chain while nodes on the long side follow the denser one, and
   they alternate until both sides pass `k`.
+- **The epoch nonce can be ground.** The nonce is the hash chain at the last block before a
+  cut-off slot, so a coalition that withholds its wins chooses among the chains it can end there.
+  Against a quarter of the stake at `1e-9`, the settlement depths must grow by 53–61 blocks under
+  random delay on the specification's Blend and by 272–316 under the worst case at 10 s. From 30 %
+  only the coalition's computation bounds the choice.
 - **The bound's reference code needs more phases at depth.** LCanalysis follows its lower-bound
   attack for 80 phases, too few past its Table 1's depths. At a third of the stake and depth 60 the
-  bound falls from `6.8e-3` to `5e-12`; the original code, run in Octave, does the same. It also scores the attack only at the moment of
-  confirmation; scored at any later moment, the same attack succeeds 2–17 % more often.
+  bound falls from `6.8e-3` to `5e-12`; the original code, run in Octave, does the same. It also
+  scores the attack only at the moment of confirmation; scored at any later moment, the same
+  attack succeeds 2–17 % more often.
 
 ---
 
@@ -318,7 +336,9 @@ With the first reading, against a quarter of the stake on the specification's Bl
   measured elsewhere at 0.05–0.3 % a day, and on how many of their old keys an adversary could buy.
   [§4](#s4) gives the horizon as a function of both.
 - **Proving on the reference node.** The proof of a vote has not been timed on a Raspberry Pi 5.
-- **Grinding.** No model here includes grinding of the epoch randomness.
+- **The grinding budget.** From 30 % of the stake, the depths and the recovery horizon depend on
+  how many nonces a coalition can evaluate before it must publish its chain. The study assumes
+  `2^64` and shows `2^40` where it matters. The time the honest chain leaves it is not modelled.
 
 ---
 

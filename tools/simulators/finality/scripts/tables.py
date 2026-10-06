@@ -1,7 +1,7 @@
 """Markdown tables for the study's notes, read straight from runs/ (no hand transcription).
 
     python scripts/tables.py a1 | c1 | c1settle | c3 | c4 | b3 | b3delay | b2 | b5 | b5rec | b5sweep |
-                             d0 | d6 | e2 | e5 | e5balance
+                             b6 | d0 | d6 | e2 | e5 | e5balance
 """
 
 from __future__ import annotations
@@ -233,6 +233,67 @@ def c3() -> None:
     print(md(t))
 
 
+def b6() -> None:
+    t = pd.read_csv(RUNS / "b6" / "grinding.csv")
+
+    def factor(v):
+        if v < 10:
+            return f"{v:.1f}"
+        if v < 1e4:
+            return f"{float(f'{v:.2g}'):,.0f}"
+        return f"{v:.0e}".replace("e+0", "e").replace("e+", "e")
+
+    def depth(r):
+        if np.isnan(r["depth_1e-09"]):
+            return "–"
+        lo, hi = (f"{r['depth_1e-09'] + r[f'extra_{x}_1e-09']:,.0f}" for x in ("lo", "hi"))
+        return f"{r['depth_1e-09']:,.0f} → {lo}" + ("" if lo == hi else f"–{hi}")
+    print(md(pd.DataFrame({
+        "delay": t.model, "α": t.alpha.map(lambda v: f"{v:.2f}"),
+        "epochs with a choice": t.p_choice.map(lambda v: f"{100 * v:.0f} %"),
+        "factor at 1e-9": [f"{factor(a)}–{factor(b)}" for a, b in zip(t["factor_lo_1e-09"], t["factor_hi_1e-09"])],
+        "set by the budget": t["budget_binds_1e-09"].map(lambda v: "yes" if v else "–"),
+        "depth at 1e-9 → with grinding": [depth(r) for _, r in t.iterrows()]})))
+    print()
+    d = pd.read_csv(RUNS / "b6" / "delays.csv")
+    rows = []
+    for (a, b), g in d.groupby(["alpha", "budget_bits"]):
+        row = {"α": f"{a:.2f}", "nonces evaluated": f"2^{b}"}
+        for _, x in g.sort_values("delay_s").iterrows():
+            row[f"{x.delay_s:.0f} s"] = f"{x['depth_1e-09']:,.0f} → {x['ground_hi_1e-09']:,.0f}"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    h = pd.read_csv(RUNS / "b6" / "shares.csv")
+
+    def share(v):
+        return "< 0.05" if np.isnan(v) else "≥ 1/3" if np.isinf(v) else f"{v:.3f}"
+    rows = []
+    for m, g in h.groupby("model", sort=False):
+        row = {"delay": m}
+        for i, (_, x) in enumerate(g.iterrows()):
+            row[f"k = {x.k}" if i == 0 else f"{x.k}"] = f"{share(x.held_without)} → {share(x.held)}"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    r = pd.read_csv(RUNS / "b6" / "recovery.csv")
+    r = r[(r.model == "random, specification")].sort_values(["alpha", "c", "window_h"],
+                                                              ascending=[True, False, True])
+    r = r.groupby(["alpha", "c", "window_h"]).filter(
+        lambda g: np.isfinite(g[["h_days", "h_days_ground"]].to_numpy()).any())
+
+    def days(v):
+        return "≥ 3650" if np.isinf(v) else f"{24 * v:.0f} h" if v < 1 else f"{v:,.0f}"
+    rows = []
+    for (a, c, w), g in r.groupby(["alpha", "c", "window_h"], sort=False):
+        row = {"α": f"{a:.2f}", "freed keys bought": f"{c:g}", "window": f"{w} h"}
+        for tau in sorted(g.tau_per_day.unique()):
+            x = g[g.tau_per_day == tau].iloc[0]
+            row[f"{100 * tau:.3g} % a day"] = f"{days(x.h_days)} / {days(x.h_days_ground)}"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+
+
 def d0() -> None:
     m = pd.read_csv(RUNS / "d0" / "emission_map.csv")
     d = m[(m.awake == 1.0) & (m.eps == 1e-9)]
@@ -394,5 +455,5 @@ def e5balance() -> None:
 
 if __name__ == "__main__":
     {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b5": b5,
-     "b5rec": b5rec, "b5sweep": b5sweep, "d0": d0, "d6": d6,
+     "b5rec": b5rec, "b5sweep": b5sweep, "b6": b6, "d0": d0, "d6": d6,
      "e2": e2, "e5": e5, "e5balance": e5balance}[sys.argv[1]]()

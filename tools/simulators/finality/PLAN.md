@@ -47,6 +47,7 @@ Phase by phase:
 | B3 engine validation | done: the private-chain attack under random delays, and the delay-scheduling attacker of the lower bound on the slot lottery |
 | B4 confirmation rule | drafted |
 | B5 smaller `k` | done: the share each `k` holds, both routes of Q8, a trigger for automatic recovery, and its horizon against stake turnover |
+| B6 grinding | done: the nonces a coalition can choose between, bounded exactly; what they add to the depths and take from the recovery horizon |
 | C1 rate surface | done |
 | C2 Blend parameters | the delay map is done; the privacy trade is with the Blend owners |
 | C3 GHOST | done |
@@ -61,8 +62,7 @@ Phase by phase:
 Before review, in this order:
 
 1. **The DAG's worst case.** Done (E5): the balancing attack.
-2. **Grinding the epoch nonce.** How many nonces a last-revealing coalition can choose between, and
-   what that adds to the settlement depths and takes from the recovery horizon.
+2. **Grinding the epoch nonce.** Done (B6).
 3. **The opt-in committee and the privacy of votes** (D1b, D5), measured.
 4. **A confirmation rule that reads elapsed time** (B4), which could settle sooner when blocks come
    fast.
@@ -78,6 +78,9 @@ Findings about the protocol as it stands:
   stake wins about one such window in 460 (B5).
 - `maxvalid-bg` reads the depth of the local branch, so after a split the two sides can choose
   different chains until both pass `k` (B5).
+- The epoch nonce can be ground. Against a quarter of the stake at `1e-9`, the depths must grow by
+  53–61 blocks under random delay on the specification's Blend, and by 272–316 under the worst
+  case at 10 s. From 30 %, only the coalition's computation bounds the grinding (B6).
 - LCanalysis follows its lower-bound attack for 80 phases, too few past Table 1's depths: at a
   third of the stake and depth 60 the bound falls from `6.8e-3` to `5e-12`, and the original code
   run in Octave shows the same. It also scores the attack only at the moment of confirmation (B1,
@@ -87,12 +90,12 @@ Hypotheses:
 
 | hypothesis | verdict |
 | --- | --- |
-| H1 | fails for the guarantee: at 25 % and `ε = 1e-9` the upper bound exceeds 216 blocks at every delay. Holds for the best known attack up to about 20 s |
-| H2 | holds for delays up to about 14 s |
+| H1 | fails for the guarantee: at 25 % and `ε = 1e-9` the upper bound exceeds 216 blocks at every delay, and grinding by a coalition that evaluates `2^64` nonces an epoch raises it from 285–469 to 403–785 blocks at 1–10 s. Holds for the best known attack, without grinding, up to about 20 s |
+| H2 | holds for delays up to about 14 s without grinding. Counting grinding, up to about 7 s against a coalition that evaluates `2^40` nonces an epoch, and below 4 s against one that evaluates `2^64` |
 | H3 | holds |
 | H4 | refuted: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control |
 | H5 | waits on the budget line of Q7 |
-| H6 | holds with the trigger of `SETTLEMENT.md` B5: a density test below `B_imm` within a horizon `H`, with a window set apart from `k`. Fails as first stated, a switch to the Bootstrap rule. At Bitcoin's turnover, `H` is 38 to 71 days against 25 % with a 4-hour window and every freed key for sale |
+| H6 | holds with the trigger of `SETTLEMENT.md` B5: a density test below `B_imm` within a horizon `H`, with a window set apart from `k`. Fails as first stated, a switch to the Bootstrap rule. At Bitcoin's turnover, against 25 % with every freed key for sale, `H` is 57 to 108 days with an 8-hour window once grinding is counted (B6), and 38 to 71 days with a 4-hour window without it |
 | H7 | fails by its own test (E5): under a delay chosen by an adversary the DAG's safe region is GHOST's, narrower than the chain's at every block rate. At today's rate it narrows little (0.40–0.45 against 0.46 at 10 s) and the DAG settles against 25 % in 38 minutes at `1e-9` under random delay, against 59 on the chain; at `f_A = 0.25` it collapses to 3–6 %. The weight must accumulate since the fork, and a win must weigh once across both sides of a conflict |
 
 Three notions of finality carry the document. They are measured separately and never mixed.

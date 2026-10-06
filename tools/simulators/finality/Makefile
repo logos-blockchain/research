@@ -2,7 +2,7 @@
 # consumed as a library (PLAN.md). Every number in the study's notes comes from one of these
 # targets; `make tables` prints the notes' tables from runs/, and `make check-tables` checks that
 # each appears verbatim in a note.
-.PHONY: install test mutations firstlook mapping a1 b2 b3 b5 recovery c1 c3 c4 d0 d6 e2 e5 all \
+.PHONY: install test mutations firstlook mapping a1 b2 b3 b5 b6 recovery c1 c3 c4 d0 d6 e2 e5 all \
         tables check-tables octave-reference clean
 
 VENV   ?= .venv
@@ -55,6 +55,9 @@ b3: install                   # SETTLEMENT.md, B3 (about 10 minutes on 14 cores)
 b5: install                   # SETTLEMENT.md, B5 (needs a1 and b2)
 	$(PY) scripts/b5_what_k_holds.py
 
+b6: install                   # SETTLEMENT.md, B6 grinding (about 3 min on 14 cores; needs a1, b2, e2)
+	$(PY) scripts/b6_grinding.py
+
 recovery: install             # SETTLEMENT.md, B5 automatic recovery (about 30 s; needs a1)
 	$(PY) scripts/b5_recovery.py
 	$(PY) scripts/b5_recovery_sweep.py
@@ -76,10 +79,10 @@ e5: install                   # DAG.md, E5 (about 20 s)
 octave-reference:             # the original LCanalysis in Octave, in the background (hours)
 	sh scripts/octave_reference.sh
 
-all: a1 c1 c3 c4 b2 b3 b5 recovery d0 d6 e2 e5
+all: a1 c1 c3 c4 b2 b3 b5 recovery d0 d6 e2 e5 b6
 
 tables: install
-	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b5 b5rec b5sweep d0 d6 e2 e5 e5balance; do $(PY) scripts/tables.py $$t; done
+	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b5 b5rec b5sweep b6 d0 d6 e2 e5 e5balance; do $(PY) scripts/tables.py $$t; done
 
 check-tables: install
 	$(PY) scripts/check_tables.py
