@@ -209,9 +209,55 @@ uses it accepts these assumptions:
 
 The depth table is the RFC candidate: B2 for the worst case, B3 and `RATE.md` for random delay. An
 API would expose it as a configured `(α, ε)` and a settled level beside `lib` in
-`/cryptarchia/info`, with a stream like `lib-stream`. A rule that also conditions on elapsed time
-(Grunspan and Pérez-Marco; Sompolinsky and Zohar) could settle sooner when blocks come fast.
-That is left open.
+`/cryptarchia/info`, with a stream like `lib-stream`.
+
+**Reading elapsed time.** A depth rule holds `ε` on average over the times at which blocks arrive,
+and a client sees those times. In B5's private race the coalition forks at the target's parent.
+When the `n`-th canonical block counting the target appears `t` slots after that parent, the
+coalition holds a Poisson number of blocks of mean `a·t`, whatever the times of the honest blocks.
+The client can therefore compute the coalition's chance exactly (Grunspan and Pérez-Marco, "Double
+spend races", 2018) and accept at the first block where it is at most `ε`
+(`src/finality_sim/elapsed.py`). Averaged over arrival times, that chance is the depth table's.
+Given the history, the coalition's wins are still Poisson, so the rule holds `ε` for every
+history.
+
+Both rules use the coalition's slot rate `a` and the canonical rate `h` of A1's growth on the
+specification's Blend, and the depth rule waits for B5's closed-form depth. They are played on 64
+timelines per share, one epoch at `k = 256`: the engine's, on the specification's Blend with the
+coalition withholding, and independent slots of the model both rules assume. The race scores each
+acceptance itself (`scripts/b4_elapsed.py`):
+
+| timelines | α | ε | depth rule: blocks | depth rule: minutes, mean / p90 | elapsed-time rule: blocks, mean | elapsed-time rule: minutes, mean / p90 | race beats the rule, depth / elapsed |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| engine | 0.10 | 1e-3 | 4 | 2.6 / 4.1 | 3.6 | 2.4 / 4.5 | 5.9e-04 / 4.7e-04 |
+| engine | 0.10 | 1e-6 | 12 | 7.9 / 10.4 | 9.5 | 6.3 / 9.8 | 0 / 0 |
+| engine | 0.10 | 1e-9 | 19 | 12.5 / 15.7 | 15.5 | 10.2 / 14.9 | 0 / 0 |
+| model | 0.10 | 1e-3 | 4 | 2.6 / 4.4 | 3.6 | 2.3 / 4.9 | 9.7e-04 / 7.3e-04 |
+| model | 0.10 | 1e-6 | 12 | 7.9 / 10.9 | 9.5 | 6.2 / 10.5 | 0 / 0 |
+| model | 0.10 | 1e-9 | 19 | 12.5 / 16.2 | 15.4 | 10.1 / 15.6 | 0 / 0 |
+| engine | 0.25 | 1e-3 | 23 | 17.7 / 21.8 | 16.6 | 12.8 / 21.3 | 6.4e-04 / 4.9e-04 |
+| engine | 0.25 | 1e-6 | 55 | 42.3 / 48.6 | 37.2 | 28.6 / 41.6 | 0 / 0 |
+| engine | 0.25 | 1e-9 | 88 | 67.8 / 75.6 | 58.0 | 44.6 / 61.0 | 0 / 0 |
+| model | 0.25 | 1e-3 | 23 | 18.0 / 22.9 | 17.1 | 13.4 / 23.7 | 6.6e-04 / 7.9e-04 |
+| model | 0.25 | 1e-6 | 55 | 43.1 / 50.5 | 38.2 | 29.9 / 45.9 | 0 / 0 |
+| model | 0.25 | 1e-9 | 88 | 69.0 / 78.0 | 59.5 | 46.6 / 66.8 | 0 / 0 |
+
+- **Reading elapsed time settles about a third sooner against a quarter of the stake.** At `1e-9`
+  the depth rule waits 88 blocks, 68 minutes on the engine's timelines. The elapsed-time rule
+  accepts after 58 blocks on average, in 45 minutes, and its 90th percentile, 61 minutes, is below
+  the depth rule's 76. At `1e-3` it takes 13 minutes instead of 18.
+- **Against a tenth of the stake it settles about a fifth sooner** at `1e-6` and `1e-9`. At
+  `1e-3` it gains 8 % on average, and its 90th percentile is half a minute longer.
+- **Both rules hold `ε` where it can be measured.** At `1e-3` the race beats the depth rule on
+  6.4e-4 of the engine's targets and the elapsed-time rule on 4.9e-4.
+- **The rule needs the delay model of its table.** Its chance uses the canonical growth under
+  random delay. Under a worst case of `Δ` it would need B2's model instead, which is not derived
+  here.
+
+Gates (`tests/test_elapsed.py`): averaged over arrival times, the chance is the depth table's
+closed form; each deadline is the latest time that settles; the race's per-target depths count
+what the race counts; on the model's timelines the rule holds `ε = 0.01`, which it would not with
+its clock started at the target. Four mutations fail them.
 
 ## B5 — a smaller `k`
 

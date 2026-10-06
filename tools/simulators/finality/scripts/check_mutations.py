@@ -202,6 +202,21 @@ MUTATIONS = [
      "return int(np.searchsorted(cum, share - 1e-12) + 1)",
      "return int(np.searchsorted(cum, share - 1e-12))",
      "tests/test_privacy.py::test_the_largest_holders_are_counted"),
+    ("elapsed: a tie displaces the target", HERE / "src/finality_sim/elapsed.py",
+     "terms = stats.poisson.logpmf(m, a * t) + (n + 1 - m) * math.log(a / h)",
+     "terms = stats.poisson.logpmf(m, a * t) + (n - m) * math.log(a / h)",
+     "tests/test_elapsed.py::test_averaged_over_arrival_times_the_failure_is_the_depth_tables"),
+    ("elapsed: the clock starts at the target, not its parent", HERE / "src/finality_sim/elapsed.py",
+     "if deadline[n] >= 0 and canon[j] - canon[i - 1] <= deadline[n]:",
+     "if deadline[n] >= 0 and canon[j] - canon[i] <= deadline[n]:",
+     "tests/test_elapsed.py::test_the_rule_holds_eps_for_the_race_it_assumes"),
+    ("elapsed: the deadline search runs the wrong way", HERE / "src/finality_sim/elapsed.py",
+     "lo, hi = (mid, hi) if log_fail(n, mid, a, h) <= target else (lo, mid)",
+     "lo, hi = (lo, mid) if log_fail(n, mid, a, h) <= target else (mid, hi)",
+     "tests/test_elapsed.py::test_deadlines_are_the_latest_times_that_settle"),
+    ("race: the deepest acceptance beaten is off by one", HERE / "src/finality_sim/race.py",
+     "deepest[i] = kk + 1", "deepest[i] = kk",
+     "tests/test_elapsed.py::test_race_depths_count_what_race_counts"),
 ]
 
 

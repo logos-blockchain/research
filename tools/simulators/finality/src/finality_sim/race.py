@@ -71,9 +71,11 @@ def withhold_timelines(config: SimConfig) -> tuple[np.ndarray, np.ndarray, float
 
 @njit(cache=True)
 def _race(canon, adv, k_max, give_up, premine, win_at):
-    """Successes per K (index K-1) and the number of scored targets."""
+    """Successes per K (index K-1), the number of scored targets, and for each target the deepest
+    acceptance the attack beats (0 if none, -1 if the target is not scored)."""
     n_c, n_a = canon.size, adv.size
     succ = np.zeros(k_max, np.int64)
+    deepest = np.full(n_c, -1, np.int64)
     scored = 0
     # lead just before each canonical block: premined, or counted from the parent's appearance
     lead_before = np.zeros(n_c, np.int64)
@@ -120,14 +122,25 @@ def _race(canon, adv, k_max, give_up, premine, win_at):
         if truncated and depth < k_max:
             continue
         scored += 1
+        deepest[i] = 0
         for kk in range(k_max):
             if best_after[kk] >= win_at:
                 succ[kk] += 1
-    return succ, scored
+                deepest[i] = kk + 1
+    return succ, scored, deepest
 
 
 def race(canon_slots: np.ndarray, adv_slots: np.ndarray, k_max: int, give_up: int = 60,
          premine: bool = True, win_at: int = 1) -> tuple[np.ndarray, int]:
     """Attack successes at each acceptance depth 1..k_max, and the number of scored targets."""
+    succ, scored, _ = _race(np.asarray(canon_slots, np.int64), np.asarray(adv_slots, np.int64),
+                            k_max, give_up, premine, win_at)
+    return succ, scored
+
+
+def race_depths(canon_slots: np.ndarray, adv_slots: np.ndarray, k_max: int, give_up: int = 60,
+                premine: bool = True, win_at: int = 1) -> np.ndarray:
+    """For each canonical block, the deepest acceptance depth (at most k_max) the attack beats: 0
+    if none, -1 if the block is not scored."""
     return _race(np.asarray(canon_slots, np.int64), np.asarray(adv_slots, np.int64), k_max,
-                 give_up, premine, win_at)
+                 give_up, premine, win_at)[2]

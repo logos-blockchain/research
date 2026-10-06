@@ -35,7 +35,7 @@ Against a quarter of the stake on the specification's Blend (3 hops of up to 3 r
 
 | route | what changes | time until final | what it costs | what remains open |
 | --- | --- | --- | --- | --- |
-| settlement rule ([§3](#s3)) | a client depth; nothing in consensus | 18 min at `1e-3`, 59 min at `1e-9` under random delay; 4.6 h guaranteed at `Δ = 10` s; 1.8 h and 7.7 h once grinding of the epoch nonce is counted | nothing | the adversary's share, the delay model and how far the nonce can be ground are assumptions the client accepts |
+| settlement rule ([§3](#s3)) | a client depth; nothing in consensus | 18 min at `1e-3`, 59 min at `1e-9` under random delay, about a third less if the rule also reads elapsed time; 4.6 h guaranteed at `Δ = 10` s; 1.8 h and 7.7 h once grinding of the epoch nonce is counted | nothing | the adversary's share, the delay model and how far the nonce can be ground are assumptions the client accepts |
 | smaller `k` ([§4](#s4)) | `k`, the epoch unless decoupled, and a recovery trigger | in proportion to `k`: 1.8–2.1 h at `k = 216`, which holds 32 % of the stake at `1e-9` under random delay and 17–22 % guaranteed; 27 % and 16–21 % once grinding is counted | a weaker guarantee; less precise stake inference if the epoch shrinks too | a look-back horizon of 57–108 days at Bitcoin-like turnover, with an 8-hour window and grinding counted |
 | regular block intervals ([§5](#s5)) | the lottery coefficient becomes a curve of the slots since the parent | 12 min instead of 18 at `1e-3` | 30 % more blocks; a new stake inference | no worst-case bound |
 | faster blocks ([§5](#s5)) | `f` | best at 15–20 s blocks: 46–48 min at `1e-9` against 51 | more forks | — |
@@ -45,7 +45,8 @@ Against a quarter of the stake on the specification's Blend (3 hops of up to 3 r
 Five candidates for specification work follow from the study:
 
 1. **A settled level in the node's API** ([§3](#s3)). A client accepts a block once the depth for
-   its chosen `(α, ε)` and delay model lies on top of it. This needs no consensus change.
+   its chosen `(α, ε)` and delay model lies on top of it, or sooner if it also reads the time the
+   blocks took. This needs no consensus change.
 2. **Two corrections to the Bootstrap rule** ([§8](#s8)). Its depth test should read the deeper of
    the two branches, and its density window should be sized for `(α, ε)` rather than tied to `k`.
    Both bear on testnet today, which runs `k = 120`.
@@ -109,6 +110,12 @@ stake is settled against in 59 minutes under random delay and in 4.6 hours under
 - **The bound describes Cryptarchia's slot lottery.** The attack behind the lower bound, played on
   the 1 s slot lottery, lands within 7 % of the bound computed in continuous time.
 - **`k = 2160` holds a third of the stake at `1e-9` only for delays up to about 14 s.**
+- **A rule that also reads elapsed time settles about a third sooner.** A client sees when the
+  blocks on top of its target arrived, and the attacker's progress depends only on that time.
+  Accepting at the first block where the attacker's exact chance is at most `ε` holds `ε` for
+  every history. Against a quarter of the stake at `1e-9`, on the engine's timelines of the
+  specification's Blend, it accepts after 45 minutes on average where the same model's depth
+  rule needs 88 blocks and 68 minutes.
 
 **Grinding the epoch nonce adds to every depth.** A coalition that withholds its wins chooses
 which of them end the chain at the cut-off that fixes the next epoch's nonce, and so chooses among

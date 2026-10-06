@@ -1,6 +1,6 @@
 """Markdown tables for the study's notes, read straight from runs/ (no hand transcription).
 
-    python scripts/tables.py a1 | c1 | c1settle | c3 | c4 | b3 | b3delay | b2 | b5 | b5rec | b5sweep |
+    python scripts/tables.py a1 | c1 | c1settle | c3 | c4 | b3 | b3delay | b2 | b4 | b5 | b5rec | b5sweep |
                              b6 | d0 | d1b | d5 | d6 | e2 | e5 | e5balance
 """
 
@@ -160,6 +160,24 @@ def b2() -> None:
         print(f"ε = {eps:.0e}\n")
         print(md(p))
         print()
+
+
+def b4() -> None:
+    t = pd.read_csv(RUNS / "b4" / "elapsed.csv")
+
+    def fail(v):
+        return "0" if v == 0 else f"{v:.1e}"
+    print(md(pd.DataFrame({
+        "timelines": t.timelines, "α": t.alpha.map(lambda v: f"{v:.2f}"),
+        "ε": t.eps.map(lambda v: f"{v:.0e}".replace("e-0", "e-")),
+        "depth rule: blocks": t.depth,
+        "depth rule: minutes, mean / p90": [f"{a:.1f} / {b:.1f}"
+                                            for a, b in zip(t.depth_mean_min, t.depth_p90_min)],
+        "elapsed-time rule: blocks, mean": t.elapsed_blocks.map(lambda v: f"{v:.1f}"),
+        "elapsed-time rule: minutes, mean / p90": [f"{a:.1f} / {b:.1f}" for a, b in
+                                                   zip(t.elapsed_mean_min, t.elapsed_p90_min)],
+        "race beats the rule, depth / elapsed": [f"{fail(a)} / {fail(b)}"
+                                                 for a, b in zip(t.depth_fail, t.elapsed_fail)]})))
 
 
 def b5() -> None:
@@ -496,6 +514,6 @@ def e5balance() -> None:
 
 
 if __name__ == "__main__":
-    {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b5": b5,
+    {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b4": b4, "b5": b5,
      "b5rec": b5rec, "b5sweep": b5sweep, "b6": b6, "d0": d0, "d1b": d1b, "d5": d5, "d6": d6,
      "e2": e2, "e5": e5, "e5balance": e5balance}[sys.argv[1]]()

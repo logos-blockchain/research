@@ -45,7 +45,7 @@ Phase by phase:
 | B1 bounds | done; the port reproduces all 152 proof-of-stake cells of the paper's Table 1 |
 | B2 depth over share and delay | done, worst case |
 | B3 engine validation | done: the private-chain attack under random delays, and the delay-scheduling attacker of the lower bound on the slot lottery |
-| B4 confirmation rule | drafted |
+| B4 confirmation rule | done: the depth table, and a rule that reads elapsed time |
 | B5 smaller `k` | done: the share each `k` holds, both routes of Q8, a trigger for automatic recovery, and its horizon against stake turnover |
 | B6 grinding | done: the nonces a coalition can choose between, bounded exactly; what they add to the depths and take from the recovery horizon |
 | C1 rate surface | done |
@@ -66,8 +66,7 @@ Before review, in this order:
 1. **The DAG's worst case.** Done (E5): the balancing attack.
 2. **Grinding the epoch nonce.** Done (B6).
 3. **The opt-in committee and the privacy of votes.** Done (D1b, D5).
-4. **A confirmation rule that reads elapsed time** (B4), which could settle sooner when blocks come
-   fast.
+4. **A confirmation rule that reads elapsed time.** Done (B4).
 5. **Proving a vote on a Raspberry Pi 5** (D3): a benchmark for the reference hardware.
 
 Then an independent review of the notes, the report and the code, and the owner's review.
