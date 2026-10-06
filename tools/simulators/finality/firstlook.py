@@ -27,7 +27,8 @@ Pinned sources (logos-lips 47a73cdc, docs/blockchain/raw/; research 272fd9a; log
   beta < (1 - beta) / (1 + (1 - beta) lambda Delta), for PoW and Ouroboros/Snow White PoS.
 - CIP-0140 (Ouroboros Peras), status Proposed: committee n = 900, round U = 90 slots.
 - Castro-Castilla, Pawlowski, Zhou, "Areon: Latency-Friendly and Resilient Multi-Proposer
-  Consensus", arXiv 2511.23025v1, §6: evaluated block rates of 0.05-0.5 per slot, default 0.25.
+  Consensus", arXiv 2511.23025v1, §6: evaluated production coefficients f_A of 0.05-0.5, default
+  0.25, each note winning a slot with probability 1 - (1 - f_A)^s.
 """
 
 from __future__ import annotations
@@ -565,11 +566,12 @@ def table_committee() -> None:
         print(f"    {label:22s} n = {n_seats:5d}, R = {r_slots:3d} s: votes {n_seats / r_slots:6.1f} msg/s; "
               f"emissions per unit stake x{m:7.1f}; ceiling {100 * quota_ceiling(1) / m:.5f} % "
               f"unless the cover rate rises x{m:.0f}")
-    print("   multi-proposer DAG (Areon): every block is a lottery win, so lam blocks per slot")
-    print("   multiply emissions per unit stake by lam / f")
-    for lam in (0.05, 0.10, 0.25):
-        m = lam / F
-        print(f"    lam = {lam:.2f} per slot: x{m:4.1f}; ceiling {100 * quota_ceiling(1) / m:.4f} % "
+    print("   multi-proposer DAG (Areon): every block is a lottery win; at coefficient f_A the")
+    print("   stake wins -ln(1 - f_A) blocks a slot, so emissions per unit stake grow by")
+    print("   ln(1 - f_A) / ln(1 - f)")
+    for fa in (0.05, 0.10, 0.25):
+        m = math.log(1 - fa) / math.log(1 - F)
+        print(f"    f_A = {fa:.2f}: x{m:4.1f}; ceiling {100 * quota_ceiling(1) / m:.4f} % "
               f"unless the cover rate rises x{m:.1f}")
     year = 365 * 24 * 3600
     for label, seconds in (("one round per 30 s block", 30), ("one round per 10 min", 600)):

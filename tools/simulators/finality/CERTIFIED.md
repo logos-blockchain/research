@@ -31,19 +31,20 @@ cover multiple at three round lengths:
 from 30 s to an hour, and with the losses of D2. The owner draws the budget line on it (Q7).
 
 Design (a) of D1 certifies a block `L` slots after its publication, plus half a round on average,
-plus one Blend delivery (D6). The two-round gadget (b) adds a round. With 10-minute rounds and
-`L = 60` slots, (a) takes about 6 minutes and (b) about 16. Against random Blend delays and at
-30 s blocks, settlement on the chain takes 9–11 minutes against 10 % of the stake and 34–51
-minutes against 25 %, from testnet's Blend to the specification's (`RATE.md`, C1). So:
+plus one Blend delivery (D6); whether its certificate makes the block final is open (D1). The
+two-round gadget (b) finalizes, one round later. With 10-minute rounds and `L = 60` slots, (a)
+takes about 6 minutes and (b) about 16. Against random Blend delays and at 30 s blocks, settlement
+on the chain takes 10–12 minutes against 10 % of the stake and 45–68 minutes against 25 %, from
+testnet's Blend to the specification's (`RATE.md`, C1). So:
 
-- **Against 10 %,** (a) certifies in about 6 minutes at ×34 cover, against 9–11 minutes of
+- **Against 10 %,** (b) finalizes in about 16 minutes at ×34 cover, against 10–12 minutes of
   settlement.
-- **Against 25 %,** it certifies in about 6 minutes at ×269 cover, against 34–51 minutes.
-- **Against 30 % or more,** no committee is affordable.
+- **Against 25 %,** it finalizes in about 16 minutes at ×269 cover, against 45–68 minutes.
+- **Against 30 %,** the committee needs ×1,675 cover and exists only while every honest vote
+  counts (D2).
 
-Votes buy minutes against a small adversary and most of an hour against a large one, at one to
-three orders of magnitude of cover traffic. Under a delay chosen by an adversary, a shallow target
-can be split (D6), and settlement on the chain is slower too (`SETTLEMENT.md`, B2).
+Under a delay chosen by an adversary, a shallow target can be split (D6), and settlement on the
+chain is slower too (`SETTLEMENT.md`, B2).
 
 ## D2 — committee realism: the share of honest votes that count
 
@@ -101,9 +102,9 @@ Blend (Q6), and a failed round stalls finality without halting the chain.
 **(a) A Peras-style certificate.** `Q` votes on one block within a round form a certificate. The
 certificate adds weight `B` to the block in fork choice. A round without one starts a cool-down
 in which the chain runs as today. Peras's proofs assume private sortition with a known expected
-committee size. Anonymous seats provide both: the expected size follows from the epoch's inferred
-stake, which every node shares. Whether those proofs carry over to Poisson seat counts and to
-votes delayed by Blend is the open question.
+committee size. Anonymous seats are private, and their expected number is `n·D/D̂`, known to the
+inference's error (D2). Whether those proofs carry over to Poisson seat counts and to votes
+delayed by Blend is the open question.
 
 **(b) A two-round checkpoint gadget.** A certificate in round `r` justifies a block; a certificate
 in round `r + 1` on a descendant finalizes it. A finalized block is never reverted: `B_imm`
@@ -287,7 +288,8 @@ Gates (`tests/test_privacy.py`): without votes the times are the Blend report's 
 the analysis' example (confidence 0.824, five nodes) is reproduced with its own formula, and the
 exact confidence agrees with it at its large counts; votes speed sizing by D0's multiples when
 attributed alike; one attribution waits for the first round start as a closed form says; the
-confidence equals a simulated estimate's, with many notes and with ten. Four mutations fail them.
+confidence equals a simulated estimate's, with many notes and with ten; the share sized at better
+than even odds is read above the largest share that is not. Five mutations fail them.
 
 **Views.** A vote names the block its sender saw `L` slots back. The specification's tagging
 attack reads a leader's view from the transactions in its block (Limitations of Cryptarchia V1).
@@ -331,7 +333,7 @@ Certificates at `L = 60`, with D0's committee at `ε = 1e-9` and the adversary's
 - **A block is certified `L` slots after its publication, plus the wait for the next round, plus
   that delivery.** With 600-slot rounds that is about 6 minutes on average, at ×269 cover against
   25 % (D0); with 90-slot rounds, about 2 minutes at ×1,786. On the specification's Blend,
-  settlement against 25 % takes 18 minutes at `1e-3` and 51 at `1e-9` (`RATE.md`, C1 and C4).
+  settlement against 25 % takes 18 minutes at `1e-3` and 68 at `1e-9` (`RATE.md`, C1).
 
 Where rounds fail:
 

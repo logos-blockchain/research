@@ -1,5 +1,5 @@
 # The study's tooling. The TSI per-node engine is installed beside this package, editable, and
-# consumed as a library (PLAN.md). Every number in the study's notes comes from one of these
+# consumed as a library (PLAN.md). Every number the study computes comes from one of these
 # targets; `make tables` prints the notes' tables from runs/, and `make check-tables` checks that
 # each appears verbatim in a note.
 .PHONY: install test mutations firstlook mapping a1 b2 b3 b4 b5 b6 recovery c1 c3 c4 d0 d1b d5 d6 e2 \

@@ -1,6 +1,8 @@
 """Gates for what votes leak and what an opt-in committee needs (src/finality_sim/privacy.py)."""
 
 import math
+import pathlib
+import sys
 
 import numpy as np
 import pytest
@@ -95,3 +97,15 @@ def test_the_largest_holders_are_counted():
     assert holders_needed(stakes, 0.51) == 2
     assert holders_needed(stakes, 1.0) == 3
     assert holders_needed(stakes, 1.2) is None
+
+
+def test_the_sized_share_is_the_largest_held_at_even_odds():
+    """scripts/d5_privacy.py: every share above the one returned is sized at better than even
+    odds; a dip below even odds above an edge moves the share up to it."""
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))
+    from d5_privacy import GRID, sized_above
+    edge = 0.0123
+    assert sized_above(lambda s: 0.9 if s > edge else 0.4) == GRID[GRID <= edge].max()
+    dip = sized_above(lambda s: 0.4 if s <= edge or 0.2 < s <= 0.25 else 0.9)
+    assert dip == GRID[GRID <= 0.25].max()
+    assert sized_above(lambda s: 0.9) == 0.0

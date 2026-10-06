@@ -13,7 +13,7 @@ Specifications are read at `logos-lips` `47a73cdc`. The node is read at `logos-b
 
 *In plain words: this is the notebook the study starts from — the brief, what a first
 calculation already says, the levers worth pulling, the questions only the owner can settle,
-and the order of work. The finished story will be `../../../reports/finality/`.*
+and the order of work. The finished story is `../../../reports/finality/`.*
 
 | section | what it carries |
 | --- | --- |
@@ -28,11 +28,11 @@ and the order of work. The finished story will be `../../../reports/finality/`.*
 
 ## Status
 
-Executed on 2026-10-05. Results live in five notes beside this plan:
+Executed on 2026-10-05 and 2026-10-06. Results live in five notes beside this plan:
 
 - `MAPPING.md`: A2, A3.
 - `RATE.md`: A1, C1–C4.
-- `SETTLEMENT.md`: B1–B5.
+- `SETTLEMENT.md`: B1–B6.
 - `CERTIFIED.md`: D0–D6.
 - `DAG.md`: E0–E6.
 
@@ -47,7 +47,7 @@ Phase by phase:
 | B3 engine validation | done: the private-chain attack under random delays, and the delay-scheduling attacker of the lower bound on the slot lottery |
 | B4 confirmation rule | done: the depth table, and a rule that reads elapsed time |
 | B5 smaller `k` | done: the share each `k` holds, both routes of Q8, a trigger for automatic recovery, and its horizon against stake turnover |
-| B6 grinding | done: the nonces a coalition can choose between, bounded exactly; what they add to the depths and take from the recovery horizon |
+| B6 grinding | done: the nonces a coalition can choose between, bounded from both sides for an attack that meets one ground nonce and for one that meets two; what they add to the depths and take from the recovery horizon |
 | C1 rate surface | done |
 | C2 Blend parameters | the delay map is done; the privacy trade is with the Blend owners |
 | C3 GHOST | done |
@@ -70,7 +70,8 @@ Before review, in this order:
 5. **Proving a vote on a Raspberry Pi 5** (D3). Prepared: `tools/benchmarks/pol-proving` times
    the node's proof of leadership; the run on the board is the owner's.
 
-Then an independent review of the notes, the report and the code, and the owner's review.
+The independent review of the notes, the report and the code is applied; the owner's review
+follows.
 
 Findings about the protocol as it stands:
 
@@ -80,25 +81,25 @@ Findings about the protocol as it stands:
   stake wins about one such window in 460 (B5).
 - `maxvalid-bg` reads the depth of the local branch, so after a split the two sides can choose
   different chains until both pass `k` (B5).
-- The epoch nonce can be ground. Against a quarter of the stake at `1e-9`, the depths must grow by
-  53–61 blocks under random delay on the specification's Blend, and by 272–316 under the worst
-  case at 10 s. From 30 %, only the coalition's computation bounds the grinding (B6).
+- The epoch nonce can be ground. Against a quarter of the stake at `1e-9`, a block whose race
+  meets two ground nonces needs 161–199 blocks instead of 86 under random delay on the
+  specification's Blend, and 806–988 instead of 474 under the worst case at 10 s (B6).
 - LCanalysis follows its lower-bound attack for 80 phases, too few past Table 1's depths: at a
-  third of the stake and depth 60 the bound falls from `6.8e-3` to `5e-12`, and the original code
-  run in Octave shows the same. It also scores the attack only at the moment of confirmation (B1,
-  B3).
+  third of the stake, `Δ = 1` s and depth 60, the port at 30 states falls from `6.9e-3` to
+  `5.5e-12`, and the original code run in Octave at its 19 states to `5.4e-13`. It also scores the
+  attack only at the moment of confirmation (B1, B3).
 
 Hypotheses:
 
 | hypothesis | verdict |
 | --- | --- |
-| H1 | fails for the guarantee: at 25 % and `ε = 1e-9` the upper bound exceeds 216 blocks at every delay, and grinding by a coalition that evaluates `2^64` nonces an epoch raises it from 285–469 to 403–785 blocks at 1–10 s. Holds for the best known attack, without grinding, up to about 20 s |
-| H2 | holds for delays up to about 14 s without grinding. Counting grinding, up to about 7 s against a coalition that evaluates `2^40` nonces an epoch, and below 4 s against one that evaluates `2^64` |
+| H1 | fails for the guarantee: at 25 % and `ε = 1e-9` the upper bound exceeds 216 blocks at every delay, from 288 at 1 s; with two nonces ground by a coalition that evaluates `2^64` nonces an epoch, 498–988 blocks at 1–10 s. Holds for the best known attack, without grinding, at least to 20 s |
+| H2 | holds for delays up to 13 s without grinding. With one ground nonce, up to 5 s against a coalition that evaluates `2^40` nonces an epoch and up to 2 s against `2^64`; with two, at no delay. At the specification's Blend (`Δ = 10` s) it therefore fails once grinding is counted |
 | H3 | holds |
-| H4 | refuted: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control |
-| H5 | waits on the budget line of Q7 |
-| H6 | holds with the trigger of `SETTLEMENT.md` B5: a density test below `B_imm` within a horizon `H`, with a window set apart from `k`. Fails as first stated, a switch to the Bootstrap rule. At Bitcoin's turnover, against 25 % with every freed key for sale, `H` is 57 to 108 days with an 8-hour window once grinding is counted (B6), and 38 to 71 days with a 4-hour window without it |
-| H7 | fails by its own test (E5): under a delay chosen by an adversary the DAG's safe region is GHOST's, narrower than the chain's at every block rate. At today's rate it narrows little (0.40–0.45 against 0.46 at 10 s) and the DAG settles against 25 % in 38 minutes at `1e-9` under random delay, against 59 on the chain; at `f_A = 0.25` it collapses to 3–6 %. The weight must accumulate since the fork, and a win must weigh once across both sides of a conflict |
+| H4 | refuted for a delay chosen by an adversary: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control. Untested on the chain under random delay |
+| H5 | fails against Blend's present budget: with the cover raised by D0's multiple, every committee exceeds the read limit `r_1` of a core connection, against a quarter of the stake unless rounds last 33 hours (D3). Whether that budget may grow is the owner's line (Q7) |
+| H6 | holds with the trigger of `SETTLEMENT.md` B5: a density test below `B_imm` within a horizon `H`, with a window set apart from `k`. Fails as first stated, a switch to the Bootstrap rule. At Bitcoin's turnover, against 25 % with every freed key for sale, `H` is 46 to 87 days with an 8-hour window at `k = 2160` once grinding is counted (B6), and 38 to 71 days with a 4-hour window without it. At `k = 120`, whose window is at most 4 hours, no horizon holds a quarter with grinding |
+| H7 | fails by two of its three tests (`DAG.md`, H7). Under a delay chosen by an adversary (E5) the balancing attack needs no more than GHOST's share, less than the chain's region at every block rate: 0.40–0.45 at today's rate and `Δ = 10` s against 0.46, and 3–6 % at `f_A = 0.25`. As specified, one win can add weight on both sides of a conflict (E3). Under random delay the DAG settles against 25 % in 38 minutes at `1e-9`, against 59 on the chain (E2) |
 
 Three notions of finality carry the document. They are measured separately and never mixed.
 
@@ -330,8 +331,8 @@ Blend hides a node's lottery wins only while they fit its cover quota. At the ba
 rate of one message a second across the network, the Blend report puts that ceiling at 0.147 %
 of inferred stake at N = 20,000 (`reports/blend/README.md` §3.10). A vote is one more lottery
 win, so votes multiply a node's emissions by `1 + n/(R·f)` for `n` seats per round of `R` slots.
-A multi-proposer DAG (Areon, L6) makes every block a vote, so `λ` blocks per slot multiply them
-by `λ/f`:
+A multi-proposer DAG (Areon, L6) makes every block a vote. At a production coefficient `f_A` the
+stake wins `−ln(1 − f_A)` blocks a slot, which multiplies them by `ln(1 − f_A)/ln(1 − f)`:
 
 | design | parameters | emissions per unit stake |
 | --- | --- | --- |
@@ -339,8 +340,8 @@ by `λ/f`:
 | votes, `α = 0.25`, `ε = 1e-9` | `n = 5,355` per 90 s | ×1,786 |
 | Peras-style votes | `n = 900` per 10 min | ×46 |
 | votes, `α = 0.25`, `ε = 1e-9` | `n = 5,355` per 10 min | ×269 |
-| Areon DAG | `λ = 0.05` blocks per slot | ×1.5 |
-| Areon DAG | `λ = 0.25` (the paper's default) | ×7.5 |
+| Areon DAG | `f_A = 0.05` | ×1.5 |
+| Areon DAG | `f_A = 0.25` (the paper's default) | ×8.5 |
 
 The votes come to 10.0, 59.5, 1.5 and 8.9 messages a second across the network. To keep today's
 ceiling, the cover rate, which every node carries, must rise by the same factor. This, not the
@@ -370,7 +371,7 @@ magnitude less than votes.
 | L3 fewer orphans | `D_vis` (Blend); a lottery threshold that rises with the slots since the parent (Ouroboros Taktikos); or a fork choice that weighs referenced uncles | Blend parameters, the lottery, or fork choice | `o` 0.35 → 0.15 cuts 132 min to 52 | Blend's privacy budget; GHOST-style weighting narrows the safe region (§7) | C |
 | L4 block rate | `f` | a constant | none at `D_vis` = 17 s; 43 → 23 min at 3 s | more forks | C1 |
 | L5 certified finality | anonymous-seat votes: a Peras-style certificate with a fork-choice boost and a cool-down, a checkpoint gadget, or endorsements carried in blocks; optionally slashable nullifiers. Variant: an opt-in public committee (Q4) | large | about two minutes in Peras | Blend's emission budget (§1.7); thousands of seats a round; safety only below 1/3 | D |
-| L6 multi-proposer DAG (Areon) | several proposers per slot; blocks reference the recent tips; a fork choice local to the closest common ancestor counts recent references | replaces the chain and its fork choice; the ledger needs a total order | the paper: `k ≥ C1·w + C2·ln(1/ε)` with window `w ≥ Δ`; reorgs 600–8,750× rarer than Praos at 30 % stake | anonymous eligibility (one block per win); emissions ×`λ/f`; GHOST-style weighting may narrow the safe region | E |
+| L6 multi-proposer DAG (Areon) | several proposers per slot; blocks reference the recent tips; a fork choice local to the closest common ancestor counts recent references | replaces the chain and its fork choice; the ledger needs a total order | the paper: `k ≥ C1·w + C2·ln(1/ε)` with window `w ≥ Δ`; its comparison with Praos mixes block rates and metrics (`DAG.md`, E0) | anonymous eligibility (one block per win); emissions ×`ln(1 − f_A)/ln(1 − f)`; GHOST-style weighting may narrow the safe region | E |
 | L7 other structures | parallel chains, ledger combiners | very large | — | multiplies proofs and emissions by the number of chains | §7 only |
 
 Each hypothesis below can fail, and says what would fail it.
@@ -437,7 +438,7 @@ decision and what it changes.
 - **Q7 — What budget does finality traffic get?** *Settled 2026-10-05 by the owner:* curves
   first, the line later. Costs (cover-rate multiple, bandwidth, proving and verification time)
   are reported as curves on a Raspberry Pi 5, the node the repository's benchmarks already use.
-  The owner draws the budget line once the curves exist; H5 and H7 are decided then.
+  The owner draws the budget line once the curves exist.
 - **Q8 — How long must a network split heal without an operator?** *Settled 2026-10-05 by the
   owner:* no fixed horizon. Today's 35.7 h for an even split is a reference point, not a bound.
   Both routes are explored in B5. One is shorter horizons, where an operator restarts nodes after
@@ -600,7 +601,7 @@ Exit: a ranked design with numbers, or a reasoned no.
 - **E5.** The safe region under worst-case delay: does the window-filtered, CCA-local weight keep
   the longest-chain threshold, or narrow it as GHOST's weight does (§7)? Analysis, plus the
   delay-scheduling attacker of B3.
-- **E6.** The cost: the emission multiplier `λ/f` (§1.7), references per block, and the
+- **E6.** The cost: the emission multiplier `ln(1 − f_A)/ln(1 − f)` (§1.7), references per block, and the
   maximum-antichain computation on the node of Q7.
 
 Exit: Areon ranked against L1 and L5 by number, or a reasoned no.
@@ -727,8 +728,8 @@ In the node:
   threshold for proof of work and for Ouroboros/Snow White proof of stake; gate.
 - Gaži, Ren, Russell, "Practical Settlement Bounds for Longest-Chain Consensus", CRYPTO 2023;
   ePrint 2022/1571, revised 2025-05-02; code `github.com/renling/LCanalysis`. B1's method.
-- Gaži, Motaqy, Russell, "A Tight Analysis of GHOST Consistency", ePrint 2024/1830, revised
-  2026-09-11. GHOST's safe region is inferior to the longest-chain rule's; C3.
+- Gaži, Motaqy, Russell, "A Tight Analysis of GHOST Consistency", ePrint 2024/1830, revision
+  2025-02-20. GHOST's safe region is inferior to the longest-chain rule's; C3.
 - CIP-0140, "Ouroboros Peras – Faster Settlement", status Proposed. Committee `n = 900`, quorum
   `τ = 675`, round `U = 90` slots, boost `B = 15` blocks, cool-down `K = 780` rounds. Fast
   settlement against up to a quarter of the stake, Praos-like behaviour above it. Settlement
@@ -801,5 +802,5 @@ read here.
   committee finality, Dusk and Zcash Crosslink, publish voter stake. D1 has no template to
   copy.
 - A proof-of-stake confirmation rule that conditions on observed forks, density or
-  participation. B4 could test one in the engine.
+  participation. B4 tests one in the engine: the rule that reads elapsed time.
 - A documented derivation of `k = 2160`, for Cardano or for Cryptarchia.
