@@ -13,3 +13,11 @@ import StochasticRecurrence
 #print axioms SRE.E_step_le_g
 #print axioms SRE.mean_le_mf
 #print axioms SRE.Dc_ratio
+#print axioms SRE.binomial_reduction_step
+#print axioms SRE.empty_slot_prob
+#print axioms SRE.nEmpty_pmf
+#print axioms SRE.nonempty_count
+#print axioms SRE.critical_iff
+#print axioms SRE.Dc_bounds
+#print axioms SRE.contractive_iff
+#print axioms SRE.Dc_numerical_verification

@@ -1,7 +1,7 @@
 import StochasticRecurrence.Reduction
 
 /-!
-# §2.3 Mean-field approximation and concentration (Theorem 2.1, Appendix B)
+# §2.3 Mean-field approximation and concentration (Theorem 2.1, Appendix C)
 
 The binomial chain (`kChain`, Prop. 2.1)
 
@@ -488,7 +488,7 @@ theorem mean_tendsto (H : Hyp f h W) {D₀ : ℝ} (hD₀ : 0 < D₀) {L : ℕ} {
   filter_upwards [eventually_gt_atTop 0] with T hT
   exact (concentration H hT hD₀ hLg hLip).2.2 ℓ hℓ
 
-/-- With a contraction `L_g < 1` (eq. `eq:Lg_less_1`, Appendix B) the constant is
+/-- With a contraction `L_g < 1` (eq. `eq:Lg_less_1`, Appendix C) the constant is
 bounded by the paper's `h² D_max² / (1 - L_g²) · L / 4`. -/
 theorem Kc_le_contractive {f h D₀ : ℝ} {L : ℕ} {Lg : ℝ} (hLg0 : 0 ≤ Lg) (hLg1 : Lg < 1) :
     Kc f h D₀ L Lg ≤ (h * Dmax f h D₀ L) ^ 2 / (1 - Lg ^ 2) * L / 4 := by

@@ -18,9 +18,13 @@ Probabilities are finite sums, so nothing is assumed about measure theory. `chai
 | Paper | Lean | Statement |
 |---|---|---|
 | §1, eqs. `eqn:aver`, `eqn:Var` | `leaders_mean_var` | `⟨∑ s_i⟩ = ∑ φ(α_i)`, `Var = ∑ φ(α_i)(1 - φ(α_i))` |
-| §2, `1 - P(0|D) = φ(W/D)` | `prod_one_sub_φ` | `∏ (1 - φ(w_i/D)) = 1 - φ(∑ w_i / D)` |
 | §2, logistic form | `bern_logistic` | `P(s|D) = e^{s η}/(1 + e^η)` |
-| **Prop. 2.1** | **`binomial_reduction`** | For every `L`, `D₀` and test function `Φ` of `(D_0, …, D_L)`, `sChain` and `kChain` give the same expectation |
+| eq. `eq:empty_probability` | `empty_slot_prob`, `prod_one_sub_φ` | a slot is empty with probability `∏ (1 - φ(w_i/D)) = 1 - φ(W/D)` |
+| eq. `eq:k_distribution_prop` | `nEmpty_pmf` | `P[k = j | D] = C(T,j) (1-φ(W/D))^j φ(W/D)^{T-j}` |
+| eq. `eq:nonempty_count` | `nonempty_count` | the number of non-empty slots is `T - k` |
+| eq. `eq:binomial_recurrence` | `stepS_eq` | `D_{ℓ+1}[S] = D_ℓ - h D_ℓ (f - 1 + k_ℓ/T)` |
+| **Prop. (Binomial reduction)**, `prop:D-distr` | **`binomial_reduction_step`** | the two parts together: `k | D ∼ Bin(T, 1 - φ(W/D))`, and the step depends on `S` only through `k` |
+| its "consequently … exactly equivalent" | **`binomial_reduction`** | over any horizon `L`, every test function `Φ` of `(D_0, …, D_L)` has the same expectation under `sChain` and `kChain` |
 | eqs. `eq:D_interval`, `eq:d_interval` | `traj_mem`, `mf_mem` | `D_ℓ, d_ℓ ∈ [D_min, D_max]` for `ℓ ≤ L` |
 | eq. `eq:error_series` | `err_abs_le` | `|ε_ℓ| ≤ h D_max ∑_{r<ℓ} L_g^{ℓ-1-r} |η_r|` |
 | eq. `eq:eta_variance_bound` | `E_eta_sq_le` | `E[η_r²] ≤ 1/(4T)` (via the tower property `E_tower`) |
@@ -32,24 +36,32 @@ Probabilities are finite sums, so nothing is assumed about measure theory. `chai
 | eqs. `eq:qprime`, `eq:gprime_positive` | `q_strictMonoOn`, `gderiv_pos`, `gderiv_anti` | `q` strictly increasing; `g' ≥ 1 - hf > 0`; `g'` decreasing |
 | eq. `eq:Dc_definition` | `exists_unique_critical` | exactly one `D_c > 0` with `g'(D_c) = 1` |
 | eqs. `eq:z_equation`–`eq:Dc_formula` | `critical_lambert`, `lambert_unique` | `z = 1 + AW/D_c` is the unique `z > 1` with `z e^{-z} = (1-f)/e`, and `D_c = WA/(z-1)`. So `-z = 𝒲₋₁(-(1-f)/e)` |
+| eqs. `eq:uc_critical`, `eq:Dc_uc_relation` | `critical_iff` | `D_c/W = 1/u_c`, with `u_c > 0` the root of `q(u_c) = f` |
+| **Prop. (Bounds on the critical ratio)**, `prop:Dc_bounds` | **`Dc_bounds`** | for `a, b > 0`: `q(1/b) < f < q(1/a)` ⟹ `a < D_c/W < b` |
 | eqs. `eq:contractive_region`, `eq:Lg_less_1` | `contraction` | `D_c < a` ⟹ `g` is `g'(a)`-Lipschitz on `[a, b]`, with `0 < g'(a) < 1` |
+| Remark (Role of the contractive regime), "`D_min > D_c`, or equivalently `L_g < 1`" | `contractive_iff` | `g'(D_min) < 1 ⟺ D_min > D_c`; `g'(D_min)` is the sup of `|g'|` on `[D_min, D_max]` |
+| same Remark, "not essential … for any finite Lipschitz constant" | `concentration` | Thm. 2.1 with any Lipschitz constant `L_g ≥ 0` |
 | **Thm. 2.1 as stated** | **`theorem_2_1`** | under `hf < 1` and `D_min > D_c`: all three bounds with `K = h²D_max²/(1-L_g²) · L/4` |
-| App. A, product formula | `traj_prod` | `D_ℓ = D_0 ∏_{r<ℓ}(1 - h(f - 1 + k_r/T))` |
-| App. A, convexity | `tangent_le`, `jensen` | `⟨D(1-φ(W/D))⟩ ≥ ⟨D⟩(1 - φ(W/⟨D⟩))` |
+| App. B, product formula | `traj_prod` | `D_ℓ = D_0 ∏_{r<ℓ}(1 - h(f - 1 + k_r/T))` |
+| App. B, convexity | `tangent_le`, `jensen` | `⟨D(1-φ(W/D))⟩ ≥ ⟨D⟩(1 - φ(W/⟨D⟩))` |
 | (new) | `E_step_le_g`, `mean_le_mf` | `E[D_{ℓ+1}] ≤ g(E[D_ℓ])`, and so `E[D_ℓ] ≤ d_ℓ` for **every** `T` |
-| eq. `eq:Dc_numerical` | `Dc_ratio` | at `f = 1/30`: `0.119 < D_c/W < 0.1205` |
-| App. B | `concentration`, `Kc_le_contractive` | same proof, with `L_g < 1` as a hypothesis |
+| eq. `eq:Dc_numerical_verification` | `Dc_numerical_verification` | `q_{1/30}(1/0.1205) < 1/30 < q_{1/30}(1/0.119)` |
+| eqs. `eq:Dc_certified_bounds`, `eq:Dc_numerical` | `Dc_ratio` | at `f = 1/30`: `0.119 < D_c/W < 0.1205` (from `Dc_bounds`) |
+| App. C | `concentration`, `Kc_le_contractive` | same proof, with `L_g < 1` as a hypothesis |
 
 ## Differences from the paper
 
-1. **Contraction is not needed for Theorem 2.1.** For a fixed horizon `L`, `concentration` holds for *any* Lipschitz constant `L_g` of `g` on `[D_min, D_max]`. Such a constant always exists, because `g` is C¹ there. The constant `K` uses `∑_{m<L} L_g^{2m}` in place of `1/(1 - L_g²)`. The condition `D_min > D_c` only improves `K`, and it matters only for bounds that are uniform in `L`. Since `D_max` grows geometrically in `L`, the paper's bound is not uniform in `L` either way.
-2. **`D_c/W` at `f = 1/30` is about 0.1196, not 0.121.** `Dc_ratio` proves `0.119 < D_c/W < 0.1205`. The conclusion it supports still holds.
-3. **The saddle-point equation (eq. `eq:MF`) is not an identity at finite `T`.** It is the limit `mean_tendsto`. At finite `T` it is an inequality: `E[D_{ℓ+1}] ≤ g(E[D_ℓ])` (`E_step_le_g`). This follows from the convexity remark in Appendix A, and gives `E[D_ℓ] ≤ d_ℓ` (`mean_le_mf`).
-4. **Prop. 2.1 is proved by counting, not by Fourier representations of `δ`.** The statement is an identity of finite sums for every test function of the trajectory. The proof is the core of the paper's computation: `[P(0) + (1-P(0))e^{…}]^T` expands binomially (`sum_pi_count`).
+The paper now includes the earlier findings of this formalization: Thm. 2.1 without contraction (the Remark), the bracket `0.119 < D_c/W < 0.1205`, and a counting proof of the binomial reduction. Both statements the paper marks for checking are proven here: the proof of Prop. (Binomial reduction) (`binomial_reduction_step`), and Prop. (Bounds on the critical ratio) (`Dc_bounds`; the hypothesis `0 < a < b` can be weakened to `a, b > 0`).
+
+What remains beyond the paper:
+
+1. **The saddle-point equation (eq. `eq:MF`) is an inequality at finite `T`.** The paper proves the limit `E[D_ℓ] → d_ℓ` (`mean_tendsto`). At every finite `T`, `E[D_{ℓ+1}] ≤ g(E[D_ℓ])` (`E_step_le_g`), from the convexity remark in Appendix B, and so `E[D_ℓ] ≤ d_ℓ` (`mean_le_mf`).
+2. **The trajectory-level reduction.** The paper's proposition is about one step given `D_ℓ`. `binomial_reduction` also states the consequence it draws: the laws of the whole trajectories `(D_0, …, D_L)` agree.
 
 ## Not formalized
 
-- The saddle-point derivation itself (§2.2): Fourier integrals of `δ` and a `T → ∞` Laplace argument. It is replaced by its rigorous counterpart, `mean_tendsto` together with `E_step_le_g`.
+- The saddle-point derivation itself (§2.2), which the paper now calls formal rather than rigorous: Fourier integrals of `δ` and a `T → ∞` Laplace argument. Its rigorous counterpart is `mean_tendsto`, together with `E_step_le_g`.
+- The Fourier-transform proof of the binomial reduction (now Appendix A of the paper). The counting proof in the main text is the one formalized.
 - The asymptotic `D_c/W ∼ √(f/2)` as `f → 0` (eq. `eq:Dc_asymptotic`). It is correct numerically: the ratio to `√(f/2)` is 0.957, 0.986 and 0.995 at `f = 10⁻², 10⁻³, 10⁻⁴`.
 
 ## Layout
@@ -61,5 +73,5 @@ Probabilities are finite sums, so nothing is assumed about measure theory. `chai
 | `Reduction.lean` | the chain model, `sChain`, `kChain`, Prop. 2.1 |
 | `Concentration.lean` | Theorem 2.1 for any Lipschitz constant: second moment, `O_P`, mean |
 | `MeanField.lean` | `g'`, `q`, `D_c`, the Lambert form, contraction, Theorem 2.1 as stated |
-| `Average.lean` | Appendix A: product formula, Jensen, `E[D_ℓ] ≤ d_ℓ` |
+| `Average.lean` | Appendix B: product formula, Jensen, `E[D_ℓ] ≤ d_ℓ` |
 | `Numerics.lean` | the bracket for `D_c/W` at `f = 1/30` |

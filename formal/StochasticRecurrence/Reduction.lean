@@ -19,14 +19,21 @@ operator) and the state moves by `next`. This is the path measure
 trajectory `(D_0, …, D_L)` is `Φ ↦ chainE … (fun xs => Φ (D_0, …, D_L))`, which is
 the paper's `P[D_L, …, D_1 | D_0]` (eq. `def:prob-path-D`) tested against `Φ`.
 
-**Proposition 2.1** (`binomial_reduction`): the trajectory law of the chain driven
-by the leader configurations equals that of the chain
+**Proposition (Binomial reduction)**, `prop:D-distr`. Given `D_ℓ`, the step is
+determined by the number of empty slots `k_ℓ`:
 
-  `D_{ℓ+1} = D_ℓ - h D_ℓ (f - 1 + k_ℓ/T)`,  `k_ℓ | D_ℓ ∼ Bin(T, 1 - φ(W/D_ℓ))`,
+* `empty_slot_prob`: a slot is empty with probability `1 - φ(W/D)`, `W = ∑ w_i`
+  (eq. `eq:empty_probability`);
+* `nEmpty_pmf`: `k_ℓ | D_ℓ ∼ Bin(T, 1 - φ(W/D_ℓ))` (eq. `eq:k_distribution_prop`),
+  via `sum_pi_count`: the slots are independent given `D_ℓ`;
+* `nonempty_count`: the number of non-empty slots is `T - k_ℓ` (eq. `eq:nonempty_count`);
+* `stepS_eq`: hence `D_{ℓ+1} = D_ℓ - h D_ℓ (f - 1 + k_ℓ/T)` (eq. `eq:SRE_binomial`).
 
-where `k_ℓ` counts the empty slots and `W = ∑ w_i`. The paper's proof goes through
-Fourier representations of `δ`; here the statement is an identity of finite sums
-and the proof is the counting argument at its core (`sum_pi_count`).
+`binomial_reduction_step` states these together, as the proposition does. The
+proposition's "consequently, eq. `eq:SRE` is exactly equivalent" is
+`binomial_reduction`: the trajectory laws of the two chains agree over any horizon.
+The paper's earlier proof through Fourier representations of `δ` (now its appendix)
+is not formalized; the counting proof here is the one in the main text.
 -/
 
 open Finset
@@ -134,23 +141,37 @@ def nEmpty (S : Fin T → Fin N → Bool) : ℕ := #{t | ∀ i, S t i = false}
 
 variable {f h T}
 
-/-- `D_{ℓ+1}[S]` depends on `S` only through the number of empty slots. -/
-theorem stepS_eq (hT : 0 < T) (D : ℝ) (S : Fin T → Fin N → Bool) :
-    stepS f h T D S = step f h T D (nEmpty T S) := by
-  unfold stepS step nEmpty
+/-- **The number of non-empty slots** is `T - k` (eq. `eq:nonempty_count`). -/
+theorem nonempty_count (S : Fin T → Fin N → Bool) :
+    ∑ t, (if ∃ i, S t i then (1 : ℝ) else 0) = T - nEmpty T S := by
+  unfold nEmpty
   have hc := card_filter_add_card_filter_not (s := (univ : Finset (Fin T)))
     (fun t => ∀ i, S t i = false)
+  simp only [card_univ, Fintype.card_fin] at hc
   have hs : ∑ t, (if ∃ i, S t i then (1 : ℝ) else 0)
       = #{t | ¬ ∀ i, S t i = false} := by
     rw [sum_boole]; congr 2; ext t; simp
-  rw [hs]
-  simp only [card_univ, Fintype.card_fin] at hc
+  have hc' : (#{t | ∀ i, S t i = false} : ℝ) + #{t | ¬ ∀ i, S t i = false} = T := by
+    exact_mod_cast hc
+  rw [hs]; linarith
+
+/-- `D_{ℓ+1}[S]` depends on `S` only through the number of empty slots
+(eq. `eq:binomial_recurrence`). -/
+theorem stepS_eq (hT : 0 < T) (D : ℝ) (S : Fin T → Fin N → Bool) :
+    stepS f h T D S = step f h T D (nEmpty T S) := by
+  unfold stepS step
+  rw [nonempty_count]
   have hT' : (T : ℝ) ≠ 0 := by positivity
-  have : (#{t | ¬ ∀ i, S t i = false} : ℝ) = T - #{t | ∀ i, S t i = false} := by
-    have hc' : (#{t | ∀ i, S t i = false} : ℝ) + #{t | ¬ ∀ i, S t i = false} = T := by
-      exact_mod_cast hc
-    linarith
-  rw [this]; field_simp; ring
+  field_simp; ring
+
+/-- **The empty-slot probability** (eq. `eq:empty_probability`): a single slot
+`s ∈ {0,1}^N`, with independent `s_i ∼ Bernoulli(φ(w_i/D))`, is empty with
+probability `∏ (1 - φ(w_i/D)) = 1 - φ(W/D)`. -/
+theorem empty_slot_prob (hf : f < 1) (w : Fin N → ℝ) (D : ℝ) :
+    ∑ s : Fin N → Bool, (∏ i, bern (φ f (w i / D)) (s i)) * (if ∀ i, s i = false then 1 else 0)
+      = pEmpty f (∑ i, w i) D := by
+  rw [pEmpty, ← prod_one_sub_φ hf, ← bexp_empty]
+  exact sum_congr rfl fun s _ => by congr
 
 /-- **One step of the reduction.** Under `P(S | D)`, the number of empty slots is
 `Bin(T, 1 - φ(W/D))`. -/
@@ -167,7 +188,27 @@ theorem sum_probS_nEmpty (hf : f < 1) (w : Fin N → ℝ) (D : ℝ) (G : ℕ →
   rw [ha] at h
   exact h
 
-/-- **Proposition 2.1 (binomial reduction).** For every horizon `L`, initial value
+/-- **The law of the number of empty slots** (eq. `eq:k_distribution_prop`):
+`P[k = j | D] = C(T,j) (1 - φ(W/D))^j φ(W/D)^{T-j}` for `j ≤ T`. -/
+theorem nEmpty_pmf (hf : f < 1) (w : Fin N → ℝ) (D : ℝ) {j : ℕ} (hj : j ≤ T) :
+    ∑ S, probS f T w D S * (if nEmpty T S = j then 1 else 0)
+      = T.choose j * (1 - φ f ((∑ i, w i) / D)) ^ j * φ f ((∑ i, w i) / D) ^ (T - j) := by
+  rw [sum_probS_nEmpty hf w D (fun k => if k = j then 1 else 0)]
+  unfold binExp binW pEmpty
+  simp only [mul_ite, mul_one, mul_zero, sum_ite_eq', mem_range,
+    show j < T + 1 by omega, ↓reduceIte, sub_sub_cancel]
+
+/-- **Proposition (Binomial reduction)** (`prop:D-distr`), as stated in the paper.
+Given `D`, the number of empty slots `k` is `Bin(T, 1 - φ(W/D))`, and the step of
+eq. `eq:SRE` is `D - hD(f - 1 + k/T)`. -/
+theorem binomial_reduction_step (hf : f < 1) (hT : 0 < T) (w : Fin N → ℝ) (D : ℝ) :
+    (∀ j ≤ T, ∑ S, probS f T w D S * (if nEmpty T S = j then 1 else 0)
+        = T.choose j * (1 - φ f ((∑ i, w i) / D)) ^ j * φ f ((∑ i, w i) / D) ^ (T - j)) ∧
+    (∀ S : Fin T → Fin N → Bool, stepS f h T D S = D - h * D * (f - 1 + nEmpty T S / T)) :=
+  ⟨fun _ hj => nEmpty_pmf hf w D hj, fun S => stepS_eq hT D S⟩
+
+/-- **Binomial reduction for the whole trajectory** (the proposition's
+"consequently, eq. `eq:SRE` is exactly equivalent to eq. `eq:SRE_binomial`"). For every horizon `L`, initial value
 `D₀` and test function `Φ` of the trajectory `(D_0, …, D_L)`, the chain of
 eq. `eq:SRE` and the binomial chain give the same expectation:
 `P[D_L, …, D_1 | D_0]` is the same for both. -/

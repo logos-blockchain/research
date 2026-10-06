@@ -1,7 +1,7 @@
 import StochasticRecurrence.MeanField
 
 /-!
-# Appendix A: the average
+# Appendix B: the average
 
 * `traj_prod`: `D_ℓ = D_0 ∏_{r<ℓ} (1 - h(f - 1 + k_r/T))`;
 * `E_step`: `⟨D_{ℓ+1}⟩ = (1 + h(1-f))⟨D_ℓ⟩ - h⟨D_ℓ (1 - φ(W/D_ℓ))⟩`;
@@ -19,7 +19,7 @@ namespace SRE
 
 variable {f h W : ℝ} {T : ℕ}
 
-/-- The product formula of Appendix A. -/
+/-- The product formula of Appendix B. -/
 theorem traj_prod (D₀ : ℝ) (ks : ℕ → ℕ) (ℓ : ℕ) :
     Dtraj f h T D₀ ks ℓ = D₀ * ∏ r ∈ range ℓ, (1 - h * (f - 1 + ks r / T)) := by
   induction ℓ with
@@ -67,7 +67,7 @@ theorem pEmpty_eq_exp (hf1 : f < 1) (D : ℝ) :
     pEmpty f W D = Real.exp (-(Acoef f * W / D)) := by
   rw [pEmpty_eq, rpow_eq_exp hf1]; ring_nf
 
-/-- **Jensen** (the last inequality of Appendix A):
+/-- **Jensen** (the last inequality of Appendix B):
 `⟨D_ℓ (1 - φ(W/D_ℓ))⟩ ≥ ⟨D_ℓ⟩ (1 - φ(W/⟨D_ℓ⟩))`. -/
 theorem jensen (H : Hyp f h W) (hT : 0 < T) {D₀ : ℝ} (hD₀ : 0 < D₀) (L ℓ : ℕ) :
     let m := kChain f h T W L D₀ (fun ks => Dtraj f h T D₀ ks ℓ)

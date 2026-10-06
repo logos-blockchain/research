@@ -3,11 +3,10 @@ import StochasticRecurrence.MeanField
 /-!
 # The critical threshold at `f = 1/30` (eq. `eq:Dc_numerical`)
 
-The paper states `D_c/W ≈ 0.121` for `f = 1/30`. The certified bracket here is
-`0.119 < D_c/W < 0.1205`; numerically `D_c/W = 0.11960…`. So the paper's figure is
-slightly high, but the conclusion it supports is unchanged: the estimate can
-undershoot the true stake by a factor of about 8 and still be in the
-contractive region.
+For `f = 1/30` the paper verifies `q(1/0.1205) < 1/30 < q(1/0.119)`
+(eq. `eq:Dc_numerical_verification`, `Dc_numerical_verification`) and applies
+Prop. (Bounds on the critical ratio) (`Dc_bounds`) to get `0.119 < D_c/W < 0.1205`
+(eq. `eq:Dc_certified_bounds`, `Dc_ratio`). Numerically `D_c/W = 0.11960…`.
 -/
 
 open Real Finset
@@ -77,25 +76,18 @@ theorem q_hi : 1 / 30 < q (1 / 30) (1000 / 119) := by
     norm_num [xl]
   linarith
 
-/-- **`D_c/W` at `f = 1/30`**: `0.119 < D_c/W < 0.1205` (the paper says `≈ 0.121`). -/
+/-- The numerical check of eq. `eq:Dc_numerical_verification`:
+`q_{1/30}(1/0.1205) < 1/30 < q_{1/30}(1/0.119)`. -/
+theorem Dc_numerical_verification :
+    q (1 / 30) (1 / 0.1205) < 1 / 30 ∧ 1 / 30 < q (1 / 30) (1 / 0.119) := by
+  rw [show (1 : ℝ) / 0.1205 = 2000 / 241 by norm_num, show (1 : ℝ) / 0.119 = 1000 / 119 by norm_num]
+  exact ⟨q_lo, q_hi⟩
+
+/-- **`D_c/W` at `f = 1/30`** (eq. `eq:Dc_certified_bounds`): `0.119 < D_c/W < 0.1205`,
+by `Dc_bounds` with `a = 0.119`, `b = 0.1205`. -/
 theorem Dc_ratio {h W Dc : ℝ} (H : Hyp (1 / 30) h W) (hW : 0 < W)
-    (hc : IsCritical (1 / 30) h W Dc) : (0.119 : ℝ) < Dc / W ∧ Dc / W < 0.1205 := by
-  obtain ⟨hDc, hg⟩ := hc
-  rw [gderiv_eq_one_iff H.h_pos] at hg
-  have hmono := q_strictMonoOn (f := 1 / 30) (by norm_num) (by norm_num)
-  have hu : 0 < W / Dc := div_pos hW hDc
-  have h1 : 2000 / 241 < W / Dc := by
-    by_contra hle; push Not at hle
-    have := hmono.monotoneOn (Set.mem_Ici.mpr hu.le) (Set.mem_Ici.mpr (by norm_num)) hle
-    linarith [q_lo]
-  have h2 : W / Dc < 1000 / 119 := by
-    by_contra hle; push Not at hle
-    have := hmono.monotoneOn (Set.mem_Ici.mpr (by norm_num)) (Set.mem_Ici.mpr hu.le) hle
-    linarith [q_hi]
-  have e : Dc / W = 1 / (W / Dc) := by field_simp
-  rw [e]
-  constructor
-  · rw [lt_div_iff₀ hu]; nlinarith
-  · rw [div_lt_iff₀ hu]; nlinarith
+    (hc : IsCritical (1 / 30) h W Dc) : (0.119 : ℝ) < Dc / W ∧ Dc / W < 0.1205 :=
+  Dc_bounds H hW hc (by norm_num) (by norm_num) Dc_numerical_verification.1
+    Dc_numerical_verification.2
 
 end SRE

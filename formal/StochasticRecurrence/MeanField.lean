@@ -16,8 +16,15 @@ With `A = -log(1-f)` (eq. `eq:c_def`) and `u = W/D`:
   `z e^{-z} = (1-f)/e`, and `D_c = W A/(z - 1)`. That is, `-z = 𝒲₋₁(-(1-f)/e)`
   (eqs. `eq:z_equation`–`eq:Dc_formula`; Mathlib has no Lambert `W`, so the branch
   is pinned down by this characterisation);
+* `critical_iff`: `D_c/W = 1/u_c` with `u_c > 0` the root of `q(u_c) = f`
+  (eqs. `eq:uc_critical`, `eq:Dc_uc_relation`);
+* `Dc_bounds`: **Prop. (Bounds on the critical ratio)**, `prop:Dc_bounds`: if
+  `q(1/b) < f < q(1/a)` then `a < D_c/W < b`;
 * `contraction`: if `D_c < a` then `g` is `L_g`-Lipschitz on `[a, b]` with
   `L_g = g'(a) ∈ (0, 1)` (eqs. `eq:contractive_region`–`eq:Lg_less_1`);
+* `contractive_iff`: `g'(D_min) < 1 ⟺ D_min > D_c`. Since `0 < g'` is decreasing,
+  `g'(D_min) = sup_{[D_min, D_max]} |g'| = L_g`, so this is the Remark's
+  "`D_min > D_c`, or equivalently `L_g < 1`";
 * `theorem_2_1`: Theorem 2.1 as stated, under `h < 1/f` and `D_min > D_c`.
 -/
 
@@ -187,6 +194,41 @@ theorem lambert_unique {z₁ z₂ : ℝ} (h₁ : 1 ≤ z₁) (h₂ : 1 ≤ z₂)
   · exact heq
   · exact absurd h (key h₂ hgt).ne
 
+/-- `D_c/W = 1/u_c`, where `u_c > 0` solves `q(u_c) = f`
+(eqs. `eq:uc_critical`, `eq:Dc_uc_relation`). -/
+theorem critical_iff (hh : 0 < h) (hW : 0 < W) {Dc : ℝ} :
+    IsCritical f h W Dc ↔ ∃ uc, 0 < uc ∧ q f uc = f ∧ Dc / W = 1 / uc := by
+  constructor
+  · rintro ⟨hDc, hg⟩
+    rw [gderiv_eq_one_iff hh] at hg
+    exact ⟨W / Dc, div_pos hW hDc, hg, by field_simp⟩
+  · rintro ⟨uc, huc, hq, hr⟩
+    have hDc : Dc = W / uc := by
+      field_simp at hr ⊢; linarith
+    refine ⟨hDc ▸ div_pos hW huc, ?_⟩
+    rw [gderiv_eq_one_iff hh, hDc, div_div_cancel₀ hW.ne']
+    exact hq
+
+/-- **Proposition (Bounds on the critical ratio)** (`prop:Dc_bounds`): for
+`a, b > 0`, if `q(1/b) < f < q(1/a)` then `a < D_c/W < b`. -/
+theorem Dc_bounds (H : Hyp f h W) (hW : 0 < W) {Dc a b : ℝ} (hc : IsCritical f h W Dc)
+    (ha : 0 < a) (hb : 0 < b) (hqb : q f (1 / b) < f) (hqa : f < q f (1 / a)) :
+    a < Dc / W ∧ Dc / W < b := by
+  obtain ⟨uc, huc, hq, hr⟩ := (critical_iff H.h_pos hW).mp hc
+  have hmono := q_monotoneOn H.f_pos H.f_lt_one
+  have h1 : 1 / b < uc := by
+    by_contra hle; push Not at hle
+    have := hmono (Set.mem_Ici.mpr huc.le) (Set.mem_Ici.mpr (by positivity)) hle
+    linarith
+  have h2 : uc < 1 / a := by
+    by_contra hle; push Not at hle
+    have := hmono (Set.mem_Ici.mpr (by positivity)) (Set.mem_Ici.mpr huc.le) hle
+    linarith
+  rw [hr]
+  constructor
+  · rw [lt_div_iff₀ huc]; rw [lt_div_iff₀ ha] at h2; linarith
+  · rw [div_lt_iff₀ huc]; rw [div_lt_iff₀ hb] at h1; linarith
+
 /-- **Contraction** (eqs. `eq:contractive_region`–`eq:Lg_less_1`): if `D_c < a` then
 on `[a, b]`, `0 < g' ≤ g'(a) < 1`, so `g` is `g'(a)`-Lipschitz there. -/
 theorem contraction (H : Hyp f h W) (hW : 0 < W) {Dc a b : ℝ} (hc : IsCritical f h W Dc)
@@ -216,6 +258,21 @@ theorem contraction (H : Hyp f h W) (hW : 0 < W) {Dc a b : ℝ} (hc : IsCritical
         (mem_Ici.mpr (div_pos hW hDc).le) (div_lt_div_of_pos_left hW hDc ha)
       nlinarith [H.h_pos]
     linarith
+
+/-- **The contractive condition** (Remark, "Role of the contractive regime"):
+`g'(a) < 1 ⟺ D_c < a`. With `a = D_min`, `g'(D_min)` is `L_g`, the supremum of
+`|g'|` on `[D_min, D_max]` (`g'` is positive and decreasing), so this is
+"`D_min > D_c`, or equivalently `L_g < 1`". -/
+theorem contractive_iff (H : Hyp f h W) (hW : 0 < W) {Dc a : ℝ} (hc : IsCritical f h W Dc)
+    (ha : 0 < a) : gderiv f h W a < 1 ↔ Dc < a := by
+  constructor
+  · intro hlt
+    by_contra hle; push Not at hle
+    have := gderiv_anti (W := W) H ha hle
+    rw [hc.2] at this
+    linarith
+  · intro hlt
+    exact (contraction (b := a) H hW hc hlt).2.2
 
 /-- **Theorem 2.1** as stated in the paper. Assume `0 < f < 1`, `0 < h < 1/f`
 (eq. `eq:h_condition`), `W, D₀ > 0`, and `D_min > D_c` (eq. `eq:contractive_assumption`)
