@@ -43,9 +43,10 @@ structure Hyp (f h W : ℝ) : Prop where
 noncomputable def g (f h W D : ℝ) : ℝ := D - h * D * (f - φ f (W / D))
 
 /-- The mean-field recursion `d_0 = D₀`, `d_{ℓ+1} = g(d_ℓ)` (eq. `eq:mean_field_recursion`). -/
-noncomputable def mf (f h W D₀ : ℝ) : ℕ → ℝ
+noncomputable def mf (f h W D₀ : ℝ) (ℓ : ℕ) : ℝ :=
+  match ℓ with
   | 0 => D₀
-  | n + 1 => g f h W (mf f h W D₀ n)
+  | ℓ + 1 => g f h W (mf f h W D₀ ℓ)
 
 /-- A noise path of the binomial chain is valid if every `k_ℓ ≤ T`. -/
 def Bdd (T : ℕ) (ks : ℕ → ℕ) : Prop := ∀ r, ks r ≤ T
@@ -179,8 +180,8 @@ theorem E_sq_le (H : Hyp f h W) (hT : 0 < T) (L : ℕ) {D : ℝ} (hD : 0 < D) (X
 /-! ### Paths -/
 
 /-- The trajectory of the binomial chain. -/
-noncomputable abbrev Dtraj (f h : ℝ) (T : ℕ) (D₀ : ℝ) (ks : ℕ → ℕ) : ℕ → ℝ :=
-  traj (step f h T) D₀ ks
+noncomputable abbrev Dtraj (f h : ℝ) (T : ℕ) (D₀ : ℝ) (ks : ℕ → ℕ) (ℓ : ℕ) : ℝ :=
+  traj (step f h T) D₀ ks ℓ
 
 /-- The noise `η_ℓ = k_ℓ/T - p(D_ℓ)` (eq. `eq:eta_def`). -/
 noncomputable def eta (f h : ℝ) (T : ℕ) (W D₀ : ℝ) (ks : ℕ → ℕ) (ℓ : ℕ) : ℝ :=

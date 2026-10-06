@@ -21,7 +21,8 @@ noncomputable def φ (f α : ℝ) : ℝ := 1 - (1 - f) ^ α
 
 /-- The probability of outcome `b` of a Bernoulli(`p`) variable:
 `p·δ_{1;b} + (1-p)·δ_{0;b}` (eq. `def:Prob-s`). -/
-def bern (p : ℝ) : Bool → ℝ
+def bern (p : ℝ) (b : Bool) : ℝ :=
+  match b with
   | true => p
   | false => 1 - p
 

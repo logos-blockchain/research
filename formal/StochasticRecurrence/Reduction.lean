@@ -34,14 +34,16 @@ open Finset
 namespace SRE
 
 /-- Prepend `x` to the sequence `xs`. -/
-def scons {X : Type*} (x : X) (xs : ℕ → X) : ℕ → X
+def scons {X : Type*} (x : X) (xs : ℕ → X) (n : ℕ) : X :=
+  match n with
   | 0 => x
   | n + 1 => xs n
 
 /-- The trajectory `D_0 = D₀, D_{n+1} = next D_n x_n` driven by the noise `xs`. -/
-def traj {X : Type*} (next : ℝ → X → ℝ) (D₀ : ℝ) (xs : ℕ → X) : ℕ → ℝ
+def traj {X : Type*} (next : (D : ℝ) → (x : X) → ℝ) (D₀ : ℝ) (xs : ℕ → X) (ℓ : ℕ) : ℝ :=
+  match ℓ with
   | 0 => D₀
-  | n + 1 => next (traj next D₀ xs n) (xs n)
+  | ℓ + 1 => next (traj next D₀ xs ℓ) (xs ℓ)
 
 theorem traj_scons {X : Type*} (next : ℝ → X → ℝ) (D₀ : ℝ) (x : X) (xs : ℕ → X) (n : ℕ) :
     traj next D₀ (scons x xs) (n + 1) = traj next (next D₀ x) xs n := by
@@ -59,10 +61,11 @@ theorem traj_scons_fin {X : Type*} (next : ℝ → X → ℝ) (D₀ : ℝ) (x : 
     exact traj_scons next D₀ x xs j
 
 /-- The expectation of `F` over the first `L` steps of the chain (see the module doc). -/
-noncomputable def chainE {X : Type*} (κ : ℝ → (X → ℝ) → ℝ) (next : ℝ → X → ℝ) (x₀ : X) :
-    ℕ → ℝ → ((ℕ → X) → ℝ) → ℝ
-  | 0, _, F => F (fun _ => x₀)
-  | L + 1, D, F => κ D (fun x => chainE κ next x₀ L (next D x) (fun xs => F (scons x xs)))
+noncomputable def chainE {X : Type*} (κ : (D : ℝ) → (G : X → ℝ) → ℝ)
+    (next : (D : ℝ) → (x : X) → ℝ) (x₀ : X) (L : ℕ) (D : ℝ) (F : (ℕ → X) → ℝ) : ℝ :=
+  match L with
+  | 0 => F (fun _ => x₀)
+  | L + 1 => κ D (fun x => chainE κ next x₀ L (next D x) (fun xs => F (scons x xs)))
 
 section Model
 
@@ -74,9 +77,24 @@ noncomputable def step (D : ℝ) (k : ℕ) : ℝ := D - h * D * (f - 1 + k / T)
 /-- The probability that a slot is empty, `1 - φ(W/D)`. -/
 noncomputable def pEmpty (W D : ℝ) : ℝ := 1 - φ f (W / D)
 
-/-- **The binomial chain**: `k_ℓ | D_ℓ ∼ Bin(T, 1 - φ(W/D_ℓ))`, `D_{ℓ+1} = step D_ℓ k_ℓ`. -/
-noncomputable def kChain (W : ℝ) : ℕ → ℝ → ((ℕ → ℕ) → ℝ) → ℝ :=
-  chainE (fun D G => binExp T (pEmpty f W D) G) (step f h T) 0
+/-- **The binomial chain** (the right-hand side of Prop. 2.1).
+
+At each step the number of empty slots is drawn given the current estimate,
+`k_ℓ | D_ℓ ∼ Bin(T, 1 - φ(W/D_ℓ))`, and the estimate moves by
+`D_{ℓ+1} = D_ℓ - h D_ℓ (f - 1 + k_ℓ/T)` (`step`).
+
+`kChain f h T W L D₀ F` is the expectation of `F` over the first `L` steps, started
+at `D₀`:
+* `W` is the total stake `∑ w_i`; only the total matters for this chain;
+* `L : ℕ` is the horizon (number of steps);
+* `D₀ : ℝ` is the initial estimate;
+* `F : (ℕ → ℕ) → ℝ` is a function of the noise path `ks`, where `ks ℓ = k_ℓ`.
+  Entries after `L` are set to `0`, so `F` should only look at `ks 0, …, ks (L-1)`.
+
+To get a function of the estimates, compose with the trajectory: `F ks` is
+typically `Φ (fun i => traj (step f h T) D₀ ks i)`, so `D_ℓ = traj … ks ℓ`. -/
+noncomputable def kChain (W : ℝ) (L : ℕ) (D₀ : ℝ) (F : (ℕ → ℕ) → ℝ) : ℝ :=
+  chainE (fun D G => binExp T (pEmpty f W D) G) (step f h T) 0 L D₀ F
 
 variable {N : ℕ}
 
@@ -86,11 +104,30 @@ noncomputable def probS (w : Fin N → ℝ) (D : ℝ) (S : Fin T → Fin N → B
 
 /-- One step of the recurrence (eq. `eq:SRE`), driven by the leader configuration `S`. -/
 noncomputable def stepS (D : ℝ) (S : Fin T → Fin N → Bool) : ℝ :=
-  D - h * D * (f - (1 / T) * ∑ t, (if ∃ i, S t i = true then 1 else 0))
+  D - h * D * (f - (1 / T) * ∑ t, (if ∃ i, S t i then 1 else 0))
 
-/-- **The chain of eq. `eq:SRE`**, driven by the leader configurations. -/
-noncomputable def sChain (w : Fin N → ℝ) : ℕ → ℝ → ((ℕ → (Fin T → Fin N → Bool)) → ℝ) → ℝ :=
-  chainE (fun D G => ∑ S, probS f T w D S * G S) (stepS f h T) (fun _ _ => false)
+/-- **The chain of eq. `eq:SRE`** (the left-hand side of Prop. 2.1), driven by the
+full leader configurations.
+
+At each step a configuration `S : Fin T → Fin N → Bool` is drawn given the current
+estimate: `S t i` says whether node `i` is a leader in slot `t`, and the entries are
+independent with `P(S t i = true) = φ(w_i/D_ℓ)` (`probS`). The estimate then moves by
+`D_{ℓ+1} = D_ℓ - h D_ℓ (f - (1/T) ∑_t 1[slot t has a leader])` (`stepS`).
+
+`sChain f h T w L D₀ F` is the expectation of `F` over the first `L` steps, started
+at `D₀`:
+* `w : Fin N → ℝ` gives the stakes, `w i` being node `i`'s stake;
+* `L : ℕ` is the horizon (number of steps);
+* `D₀ : ℝ` is the initial estimate;
+* `F : (ℕ → (Fin T → Fin N → Bool)) → ℝ` is a function of the path of configurations
+  `Ss`, where `Ss ℓ = S(ℓ)`. Entries after `L` are set to the all-`false`
+  configuration, so `F` should only look at `Ss 0, …, Ss (L-1)`.
+
+`binomial_reduction` shows that functions of the estimates `D_0, …, D_L` have the
+same expectation under `sChain f h T w` and `kChain f h T (∑ i, w i)`. -/
+noncomputable def sChain (w : Fin N → ℝ) (L : ℕ) (D₀ : ℝ)
+    (F : (ℕ → (Fin T → Fin N → Bool)) → ℝ) : ℝ :=
+  chainE (fun D G => ∑ S, probS f T w D S * G S) (stepS f h T) (fun _ _ => false) L D₀ F
 
 /-- The number of empty slots. -/
 def nEmpty (S : Fin T → Fin N → Bool) : ℕ := #{t | ∀ i, S t i = false}
@@ -103,7 +140,7 @@ theorem stepS_eq (hT : 0 < T) (D : ℝ) (S : Fin T → Fin N → Bool) :
   unfold stepS step nEmpty
   have hc := card_filter_add_card_filter_not (s := (univ : Finset (Fin T)))
     (fun t => ∀ i, S t i = false)
-  have hs : ∑ t, (if ∃ i, S t i = true then (1 : ℝ) else 0)
+  have hs : ∑ t, (if ∃ i, S t i then (1 : ℝ) else 0)
       = #{t | ¬ ∀ i, S t i = false} := by
     rw [sum_boole]; congr 2; ext t; simp
   rw [hs]

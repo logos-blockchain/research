@@ -6,7 +6,7 @@ Machine-checked versions of results in [`reports/`](../reports).
 - **Status:** no `sorry`s, no custom axioms, no warnings.
 
 ```sh
-# from formal/ (needs elan; the toolchain is pinned in lean-toolchain)
+# from formal/, inside `nix-shell` (shell.nix provides elan; the toolchain is pinned in lean-toolchain)
 lake exe cache get                               # fetch prebuilt Mathlib
 lake build                                       # check every proof
 lake env lean StochasticRecurrenceTest/Axioms.lean   # axioms used by the main results
