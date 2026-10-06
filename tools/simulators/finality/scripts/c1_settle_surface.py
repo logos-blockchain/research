@@ -2,11 +2,11 @@
 
     python scripts/c1_settle_surface.py      # needs runs/c1/summary.csv (scripts/c1_rate.py)
 
-Depth comes from the private race with premining and Cryptarchia's strict tie rule, which B3
-found within a few blocks of the closed form at the attacker's share of chain-extending blocks,
-``q = a / (a + (1 - a) g)``, where ``g`` is the measured canonical growth per occupied-slot rate.
-Time per canonical block is ``interval / g``. H3 asks whether the time falls at least as fast as
-``1 / (1 - o)`` as the orphan share ``o`` falls.
+Depth comes from the private race from the target's parent, without a premined lead, and
+Cryptarchia's strict tie rule, which B3 found within a few blocks of the closed form at the
+attacker's share of chain-extending blocks, ``q = a / (a + (1 - a) g)``, where ``g`` is the
+measured canonical growth per occupied-slot rate. Time per canonical block is ``interval / g``. H3
+asks whether the time falls at least as fast as ``1 / (1 - o)`` as the orphan share ``o`` falls.
 """
 
 from __future__ import annotations

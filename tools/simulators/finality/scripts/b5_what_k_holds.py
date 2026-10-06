@@ -5,11 +5,11 @@
 Worst case: the upper bound of B2. Between B2's grid of shares (0.05 to 1/3) the log of the depth
 is interpolated linearly in the share; a k beyond the grid reads ">= 1/3" or "< 0.05".
 
-Random delays: the private race with premining and Cryptarchia's strict tie rule, at the
-attacker's share of chain-extending blocks q = a / (a + (1 - a) g), with the canonical growth g
-measured in A1 (runs/a1/summary.csv) at testnet's Blend (1 hop, 1 round) and the
-specification's (3 hops, up to 3 rounds), 0.1 s links. B3 found this closed form within a few
-blocks of the race on the engine's timelines.
+Random delays: the private race from the target's parent (B3's race without a premined lead) and
+Cryptarchia's strict tie rule, at the attacker's share of chain-extending blocks
+q = a / (a + (1 - a) g), with the canonical growth g measured in A1 (runs/a1/summary.csv) at
+testnet's Blend (1 hop, 1 round) and the specification's (3 hops, up to 3 rounds), 0.1 s links. B3
+found this closed form within a few blocks of the race on the engine's timelines.
 """
 
 from __future__ import annotations

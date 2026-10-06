@@ -75,11 +75,11 @@ Orphan share · growth / f, 0.1 s links, 8 replicates per cell, by block interva
 | 3 | 3 | 0.107 · 0.903 | 0.130 · 0.882 | 0.179 · 0.845 | 0.260 · 0.758 | 0.310 · 0.710 | 0.412 · 0.618 |
 | 3 | 8 | 0.182 · 0.829 | 0.222 · 0.776 | 0.297 · 0.720 | 0.389 · 0.624 | 0.474 · 0.548 | 0.558 · 0.463 |
 
-Minutes to settle under random Blend delays. Depth is that of the private race with premining and
-Cryptarchia's strict tie rule, at the attacker's share of chain-extending blocks
-`q = α / (α + (1 − α) · growth)`. Phase B3 found this closed form within a few blocks of the race
-played on the engine's own timelines (`SETTLEMENT.md`). Time per canonical block is the interval
-over the growth.
+Minutes to settle under random Blend delays. Depth is that of the private race from the target's
+parent, without a premined lead, and Cryptarchia's strict tie rule, at the attacker's share of
+chain-extending blocks `q = α / (α + (1 − α) · growth)`. Phase B3 found this closed form within a
+few blocks of the race played on the engine's own timelines (`SETTLEMENT.md`). Time per canonical
+block is the interval over the growth.
 
 α = 0.1, ε = 1e-9:
 

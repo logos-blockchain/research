@@ -262,7 +262,8 @@ its clock started at the target. Four mutations fail them.
 ## B5 — a smaller `k`
 
 The largest attacker share each `k` holds without grinding (B6 adds it), under random delays (the
-private race with premining and the strict tie rule), at the canonical growth A1 measured:
+private race from the target's parent, without a premined lead, and the strict tie rule), at the
+canonical growth A1 measured:
 
 | Blend | growth / f | ε | k = 2160 | 1080 | 432 | 216 | 120 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
