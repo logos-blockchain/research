@@ -40,7 +40,7 @@ Against a quarter of the stake on the specification's Blend (3 hops of up to 3 r
 | regular block intervals ([§5](#s5)) | the lottery coefficient becomes a curve of the slots since the parent | 12 min instead of 18 at `1e-3` | 30 % more blocks; a new stake inference | no worst-case bound |
 | faster blocks ([§5](#s5)) | `f` | best at 15–20 s blocks: 46–48 min at `1e-9` against 51 | more forks | — |
 | certificates ([§6](#s6)) | anonymous-seat votes through Blend | about 6 min with 10-minute rounds | ×269 Blend cover traffic | rounds stall under a partition or a delay-scheduling adversary |
-| multi-proposer DAG ([§7](#s7)) | replaces the chain and its fork choice | 38 min at `1e-9` at today's block rate; 15 min at ×3.2 the blocks | ×1 to ×8.6 emissions | needs a worst-case analysis |
+| multi-proposer DAG ([§7](#s7)) | replaces the chain and its fork choice | 38 min at `1e-9` at today's block rate; 15 min at ×3.2 the blocks | ×1 to ×8.6 emissions | against an adversary that schedules delays up to 10 s, safe against 40–45 % of the stake at today's rate, but only 3–6 % at ×8.6 the blocks |
 
 Five candidates for specification work follow from the study:
 
@@ -52,8 +52,10 @@ Five candidates for specification work follow from the study:
 3. **An automatic-recovery trigger** ([§4](#s4)), if `k` is to shrink: a fork deeper than `k` but
    within a horizon is compared by density, with six rules that keep it safe.
 4. **A Peras-style certificate** ([§6](#s6)), if the cover budget allows.
-5. **Areon with a cumulative weight** ([§7](#s7)), counting each lottery win once, as a long-term
-   replacement for the chain, once a worst-case analysis exists.
+5. **Areon at about today's block rate** ([§7](#s7)), with the weight accumulated since the fork
+   and each lottery win counted once across both sides of a conflict. It settles a third sooner
+   than the chain and keeps nearly the chain's worst-case region; at higher block rates that region
+   collapses.
 
 ---
 
@@ -263,11 +265,19 @@ With the first reading, against a quarter of the stake on the specification's Bl
   orphans. At the same block rate the DAG settles about a third sooner.
 - **Raising the block rate keeps paying,** where the chain stops gaining at 15–20 s blocks. The
   price is emissions: every block is a lottery win and a Blend emission.
-- **Delay costs a lag, not a rate.** When every honest block arrives exactly `Δ` late, the time to
-  settle against a quarter of the stake stays at 11–13 minutes for `Δ` from 1 to 20 s at today's
-  block rate.
-- **One win must weigh once.** A ticket that does not depend on the parent can sign several blocks
-  that sit side by side in one subDAG. The weight must count each `ρ_LEAD` once.
+- **A uniform delay costs a lag, not a rate.** When every honest block arrives exactly `Δ` late,
+  the time to settle against a quarter of the stake stays at 11–13 minutes for `Δ` from 1 to 20 s
+  at today's block rate.
+- **A scheduled delay is another matter.** Weighing every honest block of a subDAG is what GHOST
+  does with a subtree, and its tight balancing attacks (Gaži, Motaqy and Russell, ePrint 2024/1830)
+  apply. An adversary that holds each honest block back until the next one appears keeps two
+  conflicting subDAGs at equal weight, and nothing settles while it does. Against delays of up to
+  10 s, the share it needs is 40–45 % at today's block rate, against the chain's 46 %. At
+  `f_A = 0.25` it needs 3–6 %, and with 10 % three attempts in four hold the balance for a day.
+- **One win must weigh once, across both sides.** A ticket that does not depend on the parent can
+  sign blocks in one subDAG or in both of two conflicting ones. The weight must count each
+  `ρ_LEAD` once, and a tag found on both sides must weigh on neither; without that, GHOST-like
+  weights provide no security at all.
 - **The window must span the block interval.** At `f_A = 1/30`, the paper's 30-slot window leaves
   36–56 % of the honest blocks with only a long reference, and so without weight.
 - **The ledger needs a rule.** Honest blocks must reference only their preferred frontier, so that a
@@ -307,9 +317,6 @@ With the first reading, against a quarter of the stake on the specification's Bl
 - **Turnover in Cryptarchia itself.** The recovery horizon rests on how fast staked notes are spent,
   measured elsewhere at 0.05–0.3 % a day, and on how many of their old keys an adversary could buy.
   [§4](#s4) gives the horizon as a function of both.
-- **A worst-case analysis of the DAG.** The DAG is measured against a private race, with honest
-  delays random or uniformly maximal. An adversary that splits honest views between two subDAGs, the
-  attack that sets the chain's worst case, is not modelled.
 - **Proving on the reference node.** The proof of a vote has not been timed on a Raspberry Pi 5.
 - **Grinding.** No model here includes grinding of the epoch randomness.
 

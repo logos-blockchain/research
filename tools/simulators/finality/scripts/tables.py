@@ -1,7 +1,7 @@
 """Markdown tables for the study's notes, read straight from runs/ (no hand transcription).
 
     python scripts/tables.py a1 | c1 | c1settle | c3 | c4 | b3 | b3delay | b2 | b5 | b5rec | b5sweep |
-                             d0 | d6 | e2 | e5
+                             d0 | d6 | e2 | e5 | e5balance
 """
 
 from __future__ import annotations
@@ -371,7 +371,28 @@ def b5sweep() -> None:
     print(md(out))
 
 
+def e5balance() -> None:
+    t = pd.read_csv(RUNS / "e5" / "balance.csv")
+    out = pd.DataFrame({"f_A": [f"{f:.3g}" for f in t.f.unique()]})
+    for d in t.delay_s.unique():
+        sub = t[t.delay_s == d].set_index("f")
+        out[f"Δ = {d} s"] = [f"{sub.loc[f, 'dag_adversarial_ties']:.3f} / "
+                             f"{sub.loc[f, 'dag_fixed_ties']:.3f} / {sub.loc[f, 'chain']:.3f}"
+                             for f in t.f.unique()]
+    print(md(out))
+    print()
+    h = pd.read_csv(RUNS / "e5" / "hold.csv")
+    rows = []
+    for (f, d), g in h.groupby(["f", "delay_s"], sort=False):
+        row = {"f_A": f"{f:.3g}", "Δ": f"{int(d)} s"}
+        for a, ga in g.groupby("alpha", sort=False):
+            gh = ga.set_index("hours").held
+            row[f"α = {a:.2f}"] = f"{gh.loc[1]:.2f} / {gh.loc[24]:.2f}"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+
+
 if __name__ == "__main__":
     {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b5": b5,
      "b5rec": b5rec, "b5sweep": b5sweep, "d0": d0, "d6": d6,
-     "e2": e2, "e5": e5}[sys.argv[1]]()
+     "e2": e2, "e5": e5, "e5balance": e5balance}[sys.argv[1]]()

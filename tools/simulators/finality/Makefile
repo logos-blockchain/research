@@ -69,8 +69,9 @@ e2: install                   # DAG.md, E1 and E2 (about 2 minutes on 14 cores; 
 	$(PY) scripts/e2_areon.py
 	$(PY) scripts/e2_fit.py
 
-e5: install                   # DAG.md, E5 (about 10 s)
+e5: install                   # DAG.md, E5 (about 20 s)
 	$(PY) scripts/e5_delay.py
+	$(PY) scripts/e5_balance.py
 
 octave-reference:             # the original LCanalysis in Octave, in the background (hours)
 	sh scripts/octave_reference.sh
@@ -78,7 +79,7 @@ octave-reference:             # the original LCanalysis in Octave, in the backgr
 all: a1 c1 c3 c4 b2 b3 b5 recovery d0 d6 e2 e5
 
 tables: install
-	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b5 b5rec b5sweep d0 d6 e2 e5; do $(PY) scripts/tables.py $$t; done
+	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b5 b5rec b5sweep d0 d6 e2 e5 e5balance; do $(PY) scripts/tables.py $$t; done
 
 check-tables: install
 	$(PY) scripts/check_tables.py

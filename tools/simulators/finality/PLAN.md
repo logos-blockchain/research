@@ -60,9 +60,7 @@ Phase by phase:
 
 Before review, in this order:
 
-1. **The DAG's worst case.** An adversary that splits honest views between two conflicting
-   subDAGs, signing one win into both; and what a weight counting references would hand it.
-   Decides the rest of H7.
+1. **The DAG's worst case.** Done (E5): the balancing attack.
 2. **Grinding the epoch nonce.** How many nonces a last-revealing coalition can choose between, and
    what that adds to the settlement depths and takes from the recovery horizon.
 3. **The opt-in committee and the privacy of votes** (D1b, D5), measured.
@@ -95,7 +93,7 @@ Hypotheses:
 | H4 | refuted: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control |
 | H5 | waits on the budget line of Q7 |
 | H6 | holds with the trigger of `SETTLEMENT.md` B5: a density test below `B_imm` within a horizon `H`, with a window set apart from `k`. Fails as first stated, a switch to the Bootstrap rule. At Bitcoin's turnover, `H` is 38 to 71 days against 25 % with a 4-hour window and every freed key for sale |
-| H7 | holds for the weight accumulated since the fork, with each `ρ_LEAD` counted once: against 25 % at `ε = 1e-9`, 38 minutes at Cryptarchia's block rate against 59 on the chain. Fails for the paper's prose horizon (the last `w` slots), which settles no depth. The emission line is the owner's |
+| H7 | fails by its own test (E5): under a delay chosen by an adversary the DAG's safe region is GHOST's, narrower than the chain's at every block rate. At today's rate it narrows little (0.40–0.45 against 0.46 at 10 s) and the DAG settles against 25 % in 38 minutes at `1e-9` under random delay, against 59 on the chain; at `f_A = 0.25` it collapses to 3–6 %. The weight must accumulate since the fork, and a win must weigh once across both sides of a conflict |
 
 Three notions of finality carry the document. They are measured separately and never mixed.
 

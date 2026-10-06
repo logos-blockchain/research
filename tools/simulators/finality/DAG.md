@@ -228,10 +228,13 @@ the fork.
 
 ## E3 — private eligibility
 
-- **One win must weigh once.** Cryptarchia's ticket does not depend on the parent, so one win can
-  sign several blocks. In a chain those blocks compete; in a DAG they can sit side by side in one
-  subDAG and add weight each. The weight must therefore count each `ρ_LEAD` once: a second block
-  with the same tag may stay valid but weighs nothing. Without that rule one win buys any weight.
+- **One win must weigh once, across both sides.** Cryptarchia's ticket does not depend on the
+  parent, so one win can sign several blocks. In a DAG they can sit side by side in one subDAG,
+  or one in each of two conflicting subDAGs, and add weight each time. The weight must count each
+  `ρ_LEAD` once in a subDAG, and a tag found in both of two conflicting subDAGs must weigh in
+  neither. Without the second rule one win keeps two subDAGs balanced at no cost: GHOST "provides
+  no security (for any parameters) with unconstrained equivocation" (Gaži, Motaqy and Russell,
+  ePrint 2024/1830, p. 5).
 - **A split coalition gets exactly its share.** Under the per-note lottery a coalition's blocks
   per slot are proportional to its stake: their ratio to honest blocks was within 2 % of
   `α/(1 − α)` at every `f_A` (`runs/e2/race.csv`). The single-identity bias of the paper's §6.3
@@ -267,12 +270,51 @@ displaced share falls to `1e-3`, with minutes:
 | 0.25 | 10 s | 14.0 | 3 (0.7) | 11 (2.6) | 21 (5.2) |
 | 0.25 | 20 s | 23.9 | 5 (1.9) | 15 (6.0) | 32 (13.1) |
 
-The delay widens each layer, but the time to settle against 25 % stays at 11–13 minutes for
-`Δ` from 1 to 20 s at `f_A = 1/30`. Every honest block still counts, so delay costs the honest
-side a lag of about `Δ`, not a share of its rate. On the chain the same delay is what B3's
-two-chain attack uses: against 25 % at `Δ = 10` s it needs 45 blocks for `1e-3`, against 23
-under random delay. The DAG analog of that attack, an adversary that splits honest views between
-two subDAGs, is not modeled here.
+The delay widens each layer, but against the private race the time to settle against 25 % stays
+at 11–13 minutes for `Δ` from 1 to 20 s at `f_A = 1/30`. Every honest block still counts, so a
+uniform delay costs the honest side a lag of about `Δ`, not a share of its rate.
+
+**The balancing attack.** An adversary that schedules each delay can do far more. Weighing every
+honest block of a subDAG is what GHOST does with a subtree, and Gaži, Motaqy and Russell give tight
+attacks on GHOST (ePrint 2024/1830, §5). The adversary keeps two conflicting subDAGs at equal
+weight: it holds each honest block back until the next one appears, so that the honest blocks of a
+phase land alternately on the two sides, and it spends a withheld block of its own when a phase
+ends one apart. While the balance holds no block settles, and the adversary chooses which side
+wins. The balance holds forever with positive probability once the adversary's blocks per phase
+outnumber the phases that cost it a block. `src/finality_sim/balance.py` gives that edge in closed
+form for the slot lottery (`scripts/e5_balance.py`). Gates (`tests/test_balance.py`): the phase
+statistics match a simulation of the lottery, slots a hundred times finer reach the paper's
+continuous-time region, and the balance holds only above the edge. Four mutations fail them.
+
+The largest adversary share that cannot hold the balance, with ties steered by the adversary / ties
+broken by a fixed rule, beside the longest-chain rule's region at the same block rate:
+
+| f_A | Δ = 1 s | Δ = 2 s | Δ = 5 s | Δ = 10 s | Δ = 20 s |
+| --- | --- | --- | --- | --- | --- |
+| 0.0333 | 0.487 / 0.494 / 0.496 | 0.478 / 0.489 / 0.492 | 0.451 / 0.476 / 0.479 | 0.404 / 0.451 / 0.458 | 0.309 / 0.397 / 0.418 |
+| 0.05 | 0.480 / 0.490 / 0.494 | 0.467 / 0.483 / 0.487 | 0.425 / 0.462 / 0.468 | 0.353 / 0.423 / 0.437 | 0.220 / 0.331 / 0.379 |
+| 0.0667 | 0.473 / 0.487 / 0.491 | 0.455 / 0.477 / 0.483 | 0.398 / 0.448 / 0.457 | 0.301 / 0.392 / 0.416 | 0.150 / 0.260 / 0.344 |
+| 0.1 | 0.459 / 0.479 / 0.487 | 0.430 / 0.465 / 0.474 | 0.341 / 0.416 / 0.435 | 0.208 / 0.320 / 0.376 | 0.067 / 0.133 / 0.285 |
+| 0.25 | 0.383 / 0.440 / 0.464 | 0.303 / 0.393 / 0.430 | 0.125 / 0.228 / 0.339 | 0.026 / 0.055 / 0.239 | 0.001 / 0.003 / 0.144 |
+
+The share of 1,000 attempts, begun with an empty reserve, that keep the balance for an hour / a day,
+with ties steered by the adversary:
+
+| f_A | Δ | α = 0.10 | α = 0.25 |
+| --- | --- | --- | --- |
+| 0.0333 | 5 s | 0.00 / 0.00 | 0.00 / 0.00 |
+| 0.0333 | 10 s | 0.00 / 0.00 | 0.00 / 0.00 |
+| 0.25 | 5 s | 0.00 / 0.00 | 0.57 / 0.57 |
+| 0.25 | 10 s | 0.74 / 0.74 | 0.92 / 0.92 |
+
+- **At today's block rate the DAG's region is close to the chain's:** 0.40–0.45 at `Δ = 10` s,
+  against 0.46.
+- **Where the DAG is fast, the region collapses.** At `f_A = 0.25` and `Δ = 10` s an adversary
+  with 3–6 % of the stake keeps the balance; with 10 %, three attempts in four hold it for a day.
+  At `Δ = 5` s the edge is 12.5–23 %.
+- **The chain loses less.** At the same block rates the longest-chain rule keeps 0.24 at 10 s and
+  0.34 at 5 s. Honest blocks that tie split the DAG's weight, while on the chain they only waste
+  it.
 
 ## E6 — the cost
 
@@ -286,8 +328,10 @@ two subDAGs, is not modeled here.
 
 ## H7
 
-H7 holds for the weight accumulated since the fork, with each `ρ_LEAD` counted once. Against 25 %
-at `ε = 1e-9` the DAG settles in 38 minutes at Cryptarchia's block rate, against 59 on the chain,
-and faster still at more blocks. Under the paper's prose horizon it fails: no depth settles. The
-emission budget is the owner's line (Q7). The evidence is the private race; no worst-case bound
-covers the DAG.
+H7 fails by its own test (E5): under a delay chosen by an adversary the DAG's safe region is
+GHOST's, narrower than the chain's at every block rate. At today's block rate it narrows little:
+the DAG holds 0.40–0.45 of the stake at `Δ = 10` s against the chain's 0.46, and settles against
+25 % in 38 minutes at `ε = 1e-9` under random delay, against 59 on the chain. At the block rates
+that make the DAG fast it collapses, to 3–6 % at `f_A = 0.25`. Two further conditions hold
+regardless: the weight must accumulate since the fork, as the paper's prose horizon settles no
+depth, and a lottery win must weigh once across both sides of a conflict.

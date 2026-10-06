@@ -142,6 +142,18 @@ MUTATIONS = [
     ("areon: concurrent honest blocks always count", HERE / "src/finality_sim/areon.py",
      "                elif not descendants_only:", "                elif True:",
      "tests/test_areon.py::test_concurrent_honest_blocks_can_be_left_out"),
+    ("balance: a phase lasts one slot less", HERE / "src/finality_sim/balance.py",
+     "mean_len = (1.0 / q - 1.0) / (1.0 - p)", "mean_len = (1.0 / q - 1.0) / (1.0 - p) - 1.0",
+     "tests/test_balance.py::test_phase_statistics_match_the_closed_form"),
+    ("balance: a busy slot's parity sign flipped", HERE / "src/finality_sim/balance.py",
+     "sign = q / (1.0 + (1.0 - q) * p)", "sign = q / (1.0 - (1.0 - q) * p)",
+     "tests/test_balance.py::test_phase_statistics_match_the_closed_form"),
+    ("balance: quiet phases dropped", HERE / "src/finality_sim/balance.py",
+     "        if quiet >= delta:\n            h_out[n] = h", "        if quiet >= delta and h > 0:\n            h_out[n] = h",
+     "tests/test_balance.py::test_phase_statistics_match_the_closed_form"),
+    ("balance: odd phases cost nothing", HERE / "src/finality_sim/balance.py",
+     "reserve += a[j] - (h[j] % 2)", "reserve += a[j]",
+     "tests/test_balance.py::test_the_balance_holds_only_above_the_threshold"),
 ]
 
 
