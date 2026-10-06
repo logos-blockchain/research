@@ -3,7 +3,7 @@
 Phase B of `PLAN.md`. Tables come from `runs/` through `scripts/tables.py`; runs from
 `scripts/b2_settlement.py`, `scripts/b2_lower.py`, `scripts/b3_race.py`, `scripts/b3_delay.py`,
 `scripts/b4_elapsed.py`, `scripts/b5_what_k_holds.py`, `scripts/b5_recovery.py`,
-`scripts/b5_recovery_sweep.py` and `scripts/b6_grinding.py`.
+`scripts/b5_recovery_sweep.py`, `scripts/b6_grinding.py` and `scripts/b7_nonce.py`.
 
 Two delay models are reported side by side (Q3). In the worst case, an adversary delivers each
 honest message as late as a bound `Δ` allows and breaks ties; that is the model of the proofs
@@ -226,7 +226,7 @@ model once `d` canonical blocks lie on top of it, where `d` holds the chance of 
 - the attack and delay model the depth was computed for: under random Blend delays the private
   race from the target's parent without a premined lead (B5's closed form); under a worst case of
   `Δ`, any attack (B2);
-- grinding of the epoch nonce no stronger than the depth includes (B6);
+- grinding of the epoch nonce no stronger than the depth includes (B6, B7);
 - the node's own view is not eclipsed.
 
 The depth table is the RFC candidate: B2 for the worst case, B5's closed form for random delay. An
@@ -753,3 +753,151 @@ windows and the worst case at 10 s):
 - **Shorter windows hold less.** At `k = 2160` with grinding, a 4-hour window holds no horizon
   against a quarter, and an 8-hour window holds a quarter for 48–92 days and 30 % for none.
 
+## B7 — a nonce that resists grinding
+
+B6's factor comes from the choices a hash chain offers at the cut-off. Two changes reduce it: a cap
+on the nonces a coalition can evaluate, and a nonce that a withheld block rarely changes. The depth
+at `ε = 1e-9` for an attack that meets two nonces (`scripts/b7_nonce.py`):
+
+| nonce | random, specification, α = 0.30 | random, specification, α = 0.33 | worst, 10 s, α = 0.30 | worst, 10 s, α = 0.33 |
+| --- | --- | --- | --- | --- |
+| not ground | 161 | 269 | 892 | 1,510 |
+| hash chain, 2^1 evaluated | 165–175 | 280–293 | 902–959 | 1,544–1,630 |
+| hash chain, 2^2 evaluated | 173–185 | 294–309 | 935–1,011 | 1,618–1,717 |
+| hash chain, 2^4 evaluated | 187–202 | 324–345 | 1,003–1,098 | 1,762–1,900 |
+| hash chain, 2^8 evaluated | 216–232 | 381–407 | 1,142–1,246 | 2,048–2,215 |
+| hash chain, 2^16 evaluated | 275–292 | 499–525 | 1,429–1,539 | 2,639–2,812 |
+| hash chain, 2^24 evaluated | 336–353 | 618–645 | 1,723–1,837 | 3,236–3,413 |
+| hash chain, 2^32 evaluated | 397–414 | 738–765 | 2,021–2,133 | 3,837–4,013 |
+| hash chain, 2^40 evaluated | 455–476 | 859–886 | 2,246–2,436 | 4,437–4,617 |
+| hash chain, 2^48 evaluated | 479–521 | 979–1,006 | 2,333–2,633 | 5,041–5,221 |
+| hash chain, 2^56 evaluated | 491–558 | 1,100–1,127 | 2,386–2,774 | 5,529–5,828 |
+| hash chain, 2^64 evaluated | 500–570 | 1,164–1,239 | 2,424–2,825 | 5,732–6,287 |
+| smallest contributions, k = 2160, at the cut-off | 162 | 271 | 894 | 1,517 |
+| smallest contributions, k = 2160, estimated | 167–173 | 280–293 | 920–953 | 1,565–1,636 |
+| smallest contributions, k = 1620, at the cut-off | 162 | 271 | 895 | 1,520 |
+| smallest contributions, k = 1620, estimated | 167–173 | 280–293 | 921–954 | 1,568–1,639 |
+| smallest contributions, k = 1080, at the cut-off | 162 | 272 | 896 | 1,526 |
+| smallest contributions, k = 1080, estimated | 167–173 | 282–295 | 922–956 | 1,574–1,645 |
+
+**A delay function.** Ouroboros Phalanx (CIP-0161 at `cardano-foundation/CIPs` `20c819b`,
+2026-06-23; the problem is CPS-0021) keeps Praos's hash chain and derives the nonce from it through
+a verifiable delay function, Wesolowski's over a class group. The function is split into 82
+independent iterations of 527 s each on a CPU, computed by the first leaders of 1-hour intervals
+over an epoch. The coalition computes all 82 for every nonce it evaluates, on hardware the CIP takes
+to be 10 times faster. Phalanx also takes the stake distribution one epoch earlier. In B6's terms
+the function caps `B`: `N` evaluators evaluate at most `⌊N/82⌋·⌊t_c/53 s⌋` nonces in the time `t_c`
+the coalition has to choose before its fork must be published.
+
+- **The cap must be small.** At `B = 2` a third needs 1,544–1,630 blocks under the worst case at
+  10 s, and at `B = 2^8` 2,048–2,215.
+- **A sequential delay longer than `t_c` leaves `B = 1`.** Every node must then compute it within
+  the epoch.
+
+**The smallest contributions.** The window before the cut-off, `6⌊k/f⌋` slots, is split into `m`
+sub-windows counted back from the cut-off, each `⌊6⌊k/f⌋/m⌋` slots long, the oldest taking the
+remainder. The nonce is `η_e = H(η_(e−1) ‖ μ_1 ‖ … ‖ μ_m)`, with `H` a hash under its own domain
+separator. `μ_i` is the smallest `ρ_LEAD` among the canonical blocks of sub-window `i`, or a fixed
+value if there is none (`src/finality_sim/nonce.py`). A withheld block changes `μ_i` only if its
+contribution would be the smallest.
+
+- **At the cut-off** the coalition can change only the sub-windows after the deepest fork point it
+  can complete (B6). In each of them `μ_i` is one of two kinds of value. Either it is the smallest
+  contribution among the honest blocks that some feasible fork keeps there. Or it is a coalition
+  contribution after the deepest fork point, below the smallest contribution the deepest fork
+  keeps. `G_min`, the product over those sub-windows of the number of these values, bounds the
+  nonces the coalition can reach at the cut-off.
+- **Before the cut-off** the coalition decides, as each of its blocks is produced, whether to
+  publish it. When its block holds the last sub-window's smallest contribution so far, the earlier
+  minima are fixed. It can compute the nonce that results if no later contribution is smaller,
+  publish the block if that nonce suits its attack, and withhold it otherwise. These decisions are
+  estimated, not bounded. Per nonce, the factor is about `E[G_min]·(1 + p_own)` for its smallest
+  contribution in the last sub-window, `E[G_min]/(1 − p_own)` for any of its contributions there,
+  and that times `1 + (p_own/(1 − p_own))²` with the earlier sub-windows. `p_own` is the chance that
+  the coalition holds a long sub-window's smallest contribution without displacing an honest block:
+  `p_a/(p_a + p_c)`, where `p_a` is its chance to win a slot and `p_c` the rate of canonical honest
+  blocks per slot.
+
+The rule needs three conditions:
+
+1. **A contribution bound to the epoch nonce of its slot:** `ρ_LEAD := hash(NONCE_CONTRIB_V1 ‖ η ‖
+   sl ‖ noteID ‖ sk)`. Today it depends on the note and the slot alone (Proof of Leadership, Circuit
+   Constraints 7). A coalition that creates a note can then choose, among many keys, one whose
+   contributions are small in many slots.
+2. **Enough sub-windows that the coalition rarely knows the nonce before its notes are fixed.** The
+   notes that use the nonce of epoch `e` are those at the start of epoch `e − 1`. The coalition
+   learns its wins in epoch `e − 1`, and their contributions, when that epoch's nonce and inferred
+   stake are fixed, `4⌊k/f⌋` slots before those notes are fixed. It can then predict the nonce of
+   epoch `e`, and the prediction is right if it holds the smallest contribution of every
+   sub-window. With a right prediction it chooses its notes' keys so that their contributions are
+   the smallest of every later window too. One right prediction therefore holds for every later
+   epoch. Racing every honest block below its own from that block's parent, the coalition holds a
+   sub-window's minimum with probability about `p_disp = p_own(1 − p_own)/(1 − p_own − p_own²)`.
+   Keeping `p_disp^m` at or below `1e-9` over ten years of epochs needs 37–39 sub-windows against a
+   third at `k = 2160`. With notes frozen one epoch earlier, as Phalanx does, a prediction needs
+   every minimum of two windows, and 22 sub-windows suffice.
+3. **Sub-windows long enough that forks rarely cross them.** Each sub-window a feasible fork
+   reaches multiplies the choices at the cut-off.
+
+`E[G_min]` with 22 sub-windows, from 100,000 windows a cell, each drawn slot by slot over its last
+20,000 slots; the standard error is at most 0.3 % at `k ≥ 1080`:
+
+| delay | α | k = 2160 | 1620 | 1080 | 432 |
+| --- | --- | --- | --- | --- | --- |
+| random, testnet | 0.25 | 1.01 | 1.01 | 1.01 | 1.03 |
+| random, testnet | 0.30 | 1.01 | 1.02 | 1.03 | 1.08 |
+| random, testnet | 0.33 | 1.02 | 1.03 | 1.05 | 1.20 |
+| random, specification | 0.25 | 1.01 | 1.01 | 1.02 | 1.06 |
+| random, specification | 0.30 | 1.03 | 1.04 | 1.05 | 1.23 |
+| random, specification | 0.33 | 1.05 | 1.07 | 1.12 | 3.37 |
+| worst, 10 s | 0.25 | 1.01 | 1.01 | 1.02 | 1.06 |
+| worst, 10 s | 0.30 | 1.03 | 1.04 | 1.06 | 1.21 |
+| worst, 10 s | 0.33 | 1.05 | 1.07 | 1.12 | 2.54 |
+
+At `k = 2160`:
+
+| delay | α | p_own | p_disp | factor per nonce, at the cut-off / estimated | m, per epoch | m, ten years, displacing | m, the same, notes frozen an epoch earlier |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| random, testnet | 0.25 | 0.26 | 0.28 | 1.01 / 1.26–1.52 | 16 | 22 | 11 |
+| random, testnet | 0.30 | 0.31 | 0.36 | 1.01 / 1.33–1.75 | 18 | 27 | 14 |
+| random, testnet | 0.33 | 0.34 | 0.41 | 1.02 / 1.37–1.97 | 20 | 31 | 16 |
+| random, specification | 0.25 | 0.28 | 0.32 | 1.01 / 1.30–1.64 | 17 | 24 | 12 |
+| random, specification | 0.30 | 0.34 | 0.41 | 1.03 / 1.37–1.95 | 20 | 31 | 16 |
+| random, specification | 0.33 | 0.37 | 0.48 | 1.05 / 1.45–2.27 | 22 | 37 | 19 |
+| worst, 10 s | 0.25 | 0.30 | 0.34 | 1.01 / 1.31–1.69 | 18 | 25 | 13 |
+| worst, 10 s | 0.30 | 0.35 | 0.43 | 1.03 / 1.38–2.02 | 20 | 32 | 16 |
+| worst, 10 s | 0.33 | 0.38 | 0.50 | 1.05 / 1.45–2.34 | 22 | 39 | 20 |
+
+- **The choices at the cut-off stay small with 22 sub-windows at `k ≥ 1080`,** about 1.12 against a
+  third. At `k = 432` a sub-window holds 3,534 slots, about 65 canonical blocks. There the mean
+  rises to 2.5–3.4 on the specification's Blend and under the worst case, resting on rare windows
+  with about `10^4` choices (a standard error of 5–8 %). At `k = 216` one window in a thousand
+  offers more than `2·10^4`. A smaller `k` needs a window longer than `6⌊k/f⌋` slots.
+- **The decisions before the cut-off dominate.** Against a third on the specification's Blend and
+  under the worst case, the factor per nonce is an estimated 1.45–2.34. Under the worst case at
+  10 s the depth is then an estimated 1,565–1,636 blocks at `k = 2160` and 1,568–1,639 at
+  `k = 1620`, against 5,732–6,287 for today's nonce. So `k = 1620` holds a third only under the
+  smaller estimates. At `k = 1080`, 30 % needs an estimated 922–956.
+- **A delay function matches the rule only at `B` of about 2.** A delay longer than the time the
+  coalition has to publish a block would also remove the decisions before the cut-off.
+
+With this nonce, at the largest estimate, B6's recovery horizon stays within four days of the
+unground one at each `k`'s longest window. In days, without grinding / with this nonce, as in B6:
+
+| k | window | α = 0.25 | α = 0.30 | α = 0.33 |
+| --- | --- | --- | --- | --- |
+| 2160 | 72 h | 210–406 / 208–404 | 147–285 / 146–282 | 106–205 / 104–201 |
+| 1620 | 54 h | 198–384 / 197–381 | 137–265 / 135–262 | 97–186 / 95–183 |
+| 1080 | 36 h | 180–348 / 179–346 | 121–234 / 119–230 | 82–157 / 80–153 |
+
+Not counted: honest blocks lost to natural forks, as fork points, and under a worst case the honest
+rivals the coalition can make canonical; the inferred stake, which the coalition moves without
+changing the nonce by publishing or withholding blocks that hold no minimum, each block moving every
+lottery threshold by one part in `f·6⌊k/f⌋`, 12,960 at `k = 2160`; and slots the coalition wins more
+than once.
+
+Gates (`tests/test_nonce.py`): the count bounds the nonces an enumeration of every fork point and
+every subset of the coalition's wins reaches, and equals it with one sub-window; a fork wins
+exactly where B6's walk counts a choice; the coalition holds a long sub-window's smallest
+contribution in proportion to its rate; and over today's window at `k = 2160`, against a third
+under the worst case at 10 s, no fork reaches past the near slots. Seven mutations fail them.

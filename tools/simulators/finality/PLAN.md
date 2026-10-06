@@ -32,7 +32,7 @@ Executed on 2026-10-05 and 2026-10-06. Results live in five notes beside this pl
 
 - `MAPPING.md`: A2, A3.
 - `RATE.md`: A1, C1–C4.
-- `SETTLEMENT.md`: B1–B6.
+- `SETTLEMENT.md`: B1–B7.
 - `CERTIFIED.md`: D0–D6.
 - `DAG.md`: E0–E6.
 
@@ -48,6 +48,7 @@ Phase by phase:
 | B4 confirmation rule | done: the depth table, and a rule that reads elapsed time |
 | B5 smaller `k` | done: the share each `k` holds, both routes of Q8, a trigger for automatic recovery, and its horizon against stake turnover |
 | B6 grinding | done: the nonces a coalition can choose between, bounded from both sides given its lead after the cut-off, for an attack that meets one ground nonce and for one that meets two; what they add to the depths and take from the recovery horizon |
+| B7 nonce | done: a delay function's cap on the nonces evaluated, and a nonce from the smallest contributions of sub-windows, whose factor per nonce is an estimated 1.45–2.34 against a third, not bounded |
 | C1 rate surface | done |
 | C2 Blend parameters | the delay map is done; the privacy trade is with the Blend owners |
 | C3 GHOST | done |
@@ -69,6 +70,7 @@ Before review, in this order:
 4. **A confirmation rule that reads elapsed time.** Done (B4).
 5. **Proving a vote on a Raspberry Pi 5** (D3). Prepared: `tools/benchmarks/pol-proving` times
    the node's proof of leadership; the run on the board is the owner's.
+6. **A nonce that resists grinding.** Done (B7).
 
 The independent review of the notes, the report and the code is applied; the owner's review
 follows.
@@ -95,7 +97,7 @@ Hypotheses:
 | hypothesis | verdict |
 | --- | --- |
 | H1 | fails for the guarantee: at 25 % and `ε = 1e-9` the upper bound exceeds 216 blocks at every delay, from 288 at 1 s; with two nonces ground by a coalition that evaluates `2^64` nonces an epoch, 477–950 blocks at 1–10 s. Holds for the best known attack, without grinding, at least to 20 s |
-| H2 | holds for delays up to 13 s without grinding. With today's nonce B6's bounds prove it with one ground nonce up to 5 s against a coalition that evaluates `2^40` nonces an epoch and up to 2 s against `2^64`, and with two only at 1 s against `2^40`. At the specification's Blend (`Δ = 10` s) these bounds cannot prove it once grinding is counted |
+| H2 | holds for delays up to 13 s without grinding, and at 10 s with a nonce from the smallest contributions of sub-windows at B7's estimates (1,565–1,636 blocks). With today's nonce B6's bounds prove it with one ground nonce up to 5 s against a coalition that evaluates `2^40` nonces an epoch and up to 2 s against `2^64`, and with two only at 1 s against `2^40`. At the specification's Blend (`Δ = 10` s) these bounds cannot prove it once grinding is counted |
 | H3 | holds |
 | H4 | refuted for a delay chosen by an adversary: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control. Untested on the chain under random delay |
 | H5 | fails against Blend's present budget: with the cover raised by D0's multiple, every committee exceeds the read limit `r_1` of a core connection, against a quarter of the stake unless rounds last 33 hours (D3). Whether that budget may grow is the owner's line (Q7) |

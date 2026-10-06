@@ -1,7 +1,7 @@
 """Markdown tables for the study's notes, read straight from runs/ (no hand transcription).
 
     python scripts/tables.py a1 | c1 | c1settle | c3 | c4 | b3 | b3delay | b2 | b4 | b5 | b5rec | b5sweep |
-                             b6 | d0 | d1b | d3 | d5 | d6 | e2 | e5 | e5balance
+                             b6 | b7 | d0 | d1b | d3 | d5 | d6 | e2 | e5 | e5balance
 """
 
 from __future__ import annotations
@@ -321,6 +321,80 @@ def b6() -> None:
     print(md(pd.DataFrame(rows)))
 
 
+def b7() -> None:
+    b = pd.read_csv(RUNS / "b7" / "budget.csv")
+    m = pd.read_csv(RUNS / "b7" / "minimum.csv")
+    cols = [("random, specification", 0.3), ("random, specification", 0.3333), ("worst, 10 s", 0.3),
+            ("worst, 10 s", 0.3333)]
+
+    def name(model, a):
+        return f"{model}, α = {a:.2f}"
+
+    def span(lo, hi):
+        lo, hi = (f"{v:,.0f}" for v in (lo, hi))
+        return lo if lo == hi else f"{lo}–{hi}"
+    rows = [{"nonce": "not ground"} | {name(*c): f"{b[(b.model == c[0]) & (b.alpha == c[1])]['depth_1e-09'].iloc[0]:,.0f}"
+                                     for c in cols}]
+    for bits in sorted(b.budget_bits.unique()):
+        row = {"nonce": f"hash chain, 2^{bits} evaluated"}
+        for c in cols:
+            x = b[(b.model == c[0]) & (b.alpha == c[1]) & (b.budget_bits == bits)].iloc[0]
+            row[name(*c)] = span(x.depth_two_lo, x.depth_two_hi)
+        rows.append(row)
+    for k in (2160, 1620, 1080):
+        cut = {"nonce": f"smallest contributions, k = {k}, at the cut-off"}
+        est = {"nonce": f"smallest contributions, k = {k}, estimated"}
+        for c in cols:
+            x = m[(m.model == c[0]) & (m.alpha == c[1]) & (m.k == k)].iloc[0]
+            cut[name(*c)] = f"{x['depth_two_1e-09']:,.0f}"
+            est[name(*c)] = span(x.depth_two_last, x.depth_two_earlier)
+        rows += [cut, est]
+    print(md(pd.DataFrame(rows)))
+    print()
+
+    def count(v):
+        if v < 10:
+            return f"{v:.2f}"
+        if v < 1e4:
+            return f"{v:,.0f}"
+        return f"{v:.0e}".replace("e+0", "e").replace("e+", "e")
+    rows = []
+    for (model, a), g in m.groupby(["model", "alpha"], sort=False):
+        if a < 0.25:
+            continue
+        row = {"delay": model, "α": f"{a:.2f}"}
+        for i, (_, x) in enumerate(g[g.k >= 432].sort_values("k", ascending=False).iterrows()):
+            row[f"k = {x.k}" if i == 0 else f"{x.k}"] = count(x.mean_g)
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    rows = []
+    for _, x in m[(m.alpha >= 0.25) & (m.k == 2160)].iterrows():
+        rows.append({"delay": x.model, "α": f"{x.alpha:.2f}", "p_own": f"{x.own:.2f}",
+                     "p_disp": f"{x.own_displaced:.2f}",
+                     "factor per nonce, at the cut-off / estimated": f"{x.mean_g:.2f} / {x.factor_last:.2f}–{x.factor_earlier:.2f}",
+                     "m, per epoch": f"{x.m_epoch}", "m, ten years, displacing": f"{x.m_life}",
+                     "m, the same, notes frozen an epoch earlier": f"{x.m_early}"})
+    print(md(pd.DataFrame(rows)))
+    print()
+    r = pd.read_csv(RUNS / "b7" / "recovery.csv")
+
+    def days(v):
+        return "≥ 3650" if np.isinf(v) else "< 1 h" if v < 1 / 24 else f"{v:,.0f}"
+
+    def turnover(g, col):
+        lo, hi = (days(g[g.tau_per_day == tau][col].iloc[0]) for tau in (2.43e-3, 1.25e-3))
+        return lo if lo == hi else f"{lo}–{hi}"
+    rows = []
+    for (k, w), g in r.groupby(["k", "window_h"], sort=False):
+        row = {"k": f"{k}", "window": f"{w:g} h"}
+        for a in (0.25, 0.30, 0.3333):
+            x = g[g.alpha.round(4) == a]
+            row[f"α = {a:.2f}"] = f"{turnover(x, 'h_days')} / {turnover(x, 'h_days_minimum')}"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+
+
 def duration(days: float) -> str:
     if days >= 10:
         return f"{days:,.0f} d"
@@ -539,5 +613,5 @@ def e5balance() -> None:
 
 if __name__ == "__main__":
     {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b4": b4, "b5": b5,
-     "b5rec": b5rec, "b5sweep": b5sweep, "b6": b6, "d0": d0, "d1b": d1b, "d3": d3, "d5": d5, "d6": d6,
+     "b5rec": b5rec, "b5sweep": b5sweep, "b6": b6, "b7": b7, "d0": d0, "d1b": d1b, "d3": d3, "d5": d5, "d6": d6,
      "e2": e2, "e5": e5, "e5balance": e5balance}[sys.argv[1]]()

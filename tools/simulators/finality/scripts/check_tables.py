@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
-NAMES = ("a1", "c1", "c1settle", "c3", "c4", "b3", "b3delay", "b2", "b4", "b5", "b5rec", "b5sweep", "b6", "d0", "d1b", "d3", "d5", "d6", "e2", "e5", "e5balance")
+NAMES = ("a1", "c1", "c1settle", "c3", "c4", "b3", "b3delay", "b2", "b4", "b5", "b5rec", "b5sweep", "b6", "b7", "d0", "d1b", "d3", "d5", "d6", "e2", "e5", "e5balance")
 
 
 def tables(text: str) -> list[str]:
