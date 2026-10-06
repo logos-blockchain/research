@@ -1,8 +1,9 @@
 # Settlement
 
 Phase B of `PLAN.md`. Tables come from `runs/` through `scripts/tables.py`; runs from
-`scripts/b2_settlement.py`, `scripts/b3_race.py`, `scripts/b3_delay.py`,
-`scripts/b5_what_k_holds.py`, `scripts/b5_recovery.py` and `scripts/b6_grinding.py`.
+`scripts/b2_settlement.py`, `scripts/b2_lower.py`, `scripts/b3_race.py`, `scripts/b3_delay.py`,
+`scripts/b4_elapsed.py`, `scripts/b5_what_k_holds.py`, `scripts/b5_recovery.py`,
+`scripts/b5_recovery_sweep.py` and `scripts/b6_grinding.py`.
 
 Two delay models are reported side by side (Q3). In the worst case, an adversary delivers each
 honest message as late as a bound `Δ` allows and breaks ties; that is the model of the proofs
@@ -38,13 +39,13 @@ Gates (`tests/test_lcbounds.py`, mutations in `scripts/check_mutations.py`):
   states: `5.4e-13` with its 80 phases, `6.87e-3` with 240. The port follows the attack for
   `max(80, 4K)` phases, which leaves Table 1 unchanged and converges past it. A gate checks that
   doubling the phases changes nothing at depth 60, and the 80-phase mutation fails it.
-
 - **Every depth at once.** The port's upper bound takes time quadratic in the depth `K`.
   `ub_curve` computes it at every depth up to `K` in one pass, in time linear in `K`: every symbol
   lowers the count still to go by at least one, so the count a path has used passes each value
   once. It matches the port within `1e-12` relative at depths 1–25, and within `1e-10` at depths
   160–640 in three of B2's cells (`tests/data/lcbounds_deep.csv`, `scripts/b2_deep.py`). Three
   mutations fail this gate.
+
 The paper does not state the alphabet and state counts behind its table. The code's defaults
 (10 and 19) reproduce it, and 20 and 49 change no cell by more than `5e-5` relative. Beyond the
 paper's delays the alphabet must grow, because honest runs lengthen with `D`. B2 sizes it per
@@ -301,22 +302,22 @@ Against this attack, dividing `k` by ten (2160 to 216) lowers the share held at 
 0.41 to 0.32 on the specification's Blend. Testnet's `k = 120` holds 0.31 on its own Blend.
 
 In the worst case, the largest share each `k` guarantees at `ε = 1e-9` is read off B2's upper
-bound. Between B2's shares, the log of the depth is interpolated linearly in the share
-(`runs/b5/worst_case.csv`):
+bound at depth `k`, on a grid of shares in steps of 0.005, its log linear in the share between
+grid points (`runs/b5/worst_case.csv`):
 
 | Δ | k = 2160 | 1080 | 432 | 216 | 120 |
 | --- | --- | --- | --- | --- | --- |
-| 1 s | ≥ 1/3 | ≥ 1/3 | 0.289 | 0.220 | 0.155 |
-| 2 s | ≥ 1/3 | ≥ 1/3 | 0.284 | 0.215 | 0.150 |
-| 3 s | ≥ 1/3 | ≥ 1/3 | 0.279 | 0.210 | 0.145 |
+| 1 s | ≥ 1/3 | ≥ 1/3 | 0.288 | 0.221 | 0.155 |
+| 2 s | ≥ 1/3 | ≥ 1/3 | 0.283 | 0.215 | 0.150 |
+| 3 s | ≥ 1/3 | ≥ 1/3 | 0.278 | 0.210 | 0.145 |
 | 5 s | ≥ 1/3 | ≥ 1/3 | 0.268 | 0.200 | 0.135 |
-| 8 s | ≥ 1/3 | 0.326 | 0.253 | 0.184 | 0.118 |
-| 10 s | ≥ 1/3 | 0.315 | 0.242 | 0.172 | 0.106 |
-| 15 s | 0.331 | 0.287 | 0.212 | 0.140 | 0.072 |
-| 20 s | 0.303 | 0.258 | 0.178 | 0.102 | < 0.05 |
+| 8 s | ≥ 1/3 | 0.323 | 0.253 | 0.184 | 0.118 |
+| 10 s | ≥ 1/3 | 0.313 | 0.242 | 0.172 | 0.106 |
+| 15 s | 0.328 | 0.287 | 0.213 | 0.140 | 0.072 |
+| 20 s | 0.301 | 0.258 | 0.179 | 0.102 | < 0.05 |
 
 Testnet's `k = 120` guarantees 0.15 of the stake at a 1 s delay and 0.11 at 10 s. A tenth of
-today's `k` guarantees 0.17–0.22 for delays of 1–10 s. That is half of what it holds against the
+today's `k` guarantees 0.17–0.22 for delays of 1–10 s, 54–69 % of the 0.32 it holds against the
 private attack under random delays.
 
 What a smaller `k` changes beyond the share held, with the epoch tied to it or decoupled, is
@@ -359,8 +360,9 @@ window:
   last counted one, the chain-growth argument of the delay proofs.
 
 Gates (`tests/test_recovery.py`): the worst-case count matches a slot-by-slot computation, the
-failure matches a Monte Carlo estimate in both models, and the probabilities stay finite at the
-longest window used. Five mutations fail them.
+failure matches a Monte Carlo estimate in both models, the probabilities stay finite at the
+longest window used, and bought keys raise the fork's rate without lowering the honest chain's.
+Six mutations fail them.
 
 The engine's canonical chain varies less from window to window than the binomial model, so the
 model overstates the adversary's chance under random delay (`runs/b5/recovery_engine.csv`):
@@ -439,9 +441,10 @@ A trigger that heals and gives no such lever:
    differ, nodes alternate until the short side also passes `k`.
 3. **Wait for the whole window.** Densities are compared only once both chains hold every slot of
    the window.
-4. **Size the window for `α` and `ε`, apart from `k`.** The table above gives it without grinding.
-   Against a quarter of the stake, B6 finds 4 hours too short once grinding is counted, and 8
-   hours enough.
+4. **Size the window for `α`, `ε` and the horizon, apart from `k`.** Over a horizon, windows of 1
+   and 2 hours hold a quarter of the stake for less than an hour of history even without grinding
+   (below). With grinding, 4 hours hold none and 8 hours hold 46–87 days at Bitcoin's turnover
+   (B6).
 5. **Keep the window inside the lottery parameters fixed before the divergence.** A chain fixes
    the next epoch's nonce and inferred stake `6⌊k/f⌋` slots into an epoch. A fork that diverges
    just before that slot runs on its own nonce and inferred stake `4⌊k/f⌋` slots later. The window
@@ -451,9 +454,9 @@ A trigger that heals and gives no such lever:
 6. **Bound the horizon `H`.** Cryptarchia has no forward security (`CERTIFIED.md` D4). Whoever holds
    the key of a note eligible at the divergence point can sign for it on the fork, where it may be
    unspent though spent on the honest chain. `H` must keep `α` plus the stake whose keys an
-   adversary can collect within `H` below the share the window holds. No data on stake turnover
-   bounds it yet. `H` also multiplies the chance per window by the blocks it holds: about 2,400 a
-   day on the specification's Blend.
+   adversary can collect within `H` below the share the window holds. No data on Cryptarchia's
+   stake turnover bounds it yet. `H` also multiplies the chance per window by the blocks it holds:
+   1,833 a day on the specification's Blend while a quarter of the stake withholds.
 
 With the window at its longest, `4⌊k/f⌋` slots, the largest share the density test holds
 (`runs/b5/recovery_share.csv`):
@@ -469,9 +472,11 @@ With the window at its longest, `4⌊k/f⌋` slots, the largest share the densit
 | worst, 20 s | 1e-09 | 0.384 | 0.371 | 0.344 | 0.316 | 0.283 |
 | worst, 20 s | 1e-12 | 0.379 | 0.363 | 0.332 | 0.299 | 0.262 |
 
-Under random delay this exceeds what each `k` holds against the private race at `ε = 1e-9` (the
-first B5 table): 0.297 against 0.278 at `k = 120` on the specification's Blend, even at `1e-12`
-per window. So with rules 1–6 the density test does not limit `k`; the private race does.
+Per window, under random delay, this exceeds what each `k` holds against the private race at
+`ε = 1e-9` (the first B5 table): 0.297 against 0.278 at `k = 120` on the specification's Blend,
+even at `1e-12` per window. Over a horizon it holds less. At `k = 120`, whose window is at most
+4 hours, it holds a fifth of the stake for 58–110 days at Bitcoin's turnover with grinding, and a
+quarter for no horizon (B6).
 
 What the trigger costs:
 
@@ -479,8 +484,8 @@ What the trigger costs:
   path for a LIB that moves back.
 - The node keeps its block tree and the ledger states its proofs need back to `H`, instead of
   pruning at the LIB.
-- A split heals only once the window after its divergence point has passed: 1.7 h against a
-  quarter of the stake at `1e-9` per window on the specification's Blend, 4.9 h against a third.
+- A split heals only once the window after its divergence point has passed: 8 hours against a
+  quarter of the stake (rule 4).
 
 **The horizon against stake turnover.** `scripts/b5_recovery_sweep.py` turns rule 6 into numbers.
 A share `μ(a) = 1 − e^{−τa}` of the stake moves within an age `a`, at a turnover rate `τ` per day.
@@ -502,8 +507,8 @@ Every freed key reaches the adversary (`c = 1`):
 | 0.125 % | 327 | 157 | 71 | 5 h | < 1 h |
 | 0.243 % | 170 | 83 | 38 | 5 h | < 1 h |
 | 0.3 % | 139 | 68 | 32 | 5 h | < 1 h |
-| 1 % | 43 | 21 | 10 | 4 h | < 1 h |
-| 3 % | 15 | 7 | 4 | 3 h | < 1 h |
+| 1 % | 43 | 21 | 10 | 5 h | < 1 h |
+| 3 % | 15 | 7 | 4 | 4 h | < 1 h |
 | 10 % | 4 | 2 | 29 h | 2 h | < 1 h |
 
 A tenth of the freed keys reaches the adversary (`c = 0.1`):
@@ -519,7 +524,7 @@ A tenth of the freed keys reaches the adversary (`c = 0.1`):
 | 0.3 % | ≥ 3650 | ≥ 3650 | 407 | 5 h | < 1 h |
 | 1 % | ≥ 3650 | ≥ 3650 | 145 | 5 h | < 1 h |
 | 3 % | ≥ 3650 | ≥ 3650 | 57 | 5 h | < 1 h |
-| 10 % | ≥ 3650 | ≥ 3650 | 21 | 4 h | < 1 h |
+| 10 % | ≥ 3650 | ≥ 3650 | 21 | 5 h | < 1 h |
 
 The window, against a quarter of the stake with every freed key (`c = 1`):
 
@@ -547,8 +552,8 @@ The window, against a quarter of the stake with every freed key (`c = 1`):
 
 | chain | what moves | per day | kind |
 | --- | --- | --- | --- |
-| Ethereum | exits, at most 256 ETH per 6.4-minute epoch (consensus-specs @ `71c0019`) | 0.13 % | cap |
-| Ethereum | the largest exit queue, 7.5 % of stake on 2025-09-13, drained at that cap over 46 days (validatorqueue.com @ `3f32aef`) | 0.13–0.16 % | measured |
+| Ethereum | exits, at most 256 ETH per 6.4-minute epoch, of 43.66M ETH staked (consensus-specs @ `71c0019`) | 0.13 % | cap |
+| Ethereum | the largest exit queue, 7.5 % of the 35.58M ETH staked on 2025-09-13, drained at that cap over 46 days (validatorqueue.com @ `3f32aef`) | 0.16 % | measured |
 | Cosmos Hub | ATOM unbonding started in the 21 days to 2026-10-05: 2.1 % of bonded stake | 0.10 % | measured |
 | Polkadot | nominator unbonding requests, eras 2296–2314, median per daily era | 0.05 % | measured |
 | Cardano | net stake leaving pools, median per 5-day epoch, 2023-03 to 2026-09 (a lower bound) | 0.11 % | measured |
@@ -561,22 +566,28 @@ Hub staking REST (cosmoshub-4, height 33,271,284); Polkadot Asset Hub staking le
 2296–2314; Koios `pool_history`, epochs 400–657; Solana's `StakeHistory` sysvar, epochs 950–1049;
 CryptoSlate's supply-age series (Glassnode method), 2026-09-18; Cardano's Shelley genesis
 (`slotsPerKESPeriod`) and Algorand's participation-key documentation for the key rules below. The
-Cosmos, Polkadot, Cardano and Solana rows are chain scans of a single period.
+Cosmos, Polkadot, Cardano and Solana rows are chain scans of a single period. The values are
+read from these sources; no target computes them.
 
 Staked value elsewhere moves at 0.05–0.3 % a day, and Bitcoin's supply, the closest match to
 Cryptarchia's notes, at 0.13–0.24 % a day over a month to a year. At Bitcoin's rates a 4-hour
 window holds a quarter of the stake for a horizon of 38 to 71 days if every freed key can be
 bought, and of 16 months to 2.4 years if a tenth can, both without grinding. Across 0.05–0.3 % a
-day the first range widens to 32–166 days. Ethereum bounds the same exposure with bonded stake and
-an exit cap: its weak subjectivity period, 15.7 days, lets at most 5 % of the stake leave. Chains
+day the first range widens to 32–166 days. The yearly rate understates a month's movement: at
+0.125 % a day, 3.7 % of the supply moves in 30 days, against the 7.0 % measured. Ethereum bounds
+the same exposure with bonded stake and churn limits. Its weak subjectivity period, 15.7 days at
+any stake, is 256 epochs plus the time a balance churn of 1/65,536 of the stake per epoch takes to
+move 5 % of it (`electra/weak-subjectivity.md`). Exits, capped at 256 ETH per epoch, move at most
+2.1 % of today's stake in that period. Chains
 whose stake is never locked protect leader keys instead: Cardano's keys evolve every 36 hours, and
 Algorand deletes each round's key once the round ends. A forward-secure leader key would free the
 horizon from turnover altogether.
 
 **H6** holds with the trigger of rules 1–6 and fails as the plan first stated it. The self-healing
 horizon then stops bounding `k`, and `H` takes its place. Against a quarter of the stake at
-Bitcoin's turnover, with every freed key for sale, `H` is 57 to 108 days with an 8-hour window
-once grinding is counted (B6), and 38 to 71 days with a 4-hour window without it.
+Bitcoin's turnover, with every freed key for sale, `H` is 46 to 87 days with an 8-hour window at
+`k = 2160` once grinding is counted (B6), and 38 to 71 days with a 4-hour window without it. At
+`k = 120`, whose window is at most 4 hours, no horizon holds a quarter with grinding.
 
 ## B6 — grinding the epoch nonce
 
@@ -584,113 +595,161 @@ The bounds of B2 and the density test of B5 assume an epoch nonce that no one ch
 epoch's nonce is the hash chain `η_B = H(η_parent ‖ ρ_LEAD ‖ sl)` at the last block before the
 cut-off slot, `6⌊k/f⌋` into the epoch (protocol, Epoch Nonce). A coalition that withholds its wins
 chooses that block. It forks at an honest block `d` canonical blocks before the cut-off and keeps
-any `j > d` of the `W_d` wins it made since. Its chain then displaces the honest one. The coalition
-therefore picks among `G = 1 + Σ_d Σ_{j>d} C(W_d, j)` nonces, and evaluates at most `B` of them. An
-attack that succeeds with probability `u` against one schedule then succeeds with probability at
-most `φ(u) = E[min(1, u·min(G, B))]`. The model lets the coalition evaluate its choices before the
-honest chain grows past its fork.
+any `j > d` of the `W_d` wins it made since. Its chain then displaces the honest one. The
+coalition therefore picks among `G = 1 + Σ_d S_d` nonces, with `S_d = Σ_{j>d} C(W_d, j)`, and
+evaluates at most `B` of them. Let `u` be an attack's chance against the schedule of an honest
+nonce. Against a nonce picked among those it evaluates, the chance is at most
+`φ(u) = E[min(1, u·min(G, B))]`, a union bound over the choices. The coalition is allowed to
+evaluate its choices before the honest chain grows past its fork.
+
+- **After the cut-off.** The nonce is final only once the chain past the cut-off is. A coalition
+  that keeps winning after the cut-off can complete a fork that holds no more than `d` of its
+  earlier wins, by the most `Z` its private chain ever leads the public one.
+- **Two epochs.** An attack whose schedule spans the end of an epoch meets two nonces, picked at
+  two cut-offs with independent choices `G` and `G'`. A target past its epoch's cut-off, whose
+  race reaches the next epoch, faces such an attack. Its chance is at most
+  `φ_2(u) = E[min(1, u·min(G, B)·min(G', B))]`.
 
 `src/finality_sim/grinding.py` reads the coalition's lead `W_d − d` backwards from the cut-off as a
-random walk, under the delay models of B5. From the walk it computes two bounds on `φ` exactly. The
-lower one counts only the fork point with the most choices. The upper one adds the choices of every
-fork point. To hold `ε`, the chance against one schedule must fall by the factor `ε/u*`, where
-`φ(u*) = ε`. The depth then grows by `ln(ε/u*)/ϱ`, where `ϱ` is the attack's decay per block: the
-§5.6 fit of the chain's race under random delay (`DAG.md`, E2), and B2's upper bound under a worst
-case of `Δ` (`scripts/b6_grinding.py`).
+random walk, under the delay models of B5. From the walk it computes two bounds on `φ` exactly:
 
-Gates (`tests/test_grinding.py`): the walk's lead and the largest single choice match a
-slot-by-slot simulation under both delay models; the simulated `φ` lies between the bounds;
-doubling the walk's truncation moves no bound; without stake the factor is one. Six mutations fail
-them.
+- the lower one counts the fork point with the most choices, `M = max_d S_d`, among the choices
+  complete at the cut-off;
+- the upper one adds the choices of every fork point, the walk started from the lead at the
+  cut-off plus `Z`.
+
+`φ` is concave with `φ(0) = 0`, so `φ_2(u) ≤ φ(u) + Σ_d E[φ(u·min(S'_d, B))]`, each `φ` at most its
+upper bound. From below, `G ≥ max(1, M)` in each epoch. To hold `ε`, the chance against one
+schedule must fall by the factor `R = ε/u*`, where `φ(u*) = ε`, and likewise by `R_2` for `φ_2`.
+The depth that holds `ε/R` is read off the attack's own chance: B5's closed form under random
+delay, and B2's upper bound under a worst case of `Δ` (`scripts/b6_grinding.py`). The budget
+*sets* the factor where `R > ε·B`.
+
+Not counted: orphaned honest blocks as fork points; slots the coalition wins more than once; a
+schedule that an earlier grinding picked; and an attack longer than `4⌊k/f⌋` slots, which crosses
+a cut-off of its own and can pick its own nonce.
+
+Gates (`tests/test_grinding.py`, `tests/test_b6_reading.py`): the walk's lead and the largest
+single choice match a slot-by-slot simulation under both delay models; the simulated `φ` lies
+between the bounds, and the forks completed after the cut-off take it above the upper bound that
+leaves them out; the lead after the cut-off is the forward walk; two independently simulated
+epochs lie between the pair's bounds and above one epoch's upper bound; doubling the walk's
+truncation moves no bound; without stake the factor is one; the factors bracket where the bounds
+cross `ε`; the lower bound lies below its integral; and the readings below take each age once and
+the upper bound at the next larger `u`. Sixteen mutations fail them.
 
 With `B = 2^64`:
 
-| delay | α | epochs with a choice | factor at 1e-9 | set by the budget | depth at 1e-9 → with grinding |
-| --- | --- | --- | --- | --- | --- |
-| random, testnet | 0.10 | 11 % | 1.0–1.2 | – | 16 → 16–17 |
-| random, testnet | 0.20 | 26 % | 2.1–6.3 | – | – |
-| random, testnet | 0.25 | 34 % | 1,300–6,500 | – | 67 → 93–98 |
-| random, testnet | 0.30 | 44 % | 5e8–6e9 | – | – |
-| random, testnet | 0.33 | 51 % | 8e11–3e12 | yes | 152 → 364–373 |
-| random, specification | 0.10 | 13 % | 1.0–1.3 | – | 18 → 18 |
-| random, specification | 0.20 | 29 % | 20–72 | – | – |
-| random, specification | 0.25 | 39 % | 6e5–4e6 | – | 77 → 130–138 |
-| random, specification | 0.30 | 51 % | 5e11–2e12 | yes | – |
-| random, specification | 0.33 | 59 % | 8e13–3e14 | yes | 188 → 489–500 |
-| worst, 10 s | 0.10 | 12 % | 1.0–1.3 | – | 114 → 114–115 |
-| worst, 10 s | 0.20 | 27 % | 9.0–32 | – | 280 → 310–328 |
-| worst, 10 s | 0.25 | 37 % | 1e5–8e5 | – | 469 → 741–785 |
-| worst, 10 s | 0.30 | 48 % | 2e11–7e11 | yes | 864 → 1,981–2,033 |
-| worst, 10 s | 0.33 | 57 % | 4e13–1e14 | yes | 1,420 → 3,631–3,717 |
+| delay | α | epochs with a choice | factor at 1e-9, one nonce | two nonces | set by the budget | depth at 1e-9 → one nonce → two nonces |
+| --- | --- | --- | --- | --- | --- | --- |
+| random, testnet | 0.10 | 11 % | 1.0–1.5 | 1.0–2.2 | – | 17 → 17 → 17–18 |
+| random, testnet | 0.20 | 26 % | 2.1–18 | 4.7–230 | – | 41 → 43–48 → 45–54 |
+| random, testnet | 0.25 | 34 % | 1,300–3e4 | 1e4–5e6 | – | 66 → 91–103 → 99–121 |
+| random, testnet | 0.30 | 44 % | 5e8–3e10 | 2e10–2e14 | yes | 111 → 232–258 → 254–311 |
+| random, testnet | 0.33 | 51 % | 8e11–9e12 | 1e16–1e22 | yes | 169 → 418–440 → 507–633 |
+| random, specification | 0.10 | 13 % | 1.0–1.7 | 1.0–2.8 | – | 19 → 19–20 → 19–20 |
+| random, specification | 0.20 | 29 % | 20–260 | 82–1e4 | – | 51 → 59–66 → 63–77 |
+| random, specification | 0.25 | 39 % | 6e5–3e7 | 9e6–3e10 | – | 86 → 148–167 → 161–199 |
+| random, specification | 0.30 | 51 % | 5e11–5e12 | 3e15–2e21 | yes | 161 → 396–416 → 471–587 |
+| random, specification | 0.33 | 59 % | 8e13–9e14 | 6e24–2e30 | yes | 269 → 732–766 → 1,096–1,283 |
+| worst, 10 s | 0.10 | 12 % | 1.0–1.7 | 1.0–2.7 | – | 114 → 114–117 → 114–120 |
+| worst, 10 s | 0.20 | 27 % | 9.0–120 | 30–3,500 | – | 281 → 311–347 → 328–394 |
+| worst, 10 s | 0.25 | 37 % | 1e5–6e6 | 2e6–4e9 | – | 474 → 748–840 → 806–988 |
+| worst, 10 s | 0.30 | 48 % | 2e11–2e12 | 2e14–9e19 | yes | 892 → 2,037–2,143 → 2,339–2,907 |
+| worst, 10 s | 0.33 | 57 % | 4e13–5e14 | 2e23–7e29 | yes | 1,510 → 3,837–4,017 → 5,484–6,605 |
 
-- **Below a fifth of the stake grinding costs little.** The factor is at most 1.3 at 10 %. At 20 %
-  the worst case at 10 s needs up to 48 more blocks.
-- **Against a quarter of the stake it adds more than half the depth.** On the specification's
-  Blend, 77 blocks become 130–138 under random delay. Under the worst case at 10 s, 469 become
-  741–785. The factor comes from rare epochs in which the coalition leads by many blocks at a deep
-  fork point.
-- **From 30 % only the budget bounds it.** On the specification's Blend, one fork point offers more
-  than `2^64` nonces in 2e-8 of epochs at 30 % and in 3e-6 at a third. The factor then grows with
-  `B`.
+- **Below a fifth of the stake the guarantee needs little more depth.** At 10 % the factor is at
+  most 1.7 for one nonce and 2.8 for two, and the depth grows by at most 6 blocks.
+- **Against a quarter of the stake, two nonces need 1.5 to 2.3 times the depth.** On the
+  specification's Blend, 86 blocks become 148–167 with one nonce and 161–199 with two. Under the
+  worst case at 10 s, 474 become 748–840 and 806–988.
+- **From 30 % the budget sets the one-nonce factor** in every delay model.
+- The depths with two nonces take 0.2–19 hours on the attack clock under random delay, and 1.4–100
+  hours under the worst case at 10 s. Against a third under the worst case, 100 hours exceed the
+  `4⌊k/f⌋ = 72` hours of today's `k`.
 
-B2's upper bound at `ε = 1e-9`, in blocks, without → with grinding, at the upper end of the factor
-(`runs/b6/delays.csv`):
+B2's upper bound at `ε = 1e-9`, in blocks, without grinding → with two nonces, at the upper end of
+the factor (`runs/b6/delays.csv` also holds one nonce):
 
 | α | nonces evaluated | 1 s | 2 s | 3 s | 5 s | 8 s | 10 s | 15 s | 20 s |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0.05 | 2^64 | 45 → 45 | 47 → 47 | 49 → 49 | 54 → 54 | 64 → 64 | 72 → 72 | 100 → 100 | 140 → 141 |
-| 0.10 | 2^64 | 74 → 75 | 77 → 78 | 81 → 81 | 88 → 89 | 102 → 103 | 114 → 115 | 153 → 154 | 212 → 215 |
-| 0.15 | 2^64 | 115 → 118 | 120 → 123 | 125 → 129 | 137 → 141 | 159 → 163 | 176 → 181 | 236 → 244 | 328 → 343 |
-| 0.20 | 2^64 | 179 → 194 | 187 → 204 | 196 → 215 | 215 → 240 | 251 → 287 | 280 → 328 | 379 → 473 | 536 → 721 |
-| 0.25 | 2^40 | 285 → 398 | 300 → 424 | 316 → 451 | 351 → 513 | 416 → 628 | 469 → 724 | 654 → 1,063 | 961 → 1,636 |
-| 0.25 | 2^64 | 285 → 403 | 300 → 431 | 316 → 462 | 351 → 532 | 416 → 668 | 469 → 785 | 654 → 1,221 | 961 → 2,022 |
-| 0.30 | 2^64 | 484 → 1,002 | 513 → 1,089 | 545 → 1,186 | 616 → 1,374 | 750 → 1,728 | 864 → 2,033 | 1,280 → 3,161 | 2,027 → 5,240 |
-| 0.33 | 2^40 | 728 → 1,368 | 778 → 1,474 | 833 → 1,589 | 959 → 1,860 | 1,205 → 2,390 | 1,420 → 2,859 | 2,257 → 4,704 | 3,945 → 8,501 |
-| 0.33 | 2^64 | 728 → 1,753 | 778 → 1,892 | 833 → 2,045 | 959 → 2,401 | 1,205 → 3,100 | 1,420 → 3,717 | 2,257 → 6,163 | 3,945 → 11,184 |
+| 0.05 | 2^64 | 45 → 46 | 47 → 48 | 49 → 50 | 54 → 55 | 64 → 65 | 73 → 74 | 100 → 102 | 140 → 143 |
+| 0.10 | 2^64 | 75 → 77 | 78 → 81 | 81 → 84 | 89 → 92 | 102 → 107 | 114 → 120 | 153 → 161 | 212 → 225 |
+| 0.15 | 2^64 | 116 → 126 | 121 → 132 | 126 → 138 | 138 → 152 | 159 → 177 | 177 → 198 | 236 → 271 | 328 → 387 |
+| 0.20 | 2^64 | 179 → 226 | 188 → 238 | 197 → 252 | 216 → 284 | 252 → 344 | 281 → 394 | 380 → 575 | 537 → 888 |
+| 0.25 | 2^40 | 288 → 492 | 303 → 526 | 319 → 563 | 354 → 649 | 420 → 813 | 474 → 953 | 661 → 1,472 | 971 → 2,399 |
+| 0.25 | 2^64 | 288 → 498 | 303 → 534 | 319 → 574 | 354 → 664 | 420 → 838 | 474 → 988 | 661 → 1,546 | 971 → 2,553 |
+| 0.30 | 2^64 | 495 → 1,275 | 525 → 1,386 | 558 → 1,510 | 632 → 1,800 | 773 → 2,383 | 892 → 2,907 | 1,325 → 4,999 | 2,105 → 9,092 |
+| 0.33 | 2^40 | 758 → 2,198 | 812 → 2,379 | 871 → 2,579 | 1,008 → 3,046 | 1,275 → 3,969 | 1,510 → 4,791 | 2,426 → 8,058 | 4,282 → 14,841 |
+| 0.33 | 2^64 | 758 → 2,598 | 812 → 2,865 | 871 → 3,163 | 1,008 → 3,884 | 1,275 → 5,354 | 1,510 → 6,605 | 2,426 → 11,162 | 4,282 → 20,627 |
 
-- **H2 holds up to a delay of about 7 s against a coalition that evaluates `2^40` nonces an epoch,
-  and below 4 s against one that evaluates `2^64`.** Without grinding it holds up to about 14 s.
+- **H2 fails once two nonces are ground.** At a third of the stake the guarantee needs more than
+  `k = 2160` blocks at every delay from 1 s: 2,198 against a coalition that evaluates `2^40`
+  nonces an epoch, 2,598 against `2^64`. With one nonce, `k = 2160` holds up to 5 s against `2^40`
+  and up to 2 s against `2^64`.
+- At 30 % from 15 s, and at a third from 8 s (10 s against `2^40`), the depths with two nonces
+  take longer than 72 hours on the attack clock, outside the model.
 
-The largest share each `k` holds at `ε = 1e-9`, without → with grinding, read as B5 reads it, with
-`B = 2^64` and the upper end of the factor (`runs/b6/shares.csv`):
+The largest share each `k` holds at `ε = 1e-9`, without grinding → with two nonces, at the upper
+end of the factor and `B = 2^64` (`runs/b6/shares.csv` also holds one nonce):
 
 | delay | k = 2160 | 1080 | 432 | 216 | 120 |
 | --- | --- | --- | --- | --- | --- |
-| random, testnet | 0.447 → 0.412 | 0.428 → 0.383 | 0.391 → 0.334 | 0.351 → 0.293 | 0.307 → 0.262 |
-| random, specification | 0.413 → 0.379 | 0.394 → 0.351 | 0.358 → 0.304 | 0.320 → 0.265 | 0.278 → 0.236 |
-| worst, 1 s | ≥ 1/3 → ≥ 1/3 | ≥ 1/3 → 0.304 | 0.289 → 0.254 | 0.220 → 0.207 | 0.155 → 0.152 |
-| worst, 2 s | ≥ 1/3 → ≥ 1/3 | ≥ 1/3 → 0.300 | 0.284 → 0.250 | 0.215 → 0.204 | 0.150 → 0.147 |
-| worst, 3 s | ≥ 1/3 → ≥ 1/3 | ≥ 1/3 → 0.295 | 0.279 → 0.246 | 0.210 → 0.200 | 0.145 → 0.142 |
-| worst, 5 s | ≥ 1/3 → 0.327 | ≥ 1/3 → 0.287 | 0.268 → 0.237 | 0.200 → 0.190 | 0.135 → 0.133 |
-| worst, 8 s | ≥ 1/3 → 0.313 | 0.326 → 0.275 | 0.253 → 0.224 | 0.184 → 0.175 | 0.118 → 0.117 |
-| worst, 10 s | ≥ 1/3 → 0.303 | 0.315 → 0.267 | 0.242 → 0.216 | 0.172 → 0.165 | 0.106 → 0.105 |
-| worst, 15 s | 0.331 → 0.280 | 0.287 → 0.244 | 0.212 → 0.193 | 0.140 → 0.137 | 0.072 → 0.071 |
-| worst, 20 s | 0.303 → 0.253 | 0.258 → 0.220 | 0.178 → 0.166 | 0.102 → 0.101 | < 0.05 → < 0.05 |
+| random, testnet | 0.447 → 0.390 | 0.428 → 0.357 | 0.391 → 0.316 | 0.351 → 0.281 | 0.307 → 0.250 |
+| random, specification | 0.413 → 0.357 | 0.394 → 0.325 | 0.358 → 0.287 | 0.320 → 0.254 | 0.278 → 0.224 |
+| worst, 1 s | ≥ 1/3 → 0.325 | ≥ 1/3 → 0.291 | 0.288 → 0.242 | 0.221 → 0.196 | 0.155 → 0.145 |
+| worst, 2 s | ≥ 1/3 → 0.321 | ≥ 1/3 → 0.287 | 0.283 → 0.238 | 0.215 → 0.192 | 0.150 → 0.141 |
+| worst, 3 s | ≥ 1/3 → 0.317 | ≥ 1/3 → 0.283 | 0.278 → 0.234 | 0.210 → 0.188 | 0.145 → 0.136 |
+| worst, 5 s | ≥ 1/3 → 0.308 | ≥ 1/3 → 0.275 | 0.268 → 0.226 | 0.200 → 0.180 | 0.135 → 0.127 |
+| worst, 8 s | ≥ 1/3 → 0.296 | 0.323 → 0.263 | 0.253 → 0.214 | 0.184 → 0.167 | 0.118 → 0.112 |
+| worst, 10 s | ≥ 1/3 → 0.287 | 0.313 → 0.254 | 0.242 → 0.205 | 0.172 → 0.157 | 0.106 → 0.100 |
+| worst, 15 s | 0.328 → 0.265 | 0.287 → 0.233 | 0.213 → 0.183 | 0.140 → 0.130 | 0.072 → 0.068 |
+| worst, 20 s | 0.301 → 0.242 | 0.258 → 0.210 | 0.179 → 0.158 | 0.102 → 0.096 | < 0.05 → < 0.05 |
 
-- **A tenth of today's `k` holds less.** At `k = 216` the share falls from 0.320 to 0.265 on the
+- **A tenth of today's `k` holds less.** At `k = 216` the share falls from 0.320 to 0.254 on the
   specification's Blend under random delay. The share guaranteed for delays of 1–10 s falls from
-  0.172–0.220 to 0.165–0.207.
+  0.172–0.221 to 0.157–0.196.
 
-**The recovery horizon.** The divergence points of one epoch share the nonce the coalition ground.
-Over a horizon `H` the chance is then at most the sum, over its epochs, of the upper bound on `φ`
-at that epoch's chance against an honest nonce. The longest `H` that holds `1e-9`, in days,
-without / with grinding, on the specification's Blend under random delay, with `B = 2^64`
-(`runs/b6/recovery.csv` also holds the worst case at 10 s):
+**The recovery horizon.** The window after a divergence point lies within the lottery parameters
+fixed before it (B5, rule 5). An epoch is `10⌊k/f⌋` slots long and the window at most `4⌊k/f⌋`. A
+divergence point within one window of its epoch's end has a window that reaches the next epoch, so
+its chance meets both nonces. Over a horizon `H` the chance is then at most the sum, over its
+epochs, of the upper bound on `φ` at the epoch's other points and the upper bound on `φ_2` at
+these, each at the sum of their chances against honest nonces. The horizon holds at the worst of
+48 phases of the epoch boundaries. The longest `H` that holds `1e-9`, in days, without / with
+grinding, on the specification's Blend under random delay, with `B = 2^64` (`runs/b6/recovery.csv`
+also holds the worst case at 10 s):
 
-| α | freed keys bought | window | 0.125 % a day | 0.243 % a day |
-| --- | --- | --- | --- | --- |
-| 0.10 | 1 | 4 h | 327 / 325 | 170 / 170 |
-| 0.10 | 1 | 8 h | 462 / 460 | 240 / 239 |
-| 0.20 | 1 | 4 h | 157 / 133 | 83 / 70 |
-| 0.20 | 1 | 8 h | 269 / 247 | 140 / 129 |
-| 0.25 | 1 | 4 h | 71 / 5 | 38 / 3 |
-| 0.25 | 1 | 8 h | 173 / 108 | 91 / 57 |
-| 0.25 | 0.1 | 4 h | 865 / 8 | 488 / 8 |
-| 0.25 | 0.1 | 8 h | ≥ 3650 / 2,924 | ≥ 3650 / 1,787 |
+| k | window | α | freed keys bought | 0.125 % a day | 0.243 % a day |
+| --- | --- | --- | --- | --- | --- |
+| 2160 | 4 h | 0.10 | 1 | 327 / 323 | 170 / 169 |
+| 2160 | 8 h | 0.10 | 1 | 462 / 458 | 240 / 238 |
+| 2160 | 4 h | 0.20 | 1 | 157 / 121 | 83 / 63 |
+| 2160 | 8 h | 0.20 | 1 | 269 / 233 | 140 / 121 |
+| 2160 | 4 h | 0.25 | 1 | 71 / < 1 h | 38 / < 1 h |
+| 2160 | 8 h | 0.25 | 1 | 173 / 87 | 91 / 46 |
+| 2160 | 4 h | 0.25 | 0.1 | 865 / < 1 h | 488 / < 1 h |
+| 2160 | 8 h | 0.25 | 0.1 | ≥ 3650 / 1,537 | ≥ 3650 / 872 |
+| 216 | 4 h | 0.10 | 1 | 327 / 322 | 170 / 168 |
+| 216 | 7.2 h | 0.10 | 1 | 442 / 437 | 230 / 227 |
+| 216 | 4 h | 0.20 | 1 | 157 / 112 | 83 / 60 |
+| 216 | 7.2 h | 0.20 | 1 | 253 / 208 | 132 / 109 |
+| 216 | 4 h | 0.20 | 0.1 | ≥ 3650 / ≥ 3650 | ≥ 3650 / 2,515 |
+| 216 | 4 h | 0.25 | 1 | 71 / < 1 h | 38 / < 1 h |
+| 216 | 7.2 h | 0.25 | 1 | 158 / 63 | 83 / 34 |
+| 216 | 4 h | 0.25 | 0.1 | 865 / < 1 h | 488 / < 1 h |
+| 216 | 7.2 h | 0.25 | 0.1 | ≥ 3650 / 721 | ≥ 3650 / 404 |
+| 120 | 4 h | 0.10 | 1 | 327 / 322 | 170 / 168 |
+| 120 | 4 h | 0.20 | 1 | 157 / 110 | 83 / 58 |
+| 120 | 4 h | 0.20 | 0.1 | ≥ 3650 / 3,171 | ≥ 3650 / 2,020 |
+| 120 | 4 h | 0.25 | 1 | 71 / < 1 h | 38 / < 1 h |
+| 120 | 4 h | 0.25 | 0.1 | 865 / < 1 h | 488 / < 1 h |
 
-- **With grinding, a 4-hour window no longer holds a quarter of the stake.** Even without bought
-  keys, the chance reaches `1e-9` within the first two epochs of the horizon. The horizon falls
-  from 38–71 days to 3–5 if every freed key can be bought, and from 488–865 days to 8 if a tenth
-  can.
-- **An 8-hour window holds a quarter of the stake for 57–108 days** at Bitcoin's turnover if every
-  freed key can be bought. At a fifth of the stake grinding shortens the horizon by 8–16 %.
+- **With grinding a 4-hour window holds no horizon against a quarter of the stake.** At every `k`
+  the chance exceeds `1e-9` within the first hour of history, even if only a tenth of the freed
+  keys can be bought.
+- **An 8-hour window at `k = 2160` holds a quarter of the stake for 46–87 days** at Bitcoin's
+  turnover if every freed key can be bought, and for 872–1,537 days if a tenth can. At `k = 216`
+  the window is at most 7.2 hours: 34–63 and 404–721 days. At `k = 120` it is at most 4 hours,
+  and holds no horizon against a quarter.
+- **At a fifth of the stake grinding shortens the horizon by 13–30 %.**

@@ -24,10 +24,26 @@ those of ``finality_sim.recovery``:
 - worst case of ``delta`` slots: a canonical honest block is followed by ``delta`` slots in which no
   honest win extends the chain, and the next is the first honest win after them.
 
-The cut-off falls at a uniformly random point of the gap between two canonical honest blocks. With
-``M = max_d S_d`` and ``x = min(1/u, B)``, the walk gives two bounds exactly:
+The cut-off falls at a point of the gap between two canonical honest blocks chosen in proportion to
+the gap's length. With ``M = max_d S_d`` and ``x = min(1/u, B)``, the walk gives two bounds exactly:
 
     E[min(1, u min(M, B))]  <=  phi(u)  <=  min(1, uB) P(M >= x) + u + u sum_d E[S_d; S_d < x].
+
+**After the cut-off.** The nonce is final only once the chain past the cut-off is. A coalition that
+keeps winning after the cut-off can complete a fork that holds no more than ``d`` of its wins: it
+needs ``j + Z > d``, where ``Z`` is the most its private chain ever leads the public one after the
+cut-off. ``Z`` is the walk run forwards, independent of the history before the cut-off
+(``post_cutoff``). Counting the coalition's later wins as earlier ones only adds choices, so the
+upper bound runs the walk from ``L_0 + Z``; the lower bound counts the choices complete at the
+cut-off. Orphaned honest blocks as fork points, and slots the coalition wins twice, are not
+counted.
+
+**Two epochs.** An attack whose schedule spans two epochs meets two nonces, ground at two cut-offs
+with independent choices ``G`` and ``G'``. It succeeds with probability at most
+``phi_2(u) = E[min(1, u min(G, B) min(G', B))] = E[phi(u min(G', B))]`` (``pair_bounds``). ``phi`` is
+concave with ``phi(0) = 0``, so ``phi_2(u) <= phi(u) + sum_d E[phi(u min(S'_d, B))]``, with each
+``phi`` at most the upper bound at the next larger ``u``. From below, ``G >= max(1, M)`` in both
+epochs.
 """
 
 from __future__ import annotations
@@ -64,6 +80,48 @@ def walk(f: float, alpha: float, growth: float | None = None,
     y = np.arange(n + dead + 1)
     first = stats.binom.pmf(y[:, None], m[None, :], a) @ pm
     return first, step
+
+
+@njit(cache=True)
+def _climb(step, z, floor):
+    """P(the forward walk ever reaches a lead of z): V_1 = Y_1, V_(k+1) = V_k + Y_(k+1) - 1."""
+    n = floor + z
+    p = np.zeros(n)
+    hit = 0.0
+    for y in range(step.size):
+        if y >= z:
+            hit += step[y]
+        else:
+            p[y + floor] += step[y]
+    while True:
+        q = np.zeros(n)
+        for i in range(n):
+            if p[i] == 0.0:
+                continue
+            for y in range(step.size):
+                j = i + y - 1
+                if j >= n:
+                    hit += p[i] * step[y]
+                elif j >= 0:
+                    q[j] += p[i] * step[y]
+        left = 0.0
+        for i in range(n):
+            left += q[i]
+        p = q
+        if left < TINY:
+            return hit
+
+
+def post_cutoff(f: float, alpha: float, growth: float | None = None, delta: int | None = None,
+                floor: int = 200) -> np.ndarray:
+    """The pmf of ``Z``, the most the coalition's private chain leads the public one after the
+    cut-off: the lead just before each later canonical honest block, the first gap taken whole."""
+    _, step = walk(f, alpha, growth, delta)
+    ge = [1.0]
+    while ge[-1] > TINY:
+        ge.append(_climb(step, len(ge), floor))
+    ge = np.array(ge + [0.0])
+    return ge[:-1] - ge[1:]
 
 
 @njit(cache=True)
@@ -163,6 +221,43 @@ def _union(first, step, tab, xs, floor):
     return np.cumsum(diff)[:xs.size], depths + 1
 
 
+@njit(cache=True)
+def _union_mass(first, step, tab, xs, floor):
+    """The sum over d of P(S_d >= 1) by bin: bin k holds 2^xs[k-1] < S_d <= 2^xs[k], and the last
+    bin also every S_d above it."""
+    depths, cap = tab.shape[0] - 1, tab.shape[1] - 1
+    n = floor + cap + 1
+    hist = np.zeros(xs.size)
+    p = np.zeros(n)
+    for y in range(first.size):
+        if y > cap:
+            hist[-1] += first[y]
+        else:
+            p[y + floor] += first[y]
+    for d in range(depths + 1):
+        for i in range(floor + 1, n):
+            if p[i] > 0.0:
+                k = np.searchsorted(xs, tab[d, i - floor] - ROUND)
+                hist[min(k, xs.size - 1)] += p[i]
+        q = np.zeros(n)
+        for i in range(n):
+            if p[i] == 0.0:
+                continue
+            for z in range(step.size):
+                j = i + z - 1
+                if j >= n:
+                    hist[-1] += p[i] * step[z]
+                elif j >= 0:
+                    q[j] += p[i] * step[z]
+        left = 0.0
+        for i in range(n):
+            left += q[i]
+        p = q
+        if left < TINY:
+            return hist, d
+    return hist, depths + 1
+
+
 def tail(f: float, alpha: float, xs: np.ndarray, growth: float | None = None,
          delta: int | None = None, depths: int = 4000, floor: int = 100,
          cap: int = 300) -> np.ndarray:
@@ -178,27 +273,64 @@ def tail(f: float, alpha: float, xs: np.ndarray, growth: float | None = None,
     return out
 
 
-def bounds(f: float, alpha: float, growth: float | None = None, delta: int | None = None,
-           budget_bits: int = 64, depths: int = 4000, floor: int = 100, cap: int = 300,
-           per_bit: int = PER_BIT) -> tuple[np.ndarray, np.ndarray, np.ndarray, float]:
-    """Lower and upper bounds on ``phi(u)`` at ``u = 2^-t``, for t on a grid of ``1/per_bit`` bit up
-    to ``budget_bits + 60``, and ``P(G > 1)``. The walk is truncated as in ``tail``."""
+def _bounds(f, alpha, growth, delta, budget_bits, depths, floor, cap, per_bit, after_cutoff, extra_bits):
     xs = np.arange(budget_bits * per_bit + 1) / per_bit
-    tail_x = tail(f, alpha, xs, growth, delta, depths, floor, cap)
     first, step = walk(f, alpha, growth, delta)
-    below, reach = _union(first, step, _table(depths, cap), xs, floor)
-    if reach > depths:
+    tab = _table(depths, cap)
+    tail_lo, reach = _max_tail(first, step, tab, xs, floor)
+    first_up = np.convolve(first, post_cutoff(f, alpha, growth, delta)) if after_cutoff else first
+    tail_up, reach_t = _max_tail(first_up, step, tab, xs, floor)
+    below, reach_u = _union(first_up, step, tab, xs, floor)
+    if max(reach, reach_t, reach_u) > depths:
         raise ValueError("the walk outlasted the depths tabulated")
     x = 2.0 ** xs
     # the integral of P(M >= y) over 0 <= y <= x_k, from below: P(M >= y) >= P(M >= x_{k+1}) on a step
-    area = np.concatenate(([tail_x[0]], tail_x[0] + np.cumsum(np.diff(x) * tail_x[1:])))
-    ts = np.arange((budget_bits + 60) * per_bit + 1) / per_bit
+    area = np.concatenate(([tail_lo[0]], tail_lo[0] + np.cumsum(np.diff(x) * tail_lo[1:])))
+    ts = np.arange((budget_bits + extra_bits) * per_bit + 1) / per_bit
     u = 2.0 ** -ts
     k = np.minimum(np.arange(ts.size), xs.size - 1)   # x = min(1/u, B)
     lower = np.maximum(u, u * area[k])
-    upper = np.minimum(1.0, u * x[-1]) * tail_x[k] + u + u * below[k]
+    upper = np.minimum(1.0, u * x[-1]) * tail_up[k] + u + u * below[k]
     upper = np.minimum(upper, np.minimum(1.0, u * x[-1]))
-    return ts, lower, upper, float(tail_x[0])
+    return ts, lower, upper, tail_lo, first_up, step, tab, xs
+
+
+def bounds(f: float, alpha: float, growth: float | None = None, delta: int | None = None,
+           budget_bits: int = 64, depths: int = 4000, floor: int = 100, cap: int = 300,
+           per_bit: int = PER_BIT,
+           after_cutoff: bool = True) -> tuple[np.ndarray, np.ndarray, np.ndarray, float]:
+    """Lower and upper bounds on ``phi(u)`` at ``u = 2^-t``, for t on a grid of ``1/per_bit`` bit up
+    to ``budget_bits + 60``, and ``P(G > 1)`` for the choices complete at the cut-off. With
+    ``after_cutoff`` the upper bound also counts forks completed after it. The walk is truncated as
+    in ``tail``."""
+    ts, lower, upper, tail_lo = _bounds(f, alpha, growth, delta, budget_bits, depths, floor, cap,
+                                        per_bit, after_cutoff, 60)[:4]
+    return ts, lower, upper, float(tail_lo[0])
+
+
+def pair_bounds(f: float, alpha: float, growth: float | None = None, delta: int | None = None,
+                budget_bits: int = 64, depths: int = 4000, floor: int = 100, cap: int = 300,
+                per_bit: int = PER_BIT) -> tuple[np.ndarray, ...]:
+    """Lower and upper bounds on ``phi(u)``, then on ``phi_2(u)``, at ``u = 2^-t`` for t on a grid of
+    ``1/per_bit`` bit up to ``2 budget_bits + 60``: one epoch's nonce, then two independently
+    ground ones."""
+    ts, lower, upper, tail_lo, first_up, step, tab, xs = _bounds(
+        f, alpha, growth, delta, budget_bits, depths, floor, cap, per_bit, True, budget_bits + 60)
+    mass, reach = _union_mass(first_up, step, tab, xs, floor)
+    if reach > depths:
+        raise ValueError("the walk outlasted the depths tabulated")
+    n = ts.size
+
+    def at(v, k):                                     # v at u 2^xs[k]; one where that exceeds 1
+        return np.concatenate((np.ones(k), v[:n - k]))
+
+    hat = np.minimum.accumulate(upper)                # the least upper bound at any larger u
+    upper2 = hat + sum(m * at(hat, k) for k, m in enumerate(mass) if m > 0.0)
+    # max(1, M') rounded down to the grid
+    m_lo = np.append(-np.diff(tail_lo), tail_lo[-1])
+    m_lo[0] += 1.0 - tail_lo[0]
+    lower2 = sum(m * at(lower, k) for k, m in enumerate(m_lo) if m > 0.0)
+    return ts, lower, upper, lower2, np.minimum(1.0, upper2)
 
 
 def factors(ts: np.ndarray, lower: np.ndarray, upper: np.ndarray, eps: float) -> tuple[float, float]:
@@ -221,11 +353,27 @@ def lead_pmf(f: float, alpha: float, depth: int, growth: float | None = None,
 
 
 @njit(cache=True)
+def _choices(wins, d, z):
+    """S_d with the coalition leading by z after the cut-off: the sum over j >= j_min of
+    C(wins, j), j_min = 1 at the last honest block and max(0, d + 1 - z) deeper."""
+    j_min = 1 if d == 0 else max(0, d + 1 - z)
+    if j_min > wins:
+        return 0.0
+    c, term = 1.0, 1.0
+    for i in range(1, wins - j_min + 1):             # C(wins, i) for i <= wins - j_min
+        c *= (wins - i + 1) / i
+        term += c
+    return term
+
+
+@njit(cache=True)
 def _simulate(n_samples, h, a, dead, n_slots, d_out, seed):
     np.random.seed(seed)
     leads = np.full((n_samples, d_out + 1), -(1 << 40), np.int64)
     log2g = np.empty(n_samples)
+    log2gz = np.empty(n_samples)
     log2m = np.full(n_samples, -np.inf)
+    zs = np.empty(n_samples, np.int64)
     canon = np.zeros(n_slots, np.bool_)
     adv = np.zeros(n_slots, np.bool_)
     for s in range(n_samples):
@@ -235,32 +383,42 @@ def _simulate(n_samples, h, a, dead, n_slots, d_out, seed):
             if canon[t]:
                 last = t
             adv[t] = np.random.random() < a
-        total, best, wins, d = 1.0, 0.0, 0, 0
+        # after the cut-off: the most the coalition's private chain ever leads the public one
+        lead, z, t = 0, 0, n_slots
+        while lead > -60:
+            if np.random.random() < a:              # wins count first within a slot
+                lead += 1
+                z = max(z, lead)
+            if np.random.random() < h and t - last > dead:
+                last = t
+                lead -= 1
+            t += 1
+        zs[s] = z
+        total, total_z, best, wins, d = 1.0, 1.0, 0.0, 0, 0
         for t in range(n_slots - 1, 0, -1):          # the cut-off is slot n_slots
             if canon[t]:
                 if d <= d_out:
                     leads[s, d] = wins - d
-                if wins > d:
-                    c, term = 1.0, 1.0
-                    for j in range(1, wins - d):        # C(wins, i) for i < wins - d
-                        c *= (wins - j + 1) / j
-                        term += c
-                    total += term
-                    best = max(best, term)
+                term = _choices(wins, d, 0)
+                total += term
+                best = max(best, term)
+                total_z += _choices(wins, d, z)
                 d += 1
             if adv[t]:
                 wins += 1
         log2g[s] = math.log2(total)
+        log2gz[s] = math.log2(total_z)
         if best > 0.0:
             log2m[s] = math.log2(best)
-    return leads, log2g, log2m
+    return leads, log2g, log2m, log2gz, zs
 
 
 def simulate(f: float, alpha: float, n_samples: int, n_slots: int, d_out: int, seed: int,
              growth: float | None = None,
-             delta: int | None = None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Slot by slot, forwards from a canonical honest block: ``L_d`` for ``d <= d_out``, and
-    ``log2 G`` and ``log2 M`` over the forks the ``n_slots`` slots before the cut-off hold."""
+             delta: int | None = None) -> tuple[np.ndarray, ...]:
+    """Slot by slot, forwards from a canonical honest block: ``L_d`` for ``d <= d_out``; ``log2 G``
+    and ``log2 M`` over the forks the ``n_slots`` slots before the cut-off hold; ``log2 G`` with the
+    forks the coalition completes after the cut-off as well; and ``Z``."""
     if (growth is None) == (delta is None):
         raise ValueError("set exactly one of growth and delta")
     ph = occupancy(f, 1.0 - alpha)

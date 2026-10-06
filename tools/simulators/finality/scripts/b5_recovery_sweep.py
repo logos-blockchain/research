@@ -9,10 +9,10 @@ where the note is still unspent. A share mu(a) = 1 - exp(-tau a) of the stake mo
 a, for a turnover rate tau per day. An adversary holding alpha that obtains a fraction c of the
 freed keys signs the fork with alpha + c (1 - alpha) mu(a), while the honest chain kept 1 - alpha.
 
-Over the horizon, the chance is at most the sum over divergence points, one per honest block, of
-the window's failure at the age of each point (src/finality_sim/recovery.py), capped at one. The
-sweep reports the longest H that keeps it at or below eps. Delay: random (the specification's
-Blend, A1's growth) and a worst case of 10 s.
+Over the horizon, the chance is at most the sum over divergence points, one per canonical honest
+block, of the window's failure at the age of each point (src/finality_sim/recovery.py), capped at
+one, integrated over ages on a grid of 6 minutes. The sweep reports the longest H that keeps it
+at or below eps. Delay: random (the specification's Blend, A1's growth) and a worst case of 10 s.
 """
 
 from __future__ import annotations
@@ -36,40 +36,60 @@ WINDOWS_H = (1, 2, 4, 8)                                 # density window, hours
 EPS = (1e-6, 1e-9)
 FORK = np.linspace(0.0, 0.8, 161)                        # fork shares tabulated
 H_MAX_DAYS = 3650
+STEP_DAYS = 1 / 240                                      # the age grid of the sum, 6 minutes
 
 
 def table(window_h: int, alpha: float, model: dict) -> np.ndarray:
     """log P(window) at every fork share in FORK, the honest chain holding 1 - alpha."""
-    w = window_h * 3600
+    w = int(round(window_h * 3600))
     out = np.empty(FORK.size)
     for i, a in enumerate(FORK):
         out[i] = 0.0 if a <= 0 else log_failure(w, a, F, honest=1 - alpha, **model)
     return np.minimum(out, 0.0)
 
 
-def failure_over(h_days: float, alpha: float, tau: float, c: float, logp: np.ndarray,
-                 blocks_per_day: float) -> float:
-    """Union bound over divergence points of age up to h_days, integrated hour by hour."""
-    ages = (np.arange(int(math.ceil(h_days * 24))) + 0.5) / 24
-    ages = ages[ages <= h_days]
+def canonical_rate(alpha: float, growth: float | None = None, delta: int | None = None) -> float:
+    """Canonical honest blocks per slot, the divergence points: under random delay the honest wins
+    thinned by A1's growth; under a worst case of delta slots, one per delta slots and the wait
+    for the next honest win."""
+    win = 1 - (1 - F) ** (1 - alpha)
+    return growth * win if growth is not None else 1 / (delta + 1 / win)
+
+
+def accumulated(alpha: float, tau: float, c: float, logp: np.ndarray,
+                blocks_per_day: float) -> np.ndarray:
+    """The union bound over divergence points of age up to i STEP_DAYS, i = 0 .. H_MAX_DAYS /
+    STEP_DAYS: the chance per window at each point's fork share, by the midpoint rule."""
+    ages = (np.arange(int(round(H_MAX_DAYS / STEP_DAYS))) + 0.5) * STEP_DAYS
     share = alpha + c * (1 - alpha) * (1 - np.exp(-tau * ages))
-    lp = np.interp(share, FORK, logp)
-    return float(min(1.0, blocks_per_day / 24 * np.exp(lp).sum()))
+    per_step = blocks_per_day * STEP_DAYS * np.exp(np.interp(share, FORK, logp))
+    return np.concatenate(([0.0], np.cumsum(per_step)))
 
 
-def longest(alpha, tau, c, logp, blocks_per_day, eps) -> float:
-    if failure_over(1 / 24, alpha, tau, c, logp, blocks_per_day) > eps:
+def at(acc: np.ndarray, age):
+    """``accumulated`` at any age in days, linear between its grid points."""
+    x = np.clip(np.asarray(age, float) / STEP_DAYS, 0.0, acc.size - 1.0)
+    i = np.minimum(x.astype(int), acc.size - 2)
+    return acc[i] + (x - i) * (acc[i + 1] - acc[i])
+
+
+def longest_h(chance, eps: float) -> float:
+    """The longest horizon in days whose chance stays at or below eps: 0 if one hour exceeds it,
+    inf if H_MAX_DAYS does not."""
+    if chance(1 / 24) > eps:
         return 0.0
-    if failure_over(H_MAX_DAYS, alpha, tau, c, logp, blocks_per_day) <= eps:
+    if chance(H_MAX_DAYS) <= eps:
         return math.inf
     lo, hi = 1 / 24, float(H_MAX_DAYS)
     for _ in range(40):
         mid = math.sqrt(lo * hi)
-        if failure_over(mid, alpha, tau, c, logp, blocks_per_day) <= eps:
-            lo = mid
-        else:
-            hi = mid
+        lo, hi = (mid, hi) if chance(mid) <= eps else (lo, mid)
     return lo
+
+
+def longest(alpha, tau, c, logp, blocks_per_day, eps) -> float:
+    acc = accumulated(alpha, tau, c, logp, blocks_per_day)
+    return longest_h(lambda h: min(1.0, float(at(acc, h))), eps)
 
 
 def main() -> None:
@@ -82,9 +102,7 @@ def main() -> None:
     logs = Parallel(n_jobs=-2)(delayed(table)(wh, a, models[name]) for wh, a, name in keys)
     rows = []
     for (wh, a, name), logp in zip(keys, logs):
-        rate = 1 / (10 + 1 / (1 - (1 - F) ** (1 - a))) if name.startswith("worst") else \
-            growth * (1 - (1 - F) ** (1 - a))
-        bpd = 86400 * rate                                       # divergence points per day
+        bpd = 86400 * canonical_rate(a, **models[name])          # divergence points per day
         for tau in TAUS:
             for c in CS:
                 row = dict(model=name, window_h=wh, alpha=round(a, 4), tau_per_day=tau, c=c)
