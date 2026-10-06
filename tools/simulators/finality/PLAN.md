@@ -67,8 +67,9 @@ Findings about the protocol as it stands:
 - `maxvalid-bg` reads the depth of the local branch, so after a split the two sides can choose
   different chains until both pass `k` (B5).
 - LCanalysis follows its lower-bound attack for 80 phases, too few past Table 1's depths: at a
-  third of the stake and depth 60 the bound falls from `6.8e-3` to `5e-12`. It also scores the
-  attack only at the moment of confirmation (B1, B3).
+  third of the stake and depth 60 the bound falls from `6.8e-3` to `5e-12`, and the original code
+  run in Octave shows the same. It also scores the attack only at the moment of confirmation (B1,
+  B3).
 
 Hypotheses:
 

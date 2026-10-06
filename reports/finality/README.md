@@ -294,7 +294,7 @@ With the first reading, against a quarter of the stake on the specification's Bl
   they alternate until both sides pass `k`.
 - **The bound's reference code needs more phases at depth.** LCanalysis follows its lower-bound
   attack for 80 phases, too few past its Table 1's depths. At a third of the stake and depth 60 the
-  bound falls from `6.8e-3` to `5e-12`. It also scores the attack only at the moment of
+  bound falls from `6.8e-3` to `5e-12`; the original code, run in Octave, does the same. It also scores the attack only at the moment of
   confirmation; scored at any later moment, the same attack succeeds 2–17 % more often.
 
 ---
