@@ -1,0 +1,4 @@
+label,config,repeat,fastest_ms,slowest_ms,median_ms,mean_ms,samples,iters,wall_s,temp_before_c,temp_after_c,throttled_after
+apple-m4-pro,all cores,0,69.19,79.96,72.47,72.41,20,20,1.7,,,
+apple-m4-pro,all cores,1,71.06,76.88,74.13,74.2,20,20,1.5,,,
+apple-m4-pro,all cores,2,69.78,79.56,73.24,73.12,20,20,1.5,,,

@@ -248,7 +248,7 @@ anonymity ceiling.
 - **Verification fits the node.** One core of a Raspberry Pi 5 verifies 157 Blend headers a second,
   each an Ed25519 signature and a Groth16 proof (`blend-protocol.md`). Against a quarter of the
   stake, votes then take 6 % of a core with 10-minute rounds and 38 % with 90 s rounds. Proving on
-  the Pi 5 is not measured.
+  the Pi 5 awaits a run of `tools/benchmarks/pol-proving`; an Apple M4 Pro proves in 73 ms.
 - **Votes make stake learnable.** A seat is a lottery win, so every vote is a sample of its
   sender's stake: with 10-minute rounds, votes multiply an observer's samples by 269. In the Blend
   report's model of linking, an observer then sizes a 0.1 % holder's stake to ±10 % in 16 days
@@ -352,7 +352,8 @@ With the first reading, against a quarter of the stake on the specification's Bl
 - **Turnover in Cryptarchia itself.** The recovery horizon rests on how fast staked notes are spent,
   measured elsewhere at 0.05–0.3 % a day, and on how many of their old keys an adversary could buy.
   [§4](#s4) gives the horizon as a function of both.
-- **Proving on the reference node.** The proof of a vote has not been timed on a Raspberry Pi 5.
+- **Proving on the reference node.** `tools/benchmarks/pol-proving` times the node's proof of
+  leadership, which a vote would reuse; it has not been run on a Raspberry Pi 5.
 - **The grinding budget.** From 30 % of the stake, the depths and the recovery horizon depend on
   how many nonces a coalition can evaluate before it must publish its chain. The study assumes
   `2^64` and shows `2^40` where it matters. The time the honest chain leaves it is not modelled.
@@ -372,6 +373,10 @@ make tables           # every table of the notes, from runs/
 make check-tables     # each table appears verbatim in a note
 make octave-reference # the original LCanalysis in Octave, in the background, for hours
 ```
+
+Proving is timed apart, on the machine at hand: `make run` in
+[`tools/benchmarks/pol-proving`](../../tools/benchmarks/pol-proving) writes to
+[`pol-proving/`](pol-proving).
 
 The notes carry each result with its gate: `MAPPING.md` (what depends on `k`), `RATE.md` (block
 rate and orphans), `SETTLEMENT.md` (bounds, races, a smaller `k`, recovery), `CERTIFIED.md` (votes)

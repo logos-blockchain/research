@@ -161,8 +161,10 @@ What the variant changes:
   Blend's padding and cover.
 - **Proving.** A seat winner proves once per round. The specification's benchmark for the proof
   of leadership (`cryptarchia-proof-of-leadership.md`, Benchmarks) puts it at about 0.68 s on one
-  thread of an i9-13980HX, and 0.17–0.18 s at 23–30 threads (read off its figure). The reference
-  node of Q7 is still to be measured.
+  thread of an i9-13980HX, and 0.17–0.18 s at 23–30 threads (read off its figure).
+  `tools/benchmarks/pol-proving` times the node's proof of leadership at the study's commit, on
+  all cores and pinned to one, and writes to `reports/finality/pol-proving/`. On an Apple M4 Pro
+  a proof takes 73 ms on all cores. The reference node of Q7 is still to be run.
 - **Verification.** Every node verifies `n/R` votes per second: 9 per second at 5,355 seats and
   10-minute rounds, 60 at 90 s. One core of a Raspberry Pi 5 verifies 157 Blend headers per
   second, each an Ed25519 signature and a Groth16 proof (`blend-protocol.md`, `V`). A vote's proof

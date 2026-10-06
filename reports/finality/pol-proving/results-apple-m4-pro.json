@@ -1,0 +1,64 @@
+{
+  "machine": {
+    "model": "Apple M4 Pro",
+    "arch": "arm64",
+    "system": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "cores": 14,
+    "governor": null,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "commit": "4e0405d519d1d3428feb0e118fa651fb4e18ca05"
+  },
+  "sample_count": 20,
+  "summary": {
+    "all cores": {
+      "median_ms": 73.24,
+      "min_ms": 72.47,
+      "max_ms": 74.13,
+      "repeats": 3
+    }
+  },
+  "runs": [
+    {
+      "config": "all cores",
+      "repeat": 0,
+      "fastest_ms": 69.19,
+      "slowest_ms": 79.96,
+      "median_ms": 72.47,
+      "mean_ms": 72.41,
+      "samples": 20,
+      "iters": 20,
+      "wall_s": 1.7,
+      "temp_before_c": null,
+      "temp_after_c": null,
+      "throttled_after": null
+    },
+    {
+      "config": "all cores",
+      "repeat": 1,
+      "fastest_ms": 71.06,
+      "slowest_ms": 76.88,
+      "median_ms": 74.13,
+      "mean_ms": 74.2,
+      "samples": 20,
+      "iters": 20,
+      "wall_s": 1.5,
+      "temp_before_c": null,
+      "temp_after_c": null,
+      "throttled_after": null
+    },
+    {
+      "config": "all cores",
+      "repeat": 2,
+      "fastest_ms": 69.78,
+      "slowest_ms": 79.56,
+      "median_ms": 73.24,
+      "mean_ms": 73.12,
+      "samples": 20,
+      "iters": 20,
+      "wall_s": 1.5,
+      "temp_before_c": null,
+      "temp_after_c": null,
+      "throttled_after": null
+    }
+  ]
+}
