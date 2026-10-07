@@ -34,12 +34,13 @@ from numba import njit
 
 
 @njit(cache=True)
-def _symbols(n_slots, p_h, p_a, delta, seed):
-    """Symbols (d, a) of n_slots slots; d = -1 marks an adversary-only symbol."""
+def _symbols_timed(n_slots, p_h, p_a, delta, seed):
+    """As ``_symbols``, with the slot at which each symbol closes."""
     np.random.seed(seed)
     cap = int(n_slots * (p_h + p_a) * 1.5) + 1000
     d_out = np.empty(cap, np.int64)
     a_out = np.empty(cap, np.int64)
+    t_out = np.empty(cap, np.int64)
     n = 0
     in_phase = False
     depth, adv, quiet, last = 0, 0, 0, 0
@@ -53,6 +54,7 @@ def _symbols(n_slots, p_h, p_a, delta, seed):
             elif a:
                 d_out[n] = -1
                 a_out[n] = 1
+                t_out[n] = t
                 n += 1
         else:
             adv += int(a)
@@ -66,11 +68,19 @@ def _symbols(n_slots, p_h, p_a, delta, seed):
             if quiet >= delta:
                 d_out[n] = depth
                 a_out[n] = adv
+                t_out[n] = t
                 n += 1
                 in_phase = False
         if n >= cap - 1:
             break
-    return d_out[:n], a_out[:n]
+    return d_out[:n], a_out[:n], t_out[:n]
+
+
+@njit(cache=True)
+def _symbols(n_slots, p_h, p_a, delta, seed):
+    """Symbols (d, a) of n_slots slots; d = -1 marks an adversary-only symbol."""
+    d_out, a_out, _ = _symbols_timed(n_slots, p_h, p_a, delta, seed)
+    return d_out, a_out
 
 
 @njit(cache=True)
@@ -144,8 +154,74 @@ def _timelines(n_slots, p_h, p_a, delta, seed):
     return honest[:nh], adv[:na]
 
 
+@njit(cache=True)
+def _attack_rule(d_sym, a_sym, t_sym, deadline, burn):
+    """The attack against a rule that accepts the ``k``-th block of the client's chain when it
+    arrives within ``deadline[k]`` slots of the target's symbol: failures at acceptance (``y >= 0``
+    there) and ever after, the targets, the accepted targets, and the sum of ``k`` at acceptance.
+    ``deadline[k] < 0`` never accepts at depth ``k``."""
+    n = d_sym.size
+    k_max = deadline.size - 1
+    steps_max = max(80, 4 * k_max)
+    at_conf = 0
+    ever = 0
+    targets = 0
+    accepted = 0
+    depth_sum = 0
+    lead = 0
+    for j0 in range(n - steps_max):
+        if j0 >= burn:
+            targets += 1
+            x, y, k = lead, 0, 1
+            acc = -1
+            fail_ever = False
+            for step in range(steps_max):
+                d, a = d_sym[j0 + step], a_sym[j0 + step]
+                if d < 0:
+                    x += 1
+                    y += 1
+                    k += 1
+                else:
+                    if y < 0:
+                        s_tmp = y + a - d
+                        l_tmp = max(0, x + a - d)
+                    else:
+                        s_tmp = max(0, y + a - d)
+                        l_tmp = x + a - d
+                    x_new, y_new = max(l_tmp, s_tmp), min(l_tmp, s_tmp)
+                    k = k + y_new + d - y
+                    x, y = x_new, y_new
+                if acc < 0:
+                    kk = min(k, k_max)
+                    elapsed = t_sym[j0 + step] - t_sym[j0]
+                    if deadline[kk] >= 0 and elapsed <= deadline[kk]:
+                        acc = step
+                        accepted += 1
+                        depth_sum += k
+                        if y >= 0:
+                            at_conf += 1
+                            fail_ever = True
+                elif y >= 0 and not fail_ever:
+                    fail_ever = True
+                    ever += 1
+        d, a = d_sym[j0], a_sym[j0]
+        lead = max(lead + a - max(d, 0), 0)
+    return at_conf, ever + at_conf, targets, accepted, depth_sum
+
+
 def occupancy(f: float, share: float) -> float:
     return 1.0 - (1.0 - f) ** share
+
+
+def attack_rule(alpha: float, f: float, delta: int, n_slots: int, deadline: np.ndarray, seed: int,
+                burn: int = 2000) -> tuple[int, int, int, int, float]:
+    """The attack against a time-reading rule: failures at acceptance and ever, the targets, the
+    accepted targets and the mean depth at acceptance, over one run."""
+    d_sym, a_sym, t_sym = _symbols_timed(n_slots, occupancy(f, 1.0 - alpha), occupancy(f, alpha),
+                                         delta, seed)
+    at_conf, ever, targets, accepted, depth_sum = _attack_rule(d_sym, a_sym, t_sym,
+                                                               np.asarray(deadline, np.float64), burn)
+    return at_conf, ever, targets, accepted, depth_sum / max(accepted, 1)
 
 
 def attack(alpha: float, f: float, delta: int, n_slots: int, k_max: int, seed: int,

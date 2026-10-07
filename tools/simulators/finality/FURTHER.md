@@ -85,8 +85,9 @@ that uses the nonce, 72 hours at `k = 2160` and 36 at `k = 1080`. If the coaliti
 Phalanx's 82 independent pieces do not serve here: a piece takes 53 s on the coalition's hardware,
 less than a decision window.
 
-Open: the choice of delay function and its parameters, as for Phalanx; the speed ratio between the
-coalition's hardware and an honest node's; and a proof of the combined rule.
+`DESIGNS.md` H.2 sets the delay: ten minutes on the coalition's hardware, from the decision window
+before the cut-off, and the honest cost against the speed ratio. Open: a proof of the combined
+rule.
 
 ## G2 — the epoch decoupled from `k`
 

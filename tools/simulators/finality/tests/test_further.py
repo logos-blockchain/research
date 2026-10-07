@@ -29,6 +29,79 @@ def test_the_lead_lasts_as_long_as_its_mean_drift_allows(kw):
     assert all(x > y for x, y in zip(p, p[1:])) and p[-1] < 1e-6
 
 
+def test_attestation_seats_separate_the_sides_and_diverge_at_a_third():
+    from finality_sim.further import attestation_seats
+    n, theta = attestation_seats(0.30, 1e-9, 1e-6)
+    assert n > 0 and theta > 0
+    assert stats.poisson.sf(theta - 1, 0.30 * n) <= 1e-9                 # the fork rarely passes
+    assert stats.poisson.cdf(theta - 1, 0.35 * n) <= 1e-6               # a side rarely fails
+    n_less, th_less = attestation_seats(0.30, 1e-9, 1e-6)
+    assert n_less == n
+    prev_theta = int(stats.poisson.isf(1e-9, 0.30 * (n - 1))) + 1
+    assert stats.poisson.cdf(prev_theta - 1, 0.35 * (n - 1)) > 1e-6     # n is the fewest
+    assert attestation_seats(0.25, 1e-9, 1e-6)[0] < n < attestation_seats(0.32, 1e-9, 1e-6)[0]
+    assert attestation_seats(1 / 3, 1e-9, 1e-6) == (-1, -1)
+    assert attestation_seats(0.30, 1e-9, 1e-6, undelivered=0.1)[0] > n
+
+
+def test_the_detector_rarely_fires_on_a_full_chain_and_catches_a_half():
+    from finality_sim.further import detector_power
+    threshold, (full, half) = detector_power(0.30, 0.845, 36 * 3600, 1e-9, (0.70, 0.35), F)
+    assert 0 < threshold and full <= 1e-9 and half > 0.999
+
+
+def test_the_counting_bound_loosens_with_the_share_and_the_delay():
+    from finality_sim.further import counting_deadlines, counting_depth, counting_logp, counting_ratio
+    assert counting_ratio(1 / 3, 10, F) > counting_ratio(0.25, 10, F) > counting_ratio(0.10, 10, F)
+    assert counting_ratio(1 / 3, 20, F) > counting_ratio(1 / 3, 10, F)
+    full = 0.845 * -math.log(1 - F)
+    d10, d25 = counting_depth(0.10, 10, 1e-3, full, F), counting_depth(0.25, 10, 1e-3, full, F)
+    assert 0 < d10 < d25
+    assert counting_depth(0.25, 10, 1e-6, full, F) > d25
+    # the bound rises with time and with the share, and the deadline brackets it
+    assert counting_logp(60, 1000.0, 0.25, 10, F) < counting_logp(60, 3000.0, 0.25, 10, F)
+    assert counting_logp(60, 2000.0, 0.25, 10, F) < counting_logp(60, 2000.0, 0.30, 10, F)
+    dl = counting_deadlines(0.25, 10, 1e-3, 80, F)
+    n = int(np.nonzero(dl >= 0)[0][0])
+    assert counting_logp(n, dl[n], 0.25, 10, F) <= math.log(1e-3) < counting_logp(n, dl[n] + 1.0, 0.25, 10, F)
+
+
+
+def test_the_counting_bound_matches_its_own_random_variables():
+    """Monte Carlo of the bound's model: L geometric at the catch-up ratio, A and H Poisson at the
+    slot occupancies, failure when L + 2A + H reaches 2n + 1 or by a catch-up with chance
+    rho^(deficit)."""
+    from finality_sim.further import counting_logp, counting_ratio
+    from finality_sim.recovery import occupancy
+    alpha, delta, n, t = 0.25, 10, 20, 600.0
+    a, h = occupancy(F, alpha), occupancy(F, 1 - alpha)
+    rho = counting_ratio(alpha, delta, F)
+    rng = np.random.default_rng(9)
+    size = 2_000_000
+    lead = rng.geometric(1 - rho, size) - 1
+    x = lead + 2 * rng.poisson(a * t, size) + rng.poisson(h * t, size)
+    deficit = 2 * n + 1 - x
+    p = np.where(deficit <= 0, 1.0, rho ** np.maximum(deficit, 0)).mean()
+    assert math.exp(counting_logp(n, t, alpha, delta, F)) == pytest.approx(p, rel=0.02)
+
+
+def test_the_timed_attack_reproduces_the_untimed_one_at_a_depth():
+    """A rule that accepts at depth K regardless of time is the depth rule: the attack's failures at
+    confirmation match the untimed attack's at that K."""
+    from finality_sim.grr_attack import _attack, _attack_rule, _symbols, _symbols_timed, occupancy
+    p_h, p_a = occupancy(F, 0.75), occupancy(F, 0.25)
+    d, a = _symbols(2_000_000, p_h, p_a, 10, 3)
+    dt, at_, tt = _symbols_timed(2_000_000, p_h, p_a, 10, 3)
+    assert np.array_equal(d, dt) and np.array_equal(a, at_) and np.all(np.diff(tt) > 0)
+    k = 12
+    conf, ever, targets = _attack(d, a, 40, 2000)
+    deadline = np.full(41, -1.0)
+    deadline[k + 1:] = np.inf
+    rc, re, rt, acc, _ = _attack_rule(dt, at_, tt, deadline, 2000)
+    assert rt == targets and acc <= rt
+    assert rc == conf[k - 1]
+
+
 def test_hostile_relays_hold_a_block_for_the_longest_delay():
     """G6's engine flag: a relay in the adversary's mask adds blend_delay_max, an honest one a
     uniform draw on 1..blend_delay_max rounds."""

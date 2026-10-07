@@ -296,8 +296,10 @@ and independent slots of the model both rules assume. The race scores each accep
   30 % it beats the elapsed-time rule on 1.1e-3 of 78,696 targets, consistent with `1e-3`:
   successes come in clusters, so the naive standard error, 1.1e-4, understates the spread.
 - **The per-history guarantee holds inside the rule's model only.** A coalition that also extends
-  the public chain changes the history the client reads. Under a worst case of `Δ` the rule would
-  need B2's model, which is not derived here.
+  the public chain changes the history the client reads. Under a worst case of `Δ` the rule fails:
+  B3's delay-scheduling attack beats it in 51–58 % of the targets it accepts, since the coalition
+  then controls the clock the rule reads; what a client can read under the worst case is the
+  counting bound of `DESIGNS.md` H.3.
 - **The rates hold while the inferred stake is the true stake.** The total-stake inference sets
   the lottery's thresholds from the previous period's occupied slots, so a coalition that
   withholds for a whole period raises every rate by `1/(1 − α)`: the honest chain then runs at
@@ -503,7 +505,8 @@ A trigger that heals and gives no such lever:
    compares densities only if its own chain held, over the window, at least the blocks the honest
    stake `1 − α` makes at the model's `ε` tail. A node whose chain was sparser stays on it and
    leaves the split to operators, as today. The trigger then heals an eclipse, where one side is
-   the whole honest chain, and not a partition deeper than `k`.
+   the whole honest chain, and not a partition deeper than `k`. `DESIGNS.md` H.1 states why no
+   local rule can at a third, and gives a one-off vote round that does below it.
 
 The density test during a partition (rule 8): the chance that the coalition's fork is strictly
 denser than an honest side holding a share `s` of all stake, over a window, and the largest `s`

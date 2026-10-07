@@ -510,6 +510,88 @@ def g6() -> None:
     print(md(pd.DataFrame(rows)))
 
 
+def h1() -> None:
+    s = pd.read_csv(RUNS / "h1" / "seats.csv")
+    rows = []
+    for a, g in s.groupby("alpha", sort=False):
+        row = {"α": f"{a:.2f}", "honest side": f"{g.honest_side.iloc[0]:.3f}"}
+        for _, x in g.iterrows():
+            tag = "every honest vote counts" if x.undelivered == 0 else f"{x.undelivered:.0%} of honest votes lost"
+            row[f"seats, {tag}"] = "none" if x.seats < 0 else f"{int(x.seats):,} (θ = {int(x.threshold):,})"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    d = pd.read_csv(RUNS / "h1" / "detector.csv")
+    sides = [c for c in d.columns if c.startswith("side_")]
+    rows = []
+    for _, x in d.iterrows():
+        row = {"α": f"{x.alpha:.2f}", "window": f"{x.window_h:g} h", "expected, honest alone": f"{x.expected_full:,.0f}",
+               "threshold": f"{int(x.threshold):,}"}
+        for c in sides:
+            v = x[c]
+            row[f"side {float(c[5:]):.3f}"] = f"{v:.3g}" if 1e-3 <= v < 0.999 else (f"{v:.0e}" if v < 1e-3 else f"{v:.4f}")
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+
+
+def h2() -> None:
+    f = pd.read_csv(RUNS / "h2" / "factor.csv")
+    rows = []
+    for (model, a), g in f.groupby(["model", "alpha"], sort=False):
+        row = {"delay": model, "α": f"{a:.2f}", "not ground": f"{g['depth_1e-09'].iloc[0]:,.0f}"}
+        for _, x in g.sort_values("minutes").iterrows():
+            row[f"T_a = {int(x.minutes)} min"] = f"{x.factor:.3f} × {x.residual:.2f} = {x.combined:.2f}, {x.depth_two:,.0f}"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    h = pd.read_csv(RUNS / "h2" / "honest.csv")
+    rows = []
+    for t, g in h.groupby("minutes", sort=False):
+        row = {"T_a": f"{int(t)} min"}
+        for _, x in g.iterrows():
+            row[f"R = {int(x.ratio)}"] = f"{x.honest_minutes:,.0f} min ({100 * x.phase_share_k2160:.1f} % / {100 * x.phase_share_k1080:.1f} %)"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    w = pd.read_csv(RUNS / "h2" / "window.csv")
+    rows = []
+    for (model, a), g in w.groupby(["model", "alpha"], sort=False):
+        row = {"delay": model, "α": f"{a:.2f}"}
+        for _, x in g.iterrows():
+            row[f"{int(x.blocks_behind)} behind"] = f"{x.chance:.2g} ({x.minutes:.1f} min)"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+
+
+def h3() -> None:
+    c = pd.read_csv(RUNS / "h3" / "counting.csv")
+    rows = []
+    for _, x in c.iterrows():
+        row = {"α": f"{x.alpha:.2f}", "catch-up ratio": f"{x.ratio:.2f}"}
+        for name, label in (("full", "full rate"), ("withheld", "withheld from"), ("worst", "worst-case rate")):
+            d, hrs = x[f"depth_{name}"], x[f"hours_{name}"]
+            row[f"depth at 1e-9, {label}"] = f"{int(d):,} ({hrs:.1f} h)" if d > 0 else "–"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    p = pd.read_csv(RUNS / "h3" / "precheck.csv")
+
+    def rate(v):
+        return f"{v:.1e}" if v > 0 else "0"
+    print(md(pd.DataFrame({
+        "α": p.alpha.map(lambda v: f"{v:.2f}"), "rule": p.rule, "B2's attack depth at 1e-3": p.lb_depth,
+        "targets": p.targets.map(lambda v: f"{v:,}"), "accepted": p.accepted_share.map(lambda v: f"{v:.3f}"),
+        "mean depth at acceptance": p.mean_depth.map(lambda v: f"{v:.1f}"),
+        "attack wins at acceptance": p.fail_at_acceptance.map(rate), "ever": p.fail_ever.map(rate)})))
+    print()
+    pl = pd.read_csv(RUNS / "h3" / "played.csv")
+    print(md(pd.DataFrame({
+        "α": pl.alpha.map(lambda v: f"{v:.2f}"), "targets accepted": pl.accepted.map(lambda v: f"{v:,}"),
+        "mean depth at acceptance": pl.mean_depth.map(lambda v: f"{v:.1f}"),
+        "minutes": pl.mean_minutes.map(lambda v: f"{v:.0f}"),
+        "the race beats the rule": pl.race_beats.map(lambda v: f"{v:.1e}" if v > 0 else "0")})))
+
+
 def b5part() -> None:
     t = pd.read_csv(RUNS / "b5" / "partition.csv")
     sides = [c for c in t.columns if c.startswith("side_") and c != "side_whole"]
@@ -748,4 +830,5 @@ def e5balance() -> None:
 if __name__ == "__main__":
     {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b4": b4, "b5": b5,
      "b5rec": b5rec, "b5sweep": b5sweep, "b5part": b5part, "b6": b6, "b7": b7, "d0": d0, "d1b": d1b, "d3": d3, "d5": d5, "d6": d6,
-     "e2": e2, "e5": e5, "e5balance": e5balance, "g1": g1, "g3": g3, "g4": g4, "g6": g6}[sys.argv[1]]()
+     "e2": e2, "e5": e5, "e5balance": e5balance, "g1": g1, "g3": g3, "g4": g4, "g6": g6,
+     "h1": h1, "h2": h2, "h3": h3}[sys.argv[1]]()

@@ -35,7 +35,8 @@ Executed from 2026-10-05 to 2026-10-07. Results live in six notes beside this pl
 - `SETTLEMENT.md`: B1–B7.
 - `CERTIFIED.md`: D0–D6.
 - `DAG.md`: E0–E6.
-- `FURTHER.md`: G1–G5.
+- `FURTHER.md`: G1–G6.
+- `DESIGNS.md`: H.1–H.3.
 
 Phase by phase:
 
@@ -68,6 +69,9 @@ Phase by phase:
 | G4 settlement on a chain nobody withholds from | done: B4's elapsed-time rule already settles it in 39 / 53 minutes against 30 % / a third, but its rates hold only while the inferred stake is the true stake; with the rates after a total-stake adjustment and the depth rule as a cap, 66 / 106 minutes, and the depth rule's depth on a chain withheld from; a rule that reads density directly is dominated |
 | G5 anchoring | analysis only |
 | G6 adversarial relays | done: the engine's `blend_adversary_relays`; holding every honest block for the longest mixing delay raises the honest orphan share by two points and the depth at `1e-9` by 7 %, within the report's growth convention |
+| H.1 recovery in a partition | done (`DESIGNS.md`): the impossibility at a third; recovery attestations, a one-off vote round, with the seats per share; anchoring placed; rule 8 as a detector |
+| H.2 the delay function | done: the decision window, the factor against `T_a`, the honest cost against the speed ratio, the design; the literature pinned |
+| H.3 time under the worst case | done: B4's rule beaten by the delay-scheduling attack; the counting bound, sound and empty on a slow chain; a time-conditioned B2 bound not derived |
 
 Before review, in this order:
 
@@ -111,7 +115,9 @@ Hypotheses:
 | H4 | refuted for a delay chosen by an adversary: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control. Untested on the chain under random delay |
 | H5 | fails against Blend's present budget: with the cover raised by D0's multiple, every committee exceeds the read limit `r_1` of a core connection, against a quarter of the stake unless rounds last 33 hours (D3). Whether that budget may grow is the owner's line (Q7) |
 | H6 | holds for eclipses with the trigger of `SETTLEMENT.md` B5 (rules 1–8): a density test below `B_imm` within a horizon `H`, with a window set apart from `k`, a tie-break, and no comparison from a chain that was sparse over the window. Fails for a partition deeper than `k`: each honest side then holds its own share, and against an honest side of 35 % of all stake a 30 % adversary's withheld fork is denser in 64–70 % of the specification's windows, a third's against an honest third always (rule 8). Fails as first stated, a switch to the Bootstrap rule. At Bitcoin's turnover, against 25 % with every freed key for sale, `H` is 48 to 92 days with an 8-hour window at `k = 2160` once grinding is counted (B6), and 38 to 71 days with a 4-hour window without it. At `k = 120`, whose window is at most 4 hours, no horizon holds a quarter with grinding |
-| H8–H10 | open; planned in Phase H (§4): recovery attestations, the delay function, the worst-case time rule |
+| H8 | fails as stated: 15,000 seats separate 30 % with every honest vote counted, 158,000 with a tenth lost (`DESIGNS.md` H.1), above the 10,000 the hypothesis named; 2,300 separate a quarter; at a third none. The impossibility at a third holds. Vote splitting lets the adversary choose which honest history survives, not its own |
+| H9 | holds against the documented hardware: Chia's class-group ASIC is 3 to 5 times a CPU, and the CIP's 10 is an assumption, so 100 honest minutes leave the coalition 10 to 30 minutes and a factor of 1.00–1.09 (`DESIGNS.md` H.2); the proof is one group element and verification a few milliseconds, not under one; a coalition twenty times faster, which no source documents, would leave five minutes and a factor of 2.2 unless the honest time is 200 minutes |
+| H10 | fails for B4's rule, which the delay-scheduling attack beats in 51–58 % of the targets it accepts; holds in the weak form of a counting bound, sound for every strategy within `Δ`, that accepts a chain at the full rate at 574 blocks against a third where B2 needs 1,510, and nothing at the worst-case rate (`DESIGNS.md` H.3) |
 | H7 | fails by two of its three tests (`DAG.md`, H7). Under a delay chosen by an adversary (E5) the balancing attack needs no more than GHOST's share, less than the chain's region at every block rate: 0.40–0.45 at today's rate and `Δ = 10` s against 0.46, and 3–6 % at `f_A = 0.25`. As specified, one win can add weight on both sides of a conflict (E3). Under random delay the DAG settles against 25 % in 38 minutes at `1e-9`, against 59 on the chain (E2) |
 
 Three notions of finality carry the document. They are measured separately and never mixed.

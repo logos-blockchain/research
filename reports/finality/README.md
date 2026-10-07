@@ -25,7 +25,8 @@ cite. Specifications are read at `logos-lips` `47a73cdc`, the node at `logos-blo
 - **[10. Findings about the protocol as it stands](#s10)**
 - **[11. Open questions](#s11)**
 - **[12. Further routes](#s12)** — a delayed nonce, the epoch apart from `k`, Blend's delay, density, anchoring
-- **[13. Reproducibility](#s13)**
+- **[13. Three designs](#s13)** — recovery in a partition, the delay function, time under the worst case
+- **[14. Reproducibility](#s14)**
 
 ---
 
@@ -46,7 +47,7 @@ worst-case figures are proven against every attack.
 | --- | --- | --- | --- | --- |
 | a nonce that resists grinding ([§5](#s5)) | the epoch nonce taken from the smallest contributions of 25 sub-windows | removes most of the depth grinding adds: with today's nonce, against an adversary that evaluates `2^64` nonces an epoch, the depths grow 2.7 to 4.5 times; passed through a sequential delay ([§12](#s12), G1) it removes all of it, as a bound within the model | a hard fork; notes frozen one epoch earlier; a window before the cut-off of at least 54 hours (`6⌊k/f⌋` at `k = 1080`), the shortest measured at which the choices at the cut-off stay near one; with the delay, a sequential computation once an epoch | recommended, with the delay; the others depend on it |
 | settled level ([§4](#s4)) | a client depth; nothing in consensus | random delay: 2.6 / 4.8–4.9 h, and 1.5 / 2.4 h reading elapsed time (measured with a nonce that is not ground); guaranteed at 10 s: 15.5–15.9 / 28.3–29.5 h | nothing | recommended |
-| smaller `k` ([§6](#s6)) | `k`, and a recovery trigger | `k = 1080` against 30 %, guaranteed at 10 s: 15.8 h, at the edge (an estimated 1,060–1,093 blocks against 1,080); against a third no `k` below 2160 | a recovery window of 36 hours; a look-back horizon of months; a partition deeper than `k` still waits for operators | not recommended until the nonce's factor is bounded and the trigger is partition-safe |
+| smaller `k` ([§6](#s6)) | `k`, and a recovery trigger | `k = 1080` against 30 %, guaranteed at 10 s: 15.8 h, at the edge (an estimated 1,060–1,093 blocks against 1,080); against a third no `k` below 2160; with the delayed nonce of [§12](#s12), `k = 1620` holds a third and `k = 1080` holds 30 % as bounds | a recovery window of 36 hours; a look-back horizon of months; a partition deeper than `k` needs a one-off vote round below a third ([§13](#s13)) and operators at a third | not recommended until the nonce's factor is bounded and the trigger is partition-safe; both have designs in [§12](#s12) and [§13](#s13) |
 | faster blocks ([§7](#s7)) | `f` | random delay, against a third: 160 minutes at 30 s blocks, 144 at 15 s, by the race's fit | ×2.0 the blocks at 15 s | not recommended: little gain from 30 % |
 | regular block intervals ([§7](#s7)) | the lottery becomes a curve of the slots since the parent | against a third Topl's shape needs more than 60 blocks at `1e-3`, today's lottery 58 | a third more blocks; a new stake inference | not recommended |
 | certificates ([§8](#s8)) | anonymous-seat votes through Blend | no committee against a third; against 30 %, 33,473 seats while every honest vote counts | ×1,675 Blend cover at 10-minute rounds | not recommended |
@@ -701,10 +702,10 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
 - **Proving on the reference node.** The proving time on a Raspberry Pi 5, which
   `tools/benchmarks/pol-proving` measures.
 
-`PLAN.md` Phase H plans the first three: a one-off round of recovery attestations for partitions
-below a third, with the impossibility at a third stated; the delay function's choice, parameters
-and speed ratio; and a time-reading rule under the worst case, with a pre-check against the
-delay-scheduling attack before any derivation.
+The first three are taken up in [§13](#s13): recovery attestations separate partitions below a
+third and nothing separates one at a third; the delay function needs ten minutes on the
+adversary's hardware; a time-reading rule under the worst case can only be a counting bound, which
+bites on a fast chain alone.
 
 ---
 
@@ -757,7 +758,57 @@ of G1 the recovery horizon of [§6](#s6) is the unground one in every cell.
 ---
 
 <a id="s13"></a>
-## 13. Reproducibility
+## 13. Three designs
+
+The three questions [§12](#s12) leaves open, each with a hypothesis that can fail (`DESIGNS.md`,
+`PLAN.md` H8–H10):
+
+**Recovery in a partition (H.1).** No rule that reads chains and their stake-weighted content can
+tell a third's withheld fork from an honest third: after an even partition the three chains follow
+the same law, and such a rule picks the fork with probability at least a third. Below a third the
+honest sides hold `(1 − α)/2` each, and a one-off round of anonymous-seat votes, cast only when a
+node holds two chains both deeper than `k` since their divergence, separates them: a chain is kept
+when its seats exceed a threshold, the densest kept chain wins. A round of 2,300 expected seats
+separates a quarter at `1e-9`; 15,000 separate 30 % if every honest vote counts, 158,000 if a tenth
+are lost; 32 % needs 95,000 with every vote counted; a third none. The adversary can choose which
+honest history survives, never its own. Anchoring a checkpoint to another chain timestamps a block
+and does not show it was public; it settles forks older than the anchor and the start of a
+bootstrapping node, not a partition. Rule 8's test serves as a partition detector: a side holding
+up to about 0.6 of all stake is declared sparse with certainty against 30 % over 36 hours, the
+whole honest chain once in `10^9` windows; a node whose chain is sparse reports `B_imm` as
+provisional.
+
+**The delay function (H.2).** A decision before the cut-off keeps its value only while the block
+can still be placed: `d` canonical blocks late it becomes canonical with chance `(p_a/p_c)^d`, 7 %
+after five blocks (4.5 minutes) and 0.3 % after eleven (10 minutes) against a third. A delay of
+`T_a` on the adversary's hardware therefore leaves a factor per nonce of 1.09 at 10 minutes (1,522
+blocks against a third at 10 s), 2.2 at 5 minutes and 11 at 1 minute, where B7's estimate is
+10.6–18.1. Honest nodes pay `R·T_a` for a speed ratio `R`. The documented ratio is 3 to 5: Chia's
+class-group ASIC squares in about 1 µs against 3.85 µs on the fastest CPU and 4.7 µs on a
+commodity one, and the 10 that CIP-0161 assumes is attributed to Ethereum's `A_max`, which measured
+an attacker against commodity ASICs. A hundred honest minutes, `1.3·10^9` squarings of one core
+once an epoch, therefore leave the adversary 20 to 30 minutes at the documented ratio and 10 at the
+assumed one, both inside the `4⌊k/f⌋` slots before the nonce is first used. The design: the hash of
+the sub-window minima, fixed at the cut-off, passed through sequential squarings in a class group of
+a 1,024-bit discriminant, with a Wesolowski proof of one group element carried by the first block
+of the new epoch and verified in milliseconds in place of the computation. MinRoot and the other
+field-root candidates are broken; squaring in a group of unknown order is not.
+
+**Time under the worst case (H.3).** B3's delay-scheduling attack beats B4's elapsed-time rule at
+worst-case rates whenever the rule accepts: 51–58 % of accepted targets at `ε = 1e-3`. An
+adversary that schedules delays controls the clock the rule reads, so the chain's speed is not
+evidence. A counting bound is: every block of a competing chain is a distinct win, the adversary's
+or an honest one not on the canonical chain, so with `n` canonical blocks in `t` slots the
+competing chain leads by at most `2A(t) + H(t) − 2n` plus the worst-case lead. It holds for every
+strategy within `Δ`, and it bites only on a fast chain: 574 blocks against a third at `1e-9` when
+the chain runs at the full rate, where B2's depth is 1,510, and nothing at the rate of a chain the
+adversary withholds from or delays. The depth rule caps it. A time-conditioned form of B2's bound
+is not derived.
+
+---
+
+<a id="s14"></a>
+## 14. Reproducibility
 
 ```
 cd tools/simulators/finality
@@ -776,5 +827,6 @@ Proving is timed apart, on the machine at hand: `make run` in
 
 The notes carry each result with its gate: `MAPPING.md` (what depends on `k`), `RATE.md` (block
 rate and orphans), `SETTLEMENT.md` (bounds, races, a smaller `k`, recovery, grinding, the nonce),
-`CERTIFIED.md` (votes), `DAG.md` (Areon) and `FURTHER.md` (the routes of [§12](#s12)). `PLAN.md`
-records the questions the study was asked to answer, its hypotheses and the verdict on each.
+`CERTIFIED.md` (votes), `DAG.md` (Areon), `FURTHER.md` (the routes of [§12](#s12)) and
+`DESIGNS.md` (the designs of [§13](#s13)). `PLAN.md` records the questions the study was asked to
+answer, its hypotheses and the verdict on each.
