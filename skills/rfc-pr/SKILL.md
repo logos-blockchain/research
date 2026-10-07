@@ -29,7 +29,7 @@ The canonical template defines both. This skill applies it.
 ## Configuration (defaults)
 
 - **Source repo** (for both the skill and the template): `logos-blockchain/research`
-- **Skill path:** `skills/rfc-pr/SKILL.md`
+- **Skill path:** `tools/skills/rfc-pr/SKILL.md`
 - **Template path:** `templates/RFC-PR.md`
 - **Base branch for the diff:** `origin/master`
 - **RFC document directory:** `docs/<domain>/raw/rfc/` in the repo the PR targets, where
@@ -48,7 +48,7 @@ Do this **first, on every invocation**, unless `--no-self-update` was given. The
 this skill already in context may be stale; the repo is the source of truth.
 
 ```bash
-gh api repos/logos-blockchain/research/contents/skills/rfc-pr/SKILL.md \
+gh api repos/logos-blockchain/research/contents/tools/skills/rfc-pr/SKILL.md \
   -H "Accept: application/vnd.github.raw" > "$SCRATCH/SKILL.remote.md"
 diff -q "$SCRATCH/SKILL.remote.md" ~/.claude/skills/rfc-pr/SKILL.md
 ```
@@ -56,11 +56,16 @@ diff -q "$SCRATCH/SKILL.remote.md" ~/.claude/skills/rfc-pr/SKILL.md
 Add `?ref=<ref>` to the path if `--ref` was given, and use the same ref in step 1 so the
 skill and the template always come from one commit.
 
-**Install it only if all three hold**, so a failed fetch can never blank the skill:
+**Install it only if all four hold**, so a failed fetch can never blank the skill:
 
 1. the fetch exited 0 and the file is non-empty;
 2. it begins with a `---` frontmatter block containing `name: rfc-pr`;
-3. it differs from `~/.claude/skills/rfc-pr/SKILL.md`.
+3. it contains the text `~/.claude/skills/rfc-pr/SKILL.md`;
+4. it differs from `~/.claude/skills/rfc-pr/SKILL.md`.
+
+Check 3 rejects the versions committed at the skill path before it could update itself,
+which older refs still hold. They pass the other checks, and installing one would end
+self-updates for good. Every version must therefore keep that exact text.
 
 Then copy it over `~/.claude/skills/rfc-pr/SKILL.md`, **read the installed file, and
 follow that version for the rest of this run** — not the one loaded into context at the
