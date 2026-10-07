@@ -701,6 +701,11 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
 - **Proving on the reference node.** The proving time on a Raspberry Pi 5, which
   `tools/benchmarks/pol-proving` measures.
 
+`PLAN.md` Phase H plans the first three: a one-off round of recovery attestations for partitions
+below a third, with the impossibility at a third stated; the delay function's choice, parameters
+and speed ratio; and a time-reading rule under the worst case, with a pre-check against the
+delay-scheduling attack before any derivation.
+
 ---
 
 <a id="s12"></a>

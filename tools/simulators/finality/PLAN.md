@@ -21,7 +21,7 @@ and the order of work. The finished story is `../../../reports/finality/`.*
 | §1 | a first look: where the time goes, what `k` buys, what each lever is worth (numbers from `firstlook.py`) |
 | §2 | the levers, each with a hypothesis that can fail |
 | §3 | the owner's decisions on nine questions that shape the study |
-| §4 | the work plan, phases A–G |
+| §4 | the work plan, phases A–H |
 | §5 | the measurement protocol |
 | §6 | what depends on `k` today, in the specifications and in the node |
 | §7 | literature to reproduce before it is relied on |
@@ -111,6 +111,7 @@ Hypotheses:
 | H4 | refuted for a delay chosen by an adversary: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control. Untested on the chain under random delay |
 | H5 | fails against Blend's present budget: with the cover raised by D0's multiple, every committee exceeds the read limit `r_1` of a core connection, against a quarter of the stake unless rounds last 33 hours (D3). Whether that budget may grow is the owner's line (Q7) |
 | H6 | holds for eclipses with the trigger of `SETTLEMENT.md` B5 (rules 1–8): a density test below `B_imm` within a horizon `H`, with a window set apart from `k`, a tie-break, and no comparison from a chain that was sparse over the window. Fails for a partition deeper than `k`: each honest side then holds its own share, and against an honest side of 35 % of all stake a 30 % adversary's withheld fork is denser in 64–70 % of the specification's windows, a third's against an honest third always (rule 8). Fails as first stated, a switch to the Bootstrap rule. At Bitcoin's turnover, against 25 % with every freed key for sale, `H` is 48 to 92 days with an 8-hour window at `k = 2160` once grinding is counted (B6), and 38 to 71 days with a 4-hour window without it. At `k = 120`, whose window is at most 4 hours, no horizon holds a quarter with grinding |
+| H8–H10 | open; planned in Phase H (§4): recovery attestations, the delay function, the worst-case time rule |
 | H7 | fails by two of its three tests (`DAG.md`, H7). Under a delay chosen by an adversary (E5) the balancing attack needs no more than GHOST's share, less than the chain's region at every block rate: 0.40–0.45 at today's rate and `Δ = 10` s against 0.46, and 3–6 % at `f_A = 0.25`. As specified, one win can add weight on both sides of a conflict (E3). Under random delay the DAG settles against 25 % in 38 minutes at `1e-9`, against 59 on the chain (E2) |
 
 Three notions of finality carry the document. They are measured separately and never mixed.
@@ -411,6 +412,19 @@ Each hypothesis below can fail, and says what would fail it.
   emission budget of Q7. Fails if E2's fitted depth gives a longer time than B2, if one win can
   add weight more than once (E3), or if its safe region under worst-case delay is narrower than
   the longest-chain rule's (E5).
+- **H8.** A one-off round of recovery attestations separates an honest side holding `(1 − α)/2`
+  from an adversary's fork holding `α` at `ε = 1e-9` with at most 10,000 seats for `α ≤ 0.30`,
+  and no rule that reads chains and stake-weighted content alone does so at `α = 1/3`. Fails if
+  the seats needed at 30 % exceed what one Blend round carries (D3), or if the adversary's vote
+  splitting or timing lets its fork win (Phase H, H.1).
+- **H9.** A Wesolowski class-group delay with an honest time of 100 minutes keeps the factor per
+  nonce below 1.1 against a coalition up to 20 times faster than an honest node, with a proof
+  under 1 KB verified in under a millisecond. Fails if documented hardware exceeds 20× or the
+  verification cost is material at Cryptarchia's node class (Phase H, H.2).
+- **H10.** Under a worst case of `Δ = 10` s a time-reading rule exists that accepts a chain at
+  the worst-case honest rate no later than B2's depth and a chain nobody delays sooner. Fails if
+  B3's delay-scheduling attack beats every candidate at its `ε`, or if every bound found exceeds
+  B2's depth at every speed (Phase H, H.3).
 
 ## 3. Questions for the owner
 
@@ -643,6 +657,84 @@ Ways to shorten finality that phases B–E do not cover, each read against 30 % 
   every honest block for the longest mixing delay, and B3's race on its timelines.
 
 Exit: each route with its gain, its cost and what is open, in `FURTHER.md` and the report.
+
+### Phase H — three open designs
+
+The three questions phases B–G leave open, each with a hypothesis (H8–H10 in §2) that can fail.
+Order: H.2 first, the cheapest and the one route 1's specification candidate waits for; then
+H.1; then H.3, the only one that is research rather than design.
+
+- **H.1 — A recovery trigger that survives a partition.** B5's rule 8 shows that no density test
+  tells a third's withheld fork from an honest third, and that a 30 % fork beats an honest 35 %
+  side in 64–70 % of windows.
+  1. *The impossibility, stated.* A short argument in `SETTLEMENT.md` B5: after an even partition
+     under an adversary holding a third, three chains each produced by a third of the stake are
+     indistinguishable by any rule that reads chains and their stake-weighted content alone, so
+     any such rule picks the adversary's fork with probability at least a third. Below a third
+     the honest sides hold `(1 − α)/2 > α` each, and the question is how much stake-weighted
+     evidence separates `(1 − α)/2` from `α` at `ε`.
+  2. *Recovery attestations.* A one-off round of anonymous-seat votes (Phase D's machinery:
+     `committee.py` for the seats, `votes.py` for the round through Blend), cast only after a node
+     holds two chains that both exceed `k` blocks since their divergence, in which each node votes
+     for the chain it followed. Rule: discard every chain whose attested share, with the round's
+     noise margin, is at or below `α`; among the rest take the densest; break ties by rule 7.
+     Compute the seats that separate `(1 − α)/2` from `α` at `1e-9` per incident for `α` of 0.25,
+     0.30, 0.32 and 0.33 (the count diverges at a third), the round's Blend cover and the stake it
+     reveals (D5) as a one-off cost, and the adversary's moves: splitting its votes between the
+     honest sides (it then chooses which honest history survives, which any resolution gives it),
+     withholding its votes, and voting while the honest sides are still unevenly reconnected.
+  3. *Anchoring, placed.* An anchor on another chain timestamps a block; it does not show the
+     block was public, and an anchor carrying a proof of leadership is stake-weighted and meets the
+     same symmetry. Write the decision table: which mechanism resolves an eclipse (rules 1–8), a
+     partition below a third (attestations), a partition at a third (none), a long-range fork with
+     bought keys (anchors or the horizon `H`), and bootstrapping (checkpoints).
+  4. *Partition detection in the node.* Rule 8's test as a detector: the density a node's own
+     chain shows against the `(1 − α)` expectation over the window, its false-alarm rate from the
+     binomial model (`recovery.py`), and what the node does while it fires: it reports `B_imm` as
+     provisional and refuses the recovery comparison.
+  Exit: `SETTLEMENT.md` B5 and `CERTIFIED.md` D7 (the one-off round), the report's §6 and §12. If
+  H8 fails, the trigger stays an eclipse-only device and partitions deeper than `k` are the
+  operators', as today.
+- **H.2 — The delay function and its speed ratio.** G1 needs a delay of `T_a` ≥ 10 minutes on the
+  coalition's hardware; honest nodes pay `R·T_a` for a speed ratio `R`; the lottery-constants
+  phase leaves 36–72 hours.
+  1. *Literature, pinned:* Wesolowski (ePrint 2018/623) and Pietrzak (2018/627); the Boneh, Bünz
+     and Fisch survey (2018/712); Chia's class-group VDF and the measured speed-ups of its hardware
+     competitions; the Ethereum VDF work and MinRoot's cryptanalysis (2023); CIP-0161's 10× and
+     its sources. ePrint PDFs through the archive; Chia's and Ethereum's pages directly.
+  2. *The design:* the input `hash(η_(e−1) ‖ μ_1 ‖ … ‖ μ_m)`, fixed at the cut-off; the output as
+     the epoch's nonce; a Wesolowski proof carried by the first block that uses the nonce, and
+     verified by every node in place of the computation; the computation by any node, the honest
+     leaders of the phase included; the validity rule for blocks of the new epoch; and what
+     happens if no block carries the proof before the epoch starts.
+  3. *Sensitivity* (`scripts/h2_delay.py`): the factor per nonce G1 measures at `T_a` of 1, 3, 5,
+     10 and 20 minutes against the honest time `R·T_a` for `R` of 2, 5, 10, 30 and 100, and the
+     share of the phase that time takes. The design's margin is the ratio of the honest time to
+     the decision window before the cut-off, a few minutes: with 100 honest minutes a coalition up
+     to about 20 times faster still decides blind, and a faster one returns B7's estimate.
+  Exit: `FURTHER.md` G1 gains the parameters and the literature table; the report's §12; the
+  specification candidate of §1 gains the delay. If H9 fails, the delay stays an estimate's
+  support and route 1 keeps B7's factor.
+- **H.3 — The time-reading rule under a worst case of `Δ`.** B4's rule is derived under random
+  delay; under the worst case the coalition also delays honest blocks and runs the two-chain
+  attack of B3, and the proven depth reads no time.
+  1. *The counting bound.* Every block of a competing chain is a distinct lottery win: the
+     coalition's, or an honest one that is not on the canonical chain. Given `n` canonical blocks
+     in `t` slots, the competing chain holds at most `A(t) + H(t) − n` blocks above the fork, with
+     `A` and `H` Poisson at the coalition's and the honest rates, so the target falls only if
+     `A(t) + H(t) ≥ 2n + 1`, plus the lead and the catch-up walk. Compute the depth this gives at
+     the worst-case honest rate; the expectation is that it is loose, about 3,000 blocks against a
+     third at 10 s, since `E[A + H]` is `1.85 n` there.
+  2. *A pre-check before any derivation.* Play B3's delay-scheduling attack (`grr_attack.py`) and
+     the private attack on the slot lottery at `Δ = 10` s, record `(n, t)` at each candidate
+     rule's acceptance, and measure each attack's success against the rule at `1e-3`. A rule the
+     attack beats is dead; a rule that holds motivates a bound.
+  3. *A time-conditioned bound.* Adapt the port's recursion (`lcbounds.py`, the Markov chain over
+     the slot alphabet) to a fixed elapsed time with the canonical depth as a state, so that the
+     bound is read at `(n, t)` rather than at `n` alone. Research: days, and it may not close.
+  Exit: `SETTLEMENT.md` B4, a worst-case variant or the negative result; the report's §3.2 and
+  §4. If H10 fails, the client keeps the depth rule under the worst case and reads time under
+  random delay only, as now.
 
 ## 5. Measurement protocol
 
