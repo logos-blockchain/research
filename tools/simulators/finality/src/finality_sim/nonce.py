@@ -111,6 +111,7 @@ def _choices_min(canon, adv, feasible, h_rho, w_rho, far_min, sub):
 def _sample(n_samples, h, a, dead, near_slots, sub, far_h, seed):
     np.random.seed(seed)
     out = np.empty(n_samples)
+    zs = np.empty(n_samples, np.int64)
     deep = 0
     canon = np.zeros(near_slots, np.bool_)
     adv = np.zeros(near_slots, np.bool_)
@@ -142,7 +143,8 @@ def _sample(n_samples, h, a, dead, near_slots, sub, far_h, seed):
         if nh >= 1 and d_max == nh:                    # a fork from before the near slots wins
             deep += 1
         out[s] = g
-    return out, deep
+        zs[s] = z
+    return out, deep, zs
 
 
 def _rates(f: float, alpha: float, growth: float | None, delta: int | None):
@@ -156,16 +158,16 @@ def _rates(f: float, alpha: float, growth: float | None, delta: int | None):
 
 def min_rule_choices(f: float, alpha: float, window_slots: int, n_samples: int, seed: int,
                      sub_windows: int = 1, growth: float | None = None, delta: int | None = None,
-                     near_slots: int = 10_000) -> tuple[np.ndarray, float]:
+                     near_slots: int = 10_000, with_lead: bool = False):
     """``G_min`` for ``n_samples`` windows of ``window_slots`` slots split into ``sub_windows``, and
     the share of them in which a fork from before the near slots would win (the near slots are then
-    too few)."""
+    too few); with ``with_lead`` also each window's lead ``Z`` after the cut-off."""
     a, h, dead, rate = _rates(f, alpha, growth, delta)
     sub = window_slots // sub_windows
     near = min(near_slots, window_slots)
     far_slots = min(((near - 2) // sub + 1) * sub, window_slots) - near + 1
-    g, deep = _sample(n_samples, h, a, dead, near, sub, int(round(far_slots * rate)), seed)
-    return g, deep / n_samples
+    g, deep, z = _sample(n_samples, h, a, dead, near, sub, int(round(far_slots * rate)), seed)
+    return (g, deep / n_samples, z) if with_lead else (g, deep / n_samples)
 
 
 def own_share(f: float, alpha: float, growth: float | None = None,

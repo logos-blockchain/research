@@ -62,10 +62,10 @@ Phase by phase:
 | E0 audit of the Areon simulator | done |
 | E1–E6 Areon-Base on the engine | done: built on the TSI engine (the owner's choice); the private race, the §5.6 fit, worst-case delay, eligibility, ledger and cost |
 | F report | `reports/finality/README.md`, a draft |
-| G1 delayed nonce | done: a delay of 10–20 minutes on the coalition's hardware leaves it the choices at the cut-off alone; the depth is then B7's "at the cut-off" row, a bound within B6's model |
+| G1 delayed nonce | done: a delay of 10 minutes on the coalition's hardware leaves it the choices at the cut-off in the epochs whose lead outlasts it, a factor per nonce of 1.00–1.03; the depth is the unground one within three blocks, a bound within B6's model; `k = 1620` holds a third and `k = 1080` holds 30 % |
 | G2 epoch decoupled from `k` | done, from B6 and B7's `k = 2160` rows |
 | G3 Blend's delay | done: both delay models over the twelve Blend settings of A1 |
-| G4 density-aware settlement | done, a first look under random delay; the total-stake inference removes the signal after one of its periods |
+| G4 settlement on a chain nobody withholds from | done: B4's elapsed-time rule already settles it in 39 / 53 minutes against 30 % / a third, but its rates hold only while the inferred stake is the true stake; with the rates after a total-stake adjustment and the depth rule as a cap, 66 / 106 minutes, and the depth rule's depth on a chain withheld from; a rule that reads density directly is dominated |
 | G5 anchoring | analysis only |
 
 Before review, in this order:

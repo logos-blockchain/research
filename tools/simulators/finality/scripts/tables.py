@@ -417,40 +417,57 @@ def g1() -> None:
         rows.append(row)
     print(md(pd.DataFrame(rows)))
     print()
-    d = pd.read_csv(RUNS / "g1" / "depths.csv")
+    f = pd.read_csv(RUNS / "g1" / "factor.csv")
     rows = []
-    for _, x in d.iterrows():
-        rows.append({"delay": x.model, "α": f"{x.alpha:.2f}", "k": f"{x.k}",
-                     "not ground": f"{x['depth_1e-09']:,.0f}",
-                     "blind before the cut-off": f"{x.depth_two_cutoff:,.0f}",
-                     "B7's estimate": (f"{x.depth_two_lo:,.0f}" if x.depth_two_lo == x.depth_two_hi
-                                       else f"{x.depth_two_lo:,.0f}–{x.depth_two_hi:,.0f}")})
+    for (model, a, k), g in f.groupby(["model", "alpha", "k"], sort=False):
+        if a < 0.3:
+            continue
+        x = g.iloc[0]
+        row = {"delay": model, "α": f"{a:.2f}", "k": f"{k}", "not ground": f"{x['depth_1e-09']:,.0f}",
+               "B7's estimate": (f"{x.depth_two_lo:,.0f}" if x.depth_two_lo == x.depth_two_hi
+                                 else f"{x.depth_two_lo:,.0f}–{x.depth_two_hi:,.0f}")}
+        for _, y in g.sort_values("minutes").iterrows():
+            row[f"T = {int(y.minutes)} min"] = f"{y.factor:.3f}, {y.depth_two:,.0f}"
+        rows.append(row)
     print(md(pd.DataFrame(rows)))
 
 
 def g3() -> None:
     t = pd.read_csv(RUNS / "g3" / "blend_delay.csv")
+
+    def cell(depth, hours, ground, ground_h):
+        if np.isinf(depth):
+            return "–"
+        return f"{depth:,.0f} ({hours:.1f} h), {ground:,.0f} ({ground_h:.1f} h)"
     rows = []
     for (h, r), g in t.groupby(["hops", "rounds"], sort=False):
         x = g.iloc[0]
         row = {"hops": f"{h}", "rounds": f"{r}", "p99 delay": f"{x.p99_s:.1f} s", "Δ": f"{x.delta_s} s",
-               "orphans": f"{x.orphan:.2f}", "growth / f": f"{x.growth:.3f}"}
+               "orphans": f"{x.orphan:.2f}", "growth / f": f"{x.growth:.3f}",
+               "path captured": f"{x.capture:.3f}", "blending": f"{x.blending:.2f}"}
         for _, y in g.iterrows():
             a = f"{y.alpha:.2f}"
-            row[f"random, {a}"] = f"{y.random_depth:,.0f} ({y.random_h:.1f} h)"
-            row[f"worst, {a}"] = ("–" if np.isinf(y.worst_depth) else f"{y.worst_depth:,.0f} ({y.worst_h:.1f} h)")
+            row[f"random, {a}"] = cell(y.random_depth, y.random_h, y.random_ground_depth, y.random_ground_h)
+            row[f"worst, {a}"] = cell(y.worst_depth, y.worst_h, y.worst_ground_depth, y.worst_ground_h)
         rows.append(row)
     print(md(pd.DataFrame(rows)))
 
 
 def g4() -> None:
-    t = pd.read_csv(RUNS / "g4" / "density.csv")
+    t = pd.read_csv(RUNS / "g4" / "time_rule.csv")
+
+    def pair(n, m):
+        return f"{int(n)}, {m:.0f} min" if n > 0 else "the depth rule's"
     print(md(pd.DataFrame({
         "Blend": t.blend, "α": t.alpha.map(lambda v: f"{v:.2f}"),
-        "depth rule: blocks, minutes at the full rate, minutes while withheld from":
-            [f"{int(p)}, {m:.0f}, {w:.0f}" for p, m, w in zip(t.plain_depth, t.plain_min_full, t.plain_min_withheld)],
-        "reading density: blocks, minutes at the full rate": [f"{int(d)}, {m:.0f}" for d, m in zip(t.density_depth, t.density_min_full)],
-        "share that binds": t.worst_share.map(lambda v: f"{v:.2f}")})))
+        "depth rule, full / withheld from": [f"{int(p)}: {a:.0f} / {b:.0f} min" for p, a, b in
+                                              zip(t.plain_depth, t.plain_min_full, t.plain_min_held)],
+        "elapsed time, B4's rates, full": [pair(n, m) for n, m in zip(t.b4_full_n, t.b4_full_min)],
+        "withheld from": [pair(n, m) for n, m in zip(t.b4_held_n, t.b4_held_min)],
+        "adjusted rates, full": [pair(n, m) for n, m in zip(t.adjusted_full_n, t.adjusted_full_min)],
+        "withheld from ": [pair(n, m) for n, m in zip(t.adjusted_held_n, t.adjusted_held_min)],
+        "reading density, full": [f"{pair(n, m)}, 1e{c:.0f}" for n, m, c in
+                                  zip(t.density_n, t.density_min_full, t.density_log10_chance)]})))
 
 
 def b5part() -> None:

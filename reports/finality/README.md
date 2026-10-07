@@ -88,8 +88,9 @@ Specification candidates follow from them:
    ([§3.3](#s33)).
 
 Five further routes are read in [§12](#s12). One of them, the nonce of route 1 passed through a
-sequential delay of 10–20 minutes, would turn route 1's estimate into a bound within its model
-and restore `k = 1620` against a third and `k = 1080` against 30 %.
+sequential delay of 10–20 minutes, leaves the adversary no choice it can evaluate in time: the
+depths return to those of a nonce that is not ground, a bound within the model, and `k = 1620`
+holds a third and `k = 1080` holds 30 %.
 
 ---
 
@@ -278,7 +279,12 @@ depth rule's mean is 2.2 / 3.9 h:
 **What the client accepts.** The adversary's share; the delay model; the grinding its depths
 include; a view that is not eclipsed. Under random delay also: the adversary withholds every win
 and never extends the public chain, Blend's delays are not the adversary's to choose, and the
-honest chain grows as the engine measured. Under the worst case only the depth rule applies.
+honest chain grows as the engine measured. Under the worst case only the depth rule applies. The
+elapsed-time rule's rates hold while the inferred stake is the true stake; after a period of
+withholding the total-stake inference raises every rate by `1/(1 − α)`, and the rule must take
+those rates, with the depth rule as its cap. It then settles a chain nobody withholds from in
+66 / 106 minutes against 30 % / a third, and a chain the adversary withholds from at the depth
+rule's depth ([§12](#s12), G4).
 
 **What is shown, and what is not.** The worst-case depths are the proven bound. The random-delay
 depths are the private race with a premined lead, in closed form. The race played on the engine's
@@ -704,10 +710,10 @@ against 30 % and a third at `ε = 1e-9`:
 
 | route | what changes | what it buys | what it costs |
 | --- | --- | --- | --- |
-| a delayed nonce (G1) | the nonce of [§3.1](#s31) passes through a sequential delay of 10–20 minutes on the adversary's hardware | the adversary decides blind before the cut-off; the factor per nonce is the choices at the cut-off alone, a bound within the model: against a third at 10 s, 1,518 blocks at `k = 2160` (23.1 h) instead of an estimated 1,859–1,939; `k = 1620` holds a third (1,522) and `k = 1080` holds 30 % (897) | a sequential computation of 100–200 minutes once an epoch, by whoever first needs the nonce, with a proof in the block that uses it |
+| a delayed nonce (G1) | the nonce of [§3.1](#s31) passes through a sequential delay of 10–20 minutes on the adversary's hardware | the adversary decides blind, and the choices it can still evaluate at the cut-off leave a factor per nonce of 1.00–1.03, a bound within the model: against a third at 10 s the depth is the unground one within three blocks, 1,511 at `k = 2160` (23.0 h) instead of an estimated 1,859–1,939; `k = 1620` holds a third (1,511) and `k = 1080` holds 30 % (892) | a sequential computation of 100–200 minutes once an epoch, by whoever first needs the nonce, with a proof in the block that uses it |
 | the epoch apart from `k` (G2) | the epoch keeps its length when `k` shrinks | at `k = 1080` the nonce's sub-windows, the recovery window (72 h) and the horizon stay those of `k = 2160` | one more parameter; a stake snapshot that stays 7.5 days old |
-| Blend's delay (G3) | the Blend setting | from the specification's setting (`Δ = 11` s, its p99 rounded up) to testnet's (2 s), the worst-case depth against a third falls from 1,649 to 812 blocks (25.5 to 10.5 h) and the random-delay depth from 276 to 172 (4.1 to 2.2 h); one hop of three rounds (4 s) gives 936 (12.7 h) | Blend's anonymity, which the Blend report models and this study does not price |
-| density-aware settlement (G4) | a client rule; nothing in consensus | a chain nobody withholds from settles against a third in 71 minutes instead of 163 on the specification's Blend, and against 30 % in 59 instead of 98; an attacked chain waits for [§4](#s4)'s depth as today | the rule must also read the inferred stake: the total-stake inference removes the density signal one period after withholding begins; a first look, random delay only |
+| Blend's delay (G3) | the Blend setting | from the specification's setting (`Δ = 11` s, its p99 rounded up) to testnet's (2 s), the worst-case depth against a third falls from 1,649 to 812 blocks (25.5 to 10.5 h) and the random-delay depth from 276 to 172 (4.1 to 2.2 h); one hop of three rounds (4 s) gives 936 (12.7 h); with the nonce under G1's delay each depth grows by at most 1 % | anonymity, in the Blend report's terms: one hop exposes the whole path of one message in three to an adversary holding a third of the nodes, three hops one in 27; one round of mixing blends a third of the broadcasts three rounds do |
+| settlement on a chain nobody withholds from (G4) | a client rule; nothing in consensus | the elapsed-time rule of [§3.2](#s32) settles such a chain in 39 / 53 minutes against 30 % / a third on the specification's Blend, against the depth rule's 98 / 163; with the rates the total-stake inference leaves after a period of withholding, and the depth rule as a cap, 66 / 106 minutes | the rule's rates must follow the inference: after a period of withholding every rate rises by `1/(1 − α)`, and B4's rule then understates the adversary; on a chain the adversary withholds from the safe rule is the depth rule; random delay only |
 | anchoring (G5) | a checkpoint written to another chain | the same choice between old forks for every node, which heals a partition deeper than `k`; finality at the anchor interval plus the other chain's | a dependence on another chain; a fork-choice rule for anchored forks; not measured |
 
 **A delayed nonce.** The decisions of [§3.1](#s31) before the cut-off are worth something only if
@@ -715,25 +721,29 @@ the adversary can compute the nonce each outcome gives before it must act: withi
 interval for its own blocks and for an honest block it removes, and at the cut-off until the lead
 of its private chain is spent. A lead lasts about one block interval per block of lead; against a
 third under the worst case it lasts 10 minutes or more in 6 % of epochs, and 20 minutes or more in
-0.6 %. A delay of `T` seconds on the adversary's hardware makes every decision with a shorter window
-blind, and a
-blind choice among `G` nonces gains nothing. With `T` of 10–20 minutes, what remains is the
-choices at the cut-off, which [§3.1](#s31) counts against an enumeration. Phalanx's 82 independent
-pieces do not serve: one piece takes 53 s on the adversary's hardware, less than a decision window.
-With the CIP's 10× assumption honest nodes compute `10·T`, 100–200 minutes, once an epoch, within
-the `4⌊k/f⌋` slots before the nonce is first used.
+0.6 %. A delay of `T` minutes on the adversary's hardware makes every decision with a shorter
+window blind, and a blind choice among `G` nonces gains nothing. What remains is the choices at the
+cut-off in the epochs whose lead outlasts `T`: a factor per nonce of 1.00–1.03 at `T` of 10
+minutes, and the depths of [§3.1](#s31)'s "not ground" row within three blocks; at 20 minutes they
+are those depths. Phalanx's 82 independent pieces do not serve: one piece takes 53 s on the
+adversary's hardware, less than a decision window. With the CIP's 10× assumption honest nodes
+compute `10·T`, 100–200 minutes, once an epoch, within the `4⌊k/f⌋` slots before the nonce is first
+used; at 100× they compute 17–33 hours, still within those slots at `k ≥ 1080`.
 
-**Density.** A private attack withholds the adversary's blocks from the target's parent on, so the
-canonical chain runs at the honest rate instead of the full rate, and a client sees the
-difference. A rule that reads it accepts once, for every withheld share up to its bound, the race's
-chance times the chance of seeing that many blocks under that attack is at or below `ε`. The
-adversary cannot inflate the density: a block that extends the public tip lengthens the chain its
-private one must beat, and a block that ties an honest one replaces it. But the total-stake
-inference sets the lottery's thresholds from the previous period's blocks, so an adversary that
-withholds for a whole period, 3 days at `k = 2160`, lowers the inferred stake by its share and the
-honest stake then produces at the full rate on its own. The signal then sits in the inferred stake,
-which the rule must read against its recent history. Stake that leaves looks the same, and the rule
-then falls back to the depth of [§4](#s4), which is safe.
+**A chain nobody withholds from.** A private attack withholds the adversary's blocks from the
+target's parent on, so during an attack the canonical chain runs at the honest rate; a chain nobody
+withholds from runs at the full rate, and a client that reads time sees the difference. The
+elapsed-time rule of [§3.2](#s32) therefore settles such a chain in 39 / 53 minutes against 30 % /
+a third, where the depth rule needs 98 / 163 at the same rate. The adversary cannot inflate the
+density: a block that extends the public tip lengthens the chain its private one must beat, and a
+block that ties an honest one replaces it. But the total-stake inference sets the lottery's
+thresholds from the previous period's occupied slots, so an adversary that withholds for a whole
+period, 3 days at `k = 2160`, lowers the inferred stake by its share and every rate rises by
+`1/(1 − α)`: the honest stake alone then produces at the full rate, and the adversary wins faster
+than the rule assumes. The depth rule is unmoved, since the race's ratio is. The safe elapsed-time
+rule takes the adjusted rates and the depth rule as its cap: 66 / 106 minutes on a chain nobody
+withholds from, and the depth rule's time on one the adversary withholds from. A rule that reads
+the density directly accepts later than the elapsed-time rule and adds nothing to it.
 
 ---
 

@@ -298,6 +298,13 @@ and independent slots of the model both rules assume. The race scores each accep
 - **The per-history guarantee holds inside the rule's model only.** A coalition that also extends
   the public chain changes the history the client reads. Under a worst case of `Δ` the rule would
   need B2's model, which is not derived here.
+- **The rates hold while the inferred stake is the true stake.** The total-stake inference sets
+  the lottery's thresholds from the previous period's occupied slots, so a coalition that
+  withholds for a whole period raises every rate by `1/(1 − α)`: the honest chain then runs at
+  `g·λ` and the coalition wins at `α·λ/(1 − α)`. The depth rule is unmoved, since `q` is. The
+  elapsed-time rule must then take those rates, with the depth rule as its cap; it settles a chain
+  nobody withholds from in 66 / 106 minutes against 30 % / a third on the specification's Blend,
+  and a chain the coalition withholds from at the depth rule's depth (`FURTHER.md`, G4).
 
 Gates (`tests/test_elapsed.py`, `tests/test_race.py`): averaged over arrival times, the chance is
 the depth table's closed form, with the lead and without; that closed form equals the race's at
