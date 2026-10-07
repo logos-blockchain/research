@@ -79,6 +79,15 @@ def test_worst_case_pmf_holds_at_the_longest_window():
     assert np.exp(lp).sum() == pytest.approx(1.0, abs=1e-9)
 
 
+def test_a_sparser_honest_side_loses_the_density_test_more_often():
+    """During a partition an honest side holds its own share only; the fork then beats it more
+    often than it beats the whole honest chain."""
+    w, f = 36 * 3600, 1 / 30
+    whole = log_failure(w, 0.30, f, growth=0.845)
+    side = log_failure(w, 0.30, f, growth=0.845, honest=0.35)
+    assert whole < math.log(1e-9) < math.log(0.5) < side
+
+
 def test_bought_keys_raise_the_fork_without_lowering_the_honest_chain():
     w, f = 3000, 1 / 30
     base = log_failure(w, 0.25, f, growth=0.845)

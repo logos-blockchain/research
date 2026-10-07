@@ -46,6 +46,7 @@ from b2_settlement import ADV, DELAYS_S, F
 from b5_recovery_sweep import accumulated, at, canonical_rate, longest_h, table
 from b5_what_k_holds import GRID, KS, held_worst, log_strict, max_alpha
 from finality_sim.grinding import PER_BIT, factors, pair_bounds, tail
+from finality_sim.private_race import strict_depth
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 OUT = HERE / "runs" / "b6"
@@ -71,19 +72,6 @@ def point(kw: dict, alpha: float, budget_bits: int = BUDGET_BITS, per_bit: int =
         row[f"pair_lo_{e}"], row[f"pair_hi_{e}"] = factors(ts, lower2, upper2, eps)
     row["budget_binds_1e-09"] = bool(row["factor_hi_1e-09"] * 2.0 ** -budget_bits > 1e-9)
     return row | dict(_upper=upper, _upper2=upper2)
-
-
-def strict_depth(q: float, log_eps: float) -> float:
-    """The smallest depth at which the private race's closed form is at most exp(log_eps)."""
-    if q >= 0.5:
-        return math.inf
-    lo, hi = 0, 1
-    while log_strict(q, hi + 1) > log_eps:
-        lo, hi = hi, 2 * hi
-    while hi - lo > 1:
-        mid = (lo + hi) // 2
-        lo, hi = (mid, hi) if log_strict(q, mid + 1) > log_eps else (lo, mid)
-    return float(hi)
 
 
 def ub_depth(log_ub: np.ndarray, log_eps: float) -> float:

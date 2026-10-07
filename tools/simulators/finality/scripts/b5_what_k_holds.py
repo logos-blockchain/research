@@ -6,7 +6,7 @@ Worst case: B2's upper bound at depth k (scripts/b2_settlement.py) on a grid of 
 in steps of 0.005, its log linear in the share between grid points; a k that holds a third reads
 ">= 1/3", one that holds no share of the grid "< 0.05".
 
-Random delays: the private race from the target's parent (B3's race without a premined lead) and
+Random delays: the private race with a premined lead (B3's race, stationary before the target) and
 Cryptarchia's strict tie rule, at the attacker's share of chain-extending blocks
 q = a / (a + (1 - a) g), with the canonical growth g measured in A1 (runs/a1/summary.csv) at
 testnet's Blend (1 hop, 1 round) and the specification's (3 hops, up to 3 rounds), 0.1 s links. B3
@@ -31,12 +31,7 @@ EPS = (1e-6, 1e-9, 1e-12)
 GRID = np.append(np.round(np.arange(0.05, 1 / 3, 0.005), 4), 1 / 3)
 
 
-def log_strict(q: float, n: int) -> float:
-    """log P(attacker ever strictly ahead) after n honest blocks counting the target."""
-    p = 1 - q
-    m = np.arange(n + 1)
-    terms = stats.nbinom.logpmf(m, n, p) + (n + 1 - m) * np.log(q / p)
-    return float(np.logaddexp(stats.nbinom.logsf(n, n, p), special.logsumexp(terms)))
+from finality_sim.private_race import log_strict  # noqa: E402  (B5's closed form, re-exported)
 
 
 def max_alpha(k: int, g: float, eps: float) -> float:

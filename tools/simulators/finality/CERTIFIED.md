@@ -39,7 +39,7 @@ testnet's Blend to the specification's (`RATE.md`, C1). So:
 
 - **Against 10 %,** (b) finalizes in about 16 minutes at ×34 cover, against 10–12 minutes of
   settlement.
-- **Against 25 %,** it finalizes in about 16 minutes at ×269 cover, against 45–68 minutes.
+- **Against 25 %,** it finalizes in about 16 minutes at ×269 cover, against 47–69 minutes.
 - **Against 30 %,** the committee needs ×1,675 cover and exists only while every honest vote
   counts (D2).
 

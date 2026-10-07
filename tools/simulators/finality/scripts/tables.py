@@ -1,6 +1,6 @@
 """Markdown tables for the study's notes, read straight from runs/ (no hand transcription).
 
-    python scripts/tables.py a1 | c1 | c1settle | c3 | c4 | b3 | b3delay | b2 | b4 | b5 | b5rec | b5sweep |
+    python scripts/tables.py a1 | c1 | c1settle | c3 | c4 | b3 | b3delay | b2 | b4 | b5 | b5rec | b5sweep | b5part | g1 | g3 | g4 |
                              b6 | b7 | d0 | d1b | d3 | d5 | d6 | e2 | e5 | e5balance
 """
 
@@ -269,7 +269,7 @@ def b6() -> None:
         return lo if lo == hi else f"{lo}–{hi}"
     print(md(pd.DataFrame({
         "delay": t.model, "α": t.alpha.map(lambda v: f"{v:.2f}"),
-        "epochs with a choice": t.p_choice.map(lambda v: f"{100 * v:.0f} %"),
+        "epochs with a choice at the cut-off": t.p_choice.map(lambda v: f"{100 * v:.0f} %"),
         "factor at 1e-9, one nonce": [f"{factor(a)}–{factor(b)}"
                                       for a, b in zip(t["factor_lo_1e-09"], t["factor_hi_1e-09"])],
         "two nonces": [f"{factor(a)}–{factor(b)}" for a, b in zip(t["pair_lo_1e-09"], t["pair_hi_1e-09"])],
@@ -348,8 +348,8 @@ def b7() -> None:
         est = {"nonce": f"smallest contributions, k = {k}, estimated"}
         for c in cols:
             x = m[(m.model == c[0]) & (m.alpha == c[1]) & (m.k == k)].iloc[0]
-            cut[name(*c)] = f"{x['depth_two_1e-09']:,.0f}"
-            est[name(*c)] = span(x.depth_two_last, x.depth_two_earlier)
+            cut[name(*c)] = f"{x.depth_two_cutoff:,.0f}"
+            est[name(*c)] = span(x.depth_two_lo, x.depth_two_hi)
         rows += [cut, est]
     print(md(pd.DataFrame(rows)))
     print()
@@ -365,18 +365,25 @@ def b7() -> None:
         if a < 0.25:
             continue
         row = {"delay": model, "α": f"{a:.2f}"}
-        for i, (_, x) in enumerate(g[g.k >= 432].sort_values("k", ascending=False).iterrows()):
-            row[f"k = {x.k}" if i == 0 else f"{x.k}"] = count(x.mean_g)
+        for _, x in g[g.k >= 432].sort_values("k", ascending=False).iterrows():
+            row[f"k = {x.k}, m = {x.sub_windows}"] = count(x.mean_g)
         rows.append(row)
     print(md(pd.DataFrame(rows)))
     print()
     rows = []
     for _, x in m[(m.alpha >= 0.25) & (m.k == 2160)].iterrows():
         rows.append({"delay": x.model, "α": f"{x.alpha:.2f}", "p_own": f"{x.own:.2f}",
-                     "p_disp": f"{x.own_displaced:.2f}",
-                     "factor per nonce, at the cut-off / estimated": f"{x.mean_g:.2f} / {x.factor_last:.2f}–{x.factor_earlier:.2f}",
-                     "m, per epoch": f"{x.m_epoch}", "m, ten years, displacing": f"{x.m_life}",
-                     "m, the same, notes frozen an epoch earlier": f"{x.m_early}"})
+                     "removal": f"{x.coin:.2f}", "p_disp": f"{x.p_disp:.2f}",
+                     "at the cut-off": f"{x.mean_g:.2f}",
+                     "last sub-window": f"{x.c_last_lo:.2f}–{x.c_last_hi:.2f}",
+                     "factor per nonce": f"{x.factor_lo:.2f}–{x.factor_hi:.2f}"})
+    print(md(pd.DataFrame(rows)))
+    print()
+    rows = []
+    for _, x in m[(m.model == "worst, 10 s") & (m.alpha.round(4) == 0.3333)].iterrows():
+        rows.append({"k": f"{x.k}", "epochs in ten years": f"{YEARS * 365.25 * 86400 / (10 * (30 * x.k)):,.0f}",
+                     "m, one window": f"{x.m_life}", "m, two windows": f"{x.m}",
+                     "sub-window (slots)": f"{x.sub_slots:,}"})
     print(md(pd.DataFrame(rows)))
     print()
     r = pd.read_csv(RUNS / "b7" / "recovery.csv")
@@ -388,13 +395,81 @@ def b7() -> None:
         lo, hi = (days(g[g.tau_per_day == tau][col].iloc[0]) for tau in (2.43e-3, 1.25e-3))
         return lo if lo == hi else f"{lo}–{hi}"
     rows = []
-    for (k, w), g in r.groupby(["k", "window_h"], sort=False):
-        row = {"k": f"{k}", "window": f"{w:g} h"}
+    for (model, k, w), g in r.groupby(["model", "k", "window_h"], sort=False):
+        row = {"delay": model, "k": f"{k}", "window": f"{w:g} h"}
         for a in (0.25, 0.30, 0.3333):
             x = g[g.alpha.round(4) == a]
             row[f"α = {a:.2f}"] = f"{turnover(x, 'h_days')} / {turnover(x, 'h_days_minimum')}"
         rows.append(row)
     print(md(pd.DataFrame(rows)))
+
+
+YEARS = 10
+
+
+def g1() -> None:
+    t = pd.read_csv(RUNS / "g1" / "lasts.csv")
+    rows = []
+    for (model, a), g in t.groupby(["model", "alpha"], sort=False):
+        row = {"delay": model, "α": f"{a:.2f}"}
+        for _, x in g.iterrows():
+            row[f"{int(x.minutes)} min"] = f"{x.p_lasts:.2g}" if x.p_lasts >= 1e-3 else f"{x.p_lasts:.0e}"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    d = pd.read_csv(RUNS / "g1" / "depths.csv")
+    rows = []
+    for _, x in d.iterrows():
+        rows.append({"delay": x.model, "α": f"{x.alpha:.2f}", "k": f"{x.k}",
+                     "not ground": f"{x['depth_1e-09']:,.0f}",
+                     "blind before the cut-off": f"{x.depth_two_cutoff:,.0f}",
+                     "B7's estimate": (f"{x.depth_two_lo:,.0f}" if x.depth_two_lo == x.depth_two_hi
+                                       else f"{x.depth_two_lo:,.0f}–{x.depth_two_hi:,.0f}")})
+    print(md(pd.DataFrame(rows)))
+
+
+def g3() -> None:
+    t = pd.read_csv(RUNS / "g3" / "blend_delay.csv")
+    rows = []
+    for (h, r), g in t.groupby(["hops", "rounds"], sort=False):
+        x = g.iloc[0]
+        row = {"hops": f"{h}", "rounds": f"{r}", "p99 delay": f"{x.p99_s:.1f} s", "Δ": f"{x.delta_s} s",
+               "orphans": f"{x.orphan:.2f}", "growth / f": f"{x.growth:.3f}"}
+        for _, y in g.iterrows():
+            a = f"{y.alpha:.2f}"
+            row[f"random, {a}"] = f"{y.random_depth:,.0f} ({y.random_h:.1f} h)"
+            row[f"worst, {a}"] = ("–" if np.isinf(y.worst_depth) else f"{y.worst_depth:,.0f} ({y.worst_h:.1f} h)")
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+
+
+def g4() -> None:
+    t = pd.read_csv(RUNS / "g4" / "density.csv")
+    print(md(pd.DataFrame({
+        "Blend": t.blend, "α": t.alpha.map(lambda v: f"{v:.2f}"),
+        "depth rule: blocks, minutes at the full rate, minutes while withheld from":
+            [f"{int(p)}, {m:.0f}, {w:.0f}" for p, m, w in zip(t.plain_depth, t.plain_min_full, t.plain_min_withheld)],
+        "reading density: blocks, minutes at the full rate": [f"{int(d)}, {m:.0f}" for d, m in zip(t.density_depth, t.density_min_full)],
+        "share that binds": t.worst_share.map(lambda v: f"{v:.2f}")})))
+
+
+def b5part() -> None:
+    t = pd.read_csv(RUNS / "b5" / "partition.csv")
+    sides = [c for c in t.columns if c.startswith("side_") and c != "side_whole"]
+    rows = []
+    for _, x in t[t.window_h.isin([36, 72])].iterrows():
+        row = {"delay": x.model, "α": f"{x.alpha:.2f}", "window": f"{x.window_h:g} h",
+               "side beaten in expectation": f"≤ {x.beaten_side:.3f}"}
+        for c in sides:
+            row[f"side {float(c[5:]):.3f}"] = f"{x[c]:.2g}" if x[c] >= 1e-3 else f"{x[c]:.0e}"
+        row["the whole honest chain"] = f"{x.side_whole:.0e}"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+    print()
+    s = pd.read_csv(RUNS / "b5" / "ties.csv")
+    print(md(pd.DataFrame({"k": s.k, "window": s.window_h.map(lambda v: f"{v:g} h"),
+                           "blocks a side, mean": s["mean"].map(lambda v: f"{v:,.0f}"),
+                           "P(tie)": s.p_tie.map(lambda v: f"{v:.4f}")})))
 
 
 def duration(days: float) -> str:
@@ -615,5 +690,5 @@ def e5balance() -> None:
 
 if __name__ == "__main__":
     {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b4": b4, "b5": b5,
-     "b5rec": b5rec, "b5sweep": b5sweep, "b6": b6, "b7": b7, "d0": d0, "d1b": d1b, "d3": d3, "d5": d5, "d6": d6,
-     "e2": e2, "e5": e5, "e5balance": e5balance}[sys.argv[1]]()
+     "b5rec": b5rec, "b5sweep": b5sweep, "b5part": b5part, "b6": b6, "b7": b7, "d0": d0, "d1b": d1b, "d3": d3, "d5": d5, "d6": d6,
+     "e2": e2, "e5": e5, "e5balance": e5balance, "g1": g1, "g3": g3, "g4": g4}[sys.argv[1]]()

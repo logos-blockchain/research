@@ -21,20 +21,21 @@ and the order of work. The finished story is `../../../reports/finality/`.*
 | §1 | a first look: where the time goes, what `k` buys, what each lever is worth (numbers from `firstlook.py`) |
 | §2 | the levers, each with a hypothesis that can fail |
 | §3 | the owner's decisions on nine questions that shape the study |
-| §4 | the work plan, phases A–F |
+| §4 | the work plan, phases A–G |
 | §5 | the measurement protocol |
 | §6 | what depends on `k` today, in the specifications and in the node |
 | §7 | literature to reproduce before it is relied on |
 
 ## Status
 
-Executed on 2026-10-05 and 2026-10-06. Results live in five notes beside this plan:
+Executed from 2026-10-05 to 2026-10-07. Results live in six notes beside this plan:
 
 - `MAPPING.md`: A2, A3.
 - `RATE.md`: A1, C1–C4.
 - `SETTLEMENT.md`: B1–B7.
 - `CERTIFIED.md`: D0–D6.
 - `DAG.md`: E0–E6.
+- `FURTHER.md`: G1–G5.
 
 Phase by phase:
 
@@ -48,7 +49,7 @@ Phase by phase:
 | B4 confirmation rule | done: the depth table, and a rule that reads elapsed time |
 | B5 smaller `k` | done: the share each `k` holds, both routes of Q8, a trigger for automatic recovery, and its horizon against stake turnover |
 | B6 grinding | done: the nonces a coalition can choose between, bounded from both sides given its lead after the cut-off, for an attack that meets one ground nonce and for one that meets two; what they add to the depths and take from the recovery horizon |
-| B7 nonce | done: a delay function's cap on the nonces evaluated, and a nonce from the smallest contributions of sub-windows, whose factor per nonce is an estimated 1.45–2.34 against a third, not bounded |
+| B7 nonce | done: a delay function's cap on the nonces evaluated, and a nonce from the smallest contributions of sub-windows, whose factor per nonce is an estimated 5.9–7.3 against a third on the specification's Blend and 10.6–18.1 under the worst case at 10 s, counting its own blocks withheld and honest minima removed; not bounded |
 | C1 rate surface | done |
 | C2 Blend parameters | the delay map is done; the privacy trade is with the Blend owners |
 | C3 GHOST | done |
@@ -61,6 +62,11 @@ Phase by phase:
 | E0 audit of the Areon simulator | done |
 | E1–E6 Areon-Base on the engine | done: built on the TSI engine (the owner's choice); the private race, the §5.6 fit, worst-case delay, eligibility, ledger and cost |
 | F report | `reports/finality/README.md`, a draft |
+| G1 delayed nonce | done: a delay of 10–20 minutes on the coalition's hardware leaves it the choices at the cut-off alone; the depth is then B7's "at the cut-off" row, a bound within B6's model |
+| G2 epoch decoupled from `k` | done, from B6 and B7's `k = 2160` rows |
+| G3 Blend's delay | done: both delay models over the twelve Blend settings of A1 |
+| G4 density-aware settlement | done, a first look under random delay; the total-stake inference removes the signal after one of its periods |
+| G5 anchoring | analysis only |
 
 Before review, in this order:
 
@@ -72,8 +78,9 @@ Before review, in this order:
    the node's proof of leadership; the run on the board is the owner's.
 6. **A nonce that resists grinding.** Done (B7).
 
-The independent review of the notes, the report and the code is applied; the owner's review
-follows.
+Two independent reviews of the notes, the report and the code are applied; the second added the
+premined lead to the random-delay closed form, the displacement of honest minima to B7's estimate,
+and the partition case to B5's trigger. The owner's review follows.
 
 Findings about the protocol as it stands:
 
@@ -84,9 +91,10 @@ Findings about the protocol as it stands:
 - `maxvalid-bg` reads the depth of the local branch, so after a split the two sides can choose
   different chains until both pass `k` (B5).
 - The epoch nonce can be ground. Against a third of the stake at `1e-9`, a block whose race meets
-  two ground nonces needs 1,164–1,239 blocks instead of 269 under random delay on the
+  two ground nonces needs 1,171–1,245 blocks instead of 276 under random delay on the
   specification's Blend, and 5,732–6,287 instead of 1,510 under the worst case at 10 s. Against
-  30 % under that worst case it needs 2,424–2,825, more than `k` (B6).
+  30 % under that worst case it needs 2,424–2,825, more than `k`, from `2^40` nonces evaluated an
+  epoch (B6).
 - LCanalysis follows its lower-bound attack for 80 phases, too few past Table 1's depths: at a
   third of the stake, `Δ = 1` s and depth 60, the port at 30 states falls from `6.9e-3` to
   `5.5e-12`, and the original code run in Octave at its 19 states to `5.4e-13`. It also scores the
@@ -97,11 +105,11 @@ Hypotheses:
 | hypothesis | verdict |
 | --- | --- |
 | H1 | fails for the guarantee: at 25 % and `ε = 1e-9` the upper bound exceeds 216 blocks at every delay, from 288 at 1 s; with two nonces ground by a coalition that evaluates `2^64` nonces an epoch, 477–950 blocks at 1–10 s. Holds for the best known attack, without grinding, at least to 20 s |
-| H2 | holds for delays up to 13 s without grinding, and at 10 s with a nonce from the smallest contributions of sub-windows at B7's estimates (1,565–1,636 blocks). With today's nonce B6's bounds prove it with one ground nonce up to 5 s against a coalition that evaluates `2^40` nonces an epoch and up to 2 s against `2^64`, and with two only at 1 s against `2^40`. At the specification's Blend (`Δ = 10` s) these bounds cannot prove it once grinding is counted |
+| H2 | holds for delays up to 13 s without grinding, and at 10 s with a nonce from the smallest contributions of sub-windows at B7's estimates (1,859–1,939 blocks). With today's nonce B6's bounds prove it with one ground nonce up to 5 s against a coalition that evaluates `2^40` nonces an epoch and up to 2 s against `2^64`, and with two only at 1 s against `2^40`. At the specification's Blend (`Δ = 10` s) these bounds cannot prove it once grinding is counted |
 | H3 | holds |
 | H4 | refuted for a delay chosen by an adversary: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control. Untested on the chain under random delay |
 | H5 | fails against Blend's present budget: with the cover raised by D0's multiple, every committee exceeds the read limit `r_1` of a core connection, against a quarter of the stake unless rounds last 33 hours (D3). Whether that budget may grow is the owner's line (Q7) |
-| H6 | holds with the trigger of `SETTLEMENT.md` B5: a density test below `B_imm` within a horizon `H`, with a window set apart from `k`. Fails as first stated, a switch to the Bootstrap rule. At Bitcoin's turnover, against 25 % with every freed key for sale, `H` is 48 to 92 days with an 8-hour window at `k = 2160` once grinding is counted (B6), and 38 to 71 days with a 4-hour window without it. At `k = 120`, whose window is at most 4 hours, no horizon holds a quarter with grinding |
+| H6 | holds for eclipses with the trigger of `SETTLEMENT.md` B5 (rules 1–8): a density test below `B_imm` within a horizon `H`, with a window set apart from `k`, a tie-break, and no comparison from a chain that was sparse over the window. Fails for a partition deeper than `k`: each honest side then holds its own share, and against an honest side of 35 % of all stake a 30 % adversary's withheld fork is denser in 64–70 % of the specification's windows, a third's against an honest third always (rule 8). Fails as first stated, a switch to the Bootstrap rule. At Bitcoin's turnover, against 25 % with every freed key for sale, `H` is 48 to 92 days with an 8-hour window at `k = 2160` once grinding is counted (B6), and 38 to 71 days with a 4-hour window without it. At `k = 120`, whose window is at most 4 hours, no horizon holds a quarter with grinding |
 | H7 | fails by two of its three tests (`DAG.md`, H7). Under a delay chosen by an adversary (E5) the balancing attack needs no more than GHOST's share, less than the chain's region at every block rate: 0.40–0.45 at today's rate and `Δ = 10` s against 0.46, and 3–6 % at `f_A = 0.25`. As specified, one win can add weight on both sides of a conflict (E3). Under random delay the DAG settles against 25 % in 38 minutes at `1e-9`, against 59 on the chain (E2) |
 
 Three notions of finality carry the document. They are measured separately and never mixed.
@@ -614,6 +622,24 @@ Exit: Areon ranked against L1 and L5 by number, or a reasoned no.
 
 The options ranked by time gained, protocol change, privacy cost, resource cost and residual
 risk, with RFC candidates. Every number reproduces from a `make` target.
+
+### Phase G — further routes (`FURTHER.md`)
+
+Ways to shorten finality that phases B–E do not cover, each read against 30 % and a third.
+
+- **G1.** B7's nonce passed through a sequential delay that outlasts the coalition's decision
+  windows, so that its decisions before the cut-off are blind. Read the chance that the lead after
+  the cut-off outlasts the delay (B6's `Z`), and the depth with the choices at the cut-off alone.
+- **G2.** The epoch length decoupled from `k`: which of route 3's costs it removes, from B6 and B7's
+  `k = 2160` rows.
+- **G3.** Blend's delay as a lever: the depth under both delay models for every Blend setting A1
+  measured, with `Δ` the setting's 99th-percentile delay.
+- **G4.** A client rule that also reads the chain's density, a first look under random delay: the
+  depth at which a chain nobody withholds from settles, and what the total-stake inference does to
+  the signal.
+- **G5.** Anchoring a checkpoint to another chain: analysis only.
+
+Exit: each route with its gain, its cost and what is open, in `FURTHER.md` and the report.
 
 ## 5. Measurement protocol
 

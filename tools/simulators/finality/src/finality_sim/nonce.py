@@ -19,12 +19,17 @@ that point, ``mu`` is one of
 
 ``G_min``, the product over those sub-windows of the number of these values, bounds the nonces the
 coalition can reach at the cut-off. With ``m = 1`` it equals the number this enumeration reaches.
-Decisions the coalition takes before the cut-off, to publish or withhold a block whose contribution
-may end as a minimum, are not counted.
 
 The window's last ``near_slots`` slots are drawn slot by slot under the delay models of
 ``finality_sim.grinding``. The rest of the oldest sub-window they reach holds the expected number of
 canonical honest blocks.
+
+Before the cut-off the coalition decides, as blocks appear, whether to publish each of its own and
+whether to remove an honest one: it races the honest block from its parent, or, under a worst case
+of ``Δ``, delivers a rival within ``Δ`` first. ``displacement`` is the chance one such attempt
+succeeds. ``last_sub_window`` counts, in hindsight, the distinct final values of the last
+sub-window's minimum these decisions reach; ``estimate`` turns the count into a factor per nonce.
+These are estimates, not bounds: the coalition decides before it knows the later contributions.
 """
 
 from __future__ import annotations
@@ -169,3 +174,93 @@ def own_share(f: float, alpha: float, growth: float | None = None,
     when it withholds none: ``a / (a + h_c)``, with ``h_c`` the rate of canonical honest blocks."""
     a, _, _, rate = _rates(f, alpha, growth, delta)
     return a / (a + rate)
+
+
+def displacement(f: float, alpha: float, growth: float | None = None, delta: int | None = None,
+                 orphan: float = 0.0) -> float:
+    """The chance that the coalition removes one given honest block from the canonical chain.
+
+    A race from one block behind is won with ``r^2``, ``r = a / h_c``. Under a worst case of ``Δ``
+    the block is lost outright when an honest rival or a coalition win falls within ``Δ`` slots
+    after it, which the coalition delivers first. Under random delay a natural tie, at the orphan
+    share, is settled by one win: a race from level, won with ``r``.
+    """
+    a, _, _, rate = _rates(f, alpha, growth, delta)
+    r = a / rate
+    if delta is not None:
+        ph = occupancy(f, 1.0 - alpha)
+        free = 1.0 - ((1.0 - ph) * (1.0 - a)) ** delta
+        return free + (1.0 - free) * r * r
+    return orphan * r + (1.0 - orphan) * r * r
+
+
+def predicted_share(own: float, coin: float) -> float:
+    """The chance that the coalition holds a sub-window's smallest contribution when it attempts
+    every honest block below its own, each removed with chance ``coin``: the smallest is its own, or
+    it is honest, is removed, and the question repeats: ``own / (1 - (1 - own) coin)``."""
+    return own / (1.0 - (1.0 - own) * coin)
+
+
+@njit(cache=True)
+def _last_sub_window(n_samples, h, a, dead, sub, coin, seed):
+    np.random.seed(seed)
+    any_block = np.empty(n_samples)
+    records = np.empty(n_samples)
+    hon = np.empty(sub)
+    own = np.empty(sub)
+    record = np.empty(sub, np.bool_)
+    for s in range(n_samples):
+        last, nh, no = -dead - 1, 0, 0
+        running = 2.0
+        for t in range(sub):
+            if np.random.random() < h and t - last > dead:
+                last = t
+                x = np.random.random()
+                hon[nh] = x
+                record[nh] = x < running
+                if x < running:
+                    running = x
+                nh += 1
+            if np.random.random() < a:
+                own[no] = np.random.random()
+                no += 1
+        order = np.argsort(hon[:nh])
+        removed = np.random.random(nh) < coin
+        for variant in range(2):
+            j = 0                                      # the honest floors reachable: h_(1) .. h_(j+1)
+            while j < nh and removed[order[j]] and (variant == 0 or record[order[j]]):
+                j += 1
+            if j < nh:
+                floor = hon[order[j]]
+                count = j + 1
+                for i in range(no):
+                    if own[i] < floor:
+                        count += 1
+            else:                                      # every honest block gone: the fixed value too
+                count = nh + 1 + no
+            if variant == 0:
+                any_block[s] = count
+            else:
+                records[s] = count
+    return any_block, records
+
+
+def last_sub_window(f: float, alpha: float, sub_slots: int, n_samples: int, seed: int,
+                    growth: float | None = None, delta: int | None = None,
+                    orphan: float = 0.0) -> tuple[np.ndarray, np.ndarray]:
+    """In hindsight, the distinct final values of the last sub-window's minimum the coalition can
+    reach: the honest floors it can expose by removing the smaller honest blocks, each removed with
+    chance ``displacement``, plus its own contributions below the exposed floor. The first array lets
+    it attempt any honest block, the second only a block that held the running minimum when it
+    appeared. Without removals both average ``1 / (1 - p_own)``."""
+    a, h, dead, _ = _rates(f, alpha, growth, delta)
+    coin = displacement(f, alpha, growth, delta, orphan)
+    return _last_sub_window(n_samples, h, a, dead, sub_slots, coin, seed)
+
+
+def estimate(g_min: float, c_last: float, p_disp: float) -> float:
+    """The factor per nonce: the choices at the cut-off, times those of the last sub-window, times
+    the earlier sub-windows' to first order. A decision in an earlier sub-window is informed only
+    if the coalition holds every later minimum, each with chance ``p_disp``, and then adds
+    ``c_last - 1`` values: ``1 + Σ_j p_disp^j (c_last - 1)``."""
+    return g_min * c_last * (1.0 + p_disp / (1.0 - p_disp) * (c_last - 1.0))

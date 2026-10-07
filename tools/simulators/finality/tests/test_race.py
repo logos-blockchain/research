@@ -13,6 +13,10 @@ With premining the coalition's lead just before the target is stationary, geomet
 q/p, in place of its wins since the parent.
 """
 
+import math
+import sys
+from pathlib import Path
+
 import numpy as np
 import pytest
 from scipy import special, stats
@@ -52,6 +56,18 @@ def test_the_closed_forms_agree():
             assert closed(q, k, False, 1) == pytest.approx(strict(q, k + 1), rel=1e-9)
             assert closed(q, k, False, 0) == pytest.approx(
                 special.betainc(k + 1, 0.5, 4 * q * (1 - q)), rel=1e-9)
+
+
+def test_b5s_closed_form_is_the_premined_strict_race():
+    """scripts/b5_what_k_holds.log_strict, in log space for any depth, equals ``closed`` with the
+    stationary lead (the default) and without it."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    from b5_what_k_holds import log_strict
+    for q in (0.1, 0.25, 0.37):
+        for k in (1, 2, 5, 8, 40):
+            assert math.exp(log_strict(q, k + 1)) == pytest.approx(closed(q, k, True, 1), rel=1e-9)
+            assert math.exp(log_strict(q, k + 1, lead=False)) == pytest.approx(
+                closed(q, k, False, 1), rel=1e-9)
 
 
 @pytest.mark.parametrize("q", [0.1, 0.25])

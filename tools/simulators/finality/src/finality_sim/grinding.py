@@ -478,6 +478,7 @@ def pair_bounds(f: float, alpha: float, growth: float | None = None, delta: int 
     for k in range(xs.size):
         thr = np.minimum(thr, hat_b * tail_up[k] + hat * (1.0 + below[k]))
     upper2 = np.minimum(upper2, thr) + rest * hat_b
+    upper2 = np.minimum(upper2, 2.0 ** -ts * 4.0 ** budget_bits)   # min(G, B) min(G', B) <= B^2
     # max(1, M') rounded down to the grid
     m_lo = np.append(-np.diff(tail_lo), tail_lo[-1])
     m_lo[0] += 1.0 - tail_lo[0]

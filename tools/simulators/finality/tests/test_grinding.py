@@ -110,6 +110,14 @@ def test_the_truncation_of_the_walk_moves_no_bound():
         assert np.allclose(x, y, rtol=1e-9, atol=0)
 
 
+def test_two_nonces_never_exceed_the_budget_squared():
+    """min(G, B) min(G', B) <= B^2, so the pair bound is at most u B^2."""
+    ts, _, _, _, upper2 = pair_bounds(F, 1 / 3, budget_bits=1, per_bit=4, **MODELS["worst"])
+    cap = 2.0 ** -ts * 4.0
+    assert np.all(upper2 <= np.minimum(1.0, cap) + 1e-12)
+    assert np.any(np.isclose(upper2[cap < 1], cap[cap < 1], rtol=1e-9))   # the cap binds somewhere
+
+
 def test_without_a_choice_the_factor_is_one():
     ts, lower, upper, p = bounds(F, 1e-6, budget_bits=40, **MODELS["random"])
     lo, hi = factors(ts, lower, upper, 1e-9)

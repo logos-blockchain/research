@@ -18,20 +18,22 @@ F = 1 / 30
 A, H = 1 - (1 - F) ** 0.25, 0.845 * (1 - (1 - F) ** 0.75)
 
 
-def test_averaged_over_arrival_times_the_failure_is_the_depth_tables():
-    """Over t ~ Gamma(n, h), P(n, t) averages to B5's negative binomial form."""
+@pytest.mark.parametrize("lead", [True, False])
+def test_averaged_over_arrival_times_the_failure_is_the_depth_tables(lead):
+    """Over t ~ Gamma(n, h), P(n, t) averages to B5's closed form, with the lead and without."""
     for n in (5, 22, 40):
         t = np.linspace(1e-6, 60 * n / H, 20_001)
-        p = np.exp([log_fail(n, x, A, H) for x in t])
+        p = np.exp([log_fail(n, x, A, H, lead=lead) for x in t])
         mean = np.trapezoid(p * stats.gamma.pdf(t, n, scale=1 / H), t)
-        assert mean == pytest.approx(math.exp(log_strict(A / (A + H), n)), rel=1e-6)
+        assert mean == pytest.approx(math.exp(log_strict(A / (A + H), n, lead=lead)), rel=1e-6)
 
 
 def test_deadlines_are_the_latest_times_that_settle():
     eps = 1e-6
     dl = deadlines(A, H, eps, 80)
-    n = np.arange(1, 81)
-    assert np.array_equal(dl[1:] >= 0, (n + 1) * math.log(A / H) <= math.log(eps))  # t = 0 settles
+    at_zero = np.array([log_fail(n, 0.0, A, H) for n in range(1, 81)])
+    assert np.array_equal(dl[1:] >= 0, at_zero <= math.log(eps))          # t = 0 settles
+    assert at_zero[0] > 2 * math.log(A / H)                 # the lead alone beats two blocks' deficit
     assert np.all(np.diff(dl[dl >= 0]) > 0)
     for n in np.nonzero(dl >= 0)[0][::7]:
         assert log_fail(n, dl[n], A, H) <= math.log(eps) < log_fail(n, dl[n] + 1e-3, A, H)
@@ -62,7 +64,7 @@ def test_the_rule_holds_eps_for_the_race_it_assumes(timelines):
     dl = deadlines(A, H, eps, 200)
     fails = n = 0
     for canon, adv in timelines:
-        deepest = race_depths(canon, adv, 120, premine=False)
+        deepest = race_depths(canon, adv, 120, premine=True)
         k, _, _ = settle(canon, dl, 10)
         ok = (k >= 1) & (deepest >= 0)
         fails += int(np.sum(deepest[ok] >= k[ok]))
@@ -78,7 +80,7 @@ def test_the_rule_holds_eps_however_fast_the_blocks_came(timelines):
     dl = deadlines(A, H, eps, 200)
     k_all, d_all, slow = [], [], []
     for canon, adv in timelines:
-        deepest = race_depths(canon, adv, 120, premine=False)
+        deepest = race_depths(canon, adv, 120, premine=True)
         k, _, t_depth = settle(canon, dl, depth)
         ok = (k >= 1) & (deepest >= 0) & (t_depth >= 0)
         k_all.append(deepest[ok] >= k[ok])

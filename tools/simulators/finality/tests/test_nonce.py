@@ -8,7 +8,9 @@ import pytest
 from numba import njit
 
 from finality_sim.grinding import _choices
-from finality_sim.nonce import _choices_min, _feasible, min_rule_choices, own_share
+from finality_sim.nonce import (_choices_min, _feasible, _last_sub_window, _rates, displacement,
+                                estimate, last_sub_window, min_rule_choices, own_share,
+                                predicted_share)
 from finality_sim.recovery import occupancy
 
 F = 1 / 30
@@ -109,6 +111,43 @@ def test_the_coalition_holds_the_smallest_contribution_in_proportion_to_its_rate
     a, ph = occupancy(F, alpha), occupancy(F, 1 - alpha)
     h, dead = (kw["growth"] * ph, 0) if "growth" in kw else (ph, kw["delta"])
     assert _own(2000, h, a, dead, 40_000, 7) == pytest.approx(own_share(F, alpha, **kw), abs=0.003)
+
+
+def test_displacement_is_a_race_from_one_behind_plus_the_free_channels():
+    """From the rates alone: r^2 under random delay without ties; with ties o r + (1 - o) r^2; under
+    a worst case the free channel is a rival or an own win within Delta, then the race."""
+    for alpha in (0.30, 1 / 3):
+        a, h, _, rate = _rates(F, alpha, 0.845, None)
+        r = a / rate
+        assert displacement(F, alpha, growth=0.845) == pytest.approx(r * r)
+        assert displacement(F, alpha, growth=0.845, orphan=0.18) == pytest.approx(0.18 * r + 0.82 * r * r)
+        a, _, _, rate = _rates(F, alpha, None, 10)
+        ph = occupancy(F, 1 - alpha)
+        free = 1 - ((1 - ph) * (1 - a)) ** 10
+        assert displacement(F, alpha, delta=10) == pytest.approx(free + (1 - free) * (a / rate) ** 2)
+        assert displacement(F, alpha, delta=10) > displacement(F, alpha, growth=0.845, orphan=0.18)
+
+
+def test_the_predicted_share_solves_its_recursion():
+    for own, coin in ((0.37, 0.35), (0.38, 0.56), (0.1, 0.0)):
+        p = predicted_share(own, coin)
+        assert p == pytest.approx(own + (1 - own) * coin * p)
+    assert predicted_share(0.3809, 0.0) == 0.3809
+
+
+def test_the_reachable_minima_match_their_closed_forms():
+    """Without removals both counts average 1 / (1 - p_own); with them, attempting any honest block
+    averages 1 / ((1 - coin)(1 - p_own)); records only reach fewer."""
+    a, h, dead, rate = _rates(F, 1 / 3, None, 10)
+    own = a / (a + rate)
+    none, none_rec = _last_sub_window(3000, h, a, dead, 6000, 0.0, 3)
+    assert none.mean() == pytest.approx(1 / (1 - own), rel=0.03)
+    assert np.array_equal(none, none_rec)
+    coin = displacement(F, 1 / 3, delta=10)
+    any_block, records = last_sub_window(F, 1 / 3, 6000, 3000, 4, delta=10)
+    assert any_block.mean() == pytest.approx(1 / ((1 - coin) * (1 - own)), rel=0.03)
+    assert np.all(records <= any_block) and records.mean() < any_block.mean()
+    assert estimate(1.0, 1.0, 0.5) == 1.0 and estimate(1.05, 2.0, 0.5) == pytest.approx(1.05 * 2.0 * 2.0)
 
 
 def test_forks_near_the_cut_off_add_little():

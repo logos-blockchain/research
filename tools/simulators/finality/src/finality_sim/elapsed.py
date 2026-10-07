@@ -1,18 +1,21 @@
 """Phase B4: a confirmation rule that reads elapsed time (PLAN.md B4; Grunspan and Pérez-Marco,
 "Double spend races", 2018).
 
-The private race of B5's depth table (``scripts/b5_what_k_holds.py``): the coalition forks at the
-target's parent and wins a slot at rate ``a``; the canonical chain grows at rate ``h``. When the
-``n``-th canonical block counting the target appears ``t`` slots after the parent, the coalition
-holds ``M ~ Poisson(a·t)`` blocks, whatever the times of the honest blocks. It displaces the target
-if it is ever strictly ahead, so it fails with probability
+The private race of B5's depth table (``scripts/b5_what_k_holds.py``): the coalition wins a slot
+at rate ``a``; the canonical chain grows at rate ``h``. Just before the target's parent appears the
+coalition's lead over the public chain is stationary, geometric with ratio ``rho = a/h`` (B3's
+premined race); the parent takes one block from it, or none if it had none. When the ``n``-th
+canonical block counting the target appears ``t`` slots after the parent, the coalition holds that
+lead plus ``M ~ Poisson(a·t)`` blocks, whatever the times of the honest blocks. It displaces the
+target if it is ever strictly ahead, so with lead ``l`` it fails with probability
 
-    P(n, t) = P(M ≥ n + 1) + Σ_{m ≤ n} P(M = m) · (a/h)^(n + 1 − m).
+    P(n, t | l) = P(M ≥ n + 1 − l) + Σ_{m < n + 1 − l} P(M = m) · rho^(n + 1 − l − m),
 
-Averaged over the time of the ``n``-th block, ``t ~ Gamma(n, h)``, this is the depth table's
-negative binomial form. The rule accepts the target at the first canonical block with
-``P(n, t) ≤ ε``. Given the honest history the coalition's wins are still Poisson, so the rule holds
-``ε`` for every history, where the depth rule holds it on average over histories.
+and ``P(n, t)`` averages this over the lead. Averaged over the time of the ``n``-th block,
+``t ~ Gamma(n, h)``, it is the depth table's closed form. The rule accepts the target at the first
+canonical block with ``P(n, t) ≤ ε``. Given the honest history the coalition's wins are still
+Poisson and its lead independent, so the rule holds ``ε`` for every history, where the depth rule
+holds it on average over histories. Without ``lead`` the coalition forks at the parent.
 """
 
 from __future__ import annotations
@@ -24,11 +27,23 @@ from numba import njit
 from scipy import special, stats
 
 
-def log_fail(n: int, t: float, a: float, h: float) -> float:
+def log_fail(n: int, t: float, a: float, h: float, lead: bool = True) -> float:
     """log P(n, t)."""
+    log_rho = math.log(a / h)
     m = np.arange(n + 1)
-    terms = stats.poisson.logpmf(m, a * t) + (n + 1 - m) * math.log(a / h)
-    return float(np.logaddexp(stats.poisson.logsf(n, a * t), special.logsumexp(terms)))
+    log_pm = stats.poisson.logpmf(m, a * t)
+    if not lead:
+        terms = log_pm + (n + 1 - m) * log_rho
+        return float(np.logaddexp(stats.poisson.logsf(n, a * t), special.logsumexp(terms)))
+    j = m + 1                                      # the deficit the lead must cover, 1..n + 1
+    # sum_{i < j} P(M = i) rho^(j - i), by one accumulation in log space
+    log_t = np.logaddexp.accumulate(log_pm - m * log_rho) + j * log_rho
+    log_s = np.logaddexp(stats.poisson.logsf(j - 1, a * t), log_t)
+    lead_l = n + 1 - j                             # the lead after the parent, n..0
+    rho = a / h
+    log_pl = np.where(lead_l == 0, math.log1p(-rho * rho),
+                      math.log(1 - rho) + (lead_l + 1) * log_rho)
+    return float(np.logaddexp((n + 2) * log_rho, special.logsumexp(log_pl + log_s)))
 
 
 def deadlines(a: float, h: float, eps: float, n_max: int) -> np.ndarray:

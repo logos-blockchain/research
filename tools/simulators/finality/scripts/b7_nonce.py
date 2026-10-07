@@ -4,29 +4,27 @@
 
 minimum.csv: the nonce taken from the smallest contribution of each of m sub-windows of the window
 before the cut-off (src/finality_sim/nonce.py), for B6's three delay models. The window runs from
-the epoch's start to its cut-off, 6 floor(k/f) slots, at each k of B5 and at k = 1620; m = 22, the
-fewest sub-windows that keep p_own^m at or below 1e-9 at every share and model of the table. G_min,
-the nonces reachable at the cut-off, is sampled 100,000 times a point with 20,000 near slots.
-Decisions the coalition takes before the cut-off add to it. Their factor per nonce is estimated,
-not bounded: G_min (1 + p_own) for the last sub-window's smallest coalition contribution published
-or discarded; G_min / (1 - p_own) for any of its contributions there; and that times
-1 + (p_own / (1 - p_own))^2 for the earlier sub-windows. Each factor F gives R_2 = F^2, read as B6
-reads its factors.
+the epoch's start to its cut-off, 6 floor(k/f) slots, at each k of B5 and at k = 1620. G_min, the
+nonces reachable at the cut-off, is sampled 100,000 times a point with 20,000 near slots. The
+decisions before the cut-off add to it, estimated, not bounded: c_last is the hindsight count of
+the last sub-window's reachable minima (20,000 windows a point), from the coalition attempting
+only the honest blocks that held the running minimum (lo) or any honest block (hi), each removed
+with the chance `displacement` gives the model; the factor per nonce is nonce.estimate, and each
+factor F gives R_2 = F^2, read as B6 reads its factors.
 
-p_own is the chance that the coalition holds a long sub-window's smallest contribution without
-displacing an honest block; p_disp the chance when it races every honest block below its own from
-the block's parent, a race from one block behind won with (p_own / (1 - p_own))^2:
-p_own (1 - p_own) / (1 - p_own - p_own^2). m_life is the fewest sub-windows that keep p_disp^m at or
-below 1e-9 over ten years of epochs, and m_early the fewest with notes frozen one epoch earlier,
+m is set per k by the prediction channel: p_disp is the chance of holding a sub-window's minimum
+with every honest block below the coalition's own attempted, at a third under the worst case, the
+largest of the table; m_life is the fewest sub-windows that keep p_disp^m times the epochs in ten
+years at or below 1e-9, and m, used throughout, the fewest with notes frozen one epoch earlier,
 when a prediction needs every minimum of two windows: p_disp^(2m).
 
 budget.csv: today's hash-chain nonce under B6's bounds with B = 2^b nonces evaluated an epoch, b from
 1 to 64, at 30 % and a third, on the specification's Blend under random delay and in the worst case
 at 10 s: the factors and the depths at 1e-9 for one and two nonces.
 
-recovery.csv: B6's recovery horizon on the specification's Blend under random delay, every freed key
-for sale, at k = 2160, 1620 and 1080 and each one's longest window, with phi(u) <= u F and
-phi_2(u) <= u F^2 in place of B6's bounds, F the largest of the estimates above.
+recovery.csv: B6's recovery horizon on the specification's Blend under random delay and in the
+worst case at 10 s, every freed key for sale, at k = 2160, 1620 and 1080 and each one's longest
+window, with phi(u) <= u F and phi_2(u) <= u F^2 in place of B6's bounds, F the larger estimate.
 """
 
 from __future__ import annotations
@@ -41,7 +39,8 @@ from joblib import Parallel, delayed
 from b2_settlement import F
 from b6_grinding import TAUS, WINDOWS_H, horizons, strict_depth, ub_depth
 from finality_sim.grinding import PER_BIT, factors, pair_bounds
-from finality_sim.nonce import min_rule_choices, own_share
+from finality_sim.nonce import (displacement, estimate, last_sub_window, min_rule_choices, own_share,
+                                predicted_share)
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 OUT = HERE / "runs" / "b7"
@@ -49,18 +48,23 @@ ALPHAS = (0.10, 0.20, 0.25, 0.30, 1 / 3)
 KS = (2160, 1620, 1080, 432, 216, 120)
 EPS = 1e-9
 SAMPLES = 100_000
+LAST_SAMPLES = 20_000
 NEAR = 20_000
 BUDGETS = (1, 2, 4, 8, 16, 24, 32, 40, 48, 56, 64)
 YEARS = 10
 RECOVERY_KS = (2160, 1620, 1080)
+RECOVERY_MODELS = ("random, specification", "worst, 10 s")
 
 
-def models() -> dict[str, dict]:
+def models() -> dict[str, tuple[dict, float]]:
+    """Each delay model's keywords for finality_sim.nonce and its orphan share."""
     s = pd.read_csv(HERE / "runs" / "a1" / "summary.csv")
     s = s[(s.family == "rounds") & (s.link_latency_mean == 0.1)]
-    g = {"random, testnet": (1, 1), "random, specification": (3, 3)}
-    return {name: dict(growth=float(s[(s.blend_hops == h) & (s.blend_delay_max == d)].growth_per_f.iloc[0]))
-            for name, (h, d) in g.items()} | {"worst, 10 s": dict(delta=10)}
+    out = {}
+    for name, (h, d) in {"random, testnet": (1, 1), "random, specification": (3, 3)}.items():
+        r = s[(s.blend_hops == h) & (s.blend_delay_max == d)].iloc[0]
+        out[name] = (dict(growth=float(r.growth_per_f)), float(r.orphan_share))
+    return out | {"worst, 10 s": (dict(delta=10), 0.0)}
 
 
 def depth_reader(kw: dict, alpha: float, log_ub: dict):
@@ -71,28 +75,35 @@ def depth_reader(kw: dict, alpha: float, log_ub: dict):
     return lambda log_eps: ub_depth(log_ub[(round(alpha, 4), kw["delta"])], log_eps)
 
 
-def minimum(name: str, kw: dict, alpha: float, k: int, m: int, seed: int) -> dict:
-    g, deep = min_rule_choices(F, alpha, 6 * math.floor(k / F), SAMPLES, seed, sub_windows=m,
-                               near_slots=NEAR, **kw)
+def epochs(k: int) -> float:
+    return YEARS * 365.25 * 86400 / (10 * math.floor(k / F))
+
+
+def sub_windows(k: int, p_disp: float) -> tuple[int, int]:
+    """(m_life, m): the fewest sub-windows that keep a right prediction over ten years at or below
+    EPS, needing every minimum of one window, and of two."""
+    life = math.log(EPS / epochs(k)) / math.log(p_disp)
+    return math.ceil(life), math.ceil(life / 2)
+
+
+def minimum(name: str, kw: dict, orphan: float, alpha: float, k: int, m: int, seed: int) -> dict:
+    window = 6 * math.floor(k / F)
+    g, deep = min_rule_choices(F, alpha, window, SAMPLES, seed, sub_windows=m, near_slots=NEAR, **kw)
     if deep > 0:
         raise ValueError("a fork reached past the near slots")
-    return dict(model=name, alpha=round(alpha, 4), k=k, sub_windows=m,
-                sub_slots=6 * math.floor(k / F) // m, own=own_share(F, alpha, **kw), mean_g=g.mean(),
+    any_block, records = last_sub_window(F, alpha, window // m, LAST_SAMPLES, seed + 1, orphan=orphan,
+                                         **kw)
+    own = own_share(F, alpha, **kw)
+    coin = displacement(F, alpha, orphan=orphan, **kw)
+    p_disp = predicted_share(own, coin)
+    return dict(model=name, alpha=round(alpha, 4), k=k, sub_windows=m, sub_slots=window // m,
+                own=own, coin=coin, p_disp=p_disp, mean_g=g.mean(),
                 se_g=g.std() / math.sqrt(g.size), p_choice=float(np.mean(g > 1)),
-                p999_g=float(np.percentile(g, 99.9)), max_g=g.max())
-
-
-def displaced(own: float) -> float:
-    """The chance of holding a sub-window's smallest contribution when every honest block below the
-    coalition's own is raced from its parent."""
-    return own * (1 - own) / (1 - own - own ** 2)
-
-
-def estimates(g: float, own: float) -> tuple[float, float, float]:
-    """The factor per nonce with the decisions before the cut-off: the last sub-window's smallest
-    contribution, any contribution there, and the earlier sub-windows too."""
-    every = g / (1 - own)
-    return g * (1 + own), every, every * (1 + (own / (1 - own)) ** 2)
+                p999_g=float(np.percentile(g, 99.9)), max_g=g.max(),
+                c_last_lo=records.mean(), se_last_lo=records.std() / math.sqrt(records.size),
+                c_last_hi=any_block.mean(), se_last_hi=any_block.std() / math.sqrt(any_block.size),
+                factor_lo=estimate(g.mean(), records.mean(), p_disp),
+                factor_hi=estimate(g.mean(), any_block.mean(), p_disp))
 
 
 def curve(factor: float) -> np.ndarray:
@@ -113,50 +124,46 @@ def main() -> None:
     ub = pd.read_parquet(HERE / "runs" / "b2" / "ub.parquet")
     log_ub = {(round(a, 4), int(d)): np.log(g.sort_values("depth").ub.to_numpy())
               for (a, d), g in ub.groupby(["adv", "delay_s"])}
-    big_m = max(math.ceil(math.log(EPS) / math.log(own_share(F, a, **kw)))
-                for kw in ms.values() for a in ALPHAS)
+    # the prediction channel at its strongest: a third under the worst case
+    p_star = max(predicted_share(own_share(F, a, **kw), displacement(F, a, orphan=o, **kw))
+                 for kw, o in ms.values() for a in ALPHAS)
+    ms_of = {k: sub_windows(k, p_star) for k in KS}
 
     pts = [(n, a, k) for n in ms for a in ALPHAS for k in KS]
-    rows = Parallel(n_jobs=-2)(delayed(minimum)(n, ms[n], a, k, big_m,
+    rows = Parallel(n_jobs=-2)(delayed(minimum)(n, ms[n][0], ms[n][1], a, k, ms_of[k][1],
                                                 7919 * list(ms).index(n) + 104729 * ALPHAS.index(a) + k)
                                for n, a, k in pts)
     for (n, a, k), r in zip(pts, rows):
-        at = depth_reader(ms[n], a, log_ub)
+        at = depth_reader(ms[n][0], a, log_ub)
         r["depth_1e-09"] = at(math.log(EPS))
-        r["depth_one_1e-09"] = at(math.log(EPS / r["mean_g"]))
-        r["depth_two_1e-09"] = at(math.log(EPS / r["mean_g"] ** 2))
-        for name, factor in zip(("last", "every", "earlier"), estimates(r["mean_g"], r["own"])):
-            r[f"factor_{name}"] = factor
-            r[f"depth_two_{name}"] = at(math.log(EPS / factor ** 2))
-        epochs = YEARS * 365.25 * 86400 / (10 * math.floor(k / F))
-        r["own_displaced"] = displaced(r["own"])
-        life = math.log(EPS / epochs) / math.log(r["own_displaced"])
-        r["m_epoch"] = math.ceil(math.log(EPS) / math.log(r["own"]))
-        r["m_life"], r["m_early"] = math.ceil(life), math.ceil(life / 2)
+        r["depth_two_cutoff"] = at(math.log(EPS / r["mean_g"] ** 2))
+        r["depth_two_lo"] = at(math.log(EPS / r["factor_lo"] ** 2))
+        r["depth_two_hi"] = at(math.log(EPS / r["factor_hi"] ** 2))
+        r["p_disp_star"] = p_star
+        r["m_life"], r["m"] = ms_of[k]
     t = pd.DataFrame(rows)
     OUT.mkdir(parents=True, exist_ok=True)
     t.to_csv(OUT / "minimum.csv", index=False)
-    with pd.option_context("display.width", 250):
-        print(f"M = {big_m}")
+    with pd.option_context("display.width", 300):
+        print(f"p_disp at a third under the worst case = {p_star:.4f}; m per k = {ms_of}")
         print(t.to_string(index=False, float_format=lambda v: f"{v:.4g}"), end="\n\n")
 
-    spec = "random, specification"
-    worst = {(r["alpha"], r["k"]): r["factor_earlier"] for r in rows if r["model"] == spec}
-    rjobs = [(a, k, max(WINDOWS_H[k]), tau) for a in (0.25, 0.30, 1 / 3) for k in RECOVERY_KS
-             for tau in TAUS]
-    rec = Parallel(n_jobs=-2)(delayed(horizons)(spec, ms[spec], a, k, w, tau, 1.0,
-                                                curve(worst[(round(a, 4), k)]),
-                                                curve(worst[(round(a, 4), k)] ** 2))
-                              for a, k, w, tau in rjobs)
+    worst = {(r["model"], r["alpha"], r["k"]): r["factor_hi"] for r in rows}
+    rjobs = [(n, a, k, max(WINDOWS_H[k]), tau) for n in RECOVERY_MODELS for a in (0.25, 0.30, 1 / 3)
+             for k in RECOVERY_KS for tau in TAUS]
+    rec = Parallel(n_jobs=-2)(delayed(horizons)(n, ms[n][0], a, k, w, tau, 1.0,
+                                                curve(worst[(n, round(a, 4), k)]),
+                                                curve(worst[(n, round(a, 4), k)] ** 2))
+                              for n, a, k, w, tau in rjobs)
     r = pd.DataFrame(rec).rename(columns={"h_days_ground": "h_days_minimum"})
     r.to_csv(OUT / "recovery.csv", index=False)
     print(r.round(1).to_string(index=False), end="\n\n")
 
     bpts = [(n, a, b) for n in ("random, specification", "worst, 10 s") for a in (0.30, 1 / 3)
             for b in BUDGETS]
-    brows = Parallel(n_jobs=-2)(delayed(budget)(n, ms[n], a, b) for n, a, b in bpts)
+    brows = Parallel(n_jobs=-2)(delayed(budget)(n, ms[n][0], a, b) for n, a, b in bpts)
     for (n, a, _), r in zip(bpts, brows):
-        at = depth_reader(ms[n], a, log_ub)
+        at = depth_reader(ms[n][0], a, log_ub)
         r["depth_1e-09"] = at(math.log(EPS))
         for side in ("lo", "hi"):
             r[f"depth_one_{side}"] = at(math.log(EPS / r[f"factor_{side}"]))

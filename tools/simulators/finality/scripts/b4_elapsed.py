@@ -2,8 +2,8 @@
 
     python scripts/b4_elapsed.py      # needs runs/a1; writes runs/b4/elapsed.csv
 
-Both rules face B5's private race with the strict tie rule, the coalition forking at the target's
-parent (src/finality_sim/elapsed.py). The depth rule waits for the depth of B5's closed form; the
+Both rules face B5's private race with the strict tie rule and a premined lead
+(src/finality_sim/elapsed.py). The depth rule waits for the depth of B5's closed form; the
 elapsed-time rule accepts at the first canonical block whose time since the parent leaves the
 coalition a chance of at most eps. Both use B5's rates: the coalition wins at a = alpha lambda per
 slot and the canonical chain grows at h = (1 - alpha) g lambda, with lambda = -ln(1 - f) and g A1's
@@ -48,7 +48,7 @@ def timelines(kind: str, alpha: float, rep: int, a: float, h: float, k_max: int)
         rng = np.random.default_rng([rep, int(alpha * 1000)])
         canon = np.nonzero(rng.random(SLOTS) < h)[0].astype(np.int64)
         adv = np.nonzero(rng.random(SLOTS) < a)[0].astype(np.int64)
-    return canon, race_depths(canon, adv, k_max, premine=False, win_at=1)
+    return canon, race_depths(canon, adv, k_max, premine=True, win_at=1)
 
 
 def main() -> None:

@@ -2,8 +2,8 @@
 
     python scripts/c1_settle_surface.py      # needs runs/c1/summary.csv (scripts/c1_rate.py)
 
-Depth comes from the private race from the target's parent, without a premined lead, and
-Cryptarchia's strict tie rule, which B3 found within a few blocks of the closed form at the
+Depth comes from the private race with a premined lead (B5's closed form, scripts/b5_what_k_holds.py)
+and Cryptarchia's strict tie rule, which B3 found within a few blocks of the race at the
 attacker's share of chain-extending blocks, ``q = a / (a + (1 - a) g)``, where ``g`` is the
 measured canonical growth per occupied-slot rate. Time per canonical block is the honest chain's
 while the coalition withholds, ``interval / ((1 - a) g)``. H3 asks whether the time falls at least
@@ -12,26 +12,24 @@ as fast as ``1 / (1 - o)`` as the orphan share ``o`` falls.
 
 from __future__ import annotations
 
+import math
 import pathlib
 
 import numpy as np
 import pandas as pd
-from scipy import stats
+
+from b5_what_k_holds import log_strict
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 ALPHAS = (0.10, 0.25, 0.30, 1 / 3)
 EPS = (1e-6, 1e-9)
 
 
-def strict(q: float, n: int) -> float:
-    p = 1 - q
-    m = np.arange(n + 1)
-    return float(stats.nbinom.sf(n, n, p) + (stats.nbinom.pmf(m, n, p) * (q / p) ** (n + 1 - m)).sum())
-
-
 def depth(q: float, eps: float) -> int:
+    if q >= 0.5:
+        return -1
     k = 1
-    while strict(q, k + 1) > eps:
+    while log_strict(q, k + 1) > math.log(eps):
         k += 1
         if k > 5000:
             return -1
