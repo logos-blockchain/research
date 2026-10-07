@@ -44,7 +44,7 @@ worst-case figures are proven against every attack.
 
 | route | what changes | time until final, 30 % / a third | what it costs | verdict |
 | --- | --- | --- | --- | --- |
-| a nonce that resists grinding ([§5](#s5)) | the epoch nonce taken from the smallest contributions of 25 sub-windows | removes most of the depth grinding adds: with today's nonce, against an adversary that evaluates `2^64` nonces an epoch, the depths grow 2.7 to 4.5 times | a hard fork; notes frozen one epoch earlier; a window before the cut-off of at least 54 hours (`6⌊k/f⌋` at `k = 1080`), the shortest measured at which the choices at the cut-off stay near one | recommended; the others depend on it |
+| a nonce that resists grinding ([§5](#s5)) | the epoch nonce taken from the smallest contributions of 25 sub-windows | removes most of the depth grinding adds: with today's nonce, against an adversary that evaluates `2^64` nonces an epoch, the depths grow 2.7 to 4.5 times; passed through a sequential delay ([§12](#s12), G1) it removes all of it, as a bound within the model | a hard fork; notes frozen one epoch earlier; a window before the cut-off of at least 54 hours (`6⌊k/f⌋` at `k = 1080`), the shortest measured at which the choices at the cut-off stay near one; with the delay, a sequential computation once an epoch | recommended, with the delay; the others depend on it |
 | settled level ([§4](#s4)) | a client depth; nothing in consensus | random delay: 2.6 / 4.8–4.9 h, and 1.5 / 2.4 h reading elapsed time (measured with a nonce that is not ground); guaranteed at 10 s: 15.5–15.9 / 28.3–29.5 h | nothing | recommended |
 | smaller `k` ([§6](#s6)) | `k`, and a recovery trigger | `k = 1080` against 30 %, guaranteed at 10 s: 15.8 h, at the edge (an estimated 1,060–1,093 blocks against 1,080); against a third no `k` below 2160 | a recovery window of 36 hours; a look-back horizon of months; a partition deeper than `k` still waits for operators | not recommended until the nonce's factor is bounded and the trigger is partition-safe |
 | faster blocks ([§7](#s7)) | `f` | random delay, against a third: 160 minutes at 30 s blocks, 144 at 15 s, by the race's fit | ×2.0 the blocks at 15 s | not recommended: little gain from 30 % |
@@ -687,8 +687,9 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
   ([§6](#s6)). Whether any local test can, and what a node should do when its own chain was sparse
   over the window, is open.
 - **Blend's delays under adversarial relays.** The random-delay model lets the adversary choose
-  no delay; the worst case lets it choose every one. An engine run in which the adversary's relays
-  hold every message for the most rounds allowed would place a third model between them.
+  no delay; the worst case lets it choose every one. Relays that hold every honest block for the
+  longest mixing delay cost 7 % of depth ([§12](#s12), G6); relays that drop blocks are not
+  modelled.
 - **Turnover in Cryptarchia itself.** The recovery horizon rests on how fast staked notes are spent,
   measured elsewhere at 0.05–0.3 % a day, and on how many of their old keys an adversary could buy.
   [§6](#s6) gives the horizon against turnover when every freed key is bought;
@@ -715,6 +716,7 @@ against 30 % and a third at `ε = 1e-9`:
 | Blend's delay (G3) | the Blend setting | from the specification's setting (`Δ = 11` s, its p99 rounded up) to testnet's (2 s), the worst-case depth against a third falls from 1,649 to 812 blocks (25.5 to 10.5 h) and the random-delay depth from 276 to 172 (4.1 to 2.2 h); one hop of three rounds (4 s) gives 936 (12.7 h); with the nonce under G1's delay each depth grows by at most 1 % | anonymity, in the Blend report's terms: one hop exposes the whole path of one message in three to an adversary holding a third of the nodes, three hops one in 27; one round of mixing blends a third of the broadcasts three rounds do |
 | settlement on a chain nobody withholds from (G4) | a client rule; nothing in consensus | the elapsed-time rule of [§3.2](#s32) settles such a chain in 39 / 53 minutes against 30 % / a third on the specification's Blend, against the depth rule's 98 / 163; with the rates the total-stake inference leaves after a period of withholding, and the depth rule as a cap, 66 / 106 minutes | the rule's rates must follow the inference: after a period of withholding every rate rises by `1/(1 − α)`, and B4's rule then understates the adversary; on a chain the adversary withholds from the safe rule is the depth rule; random delay only |
 | anchoring (G5) | a checkpoint written to another chain | the same choice between old forks for every node, which heals a partition deeper than `k`; finality at the anchor interval plus the other chain's | a dependence on another chain; a fork-choice rule for anchored forks; not measured |
+| adversarial relays (G6), a check on the random-delay model | the adversary's relays hold every honest block for the longest mixing delay | the honest orphan share rises by two points and the depth at `1e-9` by 7 %, 257 to 274 blocks against a third at the growth a withholding adversary leaves; the report's 276, read at the growth with everyone producing, covers it | none; relays that drop blocks are a liveness attack on Blend, not modelled |
 
 **A delayed nonce.** The decisions of [§3.1](#s31) before the cut-off are worth something only if
 the adversary can compute the nonce each outcome gives before it must act: within about one block
@@ -742,8 +744,10 @@ period, 3 days at `k = 2160`, lowers the inferred stake by its share and every r
 `1/(1 − α)`: the honest stake alone then produces at the full rate, and the adversary wins faster
 than the rule assumes. The depth rule is unmoved, since the race's ratio is. The safe elapsed-time
 rule takes the adjusted rates and the depth rule as its cap: 66 / 106 minutes on a chain nobody
-withholds from, and the depth rule's time on one the adversary withholds from. A rule that reads
-the density directly accepts later than the elapsed-time rule and adds nothing to it.
+withholds from (played on timelines, 65 / 103 on average and 90 / 141 at the 90th percentile),
+and the depth rule's time on one the adversary withholds from. A rule that reads the density
+directly accepts later than the elapsed-time rule and adds nothing to it. With the delayed nonce
+of G1 the recovery horizon of [§6](#s6) is the unground one in every cell.
 
 ---
 

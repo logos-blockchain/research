@@ -67,6 +67,7 @@ Phase by phase:
 | G3 Blend's delay | done: both delay models over the twelve Blend settings of A1 |
 | G4 settlement on a chain nobody withholds from | done: B4's elapsed-time rule already settles it in 39 / 53 minutes against 30 % / a third, but its rates hold only while the inferred stake is the true stake; with the rates after a total-stake adjustment and the depth rule as a cap, 66 / 106 minutes, and the depth rule's depth on a chain withheld from; a rule that reads density directly is dominated |
 | G5 anchoring | analysis only |
+| G6 adversarial relays | done: the engine's `blend_adversary_relays`; holding every honest block for the longest mixing delay raises the honest orphan share by two points and the depth at `1e-9` by 7 %, within the report's growth convention |
 
 Before review, in this order:
 
@@ -105,7 +106,7 @@ Hypotheses:
 | hypothesis | verdict |
 | --- | --- |
 | H1 | fails for the guarantee: at 25 % and `ε = 1e-9` the upper bound exceeds 216 blocks at every delay, from 288 at 1 s; with two nonces ground by a coalition that evaluates `2^64` nonces an epoch, 477–950 blocks at 1–10 s. Holds for the best known attack, without grinding, at least to 20 s |
-| H2 | holds for delays up to 13 s without grinding, and at 10 s with a nonce from the smallest contributions of sub-windows at B7's estimates (1,859–1,939 blocks). With today's nonce B6's bounds prove it with one ground nonce up to 5 s against a coalition that evaluates `2^40` nonces an epoch and up to 2 s against `2^64`, and with two only at 1 s against `2^40`. At the specification's Blend (`Δ = 10` s) these bounds cannot prove it once grinding is counted |
+| H2 | holds for delays up to 13 s without grinding; at 10 s with a nonce from the smallest contributions of sub-windows at B7's estimates (1,859–1,939 blocks), and as a bound within B6's model with that nonce under G1's delay (1,511 blocks). With today's nonce B6's bounds prove it with one ground nonce up to 5 s against a coalition that evaluates `2^40` nonces an epoch and up to 2 s against `2^64`, and with two only at 1 s against `2^40`. At the specification's Blend (`Δ = 10` s) these bounds cannot prove it once grinding is counted |
 | H3 | holds |
 | H4 | refuted for a delay chosen by an adversary: GHOST's safe region never exceeds the longest-chain rule's, and in proof of stake it needs equivocation control. Untested on the chain under random delay |
 | H5 | fails against Blend's present budget: with the cover raised by D0's multiple, every committee exceeds the read limit `r_1` of a core connection, against a quarter of the stake unless rounds last 33 hours (D3). Whether that budget may grow is the owner's line (Q7) |
@@ -638,6 +639,8 @@ Ways to shorten finality that phases B–E do not cover, each read against 30 % 
   depth at which a chain nobody withholds from settles, and what the total-stake inference does to
   the signal.
 - **G5.** Anchoring a checkpoint to another chain: analysis only.
+- **G6.** Blend's delays under adversarial relays: the engine with the coalition's relays holding
+  every honest block for the longest mixing delay, and B3's race on its timelines.
 
 Exit: each route with its gain, its cost and what is open, in `FURTHER.md` and the report.
 

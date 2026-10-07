@@ -10,6 +10,8 @@ the lead lasts at least T (src/finality_sim/further.py, lead_lasts) for B6's del
 factor.csv holds the factor per nonce that remains, E[1 + (G_min - 1) 1{the lead lasts T}]
 (delayed_factor), sampled over 20,000 windows a point with 20,000 near slots, and the depth at 1e-9
 with two nonces read as B7 reads its factors, beside the unground depth and B7's estimate.
+recovery.csv holds B6's recovery horizon with the factor at T = 10 minutes, as B7 computes it for
+its own factor.
 """
 
 from __future__ import annotations
@@ -22,7 +24,8 @@ import pandas as pd
 from joblib import Parallel, delayed
 
 from b2_settlement import F
-from b7_nonce import depth_reader, models
+from b6_grinding import TAUS, WINDOWS_H, horizons
+from b7_nonce import curve, depth_reader, models
 from finality_sim.further import delayed_factor, lead_lasts
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
@@ -70,6 +73,19 @@ def main() -> None:
     print()
     with pd.option_context("display.width", 250):
         print(t.to_string(index=False, float_format=lambda v: f"{v:.4g}"))
+
+    # B6's recovery horizon with the factor that remains at T = 10 minutes, as B7 computes it
+    f10 = {(r["model"], r["alpha"], r["k"]): r["factor"] for r in out if r["minutes"] == 10}
+    rjobs = [(n, a, k, max(WINDOWS_H[k]), tau) for n in ms for a in (0.30, 1 / 3) for k in KS
+             for tau in TAUS]
+    rec = Parallel(n_jobs=-2)(delayed(horizons)(n, ms[n], a, k, w, tau, 1.0,
+                                                curve(f10[(n, round(a, 4), k)]),
+                                                curve(f10[(n, round(a, 4), k)] ** 2))
+                              for n, a, k, w, tau in rjobs)
+    r = pd.DataFrame(rec).rename(columns={"h_days_ground": "h_days_delayed"})
+    r.to_csv(OUT / "recovery.csv", index=False)
+    print()
+    print(r.round(1).to_string(index=False))
 
 
 if __name__ == "__main__":

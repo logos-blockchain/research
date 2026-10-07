@@ -476,7 +476,7 @@ def build_tree_pernode(
                 uncles[b] = select_uncles_at_production(
                     slot, parent, uncles, A[v], b, p_id, t, config, rng
                 )
-            col = arrival_column(path_latency, v, t, config, rng)   # (rng drawn either way)
+            col = arrival_column(path_latency, v, t, config, rng, adversary_mask)   # (rng drawn either way)
             if hide:
                 A[:, b] = float(E) + 1.0                     # withheld: never arrives -> orphan
                 withheld[b] = True
@@ -613,7 +613,7 @@ def _build_pruned(active_slots, winners_per_slot, path_latency, config, rng,
             else:
                 uncles[b] = select_uncles_at_production(
                     slot, parent, uncles, buf[v], b, p_id, t, config, rng, arr_base=base)
-            col = arrival_column(path_latency, v, t, config, rng)
+            col = arrival_column(path_latency, v, t, config, rng, adversary_mask)
             if p_id >= base:                                     # live parent -> clamp; else no-op
                 np.maximum(col, buf[:, p_id - base], out=col)
             buf[:, b - base] = col

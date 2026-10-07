@@ -10,7 +10,9 @@ after a total-stake adjustment, under which a coalition that withheld for a whol
 alpha lambda / (1 - alpha) against a canonical chain at g lambda. A rule that reads the chain's
 density directly (density_depth) is given beside them, with the exact conditional chance at its
 acceptance. Minutes are on the clock of the chain read: 30 s / g at the full rate, 30 s / ((1 - alpha) g)
-while withheld from.
+while withheld from. The two elapsed-time rules are also played on 32 independent-slot timelines of
+200,000 slots at the full rate with no coalition blocks, scored at every target (the mean blocks
+on top, and the mean and 90th-percentile minutes to acceptance).
 """
 
 from __future__ import annotations
@@ -18,9 +20,11 @@ from __future__ import annotations
 import math
 import pathlib
 
+import numpy as np
 import pandas as pd
 
 from b2_settlement import F
+from finality_sim.elapsed import deadlines, settle
 from finality_sim.further import density_chance, density_depth, time_rule_depth
 from finality_sim.private_race import strict_depth
 
@@ -28,6 +32,25 @@ HERE = pathlib.Path(__file__).resolve().parent.parent
 OUT = HERE / "runs" / "g4"
 ALPHAS = (0.10, 0.25, 0.30, 1 / 3)
 EPS = 1e-9
+
+
+def played(alpha: float, g: float, adjusted: bool, slots: int = 200_000, reps: int = 32) -> tuple[float, float, float]:
+    """The elapsed-time rule on independent-slot timelines at the full rate with no coalition
+    blocks: the mean blocks on top of the target, and the mean and 90th-percentile minutes from
+    the target to acceptance."""
+    lam = -math.log(1 - F)
+    a, h = (alpha * lam / (1 - alpha), g * lam) if adjusted else (alpha * lam, (1 - alpha) * g * lam)
+    plain = int(strict_depth(alpha / (alpha + (1 - alpha) * g), math.log(EPS)))
+    dl = deadlines(a, h, EPS, 3 * plain + 60)
+    rng = np.random.default_rng([int(alpha * 1000), int(adjusted)])
+    ks, ts = [], []
+    for _ in range(reps):
+        canon = np.nonzero(rng.random(slots) < g * lam)[0].astype(np.int64)
+        k, t, _ = settle(canon, dl, plain)
+        ok = (k >= 1) & (t >= 0)
+        ks.append(k[ok]), ts.append(t[ok])
+    ks, ts = np.concatenate(ks), np.concatenate(ts)
+    return float(ks.mean()), float(ts.mean() / 60), float(np.percentile(ts, 90) / 60)
 
 
 def main() -> None:
@@ -52,6 +75,11 @@ def main() -> None:
             d, w = density_depth(a, g, EPS, F)
             row |= dict(density_n=d + 1, density_min_full=(d + 1) * full, density_share=w,
                         density_log10_chance=density_chance(a, g, EPS, F) / math.log(10))
+            for adjusted in (False, True):          # the rule played on full-rate timelines
+                tag = "adjusted" if adjusted else "b4"
+                blocks, minutes, p90 = played(a, g, adjusted)
+                row |= {f"{tag}_full_sim_blocks": blocks, f"{tag}_full_sim_min": minutes,
+                        f"{tag}_full_sim_p90": p90}
             rows.append(row)
     t = pd.DataFrame(rows)
     OUT.mkdir(parents=True, exist_ok=True)

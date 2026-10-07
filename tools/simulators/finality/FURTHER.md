@@ -2,8 +2,8 @@
 
 Phase G of `PLAN.md`: ways to shorten finality that the three routes of the report do not cover,
 read against 30 % and a third of the stake at `ε = 1e-9`. Tables come from `runs/` through
-`scripts/tables.py`; runs from `scripts/g1_delayed_nonce.py`, `scripts/g3_blend_delay.py` and
-`scripts/g4_density.py`. G2 and G5 need no run.
+`scripts/tables.py`; runs from `scripts/g1_delayed_nonce.py`, `scripts/g3_blend_delay.py`,
+`scripts/g4_density.py` and `scripts/g6_relays.py`. G2 and G5 need no run.
 
 ## G1 — the smallest contributions with a delayed nonce
 
@@ -64,6 +64,17 @@ nonces is read as B7 reads its factors. Each cell gives the factor and the depth
   the lead `Z` is B6's walk.
 - **The prediction channel is unchanged.** A coalition that holds every minimum of two windows
   computes the delay as anyone does; `m` stays at B7's values.
+- **B6's recovery horizon is the unground one.** In days, without grinding / with this nonce under a
+  10-minute delay, as B6 and B7 compute it, at each `k`'s longest window:
+
+| delay | k | window | α = 0.30 | α = 0.33 |
+| --- | --- | --- | --- | --- |
+| random, specification | 2160 | 72 h | 147–285 / 147–285 | 106–205 / 106–204 |
+| random, specification | 1620 | 54 h | 137–265 / 137–265 | 97–186 / 97–186 |
+| random, specification | 1080 | 36 h | 121–234 / 121–234 | 82–157 / 82–157 |
+| worst, 10 s | 2160 | 72 h | 134–259 / 134–259 | 97–188 / 97–188 |
+| worst, 10 s | 1620 | 54 h | 125–242 / 125–242 | 89–172 / 89–172 |
+| worst, 10 s | 1080 | 36 h | 111–215 / 111–215 | 76–146 / 76–146 |
 
 What it costs, with the CIP-0161 assumption that the coalition's hardware is 10 times faster than a
 CPU: a sequential computation of `10·T`, 100–200 minutes for `T` of 10–20 minutes, once an epoch,
@@ -154,6 +165,21 @@ to `α` (`finality_sim.further.density_depth`), is given beside it. Blocks at th
 | specification | 0.30 | 165: 98 / 139 min | 66, 39 min | 111, 94 min | 111, 66 min | 396, 335 min | 100, 59 min, 1e-14 |
 | specification | 0.33 | 276: 163 / 245 min | 89, 53 min | 180, 160 min | 180, 106 min | the depth rule's | 121, 72 min, 1e-12 |
 
+The two elapsed-time rules played on 32 timelines of 200,000 slots at the full rate with no
+coalition blocks, scored at every target: the mean blocks on top of the target, and the mean and
+90th-percentile minutes to acceptance:
+
+| Blend | α | B4's rates: blocks on top, minutes, p90 | adjusted rates: blocks on top, minutes, p90 |
+| --- | --- | --- | --- |
+| testnet | 0.10 | 13.1, 7, 10 | 13.9, 7, 11 |
+| testnet | 0.25 | 35.7, 18, 25 | 47.8, 24, 35 |
+| testnet | 0.30 | 50.1, 25, 34 | 78.5, 40, 56 |
+| testnet | 0.33 | 64.5, 33, 43 | 114.7, 58, 80 |
+| specification | 0.10 | 14.6, 8, 13 | 15.5, 9, 14 |
+| specification | 0.25 | 44.0, 26, 35 | 61.5, 36, 51 |
+| specification | 0.30 | 65.2, 38, 50 | 110.7, 65, 90 |
+| specification | 0.33 | 88.5, 52, 66 | 177.9, 103, 141 |
+
 - **B4's rule already settles a chain nobody withholds from in 39 / 53 minutes against 30 % / a
   third** on the specification's Blend, against the depth rule's 98 / 163 at the same rate. The
   density rule accepts later, at 59 / 72 minutes, and its acceptance point is sound (the exact
@@ -172,16 +198,17 @@ to `α` (`finality_sim.further.density_depth`), is given beside it. Blocks at th
   rates the chain the coalition withholds from, at `(1 − α)·g·λ`, reads as slow, and the rule
   accepts after the depth rule or never; the cap returns the depth rule there. On a chain nobody
   withholds from it accepts at 111 / 180 blocks, 66 / 106 minutes against 30 % / a third, where
-  the depth rule needs 98 / 163. B4's gains on a chain withheld from, 94 / 160 minutes against
-  the depth rule's 139 / 245, hold only with the inferred stake at the true stake.
+  the depth rule needs 98 / 163; played on timelines, 65 / 103 minutes on average and 90 / 141 at
+  the 90th percentile, against B4's rates' 38 / 52 and 50 / 66. B4's gains on a chain withheld
+  from, 94 / 160 minutes against the depth rule's 139 / 245, hold only with the inferred stake at
+  the true stake.
 - **A coalition cannot inflate the density.** A block it publishes that extends the public tip
   lengthens the chain its private one must beat; one that ties an honest block replaces it one for
   one.
 - **Not covered:** the worst case of `Δ`, under which the coalition also lowers the honest rate by
   delaying blocks, so a slow chain is no sign of withholding; honest nodes offline, which slow the
   chain and only delay acceptance; and the variance of the canonical count, which B5 found below
-  the binomial's on the engine. Blocks are taken at their mean spacing; B4 plays the rule on
-  timelines.
+  the binomial's on the engine.
 
 Gates (`tests/test_further.py`): the lead lasts as long as its mean drift allows and the chance
 falls with time; the delayed factor runs from every choice at the cut-off, with no delay, to none;
@@ -201,6 +228,31 @@ stake is revealed. The costs are a dependence on another chain's liveness and fe
 that makes anchored forks win in fork choice, and operators' agreement on which chain to trust.
 This study does not measure it.
 
+## G6 — Blend's delays under adversarial relays
+
+The random-delay model lets the coalition choose no delay; the worst case lets it choose every
+one. Between them lies a coalition that runs its share of the relays and holds every honest block
+it carries for the longest mixing delay the protocol allows, three rounds instead of a draw on one
+to three, while honest relays draw theirs (`tsi_sim`, `blend_adversary_relays`). B3's private race,
+the coalition withholding, is played on the engine's timelines on the specification's Blend with
+and without hostile relays, 64 runs a cell (`scripts/g6_relays.py`). Growth is canonical blocks
+per honest win; the closed form at `1e-9` is B5's at that growth, on the clock of the honest chain:
+
+| α | honest relays: orphans ± sem | honest relays: growth / win | honest relays: race depth at 1e-3 | honest relays: closed form at 1e-9 | hostile relays: orphans ± sem | hostile relays: growth / win | hostile relays: race depth at 1e-3 | hostile relays: closed form at 1e-9 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.25 | 0.152 ± 0.001 | 0.851 | 23 | 87 (1.1 h) | 0.164 ± 0.001 | 0.835 | 24 | 90 (1.2 h) |
+| 0.30 | 0.143 ± 0.001 | 0.857 | 42 | 158 (2.2 h) | 0.158 ± 0.001 | 0.841 | 45 | 167 (2.3 h) |
+| 0.33 | 0.135 ± 0.001 | 0.861 | 63 | 257 (3.7 h) | 0.154 ± 0.001 | 0.847 | 64 | 274 (4.0 h) |
+
+- **Hostile relays raise the honest orphan share by about two points,** 0.135 to 0.154 against a
+  third, and lower the growth per win from 0.861 to 0.847: the depth at `1e-9` grows by 7 %, 257
+  to 274 blocks, and the race's depth at `1e-3` by one block.
+- **The report's random-delay depths already cover it.** They read the growth A1 measured with
+  everyone producing, 0.845, below the growth a withholding coalition leaves even with hostile
+  relays, and give 276 blocks against a third.
+- **Not modelled:** a relay that drops the blocks it carries. That is a liveness attack on Blend's
+  delivery, which the Blend report prices as a reliability factor per hop, not a delay.
+
 ## What the further routes change
 
 - **G1 removes grinding within B6's model:** with a delay of 10–20 minutes the depths are those of a
@@ -215,3 +267,6 @@ This study does not measure it.
   total-stake inference, which leaves 66 / 106 minutes on such a chain and the depth rule on one
   the coalition withholds from. A rule that reads density directly adds nothing.
 - **G5 heals partitions and bounds long-range forks,** at the cost of a dependence on another chain.
+- **G6 finds the random-delay depths robust to hostile relays:** holding every honest block for
+  the longest mixing delay costs about 7 % of depth, within what the report's growth convention
+  already covers.

@@ -93,15 +93,16 @@ e5: install                   # DAG.md, E5 (about 20 s)
 octave-reference:             # the original LCanalysis in Octave, in the background (hours)
 	sh scripts/octave_reference.sh
 
-further: install              # FURTHER.md, G1, G3 and G4 (about 5 minutes on 14 cores; needs a1, b7)
+further: install              # FURTHER.md, G1, G3, G4 and G6 (about 12 minutes on 14 cores; needs a1, b2, b7)
 	$(PY) scripts/g1_delayed_nonce.py
 	$(PY) scripts/g3_blend_delay.py
 	$(PY) scripts/g4_density.py
+	$(PY) scripts/g6_relays.py
 
 all: a1 c1 c3 c4 b2 b3 b4 b5 recovery d0 d1b d5 d6 e2 e5 b6 b7 further
 
 tables: install
-	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b5part b6 b7 d0 d1b d3 d5 d6 e2 e5 e5balance g1 g3 g4; do \
+	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b5part b6 b7 d0 d1b d3 d5 d6 e2 e5 e5balance g1 g3 g4 g6; do \
 		$(PY) scripts/tables.py $$t; done
 
 check-tables: install

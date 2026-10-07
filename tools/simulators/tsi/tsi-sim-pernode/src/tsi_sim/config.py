@@ -112,6 +112,10 @@ class SimConfig:
     # [1, blend_delay_max], as the node's release delayer does (blend/scheduling,
     # release_delayer.rs). Appended to key() only when non-default.
     blend_delay_dist: BlendDelayDist = "continuous"
+    # Relays in the adversary_frac coalition hold every block they relay for the longest mixing
+    # delay, blend_delay_max, instead of drawing one. Models an adversary that slows the honest
+    # blocks it carries as much as the protocol allows. Appended to key() only when set.
+    blend_adversary_relays: bool = False
     # Mean one-way per-link latency in SLOTS (1 slot = 1 s). Realistic direct-gossip links are
     # sub-slot (~0.04-0.15 slot = 40-150 ms); whole-slot values (1, 2, ...) model routing over
     # the Blend mixnet, where each hop costs seconds. Arrivals are kept sub-slot (float).
@@ -471,6 +475,8 @@ class SimConfig:
         # Same discipline: a continuous-delay run keeps its historical key byte-identical.
         if self.blend_delay_dist != "continuous":
             base = base + (self.blend_delay_dist,)
+        if self.blend_adversary_relays:
+            base = base + ("adversary_relays",)
         # Same append-only-when-non-default discipline: a run at the default precision keeps a
         # byte-identical key, so no committed result is reseeded by adding the knob.
         if self.f_precision != 1_000_000:

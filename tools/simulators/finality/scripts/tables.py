@@ -430,6 +430,23 @@ def g1() -> None:
             row[f"T = {int(y.minutes)} min"] = f"{y.factor:.3f}, {y.depth_two:,.0f}"
         rows.append(row)
     print(md(pd.DataFrame(rows)))
+    print()
+    r = pd.read_csv(RUNS / "g1" / "recovery.csv")
+
+    def days(v):
+        return "≥ 3650" if np.isinf(v) else "< 1 h" if v < 1 / 24 else f"{v:,.0f}"
+
+    def turnover(g, col):
+        lo, hi = (days(g[g.tau_per_day == tau][col].iloc[0]) for tau in (2.43e-3, 1.25e-3))
+        return lo if lo == hi else f"{lo}–{hi}"
+    rows = []
+    for (model, k, w), g in r.groupby(["model", "k", "window_h"], sort=False):
+        row = {"delay": model, "k": f"{k}", "window": f"{w:g} h"}
+        for a in (0.30, 0.3333):
+            x = g[g.alpha.round(4) == a]
+            row[f"α = {a:.2f}"] = f"{turnover(x, 'h_days')} / {turnover(x, 'h_days_delayed')}"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
 
 
 def g3() -> None:
@@ -468,6 +485,29 @@ def g4() -> None:
         "withheld from ": [pair(n, m) for n, m in zip(t.adjusted_held_n, t.adjusted_held_min)],
         "reading density, full": [f"{pair(n, m)}, 1e{c:.0f}" for n, m, c in
                                   zip(t.density_n, t.density_min_full, t.density_log10_chance)]})))
+    print()
+    print(md(pd.DataFrame({
+        "Blend": t.blend, "α": t.alpha.map(lambda v: f"{v:.2f}"),
+        "B4's rates: blocks on top, minutes, p90": [f"{b:.1f}, {m:.0f}, {p:.0f}" for b, m, p in
+                                                     zip(t.b4_full_sim_blocks, t.b4_full_sim_min, t.b4_full_sim_p90)],
+        "adjusted rates: blocks on top, minutes, p90": [f"{b:.1f}, {m:.0f}, {p:.0f}" for b, m, p in
+                                                         zip(t.adjusted_full_sim_blocks, t.adjusted_full_sim_min,
+                                                             t.adjusted_full_sim_p90)]})))
+
+
+def g6() -> None:
+    t = pd.read_csv(RUNS / "g6" / "relays.csv")
+    rows = []
+    for a, g in t.groupby("alpha", sort=False):
+        row = {"α": f"{a:.2f}"}
+        for hostile, label in ((False, "honest relays"), (True, "hostile relays")):
+            x = g[g.hostile == hostile].iloc[0]
+            row[f"{label}: orphans ± sem"] = f"{x.orphan:.3f} ± {x.orphan_sem:.3f}"
+            row[f"{label}: growth / win"] = f"{x.growth:.3f}"
+            row[f"{label}: race depth at 1e-3"] = f"{x.race_depth_1e3}"
+            row[f"{label}: closed form at 1e-9"] = f"{x.closed_depth_1e9:,.0f} ({x.hours_1e9:.1f} h)"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
 
 
 def b5part() -> None:
@@ -708,4 +748,4 @@ def e5balance() -> None:
 if __name__ == "__main__":
     {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b4": b4, "b5": b5,
      "b5rec": b5rec, "b5sweep": b5sweep, "b5part": b5part, "b6": b6, "b7": b7, "d0": d0, "d1b": d1b, "d3": d3, "d5": d5, "d6": d6,
-     "e2": e2, "e5": e5, "e5balance": e5balance, "g1": g1, "g3": g3, "g4": g4}[sys.argv[1]]()
+     "e2": e2, "e5": e5, "e5balance": e5balance, "g1": g1, "g3": g3, "g4": g4, "g6": g6}[sys.argv[1]]()

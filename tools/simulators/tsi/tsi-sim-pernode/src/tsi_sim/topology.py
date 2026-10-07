@@ -140,7 +140,7 @@ def build_path_latency(config: SimConfig, rng: np.random.Generator) -> np.ndarra
 
 def _blend_arrival_column(
     path_latency: np.ndarray, producer: int, slot: int, config: SimConfig,
-    rng: np.random.Generator,
+    rng: np.random.Generator, adversary_mask: np.ndarray | None = None,
 ) -> np.ndarray:
     """Sub-slot arrival of a block via the Blend mix cascade (``topology == "blend"``).
 
@@ -149,7 +149,8 @@ def _blend_arrival_column(
     ``Uniform(0, blend_delay_max)`` mixing delay before forwarding. The last relay's forward is
     the final network-wide gossip that makes the block visible. Relays are blind forwarders, so
     every node — relays included — first learns the block from that final gossip; only the
-    producer knows it earlier (handled by the caller).
+    producer knows it earlier (handled by the caller). With ``config.blend_adversary_relays`` a
+    relay in ``adversary_mask`` holds the block for the longest delay, ``blend_delay_max``.
     """
     n = path_latency.shape[0]
     hops = int(config.blend_hops)
@@ -159,9 +160,12 @@ def _blend_arrival_column(
     t = float(slot)
     src = int(producer)
     rounds = config.blend_delay_dist == "rounds"
+    hostile = config.blend_adversary_relays and adversary_mask is not None
     for r in relays.tolist():                     # transport leg, then this relay's mix delay
         t += float(path_latency[src, r])
-        if rounds:                                # whole rounds, uniform on [1, delay_max]
+        if hostile and adversary_mask[r]:         # an adversarial relay holds the block longest
+            t += float(int(delay_max)) if rounds else delay_max
+        elif rounds:                              # whole rounds, uniform on [1, delay_max]
             t += float(rng.integers(1, int(delay_max) + 1))
         else:
             t += float(rng.uniform(0.0, delay_max))
@@ -172,11 +176,11 @@ def _blend_arrival_column(
 
 def arrival_column(
     path_latency: np.ndarray, producer: int, slot: int, config: SimConfig,
-    rng: np.random.Generator,
+    rng: np.random.Generator, adversary_mask: np.ndarray | None = None,
 ) -> np.ndarray:
     """Sub-slot arrival time of a block at every node (before the parent clamp)."""
     if config.topology == "blend":
-        col = _blend_arrival_column(path_latency, producer, slot, config, rng)
+        col = _blend_arrival_column(path_latency, producer, slot, config, rng, adversary_mask)
     else:
         col = float(slot) + path_latency[producer].astype(np.float64)
     if config.jitter_mean > 0.0:

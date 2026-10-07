@@ -29,6 +29,23 @@ def test_the_lead_lasts_as_long_as_its_mean_drift_allows(kw):
     assert all(x > y for x, y in zip(p, p[1:])) and p[-1] < 1e-6
 
 
+def test_hostile_relays_hold_a_block_for_the_longest_delay():
+    """G6's engine flag: a relay in the adversary's mask adds blend_delay_max, an honest one a
+    uniform draw on 1..blend_delay_max rounds."""
+    from tsi_sim.config import SimConfig
+    from tsi_sim.topology import _blend_arrival_column
+    n = 30
+    cfg = SimConfig(n_nodes=n, topology="blend", degree=6, blend_hops=3, blend_delay_max=3.0,
+                    blend_delay_dist="rounds", k=16, epochs=1, f=1 / 30, blend_adversary_relays=True)
+    path = np.zeros((n, n))
+    hostile = np.ones(n, dtype=bool)
+    for seed in range(4):
+        assert np.all(_blend_arrival_column(path, 0, 50, cfg, np.random.default_rng(seed), hostile) == 59.0)
+    honest = {float(_blend_arrival_column(path, 0, 50, cfg, np.random.default_rng(s), np.zeros(n, bool))[1])
+              for s in range(100)}
+    assert len(honest) > 3 and min(honest) >= 53.0 and max(honest) <= 59.0
+
+
 def test_the_delayed_factor_runs_from_every_choice_to_none():
     """With no delay every choice at the cut-off counts; with a delay the lead cannot outlast, none;
     in between the factor falls with the delay."""
