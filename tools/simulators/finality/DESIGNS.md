@@ -84,54 +84,84 @@ stake is declared sparse; the whole honest stake, 0.70 against 30 %, gives the f
 
 ## H.2 — the delay function and its speed ratio
 
-G1 passes B7's nonce through a sequential delay. The coalition decides blind wherever the delay on
-its hardware, `T_a`, outlasts its decision window; honest nodes pay `R·T_a` for a speed ratio `R`.
+G1 passes B7's nonce through a sequential delay so that the coalition chooses blind. Honest nodes
+pay `R·T_a` for a delay of `T_a` on the coalition's hardware and a speed ratio `R`.
 
-**The decision window before the cut-off.** A block of the coalition's own, or a race against an
-honest block, must be placed before the canonical chain moves on. Placed `d` canonical blocks late
-it competes from `d` behind and becomes canonical with chance `r^d`, `r = p_a/p_c`:
+**The rule in Praos's model.** Stake is fixed within an epoch, every honest block arrives within
+`Δ`, hashes are random oracles, and the delay is a random oracle whose answer takes `T_a` on the
+coalition's hardware and `R·T_a` on an honest node. A leader schedule drawn from a uniformly random
+nonce is bad with probability `ε_e`; Praos multiplies `ε_e` by the number of nonces the adversary
+can evaluate. For the rule, a **candidate** is a value of the pre-nonce
+`hash(η_(e−1) ‖ μ_1 ‖ … ‖ μ_m)` the coalition can still bring about. A choice among candidates
+whose outputs it has not seen is blind: given its view the chosen output is uniform, and the
+schedule is bad with `ε_e`. A choice among candidates whose outputs it has seen multiplies `ε_e`
+by their expected number, since each output is uniform at the moment the candidate is formed. The
+factor per nonce is the expected number of candidates evaluated before the last choice that can
+still select them, and a proof needs that number bounded.
 
-| delay | α | 1 behind | 2 behind | 3 behind | 5 behind | 8 behind | 11 behind |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| random, specification | 0.30 | 0.51 (0.8 min) | 0.26 (1.7 min) | 0.13 (2.5 min) | 0.035 (4.2 min) | 0.0046 (6.7 min) | 0.00061 (9.2 min) |
-| random, specification | 0.33 | 0.59 (0.9 min) | 0.35 (1.8 min) | 0.21 (2.6 min) | 0.074 (4.4 min) | 0.016 (7.1 min) | 0.0033 (9.7 min) |
-| worst, 10 s | 0.30 | 0.53 (0.9 min) | 0.28 (1.8 min) | 0.15 (2.6 min) | 0.043 (4.4 min) | 0.0065 (7.0 min) | 0.00098 (9.7 min) |
-| worst, 10 s | 0.33 | 0.62 (0.9 min) | 0.38 (1.8 min) | 0.23 (2.7 min) | 0.088 (4.6 min) | 0.021 (7.3 min) | 0.0048 (10.0 min) |
+A candidate of the last sub-window needs `μ_1 … μ_(m−1)`, fixed when the sub-window starts, and a
+value for `μ_m`: an honest contribution once its block is received, or one of the coalition's
+own, which it knows in advance for every slot, since `ρ_LEAD` depends on the slot, the note and
+the key. Candidates therefore exist from the start of the last sub-window, `W = ⌊6⌊k/f⌋/m⌋`
+slots before the cut-off, 4.3 hours at `k = 2160`, and the coalition evaluates them hours before
+it withholds a block of its own or removes an honest one. G1 took a candidate to be formed when
+the coalition must act, within minutes of the choice. That was wrong: a delay of ten minutes
+blinds only the choices formed in the last ten minutes of the sub-window, and leaves B7's
+estimate. Two changes make the delay work:
 
-**What a delay leaves.** At the cut-off, the choices in the epochs whose lead outlasts `T_a` (G1's
-factor). Before the cut-off, B7's hindsight factor scaled by the chance that a decision can still
-be acted on after the canonical blocks `T_a` holds, `r^d`. Each cell gives the cut-off factor, the
-residual before the cut-off, their product and the depth at `1e-9` with two nonces, at `k = 2160`:
+- **The contribution is bound to the parent block,** `ρ_LEAD := hash(NONCE_CONTRIB_V1 ‖ parent ‖
+  sl ‖ noteID ‖ sk)`, so that a contribution exists only when its block is built on a known
+  parent. The coalition then forms no candidate before the last sub-window starts and cannot
+  predict a sub-window's minimum ahead, which replaces B7's conditions 1 and 2, the binding to the
+  epoch nonce and the notes frozen one epoch earlier; `m` is then set by B7's condition 3 and by
+  the honest cost below. A coalition still chooses the parent among the blocks it may extend, which
+  gives it as many contributions per win as it has parents in reach, and that only raises `G_min`.
+- **The delay spans the sub-window:** `T_a = W + margin`. Every candidate is formed at or after
+  the sub-window's start, so its output arrives at or after the cut-off plus the margin, and the
+  choice is still open only while the coalition's lead outlasts the margin. Candidates of a fork
+  that reaches into the previous sub-window are formed earlier and count in full; they are within
+  `E[G_min]`, B7's "at the cut-off" rows, 277 and 1,518 against a third at `k = 2160`.
 
-| delay | α | not ground | T_a = 1 min | T_a = 2 min | T_a = 3 min | T_a = 5 min | T_a = 10 min | T_a = 20 min |
+What the margin leaves of the choices at the cut-off (G1's factor, `finality_sim.further.delayed_factor`,
+20,000 windows a point), and the depth at `1e-9` with two nonces, at `k = 2160`:
+
+| delay | α | not ground | margin 1 min | margin 2 min | margin 3 min | margin 5 min | margin 10 min | margin 20 min |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| random, specification | 0.30 | 165 | 1.019 × 2.34 = 2.38, 180 | 1.013 × 1.60 = 1.62, 173 | 1.013 × 1.27 = 1.29, 169 | 1.008 × 1.05 = 1.06, 166 | 1.001 × 1.00 = 1.00, 165 | 1.000 × 1.00 = 1.00, 165 |
-| random, specification | 0.33 | 276 | 1.040 × 4.27 = 4.44, 318 | 1.042 × 2.81 = 2.93, 307 | 1.030 × 2.01 = 2.07, 296 | 1.021 × 1.31 = 1.34, 284 | 1.010 × 1.02 = 1.03, 276 | 1.001 × 1.00 = 1.00, 276 |
-| worst, 10 s | 0.30 | 892 | 1.020 × 4.98 = 5.08, 1,034 | 1.012 × 2.94 = 2.98, 987 | 1.012 × 1.95 = 1.97, 951 | 1.008 × 1.23 = 1.23, 910 | 1.001 × 1.01 = 1.01, 892 | 1.000 × 1.00 = 1.00, 892 |
-| worst, 10 s | 0.33 | 1,510 | 1.042 × 10.42 = 10.86, 1,863 | 1.042 × 6.53 = 6.81, 1,794 | 1.028 × 4.25 = 4.37, 1,728 | 1.019 × 2.12 = 2.16, 1,624 | 1.008 × 1.08 = 1.09, 1,522 | 1.001 × 1.00 = 1.00, 1,510 |
+| random, specification | 0.30 | 165 | 1.019, 165 | 1.013, 165 | 1.013, 165 | 1.008, 165 | 1.001, 165 | 1.000, 165 |
+| random, specification | 0.33 | 276 | 1.040, 277 | 1.042, 277 | 1.030, 277 | 1.021, 276 | 1.010, 276 | 1.001, 276 |
+| worst, 10 s | 0.30 | 892 | 1.020, 893 | 1.012, 893 | 1.012, 893 | 1.008, 892 | 1.001, 892 | 1.000, 892 |
+| worst, 10 s | 0.33 | 1,510 | 1.042, 1,516 | 1.042, 1,516 | 1.028, 1,514 | 1.019, 1,512 | 1.008, 1,511 | 1.001, 1,510 |
 
-- **Ten minutes on the coalition's hardware leaves a factor of about 1.1,** five minutes about
-  2.2 under the worst case against a third, and one minute most of B7's estimate. The requirement
-  is `T_a ≥ 10` minutes.
-- **The honest cost is `R·T_a`.** The share of the `4⌊k/f⌋` slots between the cut-off and the first
-  slot that uses the nonce, at `k = 2160` / `k = 1080`:
+The honest cost, `R·T_a`, against the `4⌊k/f⌋` slots between the cut-off and the first slot that
+uses the nonce, with B7's `m`:
 
-| T_a | R = 2 | R = 5 | R = 10 | R = 30 | R = 100 |
-| --- | --- | --- | --- | --- | --- |
-| 1 min | 2 min (0.0 % / 0.1 %) | 5 min (0.1 % / 0.2 %) | 10 min (0.2 % / 0.5 %) | 30 min (0.7 % / 1.4 %) | 100 min (2.3 % / 4.6 %) |
-| 2 min | 4 min (0.1 % / 0.2 %) | 10 min (0.2 % / 0.5 %) | 20 min (0.5 % / 0.9 %) | 60 min (1.4 % / 2.8 %) | 200 min (4.6 % / 9.3 %) |
-| 3 min | 6 min (0.1 % / 0.3 %) | 15 min (0.3 % / 0.7 %) | 30 min (0.7 % / 1.4 %) | 90 min (2.1 % / 4.2 %) | 300 min (6.9 % / 13.9 %) |
-| 5 min | 10 min (0.2 % / 0.5 %) | 25 min (0.6 % / 1.2 %) | 50 min (1.2 % / 2.3 %) | 150 min (3.5 % / 6.9 %) | 500 min (11.6 % / 23.1 %) |
-| 10 min | 20 min (0.5 % / 0.9 %) | 50 min (1.2 % / 2.3 %) | 100 min (2.3 % / 4.6 %) | 300 min (6.9 % / 13.9 %) | 1,000 min (23.1 % / 46.3 %) |
-| 20 min | 40 min (0.9 % / 1.9 %) | 100 min (2.3 % / 4.6 %) | 200 min (4.6 % / 9.3 %) | 600 min (13.9 % / 27.8 %) | 2,000 min (46.3 % / 92.6 %) |
+| k | m | sub-window W | margin | T_a = W + margin | honest time, R = 3 | honest time, R = 5 | honest time, R = 10 | honest time, R = 15 | phase 4⌊k/f⌋ | largest R |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2,160 | 25 | 4.32 h | 10 min | 4.49 h | 13.5 h | 22.4 h | 44.9 h | 67.3 h | 72 h | 16.0 |
+| 2,160 | 25 | 4.32 h | 20 min | 4.65 h | 14.0 h | 23.3 h | 46.5 h | 69.8 h | 72 h | 15.5 |
+| 1,620 | 26 | 3.12 h | 10 min | 3.28 h | 9.8 h | 16.4 h | 32.8 h | 49.2 h | 54 h | 16.5 |
+| 1,620 | 26 | 3.12 h | 20 min | 3.45 h | 10.3 h | 17.2 h | 34.5 h | 51.7 h | 54 h | 15.7 |
+| 1,080 | 26 | 2.08 h | 10 min | 2.24 h | 6.7 h | 11.2 h | 22.4 h | 33.6 h | 36 h | 16.0 |
+| 1,080 | 26 | 2.08 h | 20 min | 2.41 h | 7.2 h | 12.1 h | 24.1 h | 36.1 h | 36 h | 14.9 |
 
-- **A hundred honest minutes buys `R = 10`,** two hundred `R = 20`. Either stays inside the phase
-  at `k ≥ 1080`. Which `R` the coalition can reach is what the sources below settle.
+- **A margin of ten minutes leaves a factor of 1.00–1.01 from the choices formed in the last
+  sub-window,** and `E[G_min]`, 1.03–1.06 at `k = 2160`, bounds the rest: the depth is the unground
+  one within eight blocks.
+- **The honest cost is about a day.** `T_a` is 4.5 hours at `k = 2160` and 2.2 at `k = 1080`;
+  honest nodes compute 22 and 11 hours at a speed ratio of 5, 45 and 22 at 10, once an epoch, and
+  the phase holds a ratio up to 16 at every `k`, since `W` and the phase both scale with `k`. A
+  larger `m` shortens `W` and the cost at the price of forks crossing more sub-window boundaries
+  (B7's condition 3).
+
+What a proof still needs: a bound on `G_min` rather than its sample mean under B6's enumeration of
+the feasible forks; Praos's argument carried to Genesis's fork choice, which Cryptarchia uses; the
+sequentiality of squaring in the class group; and the nonce as a hash of the delay's output, which
+is a group element.
 
 **The design.** The input is `hash(η_(e−1) ‖ μ_1 ‖ … ‖ μ_m)`, fixed at the cut-off; the output,
-after `R·T_a` of sequential squarings in a class group of an imaginary quadratic field, is the
-epoch's nonce `η_e`, with a Wesolowski proof. Any node may compute it; the first block of the new
-epoch carries the output and its proof, and every node verifies the proof in place of the
+after `R·T_a` of sequential squarings in a class group of an imaginary quadratic field, hashed, is
+the epoch's nonce `η_e`, with a Wesolowski proof. Any node may compute it; the first block of the
+new epoch carries the output and its proof, and every node verifies the proof in place of the
 computation. A block of the new epoch without a verified nonce is invalid. If no block carries it
 by the epoch's start, the honest leaders of the phase have had `4⌊k/f⌋` slots to compute it, so the
 epoch starts late only if no honest node computed it, which is a liveness failure of the honest
@@ -165,17 +195,17 @@ What the sources settle:
 - **The documented speed ratio is 3 to 5, not 10 or 20.** Chia's ASIC squares in about 1 µs
   against 3.85 µs on the fastest CPU timelord and 4.7 µs on a commodity CPU; Zhu et al. design at
   3.6×; the CIP's 10 is an assumption it attributes to Ethereum, whose `A_max = 10` measured an
-  attacker against commodity ASICs, not CPUs. With 100 honest minutes the coalition at the
-  documented ratio has `T_a` of 20 to 30 minutes, which leaves a factor per nonce of 1.00–1.01;
-  at the CIP's 10, ten minutes and 1.09; a ratio of 20, which no source documents, would leave five
-  minutes and 2.2.
-- **The honest cost** of 100 minutes is `1.3·10^9` squarings of one CPU core once an epoch, 2.3 %
-  of the lottery-constants phase at `k = 2160` and 4.6 % at `k = 1080`; the verification is one
-  proof per epoch.
+  attacker against commodity ASICs, not CPUs. At the documented ratio honest nodes compute 13–22
+  hours at `k = 2160` for a `T_a` of 4.5 hours; at the CIP's 10, 45 hours; the phase holds a ratio
+  of 16.
+- **The honest cost** at a ratio of 5 is `1.7·10^10` squarings of one CPU core once an epoch, 31 %
+  of the lottery-constants phase at every `k`; the verification is one proof per epoch.
 
-H9 holds against the documented hardware and the CIP's assumption, with verification in
-milliseconds rather than under one; it would fail only against a coalition twenty times faster
-than a commodity CPU, which no source documents, and 200 honest minutes would cover even that.
+H9 fails as stated: 100 honest minutes blind nothing, since the coalition forms the last
+sub-window's candidates from the sub-window's start. It holds for a delay that spans the
+sub-window, with the contribution bound to the parent block: a margin of ten minutes leaves a
+factor of 1.00–1.01 from the sub-window's candidates and `E[G_min]` from forks across its start,
+against any ratio up to 16, with verification in milliseconds rather than under one.
 
 
 ## H.3 — the time-reading rule under a worst case of `Δ`
@@ -254,6 +284,70 @@ premined private race:
   blocks against a third at `1e-9` where B2 needs 1,510, and nothing at the rate of a chain the
   coalition withholds from or delays.
 
-A time-conditioned form of B2's bound, the port's recursion read at `(n, t)` rather than at `n`,
-is not derived here; the counting bound shows what such a rule can gain, and only on a chain at
-the full rate.
+**The observed counting rule.** The counting bound counts every honest win the canonical chain
+does not hold as a block the competing chain may hold, `H − n_h`, and must take `H` at its mean.
+A client can count them instead. An honest block sits on one chain, and one that descends from the
+target sits on no chain without it. So the honest blocks a competing chain holds above the parent
+are among the **forks** the client has received, the blocks with a slot after the target's parent's
+that do not descend from the target, once the honest blocks of the last `Δ` slots, `H_late`, have
+arrived. The competing chain holds at most `L + A(t) + forks + H_late` blocks above the parent
+against the canonical `n`, and the target falls if `L + A + H_late ≥ n + 1 − forks` at acceptance
+or by the catch-up (`finality_sim.further.counting_observed_logp`). A coalition that publishes a
+win as a fork at the parent raises the count by one and keeps the win for its competing chain, so
+the bound stays sound and the rule accepts later. A block a coalition publishes twice, with one
+leadership on two branches, carries the same entropy contribution twice; the specification has no
+rule that reads such a pair. The rule's depth at `1e-9`, `Δ = 10` s, with the `n`-th block at the
+mean spacing of each chain, beside B2's depth and B5's closed form at the random-delay growth:
+
+| α | B2, worst case | B5, random delay | no forks, full rate | no forks, withheld from | two forks, withheld from | four forks, withheld from | a balancing coalition, worst-case rate | a coalition publishing every win as a fork |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.10 | 114 | 19 | 34 | 35 (0.4 h) | 38 | 40 | 58 | 42 |
+| 0.25 | 474 | 88 | 91 | 112 (1.4 h) | 116 | 120 | 245 | 437 |
+| 0.30 | 892 | 165 | 148 | 209 (2.9 h) | 213 | 218 | 549 | – |
+| 0.33 | 1,510 | 276 | 235 | 374 (5.4 h) | 380 | 386 | 1,246 | – |
+
+The forks a client counts, measured on G6's engine timelines of the specification's Blend with
+honest relays, the coalition withholding, 64 runs a share, every public block counted however late
+it arrives:
+
+| α | targets | none | mean | 90th percentile | 99th percentile | most |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0.25 | 106,292 | 0.709 | 0.344 | 1 | 2 | 5 |
+| 0.30 | 99,880 | 0.725 | 0.322 | 1 | 2 | 4 |
+| 0.33 | 95,588 | 0.739 | 0.302 | 1 | 2 | 6 |
+
+The rule at `ε = 1e-3` played on those timelines with each target's measured forks, and on the
+independent-slot timelines above with none, scored by the premined private race:
+
+| α | timelines | targets | accepted | mean depth at acceptance | minutes | the race beats the rule |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0.25 | engine | 80,628 | 1.000 | 41.5 | 32 | 0 |
+| 0.25 | full rate, no forks | 170,754 | 1.000 | 33.6 | 20 | 0 |
+| 0.30 | engine | 74,216 | 1.000 | 76.8 | 63 | 0 |
+| 0.30 | full rate, no forks | 170,593 | 1.000 | 55.5 | 32 | 0 |
+| 0.33 | engine | 69,924 | 1.000 | 136.8 | 117 | 0 |
+| 0.33 | full rate, no forks | 170,007 | 1.000 | 88.9 | 52 | 0 |
+
+- **A client that counts the forks it sees settles under the worst case at 374 blocks against a
+  third** when the coalition withholds and the chain runs at the honest rate, where B2's depth is
+  1,510 and the counting bound holds nothing: 5.4 hours on the honest chain's clock against 23.0.
+  Below a third the gain is the same four-fold, 209 against 892 and 112 against 474. The depth
+  stays above B5's random-delay closed form, 276, because the lead before the parent and the
+  catch-up after acceptance keep the worst case's ratio, 0.84 against a third.
+- **Honest forks cost a few blocks.** Three targets in four see none, one in a hundred sees two
+  or more, and each fork costs about three blocks of depth. Played at `1e-3` the rule accepts every target
+  at a mean depth of 137 against a third, B2's attack depth at `1e-3` being 139, and the race beats
+  it on none of 70,000 targets a share.
+- **A coalition that balances the honest chain at the worst-case rate returns the rule to B2's
+  depth,** 1,246 against 1,510, since the forks it keeps alive are the honest wins the bound
+  counts: the rule reads the attack it is under.
+- **A coalition that publishes every win as a fork stalls the rule at 30 % and a third,** since
+  the count then grows at twice the coalition's rate against a canonical chain that grows at the
+  honest rate, and at a quarter it leaves 437 blocks. The forks cost the coalition its rewards and
+  nothing else, and they are visible: an honest network produces a third of a fork per block. The
+  depth rule is the cap, as before, and the client settles at the earlier of the two.
+
+H10 holds in this form: a rule that reads `(n, t)` and the forks accepts a chain the coalition
+withholds from at a quarter of B2's depth and a chain it balances at B2's depth, sound for every
+strategy within `Δ`. A time-conditioned form of B2's bound, the port's recursion read at `(n, t)`
+rather than at `n`, is not derived here.

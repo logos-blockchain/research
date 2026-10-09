@@ -890,9 +890,10 @@ Over the 54-hour window of `k = 1080`, 82 machines evaluate about 3,700 candidat
 
 - **Phalanx's cap lies between the `2^8` and `2^16` rows:** against a third under the worst case
   at 10 s, 2,048–2,215 and 2,639–2,812 blocks. A cap of `B = 2` would leave 1,544–1,614.
-- **A delay whose input is fixed only when the coalition must choose leaves `B = 1`.** The delay
-  must then outlast, on the coalition's hardware, the time it has to publish, and every node must
-  compute it within the epoch. The smallest contributions give such an input (`FURTHER.md`, G1).
+- **A delay whose input the coalition cannot evaluate before it must choose leaves `B = 1`.**
+  With the smallest contributions, the input of the last sub-window can be formed from the
+  sub-window's start, so the delay must span the sub-window, with the contribution bound to the
+  parent block (`FURTHER.md` G1, `DESIGNS.md` H.2).
 
 **The smallest contributions.** The window before the cut-off, `6⌊k/f⌋` slots, is split into `m`
 sub-windows counted back from the cut-off, each `⌊6⌊k/f⌋/m⌋` slots long, the oldest taking the
@@ -952,6 +953,9 @@ The rule needs three conditions:
    `k = 1620` and `k = 1080`. `m` is set per `k` from this condition (the third table below).
 3. **Sub-windows long enough that forks rarely cross them.** Each sub-window a feasible fork
    reaches multiplies the choices at the cut-off.
+
+Under the delay of `DESIGNS.md` H.2 the contribution bound to the parent block replaces
+conditions 1 and 2.
 
 `E[G_min]` with the sub-windows each `k` needs, from 100,000 windows a cell, each drawn slot by
 slot over its last 20,000 slots; the standard error is at most 0.3 % at `k ≥ 1080`:

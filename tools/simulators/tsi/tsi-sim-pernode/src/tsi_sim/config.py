@@ -23,6 +23,7 @@ UncleModel = Literal["countable", "old"]
 Topology = Literal["full_mesh", "regular", "blend"]
 LinkLatencyDist = Literal["fixed", "uniform", "exp", "geo"]
 BlendDelayDist = Literal["continuous", "rounds"]
+BlendAdversaryAction = Literal["hold", "drop"]
 JitterDist = Literal["exp", "poisson"]
 ChurnMode = Literal["sine", "ramp", "step"]
 InitDest = Literal["common", "heterogeneous"]
@@ -116,6 +117,19 @@ class SimConfig:
     # delay, blend_delay_max, instead of drawing one. Models an adversary that slows the honest
     # blocks it carries as much as the protocol allows. Appended to key() only when set.
     blend_adversary_relays: bool = False
+    # What a hostile relay does with a copy it carries: "hold" it for the longest mixing delay, or
+    # "drop" it. Read only with blend_adversary_relays; appended to key() only when non-default.
+    blend_adversary_action: BlendAdversaryAction = "hold"
+    # Copies of a block proposal sent through independent cascades, 1 + R_D in the Blend
+    # specification (R_D = 1: two). The block arrives with the first copy that is not dropped.
+    # Appended to key() only when non-default.
+    blend_copies: int = 1
+    # The sender's fallback (Blend specification, Failure Detection and Reaction): a block none of
+    # whose copies the network broadcast within T_M rounds of its release, the round after its
+    # slot, is gossiped directly by the sender, so it arrives at slot + 1 + blend_fallback_slots +
+    # the path latency. Read only when every copy is dropped; appended to key() only when
+    # non-default.
+    blend_fallback_slots: float = 15.0
     # Mean one-way per-link latency in SLOTS (1 slot = 1 s). Realistic direct-gossip links are
     # sub-slot (~0.04-0.15 slot = 40-150 ms); whole-slot values (1, 2, ...) model routing over
     # the Blend mixnet, where each hop costs seconds. Arrivals are kept sub-slot (float).
@@ -353,6 +367,13 @@ class SimConfig:
         if self.blend_delay_dist == "rounds" and (self.blend_delay_max < 1
                                                   or self.blend_delay_max != int(self.blend_delay_max)):
             raise ValueError("blend_delay_dist='rounds' needs a whole blend_delay_max >= 1")
+        if self.blend_adversary_action not in ("hold", "drop"):
+            raise ValueError(f"blend_adversary_action must be hold|drop, got "
+                             f"{self.blend_adversary_action!r}")
+        if self.blend_copies < 1:
+            raise ValueError(f"blend_copies must be >= 1, got {self.blend_copies}")
+        if self.blend_fallback_slots < 0.0:
+            raise ValueError(f"blend_fallback_slots must be >= 0, got {self.blend_fallback_slots}")
         if self.adversary_selection not in ("random", "whale"):
             raise ValueError(f"adversary_selection must be random|whale, got "
                              f"{self.adversary_selection!r}")
@@ -477,6 +498,12 @@ class SimConfig:
             base = base + (self.blend_delay_dist,)
         if self.blend_adversary_relays:
             base = base + ("adversary_relays",)
+        if self.blend_adversary_action != "hold":
+            base = base + (self.blend_adversary_action,)
+        if self.blend_copies != 1:
+            base = base + (("copies", self.blend_copies),)
+        if self.blend_fallback_slots != 15.0:
+            base = base + (("fallback", self.blend_fallback_slots),)
         # Same append-only-when-non-default discipline: a run at the default precision keeps a
         # byte-identical key, so no committed result is reseeded by adding the knob.
         if self.f_precision != 1_000_000:

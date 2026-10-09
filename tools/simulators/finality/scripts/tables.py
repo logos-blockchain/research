@@ -497,16 +497,15 @@ def g4() -> None:
 
 def g6() -> None:
     t = pd.read_csv(RUNS / "g6" / "relays.csv")
+    labels = {(False, "hold"): "honest", (True, "hold"): "hostile, holding", (True, "drop"): "hostile, dropping"}
     rows = []
-    for a, g in t.groupby("alpha", sort=False):
-        row = {"α": f"{a:.2f}"}
-        for hostile, label in ((False, "honest relays"), (True, "hostile relays")):
-            x = g[g.hostile == hostile].iloc[0]
-            row[f"{label}: orphans ± sem"] = f"{x.orphan:.3f} ± {x.orphan_sem:.3f}"
-            row[f"{label}: growth / win"] = f"{x.growth:.3f}"
-            row[f"{label}: race depth at 1e-3"] = f"{x.race_depth_1e3}"
-            row[f"{label}: closed form at 1e-9"] = f"{x.closed_depth_1e9:,.0f} ({x.hours_1e9:.1f} h)"
-        rows.append(row)
+    for _, x in t.iterrows():
+        rows.append({"α": f"{x.alpha:.2f}", "relays": labels[(bool(x.hostile), x.action)],
+                     "copies": int(x.copies), "coalition's share of relays": f"{x.node_share:.3f}",
+                     "orphans ± sem": f"{x.orphan:.3f} ± {x.orphan_sem:.3f}",
+                     "blocks by the fallback": f"{x.fallback:.3f}" if x.hostile else "–",
+                     "growth / win": f"{x.growth:.3f}", "race depth at 1e-3": f"{x.race_depth_1e3}",
+                     "closed form at 1e-9": f"{x.closed_depth_1e9:,.0f} ({x.hours_1e9:.1f} h)"})
     print(md(pd.DataFrame(rows)))
 
 
@@ -540,25 +539,19 @@ def h2() -> None:
     for (model, a), g in f.groupby(["model", "alpha"], sort=False):
         row = {"delay": model, "α": f"{a:.2f}", "not ground": f"{g['depth_1e-09'].iloc[0]:,.0f}"}
         for _, x in g.sort_values("minutes").iterrows():
-            row[f"T_a = {int(x.minutes)} min"] = f"{x.factor:.3f} × {x.residual:.2f} = {x.combined:.2f}, {x.depth_two:,.0f}"
+            row[f"margin {int(x.minutes)} min"] = f"{x.factor:.3f}, {x.depth_two:,.0f}"
         rows.append(row)
     print(md(pd.DataFrame(rows)))
     print()
-    h = pd.read_csv(RUNS / "h2" / "honest.csv")
+    sp = pd.read_csv(RUNS / "h2" / "span.csv")
     rows = []
-    for t, g in h.groupby("minutes", sort=False):
-        row = {"T_a": f"{int(t)} min"}
-        for _, x in g.iterrows():
-            row[f"R = {int(x.ratio)}"] = f"{x.honest_minutes:,.0f} min ({100 * x.phase_share_k2160:.1f} % / {100 * x.phase_share_k1080:.1f} %)"
-        rows.append(row)
-    print(md(pd.DataFrame(rows)))
-    print()
-    w = pd.read_csv(RUNS / "h2" / "window.csv")
-    rows = []
-    for (model, a), g in w.groupby(["model", "alpha"], sort=False):
-        row = {"delay": model, "α": f"{a:.2f}"}
-        for _, x in g.iterrows():
-            row[f"{int(x.blocks_behind)} behind"] = f"{x.chance:.2g} ({x.minutes:.1f} min)"
+    for _, x in sp.iterrows():
+        row = {"k": f"{int(x.k):,}", "m": int(x.sub_windows), "sub-window W": f"{x.sub_window_slots / 3600:.2f} h",
+               "margin": f"{int(x.margin_min)} min", "T_a = W + margin": f"{x.t_a_slots / 3600:.2f} h"}
+        for r in (3, 5, 10, 15):
+            row[f"honest time, R = {r}"] = f"{x[f'honest_hours_r{r}']:.1f} h"
+        row["phase 4⌊k/f⌋"] = f"{x.phase_slots / 3600:.0f} h"
+        row["largest R"] = f"{x.largest_ratio:.1f}"
         rows.append(row)
     print(md(pd.DataFrame(rows)))
 
@@ -590,6 +583,36 @@ def h3() -> None:
         "mean depth at acceptance": pl.mean_depth.map(lambda v: f"{v:.1f}"),
         "minutes": pl.mean_minutes.map(lambda v: f"{v:.0f}"),
         "the race beats the rule": pl.race_beats.map(lambda v: f"{v:.1e}" if v > 0 else "0")})))
+    print()
+    ob = pd.read_csv(RUNS / "h3" / "observed.csv")
+
+    def depth(v):
+        return f"{int(v):,}" if v > 0 else "–"
+    print(md(pd.DataFrame({
+        "α": ob.alpha.map(lambda v: f"{v:.2f}"), "B2, worst case": ob.b2_depth.map(depth),
+        "B5, random delay": ob.closed_depth.map(depth),
+        "no forks, full rate": ob.full_0.map(depth),
+        "no forks, withheld from": [f"{depth(d)} ({h:.1f} h)" if d > 0 else "–"
+                                    for d, h in zip(ob.withheld_0, ob.hours_withheld_0)],
+        "two forks, withheld from": ob.withheld_2.map(depth), "four forks, withheld from": ob.withheld_4.map(depth),
+        "a balancing coalition, worst-case rate": ob.balancing.map(depth),
+        "a coalition publishing every win as a fork": ob.publishing.map(depth)})))
+    print()
+    fk = pd.read_csv(RUNS / "h3" / "forks.csv")
+    print(md(pd.DataFrame({
+        "α": fk.alpha.map(lambda v: f"{v:.2f}"), "targets": fk.targets.map(lambda v: f"{v:,}"),
+        "none": fk.none.map(lambda v: f"{v:.3f}"), "mean": fk["mean"].map(lambda v: f"{v:.3f}"),
+        "90th percentile": fk.p90.map(lambda v: f"{v:.0f}"), "99th percentile": fk.p99.map(lambda v: f"{v:.0f}"),
+        "most": fk.most})))
+    print()
+    po = pd.read_csv(RUNS / "h3" / "played_observed.csv")
+    print(md(pd.DataFrame({
+        "α": po.alpha.map(lambda v: f"{v:.2f}"), "timelines": po.timelines,
+        "targets": po.targets.map(lambda v: f"{v:,}"),
+        "accepted": [f"{a / t:.3f}" for a, t in zip(po.accepted, po.targets)],
+        "mean depth at acceptance": po.mean_depth.map(lambda v: f"{v:.1f}"),
+        "minutes": po.mean_minutes.map(lambda v: f"{v:.0f}"),
+        "the race beats the rule": po.race_beats.map(lambda v: f"{v:.1e}" if v > 0 else "0")})))
 
 
 def b5part() -> None:

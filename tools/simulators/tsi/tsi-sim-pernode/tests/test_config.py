@@ -222,6 +222,7 @@ def _perturb(v):
         "random": "whale",
         "uncle": "parent",   # uncle_window_anchor
         "continuous": "rounds",  # blend_delay_dist
+        "hold": "drop",     # blend_adversary_action
     }
     if isinstance(v, str) and v in flips:
         return flips[v]

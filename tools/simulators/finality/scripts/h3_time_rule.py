@@ -27,6 +27,24 @@ of 200,000 slots whose canonical chain runs at the full rate g lambda while the 
 come at its slot occupancy, scored by the premined private race (finality_sim.race.race_depths):
 the share of targets accepted, the mean depth and minutes at acceptance, and the share of accepted
 targets the race beats, which the bound keeps at or below eps.
+
+observed.csv: the observed counting rule (finality_sim.further.counting_observed_logp), which also
+counts the forks the client has received, the blocks with a slot after the target's parent's that
+do not descend from the target. Per share: B2's depth at 1e-9 under the worst case at 10 s, B5's
+closed form at the random-delay growth, and the rule's depth at 1e-9 with no forks at the full
+rate and at the rate of a chain the coalition withholds from, with two and four forks at the
+withheld rate, against a coalition that balances the honest chain at the worst-case rate (forks at
+the mean of the honest wins the canonical chain does not keep), and against one that publishes
+every win as a fork at the withheld rate.
+
+forks.csv: the forks the client counts, measured on the engine's timelines of G6 (the
+specification's Blend, honest relays, the coalition withholding, 64 runs a share): the share of
+targets with none, the mean, the 90th and 99th percentiles and the most.
+
+played_observed.csv: the observed rule at eps = 1e-3 played on those timelines with each target's
+measured forks, and on the independent-slot timelines of played.csv with none, scored by the
+premined private race: the share of targets accepted, the mean depth and minutes at acceptance,
+and the share of accepted targets the race beats.
 """
 
 from __future__ import annotations
@@ -39,10 +57,15 @@ import pandas as pd
 from joblib import Parallel, delayed
 
 from b2_settlement import F
+from b3_race import BASE, CONFIGS
 from finality_sim.elapsed import deadlines, settle
-from finality_sim.further import counting_deadlines, counting_depth, counting_ratio
+from finality_sim.forks import fork_counts
+from finality_sim.further import (counting_deadlines, counting_depth, counting_observed_deadlines,
+                                  counting_observed_depth, counting_ratio, observed_settle)
 from finality_sim.grr_attack import attack_rule, occupancy
-from finality_sim.race import race_depths
+from finality_sim.private_race import strict_depth
+from finality_sim.race import race_depths, withhold_tree
+from tsi_sim.config import SimConfig
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 OUT = HERE / "runs" / "h3"
@@ -63,6 +86,16 @@ def rules(alpha: float, lb_depth: int) -> dict[str, np.ndarray]:
             "b4 at worst rates": deadlines(a, h_w, EPS, K_MAX),
             "b4 at worst rates, adjusted": deadlines(a / (1 - alpha), h_w / (1 - alpha), EPS, K_MAX),
             "counting": counting_deadlines(alpha, DELTA, EPS, K_MAX, F)}
+
+
+def timeline(alpha: float, rep: int) -> dict:
+    cfg = SimConfig(**BASE, **CONFIGS["spec"], adversary_frac=alpha, replicate=rep)
+    tree, _, mask, public, canonical = withhold_tree(cfg)
+    adv_blocks = mask[tree.leader.clip(min=0)] & (tree.slot >= 0)
+    return dict(alpha=round(alpha, 4), replicate=rep,
+                canon=np.sort(tree.slot[canonical]).astype(np.int64),
+                adv=np.unique(tree.slot[adv_blocks]).astype(np.int64),
+                forks=fork_counts(tree, public, canonical))
 
 
 def one(alpha: float, name: str, deadline: np.ndarray, seed: int) -> dict:
@@ -130,6 +163,78 @@ def main() -> None:
     pl.to_csv(OUT / "played.csv", index=False)
     print()
     print(pl.to_string(index=False, float_format=lambda v: f"{v:.4g}"))
+
+    # the observed counting rule
+    b2 = depths[(depths.delay_s == DELTA) & (depths.eps == 1e-9)]
+    rows = []
+    for a in (0.10, 0.25, 0.30, 1 / 3):
+        h, pa = occupancy(F, 1 - a), occupancy(F, a)
+        h_w = 1.0 / (DELTA + 1.0 / h)
+        full, withheld = g * lam, (1 - a) * g * lam
+        q = a / (a + (1 - a) * g)
+        d_w = counting_observed_depth(a, DELTA, 1e-9, withheld, 0, 0.0, F)
+        rows.append(dict(
+            alpha=round(a, 4), delta_s=DELTA,
+            b2_depth=int(b2[b2.adv.round(4) == round(a, 4)].ub_depth.iloc[0]),
+            closed_depth=strict_depth(q, math.log(1e-9)),
+            full_0=counting_observed_depth(a, DELTA, 1e-9, full, 0, 0.0, F),
+            withheld_0=d_w, hours_withheld_0=d_w / withheld / 3600 if d_w > 0 else math.nan,
+            withheld_2=counting_observed_depth(a, DELTA, 1e-9, withheld, 2, 0.0, F),
+            withheld_4=counting_observed_depth(a, DELTA, 1e-9, withheld, 4, 0.0, F),
+            balancing=counting_observed_depth(a, DELTA, 1e-9, h_w, 0, h - h_w, F),
+            publishing=counting_observed_depth(a, DELTA, 1e-9, withheld, 0, pa, F)))
+    ob = pd.DataFrame(rows)
+    ob.to_csv(OUT / "observed.csv", index=False)
+    print()
+    print(ob.to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+
+    lines = Parallel(n_jobs=-2, backend="loky")(delayed(timeline)(a, r) for a in ALPHAS for r in range(64))
+    frows, prows = [], []
+    for a in ALPHAS:
+        mine = [x for x in lines if x["alpha"] == round(a, 4)]
+        forks = np.concatenate([x["forks"][1:] for x in mine])            # targets with a parent
+        frows.append(dict(alpha=round(a, 4), targets=int(forks.size), none=float(np.mean(forks == 0)),
+                          mean=float(forks.mean()), p90=float(np.percentile(forks, 90)),
+                          p99=float(np.percentile(forks, 99)), most=int(forks.max())))
+        grid = tuple(int(v) for v in np.unique(forks))
+        dl = counting_observed_deadlines(a, DELTA, EPS, K_MAX, grid, F)
+        ks, ts, beaten, total = [], [], [], 0
+        for x in mine:
+            k, tt = observed_settle(x["canon"], dl, x["forks"], grid)
+            deepest = race_depths(x["canon"], x["adv"], K_MAX, premine=True, win_at=1)
+            scored = deepest >= 0
+            ok = (k >= 1) & scored
+            total += int(scored[1:].sum())
+            ks.append(k[ok]), ts.append(tt[ok]), beaten.append(deepest[ok] >= k[ok])
+        ks, ts, beaten = (np.concatenate(v) for v in (ks, ts, beaten))
+        prows.append(dict(alpha=round(a, 4), timelines="engine", targets=total, accepted=int(ks.size),
+                          mean_depth=float(ks.mean()), mean_minutes=float(ts.mean() / 60),
+                          race_beats=float(beaten.mean())))
+        dl0 = counting_observed_deadlines(a, DELTA, EPS, K_MAX, (0,), F)
+        pa = occupancy(F, a)
+        rng = np.random.default_rng(int(a * 1000))
+        ks, ts, beaten, total = [], [], [], 0
+        for _ in range(32):
+            canon = np.nonzero(rng.random(200_000) < g * lam)[0].astype(np.int64)
+            adv = np.nonzero(rng.random(200_000) < pa)[0].astype(np.int64)
+            k, tt = observed_settle(canon, dl0, np.zeros(canon.size, np.int64), (0,))
+            deepest = race_depths(canon, adv, K_MAX, premine=True, win_at=1)
+            scored = deepest >= 0
+            ok = (k >= 1) & scored
+            total += int(scored[1:].sum())
+            ks.append(k[ok]), ts.append(tt[ok]), beaten.append(deepest[ok] >= k[ok])
+        ks, ts, beaten = (np.concatenate(v) for v in (ks, ts, beaten))
+        prows.append(dict(alpha=round(a, 4), timelines="full rate, no forks", targets=total,
+                          accepted=int(ks.size), mean_depth=float(ks.mean()),
+                          mean_minutes=float(ts.mean() / 60), race_beats=float(beaten.mean())))
+    fk = pd.DataFrame(frows)
+    fk.to_csv(OUT / "forks.csv", index=False)
+    po = pd.DataFrame(prows)
+    po.to_csv(OUT / "played_observed.csv", index=False)
+    print()
+    print(fk.to_string(index=False, float_format=lambda v: f"{v:.4g}"))
+    print()
+    print(po.to_string(index=False, float_format=lambda v: f"{v:.4g}"))
 
 
 if __name__ == "__main__":

@@ -150,28 +150,45 @@ def _blend_arrival_column(
     the final network-wide gossip that makes the block visible. Relays are blind forwarders, so
     every node — relays included — first learns the block from that final gossip; only the
     producer knows it earlier (handled by the caller). With ``config.blend_adversary_relays`` a
-    relay in ``adversary_mask`` holds the block for the longest delay, ``blend_delay_max``.
+    relay in ``adversary_mask`` holds the block for the longest delay, ``blend_delay_max``, or
+    with ``blend_adversary_action == "drop"`` drops it. ``config.blend_copies`` copies go through
+    independent cascades and the block arrives with the first; when every copy is dropped the
+    producer gossips it directly ``1 + config.blend_fallback_slots`` after the slot.
     """
     n = path_latency.shape[0]
     hops = int(config.blend_hops)
     delay_max = float(config.blend_delay_max)
     pool = np.delete(np.arange(n), producer)               # distinct relays, never the producer
-    relays = rng.choice(pool, size=hops, replace=False)
-    t = float(slot)
-    src = int(producer)
     rounds = config.blend_delay_dist == "rounds"
     hostile = config.blend_adversary_relays and adversary_mask is not None
-    for r in relays.tolist():                     # transport leg, then this relay's mix delay
-        t += float(path_latency[src, r])
-        if hostile and adversary_mask[r]:         # an adversarial relay holds the block longest
-            t += float(int(delay_max)) if rounds else delay_max
-        elif rounds:                              # whole rounds, uniform on [1, delay_max]
-            t += float(rng.integers(1, int(delay_max) + 1))
-        else:
-            t += float(rng.uniform(0.0, delay_max))
-        src = r
-    last = int(relays[-1])
-    return t + path_latency[last].astype(np.float64)       # final gossip floods from the last relay
+    drop = hostile and config.blend_adversary_action == "drop"
+    best = None                                            # earliest arrival over the copies
+    for _ in range(int(config.blend_copies)):
+        relays = rng.choice(pool, size=hops, replace=False)
+        t = float(slot)
+        src = int(producer)
+        lost = False
+        for r in relays.tolist():                 # transport leg, then this relay's mix delay
+            t += float(path_latency[src, r])
+            if hostile and adversary_mask[r]:     # an adversarial relay drops or holds longest
+                if drop:
+                    lost = True
+                    break
+                t += float(int(delay_max)) if rounds else delay_max
+            elif rounds:                          # whole rounds, uniform on [1, delay_max]
+                t += float(rng.integers(1, int(delay_max) + 1))
+            else:
+                t += float(rng.uniform(0.0, delay_max))
+            src = r
+        if lost:
+            continue
+        last = int(relays[-1])
+        col = t + path_latency[last].astype(np.float64)    # final gossip floods from the last relay
+        best = col if best is None else np.minimum(best, col)
+    if best is None:                                       # every copy dropped: the sender's fallback
+        best = (float(slot) + 1.0 + float(config.blend_fallback_slots)
+                + path_latency[producer].astype(np.float64))
+    return best
 
 
 def arrival_column(

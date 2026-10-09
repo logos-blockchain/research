@@ -165,3 +165,54 @@ def test_the_density_rule_is_sound_where_it_accepts_and_later_than_the_time_rule
             out = max(out, log_strict(q, n) + float(stats.poisson.logsf(n - 1, (1 - s) * g * lam * t)))
         return out
     assert worst(d) <= math.log(eps) < worst(d - 1) and 0 < w <= alpha
+
+
+def test_the_observed_counting_bound_matches_its_own_random_variables():
+    """Monte Carlo of the observed bound's model: L geometric at the catch-up ratio, A Poisson at
+    the coalition's occupancy over t, H_late Poisson at the honest occupancy over delta, failure
+    when L + A + H_late reaches n + 1 - forks or by a catch-up with chance rho^(deficit)."""
+    from finality_sim.further import counting_observed_logp, counting_ratio
+    from finality_sim.recovery import occupancy
+    alpha, delta, n, t, forks = 0.25, 10, 20, 600.0, 3
+    a, h = occupancy(F, alpha), occupancy(F, 1 - alpha)
+    rho = counting_ratio(alpha, delta, F)
+    rng = np.random.default_rng(11)
+    size = 2_000_000
+    x = (rng.geometric(1 - rho, size) - 1) + rng.poisson(a * t, size) + rng.poisson(h * delta, size)
+    deficit = n + 1 - forks - x
+    p = np.where(deficit <= 0, 1.0, rho ** np.maximum(deficit, 0)).mean()
+    assert math.exp(counting_observed_logp(n, t, forks, alpha, delta, F)) == pytest.approx(p, rel=0.02)
+
+
+def test_the_observed_rule_holds_where_the_counting_bound_is_empty_and_a_publishing_coalition_stalls_it():
+    from finality_sim.elapsed import settle
+    from finality_sim.further import (counting_depth, counting_observed_deadlines, counting_observed_depth,
+                                      counting_observed_logp, observed_settle)
+    from finality_sim.recovery import occupancy
+    full = 0.845 * -math.log(1 - F)
+    third = 1 / 3
+    withheld = (1 - third) * full
+    d0 = counting_observed_depth(third, 10, 1e-9, withheld, 0)
+    d2 = counting_observed_depth(third, 10, 1e-9, withheld, 2)
+    assert counting_depth(third, 10, 1e-9, withheld, F) == -1 and 0 < d0 < d2 < d0 + 10
+    assert counting_observed_depth(third, 10, 1e-9, full, 0) < d0
+    h = occupancy(F, 1 - third)
+    h_w = 1.0 / (10 + 1.0 / h)
+    assert counting_observed_depth(third, 10, 1e-9, h_w, 0, h - h_w) > d2       # a balancing coalition
+    assert counting_observed_depth(third, 10, 1e-9, withheld, 0, occupancy(F, third)) == -1
+    assert counting_observed_depth(0.25, 10, 1e-9, 0.75 * full, 0, occupancy(F, 0.25)) > 0
+    # the deadlines bracket the bound, fall with the forks, and the play reads them
+    dl = counting_observed_deadlines(0.25, 10, 1e-3, 60, (0, 2))
+    n = int(np.nonzero(dl[:, 0] >= 0)[0][0])
+    assert counting_observed_logp(n, dl[n, 0], 0, 0.25, 10, F) <= math.log(1e-3) \
+        < counting_observed_logp(n, dl[n, 0] + 1.0, 0, 0.25, 10, F)
+    assert np.all((dl[:, 1] < dl[:, 0]) | (dl[:, 0] < 0))
+    rng = np.random.default_rng(3)
+    canon = np.cumsum(rng.integers(20, 60, 400)).astype(np.int64)
+    k0, t0 = observed_settle(canon, dl, np.zeros(canon.size, np.int64), (0, 2))
+    k_ref, t_ref, _ = settle(canon, dl[:, 0], 1)
+    assert np.array_equal(k0, k_ref) and np.array_equal(t0, t_ref) and (k0 >= 1).sum() > 100
+    k2, _ = observed_settle(canon, dl, np.full(canon.size, 2, np.int64), (0, 2))
+    assert np.all((k2 >= k0) | (k2 < 0)) and np.any(k2 > k0)
+    k9, _ = observed_settle(canon, dl, np.full(canon.size, 9, np.int64), (0, 2))
+    assert np.all(k9 == -1)

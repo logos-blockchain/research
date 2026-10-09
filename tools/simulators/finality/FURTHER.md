@@ -11,16 +11,15 @@ B7's factor is dominated by the decisions a coalition takes before the cut-off: 
 withhold a block of its own, and to remove an honest block that holds a sub-window's minimum. Each
 decision is worth something only if the coalition can compute the nonce each outcome gives before
 it must act. If the nonce is `η_e = delay(hash(η_(e−1) ‖ μ_1 ‖ … ‖ μ_m))`, with `delay` a sequential
-function of `T` minutes on the coalition's hardware, every decision whose window is shorter than
-`T` is taken blind, and a blind choice gains nothing: the chance against a nonce chosen blind among
-`G` is the average over the `G`, which is `u`.
+function on the coalition's hardware, a decision whose outcome's nonce it has not computed is
+taken blind, and a blind choice gains nothing: the chance against a nonce chosen blind among `G` is
+the average over the `G`, which is `u`. The nonce of an outcome can be computed from the moment
+its inputs are known. For the last sub-window that is the sub-window's start, since the earlier
+minima are then fixed and the coalition knows its own contributions ahead (`DESIGNS.md`, H.2). The
+delay must therefore span the sub-window, `W` slots, with the contribution bound to the parent
+block so that no candidate is formed earlier, and `T` below is the margin beyond `W`: the time the
+coalition's lead must outlast after the cut-off for a choice to remain.
 
-The decision windows:
-
-- **Before the cut-off**, a block of the coalition's own must be published before the honest
-  chain grows a few blocks past it, or it needs a fork the honest chain has outrun; an honest block
-  must be removed within `Δ` under the worst case, or raced from its parent before the chain grows
-  past it. Both windows are a few block intervals, minutes.
 - **At the cut-off**, the coalition knows which forks are feasible and must publish one before the
   lead `Z` of its private chain is spent. A lead of `z` lasts about `z/(p_c − p_a)` slots. The
   chance that it lasts at least a given time (`finality_sim.further.lead_lasts`, B6's `Z`):
@@ -34,10 +33,12 @@ The decision windows:
 | worst, 10 s | 0.30 | 0.53 | 0.26 | 0.12 | 0.013 | 3e-04 | 8e-06 | 6e-11 |
 | worst, 10 s | 0.33 | 0.62 | 0.62 | 0.2 | 0.063 | 0.0064 | 6e-04 | 4e-07 |
 
-What remains under a delay of `T` is the choices at the cut-off in the windows whose lead outlasts
-`T`: the factor per nonce is `E[1 + (G_min − 1)·1{the lead lasts T}]`
+What remains under a margin of `T` is the choices at the cut-off in the windows whose lead
+outlasts `T`: the factor per nonce is `E[1 + (G_min − 1)·1{the lead lasts T}]`
 (`finality_sim.further.delayed_factor`, 20,000 windows a point), and the depth at `1e-9` with two
-nonces is read as B7 reads its factors. Each cell gives the factor and the depth:
+nonces is read as B7 reads its factors. Candidates of a fork that reaches into the previous
+sub-window are formed before `W` and count in full; `E[G_min]` (B7) bounds them. Each cell gives
+the factor and the depth:
 
 | delay | α | k | not ground | B7's estimate | T = 0 min | T = 5 min | T = 10 min | T = 20 min | T = 30 min |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -54,11 +55,11 @@ nonces is read as B7 reads its factors. Each cell gives the factor and the depth
 | worst, 10 s | 0.33 | 1620 | 1,510 | 1,862–1,943 | 1.089, 1,522 | 1.028, 1,514 | 1.010, 1,511 | 1.002, 1,510 | 1.001, 1,510 |
 | worst, 10 s | 0.33 | 1080 | 1,510 | 1,873–1,952 | 1.159, 1,531 | 1.048, 1,517 | 1.025, 1,513 | 1.003, 1,510 | 1.000, 1,510 |
 
-- **With `T` of 10 minutes the factor per nonce is 1.00–1.03 and the depth is the unground one
-  within three blocks:** against a third under the worst case at 10 s, 1,511 blocks at `k = 2160`
-  and 1,513 at `k = 1080`, against B7's estimated 1,859–1,952; 23.0 hours on the worst-case clock
-  instead of 28.3–29.7. With `T` of 20 minutes the depth is the unground one at every `k`.
-- **`k = 1620` holds a third and `k = 1080` holds 30 %** with margins of 7 % and 17 %, where B7's
+- **With a margin of 10 minutes the factor per nonce is 1.00–1.03 and the depth is the unground
+  one within three blocks,** eight with `E[G_min]`: against a third under the worst case at 10 s,
+  1,511–1,518 blocks at `k = 2160` and 1,513–1,532 at `k = 1080`, against B7's estimated
+  1,859–1,952; 23.0–23.3 hours on the worst-case clock instead of 28.3–29.7.
+- **`k = 1620` holds a third and `k = 1080` holds 30 %** with margins of 6 % and 17 %, where B7's
   estimate leaves `k = 1620` short and `k = 1080` at the edge. These are bounds within B6's model:
   `G_min` is counted against an enumeration of every fork and every subset of withheld wins, and
   the lead `Z` is B6's walk.
@@ -76,18 +77,15 @@ nonces is read as B7 reads its factors. Each cell gives the factor and the depth
 | worst, 10 s | 1620 | 54 h | 125–242 / 125–242 | 89–172 / 89–172 |
 | worst, 10 s | 1080 | 36 h | 111–215 / 111–215 | 76–146 / 76–146 |
 
-What it costs, with the CIP-0161 assumption that the coalition's hardware is 10 times faster than a
-CPU: a sequential computation of `10·T`, 100–200 minutes for `T` of 10–20 minutes, once an epoch,
-by whoever first needs the nonce, with a Wesolowski proof in the block that first uses it. The
+What it costs: a sequential computation of `R·(W + T)` for a speed ratio `R`, once an epoch, by
+whoever first needs the nonce, with a Wesolowski proof in the block that first uses it: 22 hours
+at `k = 2160` and 11 at `k = 1080` at `R = 5`, twice that at the CIP-0161 assumption of 10. The
 lottery-constants finalization phase leaves `4⌊k/f⌋` slots between the cut-off and the first slot
-that uses the nonce, 72 hours at `k = 2160` and 36 at `k = 1080`. If the coalition's hardware were
-100 times faster, `10·T` becomes `100·T`, 17–33 hours, still inside that phase at `k ≥ 1080`.
-Phalanx's 82 independent pieces do not serve here: a piece takes 53 s on the coalition's hardware,
-less than a decision window.
+that uses the nonce, 72 hours at `k = 2160` and 36 at `k = 1080`, which hold a ratio up to 16.
+Phalanx's 82 independent pieces do not serve here: a piece takes 53 s on the coalition's hardware.
 
-`DESIGNS.md` H.2 sets the delay: ten minutes on the coalition's hardware, from the decision window
-before the cut-off, and the honest cost against the speed ratio. Open: a proof of the combined
-rule.
+`DESIGNS.md` H.2 sets the delay, the binding of the contribution to the parent block, and the
+honest cost against the speed ratio, and states what a proof of the combined rule still needs.
 
 ## G2 — the epoch decoupled from `k`
 
@@ -232,33 +230,65 @@ This study does not measure it.
 ## G6 — Blend's delays under adversarial relays
 
 The random-delay model lets the coalition choose no delay; the worst case lets it choose every
-one. Between them lies a coalition that runs its share of the relays and holds every honest block
-it carries for the longest mixing delay the protocol allows, three rounds instead of a draw on one
-to three, while honest relays draw theirs (`tsi_sim`, `blend_adversary_relays`). B3's private race,
-the coalition withholding, is played on the engine's timelines on the specification's Blend with
-and without hostile relays, 64 runs a cell (`scripts/g6_relays.py`). Growth is canonical blocks
-per honest win; the closed form at `1e-9` is B5's at that growth, on the clock of the honest chain:
+one. Between them lies a coalition that runs its share of the relays and either holds every honest
+block it carries for the longest mixing delay the protocol allows, three rounds instead of a draw
+on one to three, or drops it (`tsi_sim`, `blend_adversary_relays`, `blend_adversary_action`). A
+block proposal goes through one cascade of three relays or, as the specification's `R_D = 1` has
+it, through two (`blend_copies`); a copy is dropped when any of its relays is the coalition's, and
+a block every copy of which is dropped reaches the network by the sender's fallback: the sender
+sees no broadcast within `T_M = 15` rounds of the release, the round after the slot, and gossips
+the block directly (Blend specification, Failure Detection and Reaction). B3's private race, the
+coalition withholding, is played on the engine's timelines on the specification's Blend, 64 runs a
+cell (`scripts/g6_relays.py`). The coalition's share of the relays is its share of the nodes, equal
+to its stake share under the engine's uniform stakes. Growth is canonical blocks per honest win;
+the closed form at `1e-9` is B5's at that growth, on the clock of the honest chain:
 
-| α | honest relays: orphans ± sem | honest relays: growth / win | honest relays: race depth at 1e-3 | honest relays: closed form at 1e-9 | hostile relays: orphans ± sem | hostile relays: growth / win | hostile relays: race depth at 1e-3 | hostile relays: closed form at 1e-9 |
+| α | relays | copies | coalition's share of relays | orphans ± sem | blocks by the fallback | growth / win | race depth at 1e-3 | closed form at 1e-9 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0.25 | 0.152 ± 0.001 | 0.851 | 23 | 87 (1.1 h) | 0.164 ± 0.001 | 0.835 | 24 | 90 (1.2 h) |
-| 0.30 | 0.143 ± 0.001 | 0.857 | 42 | 158 (2.2 h) | 0.158 ± 0.001 | 0.841 | 45 | 167 (2.3 h) |
-| 0.33 | 0.135 ± 0.001 | 0.861 | 63 | 257 (3.7 h) | 0.154 ± 0.001 | 0.847 | 64 | 274 (4.0 h) |
+| 0.25 | honest | 1 | 0.250 | 0.152 ± 0.001 | – | 0.851 | 23 | 87 (1.1 h) |
+| 0.25 | honest | 2 | 0.250 | 0.136 ± 0.001 | – | 0.863 | 20 | 84 (1.1 h) |
+| 0.25 | hostile, holding | 1 | 0.250 | 0.164 ± 0.001 | 0.000 | 0.835 | 24 | 90 (1.2 h) |
+| 0.25 | hostile, dropping | 1 | 0.250 | 0.238 ± 0.001 | 0.579 | 0.764 | 26 | 110 (1.6 h) |
+| 0.25 | hostile, dropping | 2 | 0.250 | 0.200 ± 0.001 | 0.337 | 0.801 | 20 | 99 (1.3 h) |
+| 0.30 | honest | 1 | 0.300 | 0.143 ± 0.001 | – | 0.857 | 42 | 158 (2.2 h) |
+| 0.30 | honest | 2 | 0.300 | 0.127 ± 0.001 | – | 0.872 | 37 | 151 (2.0 h) |
+| 0.30 | hostile, holding | 1 | 0.300 | 0.158 ± 0.001 | 0.000 | 0.841 | 45 | 167 (2.3 h) |
+| 0.30 | hostile, dropping | 1 | 0.300 | 0.235 ± 0.001 | 0.657 | 0.761 | 53 | 230 (3.5 h) |
+| 0.30 | hostile, dropping | 2 | 0.300 | 0.203 ± 0.001 | 0.432 | 0.797 | 48 | 198 (2.9 h) |
+| 0.33 | honest | 1 | 0.333 | 0.135 ± 0.001 | – | 0.861 | 63 | 257 (3.7 h) |
+| 0.33 | honest | 2 | 0.333 | 0.121 ± 0.001 | – | 0.878 | 56 | 240 (3.4 h) |
+| 0.33 | hostile, holding | 1 | 0.333 | 0.154 ± 0.001 | 0.000 | 0.847 | 64 | 274 (4.0 h) |
+| 0.33 | hostile, dropping | 1 | 0.333 | 0.233 ± 0.001 | 0.705 | 0.767 | 96 | 416 (6.7 h) |
+| 0.33 | hostile, dropping | 2 | 0.333 | 0.201 ± 0.001 | 0.497 | 0.796 | 71 | 352 (5.4 h) |
 
-- **Hostile relays raise the honest orphan share by about two points,** 0.135 to 0.154 against a
-  third, and lower the growth per win from 0.861 to 0.847: the depth at `1e-9` grows by 7 %, 257
-  to 274 blocks, and the race's depth at `1e-3` by one block.
-- **The report's random-delay depths already cover it.** They read the growth A1 measured with
-  everyone producing, 0.845, below the growth a withholding coalition leaves even with hostile
-  relays, and give 276 blocks against a third.
-- **Not modelled:** a relay that drops the blocks it carries. That is a liveness attack on Blend's
-  delivery, which the Blend report prices as a reliability factor per hop, not a delay.
+- **Hostile relays that hold raise the honest orphan share by about two points,** 0.135 to 0.154
+  against a third, and lower the growth per win from 0.861 to 0.847: the depth at `1e-9` grows by
+  7 %, 257 to 274 blocks, and the race's depth at `1e-3` by one block. The report's random-delay
+  depths cover it: they read the growth A1 measured with everyone producing, 0.845, below the
+  growth a withholding coalition leaves even with holding relays, and give 276 blocks against a
+  third.
+- **Hostile relays that drop are not covered.** A copy survives three relays with chance
+  `(1 − c)^3` for the coalition's share `c` of the relays, so a third of the relays drops a single
+  copy of 70 % of the honest blocks and both copies of 50 %, as the fallback column measures:
+  `1 − (2/3)^3 = 0.70` and its square `0.50`. Those blocks arrive 16 rounds late and about a third
+  of them are orphaned: the honest orphan share rises to 0.20 with the specification's two copies
+  and the growth per win falls to 0.796, below the report's 0.845. The depth at `1e-9` against a
+  third is 352 blocks, 37 % above the 257 of honest relays and 28 % above the report's 276; with one
+  copy 416. Half of the honest leaders are also identified, since the fallback broadcasts in the
+  clear, and the specification tells nodes that value privacy to disable it, which would lose
+  their blocks instead. The lever is the coalition's share of the relays, which the service
+  declaration prices, not its stake.
+- **The specification's two copies are worth about 6 % of depth under honest relays.** The engine
+  sends one copy; two arrive with the faster cascade, the honest orphan share falls from 0.135 to
+  0.121 and the depth at `1e-9` against a third from 257 to 240. The report keeps the one-copy
+  growth, which understates honest growth and so overstates the depths under honest relays.
 
 ## What the further routes change
 
-- **G1 removes grinding within B6's model:** with a delay of 10–20 minutes the depths are those of a
-  nonce that is not ground, a bound rather than B7's estimate, and `k = 1620` holds a third and
-  `k = 1080` holds 30 %, at the cost of a sequential computation per epoch.
+- **G1 removes grinding within B6's model:** with a delay that spans the last sub-window and the
+  contribution bound to the parent block, the depths are those of a nonce that is not ground within
+  eight blocks, a bound rather than B7's estimate, and `k = 1620` holds a third and `k = 1080`
+  holds 30 %, at the cost of a sequential computation of about a day per epoch.
 - **G2 keeps the nonce's window and the recovery window long when `k` shrinks,** at the cost of a
   parameter.
 - **G3 halves the worst-case depth** if Blend delivers within 2 s, and cuts it by 43 % within 4 s,
@@ -268,6 +298,9 @@ per honest win; the closed form at `1e-9` is B5's at that growth, on the clock o
   total-stake inference, which leaves 66 / 106 minutes on such a chain and the depth rule on one
   the coalition withholds from. A rule that reads density directly adds nothing.
 - **G5 heals partitions and bounds long-range forks,** at the cost of a dependence on another chain.
-- **G6 finds the random-delay depths robust to hostile relays:** holding every honest block for
-  the longest mixing delay costs about 7 % of depth, within what the report's growth convention
-  already covers.
+- **G6 finds the random-delay depths robust to relays that hold and not to relays that drop:**
+  holding every honest block for the longest mixing delay costs about 7 % of depth, within what the
+  report's growth convention already covers; a third of the relays dropping what they carry sends
+  half of the honest blocks through the sender's fallback, 16 rounds late and in the clear, and
+  raises the depth at `1e-9` against a third from 257 to 352 blocks with the specification's two
+  copies.

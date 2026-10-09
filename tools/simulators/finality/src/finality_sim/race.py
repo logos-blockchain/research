@@ -38,8 +38,10 @@ from tsi_sim.rng import seedseq_for
 from tsi_sim.stake import make_stake
 
 
-def withhold_timelines(config: SimConfig) -> tuple[np.ndarray, np.ndarray, float]:
-    """Canonical slots, the coalition's distinct winning slots, and the honest orphan share."""
+def withhold_tree(config: SimConfig):
+    """The engine's block tree under a withholding coalition: ``(tree, arrival, mask, public,
+    canonical)`` with ``arrival[i, b]`` the slot block ``b`` reaches node ``i``, ``mask`` the
+    coalition's nodes, ``public`` the honest blocks and ``canonical`` the best public chain."""
     if config.adversary_strategy != "withhold" or config.adversary_frac <= 0:
         raise ValueError("needs adversary_strategy='withhold' and adversary_frac > 0")
     root = seedseq_for(config)
@@ -63,10 +65,30 @@ def withhold_timelines(config: SimConfig) -> tuple[np.ndarray, np.ndarray, float
     while b > 0:
         canonical[b] = True
         b = int(tree.parent[b])
+    return tree, arrival, mask, public, canonical
+
+
+def withhold_timelines(config: SimConfig) -> tuple[np.ndarray, np.ndarray, float]:
+    """Canonical slots, the coalition's distinct winning slots, and the honest orphan share."""
+    tree, _, mask, public, canonical = withhold_tree(config)
+    adv = mask[tree.leader.clip(min=0)] & (tree.slot >= 0)
     canon_slots = np.sort(tree.slot[canonical]).astype(np.int64)
     adv_slots = np.unique(tree.slot[adv]).astype(np.int64)
     orphan = 1.0 - canonical[public].sum() / public.sum()
     return canon_slots, adv_slots, float(orphan)
+
+
+def fallback_share(tree, arrival: np.ndarray, public: np.ndarray, fallback_slots: float) -> float:
+    """The share of honest blocks that reached their first other node no sooner than the sender's
+    fallback would deliver them, ``1 + fallback_slots`` after the slot: under dropping relays, the
+    blocks every copy of which was dropped."""
+    ids = np.nonzero(public)[0]
+    first = np.empty(ids.size)
+    for j, b in enumerate(ids):
+        col = arrival[:, b].copy()
+        col[int(tree.leader[b])] = np.inf                     # the producer holds it from the slot
+        first[j] = col.min() - tree.slot[b]
+    return float(np.mean(first >= 1.0 + fallback_slots))
 
 
 @njit(cache=True)

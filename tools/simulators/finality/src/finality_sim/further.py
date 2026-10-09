@@ -207,6 +207,100 @@ def counting_logp(n: int, t: float, alpha: float, delta: int, f: float = 1 / 30)
     return math.log(max(reach + catch, 1e-300))
 
 
+def counting_observed_logp(n: int, t: float, forks: int, alpha: float, delta: int,
+                           f: float = 1 / 30) -> float:
+    """log of the counting bound when the client also counts the ``forks`` it has received: the
+    blocks with a slot after the target's parent's that do not descend from the target.
+
+    An honest block sits on one chain, and one that descends from the target sits on no chain
+    without it. The honest blocks a competing chain holds above the parent are therefore among the
+    forks received, once the blocks of the last ``delta`` slots, ``H_late``, Poisson at the honest
+    occupancy over ``delta``, have arrived. The coalition's wins ``A(t)`` may sit anywhere, and the
+    lead ``L`` before the parent is the worst-case walk's. The competing chain holds at most
+    ``L + A + forks + H_late`` blocks above the parent against the canonical ``n``, and the target
+    falls if ``L + A + H_late >= n + 1 - forks`` at acceptance, or later by a catch-up at the
+    ratio ``counting_ratio``. A coalition that publishes its wins as forks raises ``forks`` by
+    as much as ``A``; the bound stays sound and the rule accepts later.
+    """
+    from finality_sim.recovery import occupancy
+    a, h = occupancy(f, alpha), occupancy(f, 1 - alpha)
+    rho = counting_ratio(alpha, delta, f)
+    if rho >= 1.0:
+        return 0.0
+    need = n + 1 - forks                                              # L + A + H_late must reach it
+    if need <= 0:
+        return 0.0
+    top = need + 1
+    x = np.convolve(stats.poisson.pmf(np.arange(top), a * t),
+                    stats.poisson.pmf(np.arange(top), h * delta))[:top]
+    y = np.convolve(x, (1 - rho) * rho ** np.arange(top))[:top]       # L + A + H_late, below top
+    below = y[:need]
+    catch = float(np.sum(below * rho ** (need - np.arange(need))))
+    reach = max(0.0, 1.0 - float(np.sum(below)))
+    return math.log(max(reach + catch, 1e-300))
+
+
+def counting_observed_depth(alpha: float, delta: int, eps: float, rate: float, forks: int = 0,
+                            forks_per_slot: float = 0.0, f: float = 1 / 30) -> int:
+    """The first depth at which ``counting_observed_logp`` holds ``eps`` when the ``n``-th block
+    arrives ``n / rate`` slots after the parent and the client has received ``forks`` plus
+    ``forks_per_slot`` a slot; -1 if none below 5,000."""
+    if counting_ratio(alpha, delta, f) >= 1.0:
+        return -1
+    for d in range(1, 5000):
+        n = d + 1
+        t = n / rate
+        if counting_observed_logp(n, t, forks + int(forks_per_slot * t), alpha, delta, f) <= math.log(eps):
+            return d
+    return -1
+
+
+def counting_observed_deadlines(alpha: float, delta: int, eps: float, n_max: int, forks,
+                                f: float = 1 / 30) -> np.ndarray:
+    """For ``n = 1..n_max`` (rows) and each count in ``forks`` (columns), the latest ``t`` at
+    which the ``n``-th block still settles under ``counting_observed_logp``; -1 where none does.
+    The bound rises with ``t`` and with the forks."""
+    out = np.full((n_max + 1, len(forks)), -1.0)
+    target = math.log(eps)
+    for j, k in enumerate(forks):
+        for n in range(1, n_max + 1):
+            if counting_observed_logp(n, 0.0, k, alpha, delta, f) > target:
+                continue
+            lo, hi = 0.0, 1.0
+            while counting_observed_logp(n, hi, k, alpha, delta, f) <= target:
+                hi *= 2
+            for _ in range(40):
+                mid = (lo + hi) / 2
+                lo, hi = (mid, hi) if counting_observed_logp(n, mid, k, alpha, delta, f) <= target else (lo, mid)
+            out[n, j] = lo
+    return out
+
+
+def observed_settle(canon: np.ndarray, deadlines: np.ndarray, forks: np.ndarray,
+                    fork_grid) -> tuple[np.ndarray, np.ndarray]:
+    """Play the observed counting rule: for each target canonical block ``i`` with a parent, the
+    confirmations at which the rule accepts it and the slots from the target to acceptance, -1
+    where it never does. ``deadlines[n, j]`` is the deadline for the ``n``-th block at
+    ``fork_grid[j]`` forks, and a target with more forks than the grid holds is not accepted."""
+    n_c, n_max = canon.size, deadlines.shape[0] - 1
+    col = {int(k): j for j, k in enumerate(fork_grid)}
+    k_out = np.full(n_c, -1, np.int64)
+    t_out = np.full(n_c, -1, np.int64)
+    for i in range(1, n_c):
+        j = col.get(int(forks[i]))
+        if j is None:
+            continue
+        for n in range(1, n_max + 1):
+            m = i + n - 1
+            if m >= n_c:
+                break
+            if deadlines[n, j] >= 0 and canon[m] - canon[i - 1] <= deadlines[n, j]:
+                k_out[i] = n - 1
+                t_out[i] = canon[m] - canon[i]
+                break
+    return k_out, t_out
+
+
 def counting_depth(alpha: float, delta: int, eps: float, rate: float, f: float = 1 / 30) -> int:
     """The first depth at which ``counting_logp`` holds ``eps`` when the ``n``-th block arrives
     ``n / rate`` slots after the parent; -1 if none below 5,000."""

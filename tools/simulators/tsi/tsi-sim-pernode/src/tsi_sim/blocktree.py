@@ -354,6 +354,9 @@ def build_tree_pernode(
         max_pl = float(path_latency.max())
         dmax = float(config.blend_delay_max)
         horizon = (config.blend_hops + 1) * max_pl + config.blend_hops * dmax
+        if config.blend_adversary_relays and config.blend_adversary_action == "drop":
+            # a block whose every copy is dropped arrives by the sender's fallback
+            horizon = max(horizon, 1.0 + float(config.blend_fallback_slots) + max_pl)
     else:
         horizon = float(path_latency.max())            # H; disconnected -> full scan
     if windowed and config.jitter_mean > 0.0:
