@@ -72,6 +72,9 @@ Phase by phase:
 | G7 the inference as a lever | done: a period of withholding raises every threshold by `1/(1 − α)`, and B2's depth at 10 s becomes its depth at `10/(1 − α)` s, 2,426 blocks against a third and 1,248 against 30 %, so no `k` the study considered holds its share after it; the random-delay depth against a third grows from 276 to 404 blocks while the time falls; a cap on the correction of 5 % a period prices the deflation at 36 days |
 | H.1 recovery in a partition | done (`DESIGNS.md`): the impossibility at a third; recovery attestations, a one-off vote round, with the seats per share; anchoring placed; rule 8 as a detector |
 | H.2 the delay function | done: the rule in Praos's model; a candidate of the last sub-window exists from the sub-window's start, so the delay must span it, with the contribution bound to the parent block; the factor against the margin, the honest cost against the speed ratio and `k`, the design; `E[G_min]` bounded from B6's walk, within four points of B7's sample at `k ≥ 1620`; the literature pinned |
+| I.1 the papers pinned and the reduction placed | planned |
+| I.2 class-group sequentiality | planned |
+| I.3 a partition mode in the engine | planned |
 | H.3 time under the worst case | done: B4's rule beaten by the delay-scheduling attack; the counting bound, sound and empty on a slow chain; the observed counting rule, which counts the forks the client receives, 374 blocks against a third on a chain the coalition withholds from and B2's depth under a balancing coalition; a time-conditioned B2 bound not derived |
 
 Before review, in this order:
@@ -432,6 +435,24 @@ Each hypothesis below can fail, and says what would fail it.
   the worst-case honest rate no later than B2's depth and a chain nobody delays sooner. Fails if
   B3's delay-scheduling attack beats every candidate at its `ε`, or if every bound found exceeds
   B2's depth at every speed (Phase H, H.3).
+- **H11.** The grinding term of Praos's Theorem 11 and of Genesis's main theorem depends on the
+  number of nonces the adversary evaluates and on nothing else about its choice, and the nonce
+  enters each bound only through the next epoch's leader distribution, so the lemma of H.2
+  carries to `maxvalid-bg` with the same factor. Fails if either theorem conditions on the nonce
+  elsewhere, through the stake snapshot or the density window, or if its grinding term is not
+  linear in the candidates (Phase I, I.1).
+- **H12.** The published estimates put the class number of a 1024-bit discriminant beyond
+  `2^100` operations for the best algorithm, and a discriminant derived from the pre-nonce each
+  epoch admits no precomputation, so the delay's sequentiality rests on a documented assumption at
+  the design's size. Fails if an estimate puts 1024 bits below `2^100`, or if a published attack
+  applies to derived discriminants; the discriminant then grows to 2048 bits, which doubles the
+  squaring, or the group becomes an RSA group with a trusted setup (Phase I, I.2).
+- **H13.** On the engine, a 30 % coalition's withheld fork is denser than an honest side holding
+  35 % of all stake in 64–70 % of 36-hour windows and a third's in every one, within three
+  points of B5's closed form, and two honest sides of an even split tie in 0.5–0.7 % of windows.
+  Fails if the honest sides grow faster during a partition than the closed form assumes by enough
+  to move the beaten share by more than five points, which makes rule 8's thresholds the
+  engine's, not the model's (Phase I, I.3).
 
 ## 3. Questions for the owner
 
@@ -744,6 +765,89 @@ H.1; then H.3, the only one that is research rather than design.
   Exit: `SETTLEMENT.md` B4, a worst-case variant or the negative result; the report's §3.2 and
   §4. If H10 fails, the client keeps the depth rule under the worst case and reads time under
   random delay only, as now.
+
+### Phase I — what the designs still rest on
+
+Three items phase H left open, each with a hypothesis (H11–H13 in §2) that can fail. Order:
+I.1 and I.2 first, both reading, both cheap, both feeding `DESIGNS.md` H.2; then I.3, the only
+engine work. None depends on another.
+
+- **I.1 — Praos and Genesis, pinned, and the reduction placed against them.** H.2's argument
+  attributes Praos's grinding term to the pinned reading of §7.1 and does not quote it, and says
+  nothing of Genesis, whose fork choice Cryptarchia's Bootstrap rule is (`MAPPING.md`,
+  `maxvalid-bg`). The ePrint server answers 403 to this tool; the archive's raw snapshots do not:
+  Praos (2017/573) at `web.archive.org/web/20250102045847id_/`, Genesis (2018/378) at
+  `20241228192149id_/`, Wesolowski (2018/623) at `20241227125535id_/`, each fetched with `curl`
+  into a directory of its own and read page by page.
+  1. *Pin.* For each paper the revision date on its first page and the SHA-1 of the file, in
+     §7.1 beside the existing entries; where the snapshot is an older revision than the one §7.1
+     names, the difference is recorded and the newer one asked of the owner.
+  2. *Quote.* Praos: the statement of Theorem 11 and of Corollary 3, with the grinding term as
+     written and the definition of the quantity it depends on; the epoch-randomness rule, which
+     slots' VRF outputs the nonce hashes; any sentence that bounds the adversary's influence on the
+     nonce. Genesis: the main theorem for `maxvalid-bg`, the dynamic-availability assumptions it
+     adds, where the nonce enters its proof, and its grinding term. Each quote verbatim into
+     `DESIGNS.md` H.2 under its source.
+  3. *Place the lemma.* State H.2's reduction in the papers' terms: candidates formed at times
+     `τ_i` with outputs at `τ_i + T_a`; a choice among candidates without outputs is blind and the
+     schedule is a fresh sample; a choice among evaluated ones costs the union bound over their
+     expected number, `E[G_min]` bounded by H.2. Then check, against the quotes, that each
+     theorem's bad event is a property of the leader schedule given a uniformly random nonce, that
+     the nonce enters only there, and that the stake snapshot is fixed before any candidate exists.
+     Record which theorem covers which of Cryptarchia's two rules: the Online rule is
+     `maxvalid-mc` within `k`, the Bootstrap rule `maxvalid-bg`.
+  4. *What remains.* The formal write-up; the lifetime sum over epochs as Praos takes it; the
+     bad events' independence across epochs, which Praos's proof handles and ours inherits.
+  Exit: `DESIGNS.md` H.2 gains the quotes and the lemma, §7.1 gains Genesis, the report's §13
+  names the rule each theorem covers. If H11 fails, the obstruction is named as what a proof
+  needs, and the factor stays a result within B6's model.
+- **I.2 — Class-group sequentiality, pinned and sized.** The delay's security is an assumption,
+  not a theorem; the design has to state it, size its parameters from published estimates and
+  say what breaks if it fails.
+  1. *The assumption.* Wesolowski's statement of sequential squaring in a group of unknown order,
+     and the adaptive-root assumption his proof needs, from 2018/623 and the Boneh, Bünz and
+     Fisch survey already pinned (2018/712), verbatim.
+  2. *The class number.* The best published algorithms for the class number of an imaginary
+     quadratic order and their cost at 1024 and 2048 bits: Hafner and McCurley, Buchmann and
+     Hamdy's parameter table, Biasse and Jacobson's improvements; Chia's rationale for 1024 bits
+     and its discriminant derived from each challenge; the small-order elements that a discriminant
+     must avoid and how Chia avoids them. ePrint through the archive, Chia's pages directly, as
+     H.2 read them.
+  3. *The design's size.* The discriminant derived from the pre-nonce each epoch, so that no
+     class group is known before the cut-off; 1024 bits if the estimates hold H12, 2048 if not,
+     with the squaring time and the honest hours of H.2's table at each; and the failure mode: a
+     class number computed for the epoch's discriminant evaluates the delay at once, which returns
+     B7's estimate and nothing worse than today's nonce.
+  Exit: H.2's sources table gains the rows, its design paragraph the discriminant and its size,
+  the report's §13 one sentence. If H12 fails, the design names the fallback and its cost.
+- **I.3 — A partition mode in the engine.** B5's rule 8 and H.1's detector read partitions in
+  closed form only; the engine cannot split the network. The closed form takes each honest side
+  to grow at the measured growth `g` for its share; a side that is a smaller network with a lower
+  block rate may grow faster per win, which is what the engine can show.
+  1. *The mode.* `tsi_sim` gains a partition: a share of the honest nodes, chosen by stake as the
+     coalition is, cut from the rest for a span of slots. A block made on one side reaches the
+     other no earlier than the span's end plus the path latency; blocks made before the span are
+     unaffected. A Blend copy whose relay lies across the cut is lost and the sender's fallback
+     applies, through G6's copies and fallback. The windowed fork choice assumes every old block
+     has reached every node, which a partition breaks, so a partition forces the full scan as the
+     selfish strategy does. The fields enter the key only when set.
+  2. *The measurement* (`scripts/b5_partition_engine.py`, 64 runs a cell): for `α` of 0.25,
+     0.30 and a third, an honest side of 0.30, 0.35 or 0.40 of all stake against the rest, a
+     36-hour window that the partition spans, the coalition withholding: each side's density over
+     the window as rule 8 counts it, blocks and referenced uncles; the share of windows in which
+     the coalition's fork is strictly denser than the smaller side, against `partition.csv`; ties
+     between even honest sides without a coalition, against `ties.csv`; each side's own density
+     against the `(1 − α)` threshold of H.1's detector; and at rejoin, which chain the nodes of
+     each side follow under the engine's longest-chain choice, with the note that the engine has
+     no `k` cap.
+  3. *Gates.* Without a partition every key and every tree is unchanged; with a partition no
+     block crosses before the span ends; a copy through a relay across the cut is lost; two even
+     honest sides without a coalition tie at the closed form's rate; the beaten shares lie within
+     three points of the closed form or the difference is traced to the sides' growth, which the
+     run records.
+  Exit: `SETTLEMENT.md` B5 gains the engine's columns beside the closed form, the report's §6
+  reads them, the engine gains the mode and its tests. If H13 fails, rule 8's thresholds are
+  re-read from the engine's growth per side and H.1's seats recomputed at it.
 
 ## 5. Measurement protocol
 
