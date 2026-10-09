@@ -509,6 +509,28 @@ def g6() -> None:
     print(md(pd.DataFrame(rows)))
 
 
+def g7() -> None:
+    t = pd.read_csv(RUNS / "g7" / "inference.csv")
+    print(md(pd.DataFrame({
+        "α": t.alpha.map(lambda v: f"{v:.2f}"), "raise": t.raise_factor.map(lambda v: f"{v:.2f}"),
+        "Δ = 10 s reads as": t.delay_eq_s.map(lambda v: f"{v:.1f} s"),
+        "B2's depth at 1e-9": [f"{int(b):,} → {int(d):,} ({h:.1f} h)" for b, d, h in zip(t.worst_depth_base, t.worst_depth, t.worst_hours)],
+        "orphans, growth / win": [f"{o:.3f}, {b:.3f} → {g:.3f}" for o, b, g in zip(t.orphan, t.growth_base, t.growth)],
+        "B5's closed form at 1e-9": [f"{int(b):,} → {int(d):,} ({h:.1f} h)" for b, d, h in zip(t.random_depth_base, t.random_depth, t.random_hours)],
+        "k = 2160 on the honest chain": t.k_hours.map(lambda v: f"{v:.1f} h"),
+        "extra wins an epoch": t.extra_wins.map(lambda v: f"{v:,.0f}"),
+        "selection, Brownian / played": [f"{b:.0f} / {m:.0f} ({s:.2%} of its wins)" for b, m, s in zip(t.excess_brownian, t.excess_mc, t.excess_share)]})))
+    print()
+    c = pd.read_csv(RUNS / "g7" / "clamp.csv")
+    rows = []
+    for _, x in c.iterrows():
+        row = {"cap a period": f"{x.cap:.0%}"}
+        for a in (0.25, 0.3, 0.3333):
+            row[f"α = {a:.2f}"] = f"{int(x[f'periods_{a}'])} periods ({x[f'days_{a}']:.0f} d)"
+        rows.append(row)
+    print(md(pd.DataFrame(rows)))
+
+
 def h1() -> None:
     s = pd.read_csv(RUNS / "h1" / "seats.csv")
     rows = []
@@ -863,4 +885,4 @@ if __name__ == "__main__":
     {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b4": b4, "b5": b5,
      "b5rec": b5rec, "b5sweep": b5sweep, "b5part": b5part, "b6": b6, "b7": b7, "d0": d0, "d1b": d1b, "d3": d3, "d5": d5, "d6": d6,
      "e2": e2, "e5": e5, "e5balance": e5balance, "g1": g1, "g3": g3, "g4": g4, "g6": g6,
-     "h1": h1, "h2": h2, "h3": h3}[sys.argv[1]]()
+     "g7": g7, "h1": h1, "h2": h2, "h3": h3}[sys.argv[1]]()

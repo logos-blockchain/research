@@ -35,7 +35,7 @@ Executed from 2026-10-05 to 2026-10-09. Results live in six notes beside this pl
 - `SETTLEMENT.md`: B1–B7.
 - `CERTIFIED.md`: D0–D6.
 - `DAG.md`: E0–E6.
-- `FURTHER.md`: G1–G6.
+- `FURTHER.md`: G1–G7.
 - `DESIGNS.md`: H.1–H.3.
 
 Phase by phase:
@@ -69,6 +69,7 @@ Phase by phase:
 | G4 settlement on a chain nobody withholds from | done: B4's elapsed-time rule already settles it in 39 / 53 minutes against 30 % / a third, but its rates hold only while the inferred stake is the true stake; with the rates after a total-stake adjustment and the depth rule as a cap, 66 / 106 minutes, and the depth rule's depth on a chain withheld from; a rule that reads density directly is dominated |
 | G5 anchoring | analysis only |
 | G6 adversarial relays | done: the engine's `blend_adversary_relays`, `blend_adversary_action` and `blend_copies`; holding every honest block for the longest mixing delay raises the honest orphan share by two points and the depth at `1e-9` by 7 %, within the report's growth convention; dropping sends half of the honest blocks through the sender's fallback and raises the depth against a third from 257 to 352 with the specification's two copies, outside it |
+| G7 the inference as a lever | done: a period of withholding raises every threshold by `1/(1 − α)`, and B2's depth at 10 s becomes its depth at `10/(1 − α)` s, 2,426 blocks against a third and 1,248 against 30 %, so no `k` the study considered holds its share after it; the random-delay depth against a third grows from 276 to 404 blocks while the time falls; a cap on the correction of 5 % a period prices the deflation at 36 days |
 | H.1 recovery in a partition | done (`DESIGNS.md`): the impossibility at a third; recovery attestations, a one-off vote round, with the seats per share; anchoring placed; rule 8 as a detector |
 | H.2 the delay function | done: the rule in Praos's model; a candidate of the last sub-window exists from the sub-window's start, so the delay must span it, with the contribution bound to the parent block; the factor against the margin, the honest cost against the speed ratio and `k`, the design; `E[G_min]` bounded from B6's walk, within four points of B7's sample at `k ≥ 1620`; the literature pinned |
 | H.3 time under the worst case | done: B4's rule beaten by the delay-scheduling attack; the counting bound, sound and empty on a slow chain; the observed counting rule, which counts the forks the client receives, 374 blocks against a third on a chain the coalition withholds from and B2's depth under a balancing coalition; a time-conditioned B2 bound not derived |
@@ -661,6 +662,8 @@ Ways to shorten finality that phases B–E do not cover, each read against 30 % 
 - **G5.** Anchoring a checkpoint to another chain: analysis only.
 - **G6.** Blend's delays under adversarial relays: the engine with the coalition's relays holding
   every honest block for the longest mixing delay, and B3's race on its timelines.
+- **G7.** The total-stake inference as a lever: the depths after a period of withholding under
+  both delay models, the gain from choosing the raise level, and a cap on the correction.
 
 Exit: each route with its gain, its cost and what is open, in `FURTHER.md` and the report.
 

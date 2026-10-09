@@ -60,7 +60,8 @@ B6's walk, covers them. Each cell gives the factor and the depth:
   case at 10 s, 1,511–1,521 blocks at `k = 2160` and 1,513–1,556 at `k = 1080`, against B7's
   estimated 1,859–1,952; 23.0–23.7 hours on the worst-case clock instead of 28.3–29.7.
 - **`k = 1620` holds a third and `k = 1080` holds 30 %** with margins of 6 % and 17 %, where B7's
-  estimate leaves `k = 1620` short and `k = 1080` at the edge. These are bounds within B6's model:
+  estimate leaves `k = 1620` short and `k = 1080` at the edge, while the inference is not deflated
+  (G7). These are bounds within B6's model:
   `G_min` is counted against an enumeration of every fork and every subset of withheld wins, and
   the lead `Z` is B6's walk.
 - **The prediction channel is unchanged.** A coalition that holds every minimum of two windows
@@ -188,7 +189,8 @@ coalition blocks, scored at every target: the mean blocks on top of the target, 
   (`cryptarchia-total-stake-inference.md`, `PERIOD = 6⌊k/f⌋`, `beta = 1`). A coalition that
   withholds for a whole period, 3 days at `k = 2160`, lowers the inferred stake by its share, and
   every rate rises by `1/(1 − α)`: the honest stake alone then produces at `g·λ`, and the coalition
-  wins at `α·λ/(1 − α)`. The catch-up ratio `a/h` is unchanged, so the depth rule is unmoved. The
+  wins at `α·λ/(1 − α)`. The catch-up ratio `a/h` is unchanged; the depth rule moves all the same,
+  since the delay is fixed in slots and the orphan share rises with the rate (G7). The
   elapsed-time rule with B4's rates would then take the coalition's wins as Poisson at `α·λ` where
   they come at `α·λ/(1 − α)`, and its chance is understated. The inferred stake's history does not
   tell the client which world it is in: a coalition that withheld long ago looks like stake that
@@ -283,6 +285,58 @@ the closed form at `1e-9` is B5's at that growth, on the clock of the honest cha
   0.121 and the depth at `1e-9` against a third from 257 to 240. The report keeps the one-copy
   growth, which understates honest growth and so overstates the depths under honest relays.
 
+## G7 — the total-stake inference as a lever
+
+The inference sets the next epoch's lottery thresholds from the occupied slots of the previous
+period, `6⌊k/f⌋` slots, with a full correction (`cryptarchia-total-stake-inference.md`,
+`beta = 1`). A coalition that withholds every block it wins for a period lowers the inferred stake
+by its share and raises every threshold by `1/(1 − α)` for the next epoch (G4). The honest stake
+alone then occupies slots at `f`, the coalition at `1 − (1 − f)^(α/(1−α))`, and the deflation
+holds while it withholds, since the honest stake alone fills the slots the inference expects. G4
+found the catch-up ratio unchanged and called the depth rule unmoved. Two things move. Under a
+worst case of `Δ` the delay is fixed in slots while the blocks come `1/(1 − α)` times as fast, so
+`Δ = 10` s reads as `10/(1 − α)` s at the old rates and the proven depth is B2's there. Under
+random delay the orphan share rises with the rate (C1), and the private race's closed form reads
+the growth at the raised rate. The coalition may withhold fewer blocks for a smaller raise, and it
+knows its own wins at every raise level before it chooses, while the honest nodes' stay unknown to
+it: the most it gains is the largest excess of its own extra wins over their mean along the
+levels, about `sqrt(2M/π)` for `M` extra wins at the full raise (`finality_sim.inference`). Per
+share, at `Δ = 10` s and on the specification's Blend, with the raised rate's growth from the
+engine at C1's settings over 8 runs (`scripts/g7_inference.py`):
+
+| α | raise | Δ = 10 s reads as | B2's depth at 1e-9 | orphans, growth / win | B5's closed form at 1e-9 | k = 2160 on the honest chain | extra wins an epoch | selection, Brownian / played |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.25 | 1.33 | 13.3 s | 474 → 589 (6.5 h) | 0.237, 0.845 → 0.786 | 88 → 103 (0.8 h) | 16.9 h | 1,813 | 34 / 34 (0.46% of its wins) |
+| 0.30 | 1.43 | 14.3 s | 892 → 1,248 (13.9 h) | 0.247, 0.845 → 0.772 | 165 → 219 (1.6 h) | 16.0 h | 2,790 | 42 / 42 (0.45% of its wins) |
+| 0.33 | 1.50 | 15.0 s | 1,510 → 2,426 (27.0 h) | 0.249, 0.845 → 0.772 | 276 → 404 (2.9 h) | 15.3 h | 3,610 | 48 / 48 (0.44% of its wins) |
+
+- **Under the worst case the proven depth grows by 24–61 % in blocks and by 2–17 % in time.**
+  Against a third B2's depth at 10 s becomes its depth at 15 s, 2,426 blocks: `k = 2160` holds a
+  third only while the inference is not deflated. Against 30 % it becomes 1,248, above
+  `k = 1080`. The time grows less, 23.0 to 27.0 hours against a third, since the blocks come
+  faster.
+- **Under random delay the depth grows by 17–46 % in blocks,** 276 to 404 against a third, and
+  the time falls, 4.1 to 2.9 hours, for the same reason; `k = 2160` itself takes 15–17 hours on
+  the honest chain instead of 30–33.
+- **Choosing the raise level is worth under half a percent of the coalition's wins,** 48 wins an
+  epoch against a third, and under the delay of `DESIGNS.md` H.2 the choice is blind besides.
+- **The price is one period's rewards,** about 4,400 blocks against a third at `k = 2160`, and
+  nothing more while it attacks, since a private attack withholds anyway.
+
+A cap on the correction a period raises the price. The periods and days a coalition needs to lower
+the inferred stake by its share at `k = 2160`:
+
+| cap a period | α = 0.25 | α = 0.30 | α = 0.33 |
+| --- | --- | --- | --- |
+| 5% | 6 periods (27 d) | 7 periods (32 d) | 8 periods (36 d) |
+| 10% | 3 periods (14 d) | 4 periods (18 d) | 4 periods (18 d) |
+| 20% | 2 periods (9 d) | 2 periods (9 d) | 2 periods (9 d) |
+
+- **A cap of 5 % a period prices the deflation at 36 days of withholding against a third.** The
+  cap slows the inference's response to stake that leaves by the same factor. A client that reads
+  the inferred stake's fall over the last period can read the worst-case table at `Δ` divided by
+  what remains, whether the stake left or was withheld; `k` is a constant and cannot.
+
 ## What the further routes change
 
 - **G1 removes grinding within B6's model:** with a delay that spans the last sub-window and the
@@ -304,3 +358,8 @@ the closed form at `1e-9` is B5's at that growth, on the clock of the honest cha
   half of the honest blocks through the sender's fallback, 16 rounds late and in the clear, and
   raises the depth at `1e-9` against a third from 257 to 352 blocks with the specification's two
   copies.
+- **G7 finds the inference a lever on every worst-case figure:** a period of withholding raises
+  every threshold by `1/(1 − α)`, and the proven depth at `Δ = 10` s becomes B2's at `10/(1 − α)` s,
+  2,426 blocks against a third and 1,248 against 30 %, so `k = 2160` holds a third, `k = 1620` a
+  third and `k = 1080` 30 % only while the inference is not deflated; a cap on the correction of
+  5 % a period prices the deflation at 36 days.
