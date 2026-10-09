@@ -45,7 +45,7 @@ worst-case figures are proven against every attack.
 
 | route | what changes | time until final, 30 % / a third | what it costs | verdict |
 | --- | --- | --- | --- | --- |
-| a nonce that resists grinding ([§5](#s5)) | the epoch nonce taken from the smallest contributions of 25 sub-windows | removes most of the depth grinding adds: with today's nonce, against an adversary that evaluates `2^64` nonces an epoch, the depths grow 2.7 to 4.5 times; passed through a sequential delay that spans a sub-window ([§12](#s12), G1; [§13](#s13), H.2) it leaves the choices at the cut-off alone, a factor of 1.06, as a bound within the model | a hard fork; a window before the cut-off of at least 54 hours (`6⌊k/f⌋` at `k = 1080`), the shortest measured at which the choices at the cut-off stay near one; without the delay, notes frozen one epoch earlier; with it, the contribution bound to the parent block and a sequential computation of about a day once an epoch | recommended, with the delay; the others depend on it |
+| a nonce that resists grinding ([§5](#s5)) | the epoch nonce taken from the smallest contributions of 25 sub-windows | removes most of the depth grinding adds: with today's nonce, against an adversary that evaluates `2^64` nonces an epoch, the depths grow 2.7 to 4.5 times; passed through a sequential delay that spans a sub-window ([§12](#s12), G1; [§13](#s13), H.2) it leaves the choices at the cut-off alone, a factor of at most 1.08, as a bound within the model | a hard fork; a window before the cut-off of at least 54 hours (`6⌊k/f⌋` at `k = 1080`), the shortest measured at which the choices at the cut-off stay near one; without the delay, notes frozen one epoch earlier; with it, the contribution bound to the parent block and a sequential computation of about a day once an epoch | recommended, with the delay; the others depend on it |
 | settled level ([§4](#s4)) | a client depth; nothing in consensus | random delay: 2.6 / 4.8–4.9 h, and 1.5 / 2.4 h reading elapsed time (measured with a nonce that is not ground); guaranteed at 10 s: 15.5–15.9 / 28.3–29.5 h | nothing | recommended |
 | smaller `k` ([§6](#s6)) | `k`, and a recovery trigger | `k = 1080` against 30 %, guaranteed at 10 s: 15.8 h, at the edge (an estimated 1,060–1,093 blocks against 1,080); against a third no `k` below 2160; with the delayed nonce of [§12](#s12), `k = 1620` holds a third and `k = 1080` holds 30 % as bounds | a recovery window of 36 hours; a look-back horizon of months; a partition deeper than `k` needs a one-off vote round below a third ([§13](#s13)) and operators at a third | not recommended until the nonce's factor is bounded and the trigger is partition-safe; both have designs in [§12](#s12) and [§13](#s13) |
 | faster blocks ([§7](#s7)) | `f` | random delay, against a third: 160 minutes at 30 s blocks, 144 at 15 s, by the race's fit | ×2.0 the blocks at 15 s | not recommended: little gain from 30 % |
@@ -92,9 +92,9 @@ Specification candidates follow from them:
 Five further routes are read in [§12](#s12). One of them, the nonce of route 1 passed through a
 sequential delay that spans the last sub-window, 4.5 hours on the adversary's hardware at
 `k = 2160`, with the contribution bound to the parent block, leaves the adversary the choices at
-the cut-off alone: the depths return to within eight blocks of a nonce that is not ground, a bound
-within the model, and `k = 1620` holds a third and `k = 1080` holds 30 %. Honest nodes compute the
-delay in about a day.
+the cut-off alone: the depths return to within eleven blocks of a nonce that is not ground, a
+bound within the model, and `k = 1620` holds a third and `k = 1080` holds 30 %. Honest nodes
+compute the delay in about a day.
 
 ---
 
@@ -725,7 +725,7 @@ against 30 % and a third at `ε = 1e-9`:
 
 | route | what changes | what it buys | what it costs |
 | --- | --- | --- | --- |
-| a delayed nonce (G1) | the nonce of [§3.1](#s31) passes through a sequential delay that spans the last sub-window, 4.5 hours on the adversary's hardware at `k = 2160`, with the contribution bound to the parent block | the adversary decides blind before the cut-off, and the choices it can still evaluate at the cut-off leave a factor per nonce of 1.00–1.01 with a margin of ten minutes, and `E[G_min]`, 1.06, for forks across the sub-window's start, a bound within the model: against a third at 10 s the depth is the unground one within eight blocks, 1,511–1,518 at `k = 2160` (23.0–23.3 h) instead of an estimated 1,859–1,939; `k = 1620` holds a third and `k = 1080` holds 30 % | a sequential computation of about a day once an epoch, 22 hours at a speed ratio of 5 and `k = 2160`, by whoever first needs the nonce, with a proof in the block that uses it |
+| a delayed nonce (G1) | the nonce of [§3.1](#s31) passes through a sequential delay that spans the last sub-window, 4.5 hours on the adversary's hardware at `k = 2160`, with the contribution bound to the parent block | the adversary decides blind before the cut-off, and the choices it can still evaluate at the cut-off leave a factor per nonce of 1.00–1.01 with a margin of ten minutes, and at most 1.08 for forks across the sub-window's start, bounded from B6's walk: against a third at 10 s the depth is the unground one within eleven blocks, 1,511–1,521 at `k = 2160` (23.0–23.1 h) instead of an estimated 1,859–1,939; `k = 1620` holds a third and `k = 1080` holds 30 % | a sequential computation of about a day once an epoch, 22 hours at a speed ratio of 5 and `k = 2160`, by whoever first needs the nonce, with a proof in the block that uses it |
 | the epoch apart from `k` (G2) | the epoch keeps its length when `k` shrinks | at `k = 1080` the nonce's sub-windows, the recovery window (72 h) and the horizon stay those of `k = 2160` | one more parameter; a stake snapshot that stays 7.5 days old |
 | Blend's delay (G3) | the Blend setting | from the specification's setting (`Δ = 11` s, its p99 rounded up) to testnet's (2 s), the worst-case depth against a third falls from 1,649 to 812 blocks (25.5 to 10.5 h) and the random-delay depth from 276 to 172 (4.1 to 2.2 h); one hop of three rounds (4 s) gives 936 (12.7 h); with the nonce under G1's delay each depth grows by at most 1 % | anonymity, in the Blend report's terms: one hop exposes the whole path of one message in three to an adversary holding a third of the nodes, three hops one in 27; one round of mixing blends a third of the broadcasts three rounds do |
 | settlement on a chain nobody withholds from (G4) | a client rule; nothing in consensus | the elapsed-time rule of [§3.2](#s32) settles such a chain in 39 / 53 minutes against 30 % / a third on the specification's Blend, against the depth rule's 98 / 163; with the rates the total-stake inference leaves after a period of withholding, and the depth rule as a cap, 66 / 106 minutes | the rule's rates must follow the inference: after a period of withholding every rate rises by `1/(1 − α)`, and B4's rule then understates the adversary; on a chain the adversary withholds from the safe rule is the depth rule; random delay only |
@@ -743,8 +743,8 @@ epoch nonce and the notes frozen one epoch earlier. What remains is the choices 
 the epochs whose lead outlasts the margin beyond the sub-window: a lead lasts about one block
 interval per block of lead, and against a third under the worst case it lasts 10 minutes or more in
 6 % of epochs and 20 minutes or more in 0.6 %, a factor per nonce of 1.00–1.01 at a margin of 10
-minutes; forks across the sub-window's start add at most `E[G_min]`, 1.06. The depths are
-[§3.1](#s31)'s "not ground" row within eight blocks. Honest nodes compute `R·(W + margin)` for a
+minutes; forks across the sub-window's start add at most 1.08, a bound from B6's walk. The depths
+are [§3.1](#s31)'s "not ground" row within eleven blocks. Honest nodes compute `R·(W + margin)` for a
 speed ratio `R`: 22 hours at `R = 5` and `k = 2160`, 11 at `k = 1080`, within the `4⌊k/f⌋` slots
 before the nonce is first used up to `R = 16`. Phalanx's 82 independent pieces do not serve: one
 piece takes 53 s on the adversary's hardware.
@@ -795,7 +795,8 @@ probability by their expected number. A candidate nonce of the last sub-window c
 from the sub-window's start, so a delay of ten minutes blinds nothing and leaves B7's estimate;
 the design that works binds the contribution to the parent block and spans the sub-window,
 `T_a = W + margin`, 4.5 hours at `k = 2160` with a margin of ten minutes, which leaves a factor
-per nonce of 1.00–1.01 from the sub-window and `E[G_min]`, 1.06, from forks across its start.
+per nonce of 1.00–1.01 from the sub-window and at most 1.08 from forks across its start, a bound
+from B6's walk.
 Honest nodes pay `R·T_a` for a speed ratio `R`. The documented ratio is 3 to 5: Chia's class-group
 ASIC squares in about 1 µs against 3.85 µs on the fastest CPU and 4.7 µs on a commodity one, and
 the 10 that CIP-0161 assumes is attributed to Ethereum's `A_max`, which measured an attacker
@@ -806,8 +807,7 @@ the cut-off, passed through sequential squarings in a class group of a 1,024-bit
 output hashed into the nonce, with a Wesolowski proof of one group element carried by the first
 block of the new epoch and verified in milliseconds in place of the computation. MinRoot and the
 other field-root candidates are broken; squaring in a group of unknown order is not. A proof still
-needs a bound on `G_min`, Praos's argument under Genesis's fork choice, and the sequentiality of
-the class group.
+needs Praos's argument under Genesis's fork choice and the sequentiality of the class group.
 
 **Time under the worst case (H.3).** B3's delay-scheduling attack beats B4's elapsed-time rule at
 worst-case rates whenever the rule accepts: 51–58 % of accepted targets at `ε = 1e-3`. An

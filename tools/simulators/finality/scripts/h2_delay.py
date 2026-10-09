@@ -12,6 +12,10 @@ factor.csv: at margins of 1, 2, 3, 5, 10 and 20 minutes, at k = 2160 for B6's tw
 span.csv: per k, the sub-windows m of B7, the sub-window W, T_a at margins of 10 and 20 minutes, the
 honest computation R * T_a for speed ratios R of 3, 5, 10 and 15, the 4 floor(k/f) slots between the
 cut-off and the first slot that uses the nonce, and the largest R that fits them.
+gmin.csv: per model, share and k, the choices at the cut-off E[G_min]: B7's sampled mean; the mean
+of the exact expectation given the slots (finality_sim.fork_bound.conditional_mean, 10,000 windows);
+the bound from B6's walk alone (fork_bound.gmin_bound, at the split n_lo that makes it smallest);
+E[D] and E[A] of the deepest feasible fork; and the depth at 1e-9 with two nonces at the bound.
 """
 
 from __future__ import annotations
@@ -25,7 +29,9 @@ from joblib import Parallel, delayed
 
 from b2_settlement import F
 from b7_nonce import depth_reader, models
+from finality_sim.fork_bound import conditional_mean, gmin_bound
 from finality_sim.further import delayed_factor
+from finality_sim.nonce import _rates
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 OUT = HERE / "runs" / "h2"
@@ -80,6 +86,30 @@ def main() -> None:
     sp.to_csv(OUT / "span.csv", index=False)
     print()
     print(sp.to_string(index=False, float_format=lambda v: f"{v:.3g}"))
+
+    def cell(n, a, k):
+        kw = ms[n]
+        m_k = int(b7[b7.k == k].sub_windows.iloc[0])
+        window = 6 * math.floor(k / F)
+        sub = window // m_k
+        _, _, _, rate = _rates(F, a, kw.get("growth"), kw.get("delta"))
+        best = min((gmin_bound(F, a, sub, int(frac * sub * rate), **kw)
+                    for frac in (0.6, 0.65, 0.7, 0.75, 0.8, 0.85)), key=lambda b: b["bound"])
+        cond, _ = conditional_mean(F, a, window, 10_000, 211 + k + int(a * 1000), sub_windows=m_k,
+                                   **kw)
+        x = b7[(b7.model == n) & (b7.alpha == round(a, 4)) & (b7.k == k)].iloc[0]
+        at = depth_reader(kw, a, log_ub)
+        return dict(model=n, alpha=round(a, 4), k=k, sub_windows=m_k, sampled=float(x.mean_g),
+                    conditional=float(cond.mean()), conditional_sem=float(cond.std() / math.sqrt(cond.size)),
+                    bound=best["bound"], main=best["main"], tails=best["tail_d"] + best["tail_n"] + best["cross"],
+                    e_d=best["e_d"], e_a=best["e_a"], depth_two=at(math.log(EPS / best["bound"] ** 2)),
+                    depth_two_sampled=at(math.log(EPS / float(x.mean_g) ** 2)))
+    cells = Parallel(n_jobs=-2)(delayed(cell)(n, a, k) for n in ms for a in ALPHAS for k in KS)
+    gm = pd.DataFrame(cells)
+    gm.to_csv(OUT / "gmin.csv", index=False)
+    print()
+    with pd.option_context("display.width", 220):
+        print(gm.to_string(index=False, float_format=lambda v: f"{v:.4g}"))
 
 
 if __name__ == "__main__":

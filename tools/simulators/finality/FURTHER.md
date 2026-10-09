@@ -37,8 +37,8 @@ What remains under a margin of `T` is the choices at the cut-off in the windows 
 outlasts `T`: the factor per nonce is `E[1 + (G_min − 1)·1{the lead lasts T}]`
 (`finality_sim.further.delayed_factor`, 20,000 windows a point), and the depth at `1e-9` with two
 nonces is read as B7 reads its factors. Candidates of a fork that reaches into the previous
-sub-window are formed before `W` and count in full; `E[G_min]` (B7) bounds them. Each cell gives
-the factor and the depth:
+sub-window are formed before `W` and count in full; `E[G_min]`, which `DESIGNS.md` H.2 bounds from
+B6's walk, covers them. Each cell gives the factor and the depth:
 
 | delay | α | k | not ground | B7's estimate | T = 0 min | T = 5 min | T = 10 min | T = 20 min | T = 30 min |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -56,9 +56,9 @@ the factor and the depth:
 | worst, 10 s | 0.33 | 1080 | 1,510 | 1,873–1,952 | 1.159, 1,531 | 1.048, 1,517 | 1.025, 1,513 | 1.003, 1,510 | 1.000, 1,510 |
 
 - **With a margin of 10 minutes the factor per nonce is 1.00–1.03 and the depth is the unground
-  one within three blocks,** eight with `E[G_min]`: against a third under the worst case at 10 s,
-  1,511–1,518 blocks at `k = 2160` and 1,513–1,532 at `k = 1080`, against B7's estimated
-  1,859–1,952; 23.0–23.3 hours on the worst-case clock instead of 28.3–29.7.
+  one within three blocks,** eleven with the bound on `E[G_min]`: against a third under the worst
+  case at 10 s, 1,511–1,521 blocks at `k = 2160` and 1,513–1,556 at `k = 1080`, against B7's
+  estimated 1,859–1,952; 23.0–23.7 hours on the worst-case clock instead of 28.3–29.7.
 - **`k = 1620` holds a third and `k = 1080` holds 30 %** with margins of 6 % and 17 %, where B7's
   estimate leaves `k = 1620` short and `k = 1080` at the edge. These are bounds within B6's model:
   `G_min` is counted against an enumeration of every fork and every subset of withheld wins, and
@@ -287,7 +287,7 @@ the closed form at `1e-9` is B5's at that growth, on the clock of the honest cha
 
 - **G1 removes grinding within B6's model:** with a delay that spans the last sub-window and the
   contribution bound to the parent block, the depths are those of a nonce that is not ground within
-  eight blocks, a bound rather than B7's estimate, and `k = 1620` holds a third and `k = 1080`
+  eleven blocks, a bound rather than B7's estimate, and `k = 1620` holds a third and `k = 1080`
   holds 30 %, at the cost of a sequential computation of about a day per epoch.
 - **G2 keeps the nonce's window and the recovery window long when `k` shrinks,** at the cost of a
   parameter.

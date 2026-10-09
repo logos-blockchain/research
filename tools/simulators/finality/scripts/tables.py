@@ -554,6 +554,15 @@ def h2() -> None:
         row["largest R"] = f"{x.largest_ratio:.1f}"
         rows.append(row)
     print(md(pd.DataFrame(rows)))
+    print()
+    gm = pd.read_csv(RUNS / "h2" / "gmin.csv")
+    print(md(pd.DataFrame({
+        "delay": gm.model, "α": gm.alpha.map(lambda v: f"{v:.2f}"), "k": gm.k.map(lambda v: f"{v:,}"),
+        "E[G_min], sampled": gm.sampled.map(lambda v: f"{v:.3f}"),
+        "given the slots": [f"{c:.3f} ± {s:.3f}" for c, s in zip(gm.conditional, gm.conditional_sem)],
+        "bound": gm.bound.map(lambda v: f"{v:.3f}"), "E[D]": gm.e_d.map(lambda v: f"{v:.1f}"),
+        "E[A]": gm.e_a.map(lambda v: f"{v:.1f}"),
+        "depth with two nonces, sampled → bound": [f"{int(s):,} → {int(b):,}" for s, b in zip(gm.depth_two_sampled, gm.depth_two)]})))
 
 
 def h3() -> None:

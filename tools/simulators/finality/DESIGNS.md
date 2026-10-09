@@ -90,8 +90,9 @@ pay `R·T_a` for a delay of `T_a` on the coalition's hardware and a speed ratio 
 **The rule in Praos's model.** Stake is fixed within an epoch, every honest block arrives within
 `Δ`, hashes are random oracles, and the delay is a random oracle whose answer takes `T_a` on the
 coalition's hardware and `R·T_a` on an honest node. A leader schedule drawn from a uniformly random
-nonce is bad with probability `ε_e`; Praos multiplies `ε_e` by the number of nonces the adversary
-can evaluate. For the rule, a **candidate** is a value of the pre-nonce
+nonce is bad with probability `ε_e`; Praos's bound for the full protocol carries a grinding term
+for the nonces the adversary can evaluate (Theorem 11; `PLAN.md`, §7.1). For the rule, a
+**candidate** is a value of the pre-nonce
 `hash(η_(e−1) ‖ μ_1 ‖ … ‖ μ_m)` the coalition can still bring about. A choice among candidates
 whose outputs it has not seen is blind: given its view the chosen output is uniform, and the
 schedule is bad with `ε_e`. A choice among candidates whose outputs it has seen multiplies `ε_e`
@@ -120,7 +121,7 @@ estimate. Two changes make the delay work:
   the sub-window's start, so its output arrives at or after the cut-off plus the margin, and the
   choice is still open only while the coalition's lead outlasts the margin. Candidates of a fork
   that reaches into the previous sub-window are formed earlier and count in full; they are within
-  `E[G_min]`, B7's "at the cut-off" rows, 277 and 1,518 against a third at `k = 2160`.
+  `E[G_min]`, which the walk bounds below: 278 and 1,521 against a third at `k = 2160`.
 
 What the margin leaves of the choices at the cut-off (G1's factor, `finality_sim.further.delayed_factor`,
 20,000 windows a point), and the depth at `1e-9` with two nonces, at `k = 2160`:
@@ -145,18 +146,57 @@ uses the nonce, with B7's `m`:
 | 1,080 | 26 | 2.08 h | 20 min | 2.41 h | 7.2 h | 12.1 h | 24.1 h | 36.1 h | 36 h | 14.9 |
 
 - **A margin of ten minutes leaves a factor of 1.00–1.01 from the choices formed in the last
-  sub-window,** and `E[G_min]`, 1.03–1.06 at `k = 2160`, bounds the rest: the depth is the unground
-  one within eight blocks.
+  sub-window,** and `E[G_min]`, at most 1.04–1.08 at `k = 2160`, bounds the rest: the depth is the
+  unground one within eleven blocks.
 - **The honest cost is about a day.** `T_a` is 4.5 hours at `k = 2160` and 2.2 at `k = 1080`;
   honest nodes compute 22 and 11 hours at a speed ratio of 5, 45 and 22 at 10, once an epoch, and
   the phase holds a ratio up to 16 at every `k`, since `W` and the phase both scale with `k`. A
   larger `m` shortens `W` and the cost at the price of forks crossing more sub-window boundaries
   (B7's condition 3).
 
-What a proof still needs: a bound on `G_min` rather than its sample mean under B6's enumeration of
-the feasible forks; Praos's argument carried to Genesis's fork choice, which Cryptarchia uses; the
-sequentiality of squaring in the class group; and the nonce as a hash of the delay's output, which
-is a group element.
+**A bound on `G_min` from the walk.** B7 samples `G_min`. Given the slots, the contributions are
+independent uniforms, so their expectation has a closed form: with `N` canonical blocks in the last
+sub-window, the deepest feasible fork dropping `D` of them and `A` coalition wins after its fork
+point, the kept minimum changes at the `j`-th dropped block with chance `1/(N − j)` and a win lies
+below the floor the deepest fork keeps with chance `1/(N − D + 1)`, so
+`E[G_min | slots] = 1 + Σ_{j<D} 1/(N − j) + A/(N − D + 1)` while the fork stays in the sub-window
+(`finality_sim.fork_bound`). B6's walk gives the law of `D` and `A` exactly: the walk falls by at
+most one per block, so the deepest feasible fork sits where the lead equals `1 − Z`, the next gap
+holds no win and the walk never rises again, and there `A = D + 1 − Z`. With at least `n_lo` blocks
+in the sub-window the kept ones number at least `n_lo − D`; the forks deeper than `n_lo`, the
+sub-windows with fewer than `n_lo` blocks and the forks that cross into the previous sub-window are
+bounded apart, the last through the coalition's wins in the sub-window, which must reach the blocks
+it empties. Per model, share and `k`: B7's sampled mean; the mean of the expectation given the
+slots over 10,000 windows; the bound at the `n_lo` that makes it smallest; `E[D]` and `E[A]`; and
+the depth at `1e-9` with two nonces at the sampled mean and at the bound:
+
+| delay | α | k | E[G_min], sampled | given the slots | bound | E[D] | E[A] | depth with two nonces, sampled → bound |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| random, specification | 0.30 | 2,160 | 1.030 | 1.030 ± 0.000 | 1.040 | 4.5 | 4.2 | 165 → 165 |
+| random, specification | 0.30 | 1,620 | 1.042 | 1.042 ± 0.001 | 1.061 | 4.5 | 4.2 | 165 → 166 |
+| random, specification | 0.30 | 1,080 | 1.066 | 1.065 ± 0.001 | 1.100 | 4.5 | 4.2 | 166 → 166 |
+| random, specification | 0.33 | 2,160 | 1.062 | 1.061 ± 0.001 | 1.081 | 8.4 | 7.8 | 277 → 278 |
+| random, specification | 0.33 | 1,620 | 1.087 | 1.086 ± 0.001 | 1.127 | 8.4 | 7.8 | 278 → 279 |
+| random, specification | 0.33 | 1,080 | 1.160 | 1.178 ± 0.026 | 1.462 | 8.4 | 7.8 | 280 → 287 |
+| worst, 10 s | 0.30 | 2,160 | 1.030 | 1.029 ± 0.000 | 1.040 | 4.5 | 4.2 | 894 → 895 |
+| worst, 10 s | 0.30 | 1,620 | 1.043 | 1.041 ± 0.001 | 1.059 | 4.5 | 4.2 | 895 → 897 |
+| worst, 10 s | 0.30 | 1,080 | 1.067 | 1.065 ± 0.001 | 1.097 | 4.5 | 4.2 | 897 → 900 |
+| worst, 10 s | 0.33 | 2,160 | 1.061 | 1.061 ± 0.001 | 1.079 | 8.3 | 7.8 | 1,518 → 1,521 |
+| worst, 10 s | 0.33 | 1,620 | 1.088 | 1.087 ± 0.001 | 1.123 | 8.3 | 7.8 | 1,522 → 1,527 |
+| worst, 10 s | 0.33 | 1,080 | 1.161 | 1.144 ± 0.005 | 1.363 | 8.3 | 7.8 | 1,532 → 1,556 |
+
+- **The bound lies within four points of the sampled mean at `k ≥ 1620`:** 1.04 and 1.08 against
+  30 % and a third at `k = 2160`, 1.06 and 1.12 at `k = 1620`, against means of 1.03, 1.06, 1.04
+  and 1.09. At `k = 1080` a sub-window holds about 140 blocks, forks cross it more often, and the
+  bound loosens to 1.10 against 30 % and 1.36–1.46 against a third.
+- **The depths move by at most five blocks at the cells the routes claim:** 1,521 against a third
+  at `k = 2160` under the worst case, 1,527 at `k = 1620`, which holds a third, and 900 against
+  30 % at `k = 1080`, which holds 30 %. Within B6's model the choices at the cut-off are bounded,
+  not estimated.
+
+What a proof still needs: Praos's argument carried to Genesis's fork choice, which Cryptarchia
+uses; the sequentiality of squaring in the class group; and the nonce as a hash of the delay's
+output, which is a group element.
 
 **The design.** The input is `hash(η_(e−1) ‖ μ_1 ‖ … ‖ μ_m)`, fixed at the cut-off; the output,
 after `R·T_a` of sequential squarings in a class group of an imaginary quadratic field, hashed, is
@@ -204,8 +244,9 @@ What the sources settle:
 H9 fails as stated: 100 honest minutes blind nothing, since the coalition forms the last
 sub-window's candidates from the sub-window's start. It holds for a delay that spans the
 sub-window, with the contribution bound to the parent block: a margin of ten minutes leaves a
-factor of 1.00–1.01 from the sub-window's candidates and `E[G_min]` from forks across its start,
-against any ratio up to 16, with verification in milliseconds rather than under one.
+factor of 1.00–1.01 from the sub-window's candidates and at most 1.08 from forks across its start,
+a bound from B6's walk, against any ratio up to 16, with verification in milliseconds rather than
+under one.
 
 
 ## H.3 — the time-reading rule under a worst case of `Δ`

@@ -958,7 +958,8 @@ Under the delay of `DESIGNS.md` H.2 the contribution bound to the parent block r
 conditions 1 and 2.
 
 `E[G_min]` with the sub-windows each `k` needs, from 100,000 windows a cell, each drawn slot by
-slot over its last 20,000 slots; the standard error is at most 0.3 % at `k ≥ 1080`:
+slot over its last 20,000 slots; the standard error is at most 0.3 % at `k ≥ 1080`, and
+`DESIGNS.md` H.2 bounds it from B6's walk:
 
 | delay | α | k = 2160, m = 25 | k = 1620, m = 26 | k = 1080, m = 26 | k = 432, m = 27 |
 | --- | --- | --- | --- | --- | --- |
