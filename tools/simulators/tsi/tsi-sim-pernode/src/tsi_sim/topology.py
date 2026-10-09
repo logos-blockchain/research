@@ -141,6 +141,7 @@ def build_path_latency(config: SimConfig, rng: np.random.Generator) -> np.ndarra
 def _blend_arrival_column(
     path_latency: np.ndarray, producer: int, slot: int, config: SimConfig,
     rng: np.random.Generator, adversary_mask: np.ndarray | None = None,
+    partition_mask: np.ndarray | None = None,
 ) -> np.ndarray:
     """Sub-slot arrival of a block via the Blend mix cascade (``topology == "blend"``).
 
@@ -153,7 +154,8 @@ def _blend_arrival_column(
     relay in ``adversary_mask`` holds the block for the longest delay, ``blend_delay_max``, or
     with ``blend_adversary_action == "drop"`` drops it. ``config.blend_copies`` copies go through
     independent cascades and the block arrives with the first; when every copy is dropped the
-    producer gossips it directly ``1 + config.blend_fallback_slots`` after the slot.
+    producer gossips it directly ``1 + config.blend_fallback_slots`` after the slot. During a
+    partition a copy whose relay lies across the cut from the producer is lost.
     """
     n = path_latency.shape[0]
     hops = int(config.blend_hops)
@@ -162,6 +164,9 @@ def _blend_arrival_column(
     rounds = config.blend_delay_dist == "rounds"
     hostile = config.blend_adversary_relays and adversary_mask is not None
     drop = hostile and config.blend_adversary_action == "drop"
+    cut = (partition_mask is not None
+           and config.partition_start <= slot < config.partition_start + config.partition_slots)
+    side = bool(partition_mask[producer]) if cut else False
     best = None                                            # earliest arrival over the copies
     for _ in range(int(config.blend_copies)):
         relays = rng.choice(pool, size=hops, replace=False)
@@ -170,6 +175,9 @@ def _blend_arrival_column(
         lost = False
         for r in relays.tolist():                 # transport leg, then this relay's mix delay
             t += float(path_latency[src, r])
+            if cut and bool(partition_mask[r]) != side:    # a relay across the cut: the copy is lost
+                lost = True
+                break
             if hostile and adversary_mask[r]:     # an adversarial relay drops or holds longest
                 if drop:
                     lost = True
@@ -194,10 +202,14 @@ def _blend_arrival_column(
 def arrival_column(
     path_latency: np.ndarray, producer: int, slot: int, config: SimConfig,
     rng: np.random.Generator, adversary_mask: np.ndarray | None = None,
+    partition_mask: np.ndarray | None = None,
 ) -> np.ndarray:
-    """Sub-slot arrival time of a block at every node (before the parent clamp)."""
+    """Sub-slot arrival time of a block at every node (before the parent clamp). With a
+    ``partition_mask`` an arrival across the cut that falls within the partition's slots is
+    moved to the span's end plus the path latency."""
     if config.topology == "blend":
-        col = _blend_arrival_column(path_latency, producer, slot, config, rng, adversary_mask)
+        col = _blend_arrival_column(path_latency, producer, slot, config, rng, adversary_mask,
+                                    partition_mask)
     else:
         col = float(slot) + path_latency[producer].astype(np.float64)
     if config.jitter_mean > 0.0:
@@ -210,5 +222,11 @@ def arrival_column(
             col = col + extra
         else:
             col = col + rng.exponential(config.jitter_mean, size=col.shape)
+    if partition_mask is not None and config.partition_slots > 0:
+        start = float(config.partition_start)
+        end = start + float(config.partition_slots)
+        far = partition_mask != partition_mask[producer]
+        inside = (col >= start) & (col < end)
+        col = np.where(far & inside, end + path_latency[producer].astype(np.float64), col)
     col[producer] = float(slot)                        # producer sees own block instantly
     return col

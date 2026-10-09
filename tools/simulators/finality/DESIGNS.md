@@ -91,14 +91,57 @@ pay `R·T_a` for a delay of `T_a` on the coalition's hardware and a speed ratio 
 `Δ`, hashes are random oracles, and the delay is a random oracle whose answer takes `T_a` on the
 coalition's hardware and `R·T_a` on an honest node. A leader schedule drawn from a uniformly random
 nonce is bad with probability `ε_e`; Praos's bound for the full protocol carries a grinding term
-for the nonces the adversary can evaluate (Theorem 11; `PLAN.md`, §7.1). For the rule, a
-**candidate** is a value of the pre-nonce
+for the nonces the adversary can evaluate (below). For the rule, a **candidate** is a value of the
+pre-nonce
 `hash(η_(e−1) ‖ μ_1 ‖ … ‖ μ_m)` the coalition can still bring about. A choice among candidates
 whose outputs it has not seen is blind: given its view the chosen output is uniform, and the
 schedule is bad with `ε_e`. A choice among candidates whose outputs it has seen multiplies `ε_e`
 by their expected number, since each output is uniform at the moment the candidate is formed. The
 factor per nonce is the expected number of candidates evaluated before the last choice that can
 still select them, and a proof needs that number bounded.
+
+**What the papers state** (Praos: ePrint 2017/573, revision 2023-04-27, SHA-1 `373e7ba1`;
+Genesis: ePrint 2018/378, revision 2019-02-22, SHA-1 `81b39baf`; both read 2026-10-09 from the
+archive's snapshots of 2025-01-02 and 2024-12-28). Praos models the adversary's influence on the
+nonce as a resettable beacon and bounds it by a union bound over the candidates: "A simple
+application of the union bound shows that this selection of η from among a set of size r
+uniformly random candidate nonces can inflate the probability of events during the run of πSPoS
+by a factor no more than r" (§4.9). Its Theorem 11 carries the factor as `log r`: the protocol
+"satisfies persistence with parameters k and liveness with parameters u = 8k/f throughout a
+period of L slots of ∆-semisynchronous execution with probability 1 − exp(ln L + ∆ + log(r) −
+Ω(k))". With the beacon replaced by a hash of the VRF values, Corollary 3 bounds `r` by the
+adversary's oracle queries, "with probability 1 − exp(ln L + ∆ − Ω(k − log tkq))", since "the
+size of this space is however upper-bounded by the number of random oracle queries that the
+adversary can afford" (§4.9). The nonce is `η_j = H(η_{j−1} ‖ j ‖ v)` over the VRF values of the
+blocks of epoch `j − 1` "up to the slot with timestamp up to (j* − 2)R + 16k/f" (Fig. 10), and
+"the stakeholder distribution is determined in each epoch j ≥ 2 by the block that has time stamp
+up to (j − 2)R" (proof of Theorem 11), so the stake is fixed before the nonce's inputs. Genesis
+keeps the nonce rule, "a hash of additional VRF-values y_ρ that were included … into blocks from
+the first two thirds of epoch ep − 1", with the stake "recorded in the ledger up to the last block
+of epoch ep − 2" (§3). Its Theorem 1 states Praos's bounds for `maxvalid-mc` with a term `ε_lift`
+that carries `Q`, "an upper bound on the total number of queries issued to G_RO", and its
+Theorem 2 adds for `maxvalid-bg` only "an additional error probability exp(ln L − Ω(k)) +
+ε_CG(βf/16, k/(4f)) + ε_∃CQ(k/(4f)) + ε_CP(kβ/64)" when "k > 192∆/(εβ) and R/6 ≥ s = k/(4f) ≥
+48∆/(βf)" (§4.3). Of grinding it says: "the process of deriving it described above still allows
+a limited amount of grinding by the adversary, who can decide whether to include blocks (with VRF
+outputs) in slots where he is a slot leader. In [14], it is shown that this grinding effect can be
+crudely upper-bounded by limiting the number of queries to the random oracle that the adversary
+makes … The same argument applies here, and hence we need to introduce the quantity Q into our
+bound" (Appendix E), and of its combinatorial objects: "the characteristic string resulting from
+an execution is determined by both the nonce (and the effective leader selection process), the
+adaptive adversary A, and the environment Z (which, in particular, determines the stake
+distribution)" (Appendix E).
+
+**The lemma, placed.** Both papers bound the nonce's bias by the number of candidates the
+adversary can set the nonce to, `r`, through a union bound, and then bound `r` by the oracle
+queries. The rule here keeps that structure and changes what bounds `r`: a candidate counts only
+if the adversary has seen its output when it last chooses, so `r` is the number of evaluated
+candidates, `E[G_min]` under the delay of this section, and the bound is Theorem 11's with
+`log r` read at it. Cryptarchia's Online rule is `maxvalid-mc` within `k` and its Bootstrap rule
+`maxvalid-bg` (`MAPPING.md`), so Theorem 1 covers the first and Theorem 2 the second; the nonce
+enters both through the leader schedule alone, and the stake of epoch `ep − 2` is fixed before
+any candidate exists, as the lemma requires. What the papers bound with `Q` and the rule with
+`E[G_min]` is the same quantity.
 
 A candidate of the last sub-window needs `μ_1 … μ_(m−1)`, fixed when the sub-window starts, and a
 value for `μ_m`: an honest contribution once its block is received, or one of the coalition's
@@ -194,13 +237,14 @@ the depth at `1e-9` with two nonces at the sampled mean and at the bound:
   30 % at `k = 1080`, which holds 30 %. Within B6's model the choices at the cut-off are bounded,
   not estimated.
 
-What a proof still needs: Praos's argument carried to Genesis's fork choice, which Cryptarchia
-uses; the sequentiality of squaring in the class group; and the nonce as a hash of the delay's
-output, which is a group element.
+What a proof still needs: the formal write-up of the lemma in the resettable-beacon model of
+Praos's §4.9 with `r` the evaluated candidates; the sequentiality of squaring in the class group,
+an assumption pinned below; and the nonce as a hash of the delay's output, which is a group
+element.
 
 **The design.** The input is `hash(η_(e−1) ‖ μ_1 ‖ … ‖ μ_m)`, fixed at the cut-off; the output,
-after `R·T_a` of sequential squarings in a class group of an imaginary quadratic field, hashed, is
-the epoch's nonce `η_e`, with a Wesolowski proof. Any node may compute it; the first block of the
+after `R·T_a` of sequential squarings in the class group of a prime discriminant derived from the
+input, hashed, is the epoch's nonce `η_e`, with a Wesolowski proof. Any node may compute it; the first block of the
 new epoch carries the output and its proof, and every node verifies the proof in place of the
 computation. A block of the new epoch without a verified nonce is invalid. If no block carries it
 by the epoch's start, the honest leaders of the phase have had `4⌊k/f⌋` slots to compute it, so the
@@ -224,6 +268,10 @@ the archive's snapshots of 2024-12-27 and 2025-01-03):
 | Analysis of MinRoot, EF workshop (2023-04-28 to 30) | "a speedup factor of 20 (ignoring communication latency) using 2^29 processors"; the attack breaks field-root VDFs (MinRoot, VeeDo, Sloth++) and leaves squaring in groups of unknown order untouched |
 | CIP-0161, Ouroboros Phalanx (`cardano-foundation/CIPs` `20c819b`) | "Specialized hardware such as ASICs can be used to evaluate VDF output much faster, up to a factor of 5 in Chia's VDF project, while Ethereum considers a factor of 10"; "a 12-hour computation budget on standard CPU-based machines, which we estimate to be 10× slower than specialized ASICs"; no source is given for the 10 |
 | Chia's old competition README (2018), CIP-0161 §5.2 (i9-14900HX) | a commodity CPU squares a 1024-bit class group element in about 4.7 µs (213,319 IPS) and a 2048-bit one in 9.5 µs; Chia's best timelord 3.85 µs |
+| Wesolowski, ePrint 2018/623 (the archive's PDF of 2024-12-27, built 2020-07-24) | Assumption 1, the time-lock assumption: a cost `δ(k)` of one squaring such that "no algorithm A of polynomial cost wins the (δ, t)-time-lock game with non-negligible probability"; Assumption 2 generalises it to "arbitrary families of groups of unknown orders"; Example 2: "Choose a random, negative, square-free integer d, of large absolute value, and such that d ≡ 1 mod 4 … one should choose d to be a negative prime, which ensures that |Cl(d)| is odd"; "the best known algorithms for computing the order of the class group of an imaginary quadratic field of discriminant d are still of complexity L_|d|(1/2) under the generalised Riemann hypothesis" |
+| Boneh, Bünz, Fisch, ePrint 2018/712 (revised 2020-01-05) | Definition 2, the adaptive root assumption: no efficient adversary that first "outputs an element w ∈ G" and then, for "a random prime ℓ in Primes(λ)", "outputs w^(1/ℓ) ∈ G"; Theorem 2: "Suppose the adaptive root assumption holds for GGen. Then Wesolowski's succinct argument" is sound; "The adaptive root assumption is necessary for soundness of the protocol" |
+| Biasse, Jacobson, Silvester, ACISP 2010 (arXiv 1004.5512v1) | Table 4, "Security Parameter Estimates": the imaginary discriminant that matches each RSA modulus of NIST's levels, 798 bits for RSA-1024, 1,348 for RSA-2048, 1,827 for RSA-3072, in MIPS-years; the estimates follow Hamdy and Möller and "provide a good rough guideline on the required discriminant sizes that is likely sufficiently accurate in the inexact science of predicting security levels" |
+| Chia, `classgroups.pdf` (Long); Chia's Proof of Time page (read 2026-10-09) | "the order of the class group of a negative prime discriminant d, where |d| ≡ 3 mod 4, is believed to be difficult to compute when |d| is sufficiently large, making the order of the class group effectively unknown"; "use the challenge to generate a new random prime number for each VDF, which is used as the discriminant"; "The discriminant has a size of 1024 bits" |
 
 What the sources settle:
 
@@ -240,6 +288,30 @@ What the sources settle:
   of 16.
 - **The honest cost** at a ratio of 5 is `1.7·10^10` squarings of one CPU core once an epoch, 31 %
   of the lottery-constants phase at every `k`; the verification is one proof per epoch.
+- **The group and its size.** The delay rests on Wesolowski's time-lock assumption in the class
+  group and its proof on the adaptive-root assumption, both pinned above. The discriminant is a
+  negative prime derived from the input, as Chia derives it from each challenge, so its class
+  group exists only from the cut-off and admits no precomputation; a prime discriminant leaves no
+  element of order two. Its size sets what computing the class number costs. Biasse, Jacobson and
+  Silvester's Table 4, read through `L_|d|[1/2, 1]`, which fits its three rows to within 0.06 bits
+  (`finality_sim.discriminant`, `scripts/i2_discriminant.py`):
+
+| discriminant | RSA modulus of Table 4 | class number, log2 operations | years at 10^18 a second | years at 10^21 a second | operations a second within 4.49 h |
+| --- | --- | --- | --- | --- | --- |
+| 798 bits | 1,024 bits | 78 | 0.0109 | 1.09e-05 | 2.1e+19 |
+| 1,024 bits | – | 91 | 103 | 0.103 | 2.0e+23 |
+| 1,348 bits | 2,048 bits | 108 | 1.22e+07 | 1.22e+04 | 2.4e+28 |
+| 1,827 bits | 3,072 bits | 130 | 4.75e+13 | 4.75e+10 | 9.3e+34 |
+| 2,048 bits | – | 139 | 2.83e+16 | 2.83e+13 | 5.5e+37 |
+
+  A 1024-bit discriminant, Chia's size, costs about `2^91` operations, between NIST's 80- and
+  112-bit levels: a century for a machine of `10^18` operations a second, and two hundred thousand
+  of them to finish within the delay, which is the threat here, since a class number computed
+  after the epoch's nonce is public buys nothing. A class number computed in time evaluates the
+  delay at once and returns B7's estimate, nothing worse than today's nonce. 2048 bits give
+  `2^139`, NIST's 128-bit level and beyond, at no cost in time: a squaring takes twice as long, so
+  the count that fills `T_a` halves, and the honest hours, the ratio and the margin are unchanged;
+  the proof doubles to 2,048 bits.
 
 H9 fails as stated: 100 honest minutes blind nothing, since the coalition forms the last
 sub-window's candidates from the sub-window's start. It holds for a delay that spans the

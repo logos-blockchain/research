@@ -65,10 +65,11 @@ b6: install                   # SETTLEMENT.md, B6 grinding (about 4 minutes on 1
 b7: install                   # SETTLEMENT.md, B7 nonce (about 3 minutes on 14 cores; needs a1, b2)
 	$(PY) scripts/b7_nonce.py
 
-recovery: install             # SETTLEMENT.md, B5 automatic recovery (about 30 s; needs a1)
+recovery: install             # SETTLEMENT.md, B5 automatic recovery (about 30 s; needs a1); the engine's partition about 30 minutes on 14 cores
 	$(PY) scripts/b5_recovery.py
 	$(PY) scripts/b5_recovery_sweep.py
 	$(PY) scripts/b5_partition.py
+	$(PY) scripts/b5_partition_engine.py
 
 d0: install                   # CERTIFIED.md, D0 and D2
 	$(PY) scripts/d0_emission_map.py
@@ -104,11 +105,12 @@ designs: install              # PLAN.md phase H: H.1, H.2, H.3 (about 10 minutes
 	$(PY) scripts/h1_attestations.py
 	$(PY) scripts/h2_delay.py
 	$(PY) scripts/h3_time_rule.py
+	$(PY) scripts/i2_discriminant.py
 
 all: a1 c1 c3 c4 b2 b3 b4 b5 recovery d0 d1b d5 d6 e2 e5 b6 b7 further designs
 
 tables: install
-	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b5part b6 b7 d0 d1b d3 d5 d6 e2 e5 e5balance g1 g3 g4 g6 g7 h1 h2 h3; do \
+	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b5part b6 b7 d0 d1b d3 d5 d6 e2 e5 e5balance g1 g3 g4 g6 g7 h1 h2 h3 b5eng i2; do \
 		$(PY) scripts/tables.py $$t; done
 
 check-tables: install

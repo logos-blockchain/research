@@ -468,10 +468,15 @@ test of the Bootstrap rule. Eight rules keep it safe where it can be:
    here gives the honest chain the whole honest stake. In a partition each honest side produces
    with its own share, and the adversary withholds a fork made with all of its stake: against an
    honest side holding 35 % of all stake, a 30 % adversary's fork is denser in 64–70 % of the
-   specification's windows, and against an honest third, a third's fork always is. Today the Online
-   rule caps what such a fork reorganises at `k`. A node whose chain was sparse over the window
-   therefore does not compare, and leaves the split to operators, as today. The trigger heals an
-   eclipse, where one side is the whole honest chain, and not a partition deeper than `k`.
+   specification's windows, and against an honest third, a third's fork always is. On the engine,
+   with the network split and most Blend copies lost across the cut, a side holding 30–40 % of
+   all stake grows at 0.82–0.86 per win against the whole network's 0.845, and the closed form
+   read at that growth lies within three standard errors of the engine: a 30 % fork beats a 35 %
+   side in 65 % of windows, a third's beats a 40 % side in 55 % where the closed form at the
+   whole network's growth says 36 % (`SETTLEMENT.md`, B5). Today the Online rule caps what such a
+   fork reorganises at `k`. A node whose chain was sparse over the window therefore does not
+   compare, and leaves the split to operators, as today. The trigger heals an eclipse, where one
+   side is the whole honest chain, and not a partition deeper than `k`.
 
 The trigger costs four things. `B_imm` may move back within `H`, so every consumer of it needs a
 path for that, and the `k`-deep block is final only against forks that lose the density test. The
@@ -826,8 +831,15 @@ nonce is first used hold a ratio up to 16. The design: the hash of the sub-windo
 the cut-off, passed through sequential squarings in a class group of a 1,024-bit discriminant, the
 output hashed into the nonce, with a Wesolowski proof of one group element carried by the first
 block of the new epoch and verified in milliseconds in place of the computation. MinRoot and the
-other field-root candidates are broken; squaring in a group of unknown order is not. A proof still
-needs Praos's argument under Genesis's fork choice and the sequentiality of the class group.
+other field-root candidates are broken; squaring in a group of unknown order is not. Praos and
+Genesis bound the nonce's bias by a union bound over the candidates the adversary can set it to
+and then bound the candidates by its oracle queries; the rule bounds the same count by the
+candidates it has evaluated, and Genesis's theorem for the Bootstrap rule adds to Praos's only a
+term in `k` and the density window, so the lemma stands under both of Cryptarchia's rules. The
+class number of a 1024-bit discriminant costs about `2^91` operations by the published estimates,
+between NIST's 80- and 112-bit levels, which is a century for a machine of `10^18` operations a
+second and two hundred thousand such machines within the delay; 2048 bits give `2^139` at no cost in
+time. A proof still needs the formal write-up and the sequentiality assumption itself.
 
 **Time under the worst case (H.3).** B3's delay-scheduling attack beats B4's elapsed-time rule at
 worst-case rates whenever the rule accepts: 51–58 % of accepted targets at `ε = 1e-3`. An

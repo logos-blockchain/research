@@ -835,6 +835,38 @@ def e5() -> None:
     print(md(pd.DataFrame(rows)))
 
 
+def i2() -> None:
+    t = pd.read_csv(RUNS / "i2" / "discriminant.csv")
+    print(md(pd.DataFrame({
+        "discriminant": t.bits.map(lambda v: f"{int(v):,} bits"),
+        "RSA modulus of Table 4": t.rsa.map(lambda v: f"{int(v):,} bits" if v == v else "–"),
+        "class number, log2 operations": t.log2_ops.map(lambda v: f"{v:.0f}"),
+        "years at 10^18 a second": t.years_1e18.map(lambda v: f"{v:.3g}"),
+        "years at 10^21 a second": t.years_1e21.map(lambda v: f"{v:.3g}"),
+        "operations a second within 4.49 h": t.ops_per_second_within_delay.map(lambda v: f"{v:.1e}")})))
+
+
+def b5eng() -> None:
+    t = pd.read_csv(RUNS / "b5" / "partition_engine.csv")
+    rows = []
+    for _, x in t.iterrows():
+        if x.alpha > 0:
+            rows.append({"α": f"{x.alpha:.2f}", "side set": f"{x.side:.2f}", "side held": f"{x.share_small:.3f}",
+                         "density: side / fork": f"{x.density_small:,.0f} / {x.fork:,.0f}",
+                         "growth / win: side, rest, A1": f"{x.growth_small:.3f}, {x.growth_other:.3f}, {x.growth_a1:.3f}",
+                         "fork denser, engine ± sem": f"{x.beaten:.3f} ± {x.beaten_sem:.3f}",
+                         "closed form at A1's growth": f"{x.closed_form:.3f}",
+                         "closed form at the side's growth": f"{x.closed_form_side_growth:.3f}",
+                         "side's chain longer at rejoin": f"{x.small_longer:.3f}"})
+    print(md(pd.DataFrame(rows)))
+    print()
+    x = t[t.alpha == 0].iloc[0]
+    print(md(pd.DataFrame([{"sides": f"{x.share_small:.3f} / {x.share_other:.3f}", "runs": int(x.runs),
+                            "density tie, engine": f"{x.density_tie:.4f}",
+                            "equal length at rejoin": f"{x.equal_length:.4f}",
+                            "growth / win: a, b, A1": f"{x.growth_small:.3f}, {x.growth_other:.3f}, {x.growth_a1:.3f}"}])))
+
+
 def b5sweep() -> None:
     t = pd.read_csv(RUNS / "b5" / "recovery_sweep.csv")
 
@@ -885,4 +917,4 @@ if __name__ == "__main__":
     {"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b4": b4, "b5": b5,
      "b5rec": b5rec, "b5sweep": b5sweep, "b5part": b5part, "b6": b6, "b7": b7, "d0": d0, "d1b": d1b, "d3": d3, "d5": d5, "d6": d6,
      "e2": e2, "e5": e5, "e5balance": e5balance, "g1": g1, "g3": g3, "g4": g4, "g6": g6,
-     "g7": g7, "h1": h1, "h2": h2, "h3": h3}[sys.argv[1]]()
+     "g7": g7, "h1": h1, "h2": h2, "h3": h3, "b5eng": b5eng, "i2": i2}[sys.argv[1]]()

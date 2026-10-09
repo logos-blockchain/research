@@ -156,6 +156,25 @@ def _coalition_ids(config: SimConfig, stake: np.ndarray,
     return ids
 
 
+def _partition_mask(config: SimConfig, stake: np.ndarray,
+                    adversary_mask: np.ndarray | None) -> np.ndarray | None:
+    """One side of a network partition: honest nodes in a random order until their stake reaches
+    ``partition_share`` of all stake, as the random coalition is drawn. ``None`` without a
+    partition. Seeded apart from every other stream, so a run without one is bit-identical to
+    before."""
+    if config.partition_share <= 0.0:
+        return None
+    order = np.random.default_rng(np.random.SeedSequence(
+        [config.root_seed, config.replicate, 0x5A17])).permutation(config.n_nodes)
+    if adversary_mask is not None:
+        order = order[~adversary_mask[order]]
+    target = config.partition_share * float(stake.sum())
+    take = int(np.searchsorted(np.cumsum(stake[order]), target, side="left")) + 1
+    mask = np.zeros(config.n_nodes, dtype=bool)
+    mask[order[:min(take, order.size)]] = True
+    return mask
+
+
 def _initial_d_est(config: SimConfig, d_true: float, rng: np.random.Generator) -> np.ndarray:
     """Per-node initial estimate: common genesis, or heterogeneous around it."""
     base = config.genesis_d_factor * d_true
@@ -264,6 +283,7 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
             active_stake_frac = float(stake[~inactive_mask].sum() / d_true) * active_stake_frac
         er = simulate_epoch(config, stake, d_est, path_latency, children[epoch + 3],
                             adversary_mask=behaviour_mask, coalition_mask=adv_mask,
+                            partition_mask=_partition_mask(config, stake, adv_mask),
                             coalition_ids=coal_ids,
                             inactive_mask=inactive_mask)
         row = divergence_row(config, epoch, d_est, er, d_true)

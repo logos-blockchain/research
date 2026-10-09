@@ -130,6 +130,14 @@ class SimConfig:
     # the path latency. Read only when every copy is dropped; appended to key() only when
     # non-default.
     blend_fallback_slots: float = 15.0
+    # A network partition (engine._partition_mask): honest nodes drawn by stake until their share
+    # of all stake reaches partition_share form one side. In the slots [partition_start,
+    # partition_start + partition_slots) a block made on one side reaches the other at the span's
+    # end plus the path latency, a Blend copy whose relay lies across the cut is lost, and the
+    # windowed fork choice is off. Appended to key() only when set.
+    partition_share: float = 0.0
+    partition_start: int = 0
+    partition_slots: int = 0
     # Mean one-way per-link latency in SLOTS (1 slot = 1 s). Realistic direct-gossip links are
     # sub-slot (~0.04-0.15 slot = 40-150 ms); whole-slot values (1, 2, ...) model routing over
     # the Blend mixnet, where each hop costs seconds. Arrivals are kept sub-slot (float).
@@ -374,6 +382,10 @@ class SimConfig:
             raise ValueError(f"blend_copies must be >= 1, got {self.blend_copies}")
         if self.blend_fallback_slots < 0.0:
             raise ValueError(f"blend_fallback_slots must be >= 0, got {self.blend_fallback_slots}")
+        if not 0.0 <= self.partition_share < 1.0:
+            raise ValueError(f"partition_share must be in [0, 1), got {self.partition_share}")
+        if self.partition_start < 0 or self.partition_slots < 0:
+            raise ValueError("partition_start and partition_slots must be >= 0")
         if self.adversary_selection not in ("random", "whale"):
             raise ValueError(f"adversary_selection must be random|whale, got "
                              f"{self.adversary_selection!r}")
@@ -504,6 +516,8 @@ class SimConfig:
             base = base + (("copies", self.blend_copies),)
         if self.blend_fallback_slots != 15.0:
             base = base + (("fallback", self.blend_fallback_slots),)
+        if self.partition_share > 0.0 or self.partition_start or self.partition_slots:
+            base = base + (("partition", self.partition_share, self.partition_start, self.partition_slots),)
         # Same append-only-when-non-default discipline: a run at the default precision keeps a
         # byte-identical key, so no committed result is reseeded by adding the knob.
         if self.f_precision != 1_000_000:

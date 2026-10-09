@@ -276,8 +276,13 @@ def build_tree_pernode(
     rng: np.random.Generator,
     adversary_mask: np.ndarray | None = None,
     coalition_ids: np.ndarray | None = None,
+    partition_mask: np.ndarray | None = None,
 ):
     """Build the global block tree AND the per-node arrival matrix.
+
+    ``partition_mask`` marks one side of a network partition (``engine._partition_mask``): its
+    arrivals are moved by ``topology.arrival_column`` and it turns the windowed fork choice off,
+    whose premise a partition breaks.
 
     ``adversary_mask[v] == True`` marks a node that suppresses uncle references in its own blocks
     (references none), to deflate the TSI density count (grinding). ``None`` = fully honest.
@@ -345,7 +350,7 @@ def build_tree_pernode(
     # A private chain breaks the windowed horizon's premise: an unreleased block is old enough to
     # be "fully propagated" while no honest node has it, and it becomes visible LATER (on release),
     # which the one-way frontier pointer can never revisit. So selfish runs the exact full scan.
-    windowed = bool(config.windowed_fork_choice) and not selfish
+    windowed = bool(config.windowed_fork_choice) and not selfish and partition_mask is None
     if not windowed:
         horizon = float(E)                             # full scan (gb unused)
     elif config.topology == "blend":
@@ -479,7 +484,8 @@ def build_tree_pernode(
                 uncles[b] = select_uncles_at_production(
                     slot, parent, uncles, A[v], b, p_id, t, config, rng
                 )
-            col = arrival_column(path_latency, v, t, config, rng, adversary_mask)   # (rng drawn either way)
+            col = arrival_column(path_latency, v, t, config, rng, adversary_mask,
+                                 partition_mask)                 # (rng drawn either way)
             if hide:
                 A[:, b] = float(E) + 1.0                     # withheld: never arrives -> orphan
                 withheld[b] = True

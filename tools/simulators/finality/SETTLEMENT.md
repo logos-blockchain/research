@@ -537,6 +537,45 @@ Two honest sides of an even split, without a coalition, tie over the window with
 | 1080 | 36 h | 1,841 | 0.0066 |
 | 120 | 4 h | 205 | 0.0199 |
 
+**On the engine.** The engine splits the honest nodes into a side holding a share of all stake and
+the rest for a span of 36 hours while the coalition withholds (`tsi_sim`, `partition_share`;
+`finality_sim.partition`, `scripts/b5_partition_engine.py`). A block made on one side reaches the
+other at the span's end; a Blend copy whose relay lies across the cut is lost, so most blocks reach
+their own side by the sender's fallback, 16 rounds late; the coalition's nodes lie on the rest's
+side. On the specification's Blend with B3's settings, 256 runs a cell and 512 for the ties, the
+closed form read at the side's realised share, at A1's growth and at the growth the side showed:
+
+| α | side set | side held | density: side / fork | growth / win: side, rest, A1 | fork denser, engine ± sem | closed form at A1's growth | closed form at the side's growth | side's chain longer at rejoin |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.25 | 0.30 | 0.300 | 1,131 / 1,098 | 0.859, 0.835, 0.845 | 0.195 ± 0.025 | 0.371 | 0.241 | 0.000 |
+| 0.25 | 0.35 | 0.350 | 1,293 / 1,093 | 0.840, 0.843, 0.845 | 0.000 ± 0.001 | 0.000 | 0.000 | 0.000 |
+| 0.25 | 0.40 | 0.400 | 1,448 / 1,095 | 0.824, 0.853, 0.845 | 0.000 ± 0.001 | 0.000 | 0.000 | 1.000 |
+| 0.30 | 0.30 | 0.300 | 1,129 / 1,310 | 0.858, 0.849, 0.845 | 1.000 ± 0.001 | 1.000 | 1.000 | 0.000 |
+| 0.30 | 0.35 | 0.350 | 1,292 / 1,311 | 0.839, 0.859, 0.845 | 0.652 ± 0.030 | 0.643 | 0.710 | 0.270 |
+| 0.30 | 0.40 | 0.400 | 1,446 / 1,316 | 0.823, 0.873, 0.845 | 0.004 ± 0.004 | 0.001 | 0.008 | 1.000 |
+| 0.33 | 0.30 | 0.300 | 1,130 / 1,453 | 0.857, 0.860, 0.845 | 1.000 ± 0.001 | 1.000 | 1.000 | 0.000 |
+| 0.33 | 0.35 | 0.350 | 1,291 / 1,455 | 0.840, 0.871, 0.845 | 1.000 ± 0.001 | 0.999 | 1.000 | 0.953 |
+| 0.33 | 0.40 | 0.400 | 1,446 / 1,455 | 0.823, 0.886, 0.845 | 0.547 ± 0.031 | 0.355 | 0.634 | 1.000 |
+
+| sides | runs | density tie, engine | equal length at rejoin | growth / win: a, b, A1 |
+| --- | --- | --- | --- | --- |
+| 0.500 / 0.500 | 512 | 0.0098 | 0.0098 | 0.794, 0.796, 0.845 |
+
+- **The closed form holds given the growth, and the growth moves in a split.** With most copies
+  lost across the cut, a side holding 30–40 % of all stake grows at 0.82–0.86 per win against the
+  whole network's 0.845, the larger side slower, and two even sides at 0.79. Read at the side's
+  growth the closed form lies within three standard errors of the engine where the outcome is
+  uncertain, 0.24 against 0.20, 0.71 against 0.65 and 0.63 against 0.55; read at A1's growth it
+  puts a third's fork against a 40 % side at 0.36 where the engine shows 0.55, and a quarter's
+  against a 30 % side at 0.37 where the engine shows 0.20.
+- **The rule-8 figures stand where they decide.** A 30 % fork is denser than an honest 35 % side
+  in 65 % of windows, a third's than an honest third in every one; a third's against 40 % moves
+  from a third of the windows to half. Two even honest sides tie in 1.0 % of windows, against the
+  closed form's 0.7 %, within the sampling error of 512 runs.
+- **At rejoin the longest-chain rule follows the larger side,** in every run where the sides
+  differ by five points of stake; two sides of 35 % each with the coalition's relays on one side
+  go to that side in 73 % of runs.
+
 With the window at its longest, `4⌊k/f⌋` slots, the largest share the density test holds
 (`runs/b5/recovery_share.csv`):
 

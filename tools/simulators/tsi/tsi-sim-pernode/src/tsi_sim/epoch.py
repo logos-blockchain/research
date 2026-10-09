@@ -83,6 +83,7 @@ def simulate_epoch(
     path_latency: np.ndarray,
     epoch_ss: np.random.SeedSequence,
     adversary_mask: np.ndarray | None = None,
+    partition_mask: np.ndarray | None = None,
     coalition_mask: np.ndarray | None = None,
     inactive_mask: np.ndarray | None = None,
     coalition_ids: np.ndarray | None = None,
@@ -105,7 +106,7 @@ def simulate_epoch(
 
     tree, A = build_tree_pernode(active_slots, groups, path_latency, config, aux_rng,
                                  adversary_mask=adversary_mask,
-                                 coalition_ids=coalition_ids)
+                                 coalition_ids=coalition_ids, partition_mask=partition_mask)
 
     # measurement: each node's own canonical chain, deduped by tip + numba-accelerated
     ms = measure(tree, A, active_slots, T, cutoff=E,

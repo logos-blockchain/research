@@ -33,30 +33,52 @@ from numba import njit
 from tsi_sim import lottery, topology
 from tsi_sim.blocktree import build_tree_pernode
 from tsi_sim.config import SimConfig
-from tsi_sim.engine import _adversary_mask
+from tsi_sim.engine import _adversary_mask, _partition_mask
 from tsi_sim.rng import seedseq_for
 from tsi_sim.stake import make_stake
 
 
-def withhold_tree(config: SimConfig):
-    """The engine's block tree under a withholding coalition: ``(tree, arrival, mask, public,
-    canonical)`` with ``arrival[i, b]`` the slot block ``b`` reaches node ``i``, ``mask`` the
-    coalition's nodes, ``public`` the honest blocks and ``canonical`` the best public chain."""
-    if config.adversary_strategy != "withhold" or config.adversary_frac <= 0:
-        raise ValueError("needs adversary_strategy='withhold' and adversary_frac > 0")
+def _tree(config: SimConfig):
+    """The engine's block tree with every node's stake estimate at the true stake: ``(tree,
+    arrival, stake, mask, side, public)`` with ``arrival[i, b]`` the slot block ``b`` reaches node
+    ``i``, ``mask`` the coalition's nodes (all false without one), ``side`` one side of a
+    partition or ``None``, and ``public`` the honest blocks."""
+    if config.adversary_strategy != "withhold":
+        raise ValueError("needs adversary_strategy='withhold'")
     root = seedseq_for(config)
     c_stake, c_graph, c_lottery, c_aux = root.spawn(4)
     stake = make_stake(config, np.random.default_rng(c_stake))
     mask = _adversary_mask(config, stake)
+    side = _partition_mask(config, stake, mask)
     path_latency = topology.build_path_latency(config, np.random.default_rng(c_graph))
     d_est = np.full(config.n_nodes, float(stake.sum()))
     p = lottery.win_probs(stake, d_est, config.f)
     slots, nodes = lottery.sample_wins(p, config.epoch_len, np.random.default_rng(c_lottery))
     active, groups = lottery.group_by_slot(slots, nodes)
     tree, arrival = build_tree_pernode(active, groups, path_latency, config,
-                                       np.random.default_rng(c_aux), adversary_mask=mask)
+                                       np.random.default_rng(c_aux), adversary_mask=mask,
+                                       partition_mask=side)
+    if mask is None:
+        mask = np.zeros(config.n_nodes, dtype=bool)
     adv = mask[tree.leader.clip(min=0)] & (tree.slot >= 0)
     public = (tree.slot >= 0) & ~adv
+    return tree, arrival, stake, mask, side, public
+
+
+def partition_tree(config: SimConfig):
+    """``_tree`` for a partitioned network: ``(tree, arrival, stake, mask, side, public)``."""
+    if config.partition_share <= 0.0:
+        raise ValueError("needs partition_share > 0")
+    return _tree(config)
+
+
+def withhold_tree(config: SimConfig):
+    """The engine's block tree under a withholding coalition: ``(tree, arrival, mask, public,
+    canonical)`` with ``arrival[i, b]`` the slot block ``b`` reaches node ``i``, ``mask`` the
+    coalition's nodes, ``public`` the honest blocks and ``canonical`` the best public chain."""
+    if config.adversary_frac <= 0:
+        raise ValueError("needs adversary_frac > 0")
+    tree, arrival, _, mask, _, public = _tree(config)
     # best public tip: highest, then earliest slot, then lowest id
     ids = np.nonzero(public)[0]
     order = np.lexsort((-ids, -tree.slot[ids], tree.height[ids]))
