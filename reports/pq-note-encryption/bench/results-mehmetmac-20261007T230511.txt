@@ -1,0 +1,25 @@
+sizes (bytes)
+  X-Wing encapsulation key   1216
+  X-Wing decapsulation key     32
+  X-Wing KEM ciphertext      1120
+  note ciphertext (AEAD)       56
+  per output, X-Wing         1176
+  per output, X25519           88
+
+X-Wing keygen from seed                          47.78 us/op
+X-Wing encapsulate                               95.83 us/op
+X-Wing decapsulate                              133.20 us/op
+X-Wing note encrypt (encaps+kdf+aead)            98.56 us/op
+X-Wing note trial-decrypt, match                135.86 us/op
+X-Wing note trial-decrypt, no match             136.21 us/op
+X25519 note encrypt                              68.21 us/op
+X25519 note trial-decrypt                        47.43 us/op
+
+scan 100000 outputs (X-Wing): 13.88 s, 138.8 us/output, found 1
+scan 100000 outputs (X25519): 4.90 s, 49.0 us/output, found 1
+libcrux ML-KEM-768 keygen                        22.43 us/op
+libcrux ML-KEM-768 encapsulate                   17.37 us/op
+libcrux ML-KEM-768 decapsulate                   18.57 us/op
+RustCrypto ML-KEM-768 keygen                     38.14 us/op
+RustCrypto ML-KEM-768 encapsulate                33.29 us/op
+RustCrypto ML-KEM-768 decapsulate                38.84 us/op
