@@ -92,6 +92,7 @@ public import Cryptarchia.Prob.WorstStop
 public import Cryptarchia.Prob.ROStop
 public import Cryptarchia.Prob.FinalTight
 public import Cryptarchia.Prob.Finality
+public import Cryptarchia.Prob.Closed
 public import Cryptarchia.Prob.ExpBound
 
 
