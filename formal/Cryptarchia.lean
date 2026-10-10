@@ -84,6 +84,10 @@ public import Cryptarchia.Prob.AutoQ
 public import Cryptarchia.Prob.Pick
 public import Cryptarchia.Prob.Occupied
 public import Cryptarchia.Proof.Signers
+public import Cryptarchia.Proof.Consist
+public import Cryptarchia.Prob.Trunc
+public import Cryptarchia.Prob.EpochInd
+public import Cryptarchia.Prob.FinalInd
 public import Cryptarchia.Prob.ExpBound
 
 
