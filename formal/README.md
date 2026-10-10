@@ -10,7 +10,7 @@ Machine-checked definitions and proofs for the Logos blockchain, in Lean 4 with 
 | Library | Contents |
 |---|---|
 | [`Cryptarchia`](Cryptarchia/README.md) | The consensus protocol: its specification, settlement combinatorics, deterministic safety over executions, and the probability layer, including total stake inference (TSI). |
-| `CryptarchiaCerts` | A generated numeric certificate for Cryptarchia's settlement theorem at the specification's parameters (`E20D11`: β = 0.2, one year). It takes about an hour to build and is not a default target. |
+| `CryptarchiaCerts` | A generated numeric certificate for Cryptarchia's settlement theorem at the specification's parameters (`E20D11`: β = 0.2, one year; `E20D11M2`: the same over two months). Each takes about 40 s to build; not a default target. |
 | `CryptarchiaTest` | Axiom checks, and differential tests of the specification's definitions against an independent transliteration of the pseudocode. |
 
 Libraries formalizing individual reports:
@@ -55,7 +55,8 @@ These keep the foundation usable as more components arrive.
 4. **Differential tests for executable definitions.** `tools/difftest` transliterates the pseudocode independently in Python and emits `#guard` checks. Extend it when you add or change a `Spec` definition.
 5. **Generated files are reproducible.** Certificates under `Prob/Certs/` come from `tools/certgen` (see its README). Do not edit them by hand.
 6. **Namespaces follow libraries.** `Cryptarchia.*` lives in `Cryptarchia/`, its probability layer in `Cryptarchia.Prob`. A new component uses its own top-level namespace.
-7. **Shared abstractions.** Cryptarchia currently models the ledger abstractly (`Ledger` in `Cryptarchia/Spec/EpochState.lean`: the notes held after a chain). A ledger component should replace this abstraction, not duplicate it. Move anything two components need into a shared library at this level.
+7. **Every library file is a module.** It starts with `module`, imports with `public import` what its statements need and plain `import` what only its proofs need, and opens `@[expose] public section` so that definitions stay unfoldable downstream (the certificates evaluate them in the kernel). A change to a proof alone then rebuilds only its own file. Keep imports minimal with `lake shake` (`lake shake --fix <Lib>`; run it until it reports nothing). Library roots are marked `-- shake: keep-all`. Test files stay ordinary files.
+8. **Shared abstractions.** Cryptarchia currently models the ledger abstractly (`Ledger` in `Cryptarchia/Spec/EpochState.lean`: the notes held after a chain). A ledger component should replace this abstraction, not duplicate it. Move anything two components need into a shared library at this level.
 
 ## Building
 
@@ -66,7 +67,7 @@ cd formal
 nix-shell                         # elan and Python, with ELAN_HOME=formal/.elan
 lake exe cache get                # Mathlib's prebuilt .olean files (about 5 GB)
 lake build                        # every default target (all libraries except CryptarchiaCerts)
-lake build CryptarchiaCerts       # the certificate: about an hour, a few GB of memory per file
+lake build CryptarchiaCerts       # the certificates: about 40 s each, up to 3.5 GB of memory per file
 lake env lean CryptarchiaTest/Axioms.lean    # axioms of every headline theorem
 lake env lean StochasticRecurrenceTest/Axioms.lean
 lake env lean MiningOnboardingTest/Axioms.lean
@@ -75,4 +76,4 @@ lake env lean MiningOnboardingTest/Report.lean   # calculator vs. the report's n
 
 Without Nix, install [elan](https://github.com/leanprover/elan); the `lean-toolchain` file selects the Lean version. Then run the same `lake` commands.
 
-On machines with limited memory, build with `LEAN_NUM_THREADS=4`, and build certificate files one at a time.
+Lake builds a certificate's table files in parallel, up to 3.5 GB each (mostly the Mathlib import). On machines with limited memory, build them one module at a time (`lake build Cryptarchia.Prob.Certs.E20D11.I0`, …).

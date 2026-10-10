@@ -1,5 +1,44 @@
-import Cryptarchia.Prob.Auto
-import Cryptarchia.Prob.WorstE
+module
+
+public import Cryptarchia.Prob.Auto
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Choose.Multinomial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Chebyshev
+import Mathlib.NumberTheory.Height.NumberField
+import Mathlib.NumberTheory.Height.Projectivization
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.Radical.NatInt
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Echelon.Zsqrtd
+import Mathlib.Tactic.Monotonicity.Lemmas
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.Polynomial.Basic
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Presheaf
+import Std.Tactic.BVDecide.Normalize.BitVec
 
 /-!
 # Phase expectations with one band per epoch
@@ -13,6 +52,8 @@ solution `vpre` of its recursion that also stays above `vmax`, where the phase m
 still switch to any member. Phases longer than `G` get weight `0` (`Wt2G`); the
 long-phase term of the settlement bound pays for them.
 -/
+
+@[expose] public section
 
 namespace Cryptarchia.Prob
 
@@ -232,7 +273,6 @@ theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
       _ = W0 * (θ * slot4 (bandOf h) F) := by ring
       _ ≤ W0 * v q a (decide (2 ≤ nh)) := mul_le_mul_of_nonneg_left (hTstep h hm hGl q hq a _) hW0n
 
-
 include hTb hg0 hTnext hTstep hTterm in
 /-- **One phase, with abstract tables**, truncated at `G` slots: at most the automaton
 bound of the start's band with the start's table. -/
@@ -379,7 +419,6 @@ theorem vtab_term {m : ℕ} (h : List Out) : ∀ q < Δ, ∀ a u, g a true u ≤
   · simp only [vtab, hs, ↓reduceIte]; exact (hv.post (mem h)).term q hq a u
   · simp only [vtab, hs, ↓reduceIte]
     exact le_trans ((hv.post (mem h)).term q hq a u) (le_trans (hv.maxp (mem h) q hq a u) (hv.dom (mem h) q hq a u))
-
 
 include hv hg0 hband hmem in
 /-- **Inside a burst, one member per epoch, truncated at `G` slots.** -/
