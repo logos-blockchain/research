@@ -26,10 +26,20 @@ SIDX = [0, 1, 2, 17]
 EIDX = [i for i in range(19) if i not in (2, 17)]
 
 
-def tband(beta, delta, mu=Fr(0), d=8):
-    """band constants (llo, lhi) consistent with constant stake: lhi = fp/((1-delta) clo),
-    llo = fp/((1+delta) chi), rounded outward."""
+RHO = Fr(101, 100)           # stake drift per epoch the band allows (`Exec.StakeDrift`)
+HMIN = 10 ** 6               # minimum honest online stake (`Exec.MinStake`)
+
+
+def tband(beta, delta, mu=Fr(0), d=8, rho=RHO, hmin=HMIN):
+    """band constants (llo, lhi) for stake that drifts by at most a factor `rho` per epoch,
+    with honest stake at least `hmin`: the conditions of `stakePath_of_drift`,
+      (1-mu) + 2 lhi/(lam hmin) <= lhi Kc (1-mu)(1-delta) clo (P-1) / rho,
+      llo Kc (1+delta) chi P rho + Kc rho + 3 llo/(lam hmin) <= 1,
+    with Kc = 1/(P f_p), rounded outward."""
     beta, delta = Fr(beta).limit_denominator(1000), Fr(delta).limit_denominator(10000)
+    rho = Fr(rho)
+    Kc = 1 / (PERIOD * FP)
+    lh = LAM * hmin
     lhi = FP / (1 - delta)
     llo = FP / (1 + delta)
     for _ in range(30):
@@ -37,8 +47,11 @@ def tband(beta, delta, mu=Fr(0), d=8):
         clo = 1 - Yh / 2 - 2 * errHi(Yh) / ylo
         Ya = beta / (1 - beta) * Yh
         chi = 1 + (errLo(Yh) + errLo(Ya)) / llo
-        lhi = rup(FP / ((1 - delta) * clo), d); llo = rdn(FP / ((1 + delta) * chi), d)
-    return dict(beta=beta, delta=delta, mu=mu, llo=llo, lhi=lhi)
+        # lhi * (Kc (1-mu)(1-delta) clo (P-1)/rho - 2/lh) >= 1 - mu
+        lhi = rup((1 - mu) / (Kc * (1 - mu) * (1 - delta) * clo * (PERIOD - 1) / rho - 2 / lh), d)
+        # llo * (Kc (1+delta) chi P rho + 3/lh) <= 1 - Kc rho
+        llo = rdn((1 - Kc * rho) / (Kc * (1 + delta) * chi * PERIOD * rho + 3 / lh), d)
+    return dict(beta=beta, delta=delta, mu=mu, llo=llo, lhi=lhi, rho=rho, hmin=hmin)
 
 
 def tband_derived(T):

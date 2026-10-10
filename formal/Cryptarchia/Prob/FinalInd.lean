@@ -40,8 +40,8 @@ import Cryptarchia.Prob.FinalTSI
 /-!
 # Probabilistic finality over many epochs, by induction on the epochs
 
-`final_bimm_ro_tsi6` removes the last term of `final_bimm_ro_tsi5`, the probability
-that the canonical prefixes split. Epoch `e`'s prefixes are consistent on the lottery's
+`finality_core`: finality over many epochs with the stake estimate, with consistent
+canonical prefixes proven rather than assumed. Epoch `e`'s prefixes are consistent on the lottery's
 good event up to `min (fix (e + 1)) N`, which concerns epochs up to `e` only, so its
 failure is charged while those epochs are in band (`prob_out_of_band_seq`) and bounded
 by the settlement bound at that horizon (`prob_split_epoch`), at most `settleEps3E` at
@@ -56,9 +56,9 @@ open MeasureTheory
 open scoped ENNReal
 
 /-- **Probabilistic finality over many epochs, with consistent canonical prefixes
-proven.** As `final_bimm_ro_tsi5`, with some honest node online at every slot (`hlive`):
+proven.** With some honest node online at every slot (`hlive`):
 a finality violation has probability at most `(Ne + 1) · settleEps3E + Ne · bandEps`. -/
-theorem final_bimm_ro_tsi6 {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+theorem finality_core {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
     {O : Ω → Oracle} {E : Env} (hA : Assm E) (es : Ω → List Event) {N M : ℕ}
     (hNF : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N)
     (hdel : ∀ ω, DeltaDelivery (E.withO (O ω)) (es ω))

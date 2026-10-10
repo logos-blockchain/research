@@ -757,112 +757,8 @@ noncomputable def bandEps (T : TBand) (P : ℕ) : ℝ :=
     exp (-(((P : ℝ) - 1) * (T.ylo * T.clo) * T.δ ^ 2 * (1 / 2 - 2 / 9 * T.δ)))
 
 open Classical in
-/-- **As `prob_out_of_band`, with the update allowed to fail on a set `Bad`**: the
-estimate leaves its band in some epoch with probability at most `Ne · bandEps + μ Bad`. -/
-theorem prob_out_of_band_bad (hA : Assm E) (es : Ω → List Event)
-    (hO : RandomOracle μ O E.c.p)
-    (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
-    (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
-    (hc : LotConsts E.c T.η) (hT : T.OK) (hb : E.c.betaP = E.c.precision)
-    (hprec : 0 < E.c.precision) (hPf : 0 < E.c.period * E.c.fP) (hP1 : 1 ≤ E.c.period)
-    (hPEL : E.c.period ≤ E.c.epochLength)
-    (hst : ∀ ω i, StateOK E T i (σE (E.withO (O ω)) (es ω) i))
-    (h0 : ∀ ω, InB E T (σE (E.withO (O ω)) (es ω)) 0) {Ne : ℕ} (Bad : Set Ω)
-    (hrec : ∀ ω e, e + 1 < Ne → ω ∉ Bad → Recur E T (σE (E.withO (O ω)) (es ω))
-      (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e)
-    (hpath : ∀ ω e, e + 1 < Ne → StakePath E T (σE (E.withO (O ω)) (es ω)) e) :
-    μ {ω | ∃ e < Ne, ¬ InB E T (σE (E.withO (O ω)) (es ω)) e} ≤
-      Ne * ENNReal.ofReal (bandEps T E.c.period) + μ Bad := by
-  set σ : Ω → ℕ → EpochState := fun ω => σE (E.withO (O ω)) (es ω) with hσ
-  set X : ℕ → Ω → Out := fun k ω => slotOut E (k + 1) (σ ω (k + 1)) (tk O (k + 1) ω) with hX
-  have hm : ∀ n, hist O σ n ≤ ‹MeasurableSpace Ω› := fun n =>
-    sup_le (iSup₂_le fun j _ => (hO.meas j).comap_le) (iSup₂_le fun j _ => (hσm j).comap_le)
-  have hTh : ∀ n j, j < n → Measurable[hist O σ n] (tk O j) := fun n j hj =>
-    (comap_measurable (tk O j)).mono (le_sup_of_le_left (le_iSup₂_of_le j (Finset.mem_range.2 hj) le_rfl)) le_rfl
-  have hσh : ∀ n j, j ≤ n → Measurable[hist O σ n] (fun ω => σ ω j) := fun n j hj =>
-    (comap_measurable (fun ω => σ ω j)).mono
-      (le_sup_of_le_right (le_iSup₂_of_le j (Finset.mem_range.2 (by omega)) le_rfl)) le_rfl
-  have hXm : ∀ j, Measurable (X j) := fun j =>
-    (measurable_slotOut₂ E (j + 1)).comp ((hO.meas (j + 1)).prodMk (hσm (j + 1)))
-  have hXh : ∀ n j, j < n → Measurable[hist O σ (n + 1)] (X j) := fun n j hj =>
-    (measurable_slotOut₂ E (j + 1)).comp ((hTh (n + 1) (j + 1) (by omega)).prodMk (hσh (n + 1) (j + 1) (by omega)))
-  set law : ℕ → Ω → Out → ℝ := fun n ω => lawS E (n + 1) (σ ω (n + 1)) with hlaw
-  have hFm : ∀ j n, j ≤ n → hist O σ (j + 1) ≤ hist O σ (n + 1) := fun j n h => hist_mono O σ (by omega)
-  have hlaw0 : ∀ n ω o, 0 ≤ law n ω o := fun n ω o => lawS_nonneg hO.pos hA.nodup _ _ o
-  have hlaw1 : ∀ n ω, ∑ o, law n ω o = 1 := fun n ω => lawS_sum _ _
-  have hlawm : ∀ n o, Measurable[hist O σ (n + 1)] fun ω => law n ω o := fun n o =>
-    (measurable_of_countable fun s : EpochState => lawS E (n + 1) s o).comp (hσh (n + 1) (n + 1) le_rfl)
-  have hfr : ∀ n (f : Ω → ℝ≥0∞), Measurable[hist O σ (n + 1)] f → ∀ o,
-      ∫⁻ ω, f ω * (if X n ω = o then 1 else 0) ∂μ = ∫⁻ ω, f ω * ENNReal.ofReal (law n ω o) ∂μ := by
-    intro n f hf o
-    have h := freeze (m := hist O σ (n + 1)) (μ := μ) (hm _) (hσh (n + 1) (n + 1) le_rfl) (hO.meas (n + 1))
-      (hfresh (n + 1)) (g := fun s T => slotOut E (n + 1) s T) (fun s => measurable_slotOut E (n + 1) s) o hf
-    refine h.trans (lintegral_congr fun ω => ?_)
-    rw [slot_law hO hA.nodup (n + 1) (σ ω (n + 1)) (hst ω (n + 1)).nodup o]
-    rfl
-  have hEL : 0 < E.c.epochLength := by omega
-  have hconst : ∀ ω i, σ ω i = σ ω (i / E.c.epochLength * E.c.epochLength) := fun ω i =>
-    σE_const (E.withO (O ω)) (es ω) hEL i
-  -- the rates' lower bound in band
-  set m : ℝ := ((E.c.period : ℝ) - 1) * (T.ylo * T.clo) with hmdef
-  have hyc : 0 ≤ T.ylo * T.clo := mul_nonneg (mul_nonneg (by linarith [hT.β1]) hT.lo_pos.le) hT.clo0
-  have hmH : ∀ ω e, InB E T (σ ω) e → m ≤ hrate E (σ ω) e := by
-    intro ω e he
-    unfold hrate
-    calc m ≤ ((win E e).card : ℝ) * (T.ylo * T.clo) := by
-          refine mul_le_mul_of_nonneg_right ?_ hyc
-          have := card_win (E := E) e
-          have : ((E.c.period - 1 : ℕ) : ℝ) ≤ (win E e).card := by exact_mod_cast this
-          rw [Nat.cast_sub hP1] at this; simpa using this
-      _ = ∑ k ∈ win E e, T.ylo * T.clo := by rw [Finset.sum_const, nsmul_eq_mul]
-      _ ≤ _ := Finset.sum_le_sum fun k hk =>
-          rate_hon_lo hc hT (hst ω (k + 1)) (he (k + 1) (mem_win hP1 hPEL hk).1 (mem_win hP1 hPEL hk).2)
-  have hmW : ∀ ω e, InB E T (σ ω) e → m ≤ wrate E (σ ω) e := fun ω e he =>
-    le_trans (hmH ω e he) (Finset.sum_le_sum fun k _ => rate_hon_le_occ hO.pos _ _)
-  -- the first epoch out of band follows an atypical window
-  set Lo : ℕ → Set Ω := fun e => {ω | InB E T (σ ω) e ∧ ¬ (1 - T.δ) * hrate E (σ ω) e ≤ hcnt E (fun k => X k ω) e}
-  set Hi : ℕ → Set Ω := fun e => {ω | InB E T (σ ω) e ∧ ¬ wcnt E (fun k => X k ω) e ≤ (1 + T.δ) * wrate E (σ ω) e}
-  have hsub : {ω | ∃ e < Ne, ¬ InB E T (σ ω) e} ⊆ (⋃ e ∈ Finset.range Ne, (Lo e ∪ Hi e)) ∪ Bad := by
-    intro ω hω
-    by_cases hB : ω ∈ Bad
-    · exact Or.inr hB
-    left
-    have hex : ∃ e, e < Ne ∧ ¬ InB E T (σ ω) e := hω
-    obtain ⟨h1, h2⟩ := Nat.find_spec hex
-    have hmin : ∀ e < Nat.find hex, ¬ (e < Ne ∧ ¬ InB E T (σ ω) e) := fun e he => Nat.find_min hex he
-    obtain ⟨e, he⟩ : ∃ e, Nat.find hex = e + 1 := by
-      rcases hz : Nat.find hex with _ | e
-      · rw [hz] at h2; exact absurd (h0 ω) h2
-      · exact ⟨e, rfl⟩
-    rw [he] at h1 h2 hmin
-    have hin : InB E T (σ ω) e := by
-      by_contra h; exact hmin e (by omega) ⟨by omega, h⟩
-    simp only [Set.mem_iUnion, Finset.mem_range]
-    refine ⟨e, by omega, ?_⟩
-    by_contra hno
-    simp only [Set.mem_union, Lo, Hi, Set.mem_setOf_eq, not_or, not_and, not_not] at hno
-    exact h2 (band_step hc hT hb hprec hPf hP1 hPEL (hconst ω) (hst ω) hin ⟨hno.1 hin, hno.2 hin⟩
-      (hrec ω e (by omega) hB) (hpath ω e (by omega)))
-  have hLo : ∀ e, μ (Lo e) ≤ ENNReal.ofReal (exp (-(m * T.δ ^ 2 / 2))) := fun e =>
-    chernoff_lo X hXm (fun n => hist O σ (n + 1)) (fun n => hm _) hFm hXh law hlaw0 hlaw1 hlawm hfr honA
-      (win E e) hT.δ0.le (Lo e) fun ω ⟨hin, hno⟩ => ⟨lt_of_not_ge hno, hmH ω e hin⟩
-  have hHi : ∀ e, μ (Hi e) ≤ ENNReal.ofReal (exp (-(m * T.δ ^ 2 * (1 / 2 - 2 / 9 * T.δ)))) := fun e =>
-    chernoff_hi X hXm (fun n => hist O σ (n + 1)) (fun n => hm _) hFm hXh law hlaw0 hlaw1 hlawm hfr occA
-      (win E e) hT.δ0.le hT.δ1 (Hi e) fun ω ⟨hin, hno⟩ => ⟨lt_of_not_ge hno, hmW ω e hin⟩
-  have hA' : μ (⋃ e ∈ Finset.range Ne, (Lo e ∪ Hi e)) ≤ Ne * ENNReal.ofReal (bandEps T E.c.period) :=
-    calc μ (⋃ e ∈ Finset.range Ne, (Lo e ∪ Hi e)) ≤ ∑ e ∈ Finset.range Ne, μ (Lo e ∪ Hi e) :=
-          measure_biUnion_finset_le _ _
-      _ ≤ ∑ e ∈ Finset.range Ne, ENNReal.ofReal (bandEps T E.c.period) := by
-          refine Finset.sum_le_sum fun e _ => (measure_union_le _ _).trans ?_
-          unfold bandEps
-          rw [ENNReal.ofReal_add (exp_pos _).le (exp_pos _).le]
-          exact add_le_add (hLo e) (hHi e)
-      _ = Ne * ENNReal.ofReal (bandEps T E.c.period) := by rw [Finset.sum_const, Finset.card_range, nsmul_eq_mul]
-  exact (measure_mono hsub).trans ((measure_union_le _ _).trans (add_le_add hA' le_rfl))
-
-
 /-- **The estimate stays in band, with the update failing on sets charged only while in
-band.** As `prob_out_of_band_bad`, with a failure set `Bad e` for each epoch's update:
+band.** As `prob_out_of_band`, with a failure set `Bad e` for each epoch's update:
 the estimate leaves its band in some epoch with probability at most
 `Ne · bandEps + Σₑ μ (Bad e ∩ {epochs ≤ e in band})`. -/
 theorem prob_out_of_band_seq (hA : Assm E) (es : Ω → List Event)
@@ -993,9 +889,9 @@ theorem prob_out_of_band (hA : Assm E) (es : Ω → List Event)
       (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e)
     (hpath : ∀ ω e, e + 1 < Ne → StakePath E T (σE (E.withO (O ω)) (es ω)) e) :
     μ {ω | ∃ e < Ne, ¬ InB E T (σE (E.withO (O ω)) (es ω)) e} ≤ Ne * ENNReal.ofReal (bandEps T E.c.period) := by
-  have := prob_out_of_band_bad hA es hO hσm hfresh hc hT hb hprec hPf hP1 hPEL hst h0 ∅
+  have := prob_out_of_band_seq hA es hO hσm hfresh hc hT hb hprec hPf hP1 hPEL hst h0 (fun _ => ∅)
     (fun ω e he _ => hrec ω e he) hpath
-  rwa [measure_empty, add_zero] at this
+  simpa using this
 
 end RO
 
