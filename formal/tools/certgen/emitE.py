@@ -471,7 +471,7 @@ def emit_tsi(cfg, T, D, K, M, tgt, Gp, J, Lw, r, Tg, x, yy, G, tgt_q):
         a0s.append(a0); Qs.append((Q, hyp, base)); chains.append("\n".join(lines))
     BX = rup(1 / Qs[0][0] + 1 / Qs[1][0], 4)
     Ne = M // EL + 1
-    FINAL = rup(tgt_q * (Ne + 1) + Ne * BX, 2)
+    FINAL = rup(tgt_q + Ne * BX, 2)
     # consecutive member ranges: ⟨m0.yhi = m1.ylo, ⟨…, trivial⟩⟩
     def nest_(kk):
         if kk == K - 1: return "trivial"
@@ -540,9 +540,8 @@ theorem finality {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measur
     (fun k => by fin_cases k; exacts [{", ".join(f"prod{kk}" for kk in range(K))}])
     (G' := {Gp}) (J := {J}) (Lw := {Lw}) (r := {r}) (T := {Tg}) (x := {q(x)}) (yy := {q(yy)})
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
-    (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B])
+    (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B])
     (by rw [hEL]; norm_num) (by rw [hEL, hc]; norm_num [Config.spec, Config.nonceOffset, Config.s, Config.kf])
-    (by show (0 : ℝ) ≤ P.e 2; norm_num [P, Ev])
     (by rw [hc]; exact lot) TbOK (by rw [hc]; rfl) (by rw [hc]; norm_num [Config.spec])
     (by rw [hc]; norm_num [Config.spec, Config.period, Config.kf])
     (by rw [hP]; norm_num) (by rw [hP, hEL]; norm_num) (by rw [hEL]; norm_num)
@@ -559,9 +558,8 @@ theorem finality {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measur
   rw [hP] at hb
   have h1 := ENNReal.ofReal_le_ofReal (eps_le E hc)
   have h2 := ENNReal.ofReal_le_ofReal band_le
-  refine hb.trans ((add_le_add h1 (add_le_add (mul_le_mul_right h2 _) (mul_le_mul_right h1 _))).trans ?_)
-  rw [← ENNReal.ofReal_natCast, ← ENNReal.ofReal_mul (by positivity), ← ENNReal.ofReal_mul (by positivity),
-    ← ENNReal.ofReal_add (by positivity) (by positivity), ← ENNReal.ofReal_add (by positivity) (by positivity)]
+  refine hb.trans ((add_le_add h1 (mul_le_mul_right h2 _)).trans ?_)
+  rw [← ENNReal.ofReal_natCast, ← ENNReal.ofReal_mul (by positivity), ← ENNReal.ofReal_add (by positivity) (by positivity)]
   exact ENNReal.ofReal_le_ofReal (by norm_num)
 
 """
