@@ -1,84 +1,88 @@
+module -- shake: keep-all
+
 -- The specification
-import Cryptarchia.Spec.Params
-import Cryptarchia.Spec.Lottery
-import Cryptarchia.Spec.StakeInference
-import Cryptarchia.Spec.Chain
-import Cryptarchia.Spec.ForkChoice
-import Cryptarchia.Spec.EpochState
-import Cryptarchia.Spec.Node
-import Cryptarchia.Spec.Execution
+public import Cryptarchia.Spec.Params
+public import Cryptarchia.Spec.Lottery
+public import Cryptarchia.Spec.StakeInference
+public import Cryptarchia.Spec.Chain
+public import Cryptarchia.Spec.ForkChoice
+public import Cryptarchia.Spec.EpochState
+public import Cryptarchia.Spec.Node
+public import Cryptarchia.Spec.Execution
 -- Settlement combinatorics
-import Cryptarchia.Settle.Tree
-import Cryptarchia.Settle.TreeBasic
-import Cryptarchia.Settle.Recurrence
-import Cryptarchia.Settle.Phases
-import Cryptarchia.Settle.Mono
-import Cryptarchia.Settle.Reduce
+public import Cryptarchia.Settle.Tree
+public import Cryptarchia.Settle.TreeBasic
+public import Cryptarchia.Settle.Recurrence
+public import Cryptarchia.Settle.Phases
+public import Cryptarchia.Settle.Mono
+public import Cryptarchia.Settle.Reduce
 -- Deterministic safety over executions
-import Cryptarchia.Proof.Chains
-import Cryptarchia.Proof.Lca
-import Cryptarchia.Proof.Maintenance
-import Cryptarchia.Proof.Structural
-import Cryptarchia.Proof.NodeStep
-import Cryptarchia.Proof.WorldStep
-import Cryptarchia.Proof.Bridge
-import Cryptarchia.Proof.Honest
-import Cryptarchia.Proof.Timing
-import Cryptarchia.Proof.Local
-import Cryptarchia.Proof.Trace
-import Cryptarchia.Proof.Honesty
-import Cryptarchia.Proof.Support
-import Cryptarchia.Proof.Main
-import Cryptarchia.Proof.Settlement
-import Cryptarchia.Proof.EpochCut
-import Cryptarchia.Proof.Canon
-import Cryptarchia.Proof.LotteryG
-import Cryptarchia.Proof.Lottery
-import Cryptarchia.Proof.Final
-import Cryptarchia.Proof.LotteryE
-import Cryptarchia.Proof.FinalE
-import Cryptarchia.Proof.TimeFinal
-import Cryptarchia.Proof.Recur
+public import Cryptarchia.Proof.Chains
+public import Cryptarchia.Proof.Lca
+public import Cryptarchia.Proof.Maintenance
+public import Cryptarchia.Proof.Structural
+public import Cryptarchia.Proof.NodeStep
+public import Cryptarchia.Proof.WorldStep
+public import Cryptarchia.Proof.Bridge
+public import Cryptarchia.Proof.Honest
+public import Cryptarchia.Proof.Timing
+public import Cryptarchia.Proof.Local
+public import Cryptarchia.Proof.Trace
+public import Cryptarchia.Proof.Honesty
+public import Cryptarchia.Proof.Support
+public import Cryptarchia.Proof.Main
+public import Cryptarchia.Proof.Settlement
+public import Cryptarchia.Proof.EpochCut
+public import Cryptarchia.Proof.Canon
+public import Cryptarchia.Proof.LotteryG
+public import Cryptarchia.Proof.Lottery
+public import Cryptarchia.Proof.Final
+public import Cryptarchia.Proof.LotteryE
+public import Cryptarchia.Proof.FinalE
+public import Cryptarchia.Proof.TimeFinal
+public import Cryptarchia.Proof.Recur
 -- The probability layer
-import Cryptarchia.Prob.InferClose
-import Cryptarchia.Prob.Kernel
-import Cryptarchia.Prob.Phases
-import Cryptarchia.Prob.Potential
-import Cryptarchia.Prob.Burst
-import Cryptarchia.Prob.Next
-import Cryptarchia.Prob.Cold
-import Cryptarchia.Prob.Reach
-import Cryptarchia.Prob.Blocks
-import Cryptarchia.Prob.Depth
-import Cryptarchia.Prob.Good
-import Cryptarchia.Prob.Tail
-import Cryptarchia.Prob.Final
-import Cryptarchia.Prob.Auto
-import Cryptarchia.Prob.Potential2
-import Cryptarchia.Prob.Cold2
-import Cryptarchia.Prob.Fail2
-import Cryptarchia.Prob.Good2
-import Cryptarchia.Prob.Reach2
-import Cryptarchia.Prob.Tail2
-import Cryptarchia.Prob.Final2
-import Cryptarchia.Prob.Cert
-import Cryptarchia.Prob.Worst
-import Cryptarchia.Prob.RO
-import Cryptarchia.Prob.Stake
-import Cryptarchia.Prob.WorstE
-import Cryptarchia.Prob.ROEpoch
-import Cryptarchia.Prob.AutoE
-import Cryptarchia.Prob.Cold2E
-import Cryptarchia.Prob.Fail2E
-import Cryptarchia.Prob.Tail2E
-import Cryptarchia.Prob.Final2E
-import Cryptarchia.Prob.TSIRO
-import Cryptarchia.Prob.FinalTSI
-import Cryptarchia.Prob.Fail3E
-import Cryptarchia.Prob.Tail3E
-import Cryptarchia.Prob.Final3E
-import Cryptarchia.Prob.CertE
-import Cryptarchia.Prob.ExpBound
+public import Cryptarchia.Prob.InferClose
+public import Cryptarchia.Prob.Kernel
+public import Cryptarchia.Prob.Phases
+public import Cryptarchia.Prob.Potential
+public import Cryptarchia.Prob.Burst
+public import Cryptarchia.Prob.Next
+public import Cryptarchia.Prob.Cold
+public import Cryptarchia.Prob.Reach
+public import Cryptarchia.Prob.Blocks
+public import Cryptarchia.Prob.Depth
+public import Cryptarchia.Prob.Good
+public import Cryptarchia.Prob.Tail
+public import Cryptarchia.Prob.Final
+public import Cryptarchia.Prob.Auto
+public import Cryptarchia.Prob.Potential2
+public import Cryptarchia.Prob.Cold2
+public import Cryptarchia.Prob.Fail2
+public import Cryptarchia.Prob.Good2
+public import Cryptarchia.Prob.Reach2
+public import Cryptarchia.Prob.Tail2
+public import Cryptarchia.Prob.Final2
+public import Cryptarchia.Prob.Cert
+public import Cryptarchia.Prob.Worst
+public import Cryptarchia.Prob.RO
+public import Cryptarchia.Prob.Stake
+public import Cryptarchia.Prob.WorstE
+public import Cryptarchia.Prob.ROEpoch
+public import Cryptarchia.Prob.AutoE
+public import Cryptarchia.Prob.Cold2E
+public import Cryptarchia.Prob.Fail2E
+public import Cryptarchia.Prob.Tail2E
+public import Cryptarchia.Prob.Final2E
+public import Cryptarchia.Prob.TSIRO
+public import Cryptarchia.Prob.FinalTSI
+public import Cryptarchia.Prob.Fail3E
+public import Cryptarchia.Prob.Tail3E
+public import Cryptarchia.Prob.Final3E
+public import Cryptarchia.Prob.CertE
+public import Cryptarchia.Prob.AutoQ
+public import Cryptarchia.Prob.ExpBound
+
 
 /-!
 # Cryptarchia

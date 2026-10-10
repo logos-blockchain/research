@@ -1,8 +1,12 @@
 -- Formalization of `reports/analysis_of_stochastic_recurrence_equation.tex`.
-import StochasticRecurrence.Lottery
-import StochasticRecurrence.Binomial
-import StochasticRecurrence.Reduction
-import StochasticRecurrence.Concentration
-import StochasticRecurrence.MeanField
-import StochasticRecurrence.Average
-import StochasticRecurrence.Numerics
+module -- shake: keep-all
+
+public import StochasticRecurrence.Lottery
+public import StochasticRecurrence.Binomial
+public import StochasticRecurrence.Reduction
+public import StochasticRecurrence.Concentration
+public import StochasticRecurrence.MeanField
+public import StochasticRecurrence.Average
+public import StochasticRecurrence.Numerics
+
+@[expose] public section

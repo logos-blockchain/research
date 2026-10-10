@@ -1,4 +1,44 @@
-import Cryptarchia.Prob.Fail2E
+module
+
+public import Cryptarchia.Prob.Fail2E
+import Cryptarchia.Settle.Mono
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Choose.Multinomial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Chebyshev
+import Mathlib.NumberTheory.Height.NumberField
+import Mathlib.NumberTheory.Height.Projectivization
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.Radical.NatInt
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Echelon.Zsqrtd
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.Polynomial.Basic
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Init
+import Std.Tactic.BVDecide.Normalize.BitVec
+import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
 # Failed checks with an in-epoch contraction
@@ -13,6 +53,8 @@ potential carries a weight `(lp / lpi)^c`, with `c` the switching slots left in 
 window (`swCnt`); a failed check counts only if the check is within `L` slots of its
 anchor (the span term pays for the rest).
 -/
+
+@[expose] public section
 
 namespace Cryptarchia.Prob
 
@@ -76,7 +118,6 @@ theorem phase_lowerL {el : ℝ} (hel0 : 0 ≤ el) (hΔ : 0 < Δ) {l : List Out} 
     _ ≤ κ.p l o1 * ExU (κ := κ) (PE Δ M) (M - l.length - 1) G (l ++ [o1]) :=
         mul_le_mul_of_nonneg_left h0 (κ.nonneg l o1)
     _ ≤ _ := hsingle
-
 
 theorem ex_cross_truncL {sl el : ℝ} (hel0 : 0 ≤ el) (hΔ : 0 < Δ) {h : List Out}
     (hlM : h.length + Δ + 1 ≤ M) {G : ℕ} (hG : Δ + 1 ≤ G) (hs : sl ≤ κ.p h ⟨1, false⟩)
@@ -594,6 +635,5 @@ theorem fail_checkE3 (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 
                   (pow_nonneg hlpi0.le _)) he2
             _ = lpi ^ (k - 0) * (P.lp / lpi) ^ Ccap * P.e 2 * 1 := by ring
             _ ≤ _ := mul_le_mul_of_nonneg_left (by linarith) hF
-
 
 end Cryptarchia.Prob

@@ -1,4 +1,41 @@
-import Cryptarchia.Proof.Main
+module
+
+public import Cryptarchia.Proof.Main
+import Cryptarchia.Proof.NodeStep
+import Cryptarchia.Proof.Support
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Choose.Multinomial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Chebyshev
+import Mathlib.NumberTheory.Height.NumberField
+import Mathlib.NumberTheory.Height.Projectivization
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.Radical.NatInt
+import Mathlib.Tactic.Echelon.Zsqrtd
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+import Std.Tactic.BVDecide.Normalize.BitVec
+import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
 # Cryptarchia settlement theorems
@@ -13,6 +50,8 @@ import Cryptarchia.Proof.Main
   as immutable is on every honest node's local chain at every later point.**
   This is Cryptarchia's `k`-deep finality.
 -/
+
+@[expose] public section
 
 namespace Cryptarchia
 
@@ -214,7 +253,6 @@ theorem bimm_final (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ}
   have h2 := agree_now hA hK hG hn' hnH hi hj hio hjo
   exact chainIds_trans hS ((wAt_ok (es := es) hA.ord n').nodes j |>.rooted _
     ((wAt_ok (es := es) hA.ord n').nodes j).cloc) h2 h1
-
 
 /-- The trivial block predicate (every valid block is in the tree). -/
 theorem KOK_true (H : ℕ) : KOK E es (fun _ => True) H :=

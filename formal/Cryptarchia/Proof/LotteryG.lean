@@ -1,5 +1,40 @@
-import Cryptarchia.Proof.Settlement
-import Cryptarchia.Settle.Mono
+module
+
+public import Cryptarchia.Settle.Mono
+public import Cryptarchia.Proof.Main
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Choose.Multinomial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Chebyshev
+import Mathlib.NumberTheory.Height.NumberField
+import Mathlib.NumberTheory.Height.Projectivization
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.Radical.NatInt
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Echelon.Zsqrtd
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Topology.Sheaves.Init
+import Std.Tactic.BVDecide.Normalize.BitVec
 
 /-!
 # The lottery string, for any assignment of epoch states to slots
@@ -18,6 +53,8 @@ Then the execution's string is dominated by the lottery string (`advLe_lotS`).
 `Proof/LotteryE.lean` is the multi-epoch one (`σ` = canonical states,
 `K` = consistency).
 -/
+
+@[expose] public section
 
 namespace Cryptarchia
 
@@ -520,7 +557,6 @@ theorem advLe_lotS (hA : Assm E) (hN : HonestStake E.L) (hσ : StatesOK E es σ)
     (hKh : ∀ b B, (wF E es).st b = some B → IsHon B → K b) (hσa : AdvStatesOK E es K σ) :
     AdvLe (wF E es).now (WS E es K) (lotStrS E σ (lateAt E es)) :=
   ⟨fun _ h1 h2 => hon_countS hA hN hσ hKh h1 h2, fun _ h => hon_lateS h, fun _ h => adv_domS hA hσa h⟩
-
 
 /-! ## Up to a horizon -/
 

@@ -16,7 +16,7 @@ name = "MiningOnboarding"
 [[lean_lib]]
 name = "Cryptarchia"
 
-# Generated numeric certificates (slow: hours). Not a default target.
+# Generated numeric certificates (minutes each). Not a default target.
 [[lean_lib]]
 name = "CryptarchiaCerts"
 

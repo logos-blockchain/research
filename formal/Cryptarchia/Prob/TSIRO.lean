@@ -1,6 +1,47 @@
-import Cryptarchia.Prob.Stake
-import Cryptarchia.Prob.ROEpoch
+module
+
+public import Cryptarchia.Prob.Stake
 import Cryptarchia.Prob.InferClose
+import Cryptarchia.Prob.ROEpoch
+import Mathlib.Algebra.Order.Floor.Extended
+import Mathlib.Algebra.Order.Interval.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Algebra.Order.Star.Real
+import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Analysis.SpecialFunctions.Bernstein
+import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+import Mathlib.Combinatorics.Enumerative.DyckWord
+import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
+import Mathlib.Data.NNRat.Floor
+import Mathlib.Data.Nat.Choose.Multinomial
+import Mathlib.Geometry.Euclidean.Altitude
+import Mathlib.NumberTheory.Chebyshev
+import Mathlib.NumberTheory.Height.NumberField
+import Mathlib.NumberTheory.Height.Projectivization
+import Mathlib.NumberTheory.LucasLehmer
+import Mathlib.NumberTheory.SelbergSieve
+import Mathlib.RingTheory.PiTensorProduct
+import Mathlib.RingTheory.Radical.NatInt
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.Echelon.Zsqrtd
+import Mathlib.Tactic.NormNum.Irrational
+import Mathlib.Tactic.NormNum.IsCoprime
+import Mathlib.Tactic.NormNum.IsSquare
+import Mathlib.Tactic.NormNum.LegendreSymbol
+import Mathlib.Tactic.NormNum.ModEq
+import Mathlib.Tactic.NormNum.NatFib
+import Mathlib.Tactic.NormNum.NatLog
+import Mathlib.Tactic.NormNum.NatSqrt
+import Mathlib.Tactic.NormNum.Ordinal
+import Mathlib.Tactic.NormNum.Parity
+import Mathlib.Tactic.NormNum.Prime
+import Mathlib.Tactic.NormNum.RealSqrt
+import Mathlib.Tactic.Polynomial.Basic
+import Mathlib.Tactic.ReduceModChar
+import Mathlib.Topology.Sheaves.Init
+import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
 # The stake estimate stays in band, from the random oracle
@@ -24,6 +65,8 @@ probability that some epoch's estimate leaves the band.
   is at most `Ne · (exp(-m δ²/2) + exp(-m δ² (1/2 - 2δ/9)))`.
 -/
 
+@[expose] public section
+
 namespace Cryptarchia.Prob
 
 open MeasureTheory ProbabilityTheory Finset Real
@@ -40,7 +83,6 @@ theorem exp_sub_one_le_cubic {s : ℝ} (h0 : 0 ≤ s) (h1 : s ≤ 1) :
   have := (abs_le.1 hb).2
   norm_num at this
   nlinarith [this]
-
 
 section Chernoff
 
@@ -536,7 +578,6 @@ theorem rate_hon_le_occ (hp : 0 < E.c.p) (i : ℕ) (s : EpochState) :
 
 end Band
 
-
 section Step
 
 variable (E : Env) (T : TBand) (σ : ℕ → EpochState) (X : ℕ → Out)
@@ -697,7 +738,6 @@ theorem band_step (hc : LotConsts E.c T.η) (hT : T.OK) (hb : E.c.betaP = E.c.pr
 
 end Step
 
-
 /-! ## Out of band, from the random oracle -/
 
 section RO
@@ -819,6 +859,5 @@ theorem prob_out_of_band (hA : Assm E) (es : Ω → List Event)
     _ = Ne * ENNReal.ofReal (bandEps T E.c.period) := by rw [Finset.sum_const, Finset.card_range, nsmul_eq_mul]
 
 end RO
-
 
 end Cryptarchia.Prob

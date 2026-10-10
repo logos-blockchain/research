@@ -1,4 +1,12 @@
-import Mathlib.Analysis.SpecialFunctions.Exp
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+meta import Lean.Meta.Tactic.NormCast
+import Mathlib.Algebra.Order.BigOperators.Expect
+import Mathlib.Algebra.Order.Field.Power
+import Mathlib.Analysis.Complex.Order
+import Mathlib.Analysis.Complex.Trigonometric
+import Mathlib.Data.EReal.Inv
 
 /-!
 # A rational upper bound on `exp (-a)`
@@ -6,6 +14,8 @@ import Mathlib.Analysis.SpecialFunctions.Exp
 `exp (-a) ≤ 1 / (1 + a/n)^n`, from `1 + x ≤ exp x`. A certificate bounds `(1 + a₀/n)^n`
 from below by a repeated-squaring chain and gets `exp (-a) ≤ 1 / Q` for `a ≥ a₀`.
 -/
+
+@[expose] public section
 
 namespace Cryptarchia.Prob
 
