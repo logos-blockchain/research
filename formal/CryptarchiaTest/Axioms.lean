@@ -66,3 +66,9 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.Prob.lift_bad
 #print axioms Cryptarchia.Prob.finality_tight
 #print axioms Cryptarchia.Prob.finality
+#print axioms Cryptarchia.Prob.settleEps3E_closed
+#print axioms Cryptarchia.Prob.bandEps_closed
+#print axioms Cryptarchia.Prob.geom_le_of
+#print axioms Cryptarchia.Prob.Certs.E20D11M2.finality
+#print axioms Cryptarchia.Prob.Certs.E20D11C.finality_closed
+#print axioms Cryptarchia.Prob.Certs.E20D11C.finality_closed_short
