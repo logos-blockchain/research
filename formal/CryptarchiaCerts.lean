@@ -14,8 +14,8 @@ certificate takes about 40 s (`lake build CryptarchiaCerts`).
 Each `finality` bounds a finality violation from the plain assumptions of
 `Cryptarchia.Prob.finality`, with β = 0.2, μ = 0.1, ρ = 1.01, `Hmin` = 10⁶:
 
-* `E20D11` — every epoch for a year (49 epochs) at Δ = 11 slots, k = 2160: `1.1e-7`.
-* `E20D11M2` — the same parameters over two months (slot 5184000, 9 epochs): `3.6e-9`.
+* `E20D11` — every epoch for a year (49 epochs) at Δ = 11 slots, k = 2160: `2.2e-9`.
+* `E20D11M2` — the same parameters over two months (slot 5184000, 9 epochs): `3.6e-10`.
 
 Other configurations can be generated with `tools/certgen` (see its README).
 -/

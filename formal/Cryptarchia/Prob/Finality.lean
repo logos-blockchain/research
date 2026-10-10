@@ -34,12 +34,12 @@ import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
 public import Cryptarchia.Prob.Final3E
 public import Cryptarchia.Prob.Pick
-import Cryptarchia.Prob.FinalInd
+import Cryptarchia.Prob.FinalTight
 
 /-!
 # Finality, from plain assumptions
 
-`finality` restates `finality_core` with its assumptions as named, readable
+`finality` restates `finality_tight` with its assumptions as named, readable
 conditions on the model and the executions:
 
 * `Model`: tickets are a random oracle, each slot's lottery is fresh, honest blocks are
@@ -141,7 +141,7 @@ theorem inB0_of_genesisOK {E : Env} {T : TBand} (hon : OnlineEpoch E) (hg : Gene
 /-- **Probabilistic finality over many epochs, from plain assumptions.** Under the
 execution model, executions up to slot `N`, the genesis condition, honest majority of
 stake `β`, chain quality `μ`, stake drift `ρ` and minimum honest stake `Hmin`, a finality
-violation has probability at most `(Ne + 1) · settleEps3E + Ne · bandEps`, for any
+violation has probability at most `settleEps3E + Ne · bandEps`, for any
 certificate (`D`, the band `Tb`, the members `mem`) whose numeric conditions hold. -/
 theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle} {E : Env}
     (es : Ω → List Event) (hM : Model μ O E es) {N : ℕ} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N)
@@ -150,8 +150,8 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     (hP : ∀ k, (fam k).Prod)
     {G' J Lw r T : ℕ} {x yy : ℝ} (hx : 1 ≤ x) (hyy0 : 0 < yy)
     (hyy1 : yy ≤ 1) (hT : 1 ≤ T) (hNM : N + G + G' + Δ + 2 ≤ M)
-    (hhi0 : 0 ≤ B.hhi) (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (hlo1 : B.hlo ≤ 1) (helo1 : B.elo ≤ 1)
-    (hLw : Lw + G < E.c.epochLength) (hOG : E.c.nonceOffset + G + 2 ≤ E.c.epochLength) (he2 : 0 ≤ D.C.P.e 2)
+    (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (hlo1 : B.hlo ≤ 1) (helo1 : B.elo ≤ 1)
+    (hLw : Lw + G < E.c.epochLength) (hOG : E.c.nonceOffset + G + 2 ≤ E.c.epochLength)
     {Tb : TBand} (hc : LotConsts E.c Tb.η) (hTb : Tb.OK) (hb : E.c.betaP = E.c.precision)
     (hprec : 0 < E.c.precision) (hPf : 0 < E.c.period * E.c.fP) (hP1 : 1 ≤ E.c.period)
     (hPEL : E.c.period ≤ E.c.epochLength) {Ne : ℕ} (hNe : M / E.c.epochLength < Ne)
@@ -168,14 +168,13 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) Tb.μ Ne)
     (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) ρ Ne) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) Hmin) :
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps3E E B D.C.P D.lpi G N G G' J Lw r T x yy) +
-      (Ne * ENNReal.ofReal (bandEps Tb E.c.period) +
-        Ne * ENNReal.ofReal (settleEps3E E B D.C.P D.lpi G N G G' J Lw r T x yy)) := by
+      Ne * ENNReal.ofReal (bandEps Tb E.c.period) := by
   have hl : 0 < lam0 E.c := by unfold lam0; have := hc.p_pos; have := hc.t0_pos; positivity
   have hK : 0 < Kc E.c := by
     unfold Kc; have : (0 : ℝ) < E.c.period * E.c.fP := by exact_mod_cast hPf
     exact div_pos (by exact_mod_cast hprec) this
-  exact finality_core hM.assm es hN hM.delivery hM.oracle hM.measurable hM.fresh hΔ D hP hx hyy0 hyy1 hT
-    hNM hhi1 hlo0 hlo1 helo1 hLw hOG hhi0 he2 hc hTb hb hprec hPf hP1 hPEL
+  exact finality_tight hM.assm es hN hM.delivery hM.oracle hM.measurable hM.fresh hΔ D hP hx hyy0 hyy1 hT
+    hNM hhi1 hlo0 hlo1 helo1 hLw hOG hc hTb hb hprec hPf hP1 hPEL
     (fun ω i => stateOK_of (E := E) (hS ω i))
     (inB0_of_genesisOK hM.onlineEpoch hG (by linarith [hTb.μ1]) hg1 hg2) hNe (fun ω e he => hQ ω e he)
     (fun ω e he => stakePath_of_drift (E := E) hTb hl hK hP1 hρ hHm (hD ω e he) (hH ω) hup hdn)

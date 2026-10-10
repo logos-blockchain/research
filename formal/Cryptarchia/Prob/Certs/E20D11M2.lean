@@ -1130,7 +1130,7 @@ theorem advM : ∀ k, Tb.β * (mem k).yhi ≤ (1 - Tb.β) * (mem k).ahi := fun k
 the genesis stake, the adversary holds at most 0.2 of the participating stake, the
 canonical chain counts at least 0.9 of each window's honestly won slots,
 stake drifts by at most a factor 1.01 per epoch and honest online stake is at
-least 1000000, a finality violation has probability at most 3.60e-09. -/
+least 1000000, a finality violation has probability at most 3.60e-10. -/
 theorem finality {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
     [MeasureTheory.IsProbabilityMeasure μ] {O : Ω → Oracle} (E : Env) (hc : E.c = Config.spec) (hΔ : E.Δ = 11)
     (es : Ω → List Event) (hM : Model μ O E es) (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ 5184000)
@@ -1139,16 +1139,15 @@ theorem finality {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure �
     (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) (1 / 10 : ℝ) 9)
     (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) (101 / 100 : ℝ) 9)
     (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) (1000000 : ℝ)) :
-    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (9 / 2500000000 : ℝ) := by
+    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (9 / 25000000000 : ℝ) := by
   have hEL : E.c.epochLength = 648000 := by rw [hc]; rfl
   have hP : E.c.period = 388800 := by rw [hc]; rfl
   have hb := Prob.finality (M := 5186506) (Ne := 9) es hM hN hΔ (D3 E.c.epochLength hEL)
     (fun k => by fin_cases k; exacts [prod0, prod1, prod2, prod3, prod4, prod5])
     (G' := 1844) (J := 19600) (Lw := 35000) (r := 317) (T := 36) (x := (123 / 100 : ℝ)) (yy := (47 / 100 : ℝ))
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
-    (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B])
+    (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B])
     (by rw [hEL]; norm_num) (by rw [hEL, hc]; norm_num [Config.spec, Config.nonceOffset, Config.s, Config.kf])
-    (by show (0 : ℝ) ≤ P.e 2; norm_num [P, Ev])
     (by rw [hc]; exact lot) TbOK (by rw [hc]; rfl) (by rw [hc]; norm_num [Config.spec])
     (by rw [hc]; norm_num [Config.spec, Config.period, Config.kf])
     (by rw [hP]; norm_num) (by rw [hP, hEL]; norm_num) (by rw [hEL]; norm_num)
@@ -1165,9 +1164,8 @@ theorem finality {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure �
   rw [hP] at hb
   have h1 := ENNReal.ofReal_le_ofReal (eps_le E hc)
   have h2 := ENNReal.ofReal_le_ofReal band_le
-  refine hb.trans ((add_le_add h1 (add_le_add (mul_le_mul_right h2 _) (mul_le_mul_right h1 _))).trans ?_)
-  rw [← ENNReal.ofReal_natCast, ← ENNReal.ofReal_mul (by positivity), ← ENNReal.ofReal_mul (by positivity),
-    ← ENNReal.ofReal_add (by positivity) (by positivity), ← ENNReal.ofReal_add (by positivity) (by positivity)]
+  refine hb.trans ((add_le_add h1 (mul_le_mul_right h2 _)).trans ?_)
+  rw [← ENNReal.ofReal_natCast, ← ENNReal.ofReal_mul (by positivity), ← ENNReal.ofReal_add (by positivity) (by positivity)]
   exact ENNReal.ofReal_le_ofReal (by norm_num)
 
 

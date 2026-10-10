@@ -57,9 +57,12 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.Prob.inB0_of_genesis
 #print axioms Cryptarchia.cons_of_lot
 #print axioms Cryptarchia.Prob.good_trunc
-#print axioms Cryptarchia.Prob.prob_split_epoch
 #print axioms Cryptarchia.Prob.prob_out_of_band_seq
-#print axioms Cryptarchia.Prob.finality_core
 #print axioms Cryptarchia.Prob.stakePath_of_drift
 #print axioms Cryptarchia.Prob.inB0_of_genesisOK
+#print axioms Cryptarchia.Prob.law_le_epoch_dec
+#print axioms Cryptarchia.Prob.lottery_law_epoch_dec
+#print axioms Cryptarchia.Prob.prob_out_of_band_cover
+#print axioms Cryptarchia.Prob.lift_bad
+#print axioms Cryptarchia.Prob.finality_tight
 #print axioms Cryptarchia.Prob.finality
