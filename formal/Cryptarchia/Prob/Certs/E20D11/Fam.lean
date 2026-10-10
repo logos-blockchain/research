@@ -1,7 +1,7 @@
 module
 
 public import Cryptarchia.Prob.AutoQ
-public import Cryptarchia.Prob.Worst
+public import Cryptarchia.Prob.Stake
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -158,6 +158,27 @@ def f0Q : BandQ := ⟨(1306084837083 / 50000000000000 : ℚ), (59776967911 / 250
 theorem f0A : f0Q.Agrees f0 :=
   ⟨by norm_num [f0, f0Q], by norm_num [f0, f0Q], by norm_num [f0, f0Q], by norm_num [f0, f0Q], by norm_num [f0, f0Q], by norm_num [f0, f0Q]⟩
 
+/-- Member 0 with its exponent range. -/
+noncomputable def m0 : Member := ⟨(30275229 / 1250000000 : ℝ), (66169624601 / 2500000000000 : ℝ), (66169624601 / 10000000000000 : ℝ), f0⟩
+
+theorem ok0 : m0.OK (1 / 10 ^ 70) (1 / 10 ^ 16) where
+  ylo0 := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  le := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  yhi := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  ahi0 := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  ahi := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  eLoH := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  eLoA := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  eHi := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  pos1 := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  hhi := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  hlo := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  amax := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  amax1 := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  slo := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  hnlo := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+  elo := by norm_num [m0, f0, errLo, errHi, Elo, Ehi]
+
 theorem weak1 : B.Weaker f1 :=
   ⟨by norm_num [B, f1], by norm_num [B, f1], by norm_num [B, f1], by norm_num [B, f1], by norm_num [B, f1], by norm_num [B, f1], by norm_num [B, f1], by norm_num [B, f1], by norm_num [B, f1]⟩
 
@@ -172,6 +193,27 @@ def f1Q : BandQ := ⟨(1425558926703 / 50000000000000 : ℚ), (2609662873009 / 1
 
 theorem f1A : f1Q.Agrees f1 :=
   ⟨by norm_num [f1, f1Q], by norm_num [f1, f1Q], by norm_num [f1, f1Q], by norm_num [f1, f1Q], by norm_num [f1, f1Q], by norm_num [f1, f1Q]⟩
+
+/-- Member 1 with its exponent range. -/
+noncomputable def m1 : Member := ⟨(66169624601 / 2500000000000 : ℝ), (28924103067 / 1000000000000 : ℝ), (28924103067 / 4000000000000 : ℝ), f1⟩
+
+theorem ok1 : m1.OK (1 / 10 ^ 70) (1 / 10 ^ 16) where
+  ylo0 := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  le := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  yhi := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  ahi0 := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  ahi := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  eLoH := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  eLoA := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  eHi := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  pos1 := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  hhi := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  hlo := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  amax := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  amax1 := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  slo := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  hnlo := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
+  elo := by norm_num [m1, f1, errLo, errHi, Elo, Ehi]
 
 theorem weak2 : B.Weaker f2 :=
   ⟨by norm_num [B, f2], by norm_num [B, f2], by norm_num [B, f2], by norm_num [B, f2], by norm_num [B, f2], by norm_num [B, f2], by norm_num [B, f2], by norm_num [B, f2], by norm_num [B, f2]⟩
@@ -188,6 +230,27 @@ def f2Q : BandQ := ⟨(1555788766343 / 50000000000000 : ℚ), (1423926541159 / 5
 theorem f2A : f2Q.Agrees f2 :=
   ⟨by norm_num [f2, f2Q], by norm_num [f2, f2Q], by norm_num [f2, f2Q], by norm_num [f2, f2Q], by norm_num [f2, f2Q], by norm_num [f2, f2Q]⟩
 
+/-- Member 2 with its exponent range. -/
+noncomputable def m2 : Member := ⟨(28924103067 / 1000000000000 : ℝ), (79020750011 / 2500000000000 : ℝ), (79020750011 / 10000000000000 : ℝ), f2⟩
+
+theorem ok2 : m2.OK (1 / 10 ^ 70) (1 / 10 ^ 16) where
+  ylo0 := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  le := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  yhi := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  ahi0 := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  ahi := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  eLoH := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  eLoA := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  eHi := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  pos1 := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  hhi := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  hlo := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  amax := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  amax1 := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  slo := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  hnlo := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+  elo := by norm_num [m2, f2, errLo, errHi, Elo, Ehi]
+
 theorem weak3 : B.Weaker f3 :=
   ⟨by norm_num [B, f3], by norm_num [B, f3], by norm_num [B, f3], by norm_num [B, f3], by norm_num [B, f3], by norm_num [B, f3], by norm_num [B, f3], by norm_num [B, f3], by norm_num [B, f3]⟩
 
@@ -202,6 +265,27 @@ def f3Q : BandQ := ⟨(169770957887 / 5000000000000 : ℚ), (621465282469 / 2000
 
 theorem f3A : f3Q.Agrees f3 :=
   ⟨by norm_num [f3, f3Q], by norm_num [f3, f3Q], by norm_num [f3, f3Q], by norm_num [f3, f3Q], by norm_num [f3, f3Q], by norm_num [f3, f3Q]⟩
+
+/-- Member 3 with its exponent range. -/
+noncomputable def m3 : Member := ⟨(79020750011 / 2500000000000 : ℝ), (345415941457 / 10000000000000 : ℝ), (863539853643 / 100000000000000 : ℝ), f3⟩
+
+theorem ok3 : m3.OK (1 / 10 ^ 70) (1 / 10 ^ 16) where
+  ylo0 := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  le := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  yhi := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  ahi0 := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  ahi := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  eLoH := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  eLoA := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  eHi := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  pos1 := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  hhi := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  hlo := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  amax := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  amax1 := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  slo := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  hnlo := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
+  elo := by norm_num [m3, f3, errLo, errHi, Elo, Ehi]
 
 theorem weak4 : B.Weaker f4 :=
   ⟨by norm_num [B, f4], by norm_num [B, f4], by norm_num [B, f4], by norm_num [B, f4], by norm_num [B, f4], by norm_num [B, f4], by norm_num [B, f4], by norm_num [B, f4], by norm_num [B, f4]⟩
@@ -218,6 +302,27 @@ def f4Q : BandQ := ⟨(115770725433 / 3125000000000 : ℚ), (338988483663 / 1000
 theorem f4A : f4Q.Agrees f4 :=
   ⟨by norm_num [f4, f4Q], by norm_num [f4, f4Q], by norm_num [f4, f4Q], by norm_num [f4, f4Q], by norm_num [f4, f4Q], by norm_num [f4, f4Q]⟩
 
+/-- Member 4 with its exponent range. -/
+noncomputable def m4 : Member := ⟨(345415941457 / 10000000000000 : ℝ), (188735510287 / 5000000000000 : ℝ), (188735510287 / 20000000000000 : ℝ), f4⟩
+
+theorem ok4 : m4.OK (1 / 10 ^ 70) (1 / 10 ^ 16) where
+  ylo0 := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  le := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  yhi := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  ahi0 := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  ahi := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  eLoH := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  eLoA := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  eHi := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  pos1 := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  hhi := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  hlo := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  amax := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  amax1 := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  slo := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  hnlo := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+  elo := by norm_num [m4, f4, errLo, errHi, Elo, Ehi]
+
 theorem weak5 : B.Weaker f5 :=
   ⟨by norm_num [B, f5], by norm_num [B, f5], by norm_num [B, f5], by norm_num [B, f5], by norm_num [B, f5], by norm_num [B, f5], by norm_num [B, f5], by norm_num [B, f5], by norm_num [B, f5]⟩
 
@@ -232,5 +337,35 @@ def f5Q : BandQ := ⟨(2020744926487 / 50000000000000 : ℚ), (1848729990927 / 5
 
 theorem f5A : f5Q.Agrees f5 :=
   ⟨by norm_num [f5, f5Q], by norm_num [f5, f5Q], by norm_num [f5, f5Q], by norm_num [f5, f5Q], by norm_num [f5, f5Q], by norm_num [f5, f5Q]⟩
+
+/-- Member 5 with its exponent range. -/
+noncomputable def m5 : Member := ⟨(188735510287 / 5000000000000 : ℝ), (103125213889 / 2500000000000 : ℝ), (103125213889 / 10000000000000 : ℝ), f5⟩
+
+theorem ok5 : m5.OK (1 / 10 ^ 70) (1 / 10 ^ 16) where
+  ylo0 := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  le := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  yhi := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  ahi0 := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  ahi := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  eLoH := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  eLoA := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  eHi := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  pos1 := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  hhi := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  hlo := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  amax := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  amax1 := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  slo := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  hnlo := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+  elo := by norm_num [m5, f5, errLo, errHi, Elo, Ehi]
+
+noncomputable def mem : Fin 6 → Member := fun k =>
+  match k.val with
+  | 0 => m0
+  | 1 => m1
+  | 2 => m2
+  | 3 => m3
+  | 4 => m4
+  | _ => m5
 
 end Cryptarchia.Prob.Certs.E20D11

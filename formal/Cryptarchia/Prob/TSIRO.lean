@@ -757,13 +757,9 @@ noncomputable def bandEps (T : TBand) (P : ℕ) : ℝ :=
     exp (-(((P : ℝ) - 1) * (T.ylo * T.clo) * T.δ ^ 2 * (1 / 2 - 2 / 9 * T.δ)))
 
 open Classical in
-/-- **The estimate stays in band.** Under a random oracle with fresh lotteries, if
-every state satisfies `StateOK`, the genesis epoch is in band, every update follows
-`Recur` and the stake path satisfies `StakePath`, then the probability that some
-epoch before `Ne` is out of band is at most `Ne · bandEps`. The adversary's strategy
-(`es ω`) is arbitrary: it chooses which wins to publish, and so the count, within
-`Recur`. -/
-theorem prob_out_of_band (hA : Assm E) (es : Ω → List Event)
+/-- **As `prob_out_of_band`, with the update allowed to fail on a set `Bad`**: the
+estimate leaves its band in some epoch with probability at most `Ne · bandEps + μ Bad`. -/
+theorem prob_out_of_band_bad (hA : Assm E) (es : Ω → List Event)
     (hO : RandomOracle μ O E.c.p)
     (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
     (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
@@ -771,11 +767,12 @@ theorem prob_out_of_band (hA : Assm E) (es : Ω → List Event)
     (hprec : 0 < E.c.precision) (hPf : 0 < E.c.period * E.c.fP) (hP1 : 1 ≤ E.c.period)
     (hPEL : E.c.period ≤ E.c.epochLength)
     (hst : ∀ ω i, StateOK E T i (σE (E.withO (O ω)) (es ω) i))
-    (h0 : ∀ ω, InB E T (σE (E.withO (O ω)) (es ω)) 0) {Ne : ℕ}
-    (hrec : ∀ ω e, e + 1 < Ne → Recur E T (σE (E.withO (O ω)) (es ω))
+    (h0 : ∀ ω, InB E T (σE (E.withO (O ω)) (es ω)) 0) {Ne : ℕ} (Bad : Set Ω)
+    (hrec : ∀ ω e, e + 1 < Ne → ω ∉ Bad → Recur E T (σE (E.withO (O ω)) (es ω))
       (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e)
     (hpath : ∀ ω e, e + 1 < Ne → StakePath E T (σE (E.withO (O ω)) (es ω)) e) :
-    μ {ω | ∃ e < Ne, ¬ InB E T (σE (E.withO (O ω)) (es ω)) e} ≤ Ne * ENNReal.ofReal (bandEps T E.c.period) := by
+    μ {ω | ∃ e < Ne, ¬ InB E T (σE (E.withO (O ω)) (es ω)) e} ≤
+      Ne * ENNReal.ofReal (bandEps T E.c.period) + μ Bad := by
   set σ : Ω → ℕ → EpochState := fun ω => σE (E.withO (O ω)) (es ω) with hσ
   set X : ℕ → Ω → Out := fun k ω => slotOut E (k + 1) (σ ω (k + 1)) (tk O (k + 1) ω) with hX
   have hm : ∀ n, hist O σ n ≤ ‹MeasurableSpace Ω› := fun n =>
@@ -825,8 +822,11 @@ theorem prob_out_of_band (hA : Assm E) (es : Ω → List Event)
   -- the first epoch out of band follows an atypical window
   set Lo : ℕ → Set Ω := fun e => {ω | InB E T (σ ω) e ∧ ¬ (1 - T.δ) * hrate E (σ ω) e ≤ hcnt E (fun k => X k ω) e}
   set Hi : ℕ → Set Ω := fun e => {ω | InB E T (σ ω) e ∧ ¬ wcnt E (fun k => X k ω) e ≤ (1 + T.δ) * wrate E (σ ω) e}
-  have hsub : {ω | ∃ e < Ne, ¬ InB E T (σ ω) e} ⊆ ⋃ e ∈ Finset.range Ne, (Lo e ∪ Hi e) := by
+  have hsub : {ω | ∃ e < Ne, ¬ InB E T (σ ω) e} ⊆ (⋃ e ∈ Finset.range Ne, (Lo e ∪ Hi e)) ∪ Bad := by
     intro ω hω
+    by_cases hB : ω ∈ Bad
+    · exact Or.inr hB
+    left
     have hex : ∃ e, e < Ne ∧ ¬ InB E T (σ ω) e := hω
     obtain ⟨h1, h2⟩ := Nat.find_spec hex
     have hmin : ∀ e < Nat.find hex, ¬ (e < Ne ∧ ¬ InB E T (σ ω) e) := fun e he => Nat.find_min hex he
@@ -842,21 +842,47 @@ theorem prob_out_of_band (hA : Assm E) (es : Ω → List Event)
     by_contra hno
     simp only [Set.mem_union, Lo, Hi, Set.mem_setOf_eq, not_or, not_and, not_not] at hno
     exact h2 (band_step hc hT hb hprec hPf hP1 hPEL (hconst ω) (hst ω) hin ⟨hno.1 hin, hno.2 hin⟩
-      (hrec ω e (by omega)) (hpath ω e (by omega)))
+      (hrec ω e (by omega) hB) (hpath ω e (by omega)))
   have hLo : ∀ e, μ (Lo e) ≤ ENNReal.ofReal (exp (-(m * T.δ ^ 2 / 2))) := fun e =>
     chernoff_lo X hXm (fun n => hist O σ (n + 1)) (fun n => hm _) hFm hXh law hlaw0 hlaw1 hlawm hfr honA
       (win E e) hT.δ0.le (Lo e) fun ω ⟨hin, hno⟩ => ⟨lt_of_not_ge hno, hmH ω e hin⟩
   have hHi : ∀ e, μ (Hi e) ≤ ENNReal.ofReal (exp (-(m * T.δ ^ 2 * (1 / 2 - 2 / 9 * T.δ)))) := fun e =>
     chernoff_hi X hXm (fun n => hist O σ (n + 1)) (fun n => hm _) hFm hXh law hlaw0 hlaw1 hlawm hfr occA
       (win E e) hT.δ0.le hT.δ1 (Hi e) fun ω ⟨hin, hno⟩ => ⟨lt_of_not_ge hno, hmW ω e hin⟩
-  calc μ {ω | ∃ e < Ne, ¬ InB E T (σ ω) e} ≤ μ (⋃ e ∈ Finset.range Ne, (Lo e ∪ Hi e)) := measure_mono hsub
-    _ ≤ ∑ e ∈ Finset.range Ne, μ (Lo e ∪ Hi e) := measure_biUnion_finset_le _ _
-    _ ≤ ∑ e ∈ Finset.range Ne, ENNReal.ofReal (bandEps T E.c.period) := by
-        refine Finset.sum_le_sum fun e _ => (measure_union_le _ _).trans ?_
-        unfold bandEps
-        rw [ENNReal.ofReal_add (exp_pos _).le (exp_pos _).le]
-        exact add_le_add (hLo e) (hHi e)
-    _ = Ne * ENNReal.ofReal (bandEps T E.c.period) := by rw [Finset.sum_const, Finset.card_range, nsmul_eq_mul]
+  have hA' : μ (⋃ e ∈ Finset.range Ne, (Lo e ∪ Hi e)) ≤ Ne * ENNReal.ofReal (bandEps T E.c.period) :=
+    calc μ (⋃ e ∈ Finset.range Ne, (Lo e ∪ Hi e)) ≤ ∑ e ∈ Finset.range Ne, μ (Lo e ∪ Hi e) :=
+          measure_biUnion_finset_le _ _
+      _ ≤ ∑ e ∈ Finset.range Ne, ENNReal.ofReal (bandEps T E.c.period) := by
+          refine Finset.sum_le_sum fun e _ => (measure_union_le _ _).trans ?_
+          unfold bandEps
+          rw [ENNReal.ofReal_add (exp_pos _).le (exp_pos _).le]
+          exact add_le_add (hLo e) (hHi e)
+      _ = Ne * ENNReal.ofReal (bandEps T E.c.period) := by rw [Finset.sum_const, Finset.card_range, nsmul_eq_mul]
+  exact (measure_mono hsub).trans ((measure_union_le _ _).trans (add_le_add hA' le_rfl))
+
+
+/-- **The estimate stays in band.** Under a random oracle with fresh lotteries, if
+every state satisfies `StateOK`, the genesis epoch is in band, every update follows
+`Recur` and the stake path satisfies `StakePath`, then the probability that some
+epoch before `Ne` is out of band is at most `Ne · bandEps`. The adversary's strategy
+(`es ω`) is arbitrary: it chooses which wins to publish, and so the count, within
+`Recur`. -/
+theorem prob_out_of_band (hA : Assm E) (es : Ω → List Event)
+    (hO : RandomOracle μ O E.c.p)
+    (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
+    (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
+    (hc : LotConsts E.c T.η) (hT : T.OK) (hb : E.c.betaP = E.c.precision)
+    (hprec : 0 < E.c.precision) (hPf : 0 < E.c.period * E.c.fP) (hP1 : 1 ≤ E.c.period)
+    (hPEL : E.c.period ≤ E.c.epochLength)
+    (hst : ∀ ω i, StateOK E T i (σE (E.withO (O ω)) (es ω) i))
+    (h0 : ∀ ω, InB E T (σE (E.withO (O ω)) (es ω)) 0) {Ne : ℕ}
+    (hrec : ∀ ω e, e + 1 < Ne → Recur E T (σE (E.withO (O ω)) (es ω))
+      (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e)
+    (hpath : ∀ ω e, e + 1 < Ne → StakePath E T (σE (E.withO (O ω)) (es ω)) e) :
+    μ {ω | ∃ e < Ne, ¬ InB E T (σE (E.withO (O ω)) (es ω)) e} ≤ Ne * ENNReal.ofReal (bandEps T E.c.period) := by
+  have := prob_out_of_band_bad hA es hO hσm hfresh hc hT hb hprec hPf hP1 hPEL hst h0 ∅
+    (fun ω e he _ => hrec ω e he) hpath
+  rwa [measure_empty, add_zero] at this
 
 end RO
 

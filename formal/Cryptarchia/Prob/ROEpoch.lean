@@ -63,6 +63,10 @@ theorem σE_succ (E : Env) (es : List Event) {n : ℕ} (h : (n + 2) % E.c.epochL
   congr 1
   rw [show n + 2 = (n + 1) + 1 by omega, Nat.succ_div, if_neg (fun hd => h (Nat.mod_eq_zero_of_dvd hd)), add_zero]
 
+/-- Consecutive slots of one epoch have the same epoch index. -/
+theorem div_succ_of_mod {EL n : ℕ} (h : (n + 2) % EL ≠ 0) : (n + 2) / EL = (n + 1) / EL := by
+  rw [show n + 2 = (n + 1) + 1 by omega, Nat.succ_div, if_neg (fun hd => h (Nat.mod_eq_zero_of_dvd hd)), add_zero]
+
 /-- **The lottery law over many epochs, from a random oracle.** If each slot's epoch
 state is within the band of the member `pick` assigns to it, every event about the
 first `M` slots that is closed under adding adversarial slots is at most as likely as
@@ -72,9 +76,9 @@ theorem lottery_law_epoch (hA : Assm E) (es : Ω → List Event) {M : ℕ} (hM :
     (hO : RandomOracle μ O E.c.p)
     (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
     (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
-    {K : ℕ} {fam : Fin K → Band} (hP : ∀ b, (fam b).Prod) (pick : EpochState → Fin K)
+    {K : ℕ} {fam : Fin K → Band} (hP : ∀ b, (fam b).Prod) (pick : ℕ → EpochState → Fin K)
     (hband : ∀ ω i, 1 ≤ i → i ≤ M →
-      SlotBand (fam (pick (σE (E.withO (O ω)) (es ω) i))) E i (σE (E.withO (O ω)) (es ω) i))
+      SlotBand (fam (pick (i / E.c.epochLength) (σE (E.withO (O ω)) (es ω) i))) E i (σE (E.withO (O ω)) (es ω) i))
     {S : Set (List Out)} (hS : UpClosed S) :
     ∃ κ : Kern, κ.EpochFam E.c.epochLength fam ∧
       μ {ω | slots (lotStr (E.withO (O ω)) (es ω)) M ∈ S} ≤ ENNReal.ofReal (Ex κ M (S.indicator 1) []) := by
@@ -102,14 +106,15 @@ theorem lottery_law_epoch (hA : Assm E) (es : Ω → List Event) {M : ℕ} (hM :
     ext ω; rw [Set.mem_setOf_eq, Set.mem_setOf_eq, hslots ω]]
   exact law_le_epoch μ hP hM X hXm (fun n => hist O σ (n + 1)) (fun n => hm _) hXh
     (fun n ω => qhRO E (n + 1) (σ ω (n + 1))) (fun n ω => qaRO E.c (σ ω (n + 1)))
-    (fun n ω => pick (σ ω (n + 1)))
+    (fun n ω => pick ((n + 1) / E.c.epochLength) (σ ω (n + 1)))
     (fun n hn ω => by
       have hb := hband ω (n + 1) (by omega) (by omega)
       exact ⟨hb.hon, by unfold qaRO; linarith [loss_le_one hO.pos (σ ω (n + 1)) (advNotes (σ ω (n + 1)))], hb.adv⟩)
-    (fun n _ => (measurable_of_countable pick).comp (hσh (n + 1) (n + 1) le_rfl))
+    (fun n _ => (measurable_of_countable (pick ((n + 1) / E.c.epochLength))).comp (hσh (n + 1) (n + 1) le_rfl))
     (fun n ω hc => by
-      show pick (σE (E.withO (O ω)) (es ω) (n + 2)) = pick (σE (E.withO (O ω)) (es ω) (n + 1))
-      rw [σE_succ (E.withO (O ω)) (es ω) hc])
+      show pick ((n + 2) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 2)) =
+        pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1))
+      rw [σE_succ (E.withO (O ω)) (es ω) hc, div_succ_of_mod hc])
     (fun n _ o => (measurable_of_countable fun s : EpochState =>
       ENNReal.ofReal (prodLaw (qhRO E (n + 1) s) (qaRO E.c s) o)).comp (hσh (n + 1) (n + 1) le_rfl))
     (fun n hn f hf o => by
@@ -133,11 +138,11 @@ theorem lottery_law_epoch_ok (hA : Assm E) (es : Ω → List Event) {M : ℕ} (h
     (hO : RandomOracle μ O E.c.p)
     (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
     (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
-    {K : ℕ} {fam : Fin K → Band} (hP : ∀ b, (fam b).Prod) (pick : EpochState → Fin K)
+    {K : ℕ} {fam : Fin K → Band} (hP : ∀ b, (fam b).Prod) (pick : ℕ → EpochState → Fin K)
     (hG : (goodB fam).Nonempty) {S : Set (List Out)} (hS : UpClosed S) :
     ∃ κ : Kern, κ.EpochFam E.c.epochLength fam ∧
       μ {ω | slots (lotStr (E.withO (O ω)) (es ω)) M ∈ S ∧ ∀ n < M,
-        SlotBand (fam (pick (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1) (σE (E.withO (O ω)) (es ω) (n + 1))} ≤
+        SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1) (σE (E.withO (O ω)) (es ω) (n + 1))} ≤
         ENNReal.ofReal (Ex κ M (S.indicator 1) []) := by
   set σ : Ω → ℕ → EpochState := fun ω => σE (E.withO (O ω)) (es ω) with hσ
   set X : ℕ → Ω → Out := fun k ω => slotOut E (k + 1) (σ ω (k + 1)) (tk O (k + 1) ω) with hX
@@ -158,23 +163,24 @@ theorem lottery_law_epoch_ok (hA : Assm E) (es : Ω → List Event) {M : ℕ} (h
     (measurable_slotOut₂ E (j + 1)).comp ((hO.meas (j + 1)).prodMk (hσm (j + 1)))
   have hXh : ∀ n j, j < n → Measurable[hist O σ (n + 1)] (X j) := fun n j hj =>
     (measurable_slotOut₂ E (j + 1)).comp ((hTh (n + 1) (j + 1) (by omega)).prodMk (hσh (n + 1) (j + 1) (by omega)))
-  set ok : ℕ → Ω → Prop := fun n ω => SlotBand (fam (pick (σ ω (n + 1)))) E (n + 1) (σ ω (n + 1)) with hok
+  set ok : ℕ → Ω → Prop := fun n ω => SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σ ω (n + 1)))) E (n + 1) (σ ω (n + 1)) with hok
   rw [show {ω | slots (lotStr (E.withO (O ω)) (es ω)) M ∈ S ∧ ∀ n < M,
-      SlotBand (fam (pick (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1) (σE (E.withO (O ω)) (es ω) (n + 1))} =
+      SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1) (σE (E.withO (O ω)) (es ω) (n + 1))} =
       {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧ ∀ n < M, ok n ω} by
     ext ω; rw [Set.mem_setOf_eq, Set.mem_setOf_eq, hslots ω]]
   exact law_le_epoch_ok μ hP hM X hXm (fun n => hist O σ (n + 1)) (fun n => hm _)
     (fun j n hjn => hist_mono O σ (by omega)) hXh
     (fun n ω => qhRO E (n + 1) (σ ω (n + 1))) (fun n ω => qaRO E.c (σ ω (n + 1)))
-    (fun n ω => pick (σ ω (n + 1))) ok
+    (fun n ω => pick ((n + 1) / E.c.epochLength) (σ ω (n + 1))) ok
     (fun n _ => (hσh (n + 1) (n + 1) le_rfl) (MeasurableSet.of_discrete
-      (s := {s : EpochState | SlotBand (fam (pick s)) E (n + 1) s})))
+      (s := {s : EpochState | SlotBand (fam (pick ((n + 1) / E.c.epochLength) s)) E (n + 1) s})))
     (fun n hn ω hb => ⟨hb.hon, by unfold qaRO; linarith [loss_le_one hO.pos (σ ω (n + 1)) (advNotes (σ ω (n + 1)))],
         hb.adv⟩)
-    (fun n _ => (measurable_of_countable pick).comp (hσh (n + 1) (n + 1) le_rfl))
+    (fun n _ => (measurable_of_countable (pick ((n + 1) / E.c.epochLength))).comp (hσh (n + 1) (n + 1) le_rfl))
     (fun n ω hc => by
-      show pick (σE (E.withO (O ω)) (es ω) (n + 2)) = pick (σE (E.withO (O ω)) (es ω) (n + 1))
-      rw [σE_succ (E.withO (O ω)) (es ω) hc])
+      show pick ((n + 2) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 2)) =
+        pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1))
+      rw [σE_succ (E.withO (O ω)) (es ω) hc, div_succ_of_mod hc])
     (fun n _ o => (measurable_of_countable fun s : EpochState =>
       ENNReal.ofReal (prodLaw (qhRO E (n + 1) s) (qaRO E.c s) o)).comp (hσh (n + 1) (n + 1) le_rfl))
     (fun n hn f hf hf0 o => by
