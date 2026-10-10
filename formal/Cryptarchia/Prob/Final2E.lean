@@ -136,9 +136,9 @@ theorem final_bimm_ro_epoch {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} 
     (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
     (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
     {Δ K G : ℕ} {fam : Fin K → Band} (hΔ : E.Δ = Δ) (C : Cert2E B Δ fam E.c.epochLength G)
-    (hP : ∀ k, (fam k).Prod) (pick : EpochState → Fin K)
+    (hP : ∀ k, (fam k).Prod) (pick : ℕ → EpochState → Fin K)
     (hband : ∀ ω i, 1 ≤ i → i ≤ M →
-      SlotBand (fam (pick (σE (E.withO (O ω)) (es ω) i))) E i (σE (E.withO (O ω)) (es ω) i))
+      SlotBand (fam (pick (i / E.c.epochLength) (σE (E.withO (O ω)) (es ω) i))) E i (σE (E.withO (O ω)) (es ω) i))
     {G' J Lw r T : ℕ} {x yy : ℝ} (hx : 1 ≤ x) (hyy0 : 0 < yy)
     (hyy1 : yy ≤ 1) (hT : 1 ≤ T) (hNM : N + G + G' + Δ + 2 ≤ M)
     (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (hlo1 : B.hlo ≤ 1) (helo1 : B.elo ≤ 1) :
@@ -186,18 +186,18 @@ theorem final_bimm_ro_epoch_ok {Ω : Type*} [MeasurableSpace Ω] {μ : Measure �
     (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
     (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
     {Δ K G : ℕ} {fam : Fin K → Band} (hΔ : E.Δ = Δ) (C : Cert2E B Δ fam E.c.epochLength G)
-    (hP : ∀ k, (fam k).Prod) (pick : EpochState → Fin K)
+    (hP : ∀ k, (fam k).Prod) (pick : ℕ → EpochState → Fin K)
     {G' J Lw r T : ℕ} {x yy : ℝ} (hx : 1 ≤ x) (hyy0 : 0 < yy)
     (hyy1 : yy ≤ 1) (hT : 1 ≤ T) (hNM : N + G + G' + Δ + 2 ≤ M)
     (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (hlo1 : B.hlo ≤ 1) (helo1 : B.elo ≤ 1) :
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps2E E B C.P N G G' J Lw r T x yy) +
-      μ {ω | ∃ n < M, ¬ SlotBand (fam (pick (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
+      μ {ω | ∃ n < M, ¬ SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
         (σE (E.withO (O ω)) (es ω) (n + 1))} := by
   classical
   subst hΔ
-  set okAll : Set Ω := {ω | ∀ n < M, SlotBand (fam (pick (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
+  set okAll : Set Ω := {ω | ∀ n < M, SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
     (σE (E.withO (O ω)) (es ω) (n + 1))} with hokAll
-  have hcompl : {ω | ∃ n < M, ¬ SlotBand (fam (pick (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
+  have hcompl : {ω | ∃ n < M, ¬ SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
       (σE (E.withO (O ω)) (es ω) (n + 1))} = okAllᶜ := by
     ext ω; simp [hokAll]
   rw [hcompl]

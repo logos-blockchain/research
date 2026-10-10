@@ -45,26 +45,35 @@ The assumptions on the environment are the fields of `Assm E`:
 | `prob_out_of_band` (`Prob/TSIRO`) | **Total stake inference.** The probability that the stake estimate leaves its band in some epoch is at most `Ne · bandEps`. The proof uses Chernoff bounds with predictable rates and a deterministic band step through the specification's fixed-point update (`infer_close`). The adversary may withhold all its blocks. |
 | `final_bimm_ro_tsi3` (`Prob/FinalTSI`) | Joins the two: P(violation) ≤ `settleEps3E + Ne · bandEps`. |
 | `final_bimm_ro_tsi4` (`Prob/FinalTSI`) | The same bound, with the estimate's update stated about the canonical chain (`recur_of`, from `cs_succ_D` in `Proof/Recur`). |
+| `final_bimm_ro_tsi5` (`Prob/FinalTSI`) | P(violation) ≤ `settleEps3E + Ne · bandEps + P(PrefixesSplit)`, with `hpick` and `hhi` proven and `hcons` turned into the last term. The certificates use this one. |
 
-The hypotheses of `final_bimm_ro_tsi4` beyond the random oracle, fresh lotteries and Δ-delivery are explicit:
+`final_bimm_ro_tsi5` has these hypotheses beyond the random oracle, fresh lotteries and Δ-delivery:
 
 | Hypothesis | Meaning | Status |
 |---|---|---|
-| `InB … 0` | genesis is in band | a genesis check |
+| `InB E Tb (fun _ => es0 E) 0` | the genesis state is in band | a check on the genesis state (`inB0_of_genesis` gives it for every execution) |
 | `StateOK` | distinct note ids, small notes, adversary ≤ β of participating stake | stake assumption |
-| `hcons` | epoch `e+1`'s canonical prefix, cut at epoch `e`'s cut, is epoch `e`'s canonical prefix | proven while settlement holds (`cp_consistent`); linking it to the good event is open |
 | `hlo` | the canonical chain's occupied-slot count in epoch `e`'s window is at least `(1 − μ)` × the honest-won slots, μ = 0.1 | **assumed**, with simulation evidence (`tools/forksim`): about 1 % in normal operation, up to about 10 % under worst-case scheduling or a balance attack; chain growth alone proves μ ≈ 0.25 |
-| `hhi` | that count is at most the occupied slots + 1 (genesis) | derivable: every counted block and uncle carries a valid win; not yet in Lean |
 | `StakePath` | the stake at each slot of epoch `e+1` is covered by epoch `e`'s window estimate | stake-drift assumption |
-| `hpick` | an in-band state is within its assigned member's band | checked per certificate |
+| `OnlineEpoch` | the honest nodes' online status changes only at epoch boundaries | network-schedule assumption. A slot's honest exponent counts only online honest stake, and the worst-case kernel keeps one member per epoch, so a crash inside an epoch could move the exponent out of that epoch's member |
+| member facts (`Member.OK`, `hcov`, `hadv`) | the band family covers the estimate's band | checked per certificate |
+
+What became of `final_bimm_ro_tsi4`'s other hypotheses:
+
+| Hypothesis | Now |
+|---|---|
+| `hpick` | **proven** (`slotBand_pickM`, `Prob/Pick`): `pickM` assigns epoch `e` the member whose range holds the honest exponent at the epoch's first slot. `pick` takes the epoch index (`ℕ → EpochState → Fin K`) |
+| `hhi` | **proven** (`occupied_le_wcnt`, `Prob/Occupied`): every counted block and uncle carries a Proof of Leadership against its parent chain's state, which is canonical; an honest signer was online at its slot (`signOK_all`, `Proof/Signers`) |
+| `hcons` | **a term of the bound**, `P(PrefixesSplit)` (`prob_out_of_band_bad`). It is `0` when the prefixes never split, which recovers `final_bimm_ro_tsi4` |
+| `InB … 0` for every execution | a check on the genesis state alone |
 
 ## Certified number
 
 One configuration is certified, as a Lean theorem with standard axioms only (`Prob/Certs/E20D11.lean`, `certified_tsi`):
 
-> f = 1/30, k = 2160, Δ = 11 slots, β = 0.2, executions up to slot 31,536,000 (one year, 49 epochs), with the specification's stake inference and the adversary free to withhold all its blocks: **P(finality violation) ≤ 1e-9 + 49 × 4.2e-16**.
+> f = 1/30, k = 2160, Δ = 11 slots, β = 0.2, executions up to slot 31,536,000 (one year, 49 epochs), with the specification's stake inference and the adversary free to withhold all its blocks: **P(finality violation) ≤ 1e-9 + 49 × 4.2e-16 + P(PrefixesSplit)**.
 
-The band of slot rates is derived from the stake estimate (TSI band δ = 9 %, six band members), with μ = 0.1 (at most 10 % of honest wins go uncounted). The remaining hypotheses are those of `final_bimm_ro_tsi4` above. Assuming every honest win is counted (μ = 0) would give about 1e-13; the simulation shows that assumption fails under worst-case forks.
+The band of slot rates is derived from the stake estimate (TSI band δ = 9 %, six band members), with μ = 0.1 (at most 10 % of honest wins go uncounted). The remaining hypotheses are those of `final_bimm_ro_tsi5` above. Assuming every honest win is counted (μ = 0) would give about 1e-13; the simulation shows that assumption fails under worst-case forks.
 
 Other configurations are generated by `tools/certgen` (one-epoch, genesis and multi-epoch variants; see its README). Indicative values from the same method include:
 - β = 0.1 over a year: about 1e-40;
@@ -119,9 +128,8 @@ Each point is resolved so that theorems cover both readings, or in the adversary
 1. **Restarts within T_offline** (the specification's 20-minute rule). A restarting node's local chain is stale, and its fork choice could be captured.
 2. **The bootstrap rule** (density-based fork choice over `s_gen` slots).
 3. **Nonce grinding.**
-4. **The estimate's update from the execution.** The recursion (`cs_succ_D`) and canonical-prefix consistency (`cp_consistent`) are proven. Three steps remain:
-   - Derive `hhi`: every counted block and uncle carries a valid win under the canonical state.
-   - Link `hcons` and `hhi` to the settlement good event. They hold only while settlement holds, but `final_bimm_ro_tsi4` assumes them for every execution.
+4. **The estimate's update from the execution.** The recursion (`cs_succ_D`), canonical-prefix consistency on the good event (`cp_consistent`) and the upper count (`occupied_le_wcnt`) are proven. Two steps remain:
+   - Bound `P(PrefixesSplit)`. The prefixes split only off the settlement good event (`cp_consistent`), but the good event's bound needs the lottery in band about `G + G' + Δ` slots past epoch `e + 1`'s fixing time, inside epoch `e + 1`, whose band is what consistency at `e` provides. The fix is an induction over epochs that bounds the good event up to each fixing time with a kernel that is in band only up to that point.
    - Replace the assumed μ = 0.1 in `hlo` with a proof. Chain growth gives μ ≈ 0.25. The uncle rule counts only forks whose parent is on the chain, so deeper forks are lost; `tools/forksim` measures this.
 5. **Tighter bounds.** The current method has two known sources of slack:
    - one window length shared across epochs of different rates; counting the window in occupied slots would remove it;

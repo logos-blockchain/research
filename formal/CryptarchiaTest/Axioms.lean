@@ -53,3 +53,10 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.cp_consistent
 #print axioms Cryptarchia.Prob.recur_of
 #print axioms Cryptarchia.Prob.final_bimm_ro_tsi4
+#print axioms Cryptarchia.Prob.prob_out_of_band_bad
+#print axioms Cryptarchia.Prob.slotBand_pickM
+#print axioms Cryptarchia.Prob.cover_of_chain
+#print axioms Cryptarchia.signOK_all
+#print axioms Cryptarchia.Prob.occupied_le_wcnt
+#print axioms Cryptarchia.Prob.inB0_of_genesis
+#print axioms Cryptarchia.Prob.final_bimm_ro_tsi5

@@ -63,13 +63,11 @@ import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
 """
 FAM_IMPORTS = """public import Cryptarchia.Prob.AutoQ
-public import Cryptarchia.Prob.Worst
+public import Cryptarchia.Prob.Stake
 """
-MAIN_IMPORTS = """public import Cryptarchia.Prob.Final3E
-public import Cryptarchia.Prob.TSIRO
-import Cryptarchia.Prob.Cert
+MAIN_IMPORTS = """import Cryptarchia.Prob.Cert
 import Cryptarchia.Prob.ExpBound
-import Cryptarchia.Prob.FinalTSI
+public import Cryptarchia.Prob.FinalTSI
 import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.RingTheory.WittVector.IsPoly
 import Mathlib.Tactic.ReduceModChar
@@ -81,6 +79,8 @@ def band_def(name, B, doc):
             "".join(f"  {k} := {q(B[k])}\n" for k in BANDKEYS))
 
 
+OKFIELDS = ['ylo0', 'le', 'yhi', 'ahi0', 'ahi', 'eLoH', 'eLoA', 'eHi', 'pos1', 'hhi', 'hlo', 'amax', 'amax1', 'slo',
+            'hnlo', 'elo']
 QKEYS = ['hhi', 'hlo', 'amax', 'hahi', 'alo', 'halo']
 
 
@@ -128,6 +128,11 @@ def emit_all(cfg, T, fam, B, P, Ts, name, out_dir, target):
         L.append(f"theorem patm{k} : {q(P['patk'][k])} ≤ f{k}.slo * f{k}.elo ^ {D} := by norm_num [f{k}]\n")
         L.append(f"theorem elo{k} : 0 ≤ f{k}.elo := by norm_num [f{k}]\n")
         L.append(bandq_def(k, fam[k]['B']))
+        m = fam[k]
+        L.append(f"/-- Member {k} with its exponent range. -/\nnoncomputable def m{k} : Member := ⟨{q(m['ylo'])}, {q(m['yhi'])}, {q(m['ahi'])}, f{k}⟩\n")
+        L.append(f"theorem ok{k} : m{k}.OK (1 / 10 ^ 70) (1 / 10 ^ 16) where\n" +
+                 "".join(f"  {fl} := by norm_num [m{k}, f{k}, errLo, errHi, Elo, Ehi]\n" for fl in OKFIELDS))
+    L.append(kmatch("mem", f"Fin {K} → Member", [f"m{k}" for k in range(K)], None))
     L.append(f"end {ns}\n")
     open(f"{sub}/Fam.lean", "w").write("\n".join(L))
     argsQ = " ".join(qQ(v) for v in (c, z, s, d, tau))
@@ -423,16 +428,17 @@ theorem eps_le (E : Env) (hc : E.c = Config.spec) :
 """)
     L.append(f"""/-- **Certified multi-epoch finality from a random oracle.** β = {cfg['beta']}, Δ = {D},
 k = {k}, executions up to slot {N}. Random-oracle tickets, fresh lotteries, Δ-delivery;
-`pick` assigns each epoch state a member. A finality violation has probability at most
+`pick` assigns each epoch and state a member. A finality violation has probability at most
 `{target}` plus the probability that some slot's state is outside its member's band. -/
 theorem certified {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measure Ω}}
     [MeasureTheory.IsProbabilityMeasure μ] {{O : Ω → Oracle}} (E : Env) (hc : E.c = Config.spec) (hΔ : E.Δ = {D})
     (hA : Assm E) (es : Ω → List Event) (hNF : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ {N})
     (hdel : ∀ ω, DeltaDelivery (E.withO (O ω)) (es ω)) (hO : RandomOracle μ O E.c.p)
     (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
-    (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω)) (pick : EpochState → Fin {K}) :
+    (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω)) (pick : ℕ → EpochState → Fin {K}) :
     μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal {tgt} +
-      μ {{ω | ∃ n < {M}, ¬ SlotBand (fam (pick (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
+      μ {{ω | ∃ n < {M}, ¬ SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1))))
+        E (n + 1)
         (σE (E.withO (O ω)) (es ω) (n + 1))}} := by
   have hEL : E.c.epochLength = {EL} := by rw [hc]; rfl
   refine (final_bimm_ro_epoch3_ok (M := {M}) hA es hNF hdel hO hσm hfresh hΔ (D3 E.c.epochLength hEL)
@@ -465,6 +471,11 @@ def emit_tsi(cfg, T, D, K, M, tgt, Gp, J, Lw, r, Tg, x, yy, G):
         a0s.append(a0); Qs.append((Q, hyp, base)); chains.append("\n".join(lines))
     BX = rup(1 / Qs[0][0] + 1 / Qs[1][0], 4)
     Ne = M // EL + 1
+    # consecutive member ranges: ⟨m0.yhi = m1.ylo, ⟨…, trivial⟩⟩
+    def nest_(kk):
+        if kk == K - 1: return "trivial"
+        return f"⟨by norm_num [m{kk}, m{kk + 1}], {nest_(kk + 1)}⟩"
+    nest = nest_(0)
     tb = f"⟨{q(T['llo'])}, {q(T['lhi'])}, {q(T['mu'])}, {q(beta)}, {q(delta)}, 1 / 10 ^ 70, 1 / 10 ^ 16⟩"
     simpsT = "Tb, TBand.Yh, TBand.Ya, TBand.ylo, TBand.clo, TBand.chi, errHi, errLo"
     fieldsT = ['lo_pos', 'hi0', 'μ0', 'μ1', 'β0', 'β1', 'δ0', 'δ1', 'η0', 'ζ0', 'Yh_le', 'Ya_le', 'eHi', 'eLoH', 'eLoA', 'clo0']
@@ -495,44 +506,54 @@ theorem lot : LotConsts Config.spec (1 / 10 ^ 70) where
   a1_le := by unfold lam0; norm_num [Config.spec]
   a1_near := by unfold lam0; rw [abs_le]; constructor <;> norm_num [Config.spec]
 
+theorem chainM : Chained (mem 0) (List.ofFn fun k : Fin {K - 1} => mem k.succ) := by
+  show Chained m0 [{", ".join(f"m{kk}" for kk in range(1, K))}]
+  exact {nest}
+
+theorem covM : ∀ y, Tb.ylo ≤ y → y ≤ Tb.Yh → ∃ k, (mem k).ylo ≤ y ∧ y ≤ (mem k).yhi :=
+  cover_of_chain chainM (by show m0.ylo ≤ Tb.ylo; norm_num [m0, Tb, TBand.ylo])
+    (by show Tb.Yh ≤ m{K - 1}.yhi; norm_num [m{K - 1}, Tb, TBand.Yh])
+
+theorem advM : ∀ k, Tb.β * (mem k).yhi ≤ (1 - Tb.β) * (mem k).ahi := fun k => by
+  fin_cases k
+  exacts [{", ".join(f"by show Tb.β * m{kk}.yhi ≤ (1 - Tb.β) * m{kk}.ahi; norm_num [m{kk}, Tb]" for kk in range(K))}]
+
 /-- **Certified multi-epoch finality from a random oracle and the stake estimate.**
 β = {float(beta)}, Δ = {D}, k = 2160, executions up to slot {cfg['N']} ({Ne} epochs). Beyond the
 random oracle, fresh lotteries and Δ-delivery, the hypotheses are those of
-`final_bimm_ro_tsi4`: states satisfy `StateOK`, genesis is in band, canonical prefixes are
-consistent (`hcons`), the canonical chain's occupied-slot count lies between `(1-μ)` times
-the honest occupied slots and all occupied slots plus genesis (`hlo`, `hhi`; μ = {float(T['mu'])},
-full withholding allowed), the stake path satisfies `StakePath`, and `pick` assigns in-band
-states their member. Then a finality violation has probability at most `{tgt} + {Ne} · {float(BX):.3e}`. -/
+`final_bimm_ro_tsi5`: states satisfy `StateOK`, the genesis state is in band, the canonical
+chain's occupied-slot count is at least `(1-μ)` times the honest occupied slots (`hlo`;
+μ = {float(T['mu'])}, full withholding allowed), the stake path satisfies `StakePath`, and the
+honest nodes' online status changes only at epoch boundaries (`OnlineEpoch`). Then a
+finality violation has probability at most `{tgt} + {Ne} · {float(BX):.3e}` plus the
+probability that the canonical prefixes split (`PrefixesSplit`; `0` if they never do). -/
 theorem certified_tsi {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measure Ω}}
     [MeasureTheory.IsProbabilityMeasure μ] {{O : Ω → Oracle}} (E : Env) (hc : E.c = Config.spec) (hΔ : E.Δ = {D})
     (hA : Assm E) (es : Ω → List Event) (hNF : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ {cfg['N']})
     (hdel : ∀ ω, DeltaDelivery (E.withO (O ω)) (es ω)) (hO : RandomOracle μ O E.c.p)
     (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
-    (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω)) (pick : EpochState → Fin {K})
+    (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
     (hst : ∀ ω i, StateOK E Tb i (σE (E.withO (O ω)) (es ω) i))
-    (h0 : ∀ ω, InB E Tb (σE (E.withO (O ω)) (es ω)) 0)
-    (hcons : ∀ ω e, e + 1 < {Ne} → 1 ≤ e →
-      prefixBelow (CP (E.withO (O ω)) (es ω) (e + 1)) (E.c.cut e) = CP (E.withO (O ω)) (es ω) e)
+    (h0 : InB E Tb (fun _ => es0 E) 0)
     (hlo : ∀ ω e, e + 1 < {Ne} → (1 - Tb.μ) *
       hcnt E (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e ≤
         (occupied E.c (CP (E.withO (O ω)) (es ω) (e + 1)) e : ℝ))
-    (hhi : ∀ ω e, e + 1 < {Ne} → (occupied E.c (CP (E.withO (O ω)) (es ω) (e + 1)) e : ℝ) ≤
-      wcnt E (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e + 1)
     (hpath : ∀ ω e, e + 1 < {Ne} → StakePath E Tb (σE (E.withO (O ω)) (es ω)) e)
-    (hpick : ∀ ω n, n < {M} → InB E Tb (σE (E.withO (O ω)) (es ω)) ((n + 1) / E.c.epochLength) →
-      SlotBand (fam (pick (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1) (σE (E.withO (O ω)) (es ω) (n + 1))) :
-    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal {tgt} + (({Ne} : ℕ) : ENNReal) * ENNReal.ofReal {q(BX)} := by
+    (hon : OnlineEpoch E) :
+    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal {tgt} +
+      ((({Ne} : ℕ) : ENNReal) * ENNReal.ofReal {q(BX)} + μ {{ω | PrefixesSplit (E.withO (O ω)) (es ω) {Ne}}}) := by
   have hEL : E.c.epochLength = {EL} := by rw [hc]; rfl
   have hP : E.c.period = {PERIOD} := by rw [hc]; rfl
-  refine (final_bimm_ro_tsi4 (M := {M}) (Ne := {Ne}) hA es hNF hdel hO hσm hfresh hΔ (D3 E.c.epochLength hEL)
-    (fun k => by fin_cases k; exacts [{", ".join(f"prod{kk}" for kk in range(K))}]) pick
+  refine (final_bimm_ro_tsi5 (M := {M}) (Ne := {Ne}) hA es hNF hdel hO hσm hfresh hΔ (D3 E.c.epochLength hEL)
+    (fun k => by fin_cases k; exacts [{", ".join(f"prod{kk}" for kk in range(K))}])
     (G' := {Gp}) (J := {J}) (Lw := {Lw}) (r := {r}) (T := {Tg}) (x := {q(x)}) (yy := {q(yy)})
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by rw [hEL]; norm_num)
     (by rw [hc]; exact lot) TbOK (by rw [hc]; rfl) (by rw [hc]; norm_num [Config.spec])
     (by rw [hc]; norm_num [Config.spec, Config.period, Config.kf])
     (by rw [hP]; norm_num) (by rw [hP, hEL]; norm_num)
-    hst h0 (by rw [hEL]; norm_num) hcons hlo hhi hpath hpick).trans ?_
+    hst h0 (by rw [hEL]; norm_num) hlo hpath hon (mem := mem) (fun k => by fin_cases k <;> rfl)
+    (fun k => by fin_cases k; exacts [{", ".join(f"ok{kk}" for kk in range(K))}]) covM advM).trans ?_
   rw [hP]
   refine add_le_add (ENNReal.ofReal_le_ofReal (eps_le E hc)) ?_
   gcongr
