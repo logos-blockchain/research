@@ -3,7 +3,7 @@
 `uncle_sim.py` estimates μ, the fraction of honest-won slots in a window that the
 canonical chain's TSI count misses. That count is the distinct occupied slots of
 the chain's blocks and their uncles. The multi-epoch certificate assumes μ ≤ 0.1
-(hypothesis `hlo` of `final_bimm_ro_tsi4`). This simulation is the evidence for
+(the chain-quality assumption `Exec.ChainQuality` of `finality`). This simulation is the evidence for
 that value.
 
 The model has the following parts:

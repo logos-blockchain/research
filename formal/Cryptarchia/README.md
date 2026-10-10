@@ -43,39 +43,31 @@ The assumptions on the environment are the fields of `Assm E`:
 | `lottery_law_epoch` (`Prob/ROEpoch`) | **Many epochs.** The lottery string is dominated by a worst-case kernel with one band member per epoch. |
 | `final_bimm_ro_epoch_ok`, `final_bimm_ro_epoch3_ok` (`Prob/Final2E`, `Final3E`) | P(violation) ≤ settlement bound + P(some epoch state out of band). Phases inside an epoch use each member's own contraction, and phases near a boundary pay a bounded ratio. |
 | `prob_out_of_band` (`Prob/TSIRO`) | **Total stake inference.** The probability that the stake estimate leaves its band in some epoch is at most `Ne · bandEps`. The proof uses Chernoff bounds with predictable rates and a deterministic band step through the specification's fixed-point update (`infer_close`). The adversary may withhold all its blocks. |
-| `final_bimm_ro_tsi3` (`Prob/FinalTSI`) | Joins the two: P(violation) ≤ `settleEps3E + Ne · bandEps`. |
-| `final_bimm_ro_tsi4` (`Prob/FinalTSI`) | The same bound, with the estimate's update stated about the canonical chain (`recur_of`, from `cs_succ_D` in `Proof/Recur`). |
-| `final_bimm_ro_tsi5` (`Prob/FinalTSI`) | P(violation) ≤ `settleEps3E + Ne · bandEps + P(PrefixesSplit)`, with `hpick` and `hhi` proven and `hcons` turned into the last term. |
-| `final_bimm_ro_tsi6` (`Prob/FinalInd`) | **By induction on the epochs:** P(violation) ≤ `(Ne + 1) · settleEps3E + Ne · bandEps`, with `hcons` proven. Epoch `e`'s prefixes are consistent on the lottery's good event up to `min (fix (e + 1)) N`, cut there (`cons_of_lot`, `good_trunc`), which concerns epochs up to `e` only; its failure is charged while those are in band (`prob_out_of_band_seq`, `prob_split_epoch`). The certificates use this one. |
+| `finality_core` (`Prob/FinalInd`) | **Finality over many epochs, with the stake estimate.** P(violation) ≤ `(Ne + 1) · settleEps3E + Ne · bandEps`. The member assignment is constructed (`slotBand_pickM`), the estimate's update is proven from the canonical chain (`recur_of`, `occupied_le_wcnt`), and canonical-prefix consistency is proven by induction on the epochs: epoch `e`'s prefixes are consistent on the lottery's good event up to `min (fix (e + 1)) N`, cut there (`cons_of_lot`, `good_trunc`), which concerns epochs up to `e` only; its failure is charged while those are in band (`prob_out_of_band_seq`, `prob_split_epoch`). |
+| `finality` (`Prob/Finality`) | **The same, from plain assumptions** (below), with the band's conditions as numeric facts about a certificate's constants. The certificates instantiate this one. |
 
-`final_bimm_ro_tsi6` has these hypotheses beyond the random oracle, fresh lotteries and Δ-delivery:
+`finality` assumes, beyond the certificate's numeric facts:
 
-| Hypothesis | Meaning | Status |
-|---|---|---|
-| `InB E Tb (fun _ => es0 E) 0` | the genesis state is in band | a check on the genesis state (`inB0_of_genesis` gives it for every execution) |
-| `StateOK` | distinct note ids, small notes, adversary ≤ β of participating stake | stake assumption |
-| `hlo` | the canonical chain's occupied-slot count in epoch `e`'s window is at least `(1 − μ)` × the honest-won slots, μ = 0.1 | **assumed**, with simulation evidence (`tools/forksim`): about 1 % in normal operation, up to about 10 % under worst-case scheduling or a balance attack; chain growth alone proves μ ≈ 0.25 |
-| `StakePath` | the stake at each slot of epoch `e+1` is covered by epoch `e`'s window estimate | stake-drift assumption |
-| `OnlineEpoch` | the honest nodes' online status changes only at epoch boundaries | network-schedule assumption. A slot's honest exponent counts only online honest stake, and the worst-case kernel keeps one member per epoch, so a crash inside an epoch could move the exponent out of that epoch's member |
-| `hlive` | some honest node is online at every slot | network assumption: the canonical prefix is read from an online node |
-| member facts (`Member.OK`, `hcov`, `hadv`) | the band family covers the estimate's band | checked per certificate |
-
-What became of `final_bimm_ro_tsi4`'s other hypotheses:
-
-| Hypothesis | Now |
+| Assumption | Meaning |
 |---|---|
-| `hpick` | **proven** (`slotBand_pickM`, `Prob/Pick`): `pickM` assigns epoch `e` the member whose range holds the honest exponent at the epoch's first slot. `pick` takes the epoch index (`ℕ → EpochState → Fin K`) |
-| `hhi` | **proven** (`occupied_le_wcnt`, `Prob/Occupied`): every counted block and uncle carries a Proof of Leadership against its parent chain's state, which is canonical; an honest signer was online at its slot (`signOK_all`, `Proof/Signers`) |
-| `hcons` | **proven** by the epoch induction (`final_bimm_ro_tsi6`), at the cost of `Ne · settleEps3E` |
-| `InB … 0` for every execution | a check on the genesis state alone |
+| `Model` | tickets are a random oracle; each slot's lottery is fresh (no grinding); honest blocks are delivered within Δ; honest nodes follow the protocol and only crash; they go online or offline only at epoch boundaries; some honest node is online at every slot; each slot's epoch state is measurable |
+| `GenesisOK` | the genesis stake estimate is the genesis stake, all of it online |
+| `Exec.StakeOK β ζ` | the adversary holds at most a fraction β of the participating stake; notes are small (ζ); lead note identifiers are distinct |
+| `Exec.ChainQuality μ` | in every epoch, the canonical chain counts (as block or uncle slots) at least a fraction `1 − μ` of the window's slots an online honest node won. **Assumed** at μ = 0.1, with simulation evidence (`tools/forksim`): about 1 % lost in normal operation, up to about 10 % under worst-case scheduling or a balance attack; chain growth alone proves μ ≈ 0.25 |
+| `Exec.StakeDrift ρ` | from each epoch to the next, honest online stake grows by at most a factor ρ and participating stake shrinks by at most a factor ρ, slot for slot against the previous epoch's window |
+| `Exec.MinStake Hmin` | honest online stake is at least `Hmin` at every slot (it absorbs the estimate's fixed-point rounding) |
 
-## Certified number
+Two of these replace conditions of the earlier statements that a reader could not check. `StakeDrift` and `MinStake` imply the band step's `StakePath` (`stakePath_of_drift`); the band (`tools/certgen`, `tband`) leaves room for the drift. `OnlineEpoch`, part of `Model`, is what lets one band member serve a whole epoch: a slot's honest exponent counts only online honest stake.
 
-One configuration is certified, as a Lean theorem with standard axioms only (`Prob/Certs/E20D11.lean`, `certified_tsi`):
+## Certified numbers
 
-> f = 1/30, k = 2160, Δ = 11 slots, β = 0.2, executions up to slot 31,536,000 (one year, 49 epochs), with the specification's stake inference and the adversary free to withhold all its blocks: **P(finality violation) ≤ 1e-9 + 49 × 4.2e-16 + 49 × 1e-9 ≈ 5.0e-8**.
+Two configurations are certified, as Lean theorems with standard axioms only (`finality` in `Prob/Certs/E20D11M2.lean` and `Prob/Certs/E20D11.lean`), under the assumptions of `finality` above with β = 0.2, μ = 0.1, ρ = 1.01 and `Hmin` = 10⁶:
 
-The band of slot rates is derived from the stake estimate (TSI band δ = 9 %, six band members), with μ = 0.1 (at most 10 % of honest wins go uncounted). The remaining hypotheses are those of `final_bimm_ro_tsi6` above. Assuming every honest win is counted (μ = 0) would give about 1e-13; the simulation shows that assumption fails under worst-case forks.
+> f = 1/30, k = 2160, Δ = 11 slots, with the specification's stake inference and the adversary free to withhold all its blocks:
+> * executions up to slot 5,184,000 (two months, 9 epochs): **P(finality violation) ≤ 3.6e-9**;
+> * executions up to slot 31,536,000 (one year, 49 epochs): **P(finality violation) ≤ 1.1e-7**.
+
+Each bound is `(Ne + 1) · settleEps3E + Ne · bandEps`: the settlement bound (3.5e-10 and 2.1e-9) once for finality and once per epoch for canonical-prefix consistency, plus the estimate's band (5.2e-16 per epoch). The band of slot rates is derived from the stake estimate (TSI band δ = 9 %, six band members), with room for the stake drift ρ. Assuming every honest win is counted (μ = 0) would give about 1e-13 per settlement bound; the simulation shows that assumption fails under worst-case forks.
 
 Other configurations are generated by `tools/certgen` (one-epoch, genesis and multi-epoch variants; see its README). Indicative values from the same method include:
 - β = 0.1 over a year: about 1e-40;

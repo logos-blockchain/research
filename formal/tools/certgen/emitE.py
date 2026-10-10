@@ -67,9 +67,7 @@ public import Cryptarchia.Prob.Stake
 """
 MAIN_IMPORTS = """import Cryptarchia.Prob.Cert
 import Cryptarchia.Prob.ExpBound
-import Cryptarchia.Prob.FinalInd
-public import Cryptarchia.Prob.Pick
-public import Cryptarchia.Prob.Final3E
+public import Cryptarchia.Prob.Finality
 import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.RingTheory.WittVector.IsPoly
 import Mathlib.Tactic.ReduceModChar
@@ -451,12 +449,12 @@ theorem certified {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measu
     (add_le_add (ENNReal.ofReal_le_ofReal (eps_le E hc)) le_rfl)
 
 """)
-    L.append(emit_tsi(cfg, T, D, K, M, tgt, Gp, J, Lw, r, Tg, x, yy, G))
+    L.append(emit_tsi(cfg, T, D, K, M, tgt, Gp, J, Lw, r, Tg, x, yy, G, target))
     L.append(f"end {ns}\n")
     open(f"{out_dir}/{name}.lean", "w").write("\n".join(L))
 
 
-def emit_tsi(cfg, T, D, K, M, tgt, Gp, J, Lw, r, Tg, x, yy, G):
+def emit_tsi(cfg, T, D, K, M, tgt, Gp, J, Lw, r, Tg, x, yy, G, tgt_q):
     """the band constants, the band's probability, and the end-to-end theorem"""
     from certE import tband_derived, PERIOD
     beta, delta = T['beta'], T['delta']
@@ -473,6 +471,7 @@ def emit_tsi(cfg, T, D, K, M, tgt, Gp, J, Lw, r, Tg, x, yy, G):
         a0s.append(a0); Qs.append((Q, hyp, base)); chains.append("\n".join(lines))
     BX = rup(1 / Qs[0][0] + 1 / Qs[1][0], 4)
     Ne = M // EL + 1
+    FINAL = rup(tgt_q * (Ne + 1) + Ne * BX, 2)
     # consecutive member ranges: ⟨m0.yhi = m1.ylo, ⟨…, trivial⟩⟩
     def nest_(kk):
         if kk == K - 1: return "trivial"
@@ -520,49 +519,50 @@ theorem advM : ∀ k, Tb.β * (mem k).yhi ≤ (1 - Tb.β) * (mem k).ahi := fun k
   fin_cases k
   exacts [{", ".join(f"by show Tb.β * m{kk}.yhi ≤ (1 - Tb.β) * m{kk}.ahi; norm_num [m{kk}, Tb]" for kk in range(K))}]
 
-/-- **Certified multi-epoch finality from a random oracle and the stake estimate.**
-β = {float(beta)}, Δ = {D}, k = 2160, executions up to slot {cfg['N']} ({Ne} epochs). Beyond the
-random oracle, fresh lotteries and Δ-delivery, the hypotheses are those of
-`final_bimm_ro_tsi6`: states satisfy `StateOK`, the genesis state is in band, the canonical
-chain's occupied-slot count is at least `(1-μ)` times the honest occupied slots (`hlo`;
-μ = {float(T['mu'])}, full withholding allowed), the stake path satisfies `StakePath`, the
-honest nodes' online status changes only at epoch boundaries (`OnlineEpoch`), and some
-honest node is online at every slot (`hlive`). Then a finality violation has probability
-at most `{tgt} + {Ne} · {float(BX):.3e} + {Ne} · {tgt}`: the last term pays for the
-canonical prefixes' consistency, epoch by epoch. -/
-theorem certified_tsi {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measure Ω}}
+/-- **Finality, certified.** f = 1/30, k = 2160, Δ = {D} slots, executions up to slot
+{cfg['N']} ({Ne} epochs). Under the execution model (`Model`), if the genesis estimate is
+the genesis stake, the adversary holds at most {float(beta)} of the participating stake, the
+canonical chain counts at least {float(1 - T['mu'])} of each window's honestly won slots,
+stake drifts by at most a factor {float(T['rho'])} per epoch and honest online stake is at
+least {T['hmin']}, a finality violation has probability at most {float(FINAL):.2e}. -/
+theorem finality {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measure Ω}}
     [MeasureTheory.IsProbabilityMeasure μ] {{O : Ω → Oracle}} (E : Env) (hc : E.c = Config.spec) (hΔ : E.Δ = {D})
-    (hA : Assm E) (es : Ω → List Event) (hNF : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ {cfg['N']})
-    (hdel : ∀ ω, DeltaDelivery (E.withO (O ω)) (es ω)) (hO : RandomOracle μ O E.c.p)
-    (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
-    (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
-    (hst : ∀ ω i, StateOK E Tb i (σE (E.withO (O ω)) (es ω) i))
-    (h0 : InB E Tb (fun _ => es0 E) 0)
-    (hlo : ∀ ω e, e + 1 < {Ne} → (1 - Tb.μ) *
-      hcnt E (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e ≤
-        (occupied E.c (CP (E.withO (O ω)) (es ω) (e + 1)) e : ℝ))
-    (hpath : ∀ ω e, e + 1 < {Ne} → StakePath E Tb (σE (E.withO (O ω)) (es ω)) e)
-    (hon : OnlineEpoch E) (hlive : ∀ t, ∃ j ∈ E.nodes, E.online j t = true) :
-    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal {tgt} +
-      ((({Ne} : ℕ) : ENNReal) * ENNReal.ofReal {q(BX)} + (({Ne} : ℕ) : ENNReal) * ENNReal.ofReal {tgt}) := by
+    (es : Ω → List Event) (hM : Model μ O E es) (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ {cfg['N']})
+    (hG : GenesisOK E)
+    (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) {q(beta)} (1 / 10 ^ 16))
+    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) {q(T['mu'])} {Ne})
+    (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) {q(T['rho'])} {Ne})
+    (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) {q(T['hmin'])}) :
+    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal {q(FINAL)} := by
   have hEL : E.c.epochLength = {EL} := by rw [hc]; rfl
   have hP : E.c.period = {PERIOD} := by rw [hc]; rfl
-  refine (final_bimm_ro_tsi6 (M := {M}) (Ne := {Ne}) hA es hNF hdel hO hσm hfresh hΔ (D3 E.c.epochLength hEL)
+  have hb := Prob.finality (M := {M}) (Ne := {Ne}) es hM hN hΔ (D3 E.c.epochLength hEL)
     (fun k => by fin_cases k; exacts [{", ".join(f"prod{kk}" for kk in range(K))}])
     (G' := {Gp}) (J := {J}) (Lw := {Lw}) (r := {r}) (T := {Tg}) (x := {q(x)}) (yy := {q(yy)})
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
-    (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by rw [hEL]; norm_num)
-    (by rw [hEL, hc]; norm_num [Config.spec, Config.nonceOffset, Config.s, Config.kf]) (by norm_num [B])
+    (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B])
+    (by rw [hEL]; norm_num) (by rw [hEL, hc]; norm_num [Config.spec, Config.nonceOffset, Config.s, Config.kf])
     (by show (0 : ℝ) ≤ P.e 2; norm_num [P, Ev])
     (by rw [hc]; exact lot) TbOK (by rw [hc]; rfl) (by rw [hc]; norm_num [Config.spec])
     (by rw [hc]; norm_num [Config.spec, Config.period, Config.kf])
-    (by rw [hP]; norm_num) (by rw [hP, hEL]; norm_num)
-    hst h0 (by rw [hEL]; norm_num) hlo hpath hon hlive (mem := mem) (fun k => by fin_cases k <;> rfl)
-    (fun k => by fin_cases k; exacts [{", ".join(f"ok{kk}" for kk in range(K))}]) covM advM).trans ?_
-  rw [hP]
+    (by rw [hP]; norm_num) (by rw [hP, hEL]; norm_num) (by rw [hEL]; norm_num)
+    (mem := mem) (fun k => by fin_cases k <;> rfl)
+    (fun k => by fin_cases k; exacts [{", ".join(f"ok{kk}" for kk in range(K))}]) covM advM
+    (ρ := {q(T['rho'])}) (Hmin := {q(T['hmin'])}) (by norm_num) (by norm_num)
+    (by rw [hc]; unfold lam0 Kc; norm_num [Tb, TBand.clo, TBand.Yh, TBand.ylo, errHi, Config.spec, Config.period,
+      Config.kf, Config.t0Const, Config.p])
+    (by rw [hc]; unfold lam0 Kc; norm_num [Tb, TBand.chi, TBand.Yh, TBand.Ya, errLo, Config.spec, Config.period,
+      Config.kf, Config.t0Const, Config.p])
+    (by rw [hc]; unfold lam0; norm_num [Tb, Config.spec, Config.t0Const, Config.p])
+    (by rw [hc]; unfold lam0; norm_num [Tb, Config.spec, Config.t0Const, Config.p])
+    hG hS hQ hD hH
+  rw [hP] at hb
   have h1 := ENNReal.ofReal_le_ofReal (eps_le E hc)
   have h2 := ENNReal.ofReal_le_ofReal band_le
-  exact add_le_add h1 (add_le_add (mul_le_mul_right h2 _) (mul_le_mul_right h1 _))
+  refine hb.trans ((add_le_add h1 (add_le_add (mul_le_mul_right h2 _) (mul_le_mul_right h1 _))).trans ?_)
+  rw [← ENNReal.ofReal_natCast, ← ENNReal.ofReal_mul (by positivity), ← ENNReal.ofReal_mul (by positivity),
+    ← ENNReal.ofReal_add (by positivity) (by positivity), ← ENNReal.ofReal_add (by positivity) (by positivity)]
+  exact ENNReal.ofReal_le_ofReal (by norm_num)
 
 """
     return s
@@ -582,9 +582,8 @@ if __name__ == "__main__":
         pickle.dump(res, open(pk, 'wb'))
     cfg, T, fam, B, P, Ts = res
     tot = sum(Ts)
-    texp = -flog10(tot) - 1
-    target = Fr(1, 10 ** texp) if texp > 0 else Fr(1)
-    while target < tot: texp -= 1; target = Fr(1, 10 ** texp)
+    # the settlement bound's target: the planned total, rounded up to two significant digits
+    target = rup(tot, 2)
     if mode == 'main':
         C_, Z_, S_, K_, Dd_, TAU_ = (q(Fr(cfg[v])) for v in ['c', 'z', 's', 'kap', 'd', 'tau'])
         emit_main(cfg, T, fam, B, P, Ts, name, out_dir, target, f"{C_} {Z_} {S_} {Dd_} {TAU_}")

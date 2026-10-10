@@ -36,7 +36,7 @@ import Mathlib.Topology.Sheaves.Init
 /-!
 # The member of an epoch, from its state
 
-`final_bimm_ro_tsi4` assumes `hpick`: whenever an epoch is in band, each of its slots
+The multi-epoch theorem needs, whenever an epoch is in band, that each of its slots
 is within the band of the member `pick` assigns. Here `pick` is constructed
 (`pickM`): epoch `e`'s member is the one whose honest-exponent range holds the
 honest exponent at the epoch's first slot. The band condition then follows from the
