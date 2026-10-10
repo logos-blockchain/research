@@ -21,7 +21,9 @@ public import Cryptarchia.Prob.Certs.E20D11M2.I17
 public import Cryptarchia.Prob.Certs.E20D11M2.I18
 import Cryptarchia.Prob.Cert
 import Cryptarchia.Prob.ExpBound
-public import Cryptarchia.Prob.FinalTSI
+import Cryptarchia.Prob.FinalInd
+public import Cryptarchia.Prob.Pick
+public import Cryptarchia.Prob.Final3E
 import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.RingTheory.WittVector.IsPoly
 import Mathlib.Tactic.ReduceModChar
@@ -1128,12 +1130,13 @@ theorem advM : ∀ k, Tb.β * (mem k).yhi ≤ (1 - Tb.β) * (mem k).ahi := fun k
 /-- **Certified multi-epoch finality from a random oracle and the stake estimate.**
 β = 0.2, Δ = 11, k = 2160, executions up to slot 5184000 (9 epochs). Beyond the
 random oracle, fresh lotteries and Δ-delivery, the hypotheses are those of
-`final_bimm_ro_tsi5`: states satisfy `StateOK`, the genesis state is in band, the canonical
+`final_bimm_ro_tsi6`: states satisfy `StateOK`, the genesis state is in band, the canonical
 chain's occupied-slot count is at least `(1-μ)` times the honest occupied slots (`hlo`;
-μ = 0.1, full withholding allowed), the stake path satisfies `StakePath`, and the
-honest nodes' online status changes only at epoch boundaries (`OnlineEpoch`). Then a
-finality violation has probability at most `(1 / 10000000000 : ℝ) + 9 · 4.218e-16` plus the
-probability that the canonical prefixes split (`PrefixesSplit`; `0` if they never do). -/
+μ = 0.1, full withholding allowed), the stake path satisfies `StakePath`, the
+honest nodes' online status changes only at epoch boundaries (`OnlineEpoch`), and some
+honest node is online at every slot (`hlive`). Then a finality violation has probability
+at most `(1 / 10000000000 : ℝ) + 9 · 4.218e-16 + 9 · (1 / 10000000000 : ℝ)`: the last term pays for the
+canonical prefixes' consistency, epoch by epoch. -/
 theorem certified_tsi {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
     [MeasureTheory.IsProbabilityMeasure μ] {O : Ω → Oracle} (E : Env) (hc : E.c = Config.spec) (hΔ : E.Δ = 11)
     (hA : Assm E) (es : Ω → List Event) (hNF : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ 5184000)
@@ -1146,25 +1149,27 @@ theorem certified_tsi {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Meas
       hcnt E (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e ≤
         (occupied E.c (CP (E.withO (O ω)) (es ω) (e + 1)) e : ℝ))
     (hpath : ∀ ω e, e + 1 < 9 → StakePath E Tb (σE (E.withO (O ω)) (es ω)) e)
-    (hon : OnlineEpoch E) :
+    (hon : OnlineEpoch E) (hlive : ∀ t, ∃ j ∈ E.nodes, E.online j t = true) :
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (1 / 10000000000 : ℝ) +
-      (((9 : ℕ) : ENNReal) * ENNReal.ofReal (2109 / 5000000000000000000 : ℝ) + μ {ω | PrefixesSplit (E.withO (O ω)) (es ω) 9}) := by
+      (((9 : ℕ) : ENNReal) * ENNReal.ofReal (2109 / 5000000000000000000 : ℝ) + ((9 : ℕ) : ENNReal) * ENNReal.ofReal (1 / 10000000000 : ℝ)) := by
   have hEL : E.c.epochLength = 648000 := by rw [hc]; rfl
   have hP : E.c.period = 388800 := by rw [hc]; rfl
-  refine (final_bimm_ro_tsi5 (M := 5186582) (Ne := 9) hA es hNF hdel hO hσm hfresh hΔ (D3 E.c.epochLength hEL)
+  refine (final_bimm_ro_tsi6 (M := 5186582) (Ne := 9) hA es hNF hdel hO hσm hfresh hΔ (D3 E.c.epochLength hEL)
     (fun k => by fin_cases k; exacts [prod0, prod1, prod2, prod3, prod4, prod5])
     (G' := 1909) (J := 19648) (Lw := 35000) (r := 316) (T := 35) (x := (311 / 250 : ℝ)) (yy := (47 / 100 : ℝ))
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by rw [hEL]; norm_num)
+    (by rw [hEL, hc]; norm_num [Config.spec, Config.nonceOffset, Config.s, Config.kf]) (by norm_num [B])
+    (by show (0 : ℝ) ≤ P.e 2; norm_num [P, Ev])
     (by rw [hc]; exact lot) TbOK (by rw [hc]; rfl) (by rw [hc]; norm_num [Config.spec])
     (by rw [hc]; norm_num [Config.spec, Config.period, Config.kf])
     (by rw [hP]; norm_num) (by rw [hP, hEL]; norm_num)
-    hst h0 (by rw [hEL]; norm_num) hlo hpath hon (mem := mem) (fun k => by fin_cases k <;> rfl)
+    hst h0 (by rw [hEL]; norm_num) hlo hpath hon hlive (mem := mem) (fun k => by fin_cases k <;> rfl)
     (fun k => by fin_cases k; exacts [ok0, ok1, ok2, ok3, ok4, ok5]) covM advM).trans ?_
   rw [hP]
-  refine add_le_add (ENNReal.ofReal_le_ofReal (eps_le E hc)) ?_
-  gcongr
-  exact band_le
+  have h1 := ENNReal.ofReal_le_ofReal (eps_le E hc)
+  have h2 := ENNReal.ofReal_le_ofReal band_le
+  exact add_le_add h1 (add_le_add (mul_le_mul_right h2 _) (mul_le_mul_right h1 _))
 
 
 end Cryptarchia.Prob.Certs.E20D11M2

@@ -60,3 +60,8 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.Prob.occupied_le_wcnt
 #print axioms Cryptarchia.Prob.inB0_of_genesis
 #print axioms Cryptarchia.Prob.final_bimm_ro_tsi5
+#print axioms Cryptarchia.cons_of_lot
+#print axioms Cryptarchia.Prob.good_trunc
+#print axioms Cryptarchia.Prob.prob_split_epoch
+#print axioms Cryptarchia.Prob.prob_out_of_band_seq
+#print axioms Cryptarchia.Prob.final_bimm_ro_tsi6
