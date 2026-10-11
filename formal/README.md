@@ -64,7 +64,7 @@ With Nix:
 
 ```sh
 cd formal
-nix-shell                         # elan and Python, with ELAN_HOME=formal/.elan
+nix-shell                         # elan and Python; ELAN_HOME defaults to ~/.elan
 lake exe cache get                # Mathlib's prebuilt .olean files (about 5 GB)
 lake build                        # every default target (all libraries except CryptarchiaCerts)
 lake build CryptarchiaCerts       # the certificates: about 2.5 min each, up to 3.5 GB of memory per file
