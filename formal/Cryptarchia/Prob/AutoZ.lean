@@ -1,6 +1,7 @@
 module
 
 public import Cryptarchia.Prob.AutoQ
+public import Cryptarchia.Prob.Cold2E
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -354,5 +355,27 @@ theorem switchZ_sound {K : ℕ} {famZ : Fin K → BandZ} {D : ℤ} {famQ : Fin K
   simp only [Bool.and_eq_true] at hk
   exact ⟨fun k => autoSol_ofQ (hA k) (autoSolZ_sound (hR k) hD hX hS (hk k).1),
     fun k => autoBound_le_ofQ (hA k) rfl (autoBoundZ_sound (hR k) hD hX hS (hk k).2)⟩
+
+/-! ## The class conditions -/
+
+/-- `ClassOK` as a check over `ℚ`, at the potential's parameters `c z s κ d`. -/
+def classOKQ (c z s κ d lp : ℚ) (e : Fin 19 → ℚ) (pat : ℚ) : Bool :=
+  decide (e 0 ≤ lp) && decide (e 1 - (1 - (s + κ) * z⁻¹) * pat ≤ lp) &&
+    decide (s * (e 3 - lp) + κ * (e 7 - lp) ≤ 0) && decide (s * c * (e 4 - lp) + κ * d * (e 8 - lp) ≤ 0) &&
+    decide (s * c ^ 2 * (e 4 - lp) + κ * d ^ 2 * (e 9 - lp) ≤ 0) && decide (e 4 ≤ lp) &&
+    decide (s * c ^ 3 * (e 4 - lp) + κ * d ^ 3 * max (e 10 - lp) 0 + κ * e 15 ≤ 0) &&
+    decide (s * (e 5 - lp) + κ * (e 11 - lp) ≤ 0) && decide (s * c * (e 6 - lp) + κ * d * (e 12 - lp) ≤ 0) &&
+    decide (s * c ^ 2 * (e 6 - lp) + κ * d ^ 2 * (e 13 - lp) ≤ 0) && decide (e 6 ≤ lp) &&
+    decide (s * c ^ 3 * (e 6 - lp) + κ * d ^ 3 * max (e 14 - lp) 0 + κ * e 16 ≤ 0)
+
+theorem ClassOK.ofQ {B : Band} {Δ : ℕ} {P : Cert2 B Δ} {c z s κ d lp pat : ℚ} {e : Fin 19 → ℚ}
+    {lp' pat' : ℝ} {e' : Fin 19 → ℝ} (hc : P.c = c) (hz : P.z = z) (hs : P.s = s) (hκ : P.κ = κ)
+    (hd : P.d = d) (hlp : lp' = lp) (he : ∀ i, e' i = e i) (hpat : pat' = pat)
+    (h : classOKQ c z s κ d lp e pat = true) : ClassOK P lp' e' pat' := by
+  simp only [classOKQ, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩ := h
+  subst hlp hpat
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp only [he, hc, hz, hs, hκ, hd] <;>
+    exact_mod_cast ‹_›
 
 end Cryptarchia.Prob

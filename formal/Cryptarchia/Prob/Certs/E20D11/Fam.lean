@@ -487,8 +487,6 @@ theorem weak0 : B.Weaker f0 :=
 theorem prod0 : f0.Prod :=
   ⟨by norm_num [f0], by norm_num [f0], by norm_num [f0], by norm_num [f0], by norm_num [f0]⟩
 
-theorem patm0 : (1667579614201 / 100000000000000 : ℝ) ≤ f0.slo * f0.elo ^ 11 := by norm_num [f0]
-
 theorem elo0 : 0 ≤ f0.elo := by norm_num [f0]
 
 def f0Q : BandQ := ⟨(605098364351 / 25000000000000 : ℚ), (148662666969 / 6250000000000 : ℚ), (1526623696737 / 250000000000000 : ℚ), (1478012003001 / 10000000000000000 : ℚ), (1526623696737 / 250000000000000 : ℚ), (11619939851 / 80000000000000 : ℚ)⟩
@@ -522,8 +520,6 @@ theorem weak1 : B.Weaker f1 :=
 
 theorem prod1 : f1.Prod :=
   ⟨by norm_num [f1], by norm_num [f1], by norm_num [f1], by norm_num [f1], by norm_num [f1]⟩
-
-theorem patm1 : (168545132071 / 10000000000000 : ℝ) ≤ f1.slo * f1.elo ^ 11 := by norm_num [f1]
 
 theorem elo1 : 0 ≤ f1.elo := by norm_num [f1]
 
@@ -559,8 +555,6 @@ theorem weak2 : B.Weaker f2 :=
 theorem prod2 : f2.Prod :=
   ⟨by norm_num [f2], by norm_num [f2], by norm_num [f2], by norm_num [f2], by norm_num [f2]⟩
 
-theorem patm2 : (53229091773 / 3125000000000 : ℝ) ≤ f2.slo * f2.elo ^ 11 := by norm_num [f2]
-
 theorem elo2 : 0 ≤ f2.elo := by norm_num [f2]
 
 def f2Q : BandQ := ⟨(250282399017 / 10000000000000 : ℚ), (1229756190621 / 50000000000000 : ℚ), (6316437958327 / 1000000000000000 : ℚ), (1580893245453 / 10000000000000000 : ℚ), (6316437958327 / 1000000000000000 : ℚ), (310707147277 / 2000000000000000 : ℚ)⟩
@@ -594,8 +588,6 @@ theorem weak3 : B.Weaker f3 :=
 
 theorem prod3 : f3.Prod :=
   ⟨by norm_num [f3], by norm_num [f3], by norm_num [f3], by norm_num [f3], by norm_num [f3]⟩
-
-theorem patm3 : (860605743607 / 50000000000000 : ℝ) ≤ f3.slo * f3.elo ^ 11 := by norm_num [f3]
 
 theorem elo3 : 0 ≤ f3.elo := by norm_num [f3]
 
@@ -631,8 +623,6 @@ theorem weak4 : B.Weaker f4 :=
 theorem prod4 : f4.Prod :=
   ⟨by norm_num [f4], by norm_num [f4], by norm_num [f4], by norm_num [f4], by norm_num [f4]⟩
 
-theorem patm4 : (869542883981 / 50000000000000 : ℝ) ≤ f4.slo * f4.elo ^ 11 := by norm_num [f4]
-
 theorem elo4 : 0 ≤ f4.elo := by norm_num [f4]
 
 def f4Q : BandQ := ⟨(2588024893377 / 100000000000000 : ℚ), (635782577239 / 25000000000000 : ℚ), (3266787678623 / 500000000000000 : ℚ), (1690905566731 / 10000000000000000 : ℚ), (3266787678623 / 500000000000000 : ℚ), (830786675843 / 5000000000000000 : ℚ)⟩
@@ -666,8 +656,6 @@ theorem weak5 : B.Weaker f5 :=
 
 theorem prod5 : f5.Prod :=
   ⟨by norm_num [f5], by norm_num [f5], by norm_num [f5], by norm_num [f5], by norm_num [f5]⟩
-
-theorem patm5 : (351389268661 / 20000000000000 : ℝ) ≤ f5.slo * f5.elo ^ 11 := by norm_num [f5]
 
 theorem elo5 : 0 ≤ f5.elo := by norm_num [f5]
 
@@ -703,8 +691,6 @@ theorem weak6 : B.Weaker f6 :=
 theorem prod6 : f6.Prod :=
   ⟨by norm_num [f6], by norm_num [f6], by norm_num [f6], by norm_num [f6], by norm_num [f6]⟩
 
-theorem patm6 : (1774785543769 / 100000000000000 : ℝ) ≤ f6.slo * f6.elo ^ 11 := by norm_num [f6]
-
 theorem elo6 : 0 ≤ f6.elo := by norm_num [f6]
 
 def f6Q : BandQ := ⟨(2676086714649 / 100000000000000 : ℚ), (2629543746041 / 100000000000000 : ℚ), (3379075927401 / 500000000000000 : ℚ), (904270019711 / 5000000000000000 : ℚ), (3379075927401 / 500000000000000 : ℚ), (888542797229 / 5000000000000000 : ℚ)⟩
@@ -738,8 +724,6 @@ theorem weak7 : B.Weaker f7 :=
 
 theorem prod7 : f7.Prod :=
   ⟨by norm_num [f7], by norm_num [f7], by norm_num [f7], by norm_num [f7], by norm_num [f7]⟩
-
-theorem patm7 : (112037216501 / 6250000000000 : ℝ) ≤ f7.slo * f7.elo ^ 11 := by norm_num [f7]
 
 theorem elo7 : 0 ≤ f7.elo := by norm_num [f7]
 
@@ -775,8 +759,6 @@ theorem weak8 : B.Weaker f8 :=
 theorem prod8 : f8.Prod :=
   ⟨by norm_num [f8], by norm_num [f8], by norm_num [f8], by norm_num [f8], by norm_num [f8]⟩
 
-theorem patm8 : (226295995129 / 12500000000000 : ℝ) ≤ f8.slo * f8.elo ^ 11 := by norm_num [f8]
-
 theorem elo8 : 0 ≤ f8.elo := by norm_num [f8]
 
 def f8Q : BandQ := ⟨(1383551391843 / 50000000000000 : ℚ), (2718842530691 / 100000000000000 : ℚ), (349521027041 / 50000000000000 : ℚ), (483580303441 / 2500000000000000 : ℚ), (349521027041 / 50000000000000 : ℚ), (1900585267379 / 10000000000000000 : ℚ)⟩
@@ -810,8 +792,6 @@ theorem weak9 : B.Weaker f9 :=
 
 theorem prod9 : f9.Prod :=
   ⟨by norm_num [f9], by norm_num [f9], by norm_num [f9], by norm_num [f9], by norm_num [f9]⟩
-
-theorem patm9 : (1828094652423 / 100000000000000 : ℝ) ≤ f9.slo * f9.elo ^ 11 := by norm_num [f9]
 
 theorem elo9 : 0 ≤ f9.elo := by norm_num [f9]
 
@@ -847,8 +827,6 @@ theorem weak10 : B.Weaker f10 :=
 theorem prod10 : f10.Prod :=
   ⟨by norm_num [f10], by norm_num [f10], by norm_num [f10], by norm_num [f10], by norm_num [f10]⟩
 
-theorem patm10 : (1845766915061 / 100000000000000 : ℝ) ≤ f10.slo * f10.elo ^ 11 := by norm_num [f10]
-
 theorem elo10 : 0 ≤ f10.elo := by norm_num [f10]
 
 def f10Q : BandQ := ⟨(1430584642683 / 50000000000000 : ℚ), (1405559549843 / 50000000000000 : ℚ), (7230642991559 / 1000000000000000 : ℚ), (206880936409 / 1000000000000000 : ℚ), (7230642991559 / 1000000000000000 : ℚ), (1016309930829 / 5000000000000000 : ℚ)⟩
@@ -882,8 +860,6 @@ theorem weak11 : B.Weaker f11 :=
 
 theorem prod11 : f11.Prod :=
   ⟨by norm_num [f11], by norm_num [f11], by norm_num [f11], by norm_num [f11], by norm_num [f11]⟩
-
-theorem patm11 : (23292198549 / 1250000000000 : ℝ) ≤ f11.slo * f11.elo ^ 11 := by norm_num [f11]
 
 theorem elo11 : 0 ≤ f11.elo := by norm_num [f11]
 
@@ -919,8 +895,6 @@ theorem weak12 : B.Weaker f12 :=
 theorem prod12 : f12.Prod :=
   ⟨by norm_num [f12], by norm_num [f12], by norm_num [f12], by norm_num [f12], by norm_num [f12]⟩
 
-theorem patm12 : (1880912451187 / 100000000000000 : ℝ) ≤ f12.slo * f12.elo ^ 11 := by norm_num [f12]
-
 theorem elo12 : 0 ≤ f12.elo := by norm_num [f12]
 
 def f12Q : BandQ := ⟨(2958385333939 / 100000000000000 : ℚ), (1453234269523 / 50000000000000 : ℚ), (467443096607 / 62500000000000 : ℚ), (1106301441163 / 5000000000000000 : ℚ), (467443096607 / 62500000000000 : ℚ), (2173773846531 / 10000000000000000 : ℚ)⟩
@@ -954,8 +928,6 @@ theorem weak13 : B.Weaker f13 :=
 
 theorem prod13 : f13.Prod :=
   ⟨by norm_num [f13], by norm_num [f13], by norm_num [f13], by norm_num [f13], by norm_num [f13]⟩
-
-theorem patm13 : (1898367265657 / 100000000000000 : ℝ) ≤ f13.slo * f13.elo ^ 11 := by norm_num [f13]
 
 theorem elo13 : 0 ≤ f13.elo := by norm_num [f13]
 
@@ -991,8 +963,6 @@ theorem weak14 : B.Weaker f14 :=
 theorem prod14 : f14.Prod :=
   ⟨by norm_num [f14], by norm_num [f14], by norm_num [f14], by norm_num [f14], by norm_num [f14]⟩
 
-theorem patm14 : (383146146491 / 20000000000000 : ℝ) ≤ f14.slo * f14.elo ^ 11 := by norm_num [f14]
-
 theorem elo14 : 0 ≤ f14.elo := by norm_num [f14]
 
 def f14Q : BandQ := ⟨(1529426524049 / 50000000000000 : ℚ), (3004988633267 / 100000000000000 : ℚ), (309441583539 / 40000000000000 : ℚ), (1183170413771 / 5000000000000000 : ℚ), (309441583539 / 40000000000000 : ℚ), (2324671102987 / 10000000000000000 : ℚ)⟩
@@ -1026,8 +996,6 @@ theorem weak15 : B.Weaker f15 :=
 
 theorem prod15 : f15.Prod :=
   ⟨by norm_num [f15], by norm_num [f15], by norm_num [f15], by norm_num [f15], by norm_num [f15]⟩
-
-theorem patm15 : (38659860261 / 2000000000000 : ℝ) ≤ f15.slo * f15.elo ^ 11 := by norm_num [f15]
 
 theorem elo15 : 0 ≤ f15.elo := by norm_num [f15]
 
@@ -1063,8 +1031,6 @@ theorem weak16 : B.Weaker f16 :=
 theorem prod16 : f16.Prod :=
   ⟨by norm_num [f16], by norm_num [f16], by norm_num [f16], by norm_num [f16], by norm_num [f16]⟩
 
-theorem patm16 : (487536006401 / 25000000000000 : ℝ) ≤ f16.slo * f16.elo ^ 11 := by norm_num [f16]
-
 theorem elo16 : 0 ≤ f16.elo := by norm_num [f16]
 
 def f16Q : BandQ := ⟨(632535525411 / 20000000000000 : ℚ), (3106779913009 / 100000000000000 : ℚ), (800178184443 / 100000000000000 : ℚ), (632676410399 / 2500000000000000 : ℚ), (800178184443 / 100000000000000 : ℚ), (497195502051 / 2000000000000000 : ℚ)⟩
@@ -1098,8 +1064,6 @@ theorem weak17 : B.Weaker f17 :=
 
 theorem prod17 : f17.Prod :=
   ⟨by norm_num [f17], by norm_num [f17], by norm_num [f17], by norm_num [f17], by norm_num [f17]⟩
-
-theorem patm17 : (491793361421 / 25000000000000 : ℝ) ≤ f17.slo * f17.elo ^ 11 := by norm_num [f17]
 
 theorem elo17 : 0 ≤ f17.elo := by norm_num [f17]
 
@@ -1135,8 +1099,6 @@ theorem weak18 : B.Weaker f18 :=
 theorem prod18 : f18.Prod :=
   ⟨by norm_num [f18], by norm_num [f18], by norm_num [f18], by norm_num [f18], by norm_num [f18]⟩
 
-theorem patm18 : (992035353671 / 50000000000000 : ℝ) ≤ f18.slo * f18.elo ^ 11 := by norm_num [f18]
-
 theorem elo18 : 0 ≤ f18.elo := by norm_num [f18]
 
 def f18Q : BandQ := ⟨(1634983713691 / 50000000000000 : ℚ), (321194570061 / 10000000000000 : ℚ), (8276614679047 / 1000000000000000 : ℚ), (676606510237 / 2500000000000000 : ℚ), (8276614679047 / 1000000000000000 : ℚ), (2658403693397 / 10000000000000000 : ℚ)⟩
@@ -1170,8 +1132,6 @@ theorem weak19 : B.Weaker f19 :=
 
 theorem prod19 : f19.Prod :=
   ⟨by norm_num [f19], by norm_num [f19], by norm_num [f19], by norm_num [f19], by norm_num [f19]⟩
-
-theorem patm19 : (2000825004613 / 100000000000000 : ℝ) ≤ f19.slo * f19.elo ^ 11 := by norm_num [f19]
 
 theorem elo19 : 0 ≤ f19.elo := by norm_num [f19]
 
@@ -1207,8 +1167,6 @@ theorem weak20 : B.Weaker f20 :=
 theorem prod20 : f20.Prod :=
   ⟨by norm_num [f20], by norm_num [f20], by norm_num [f20], by norm_num [f20], by norm_num [f20]⟩
 
-theorem patm20 : (1008712646689 / 50000000000000 : ℝ) ≤ f20.slo * f20.elo ^ 11 := by norm_num [f20]
-
 theorem elo20 : 0 ≤ f20.elo := by norm_num [f20]
 
 def f20Q : BandQ := ⟨(1690417020349 / 50000000000000 : ℚ), (3320592153391 / 100000000000000 : ℚ), (8560846409287 / 1000000000000000 : ℚ), (2894280095771 / 10000000000000000 : ℚ), (8560846409287 / 1000000000000000 : ℚ), (1421353970653 / 5000000000000000 : ℚ)⟩
@@ -1242,8 +1200,6 @@ theorem weak21 : B.Weaker f21 :=
 
 theorem prod21 : f21.Prod :=
   ⟨by norm_num [f21], by norm_num [f21], by norm_num [f21], by norm_num [f21], by norm_num [f21]⟩
-
-theorem patm21 : (1016930146827 / 50000000000000 : ℝ) ≤ f21.slo * f21.elo ^ 11 := by norm_num [f21]
 
 theorem elo21 : 0 ≤ f21.elo := by norm_num [f21]
 
@@ -1279,8 +1235,6 @@ theorem weak22 : B.Weaker f22 :=
 theorem prod22 : f22.Prod :=
   ⟨by norm_num [f22], by norm_num [f22], by norm_num [f22], by norm_num [f22], by norm_num [f22]⟩
 
-theorem patm22 : (1025059246213 / 50000000000000 : ℝ) ≤ f22.slo * f22.elo ^ 11 := by norm_num [f22]
-
 theorem elo22 : 0 ≤ f22.elo := by norm_num [f22]
 
 def f22Q : BandQ := ⟨(873848092989 / 25000000000000 : ℚ), (686565660799 / 20000000000000 : ℚ), (8854795623297 / 1000000000000000 : ℚ), (3095098507691 / 10000000000000000 : ℚ), (8854795623297 / 1000000000000000 : ℚ), (1519849652087 / 5000000000000000 : ℚ)⟩
@@ -1314,8 +1268,6 @@ theorem weak23 : B.Weaker f23 :=
 
 theorem prod23 : f23.Prod :=
   ⟨by norm_num [f23], by norm_num [f23], by norm_num [f23], by norm_num [f23], by norm_num [f23]⟩
-
-theorem patm23 : (2066188146813 / 100000000000000 : ℝ) ≤ f23.slo * f23.elo ^ 11 := by norm_num [f23]
 
 theorem elo23 : 0 ≤ f23.elo := by norm_num [f23]
 
@@ -1351,8 +1303,6 @@ theorem weak24 : B.Weaker f24 :=
 theorem prod24 : f24.Prod :=
   ⟨by norm_num [f24], by norm_num [f24], by norm_num [f24], by norm_num [f24], by norm_num [f24]⟩
 
-theorem patm24 : (13012858049 / 625000000000 : ℝ) ≤ f24.slo * f24.elo ^ 11 := by norm_num [f24]
-
 theorem elo24 : 0 ≤ f24.elo := by norm_num [f24]
 
 def f24Q : BandQ := ⟨(3613760718363 / 100000000000000 : ℚ), (1774383048849 / 50000000000000 : ℚ), (9158791509597 / 1000000000000000 : ℚ), (1654884049253 / 5000000000000000 : ℚ), (9158791509597 / 1000000000000000 : ℚ), (1625120440257 / 5000000000000000 : ℚ)⟩
@@ -1386,8 +1336,6 @@ theorem weak25 : B.Weaker f25 :=
 
 theorem prod25 : f25.Prod :=
   ⟨by norm_num [f25], by norm_num [f25], by norm_num [f25], by norm_num [f25], by norm_num [f25]⟩
-
-theorem patm25 : (2097713724617 / 100000000000000 : ℝ) ≤ f25.slo * f25.elo ^ 11 := by norm_num [f25]
 
 theorem elo25 : 0 ≤ f25.elo := by norm_num [f25]
 
@@ -1423,8 +1371,6 @@ theorem weak26 : B.Weaker f26 :=
 theorem prod26 : f26.Prod :=
   ⟨by norm_num [f26], by norm_num [f26], by norm_num [f26], by norm_num [f26], by norm_num [f26]⟩
 
-theorem patm26 : (2113145049141 / 100000000000000 : ℝ) ≤ f26.slo * f26.elo ^ 11 := by norm_num [f26]
-
 theorem elo26 : 0 ≤ f26.elo := by norm_num [f26]
 
 def f26Q : BandQ := ⟨(467007606091 / 12500000000000 : ℚ), (14674081703 / 400000000000 : ℚ), (2368293548953 / 250000000000000 : ℚ), (442404440327 / 1250000000000000 : ℚ), (2368293548953 / 250000000000000 : ℚ), (1737626651701 / 5000000000000000 : ℚ)⟩
@@ -1458,8 +1404,6 @@ theorem weak27 : B.Weaker f27 :=
 
 theorem prod27 : f27.Prod :=
   ⟨by norm_num [f27], by norm_num [f27], by norm_num [f27], by norm_num [f27], by norm_num [f27]⟩
-
-theorem patm27 : (2128338641621 / 100000000000000 : ℝ) ≤ f27.slo * f27.elo ^ 11 := by norm_num [f27]
 
 theorem elo27 : 0 ≤ f27.elo := by norm_num [f27]
 
@@ -1495,8 +1439,6 @@ theorem weak28 : B.Weaker f28 :=
 theorem prod28 : f28.Prod :=
   ⟨by norm_num [f28], by norm_num [f28], by norm_num [f28], by norm_num [f28], by norm_num [f28]⟩
 
-theorem patm28 : (2143281676299 / 100000000000000 : ℝ) ≤ f28.slo * f28.elo ^ 11 := by norm_num [f28]
-
 theorem elo28 : 0 ≤ f28.elo := by norm_num [f28]
 
 def f28Q : BandQ := ⟨(193120904161 / 5000000000000 : ℚ), (758441830943 / 20000000000000 : ℚ), (1959659019473 / 200000000000000 : ℚ), (3784511216879 / 10000000000000000 : ℚ), (1959659019473 / 200000000000000 : ℚ), (1857859218441 / 5000000000000000 : ℚ)⟩
@@ -1530,8 +1472,6 @@ theorem weak29 : B.Weaker f29 :=
 
 theorem prod29 : f29.Prod :=
   ⟨by norm_num [f29], by norm_num [f29], by norm_num [f29], by norm_num [f29], by norm_num [f29]⟩
-
-theorem patm29 : (1078980563981 / 50000000000000 : ℝ) ≤ f29.slo * f29.elo ^ 11 := by norm_num [f29]
 
 theorem elo29 : 0 ≤ f29.elo := by norm_num [f29]
 
@@ -1567,8 +1507,6 @@ theorem weak30 : B.Weaker f30 :=
 theorem prod30 : f30.Prod :=
   ⟨by norm_num [f30], by norm_num [f30], by norm_num [f30], by norm_num [f30], by norm_num [f30]⟩
 
-theorem patm30 : (543090944759 / 25000000000000 : ℝ) ≤ f30.slo * f30.elo ^ 11 := by norm_num [f30]
-
 theorem elo30 : 0 ≤ f30.elo := by norm_num [f30]
 
 def f30Q : BandQ := ⟨(1996480686667 / 50000000000000 : ℚ), (156798126027 / 4000000000000 : ℚ), (1013451727621 / 100000000000000 : ℚ), (404667360213 / 1000000000000000 : ℚ), (1013451727621 / 100000000000000 : ℚ), (496585411593 / 1250000000000000 : ℚ)⟩
@@ -1602,8 +1540,6 @@ theorem weak31 : B.Weaker f31 :=
 
 theorem prod31 : f31.Prod :=
   ⟨by norm_num [f31], by norm_num [f31], by norm_num [f31], by norm_num [f31], by norm_num [f31]⟩
-
-theorem patm31 : (109323811363 / 5000000000000 : ℝ) ≤ f31.slo * f31.elo ^ 11 := by norm_num [f31]
 
 theorem elo31 : 0 ≤ f31.elo := by norm_num [f31]
 
@@ -1749,5 +1685,76 @@ def famZ : Fin 32 → BandZ := fun k =>
   | _ => ⟨405984409923800, 398538446940300, 103069080766300, 4184443993630, 103069080766300, 4107699137616⟩
 
 theorem famR : ∀ k, (famZ k).Rep DZ (famQ k) := by decide +kernel
+
+/-- Each member's crossing bound. -/
+def PatKQ : Fin 32 → ℚ := fun k =>
+  match k.val with
+  | 0 => (1667579614201 / 100000000000000 : ℚ)
+  | 1 => (168545132071 / 10000000000000 : ℚ)
+  | 2 => (53229091773 / 3125000000000 : ℚ)
+  | 3 => (860605743607 / 50000000000000 : ℚ)
+  | 4 => (869542883981 / 50000000000000 : ℚ)
+  | 5 => (351389268661 / 20000000000000 : ℚ)
+  | 6 => (1774785543769 / 100000000000000 : ℚ)
+  | 7 => (112037216501 / 6250000000000 : ℚ)
+  | 8 => (226295995129 / 12500000000000 : ℚ)
+  | 9 => (1828094652423 / 100000000000000 : ℚ)
+  | 10 => (1845766915061 / 100000000000000 : ℚ)
+  | 11 => (23292198549 / 1250000000000 : ℚ)
+  | 12 => (1880912451187 / 100000000000000 : ℚ)
+  | 13 => (1898367265657 / 100000000000000 : ℚ)
+  | 14 => (383146146491 / 20000000000000 : ℚ)
+  | 15 => (38659860261 / 2000000000000 : ℚ)
+  | 16 => (487536006401 / 25000000000000 : ℚ)
+  | 17 => (491793361421 / 25000000000000 : ℚ)
+  | 18 => (992035353671 / 50000000000000 : ℚ)
+  | 19 => (2000825004613 / 100000000000000 : ℚ)
+  | 20 => (1008712646689 / 50000000000000 : ℚ)
+  | 21 => (1016930146827 / 50000000000000 : ℚ)
+  | 22 => (1025059246213 / 50000000000000 : ℚ)
+  | 23 => (2066188146813 / 100000000000000 : ℚ)
+  | 24 => (13012858049 / 625000000000 : ℚ)
+  | 25 => (2097713724617 / 100000000000000 : ℚ)
+  | 26 => (2113145049141 / 100000000000000 : ℚ)
+  | 27 => (2128338641621 / 100000000000000 : ℚ)
+  | 28 => (2143281676299 / 100000000000000 : ℚ)
+  | 29 => (1078980563981 / 50000000000000 : ℚ)
+  | 30 => (543090944759 / 25000000000000 : ℚ)
+  | _ => (109323811363 / 5000000000000 : ℚ)
+
+theorem patm : ∀ k, ((PatKQ k : ℚ) : ℝ) ≤ (fam k).slo * (fam k).elo ^ 11 := fun k => by
+  fin_cases k
+  · show (((1667579614201 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f0]
+  · show (((168545132071 / 10000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f1]
+  · show (((53229091773 / 3125000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f2]
+  · show (((860605743607 / 50000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f3]
+  · show (((869542883981 / 50000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f4]
+  · show (((351389268661 / 20000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f5]
+  · show (((1774785543769 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f6]
+  · show (((112037216501 / 6250000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f7]
+  · show (((226295995129 / 12500000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f8]
+  · show (((1828094652423 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f9]
+  · show (((1845766915061 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f10]
+  · show (((23292198549 / 1250000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f11]
+  · show (((1880912451187 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f12]
+  · show (((1898367265657 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f13]
+  · show (((383146146491 / 20000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f14]
+  · show (((38659860261 / 2000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f15]
+  · show (((487536006401 / 25000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f16]
+  · show (((491793361421 / 25000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f17]
+  · show (((992035353671 / 50000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f18]
+  · show (((2000825004613 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f19]
+  · show (((1008712646689 / 50000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f20]
+  · show (((1016930146827 / 50000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f21]
+  · show (((1025059246213 / 50000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f22]
+  · show (((2066188146813 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f23]
+  · show (((13012858049 / 625000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f24]
+  · show (((2097713724617 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f25]
+  · show (((2113145049141 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f26]
+  · show (((2128338641621 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f27]
+  · show (((2143281676299 / 100000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f28]
+  · show (((1078980563981 / 50000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f29]
+  · show (((543090944759 / 25000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f30]
+  · show (((109323811363 / 5000000000000 : ℚ) : ℚ) : ℝ) ≤ _; norm_num [fam, f31]
 
 end Cryptarchia.Prob.Certs.E20D11

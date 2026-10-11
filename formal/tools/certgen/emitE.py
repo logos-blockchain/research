@@ -120,7 +120,7 @@ def emit_all(cfg, T, fam, B, P, Ts, name, out_dir, target, closed=None):
     for k in range(K):
         L.append(f"theorem weak{k} : B.Weaker f{k} :=\n  ⟨" + ", ".join(f"by norm_num [B, f{k}]" for _ in WEAKKEYS) + "⟩\n")
         L.append(f"theorem prod{k} : f{k}.Prod :=\n  ⟨" + ", ".join(f"by norm_num [f{k}]" for _ in range(5)) + "⟩\n")
-        L.append(f"theorem patm{k} : {q(P['patk'][k])} ≤ f{k}.slo * f{k}.elo ^ {D} := by norm_num [f{k}]\n")
+
         L.append(f"theorem elo{k} : 0 ≤ f{k}.elo := by norm_num [f{k}]\n")
         L.append(bandq_def(k, fam[k]['B']))
         m = fam[k]
@@ -129,6 +129,9 @@ def emit_all(cfg, T, fam, B, P, Ts, name, out_dir, target, closed=None):
                  "".join(f"  {fl} := by norm_num [m{k}, f{k}, errLo, errHi, Elo, Ehi]\n" for fl in OKFIELDS))
     L.append(kmatch("mem", f"Fin {K} → Member", [f"m{k}" for k in range(K)], None))
     L.append(emitZ.fam_z_lean(fam))
+    L.append("/-- Each member's crossing bound. -/\n" + kmatch("PatKQ", f"Fin {K} → ℚ", [qQ(P['patk'][k]) for k in range(K)], None).replace("noncomputable def", "def"))
+    L.append(f"theorem patm : ∀ k, ((PatKQ k : ℚ) : ℝ) ≤ (fam k).slo * (fam k).elo ^ {D} := fun k => by\n  fin_cases k\n" +
+             "".join(f"  · show (({qQ(P['patk'][k])} : ℚ) : ℝ) ≤ _; norm_num [fam, f{k}]\n" for k in range(K)))
     L.append(f"end {ns}\n")
     open(f"{sub}/Fam.lean", "w").write("\n".join(L))
     argsQ = " ".join(qQ(v) for v in (c, z, s, d, tau))
@@ -144,9 +147,10 @@ def emit_all(cfg, T, fam, B, P, Ts, name, out_dir, target, closed=None):
                  f"  xg_ofQ (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num) {i}\n")
         # the tables from their entries at (0, a, true), in integer arithmetic (`AutoZ.lean`);
         # `index_z` runs every check first
-        data = emitZ.index_z(i, fam, D, P, (c, z, s, d, tau))
+        sb = {0: P['lr'], 1: P['b'], 2: P['e'][2], 17: P['e'][17]}.get(i)
+        data = emitZ.index_z(i, fam, D, P, (c, z, s, d, tau), sb)
         L.append(emitZ.index_lean(i, K, D, xgs, f"(xgNQ {argsQ} {i}).1 (xgNQ {argsQ} {i}).2.1 (xgNQ {argsQ} {i}).2.2",
-                                  data, P, q, qQ))
+                                  data, P, q, qQ, sb))
         L.append(f"end {ns}\n")
         open(f"{sub}/I{i}.lean", "w").write("\n".join(L))
     # ---- main file
@@ -206,13 +210,11 @@ slot {N} by `{target}`, whatever member each epoch runs under.
     L.append(fmatch("vpostF", f"Fin 19 → Fin {K} → ℕ → Fin 3 → Bool → ℝ", [(i, f"vpostI{i}") for i in EIDX], "fun _ _ _ _ => 0"))
     L.append(fmatch("vmaxF", "Fin 19 → ℕ → Fin 3 → Bool → ℝ", [(i, f"vmax{i}") for i in EIDX], "fun _ _ _ => 0"))
     L.append(fmatch("Ev", "Fin 19 → ℝ", [(i, e[i]) for i in range(18)], e[18]))
-    s_ = f"noncomputable def EiK : Fin {K} → Fin 19 → ℝ := fun k i =>\n  match k.val, i.val with\n"
-    for kk in range(K):
-        for i in range(19):
-            s_ += f"  | {kk}, {i} => {q(P['eik'][kk][i])}\n"
-    s_ += "  | _, _ => 0\n"
-    L.append(s_)
-    L.append(kmatch("PatK", f"Fin {K} → ℝ", [q(P['patk'][kk]) for kk in range(K)], None))
+    L.append("/-- Each member's in-epoch phase bounds, from the index files (none for 2 and 17). -/\n" +
+             f"def EiKQ : Fin {K} → Fin 19 → ℚ := fun k i =>\n  match i.val with\n" +
+             "".join(f"  | {i} => eIn{i} k\n" for i in EIDX) + "  | _ => 0\n\n" +
+             f"noncomputable def EiK : Fin {K} → Fin 19 → ℝ := fun k i => EiKQ k i\n\n" +
+             f"noncomputable def PatK : Fin {K} → ℝ := fun k => PatKQ k\n")
     conds = {
         'he17': f"1 ≤ {e[17]}", 'hlr': f"{e[0]} ≤ {q(lr)}", 'hb': f"{e[1]} ≤ {q(b)}", 'w1': f"{e[0]} ≤ {LP}",
         'w0': f"{e[1]} - (1 - ({S_} + {K_}) * {Z_}⁻¹) * (B.slo * B.elo ^ {D}) ≤ {LP}",
@@ -261,13 +263,8 @@ noncomputable def P : Cert2 B {D} where
   sol := fun i B' hB' => by simp at hB'
   he := fun i B' hB' => by simp at hB'
 {cl}""")
-    def kx(pfx, i): return ", ".join(f"{pfx}{i}_{kk}" for kk in range(K))
-    solS = ", ".join(kx('solS', i) for i in SIDX)
-    bnd = {0: 'P.lr', 1: 'P.b', 2: 'P.e 2', 17: 'P.e 17'}
-    hes = ""
-    for i in SIDX:
-        hes += f"  heS{i} := fun k => by\n    fin_cases k\n    exacts [" + ", ".join(
-            f"(heS{i}_{kk}).trans (by show _ ≤ {bnd[i]}; norm_num [P, Ev])" for kk in range(K)) + "]\n"
+    solS = ", ".join(f"solS{i} k" for i in SIDX)
+    hes = "".join(f"  heS{i} := heS{i}\n" for i in SIDX)
     bul_solE = "".join(f"    · exact solE{i}\n" if i in EIDX else ("    · exact absurd rfl h2\n" if i == 2 else "    · exact absurd rfl h17\n")
                        for i in range(19))
     bul_heE = "".join(f"    · exact heEall{i}\n" if i in EIDX else ("    · exact absurd rfl h2\n" if i == 2 else "    · exact absurd rfl h17\n")
@@ -281,7 +278,7 @@ noncomputable def C (EL : ℕ) (hEL : {ELHYP}) : Cert2E B {D} fam EL {G} where
   vs := vsF
   solS := by
     intro i hi k
-    rcases hi with rfl | rfl | rfl | rfl <;> fin_cases k
+    rcases hi with rfl | rfl | rfl | rfl
     exacts [{solS}]
 {hes}  vpre := vpreF
   vpost := vpostF
@@ -294,27 +291,19 @@ noncomputable def C (EL : ℕ) (hEL : {ELHYP}) : Cert2E B {D} fam EL {G} where
     fin_cases i
 {bul_heE}""")
     LPI = q(P['lpi'])
-    for kk in range(K):
-        ei = [q(v) for v in P['eik'][kk]]; PAT = q(P['patk'][kk])
-        condsI = {
-            'w1': f"{ei[0]} ≤ {LPI}",
-            'w0': f"{ei[1]} - (1 - ({S_} + {K_}) * {Z_}⁻¹) * {PAT} ≤ {LPI}",
-            'm1r0': f"{S_} * ({ei[3]} - {LPI}) + {K_} * ({ei[7]} - {LPI}) ≤ 0",
-            'm1r1': f"{S_} * {C_} * ({ei[4]} - {LPI}) + {K_} * {Dd_} * ({ei[8]} - {LPI}) ≤ 0",
-            'm1r2': f"{S_} * {C_} ^ 2 * ({ei[4]} - {LPI}) + {K_} * {Dd_} ^ 2 * ({ei[9]} - {LPI}) ≤ 0",
-            'm1r3a': f"{ei[4]} ≤ {LPI}",
-            'm1r3': f"{S_} * {C_} ^ 3 * ({ei[4]} - {LPI}) + {K_} * {Dd_} ^ 3 * max ({ei[10]} - {LPI}) 0 + {K_} * {ei[15]} ≤ 0",
-            'm2r0': f"{S_} * ({ei[5]} - {LPI}) + {K_} * ({ei[11]} - {LPI}) ≤ 0",
-            'm2r1': f"{S_} * {C_} * ({ei[6]} - {LPI}) + {K_} * {Dd_} * ({ei[12]} - {LPI}) ≤ 0",
-            'm2r2': f"{S_} * {C_} ^ 2 * ({ei[6]} - {LPI}) + {K_} * {Dd_} ^ 2 * ({ei[13]} - {LPI}) ≤ 0",
-            'm2r3a': f"{ei[6]} ≤ {LPI}",
-            'm2r3': f"{S_} * {C_} ^ 3 * ({ei[6]} - {LPI}) + {K_} * {Dd_} ^ 3 * max ({ei[14]} - {LPI}) 0 + {K_} * {ei[16]} ≤ 0"}
-        L.append(f"theorem cls{kk} : ClassOK P {LPI} (EiK {kk}) (PatK {kk}) where\n" +
-                 "".join(f"  {f} := by show {v}; norm_num\n" for f, v in condsI.items()))
+    LPIQ = qQ(P['lpi'])
+    L.append(f"""/-- The class conditions for every member, over `ℚ`. -/
+theorem chkCls : ∀ k, classOKQ {qQ(c)} {qQ(z)} {qQ(s)} {qQ(kap)} {qQ(d)} {LPIQ} (EiKQ k) (PatKQ k) = true := by
+  decide +kernel
+
+theorem cls : ∀ k, ClassOK P {LPI} (EiK k) (PatK k) := fun k =>
+  ClassOK.ofQ (by norm_num [P]) (by norm_num [P]) (by norm_num [P]) (by norm_num [P]) (by norm_num [P])
+    (by norm_num) (fun _ => rfl) rfl (chkCls k)
+""")
     def heIn_bullet(i):
         if i == 2: return "    · exact absurd rfl h2\n"
         if i == 17: return "    · exact absurd rfl h17\n"
-        return f"    · exact fun k => by fin_cases k; exacts [{', '.join(f'heIn{i}_{kk}' for kk in range(K))}]\n"
+        return f"    · exact heIn{i}\n"
     bul_heIn = "".join(heIn_bullet(i) for i in range(19))
     L.append(f"""/-- **The certificate with an in-epoch contraction.** -/
 noncomputable def D3 (EL : ℕ) (hEL : {ELHYP}) : Cert3E B {D} fam EL {G} where
@@ -322,10 +311,10 @@ noncomputable def D3 (EL : ℕ) (hEL : {ELHYP}) : Cert3E B {D} fam EL {G} where
   lpi := {LPI}
   ei := EiK
   pat0 := PatK
-  hcl := fun k => by fin_cases k; exacts [{", ".join(f"cls{kk}" for kk in range(K))}]
+  hcl := cls
   hlpi0 := by norm_num
   hlpi := by show {LPI} ≤ {LP}; norm_num
-  hpat := fun k => by fin_cases k; exacts [{", ".join(f"patm{kk}" for kk in range(K))}]
+  hpat := patm
   helo := fun k => by fin_cases k; exacts [{", ".join(f"elo{kk}" for kk in range(K))}]
   heIn := by
     intro i h2 h17
