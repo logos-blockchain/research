@@ -74,3 +74,4 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.Prob.Certs.E20D11C.finality_closed_short
 #print axioms Cryptarchia.Prob.oneSwitchZ_sound
 #print axioms Cryptarchia.Prob.switchZ_sound
+#print axioms Cryptarchia.Prob.ClassOK.ofQ

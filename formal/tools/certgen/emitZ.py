@@ -130,7 +130,7 @@ def up_table(V, Dl):
 
 # ---- one index
 
-def index_z(i, fam, Dl, P, args):
+def index_z(i, fam, Dl, P, args, sbound=None):
     """the integer data of index i, every check run; raises if one fails"""
     D, famZ = fam_z(fam)
     X = ph_z(i, *args)
@@ -141,7 +141,7 @@ def index_z(i, fam, Dl, P, args):
         vs = fill(famZ, D, Dl, X, S, lambda q, a, u: 0, top)
         for k, B in enumerate(famZ):
             assert check_sol(B, D, Dl, X, S, vs), ('switch', i, k)
-            assert check_bound(B, D, X, S, vs, P['eS'][i][k]), ('switch bound', i, k)
+            assert check_bound(B, D, X, S, vs, sbound), ('switch bound', i, k)
         out['vsTop'] = top
     if 'post' in P and i in P['post']:
         vmax = up_table(P['vmax'][i], Dl)
@@ -181,7 +181,7 @@ def fam_z_lean(fam):
     return s
 
 
-def index_lean(i, K, Dl, xgs, xgsQ, data, P, qR, qQ):
+def index_lean(i, K, Dl, xgs, xgsQ, data, P, qR, qQ, sbound=None):
     """the body of I<i>.lean: `xgs` the real `x θ g` text, `xgsQ` the rational triple's text"""
     X = data['X']
     gl = [X['gn'][(a, b, u)] for a in range(3) for b in (False, True) for u in (False, True)]
@@ -203,18 +203,20 @@ theorem X{i}R : X{i}.Rep {xgsQ} := by decide +kernel
 def vs{i}Z : ℕ → Fin 3 → Bool → ℤ :=
   fillAllZ ((List.finRange {K}).map famZ) DZ {Dl} X{i} SZ (fun _ _ _ => 0) ![{', '.join(zl(v) for v in data['vsTop'])}]
 
-{qm(f'eS{i}', P['eS'][i])}
 theorem chkS{i} : ∀ k, (autoSolZ (famZ k) DZ {Dl} X{i} SZ vs{i}Z &&
-    decide ((autoBoundZ (famZ k) DZ X{i} SZ vs{i}Z : ℚ) ≤ eS{i} k * (X{i}.M DZ * SZ : ℤ))) = true := by
+    decide ((autoBoundZ (famZ k) DZ X{i} SZ vs{i}Z : ℚ) ≤ {qQ(sbound)} * (X{i}.M DZ * SZ : ℤ))) = true := by
   decide +kernel
 
 noncomputable def vs{i} : ℕ → Fin 3 → Bool → ℝ := castT (castZ SZ vs{i}Z)
+
+theorem solS{i} : ∀ k, AutoSol (fam k) {Dl} {xgs} vs{i} := by
+  rw [xgQ{i}]; exact (switchZ_sound (eS := fun _ => {qQ(sbound)}) famR famA DZ_pos X{i}R SZ_pos chkS{i}).1
+
+theorem heS{i} : ∀ k, autoBound (fam k) {xgs} vs{i} ≤ {qR(sbound)} := by
+  rw [xgQ{i}]
+  exact fun k => ((switchZ_sound (eS := fun _ => {qQ(sbound)}) famR famA DZ_pos X{i}R SZ_pos chkS{i}).2 k).trans_eq
+    (by push_cast; ring)
 """)
-        for k in range(K):
-            e = P['eS'][i][k]
-            L.append(f"theorem solS{i}_{k} : AutoSol (fam {k}) {Dl} {xgs} vs{i} := by\n  rw [xgQ{i}]; exact (switchZ_sound famR famA DZ_pos X{i}R SZ_pos chkS{i}).1 {k}\n")
-            L.append(f"theorem heS{i}_{k} : autoBound (fam {k}) {xgs} vs{i} ≤ {qR(e)} := by\n"
-                     f"  rw [xgQ{i}]; have h := (switchZ_sound famR famA DZ_pos X{i}R SZ_pos chkS{i}).2 {k}; rw [show eS{i} {k} = {qQ(e)} from rfl] at h; exact h.trans_eq (by push_cast; ring)\n")
     if 'postTop' in data:
         vm = data['vmax']
         L.append(f"""/-- The largest post-switch table, listed by `(q, a, u)`. -/
@@ -251,8 +253,7 @@ theorem solE{i} : AutoSolE fam {Dl} {xgs} vpreI{i} vpostI{i} vmax{i} := by
 theorem heEall{i} : ∀ k, autoBound (fam k) {xgs} (vpreI{i} k) ≤ {qR(P['e'][i])} := by
   rw [xgQ{i}]; exact fun k => ((oneSwitchZ_sound famR famA DZ_pos X{i}R SZ_pos chkE{i}).2.2 k).trans_eq (by push_cast; ring)
 """)
-        for k in range(K):
-            e = P['eIn'][i][k]
-            L.append(f"theorem heIn{i}_{k} : autoBound (fam {k}) {xgs} (vpostI{i} {k}) ≤ {qR(e)} := by\n"
-                     f"  rw [xgQ{i}]; have h := (oneSwitchZ_sound famR famA DZ_pos X{i}R SZ_pos chkE{i}).2.1 {k}; rw [show eIn{i} {k} = {qQ(e)} from rfl] at h; exact h.trans_eq (by push_cast; ring)\n")
+        L.append(f"""theorem heIn{i} : ∀ k, autoBound (fam k) {xgs} (vpostI{i} k) ≤ (eIn{i} k : ℝ) := by
+  rw [xgQ{i}]; exact (oneSwitchZ_sound famR famA DZ_pos X{i}R SZ_pos chkE{i}).2.1
+""")
     return "\n".join(L)
