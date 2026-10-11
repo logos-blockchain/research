@@ -2,8 +2,8 @@
 
 Layout (`formal/Cryptarchia/Prob/Certs/<name>/`):
 * `Fam.lean`   the members' bands `f k`, the weakest band `B`, the family `fam`;
-* `I<i>.lean`  index i's tables and their proofs (switching tables for 0, 1, 2, 17;
-               one-switch tables for the others);
+* `I<i>.lean`  index i's tables, by their entries at (0, a, true), and their checks
+               (switching tables for 0, 1, 2, 17; one-switch tables for the others);
 * `<name>.lean` (one level up) the potential `P`, the certificate `C`, the numbers
                (`eps_le`) and the certified theorem.
 Usage: python3 emitE.py BETA DELTA DELTA_TSI K N NAME OUTDIR [all|main|emit] [MU]
@@ -16,6 +16,7 @@ from gen import lean_q as q, chain
 from certnum import rup, rdn, flog10
 from certE import SIDX, EIDX, EL, PERIOD, tband_derived
 import planE
+import emitZ
 
 def qQ(x):
     x = Fr(x)
@@ -62,7 +63,7 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
 """
-FAM_IMPORTS = """public import Cryptarchia.Prob.AutoQ
+FAM_IMPORTS = """public import Cryptarchia.Prob.AutoZ
 public import Cryptarchia.Prob.Stake
 """
 MAIN_IMPORTS = """import Cryptarchia.Prob.Cert
@@ -91,14 +92,6 @@ def bandq_def(k, B):
     return (f"def f{k}Q : BandQ := ⟨" + ", ".join(qQ(B[kk]) for kk in QKEYS) + "⟩\n\n"
             f"theorem f{k}A : f{k}Q.Agrees f{k} :=\n  ⟨" +
             ", ".join(f"by norm_num [f{k}, f{k}Q]" for _ in QKEYS) + "⟩\n")
-
-
-def vdef(name, V, D):
-    """A table over ℚ (`{name}Q`, listed by (q, a, u)) and its cast to ℝ (`{name}`)."""
-    vals = [qQ(V[(qq, a, u)]) for qq in range(D) for a in range(3) for u in (False, True)]
-    s = f"def {name}Q : ℕ → Fin 3 → Bool → ℚ := tabL\n  [" + ",\n   ".join(vals) + "]\n\n"
-    s += f"noncomputable def {name} : ℕ → Fin 3 → Bool → ℝ := castT {name}Q\n"
-    return s
 
 
 def kmatch(name, typ, items, default):
@@ -135,15 +128,13 @@ def emit_all(cfg, T, fam, B, P, Ts, name, out_dir, target, closed=None):
         L.append(f"theorem ok{k} : m{k}.OK (1 / 10 ^ 70) (1 / 10 ^ 16) where\n" +
                  "".join(f"  {fl} := by norm_num [m{k}, f{k}, errLo, errHi, Elo, Ehi]\n" for fl in OKFIELDS))
     L.append(kmatch("mem", f"Fin {K} → Member", [f"m{k}" for k in range(K)], None))
+    L.append(emitZ.fam_z_lean(fam))
     L.append(f"end {ns}\n")
     open(f"{sub}/Fam.lean", "w").write("\n".join(L))
     argsQ = " ".join(qQ(v) for v in (c, z, s, d, tau))
-    dk = "(by decide +kernel)"
-    def bnd(k, i, tab, e):
-        return (f"  rw [xgQ{i}]\n  exact autoBound_le_ofQ f{k}A (v := {tab}Q) (e := {qQ(e)}) (by norm_num) {dk}\n")
-    # ---- I<i>.lean: one file per index. The kernel checks a file's declarations one at
-    # a time, so separate files are what lets the checks run in parallel. Every check is
-    # a rational computation (`AutoQ.lean`), evaluated by the kernel.
+    # ---- I<i>.lean: one file per index, so that Lake checks the indices in parallel. Each
+    # table is given by its entries at (0, a, true); Lean computes the rest and checks it in
+    # integer arithmetic (`AutoZ.lean`, mirrored in `emitZ.py`).
     for old in os.listdir(sub):
         if old.endswith('.lean') and old != 'Fam.lean': os.remove(f"{sub}/{old}")
     for i in range(19):
@@ -151,39 +142,11 @@ def emit_all(cfg, T, fam, B, P, Ts, name, out_dir, target, closed=None):
         xgs = f"(xg {args} {i}).1 (xg {args} {i}).2.1 (xg {args} {i}).2.2"
         L.append(f"theorem xgQ{i} : xg {args} {i} = castX (xgNQ {argsQ} {i}) :=\n"
                  f"  xg_ofQ (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num) {i}\n")
-        if i in SIDX:
-            L.append(vdef(f"vs{i}", P['vs'][i], D))
-            for k in range(K):
-                L.append(f"theorem solS{i}_{k} : AutoSol f{k} {D} {xgs} vs{i} := by\n"
-                         f"  rw [xgQ{i}]\n  exact autoSol_ofQ f{k}A (v := vs{i}Q) {dk}\n")
-                L.append(f"theorem heS{i}_{k} : autoBound f{k} {xgs} vs{i} ≤ {q(P['eS'][i][k])} := by\n" +
-                         bnd(k, i, f"vs{i}", P['eS'][i][k]))
-        if i in EIDX:
-            L.append(vdef(f"vmax{i}", P['vmax'][i], D))
-            for k in range(K):
-                L.append(vdef(f"post{i}_{k}", P['post'][i][k], D))
-                L.append(vdef(f"pre{i}_{k}", P['pre'][i][k], D))
-                L.append(f"theorem postS{i}_{k} : AutoSol f{k} {D} {xgs} post{i}_{k} := by\n"
-                         f"  rw [xgQ{i}]\n  exact autoSol_ofQ f{k}A (v := post{i}_{k}Q) {dk}\n")
-                L.append(f"theorem maxp{i}_{k} : ∀ q < {D}, ∀ a u, post{i}_{k} q a u ≤ vmax{i} q a u :=\n"
-                         f"  leTab_ofQ (v := post{i}_{k}Q) (w := vmax{i}Q) {dk}\n")
-                L.append(f"theorem preS{i}_{k} : PreSol f{k} {D} {xgs} vmax{i} pre{i}_{k} := by\n"
-                         f"  rw [xgQ{i}]\n  exact preSol_ofQ f{k}A (vmax := vmax{i}Q) (vpre := pre{i}_{k}Q) {dk}\n")
-                L.append(f"theorem heE{i}_{k} : autoBound f{k} {xgs} pre{i}_{k} ≤ {q(P['eE'][i][k])} := by\n" +
-                         bnd(k, i, f"pre{i}_{k}", P['eE'][i][k]))
-            L.append(kmatch(f"vpreI{i}", f"Fin {K} → ℕ → Fin 3 → Bool → ℝ", [f"pre{i}_{k}" for k in range(K)], None))
-            L.append(kmatch(f"vpostI{i}", f"Fin {K} → ℕ → Fin 3 → Bool → ℝ", [f"post{i}_{k}" for k in range(K)], None))
-            ks = lambda pfx: ", ".join(f"{pfx}{i}_{k}" for k in range(K))
-            L.append(f"theorem solE{i} : AutoSolE fam {D} {xgs} vpreI{i} vpostI{i} vmax{i} :=\n"
-                     f"  AutoSolE.mk' (fun k => by fin_cases k; exacts [{ks('postS')}])\n"
-                     f"    (fun k => by fin_cases k; exacts [{ks('maxp')}])\n"
-                     f"    (fun k => by fin_cases k; exacts [{ks('preS')}])\n")
-            for k in range(K):
-                L.append(f"theorem heIn{i}_{k} : autoBound f{k} {xgs} post{i}_{k} ≤ {q(P['eIn'][i][k])} := by\n" +
-                         bnd(k, i, f"post{i}_{k}", P['eIn'][i][k]))
-            e_i = P['e'][i]
-            L.append(f"theorem heEall{i} : ∀ k, autoBound (fam k) {xgs} (vpreI{i} k) ≤ {q(e_i)} := fun k => by\n"
-                     f"  fin_cases k\n  exacts [" + ", ".join(f"(heE{i}_{k}).trans (by norm_num)" for k in range(K)) + "]\n")
+        # the tables from their entries at (0, a, true), in integer arithmetic (`AutoZ.lean`);
+        # `index_z` runs every check first
+        data = emitZ.index_z(i, fam, D, P, (c, z, s, d, tau))
+        L.append(emitZ.index_lean(i, K, D, xgs, f"(xgNQ {argsQ} {i}).1 (xgNQ {argsQ} {i}).2.1 (xgNQ {argsQ} {i}).2.2",
+                                  data, P, q, qQ))
         L.append(f"end {ns}\n")
         open(f"{sub}/I{i}.lean", "w").write("\n".join(L))
     # ---- main file

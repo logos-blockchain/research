@@ -81,6 +81,7 @@ public import Cryptarchia.Prob.Tail3E
 public import Cryptarchia.Prob.Final3E
 public import Cryptarchia.Prob.CertE
 public import Cryptarchia.Prob.AutoQ
+public import Cryptarchia.Prob.AutoZ
 public import Cryptarchia.Prob.Pick
 public import Cryptarchia.Prob.Occupied
 public import Cryptarchia.Proof.Signers

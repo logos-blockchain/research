@@ -10,7 +10,7 @@ Machine-checked definitions and proofs for the Logos blockchain, in Lean 4 with 
 | Library | Contents |
 |---|---|
 | [`Cryptarchia`](Cryptarchia/README.md) | The consensus protocol: its specification, settlement combinatorics, deterministic safety over executions, and the probability layer, including total stake inference (TSI). |
-| `CryptarchiaCerts` | Generated certificates for Cryptarchia's finality theorem at β = 0.2, Δ = 11: numeric at the specification's k = 2160 (`E20D11`: one year, `2.1e-12`; `E20D11M2`: two months, `3.6e-13`), and in closed form for every depth `k ≥ 1000` and horizon `N` (`E20D11C`). Each takes about 2.5 min to build; not a default target. |
+| `CryptarchiaCerts` | Generated certificates for Cryptarchia's finality theorem at β = 0.2, Δ = 11: numeric at the specification's k = 2160 (`E20D11`: one year, `2.1e-12`; `E20D11M2`: two months, `3.6e-13`), and in closed form for every depth `k ≥ 1000` and horizon `N` (`E20D11C`). Each takes about 1.5 min to build; not a default target. |
 | `CryptarchiaTest` | Axiom checks, and differential tests of the specification's definitions against an independent transliteration of the pseudocode. |
 
 Libraries formalizing individual reports:
@@ -67,7 +67,7 @@ cd formal
 nix-shell                         # elan and Python; ELAN_HOME defaults to ~/.elan
 lake exe cache get                # Mathlib's prebuilt .olean files (about 5 GB)
 lake build                        # every default target (all libraries except CryptarchiaCerts)
-lake build CryptarchiaCerts       # the certificates: about 2.5 min each, up to 3.5 GB of memory per file
+lake build CryptarchiaCerts       # the certificates: about 1.5 min each, up to 3.5 GB of memory per file
 lake env lean CryptarchiaTest/Axioms.lean    # axioms of every headline theorem
 lake env lean StochasticRecurrenceTest/Axioms.lean
 lake env lean MiningOnboardingTest/Axioms.lean
