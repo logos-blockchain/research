@@ -38,6 +38,12 @@ class Claim:
     note: str = ""
 
 
+def cell(label: str, col: int) -> str:
+    """Capture the `col`-th value cell of the table row beginning with `label`."""
+    skip = r"\|[^|\n]*" * (col - 1)
+    return rf"^\| *{re.escape(label)} *{skip}\| *\**({NUM})"
+
+
 def parse_number(raw: str) -> float:
     return float(raw.replace(",", "").replace("−", "-").strip())
 

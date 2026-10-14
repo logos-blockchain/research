@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import argparse
 import math
-import re
 from pathlib import Path
 
 import numpy as np
@@ -22,17 +21,12 @@ from . import arrivals as ar
 from . import economics, elevation as el, strategies as st
 from .config import Config, load
 from .report_check import NUM, Claim, run
+from .report_check import cell as _cell
 
 DEFAULT_REPORT = Path("../../../../reports/empowering/strategies/strategies-report.md")
 
 # Sections of the *specification*, not of this report.
 ELSEWHERE: set[str] = set()
-
-
-def _cell(label: str, col: int) -> str:
-    """Capture the `col`-th value cell of the table row beginning with `label`."""
-    skip = r"\|[^|\n]*" * (col - 1)
-    return rf"^\| *{re.escape(label)} *{skip}\| *\**({NUM})"
 
 
 def build(cfg: Config) -> list[Claim]:

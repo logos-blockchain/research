@@ -12,8 +12,8 @@ import sys
 
 import numpy as np
 
-from . import (consensus, crossover, economics, emission, engine, graduation, market,
-               scenarios, services, simulate, work)
+from . import (baseline, consensus, crossover, economics, emission, engine, graduation,
+               market, scenarios, services, simulate, work)
 from .config import FIELD_MODULUS, Config, load
 from .nodes import NOT_GRADUATED, Population
 
@@ -907,6 +907,106 @@ def gate_emission(cfg: Config) -> None:
           note=f"{residue * cfg.base_units_per_lgo:.2f} base units, retained in the pool")
 
 
+def gate_baseline(cfg: Config) -> None:
+    """The block-rewards baseline, rebuilt: closed forms, parity with `emission`, Figure 11."""
+    print("\nThe block-rewards baseline, rebuilt (analysis-block-rewards.md:85-124)")
+    P = baseline.Params
+    quiet = dict(volatility=0.0, seeds=1)
+
+    # ---- closed forms: without noise every reading has an exact ten-year value. At target
+    # the deviation is zero, so A_t = alpha_a * gamma / I_max = 1/2 and the reserve keeps
+    # releasing at the pooling rate instead of approaching zero (block-rewards.md:112).
+    at = baseline.run(P(shape="at-target", pooling_path="constant", **quiet))
+    check("at target, gross issuance runs at the pooling rate", at.mean("eq72"), 1.05,
+          rel=1e-12, note="A_t = gamma / I_max = 1/2 for ten years")
+    check("the drawn accounting nets it to exactly nothing", at.mean("drawn"), 1.0, rel=1e-12)
+    check("equation (1) grows by gamma * (1 - gamma / I_max) a year", at.mean("minting"),
+          1.025, rel=1e-12,
+          note="0.25% a year: the release, plus the (1 - A_t) share of the fees recycled")
+    check("pooling over S_cap is the same", at.mean("pooling"), 1.025, rel=1e-12)
+    check("and over the genesis circulating supply S_cap - B_0", at.mean("pooling_circ"),
+          1 + 0.025 / 0.9, rel=1e-12, note="B_0 = I_max * S_cap * Y is a tenth of the cap")
+    drain = baseline.run(P(shape="never", pooling_rate=0.0, years=12, **quiet))
+    check("A_t = 1 with no fees: equation (1) issues I_max a year", drain.mean("minting"),
+          1.12, rel=1e-10)
+    check("but the pooled release stops when the reserve is empty", drain.mean("pooling"),
+          1.10, rel=1e-9, note="B_0 lasts exactly Y = 10 years at A_t = 1; minting has no cap")
+    _, d, g = baseline.kpi_paths(drain.params)
+    reserve = baseline.pooled_stocks(baseline.emission_factor(d, g, drain.params), g,
+                                     drain.params)[2]
+    check("and is never overdrawn", float(reserve.min()), 0.0)
+
+    # ---- the stocks: conserved, and equal to equation (1) minting at T = 0
+    p = P()
+    _, delta, gamma = baseline.kpi_paths(p)
+    stocks = baseline.pooled_stocks(baseline.emission_factor(delta, gamma, p), gamma, p)
+    drift = float(np.max(np.abs(stocks.sum(axis=0) - 1.0)))
+    check("circulation + pool + reserve stays at S_cap", drift < 1e-12, True,
+          note=f"worst drift {drift:.1e} over {p.seeds} seeds of {p.steps} steps")
+    base = baseline.run(p)
+    apart = float(np.max(np.abs(base.supply["pooling"] - base.supply["minting"])))
+    check("pooling over S_cap is equation (1) minting, step for step", apart < 1e-10, True,
+          note="with R-bar the day's own fee, both move circulation by "
+               "A_t * (I_max - gamma) * Delta_t")
+
+    # ---- parity with the integer rule `emission` transcribes, at alpha_d = 1/4
+    quarter = P(alpha_d=0.25)
+    worst, off_clamps = 0.0, 0
+    for stake in (2.9e9, 2.99e9, 3.0e9, 3.01e9):
+        for fee in (0.0, 0.5, 5.0, 20.0):           # LGO pooled per block, a flat window
+            d = (emission.STAKE_TARGET_LGO - stake) / emission.STAKE_TARGET_LGO
+            g = fee * emission.BLOCKS_PER_YEAR / cfg.launch_supply
+            real = float(baseline.emission_factor(np.float64(d), np.float64(g), quarter))
+            integer = emission.emission_factor(stake, [fee] * emission.POOL_WINDOW)
+            worst = max(worst, abs(real - integer))
+            off_clamps += 0.0 < integer < 1.0
+    check("A_t here is emission's integer rule at alpha_d = 1/4", worst < 1e-8, True,
+          note=f"worst gap {worst:.1e} over 16 points, {off_clamps} off the clamps; the integer "
+               f"rule floors A_t' to a multiple of 1/120,000,000")
+    check("and most of the grid is off the clamps", off_clamps >= 8, True)
+    stake, fee = 2.99e9, 5.0
+    blocks = emission.Stocks()
+    for _ in range(emission.BLOCKS_PER_YEAR // 365):
+        blocks.step(stake, [fee] * emission.POOL_WINDOW)
+    d = np.full((1, 1), (emission.STAKE_TARGET_LGO - stake) / emission.STAKE_TARGET_LGO)
+    g = np.full((1, 1), fee * emission.BLOCKS_PER_YEAR / cfg.launch_supply)
+    day = baseline.pooled_stocks(baseline.emission_factor(d, g, quarter), g, quarter)
+    s0 = 1.0 - quarter.i_max * quarter.reserve_years
+    check("one pooled day here is 2,880 blocks of emission.Stocks",
+          (day[0, 0, 0] - s0) * cfg.launch_supply, blocks.supply_lgo, rel=1e-6,
+          note=f"{blocks.supply_lgo:,.1f} LGO into circulation in a day")
+    check("and the pool banks the same", day[1, 0, 0] * cfg.launch_supply, blocks.pool_lgo,
+          rel=1e-6)
+
+    # ---- Figure 9: both KPIs trace one convergence curve, and the fit follows it
+    dev = np.loadtxt(baseline.FIG9_DELTA, delimiter=",", comments="#")
+    pooled = np.loadtxt(baseline.FIG9_POOLING, delimiter=",", comments="#")
+    ts = np.array([0.25, 0.5, 1.0, 1.5])
+    c_dev = np.interp(ts, dev[:, 0], dev[:, 1]) / 100
+    c_pool = 1 - np.interp(ts, pooled[:, 0], pooled[:, 1]) / (100 * p.pooling_rate)
+    check("Figure 9's two panels trace one curve", float(np.max(np.abs(c_dev - c_pool))) < 0.02,
+          True, note=f"deviation {np.round(c_dev, 3).tolist()} against 1 - pooling/0.5% "
+                     f"{np.round(c_pool, 3).tolist()} at {ts.tolist()} years")
+    fit, both = baseline.convergence(p.shape, ts), (c_dev + c_pool) / 2
+    check("and the fit to both panels follows their mean",
+          float(np.max(np.abs(fit - both))) < 0.02, True,
+          note=f"{np.round(fit, 3).tolist()} against {np.round(both, 3).tolist()}")
+
+    # ---- Figure 11: reproduced by the drawn accounting, and by nothing else
+    gap = baseline.fig11_gap(base.supply["drawn"].mean(axis=0), p)
+    check("the drawn accounting reproduces Figure 11", gap < 1e-3, True,
+          note=f"largest gap {gap:.5f} in normalized supply, at any time in ten years")
+    lo, hi = base.band("drawn")
+    check("and the published 1.0133 lies inside its 5-95% band",
+          lo <= baseline.PUBLISHED_FINAL <= hi, True, note=f"[{lo:.4f}, {hi:.4f}]")
+    for reading in ("eq72", "minting", "pooling"):
+        miss = baseline.fig11_gap(base.supply[reading].mean(axis=0), p)
+        check(f"the {reading} reading does not", miss > 0.01, True,
+              note=f"largest gap {miss:.4f}")
+    check("equation (1) after ten years, mean of the seeds", base.mean("minting"), 1.0348,
+          rel=1e-4, note="3.5% in ten years on the paths that reproduce the published 1.33%")
+
+
 def gate_fee_markets(cfg: Config) -> None:
     """The two fee markets, and what they say about the equilibrium era."""
     print("\nThe fee markets")
@@ -1367,6 +1467,7 @@ def main() -> int:
     gate_two_participation_classes(cfg)
     gate_conservation(cfg)
     gate_emission(cfg)
+    gate_baseline(cfg)
     gate_fee_markets(cfg)
     gate_inscription(cfg)
     gate_tx_sizes(cfg)

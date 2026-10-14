@@ -253,3 +253,77 @@ A reviewer on PR 375 (`block-rewards.md:262`) raised that pool retention when `A
 leaders uninterested in tips during the adoption phase. **Not answered — we have the machinery
 to quantify it in the strategy simulator, and have not been asked to.** Listed so the question
 is not mistaken for one nobody noticed.
+
+---
+
+## 6. The 1.33% baseline does not hold under equation (1)
+
+> **NOT SENT.** Prepared 2026-10-14 against logos-lips `949faa9`. Posting waits for the design
+> owner's go.
+
+### What is published
+
+`analysis-block-rewards.md:124` ends its baseline simulation at a normalized supply of 1.0133,
+"a total inflation of 1.33% after 10 years". `block-rewards.md:48` quotes it as total
+inflation. `:120` quotes it as "net circulating-supply growth of just 1.33% after 10 years
+(assuming constant pooling rate of 0.5% per year)", the wording PR 375 gave it. No code was
+published with the figure.
+
+### What the figure measures
+
+`empowering_sim.baseline` rebuilds the run from the stated parameters
+(`analysis-block-rewards.md:87-104`) and from Figures 9 and 11, digitized. Both KPI paths in
+Figure 9 follow one convergence curve, which is fitted from the figure. One supply accounting
+reproduces Figure 11. Across 200 seeds it ends at 1.0139 (1.0131 to 1.0148, 5–95%), and its
+mean path stays within 0.00067 of the published curve throughout:
+
+| `S_t = 1 + Σ (A_τ · I_max − 0.5%) · Δ_τ` |
+| --- |
+
+This is the emission netted against a constant 0.5% burn. Equation (1) also pays
+`(1 − A_t) · R̄_t`, the recycled fees, and this accounting leaves them out. They are not small.
+At the stake target `δ_t = 0`, so `block-rewards.md:288` gives `A_t = α_a · γ_t / I_max`. The
+reserve keeps releasing at the pooling rate, instead of approaching zero as
+`block-rewards.md:112` describes, and the pool returns the other `1 − A_t` of the fees. With
+`α_a = 1`, circulating supply then grows by `γ · (1 − γ / I_max)` a year: 0.25% at the
+baseline's 0.5% pooling rate.
+
+### Measured
+
+The same paths and seeds through each accounting. Normalized supply after ten years, mean of
+the seeds:
+
+| accounting | Figure 9 paths | constant 0.5% pooling | `α_d = 1/4` |
+| --- | --- | --- | --- |
+| netted against a constant 0.5% burn (Figure 11) | 1.0139 | 1.0139 | 1.0120 |
+| equation (1): minting (1.0.0), or pooling over `S_cap` (1.1.0 on) | **1.0348** | 1.0319 | 1.0339 |
+| equation (1), pooling, over the genesis circulating supply `S_cap − B_0` | 1.0387 | 1.0355 | 1.0376 |
+
+![ten-year supply under each accounting](figures/baseline_supply.png)
+
+*Regenerate: `cd tools/simulators/empowering/strategies && PYTHONPATH=src python3 -m empowering_sim.plots_baseline`*
+
+Under equation (1) the baseline grows 3.5% in ten years (1.0344 to 1.0353 across seeds), not
+1.33%. The analysis equation as written (`:72`) counts gross issuance and nothing burnt, and
+gives 1.0639. The curve shape and the volatility are read from figures, not from rules. The
+other shape that fits Figure 9, and halving or doubling the volatility, move the equation (1)
+figure by at most 0.00063. The constant-pooling column is `block-rewards.md:120`'s own
+assumption, and the `α_d = 1/4` column is its current parametrization.
+
+### The ask
+
+Restate the figure where it is quoted (`block-rewards.md:48` and `:120`,
+`analysis-block-rewards.md:62` and `:124`) as the equation (1) result. If zero net growth at
+the stake target is the intent (`block-rewards.md:112`), state instead which of the two
+compensations for pooled fees should apply: the `α_a · γ_t` term in `A_t`, or the
+`(1 − A_t) · R̄_t` recycling. That choice is the design owner's.
+
+### Provenance
+
+`empowering_sim.baseline` rebuilds the run. Its `data/` directory holds the digitized figures,
+and `baseline digitize --lips <path>` regenerates them from a logos-lips checkout.
+`empowering_sim.validate`, `gate_baseline`, holds the closed forms, the parity with
+`emission`'s integer rule and pool stocks, and the Figure 11 reproduction.
+`python -m empowering_sim.baseline check` holds this section's numbers. The proof-of-work
+reward pool that `block-rewards.md` 1.2.0 adds as a fourth stock is not modelled. Recorded as
+contradiction 4.14.
