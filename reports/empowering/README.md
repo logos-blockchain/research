@@ -82,6 +82,7 @@ against the simulator that produces them rather than transcribed:
 cd tools/simulators/empowering/tokenomics && make all verify notation report-numbers plots
 cd tools/simulators/empowering/strategies && PYTHONPATH=src python3 -m empowering_sim.validate
                                           && PYTHONPATH=src python3 -m empowering_sim.report_numbers
+                                          && PYTHONPATH=src python3 -m empowering_sim.baseline check
 cd tools/simulators/empowering/denovo     && make validate report-numbers study plots web
 ```
 

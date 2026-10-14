@@ -278,6 +278,15 @@ acknowledging the carve-out as a pool outflow, so "in full" and `POW_SHARE` stop
 a contradiction — drafted, with the other pending upstream items, in
 `reports/empowering/UPSTREAM-PENDING.md`.
 
+## 4.14 The 1.33% baseline — the analysis's supply accounting against equation (1)
+
+`analysis-block-rewards.md:124` (Informational) ends its baseline simulation at a normalized
+supply of 1.0133, and `block-rewards.md:48` and `:120` (Standards Track) quote it. Rebuilt in
+`baseline.py`, the figure comes from an accounting that nets the emission against a constant
+0.5% burn and leaves out equation (1)'s recycled term `(1 − A_t) · R̄_t`. **Resolved:
+equation (1) governs**, by the precedence rule. The ten-year growth it gives on the same paths,
+and the upstream ask, are in `reports/empowering/UPSTREAM-PENDING.md` §6.
+
 ---
 
 ## What changed, and what is still blocked
@@ -297,6 +306,7 @@ a contradiction — drafted, with the other pending upstream items, in
 | 4.11 | use the stated modulus | no |
 | 4.12 | windowed recycled term, per PR 375's stated intent | no — flat fees and `A_t = 1` make the rules coincide here; the divergence is gated |
 | 4.13 | **DECIDED: carve-out from the pooled flow** | no — same value, new accounting; the wording ask LANDED 2026-09 (PR 400 states `R_block` net of the diverted share and counts the PoW pool as a fourth conserved stock, choosing divert-at-source over first-outflow — per-block identical, see UPSTREAM-PENDING §2). The "in full" sentences on master remain uncorrected |
+| 4.14 | equation (1) governs; the baseline's 1.33% does not hold under it | no — no study here uses the baseline |
 
 **Both items the documents could not supply are now decided as parameters:** `D` seeded at
 10^10 per the genesis rule, and `min_stake` at 1,000 LGO per the static minimum stake analysis.
