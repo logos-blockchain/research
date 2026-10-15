@@ -27,6 +27,7 @@ cite. Specifications are read at `logos-lips` `47a73cdc`, the node at `logos-blo
 - **[12. Further routes](#s12)** — a delayed nonce, the epoch apart from `k`, Blend's delay, density, anchoring
 - **[13. Three designs](#s13)** — recovery in a partition, the delay function, time under the worst case
 - **[14. Reproducibility](#s14)**
+- **[The epoch nonce, the lottery and the length of finality](grinding.md)** — a review of the approaches to grinding and what each leaves of the depth
 
 ---
 
@@ -425,7 +426,8 @@ hash per slot of the attack window, with the stake in one note: `9.6·10^16` has
 
 **Two ways to resist it** (`SETTLEMENT.md`, B7). A delay function caps how many nonces the
 adversary can evaluate; the smallest contributions of sub-windows reduce how many it can reach.
-The table of [§3.1](#s31) compares them. Under the worst case at 10 s against a third, a cap of 2
+The table of [§3.1](#s31) compares them, and [`grinding.md`](grinding.md) reviews every approach
+side by side. Under the worst case at 10 s against a third, a cap of 2
 nonces leaves 1,544–1,614 blocks; the smallest contributions leave 1,518 at the cut-off and an
 estimated 1,859–1,939 with the decisions before it, at `k = 2160`.
 
@@ -705,11 +707,16 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
 <a id="s11"></a>
 ## 11. Open questions
 
-- **A bound for the nonce rule.** The decisions an adversary takes before the cut-off, its own
-  blocks published or withheld and honest minima removed, are estimated in hindsight, not bounded,
-  and no analysis of Praos or Genesis covers the rule. The smaller-`k` figures of [§3.3](#s33)
-  rest on that estimate. Under the delay of [§13](#s13) those decisions are blind and the bound is
-  the choices at the cut-off; what a proof still needs is listed there.
+- **A bound for the nonce rule without the delay.** The decisions an adversary takes before the
+  cut-off, its own blocks published or withheld and honest minima removed, are estimated in
+  hindsight, not bounded. The smaller-`k` figures of [§3.3](#s33) rest on that estimate. Under
+  the delay of [§13](#s13) those decisions are blind, the choices at the cut-off are bounded, and
+  the lemma that carries the bound into Praos's and Genesis's theorems is stated and proved there;
+  what remains is the sequentiality assumption itself.
+- **The inference's correction.** A period of withholding deflates the inferred stake by the
+  adversary's share and raises every worst-case depth ([§12](#s12), G7). Whether to cap the
+  correction, and at what rate, trades the price of the deflation against the inference's response
+  to stake that leaves; both are sized there.
 - **The nonce rule's other channels.** The inferred stake moves without changing the nonce, by
   one lottery threshold step per block the adversary withholds. Choosing the level is worth under
   half a percent of the adversary's wins, and under the delay the choice is blind; the deflation
@@ -732,11 +739,11 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
 - **Proving on the reference node.** The proving time on a Raspberry Pi 5, which
   `tools/benchmarks/pol-proving` measures.
 
-The first three are taken up in [§13](#s13): recovery attestations separate partitions below a
-third and nothing separates one at a third; the delay function must span the last sub-window,
-4.5 hours on the adversary's hardware at `k = 2160`, with the contribution bound to the parent
-block; a time-reading rule under the worst case is the counting bound read with the forks the
-client sees, 374 blocks against a third.
+[§13](#s13) takes up recovery in a partition, the delay function and time under the worst case:
+recovery attestations separate partitions below a third and nothing separates one at a third;
+the delay function must span the last sub-window, 4.5 hours on the adversary's hardware at
+`k = 2160`, with the contribution bound to the parent block; a time-reading rule under the worst
+case is the counting bound read with the forks the client sees, 374 blocks against a third.
 
 ---
 

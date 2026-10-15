@@ -237,10 +237,40 @@ the depth at `1e-9` with two nonces at the sampled mean and at the bound:
   30 % at `k = 1080`, which holds 30 %. Within B6's model the choices at the cut-off are bounded,
   not estimated.
 
-What a proof still needs: the formal write-up of the lemma in the resettable-beacon model of
-Praos's §4.9 with `r` the evaluated candidates; the sequentiality of squaring in the class group,
-an assumption pinned below; and the nonce as a hash of the delay's output, which is a group
-element.
+**The lemma, stated and proved.** In Praos's resettable model (§4.9) the adversary draws up to
+`r − 1` further nonces from the beacon and sets the epoch's nonce to any of them. Here the beacon
+is replaced by the delay: the adversary *forms* a candidate by fixing a pre-nonce `x_i`, which it
+can do only once `x_i`'s inputs exist, and the candidate's value `η_i = H(delay(x_i))` reaches it
+`T_a` later. Let the honest default be candidate 0, the pre-nonce the honest chain gives. The
+adversary's last choice for epoch `e` is made at a time `D_e` after which no candidate of epoch `e`
+can still become the nonce, the end of its lead; let `r_eval` be the number of candidates
+`i ≥ 1` whose values it has seen by `D_e`. Model `H ∘ delay` as a random oracle and the delay as
+sequential: no party sees `delay(x)` sooner than `T_a` after `x` is known to it.
+
+*Claim.* For any event `B` of epoch `e` that is a function of the schedule, with `P(B) = ε` under
+a uniformly random nonce, the adversary's choice gives `P(B) ≤ ε · E[1 + r_eval]`.
+
+*Proof.* The nonce is some candidate `S ∈ {0, 1, …}`, and `P(B) = Σ_i P(S = i, B_i)`, with `B_i`
+the event under candidate `i`'s value. Split the candidates at `D_e` into the seen, whose values
+the adversary's view holds, and the unseen. For a seen `i`, `P(S = i, B_i) ≤ P(B_i) = ε`, since
+`η_i` is a fresh oracle output and `B_i` depends on nothing else the adversary chose, so the seen
+contribute at most `ε · E[r_eval]` by the union bound over a random count. For an unseen `i`,
+including the default when the adversary has seen nothing, `η_i` is independent of the view at
+`D_e`, hence of the event `{S = i}`, so `P(S = i, B_i) = P(S = i) · ε`, and the unseen contribute at
+most `ε · P(S unseen) ≤ ε`. Summing gives the claim. ∎
+
+The claim is Praos's union bound with `r` read as `1 + r_eval` rather than as every candidate
+drawn: Theorem 11 holds with `log r` read at `log E[1 + r_eval]`, by the concavity of the
+logarithm, and Corollary 3's `log tkq`, which counts every oracle query as a candidate, is
+replaced by it. `E[1 + r_eval] ≤ E[G_min]` under the design above, since a candidate's value
+arrives at or after the cut-off plus the margin and the lead must last it: 1.08 against a third
+at `k = 2160`. The stake snapshot of epoch `ep − 2` is fixed before any candidate of epoch `ep`
+exists, so `ε` is the per-epoch failure of Theorems 7–9 at the honest schedule, and the lifetime
+bound sums over epochs as Praos's Theorem 11 sums it.
+
+What a proof still needs beyond this: the sequentiality of squaring in the class group, an
+assumption pinned below, and that `H ∘ delay` is a random oracle, which a hash of the delay's
+output gives.
 
 **The design.** The input is `hash(η_(e−1) ‖ μ_1 ‖ … ‖ μ_m)`, fixed at the cut-off; the output,
 after `R·T_a` of sequential squarings in the class group of a prime discriminant derived from the

@@ -28,7 +28,7 @@ and the order of work. The finished story is `../../../reports/finality/`.*
 
 ## Status
 
-Executed from 2026-10-05 to 2026-10-09. Results live in six notes beside this plan:
+Executed from 2026-10-05 to 2026-10-15. Results live in six notes beside this plan:
 
 - `MAPPING.md`: A2, A3.
 - `RATE.md`: A1, C1–C4.
