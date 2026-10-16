@@ -126,8 +126,7 @@ theorem foldl_add_eq (l : List (DeclarationId × DeclarationInfo)) (s : NoteSet)
 theorem finalizeDeclarations_value {st : State} (I : Inv H st) (epoch : Epoch) :
     Inv H (finalizeDeclarations st epoch) ∧
       value H (finalizeDeclarations st epoch) ≤ value H st := by
-  set due := (st.declarations.filter fun e => decide (IsDue epoch e)).mergeSort
-    fun a b => decide (a.1 ≤ b.1)
+  set due := (st.declarations.filter fun e => decide (IsDue epoch e)).mergeSort releaseOrder
   have hi := ledger_lt I
   have hperm : due.Perm (st.declarations.filter fun e => decide (IsDue epoch e)) :=
     List.mergeSort_perm _ _

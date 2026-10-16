@@ -158,6 +158,12 @@ def leBytes : ℕ → ℕ → Bytes
   | 0, _ => []
   | k + 1, n => (n % 256).toUInt8 :: leBytes k (n / 256)
 
+/-- Byte-lexicographic order, first byte first. -/
+def lexLe : Bytes → Bytes → Bool
+  | [], _ => true
+  | _ :: _, [] => false
+  | x :: a, y :: b => x < y || (x == y && lexLe a b)
+
 /-- Read a `k`-byte little-endian integer. -/
 def readLE : ℕ → Bytes → Option (ℕ × Bytes)
   | 0, b => some (0, b)

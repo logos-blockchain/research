@@ -1,5 +1,6 @@
 import Mantle.Codec
 import Mantle.Ledger
+import Mantle.Blake2b
 
 /-!
 # Mantle Transaction Encoding
@@ -390,6 +391,19 @@ theorem signedTx_wf_proofs {s : SignedMantleTx} (h : signedTxC.wf s) :
 
 /-- The order of the scalar field of BN254. -/
 def P : ℕ := 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001
+
+/-- `mantle_txhash` as the proofs receive it: BLAKE2b-256 of `MANTLE_TXHASH_V1 ‖ encode(tx)`,
+read little-endian and reduced modulo `p` (Mantle, *Mantle Transaction*). -/
+def mantleTxHash (tx : MantleTx) : ℕ :=
+  ((Codec.readLE 32 (Blake2b.hash256 (Blake2b.ascii "MANTLE_TXHASH_V1" ++ mantleTxC.enc tx))).elim
+    0 Prod.fst) % P
+
+theorem mantleTxHash_lt (tx : MantleTx) : mantleTxHash tx < P :=
+  Nat.mod_lt _ (by decide)
+
+/-- Primitives whose `mantle_txhash` is the specification's. No theorem needs it: they hold for
+any `txHash`. -/
+def _root_.Mantle.Prims.SpecTxHash (Pr : Prims) : Prop := ∀ tx, Pr.txHash tx = mantleTxHash tx
 
 /-- **A `FieldElement` is not canonical modulo `p`**: `0` and `p` are both accepted, with
 distinct encodings, and every value below `2^256 - p` has the same issue; a field element has

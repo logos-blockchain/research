@@ -1,5 +1,6 @@
 import Mantle.Circuits
 import Mantle.Gas
+import Mantle.Codec
 
 /-!
 # The Mantle state and its Operations
@@ -28,6 +29,14 @@ Modelling choices:
   channel set (or of a temporary set for a channel being created), then executes them. The
   same two phases are kept: `validateSteps` returns the set with its buffer extended,
   `executeSteps` applies the steps.
+* A `declare_id` is a natural standing for its 32 bytes, read little-endian as the encoding
+  does (`Encoding.fe`); SDP Epoch Finalization orders ids by those bytes, first byte first
+  (`releaseOrder`), not by the natural.
+* `mantle_txhash` (`Prims.txHash`) is the value the proofs and the signatures receive; the
+  specification's, BLAKE2b-256 reduced modulo `p`, is `Encoding.mantleTxHash`. Nothing is assumed
+  about it, nor about `ed25519Verify`, so the theorems hold whichever value is signed.
+* The gas prices of `Env` are any naturals, `0` included; nothing needs the base fee's floor
+  of `1`.
 * `round_robin` divides by `posting_timeframe`, which is `0` ("infinity") in a new channel;
   in Python that raises `ZeroDivisionError`, in Lean `n / 0 = 0`, the intended meaning.
 -/
@@ -764,11 +773,18 @@ def releaseWithdrawals (st : State) (slot : Slot) : State :=
 def IsDue (epoch : Epoch) (e : DeclarationId × DeclarationInfo) : Prop :=
   ∃ w, e.2.withdrawAt = some w ∧ w + 1 ≤ epoch
 
-/-- SDP Epoch Finalization: in ascending order of `declare_id`, release the notes of every due
-declaration in the ledger set and remove it. -/
+/-- The order of SDP Epoch Finalization: "ascending lexicographic order of the 32 bytes of
+`declare_id`". -/
+def declIdLe (a b : DeclarationId) : Bool :=
+  Encoding.Codec.lexLe (Encoding.Codec.leBytes 32 a) (Encoding.Codec.leBytes 32 b)
+
+/-- `declIdLe` on the entries of `declarations`. -/
+def releaseOrder (a b : DeclarationId × DeclarationInfo) : Bool := declIdLe a.1 b.1
+
+/-- SDP Epoch Finalization: in ascending byte order of `declare_id`, release the notes of every
+due declaration in the ledger set and remove it. -/
 def finalizeDeclarations (st : State) (epoch : Epoch) : State :=
-  let due := (st.declarations.filter fun e => decide (IsDue epoch e)).mergeSort
-    fun a b => decide (a.1 ≤ b.1)
+  let due := (st.declarations.filter fun e => decide (IsDue epoch e)).mergeSort releaseOrder
   let s := due.foldl (fun s e => s.executeAdding e.2.withdrawOutputs) (st.sets LEDGER_SET)
   (st.setSet LEDGER_SET s).withDecls (st.declarations.filter fun e => !decide (IsDue epoch e))
 

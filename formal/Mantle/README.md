@@ -23,7 +23,7 @@ A machine-checked model of Mantle 2.1.0 as specified by [logos-lips#480](https:/
 | `Prims.ProofBinding` | a proof verifies for at most one statement | only `payment_proof_bound`, `step_proof_not_payment`, `spend_proof_bound` |
 | `Cap` | every note set holds fewer than `2^31` commitments | theorems using Merkle membership in a state |
 
-The three proof hypotheses hold together, with verifiers accepting every true statement (`Prims.symbolic`, `symbolic_complete`), so no theorem assuming them is vacuous. Nothing is assumed about Groth16 program proofs, Ed25519, the classical hashes or the encodings in the ledger model. No assumption at all is used by the MMR, IMT, root-window, Merkle-completeness, lottery, codec and gas results, nor by the token economics outside `Supply.lean`.
+The three proof hypotheses hold together, with verifiers accepting every true statement (`Prims.symbolic`, `symbolic_complete`), so no theorem assuming them is vacuous. Nothing is assumed about Groth16 program proofs, Ed25519, the classical hashes, the encodings in the ledger model, or the gas prices (`0` is allowed, though the base fee never goes below `1`). No assumption at all is used by the MMR, IMT, root-window, Merkle-completeness, lottery, codec and gas results, nor by the token economics outside `Supply.lean`.
 
 ## Results
 
@@ -54,7 +54,8 @@ The three proof hypotheses hold together, with verifiers accepting every true st
 | PoL threshold in `𝔽_p` | **`win_prob_le`**, `threshold_no_wrap`, `threshold_wrap` | with a uniform ticket, a note wins with probability at most `φ_f(v/S) + 2v²/p`; past the zero crossing the threshold wraps near `p` (the corner case) |
 | (new) stake splitting under the approximation | **`split_advantage`** | two notes of stakes `a, b` win more often than one of stake `a + b`, by `c³ab(a+b)/2 - c⁴a²b²/4 > 0` |
 | Mantle Transaction Encoding, "guarantee a canonical encoding" | **`signedTx_canonical`**, `signedTx_encode_injective`, `mantleTx_encode_injective`, `Codec.decodeAll_iff` | every production is a verified codec (`Codec.lean`): a byte string decodes to a signed transaction iff it is its encoding; distinct transactions have distinct encodings |
-| Mantle *Test Vectors* | `MantleTest/Vectors.lean` | the 10 `op_id` vectors, the 2 transaction hashes and the `declaration_id` decode, re-encode to themselves, and match BLAKE2b-256 (`Blake2b.lean`, checked against RFC 7693) |
+| Mantle *Test Vectors* | `MantleTest/Vectors.lean` | the 10 `op_id` vectors, the 2 transaction hashes and the `declaration_id` decode, re-encode to themselves, and match BLAKE2b-256 (`Blake2b.lean`, checked against RFC 7693); `mantleTxHash` gives their reduction modulo `p` |
+| SDP Epoch Finalization: "ascending lexicographic order of the 32 bytes of `declare_id`" | `releaseOrder`, `declIdLe` | the due declarations are released in the byte order of their ids, first byte first (`Vectors.lean` checks `00…01` before `01…00`) |
 
 ## Differences from the specification
 
@@ -66,6 +67,11 @@ The three proof hypotheses hold together, with verifiers accepting every true st
 6. **A `FieldElement` has up to 5 encodings.** It is any 32 bytes; the specification does not require the decoder to reject values `≥ p`, so `x` and `x + p` (for `x < 2^256 - p`) are both accepted (`fieldElement_not_canonical_mod_p`). The encoding is canonical as bytes (`signedTx_canonical`) but not modulo `p`: two encodings of the same field elements give different transaction hashes and `op_id`s, against the stated goal of a canonical encoding. Requiring `< p` fixes it.
 7. **The threshold's zero crossing is at `v ≈ 59 S`**, `2/c = 58.99` (`parabola_peak_zero`, `constants_ratio`), where the corner-case section says 58; the peak, `≈ 29.5 S`, is as stated.
 8. **Value can be lost, never created.** Any output whose fields equal those of an existing note shares its commitment and nullifier, and only one can be spent. RFC-480 states this for two leader rewards under one `reward_key`; it holds for every note, so conservation is an inequality.
+9. **`mantle_txhash` is used both raw and reduced.** The prose requires reducing it modulo `p` before any ZK use (*Mantle Transaction*), but `mantle_txhash()` returns the raw digest, Validation passes it on unreduced, and the Operations type it `zkhash` and give it to `verify_transfer` directly; no step says where the reduction happens. The model's `Prims.txHash` is the value the proofs receive; `Encoding.mantleTxHash` is the specification's reduced value, checked on both transaction vectors.
+10. **What Ed25519 signs is unstated.** `InscribeProof.signature` is "over the mantle_txhash": the 32-byte digest or the reduced field element give different signatures. Nothing is assumed about `ed25519Verify`, so the theorems hold either way.
+11. **Gas amounts have no integer type.** *Arithmetic* requires every operation on gas amounts to be checked on "the stated integer type", but `tx_execution_gas` has none and its sums in `mandatory_fees` are unchecked; the product with the price is bounded only through the base fee's floor of `1` (Execution Market). The model's gas prices are any naturals, `0` included; no theorem needs the floor.
+12. **Nothing is said to bound `TokenValue`.** "Token value is supposed to never exceed the precision of `TokenValue`" names no component that guarantees it, and the specification does not state the denomination of `TokenValue` against LGO, so whether the supply cap fits in `2^64` base units cannot be checked from it.
+13. **Typo.** "`p ≈ 2^{-254}`" (`op_id`, *Operation Identifier*) should be `2^{254}`.
 
 Confirmed as stated: the hexadecimal lottery constants, every test vector of Mantle, the integrity of the 1024-root window with repeated roots, the soundness of the IMT non-membership proof, the eligible root's set binding, the buffer semantics of `buffered`, the cancellation of withdrawals, and the RFC-481 "What enforces what" rows the ledger enforces.
 
