@@ -43,7 +43,9 @@ import Std.Tactic.BVDecide.Normalize.BitVec
 /-!
 # Phase expectations with one band per epoch
 
-`phase_auto` assumes one band at every slot of a phase. With one member per epoch
+`phase_autoT` bounds a phase cut at `G` slots through a table per history, each
+satisfying the recursion of the history's band and not increasing along the phase. One
+table for every history, cut at the horizon, bounds any phase. With one member per epoch
 (`Kern.EpochFam`), a phase can cross an epoch boundary, where the member changes.
 Truncated at `G` slots (`G + 1 < EL`), a phase crosses at most one boundary. So a
 **one-switch automaton** bounds it (`AutoSolE`): for each member a solution `vpost`

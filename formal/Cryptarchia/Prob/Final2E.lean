@@ -113,9 +113,15 @@ theorem Cert2E.anyPhase (i : Fin 19) (hi : i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 17)
       (xg C.P.c C.P.z C.P.s C.P.d C.P.τ i).2.2 (C.vs i) ≤ e) :
     ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP C.P i h.length) h ≤ e := by
   intro h hpe hlM
+  obtain ⟨mem, hband, -⟩ := hκ
   have hx := xg_nonneg C.P i
-  exact phase_auto hκ.fam hx.1 hx.2 (fun B' hB' => by obtain ⟨k, rfl⟩ := List.mem_ofFn.1 hB'; exact C.solS i hi k)
-    (fun B' hB' => by obtain ⟨k, rfl⟩ := List.mem_ofFn.1 hB'; exact he k) C.P.hΔ (start_of_pe hpe hlM) hlM
+  -- a phase from `h` ends by the horizon, so a cut at `M` slots keeps all of it
+  refine le_trans (ExPh_mono_on _ _ _ fun o t ht _ _ => le_of_eq ?_)
+    ((phase_autoT (m := h.length) (G := M) (fun _ => C.vs i) (fun h => fam (mem h)) hband
+      (xg_g_nonneg C.P i) (fun _ _ _ _ _ _ _ _ => le_rfl) (fun h _ _ => (C.solS i hi (mem h)).step)
+      (fun h => (C.solS i hi (mem h)).term) hx.1 hx.2 (by omega) C.P.hΔ (start_of_pe hpe hlM) rfl hlM).trans
+      (he (mem h)))
+  unfold Wt2G WP; rw [if_pos (by simp; omega)]
 
 theorem Cert2E.truncPhase : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ h, PE Δ M h → h.length < M →
     ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP C.P i h.length)) h ≤ C.P.e i := by
