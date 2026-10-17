@@ -126,38 +126,7 @@ theorem log_all (hord : E.OrderOK) {es : List Event} : ∀ n ≤ es.length, LogO
 
 /-! ## What `receive` can add -/
 
-theorem receive_sub {c : Config} {L : Ledger} {O : Oracle} {G : Genesis} {st : Store} {s : NodeState}
-    (hrule : s.rule = .online) (hS : StoreOK st) (hs : NodeOK c.k st L O G c s) (fastPath : Bool)
-    (ord : List ℕ → List ℕ) (hord : ∀ l, (ord l).Perm l) (now b : ℕ) :
-    ∀ x ∈ (receive c st L O G fastPath ord now s b).tree, x ∈ s.tree ∨ x ∈ chainIds st b := by
-  unfold receive
-  have key : ∀ (l : List Block), (∀ x ∈ l, st x.hdr.id = some x ∧ x.hdr.id ∈ chainIds st b) → ∀ s,
-      NodeOK c.k st L O G c s → ∀ x ∈ (l.foldl (onBlock c st L O G fastPath ord now) s).tree,
-        x ∈ s.tree ∨ x ∈ chainIds st b := by
-    intro l
-    induction l with
-    | nil => intro _ s _ x hx; exact Or.inl hx
-    | cons B bs ih =>
-      intro hst s hs x hx
-      simp only [List.foldl_cons] at hx
-      have hB := hst B List.mem_cons_self
-      rcases ih (fun y hy => hst y (List.mem_cons_of_mem _ hy)) _
-        (onBlock_ok hS hs fastPath ord hord now B hB.1).1 x hx with h | h
-      · rcases onBlock_tree_sub hs.rule fastPath ord now B x h with h' | h'
-        · exact Or.inl h'
-        · right; rw [h']; exact hB.2
-      · exact Or.inr h
-  apply key _ _ s hs
-  intro x hx
-  refine ⟨mem_chainUp_store hS hx, ?_⟩
-  unfold chainUp at hx
-  rw [List.mem_reverse] at hx
-  unfold chainIds
-  exact List.mem_map_of_mem hx
-
 /-! ## The restricted tree -/
-
-theorem restrict_anc {F : PTree} {t u v : ℕ} : (F.restrict t).Anc u v ↔ F.Anc u v := Iff.rfl
 
 theorem restrict_hd {F : PTree} {t m : ℕ} (hm : m ≤ t) : (F.restrict t).hd m = F.hd m := by
   classical

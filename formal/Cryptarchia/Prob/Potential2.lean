@@ -106,12 +106,6 @@ theorem honIn_iff_honCnt {a b : ℕ} : HonIn w a b ↔ 1 ≤ honCnt w a b := by
     simp only [Finset.mem_filter, Finset.mem_Ioc] at hi
     exact ⟨i, hi.1.1, hi.1.2, hi.2⟩
 
-/-- `min(H, 2) ≤ B + U2`, and `H ≤ 1` without two honest slots. -/
-theorem min_hD_le {a b : ℕ} : min (hD Δ w a b) 2 ≤
-    (if 1 ≤ honCnt w a b then 1 else 0) + (if 2 ≤ honCnt w a b then 1 else 0) := by
-  have := hD_le_honCnt (Δ := Δ) (w := w) (a := a) b
-  split_ifs <;> omega
-
 /-! ## The potential after one phase -/
 
 /-- **Staying cold.** -/

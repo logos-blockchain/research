@@ -386,25 +386,6 @@ theorem step_lotS (hN : HonestStake E.L) (hord : E.OrderOK)
         exact ⟨b, C, hext b C hb, hs, hsl⟩
     · exact hl
 
-/-- The lottery each honest node runs at every tick of the execution is `σ`'s. -/
-def StatesOK (E : Env) (es : List Event) (σ : ℕ → EpochState) : Prop :=
-  ∀ n < es.length, es[n]? = some .tick → ∀ j ∈ E.nodes, E.online j ((wAt E es n).now + 1) = true →
-    epochState E.c E.L E.O E.G (chainUp (wAt E es n).st ((wAt E es n).node j).cloc)
-      (E.c.epochOf ((wAt E es n).now + 1)) = σ ((wAt E es n).now + 1)
-
-/-- **The lottery invariant holds throughout an execution.** -/
-theorem lot_allS (hA : Assm E) (hN : HonestStake E.L) (hσ : StatesOK E es σ) :
-    ∀ n ≤ es.length, LotOKS E σ (wAt E es n) := by
-  intro n
-  induction n with
-  | zero => intro _; rw [wAt_zero]; exact init_lotS
-  | succ n ih =>
-    intro hn
-    rw [wAt_succ E es (by omega)]
-    refine step_lotS hN hA.ord hA.nodup (wAt_ok hA.ord n) (ih (by omega)) es[n] ?_
-    intro htick
-    exact hσ n (by omega) (by rw [List.getElem?_eq_getElem (by omega), htick])
-
 /-! ## The execution string against the lottery string -/
 
 /-- The honest node that signed a stored block. -/
@@ -438,69 +419,6 @@ theorem lotStrS_of_delivery (hD : DeltaDelivery E es) :
   simp [lotStrS, lateAt_none hD]
 
 variable {K : ℕ → Prop}
-
-open Classical in
-/-- **Honest successes are the lottery's**: at every slot of the horizon, the
-settlement tree has one honest block per honest node that won the slot. -/
-theorem hon_countS (hA : Assm E) (hN : HonestStake E.L) (hσ : StatesOK E es σ)
-    (hKh : ∀ b B, (wF E es).st b = some B → IsHon B → K b) {i : ℕ} (h1 : 1 ≤ i)
-    (h2 : i ≤ (wF E es).now) : (WS E es K i).1 = (lotStrS E σ (lateAt E es) i).1 := by
-  have hw := wAt_ok (es := es) hA.ord es.length
-  have hS := hw.store
-  have hl := lot_allS hA hN hσ es.length le_rfl
-  have hng : ∀ v, slotOf (wF E es).st v = i → v ≠ genesisId := by
-    intro v hv h0; rw [h0, slotOf_genesis hS] at hv; omega
-  show ((FT E es K).V.filter (fun v => honL (wF E es).st (Late E es) v = true ∧ slotOf (wF E es).st v = i)).card =
-    (E.nodes.filter (fun j => actS E σ j i && !decide (lateAt E es j i))).length
-  rw [← List.toFinset_card_of_nodup (hA.nodup.filter _)]
-  apply Finset.card_bij (fun v _ => sigOf (wF E es).st v)
-  · intro v hv
-    simp only [Finset.mem_filter] at hv
-    obtain ⟨hvF, hhL, hsl⟩ := hv
-    have hh := honB_of_honL hhL
-    have hnl := not_late_of_honL hhL (hng v hsl)
-    obtain ⟨B, hB, j, hj⟩ := honB_signed hh (hng v hsl) ((hw.used v).2 (mem_FTused.1 (mem_stree.1 hvF).1).1)
-    obtain ⟨hjn, hwin, -, -⟩ := hl.won v B j hB hj
-    rw [sigOf_eq hB hj, List.mem_toFinset, List.mem_filter]
-    rw [slotOf_eq hB] at hsl; rw [hsl] at hwin
-    refine ⟨hjn, ?_⟩
-    simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not]
-    refine ⟨hwin, ?_⟩
-    rintro ⟨b', B', hb', hs', hsl', hlate⟩
-    have := hl.uniq v b' B B' j hB hb' hj hs' (hsl.trans hsl'.symm)
-    subst this; exact hnl hlate
-  · intro v hv v' hv' heq
-    simp only [Finset.mem_filter] at hv hv'
-    obtain ⟨hvF, hh, hsl⟩ := hv
-    obtain ⟨hvF', hh', hsl'⟩ := hv'
-    replace hh := honB_of_honL hh
-    replace hh' := honB_of_honL hh'
-    obtain ⟨B, hB, j, hj⟩ := honB_signed hh (hng v hsl) ((hw.used v).2 (mem_FTused.1 (mem_stree.1 hvF).1).1)
-    obtain ⟨B', hB', j', hj'⟩ := honB_signed hh' (hng v' hsl') ((hw.used v').2 (mem_FTused.1 (mem_stree.1 hvF').1).1)
-    rw [sigOf_eq hB hj, sigOf_eq hB' hj'] at heq
-    subst heq
-    rw [slotOf_eq hB] at hsl; rw [slotOf_eq hB'] at hsl'
-    exact hl.uniq v v' B B' j hB hB' hj hj' (hsl.trans hsl'.symm)
-  · intro j hj
-    rw [List.mem_toFinset, List.mem_filter] at hj
-    simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not] at hj
-    obtain ⟨b, B, hb, hsig, hsl⟩ := hl.made i j h1 h2 hj.1 hj.2.1
-    have hgood := (hon_stored hA le_rfl hb ⟨j, hsig⟩).1
-    refine ⟨b, ?_, sigOf_eq hb hsig⟩
-    simp only [Finset.mem_filter]
-    have hb0 : b ≠ genesisId := hng b (by rw [slotOf_eq hb, hsl])
-    refine ⟨mem_stree.2 ⟨mem_FTused.2 ⟨(hw.used b).1 ⟨B, hb⟩, hKh b B hb ⟨j, hsig⟩⟩, hgood⟩,
-      (honL_iff hb0).2 ⟨honB_of hb hsig, fun hlate => hj.2.2 ⟨b, B, hb, hsig, hsl, hlate⟩⟩,
-      by rw [slotOf_eq hb, hsl]⟩
-
-open Classical in
-/-- After the horizon the execution string has no honest successes. -/
-theorem hon_lateS {i : ℕ} (h : (wF E es).now < i) : (WS E es K i).1 = 0 := by
-  show ((FT E es K).V.filter (fun v => honL (wF E es).st (Late E es) v = true ∧ slotOf (wF E es).st v = i)).card = 0
-  rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-  rintro v hv ⟨-, hsl⟩
-  have := (mem_stree.1 hv).2.2.1
-  omega
 
 /-- Adversarial blocks of the tree are validated under `σ` of their slot. -/
 def AdvStatesOK (E : Env) (es : List Event) (K : ℕ → Prop) (σ : ℕ → EpochState) : Prop :=
@@ -551,12 +469,6 @@ theorem adv_domS (hA : Assm E) (hσa : AdvStatesOK E es K σ) {i : ℕ} (h : (WS
   rw [← hsl]
   refine ⟨n, hn, ?_, hcond.2.2.2⟩
   rw [hcond.2.1, hsig]
-
-/-- **The execution string is dominated by the lottery string.** -/
-theorem advLe_lotS (hA : Assm E) (hN : HonestStake E.L) (hσ : StatesOK E es σ)
-    (hKh : ∀ b B, (wF E es).st b = some B → IsHon B → K b) (hσa : AdvStatesOK E es K σ) :
-    AdvLe (wF E es).now (WS E es K) (lotStrS E σ (lateAt E es)) :=
-  ⟨fun _ h1 h2 => hon_countS hA hN hσ hKh h1 h2, fun _ h => hon_lateS h, fun _ h => adv_domS hA hσa h⟩
 
 /-! ## Up to a horizon -/
 

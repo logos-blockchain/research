@@ -97,13 +97,6 @@ theorem epochState_zero (hS : StoreOK st) {a b : ℕ} (ha : Rooted st a) (hb : R
   have he : c.epochStart 0 = 0 := by simp [Config.epochStart]
   simp only [he, Nat.zero_sub, prefixBelow_zero hS ha hg, prefixBelow_zero hS hb hg]
 
-/-- Within the first epoch, Proof-of-Leadership validity does not depend on the
-chain the epoch state is derived on. -/
-theorem polValid_zero (hS : StoreOK st) {a b : ℕ} (ha : Rooted st a) (hb : Rooted st b)
-    (P : List Block) (h : Header) (h0 : c.epochOf h.slot = 0) :
-    polValid c L O G (chainUp st a) P h = polValid c L O G (chainUp st b) P h := by
-  unfold polValid; rw [h0, epochState_zero hS ha hb]
-
 theorem selectUncles_length (T : List ℕ) (cloc sl : ℕ) :
     (selectUncles c st T cloc sl).length ≤ c.maxUncles := by
   unfold selectUncles

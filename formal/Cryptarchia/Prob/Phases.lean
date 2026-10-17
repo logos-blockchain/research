@@ -145,15 +145,6 @@ theorem bnd_congr {w w' : CStr} {ℓ : ℕ} {e : ℕ → ℕ} (hmono : ∀ k, e 
     simp only [bnd]
     rw [bnd_congr hmono k (h.mono le_rfl (hmono k)), step_congr (h.mono (Nat.zero_le _) le_rfl)]
 
-theorem runFrom_congr {w w' : CStr} {ℓ : ℕ} {e : ℕ → ℕ} (hmono : ∀ k, e k ≤ e (k + 1)) (k0 : ℕ)
-    (b0 : ℤ × ℤ) : ∀ j, SimOn w w' 0 (e (k0 + j)) →
-      runFrom (Δ := Δ) (w := w) ℓ e k0 b0 j = runFrom (Δ := Δ) (w := w') ℓ e k0 b0 j
-  | 0, _ => rfl
-  | j + 1, h => by
-    simp only [runFrom]
-    rw [runFrom_congr hmono k0 b0 j (h.mono le_rfl (by rw [← Nat.add_assoc]; exact hmono _)),
-      step_congr (h.mono (Nat.zero_le _) (by rw [Nat.add_assoc]))]
-
 /-! ## Phase ends -/
 
 open Classical in

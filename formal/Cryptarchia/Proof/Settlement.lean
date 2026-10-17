@@ -254,8 +254,4 @@ theorem bimm_final (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ}
   exact chainIds_trans hS ((wAt_ok (es := es) hA.ord n').nodes j |>.rooted _
     ((wAt_ok (es := es) hA.ord n').nodes j).cloc) h2 h1
 
-/-- The trivial block predicate (every valid block is in the tree). -/
-theorem KOK_true (H : ℕ) : KOK E es (fun _ => True) H :=
-  ⟨⟨trivial, fun _ _ _ => trivial⟩, fun _ _ _ _ _ _ _ _ _ _ _ => trivial⟩
-
 end Cryptarchia

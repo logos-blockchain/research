@@ -216,30 +216,4 @@ theorem final_bimm_dom (hA : Assm E)
   rw [hmin] at hG hGr
   exact bimm_final_epochs hA hG hGr hnn hn' (now_mono hn' le_rfl) hi hj hio hjo
 
-/-- **Finality over any number of epochs**, on the lottery string's good event. -/
-theorem final_bimm_epochs (hA : Assm E)
-    {N : ℕ} (hNF : (wF E es).now ≤ N) {Lw : ℕ}
-    (hL : GoodLS E (lotStrS E (σE E es) (lateAt E es)) N Lw e) {r G0 : ℕ}
-    (hLg : GrowthS E (lotStrS E (σE E es) (lateAt E es)) e N r G0)
-    {n n' : ℕ} (hnn : n ≤ n') (hn' : n' ≤ es.length) {i j : ℕ} (hi : i ∈ E.nodes) (hj : j ∈ E.nodes)
-    (hio : E.online i (wAt E es n').now = true) (hjo : E.online j (wAt E es n').now = true) :
-    ((wAt E es n).node i).bimm ∈ chainIds (wAt E es n').st ((wAt E es n').node j).cloc :=
-  final_bimm_dom hA hNF (AdvLeW.refl _) hL hLg hnn hn' hi hj hio hjo
-
-/-- A settlement window chosen per epoch: slot `t` uses `Wk` of its epoch. -/
-def epochWindow (c : Config) (Wk : ℕ → ℕ) : ℕ → ℕ := fun t => Wk (c.epochOf t)
-
-/-- **Finality with a settlement window per epoch.** As `final_bimm_epochs`, with
-the good event's window at slot `t` set by `t`'s epoch (`Wk e` slots in epoch `e`).
-The deterministic argument only uses each slot's own window, so any assignment of
-windows to epochs works. -/
-theorem final_bimm_epochWin (hA : Assm E)
-    {N : ℕ} (hNF : (wF E es).now ≤ N) {Wk : ℕ → ℕ}
-    (hL : GoodLSW E (lotStrS E (σE E es) (lateAt E es)) N (epochWindow E.c Wk) e) {r G0 : ℕ}
-    (hLg : GrowthS E (lotStrS E (σE E es) (lateAt E es)) e N r G0)
-    {n n' : ℕ} (hnn : n ≤ n') (hn' : n' ≤ es.length) {i j : ℕ} (hi : i ∈ E.nodes) (hj : j ∈ E.nodes)
-    (hio : E.online i (wAt E es n').now = true) (hjo : E.online j (wAt E es n').now = true) :
-    ((wAt E es n).node i).bimm ∈ chainIds (wAt E es n').st ((wAt E es n').node j).cloc :=
-  final_bimm_dom hA hNF (AdvLeW.refl _) hL hLg hnn hn' hi hj hio hjo
-
 end Cryptarchia

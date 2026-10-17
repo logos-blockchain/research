@@ -77,8 +77,6 @@ structure Out where
 /-- An empty slot. -/
 def Out.empty : Out := ⟨0, false⟩
 
-instance : Inhabited Out := ⟨Out.empty⟩
-
 /-- The slot as an entry of a characteristic string. -/
 def Out.toPair (o : Out) : ℕ × Bool := (o.hon.val, o.adv)
 
@@ -116,10 +114,6 @@ noncomputable def Ex : ℕ → (List Out → ℝ) → List Out → ℝ
 /-- The probability of a set of outcomes for the next slot. -/
 noncomputable def Kern.pr (l : List Out) (P : Out → Prop) [DecidablePred P] : ℝ :=
   ∑ o, if P o then κ.p l o else 0
-
-/-- The probability of a whole path of outcomes. -/
-noncomputable def Kern.path : List Out → ℝ := fun l =>
-  ∏ i : Fin l.length, κ.p (l.take i) l[i]
 
 variable {κ}
 

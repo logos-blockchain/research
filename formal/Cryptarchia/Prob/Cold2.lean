@@ -178,11 +178,6 @@ theorem zpow_shift {x : ℝ} (hx : 0 < x) (ρ A H : ℤ) (hρ : 0 ≤ ρ) (hH : 
     x ^ (max (ρ + A - H) A) = x ^ ρ * x ^ (A - min H ρ) := by
   rw [max_shift ρ A H hρ hH, zpow_add₀ hx.ne']
 
-theorem gtab_val (t0 t1 t2 : Bool → Bool → ℝ) (a : Fin 3) (b u : Bool) :
-    gtab t0 t1 t2 a b u = if a.val = 0 then t0 b u else if a.val = 1 then t1 b u else t2 b u := rfl
-
-theorem acap_zero {n : ℕ} (h : n = 0) : (acap n).val = 0 := by unfold acap; simp [h]
-theorem acap_one {n : ℕ} (h : n = 1) : (acap n).val = 1 := by unfold acap; simp [h]
 theorem acap_two {n : ℕ} (h : 2 ≤ n) : (acap n).val = 2 := by unfold acap; simp; omega
 theorem acap_pos {n : ℕ} (h : 1 ≤ n) : (acap n).val ≠ 0 := by unfold acap; simp; omega
 
@@ -315,7 +310,6 @@ theorem xg_14 (c z s d τ : ℝ) : xg c z s d τ 14 = xgN c z s d τ 14 := rfl
 theorem xg_15 (c z s d τ : ℝ) : xg c z s d τ 15 = xgN c z s d τ 15 := rfl
 theorem xg_16 (c z s d τ : ℝ) : xg c z s d τ 16 = xgN c z s d τ 16 := rfl
 theorem xg_17 (c z s d τ : ℝ) : xg c z s d τ 17 = xgN c z s d τ 17 := rfl
-theorem xg_18 (c z s d τ : ℝ) : xg c z s d τ 18 = xgN c z s d τ 18 := rfl
 
 theorem zpow_le_one' {a : ℝ} {n : ℤ} (h0 : 0 ≤ a) (h1 : a ≤ 1) (hn : 0 ≤ n) : a ^ n ≤ 1 := by
   obtain ⟨k, hk⟩ := Int.eq_ofNat_of_zero_le hn
@@ -573,130 +567,5 @@ theorem xg_nonneg (P : Cert2 B Δ) (i : Fin 19) :
   have hd0 : 0 ≤ P.d := P.hd0.le
   have hτ : 0 ≤ P.τ := by linarith [P.hτ]
   fin_cases i <;> simp only [xg, xgN] <;> constructor <;> first | positivity | norm_num | assumption
-
-/-- **Expectation `i` over the next phase.** -/
-theorem ex_WP (P : Cert2 B Δ) (hB : κ.Fam P.Bs) (i : Fin 19) {h : List Out} (hpe : PE Δ M h)
-    (hlM : h.length < M) : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P i h.length) h ≤ P.e i := by
-  have hx := xg_nonneg P i
-  exact phase_auto hB hx.1 hx.2 (P.sol i) (P.he i) P.hΔ (start_of_pe hpe hlM) hlM
-
-/-- **The potential contracts by `λp` over one phase**, in every state. -/
-theorem ex_post2 (P : Cert2 B Δ) (hB : κ.Fam P.Bs) {st : ℤ × ℤ} (hst : Inv st) {h : List Out}
-    (hpe : PE Δ M h) (hlM : h.length + Δ + 1 ≤ M) :
-    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (postB2 P st h.length) h ≤
-      P.lp * V2 P.c P.z P.s P.κ P.d st := by
-  have hc := P.hc; have hz := P.hz; have hs := P.hs; have hκ := P.hκ
-  have hd0 := P.hd0; have hd1 := P.hd1
-  have hc0 : 0 < P.c := by linarith
-  have hz0 : 0 < P.z := by linarith
-  have hlM' : h.length < M := by omega
-  have E := fun i => ex_WP (κ := κ) P hB i hpe hlM'
-  obtain ⟨h0, h1, h2⟩ := hst
-  unfold postB2
-  by_cases hwarm : 1 ≤ st.1 ∧ st.2 = st.1
-  · simp only [if_pos hwarm]
-    rw [ExPh_mul_const, V2_warm (by omega)]
-    have := mul_le_mul_of_nonneg_left ((E 0).trans P.w1) (by positivity : (0 : ℝ) ≤ P.c ^ st.1)
-    linarith
-  · simp only [if_neg hwarm]
-    by_cases hneg : st.2 < 0
-    · simp only [if_pos hneg]
-      rw [V2_cold hneg]
-      have hsc : 0 ≤ P.s * P.c ^ st.1 * P.z ^ st.2 := by have := P.hs; positivity
-      have hkd : 0 ≤ P.κ * P.d ^ st.1 * P.z ^ st.2 := by positivity
-      have hzμ : 0 < P.z ^ st.2 := by positivity
-      -- linearity
-      have hlin : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun h' =>
-          P.s * P.c ^ st.1 * P.z ^ st.2 * WP P (iaOf st) h.length h' +
-            P.κ * P.d ^ st.1 * P.z ^ st.2 * WP P (ibOf st) h.length h' +
-            (if 3 ≤ st.1 then P.κ * P.z ^ st.2 * WP P (iabsOf st) h.length h' else 0)) h ≤
-          P.s * P.c ^ st.1 * P.z ^ st.2 * P.e (iaOf st) + P.κ * P.d ^ st.1 * P.z ^ st.2 * P.e (ibOf st) +
-            (if 3 ≤ st.1 then P.κ * P.z ^ st.2 * P.e (iabsOf st) else 0) := by
-        rw [ExPh_add, ExPh_add, ExPh_mul_const, ExPh_mul_const]
-        have t1 := mul_le_mul_of_nonneg_left (E (iaOf st)) hsc
-        have t2 := mul_le_mul_of_nonneg_left (E (ibOf st)) hkd
-        split_ifs with h3
-        · rw [ExPh_mul_const]
-          have t3 := mul_le_mul_of_nonneg_left (E (iabsOf st)) (by positivity : (0 : ℝ) ≤ P.κ * P.z ^ st.2)
-          linarith
-        · rw [ExPh_const]; linarith
-      refine hlin.trans ?_
-      -- the class conditions
-      have key : P.s * P.c ^ st.1 * (P.e (iaOf st) - P.lp) + P.κ * P.d ^ st.1 * (P.e (ibOf st) - P.lp) +
-          (if 3 ≤ st.1 then P.κ * P.e (iabsOf st) else 0) ≤ 0 := by
-        unfold iaOf ibOf iabsOf
-        by_cases hm1 : st.2 = -1
-        · simp only [hm1, ↓reduceIte]
-          by_cases r0 : st.1 = 0
-          · simp only [r0, ↓reduceIte, zpow_zero, mul_one]; norm_num; linarith [P.m1r0]
-          · by_cases r1 : st.1 = 1
-            · simp only [r1, ↓reduceIte, zpow_one]; norm_num; linarith [P.m1r1]
-            · by_cases r2 : st.1 = 2
-              · simp only [r2, ↓reduceIte]; norm_num
-                have := P.m1r2; simp only [pow_two] at this ⊢
-                linarith
-              · have h3 : 3 ≤ st.1 := by omega
-                simp only [r0, r1, r2, ↓reduceIte, h3]
-                have hcρ : P.c ^ (3 : ℕ) ≤ P.c ^ st.1 := by
-                  rw [← zpow_natCast]; exact zpow_le_zpow_right₀ hc (by exact_mod_cast h3)
-                have hdρ : P.d ^ st.1 ≤ P.d ^ (3 : ℕ) := by
-                  rw [← zpow_natCast]; exact zpow_le_zpow_right_of_le_one₀ hd0 hd1 (by exact_mod_cast h3)
-                have ha := P.m1r3a
-                have t1 : P.s * P.c ^ st.1 * (P.e 4 - P.lp) ≤ P.s * P.c ^ 3 * (P.e 4 - P.lp) := by
-                  have := mul_le_mul_of_nonneg_left hcρ (by linarith : (0 : ℝ) ≤ P.s)
-                  nlinarith
-                have t2 : P.κ * P.d ^ st.1 * (P.e 10 - P.lp) ≤ P.κ * P.d ^ 3 * max (P.e 10 - P.lp) 0 := by
-                  have hm := le_max_left (P.e 10 - P.lp) 0
-                  have hm0 := le_max_right (P.e 10 - P.lp) 0
-                  have : 0 ≤ P.d ^ st.1 := by positivity
-                  have h1' : P.κ * P.d ^ st.1 * (P.e 10 - P.lp) ≤ P.κ * P.d ^ st.1 * max (P.e 10 - P.lp) 0 :=
-                    mul_le_mul_of_nonneg_left hm (by positivity)
-                  have h2' : P.κ * P.d ^ st.1 * max (P.e 10 - P.lp) 0 ≤ P.κ * P.d ^ 3 * max (P.e 10 - P.lp) 0 :=
-                    mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left hdρ hκ) hm0
-                  linarith
-                linarith [P.m1r3]
-        · simp only [hm1, ↓reduceIte]
-          by_cases r0 : st.1 = 0
-          · simp only [r0, ↓reduceIte, zpow_zero, mul_one]; norm_num; linarith [P.m2r0]
-          · by_cases r1 : st.1 = 1
-            · simp only [r1, ↓reduceIte, zpow_one]; norm_num; linarith [P.m2r1]
-            · by_cases r2 : st.1 = 2
-              · simp only [r2, ↓reduceIte]; norm_num
-                have := P.m2r2; simp only [pow_two] at this ⊢
-                linarith
-              · have h3 : 3 ≤ st.1 := by omega
-                simp only [r0, r1, r2, ↓reduceIte, h3]
-                have hcρ : P.c ^ (3 : ℕ) ≤ P.c ^ st.1 := by
-                  rw [← zpow_natCast]; exact zpow_le_zpow_right₀ hc (by exact_mod_cast h3)
-                have hdρ : P.d ^ st.1 ≤ P.d ^ (3 : ℕ) := by
-                  rw [← zpow_natCast]; exact zpow_le_zpow_right_of_le_one₀ hd0 hd1 (by exact_mod_cast h3)
-                have ha := P.m2r3a
-                have t1 : P.s * P.c ^ st.1 * (P.e 6 - P.lp) ≤ P.s * P.c ^ 3 * (P.e 6 - P.lp) := by
-                  have := mul_le_mul_of_nonneg_left hcρ (by linarith : (0 : ℝ) ≤ P.s)
-                  nlinarith
-                have t2 : P.κ * P.d ^ st.1 * (P.e 14 - P.lp) ≤ P.κ * P.d ^ 3 * max (P.e 14 - P.lp) 0 := by
-                  have hm := le_max_left (P.e 14 - P.lp) 0
-                  have hm0 := le_max_right (P.e 14 - P.lp) 0
-                  have h1' : P.κ * P.d ^ st.1 * (P.e 14 - P.lp) ≤ P.κ * P.d ^ st.1 * max (P.e 14 - P.lp) 0 :=
-                    mul_le_mul_of_nonneg_left hm (by positivity)
-                  have h2' : P.κ * P.d ^ st.1 * max (P.e 14 - P.lp) 0 ≤ P.κ * P.d ^ 3 * max (P.e 14 - P.lp) 0 :=
-                    mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left hdρ hκ) hm0
-                  linarith
-                linarith [P.m2r3]
-      have key' := mul_le_mul_of_nonneg_left key hzμ.le
-      split_ifs at key' ⊢ <;> nlinarith
-    · -- warm, zero reach
-      simp only [if_neg hneg]
-      push Not at hneg
-      have hμ : st.2 = st.1 := by rcases h1 with h1 | h1 <;> [exact h1; omega]
-      have hρ0 : st.1 = 0 := by by_contra hne; exact hwarm ⟨by omega, hμ⟩
-      rw [V2_warm (by omega), hρ0, zpow_zero, mul_one, ExPh_sub, ExPh_mul_const]
-      have h1 := E 1
-      have h2 := ex_cross (κ := κ) (hB.within P.weak) P.helo P.hΔ zero_le_one hlM
-      have hz1 : 0 ≤ 1 - (P.s + P.κ) * P.z⁻¹ := by
-        rw [sub_nonneg, ← div_eq_mul_inv, div_le_one hz0]; exact P.hsz
-      have := mul_le_mul_of_nonneg_left h2 hz1
-      simp only [one_pow, mul_one] at this
-      linarith [P.w0]
 
 end Cryptarchia.Prob

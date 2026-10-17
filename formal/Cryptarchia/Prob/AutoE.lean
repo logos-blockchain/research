@@ -370,14 +370,6 @@ noncomputable def vtab (vpre vpost : Fin K → ℕ → Fin 3 → Bool → ℝ) (
     (h : List Out) : ℕ → Fin 3 → Bool → ℝ := by
   classical exact if Swtd EL m h.length then vpost (mem h) else vpre (mem h)
 
-include hv hg0 in
-theorem vpost_nonneg (k : Fin K) {q : ℕ} (hq : q < Δ) (a : Fin 3) (u : Bool) : 0 ≤ vpost k q a u :=
-  le_trans (hg0 a true u) ((hv.post k).term q hq a u)
-
-include hv hg0 in
-theorem vpre_nonneg (k : Fin K) {q : ℕ} (hq : q < Δ) (a : Fin 3) (u : Bool) : 0 ≤ vpre k q a u :=
-  le_trans (vpost_nonneg hv hg0 k hq a u) (le_trans (hv.maxp k q hq a u) (hv.dom k q hq a u))
-
 include hv hmem in
 /-- The next history's table is below the current step table. -/
 theorem vtab_next (hEL : 0 < EL) {m G : ℕ} (hG : G + 1 < EL) {h : List Out} (hm : m ≤ h.length)
@@ -419,17 +411,6 @@ theorem vtab_term {m : ℕ} (h : List Out) : ∀ q < Δ, ∀ a u, g a true u ≤
   · simp only [vtab, hs, ↓reduceIte]; exact (hv.post (mem h)).term q hq a u
   · simp only [vtab, hs, ↓reduceIte]
     exact le_trans ((hv.post (mem h)).term q hq a u) (le_trans (hv.maxp (mem h) q hq a u) (hv.dom (mem h) q hq a u))
-
-include hv hg0 hband hmem in
-/-- **Inside a burst, one member per epoch, truncated at `G` slots.** -/
-theorem auto_leE (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hEL : 0 < EL) {m G : ℕ} (hG : G + 1 < EL) :
-    ∀ (n : ℕ) (h : List Out) (q : ℕ), InBurst m h q → q < Δ → h.length + n = M → h.length ≤ m + G →
-      ExU (κ := κ) (PE Δ M) n (Wt2G x θ g m G) h ≤
-        θ ^ (h.length - m) * x ^ advCnt (strOf h) m h.length *
-          vtab vpre vpost EL m mem h q (acap (advCnt (strOf h) m h.length)) (decide (2 ≤ honCnt (strOf h) m h.length)) :=
-  auto_leT (vtab vpre vpost EL m mem) (fun h => fam (mem h)) hband hg0
-    (fun h hm hlen o q hq a u => vtab_next hv mem hmem hEL hG hm hlen o hq a u)
-    (fun h _ _ => vtab_step hv mem h) (fun h => vtab_term hv mem h) hx hθ
 
 include hv hg0 hband hmem in
 /-- **One phase, one member per epoch, truncated at `G` slots.** -/

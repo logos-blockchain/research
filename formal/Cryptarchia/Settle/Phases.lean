@@ -151,11 +151,6 @@ theorem bnd_sound (ℓ : ℕ) (e : ℕ → ℕ) (he0 : e 0 = 0) (hmono : ∀ k, 
     simp only [le_min_iff]
     omega
 
-/-- A vertex is **dominant at time `m`** if it is at least as deep as every
-honest vertex at least `Δ` slots old: what an honest party at the end of slot
-`m` may be made to adopt. -/
-def Dom (F : PTree) (Δ m v : ℕ) : Prop := v ∈ F.V ∧ F.lab v ≤ m ∧ F.hd (m - Δ) ≤ F.dep v
-
 omit hF in
 /-- **Settlement within a cold phase.** If the margin bound at the start of phase
 `k` is below minus the phase's adversarial slots, then any two chains with last
@@ -172,17 +167,6 @@ theorem settled (hF : F.Valid Δ w n) (ℓ : ℕ) (e : ℕ → ℕ) (he0 : e 0 =
   obtain ⟨-, hM⟩ := hF.bnd_sound ℓ e he0 hmono hq k (le_trans hkm hmn)
   have hA : advCnt w (e k) m ≤ advCnt w (e k) (e (k + 1)) := advCnt_mono_right hm1
   exact hF.no_violation (hq k (le_trans hkm hmn)) hM hkm (by omega) hv₁ hv₂ hl₁ hl₂ hns hd₁ hd₂
-
-omit hF in
-/-- The same, for chains dominant at a time `m` of the phase. -/
-theorem settled_dom (hF : F.Valid Δ w n) (ℓ : ℕ) (e : ℕ → ℕ) (he0 : e 0 = 0)
-    (hmono : ∀ k, e k ≤ e (k + 1)) (hq : ∀ k, e k ≤ n → Quiet Δ w (e k)) (k m : ℕ) (hkm : e k ≤ m)
-    (hm1 : m ≤ e (k + 1)) (hmn : m ≤ n)
-    (hcold : (bnd Δ w ℓ e k).2 < -(advCnt w (e k) (e (k + 1)) : ℤ)) {v₁ v₂ : ℕ}
-    (h₁ : Dom F Δ m v₁) (h₂ : Dom F Δ m v₂) : F.Sim ℓ v₁ v₂ := by
-  have hhd : F.hd (e k - Δ) ≤ F.hd (m - Δ) := hF.hd_mono (by omega)
-  exact settled hF ℓ e he0 hmono hq k m hkm hm1 hmn hcold h₁.1 h₂.1 h₁.2.1 h₂.2.1
-    (hhd.trans h₁.2.2) (hhd.trans h₂.2.2)
 
 end PTree.Valid
 

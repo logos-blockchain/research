@@ -86,22 +86,6 @@ theorem blockAtDepth_ext {b : ℕ} (hb : Rooted st b) (d : ℕ) :
     blockAtDepth st' b d = blockAtDepth st b d := by
   unfold blockAtDepth; rw [chainIds_ext hx hb]
 
-theorem lca_ext {a b : ℕ} (ha : Rooted st a) (hb : Rooted st b) : lca st' a b = lca st a b := by
-  unfold lca; rw [chainIds_ext hx ha, chainIds_ext hx hb]
-
-theorem tips_ext {T : List ℕ} (hT : ∀ y ∈ T, ∃ blk, st y = some blk) : tips st' T = tips st T := by
-  unfold tips
-  apply List.filter_congr
-  intro b _
-  have : (T.any fun y => decide (y ≠ b ∧ parentOf st' y = b)) =
-      (T.any fun y => decide (y ≠ b ∧ parentOf st y = b)) := by
-    rw [Bool.eq_iff_iff]
-    simp only [List.any_eq_true, decide_eq_true_eq]
-    constructor <;> rintro ⟨y, hy, h1, h2⟩ <;> refine ⟨y, hy, h1, ?_⟩
-    · rwa [parentOf_ext hx (hT y hy)] at h2
-    · rwa [parentOf_ext hx (hT y hy)]
-  rw [this]
-
 theorem genuine_ext {h : Header} (hg : genuine st h = true) : genuine st' h = true := by
   unfold genuine at *
   cases hb : st h.id with

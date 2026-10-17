@@ -269,10 +269,6 @@ theorem step_hon (hord : E.OrderOK) (hexec : HonestExec E.L) (hnd : E.nodes.Nodu
 
 variable {es : List Event}
 
-/-- The epoch of the whole execution. -/
-theorem epoch_of_le {c : Config} {t N : ℕ} (htN : t ≤ N) (hN : N < c.epochLength) : c.epochOf t = 0 := by
-  unfold Config.epochOf; exact Nat.div_eq_of_lt (by omega)
-
 /-- **The honest-block invariant holds throughout an execution.** -/
 theorem hon_all (hord : E.OrderOK) (hexec : HonestExec E.L) (hnd : E.nodes.Nodup)
     (hc : E.c.Sane) :

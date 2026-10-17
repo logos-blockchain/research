@@ -246,12 +246,4 @@ theorem ex_post2G_at (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 
   ex_post2G_gen P P.classOK hst hlM
     (by simpa using ex_cross_trunc (κ := κ) (θ := 1) hW P.helo P.hΔ zero_le_one hlM hG) hE
 
-theorem ex_post2G (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 ≤ G)
-    (hE : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ h, PE Δ M h → h.length < M →
-      ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ P.e i)
-    {st : ℤ × ℤ} (hst : Inv st) {h : List Out} (hpe : PE Δ M h) (hlM : h.length + Δ + 1 ≤ M) :
-    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (postB2 P st h.length)) h ≤
-      P.lp * V2 P.c P.z P.s P.κ P.d st :=
-  ex_post2G_at P hW hG hst hpe hlM fun i h2 h17 => hE i h2 h17 h hpe (by omega)
-
 end Cryptarchia.Prob

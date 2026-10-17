@@ -36,10 +36,8 @@ public import Cryptarchia.Proof.EpochCut
 public import Cryptarchia.Proof.Canon
 public import Cryptarchia.Proof.LotteryG
 public import Cryptarchia.Proof.Lottery
-public import Cryptarchia.Proof.Final
 public import Cryptarchia.Proof.LotteryE
 public import Cryptarchia.Proof.FinalE
-public import Cryptarchia.Proof.TimeFinal
 public import Cryptarchia.Proof.Recur
 -- The probability layer
 public import Cryptarchia.Prob.InferClose
@@ -49,7 +47,6 @@ public import Cryptarchia.Prob.Potential
 public import Cryptarchia.Prob.Burst
 public import Cryptarchia.Prob.Next
 public import Cryptarchia.Prob.Cold
-public import Cryptarchia.Prob.Reach
 public import Cryptarchia.Prob.Blocks
 public import Cryptarchia.Prob.Depth
 public import Cryptarchia.Prob.Good
@@ -62,8 +59,6 @@ public import Cryptarchia.Prob.Fail2
 public import Cryptarchia.Prob.Good2
 public import Cryptarchia.Prob.Reach2
 public import Cryptarchia.Prob.Tail2
-public import Cryptarchia.Prob.Final2
-public import Cryptarchia.Prob.Cert
 public import Cryptarchia.Prob.Worst
 public import Cryptarchia.Prob.RO
 public import Cryptarchia.Prob.Stake
@@ -72,7 +67,6 @@ public import Cryptarchia.Prob.ROEpoch
 public import Cryptarchia.Prob.AutoE
 public import Cryptarchia.Prob.Cold2E
 public import Cryptarchia.Prob.Fail2E
-public import Cryptarchia.Prob.Tail2E
 public import Cryptarchia.Prob.Final2E
 public import Cryptarchia.Prob.TSIRO
 public import Cryptarchia.Prob.FinalTSI

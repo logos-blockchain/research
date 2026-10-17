@@ -365,9 +365,6 @@ theorem note_le_expo (c : Config) (s : EpochState) {L : List Note} (hc : 0 ≤ l
   exact List.single_le_sum (fun x hx => by obtain ⟨m, -, rfl⟩ := List.mem_map.1 hx; positivity)
     _ (List.mem_map_of_mem hn)
 
-theorem value_le_stake {L : List Note} {n : Note} (hn : n ∈ L) : n.value ≤ stakeOf L := by
-  unfold stakeOf; exact List.single_le_sum (fun _ _ => Nat.zero_le _) _ (List.mem_map_of_mem hn)
-
 /-- **All notes of a list lose**, from below: `e^{-Y} (1 - errLo)`. -/
 theorem loss_lo (hc : LotConsts c η) (hη : 0 ≤ η) {s : EpochState} {L : List Note} {ζ : ℝ}
     (hsm : Small c s L ζ) (hY : expo c s L ≤ 1 / 2) (herr : errLo η ζ (expo c s L) ≤ 1) :
@@ -739,18 +736,6 @@ theorem slotBand_of_member (hc : LotConsts E.c η) (hη : 0 ≤ η) (hnd : E.nod
 
 /-! ## From stake fractions and the stake estimate -/
 
-/-- **Stake fractions and the stake estimate** at slot `i` under state `s`. The
-adversary holds at most a fraction `β` of the participating stake (online honest
-plus adversarial). The estimate `D` puts `λ·V/D` in `[ℓlo, ℓhi]` for a visible
-stake `V` between `(1-μ)·H + (1-w)·A` and `H + A`: a fraction `μ` of honest stake
-may go unseen (wins lost without uncle references), and a fraction `w` of the
-adversary's (withheld branches). -/
-structure StakeTSI (E : Env) (i : ℕ) (s : EpochState) (β ℓlo ℓhi μ w : ℝ) : Prop where
-  frac : (1 - β) * (stakeOf (advNotes s) : ℝ) ≤ β * stakeOf (honNotes E i s E.nodes)
-  tsi : ∃ V : ℝ, (1 - μ) * (stakeOf (honNotes E i s E.nodes) : ℝ) + (1 - w) * stakeOf (advNotes s) ≤ V ∧
-    V ≤ stakeOf (honNotes E i s E.nodes) + stakeOf (advNotes s) ∧
-    ℓlo * s.D ≤ lam0 E.c * V ∧ lam0 E.c * V ≤ ℓhi * s.D
-
 /-- Members cover consecutive ranges of the honest exponent. -/
 def Chained : Member → List Member → Prop
   | _, [] => True
@@ -765,63 +750,6 @@ theorem cover_chain (y : ℝ) : ∀ (a : Member) (ms : List Member), Chained a m
     · obtain ⟨m, hm, hm1, hm2⟩ := cover_chain y b ms hc.2 (by rw [← hc.1]; linarith)
         (by simpa [List.getLast_cons] using h2)
       exact ⟨m, List.mem_cons_of_mem a hm, hm1, hm2⟩
-
-/-- The adversary's bound in a member follows from the stake fractions or from the
-estimate. -/
-def Member.AdvOK (m : Member) (β ℓhi μ w : ℝ) : Prop :=
-  β * m.yhi ≤ (1 - β) * m.ahi ∨ (0 < 1 - w ∧ ℓhi - (1 - μ) * m.ylo ≤ (1 - w) * m.ahi)
-
-/-- **The band condition from stake fractions and the stake estimate.** If the
-members' ranges cover the honest exponents the stake fractions and the estimate
-allow, slot `i` is within the band of some member. -/
-theorem slotBand_of_stake (hc : LotConsts E.c η) (hη : 0 ≤ η) (hnd : E.nodes.Nodup) {i : ℕ}
-    {s : EpochState} (hs : (s.lead.map Note.id).Nodup) {ζ : ℝ} (hζ : 0 ≤ ζ)
-    (hsH : Small E.c s (honNotes E i s E.nodes) ζ) (hsA : Small E.c s (advNotes s) ζ)
-    {β ℓlo ℓhi μ w : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hμ : μ < 1) (hw0 : 0 ≤ w) (hw1 : w ≤ 1)
-    (hst : StakeTSI E i s β ℓlo ℓhi μ w) {a : Member} {ms : List Member} (hch : Chained a ms)
-    (hlo : a.ylo ≤ (1 - β) * ℓlo) (hhi : ℓhi ≤ (1 - μ) * ((a :: ms).getLast (List.cons_ne_nil a ms)).yhi)
-    (hok : ∀ m ∈ a :: ms, m.OK η ζ) (hadv : ∀ m ∈ a :: ms, m.AdvOK β ℓhi μ w) :
-    ∃ m ∈ a :: ms, SlotBand m.B E i s := by
-  obtain ⟨V, hV1, hV2, hV3, hV4⟩ := hst.tsi
-  set H : ℝ := (stakeOf (honNotes E i s E.nodes) : ℝ) with hH
-  set A : ℝ := (stakeOf (advNotes s) : ℝ) with hA
-  have hH0 : 0 ≤ H := by positivity
-  have hA0 : 0 ≤ A := by positivity
-  have hD : (0 : ℝ) < s.D := by have := hsH.D_pos; exact_mod_cast (by omega : 0 < s.D)
-  have hl0 : 0 ≤ lam0 E.c := by unfold lam0; positivity
-  have hyH : expo E.c s (honNotes E i s E.nodes) = lam0 E.c * H / s.D := rfl
-  have hyA : expo E.c s (advNotes s) = lam0 E.c * A / s.D := rfl
-  have hfrac := hst.frac
-  -- the honest exponent's range
-  have hY1 : (1 - β) * ℓlo ≤ expo E.c s (honNotes E i s E.nodes) := by
-    rw [hyH, le_div_iff₀ hD]
-    have h1 : (1 - β) * (H + A) ≤ H := by linarith
-    have h2 : ℓlo * s.D ≤ lam0 E.c * (H + A) := le_trans hV3 (mul_le_mul_of_nonneg_left hV2 hl0)
-    nlinarith [mul_le_mul_of_nonneg_left h1 hl0]
-  have hY2 : (1 - μ) * expo E.c s (honNotes E i s E.nodes) + (1 - w) * expo E.c s (advNotes s) ≤ ℓhi := by
-    rw [hyH, hyA]
-    have e : (1 - μ) * (lam0 E.c * H / s.D) + (1 - w) * (lam0 E.c * A / s.D) =
-        lam0 E.c * ((1 - μ) * H + (1 - w) * A) / s.D := by field_simp
-    rw [e, div_le_iff₀ hD]
-    have := mul_le_mul_of_nonneg_left hV1 hl0
-    nlinarith
-  have hYA0 : 0 ≤ expo E.c s (advNotes s) := by rw [hyA]; positivity
-  have hY3 : expo E.c s (honNotes E i s E.nodes) ≤ ((a :: ms).getLast (List.cons_ne_nil a ms)).yhi := by
-    have : (1 - μ) * expo E.c s (honNotes E i s E.nodes) ≤ (1 - μ) * ((a :: ms).getLast (List.cons_ne_nil a ms)).yhi := by
-      nlinarith [mul_nonneg (by linarith : (0 : ℝ) ≤ 1 - w) hYA0]
-    exact le_of_mul_le_mul_left this (by linarith)
-  obtain ⟨m, hm, hm1, hm2⟩ := cover_chain _ a ms hch (le_trans hlo hY1) hY3
-  refine ⟨m, hm, slotBand_of_member hc hη hnd hs hζ hsH hsA (hok m hm) hm1 hm2 ?_⟩
-  -- the adversary's exponent
-  have hfr : (1 - β) * expo E.c s (advNotes s) ≤ β * expo E.c s (honNotes E i s E.nodes) := by
-    rw [hyH, hyA, mul_div_assoc', mul_div_assoc', div_le_div_iff_of_pos_right hD]
-    nlinarith [mul_le_mul_of_nonneg_left hfrac hl0]
-  rcases hadv m hm with h | ⟨hw, h⟩
-  · have : (1 - β) * expo E.c s (advNotes s) ≤ (1 - β) * m.ahi := by nlinarith
-    exact le_of_mul_le_mul_left this (by linarith)
-  · have : (1 - w) * expo E.c s (advNotes s) ≤ (1 - w) * m.ahi := by
-      nlinarith [mul_le_mul_of_nonneg_left hm1 (by linarith : (0 : ℝ) ≤ 1 - μ)]
-    exact le_of_mul_le_mul_left this hw
 
 /-! ## The first epoch -/
 
@@ -846,50 +774,5 @@ theorem honNotes_congr {i i' : ℕ} (s : EpochState) {K : List ℕ} (h : ∀ j �
   congr 1
   funext n
   exact any_congr' K _ _ fun j hj => by rw [h j hj]
-
-theorem qhRO_congr {i i' : ℕ} (s : EpochState) (h : ∀ j ∈ E.nodes, E.online j i = E.online j i') :
-    qhRO E i s = qhRO E i' s := by
-  have hK : ∀ K : List ℕ, (∀ j ∈ K, j ∈ E.nodes) → honNotes E i s K = honNotes E i' s K :=
-    fun K hK => honNotes_congr s fun j hj => h j (hK j hj)
-  have hz : pZero E i s = pZero E i' s := by unfold pZero; rw [hK E.nodes fun _ hj => hj]
-  have ho : pOne E i s = pOne E i' s := by
-    unfold pOne
-    rw [hz]
-    exact congrArg List.sum (List.map_congr_left fun j _ => by
-      rw [hK (E.nodes.erase j) fun _ hk => List.mem_of_mem_erase hk])
-  unfold qhRO
-  rw [hz, ho]
-
-theorem slotBand_congr {B : Band} {i i' : ℕ} {s : EpochState} (h : ∀ j ∈ E.nodes, E.online j i = E.online j i')
-    (hb : SlotBand B E i s) : SlotBand B E i' s :=
-  ⟨hb.nodup, qhRO_congr s h ▸ hb.hon, hb.adv⟩
-
-/-- **The genesis band.** If every honest node is online throughout the first epoch,
-the adversary holds at most `β` of the genesis stake, and all genesis stake is
-participating (`H + A = D`), then one member's band holds at every slot of the
-first epoch. -/
-theorem genesis_member (hc : LotConsts E.c η) (hη : 0 ≤ η) (hnd : E.nodes.Nodup) {ζ : ℝ} (hζ : 0 ≤ ζ)
-    (hEL' : 0 < E.c.epochLength) (hon : ∀ j ∈ E.nodes, ∀ i < E.c.epochLength, E.online j i = true)
-    (hs : ((es0 E).lead.map Note.id).Nodup)
-    (hsH : Small E.c (es0 E) (honNotes E 0 (es0 E) E.nodes) ζ) (hsA : Small E.c (es0 E) (advNotes (es0 E)) ζ)
-    {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
-    (hfrac : (1 - β) * (stakeOf (advNotes (es0 E)) : ℝ) ≤ β * stakeOf (honNotes E 0 (es0 E) E.nodes))
-    (hall : stakeOf (honNotes E 0 (es0 E) E.nodes) + stakeOf (advNotes (es0 E)) = (es0 E).D)
-    {a : Member} {ms : List Member} (hch : Chained a ms)
-    (hlo : a.ylo ≤ (1 - β) * lam0 E.c) (hhi : lam0 E.c ≤ ((a :: ms).getLast (List.cons_ne_nil a ms)).yhi)
-    (hok : ∀ m ∈ a :: ms, m.OK η ζ) (hadv : ∀ m ∈ a :: ms, m.AdvOK β (lam0 E.c) 0 0) :
-    ∃ m ∈ a :: ms, ∀ i < E.c.epochLength, SlotBand m.B E i (es0 E) := by
-  have hEL : 0 < E.c.epochLength := hEL'
-  have hst : StakeTSI E 0 (es0 E) β (lam0 E.c) (lam0 E.c) 0 0 := by
-    refine ⟨hfrac, (es0 E).D, ?_, ?_, le_rfl, le_rfl⟩
-    · have : ((stakeOf (honNotes E 0 (es0 E) E.nodes) + stakeOf (advNotes (es0 E)) : ℕ) : ℝ) = (es0 E).D := by
-        exact_mod_cast hall
-      push_cast at this; linarith
-    · have : ((stakeOf (honNotes E 0 (es0 E) E.nodes) + stakeOf (advNotes (es0 E)) : ℕ) : ℝ) = (es0 E).D := by
-        exact_mod_cast hall
-      push_cast at this; linarith
-  obtain ⟨m, hm, hsb⟩ := slotBand_of_stake hc hη hnd hs hζ hsH hsA hβ0 hβ1 (by norm_num) le_rfl (by norm_num)
-    hst hch hlo (by simpa using hhi) hok hadv
-  exact ⟨m, hm, fun i hi => slotBand_congr (fun j hj => by rw [hon j hj 0 hEL, hon j hj i hi]) hsb⟩
 
 end Cryptarchia.Prob

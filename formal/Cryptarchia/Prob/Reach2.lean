@@ -204,9 +204,4 @@ theorem reach_tail2' (P : Cert2 B Δ)
           have : 0 ≤ (P.b - 1) / (1 - P.lr) := div_nonneg (by linarith [P.hb1]) (by linarith [P.hlr1])
           linarith
 
-theorem reach_tail2 (P : Cert2 B Δ) (hB : κ.Fam P.Bs) (hM : 0 < M) (j0 : ℕ) :
-    Ex κ M (reachH2 Δ M P.c j0) [] ≤ 1 + (P.b - 1) / (1 - P.lr) :=
-  reach_tail2' P (fun h hpe hlM => (ex_WP (κ := κ) P hB 0 hpe hlM).trans P.hlr)
-    (fun h hpe hlM => (ex_WP (κ := κ) P hB 1 hpe hlM).trans P.hb) hM j0
-
 end Cryptarchia.Prob

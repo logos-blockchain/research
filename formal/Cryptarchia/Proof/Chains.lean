@@ -170,14 +170,6 @@ theorem slotOf_eq {b : ℕ} {blk : Block} (hb : st b = some blk) : slotOf st b =
 theorem parentOf_eq {b : ℕ} {blk : Block} (hb : st b = some blk) : parentOf st b = blk.hdr.parent := by
   simp [parentOf, hb]
 
-/-- The IDs of a stored block's chain start with the block itself. -/
-theorem chainIds_head {b : ℕ} {blk : Block} (hb : st b = some blk) (hid : blk.hdr.id = b) :
-    ∃ l, chainIds st b = b :: l := by
-  unfold chainIds chain
-  rw [hb]; simp only
-  unfold chainF; simp only [hb]
-  split <;> simp [hid]
-
 /-- A stored block's header carries its own ID (true of every store an execution
 builds: `World.add` files a block under its header's ID). -/
 def IdOK (st : Store) : Prop := ∀ b blk, st b = some blk → blk.hdr.id = b

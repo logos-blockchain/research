@@ -116,8 +116,6 @@ theorem mem_restrict {F : Settle.PTree} {t v : ℕ} : v ∈ (F.restrict t).V ↔
   show v ∈ F.V.filter _ ↔ _
   rw [Finset.mem_filter]
 
-theorem honB_genesis : honB st genesisId = true := by simp [honB]
-
 theorem honL_genesis {late : ℕ → Prop} : honL st late genesisId = true := by simp [honL, honB]
 
 /-- A timely-honest block is honest. -/

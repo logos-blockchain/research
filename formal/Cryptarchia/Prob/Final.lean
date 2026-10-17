@@ -60,17 +60,6 @@ def slots (w : CStr) (M : ℕ) : List Out := (List.range M).map fun i => enc (w 
 
 theorem slots_length (w : CStr) (M : ℕ) : (slots w M).length = M := by simp [slots]
 
-theorem sim_slots (w : CStr) (M : ℕ) : SimOn (strOf (slots w M)) w 0 M := by
-  intro i h1 h2
-  have hi : i - 1 < M := by omega
-  have hs : strOf (slots w M) i = (enc (w i)).toPair := by
-    unfold strOf slots
-    rw [if_neg (by omega), List.getD_eq_getElem _ _ (by simpa using hi)]
-    simp [show i - 1 + 1 = i by omega]
-  rw [hs]
-  unfold enc Out.toPair
-  refine ⟨?_, ?_, rfl⟩ <;> split_ifs <;> simp_all <;> omega
-
 variable {Δ M : ℕ}
 
 /-- Strings that agree up to the horizon have the same phase ends. -/
@@ -132,47 +121,5 @@ def Unsafe (E : Env) (es : List Event) : Prop :=
   ∃ n n' i j, n ≤ n' ∧ n' ≤ es.length ∧ i ∈ E.nodes ∧ j ∈ E.nodes ∧
     E.online i (wAt E es n').now = true ∧ E.online j (wAt E es n').now = true ∧
     ((wAt E es n).node i).bimm ∉ chainIds (wAt E es n').st ((wAt E es n').node j).cloc
-
-/-- The deterministic theorem, as a statement about `Unsafe`. -/
-theorem not_unsafe (E : Env) {es : List Event} (hA : Assm E) {N Lw r G : ℕ} (hNF : (wF E es).now ≤ N)
-    (hg : GoodLS E (lotStr E es) N Lw (gend E.Δ M (lotStr E es)) ∧
-      GrowthS E (lotStr E es) (gend E.Δ M (lotStr E es)) N r G) :
-    ¬ Unsafe E es := by
-  rintro ⟨n, n', i, j, hnn, hn', hi, hj, hio, hjo, hb⟩
-  exact hb (final_bimm_epochs hA hNF hg.1 hg.2 hnn hn' hi hj hio hjo)
-
-/-- **Probabilistic finality.**
-
-Let the adversary's strategy and the randomness be anything: a probability space `Ω`
-and, for each outcome, an execution `es ω`, all of whose clocks stay below `N`. Let
-the first `M` slots of the lottery string have the law of a kernel `κ` within the
-band `B` (`hlaw`: for every event about those slots, its probability is at most the
-kernel's). Then the probability of a finality violation is at most `settleEps`,
-for any certificate `P` and any choice of the analysis parameters. -/
-theorem final_bimm_prob {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
-    (E : Env) (hA : Assm E) (es : Ω → List Event) {N M : ℕ} (hNF : ∀ ω, (wF E (es ω)).now ≤ N)
-    {κ : Kern} {B : Band} (hB : κ.Within B)
-    (hlaw : ∀ S : Set (List Out), μ {ω | slots (lotStr E (es ω)) M ∈ S} ≤
-      ENNReal.ofReal (Ex κ M (S.indicator 1) []))
-    {Δ : ℕ} (hΔ : E.Δ = Δ) (P : ColdCert B Δ) {W G Lw r T : ℕ} {x yy : ℝ} (hx : 1 ≤ x) (hyy0 : 0 < yy)
-    (hyy1 : yy ≤ 1) (hT : 1 ≤ T) (hNM : N + G + Δ + 2 ≤ M) (hW : W + 2 * G ≤ Lw) (hGL : G ≤ Lw)
-    (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (helo1 : B.elo ≤ 1) :
-    μ {ω | Unsafe E (es ω)} ≤ ENNReal.ofReal (settleEps E B P N W G Lw r T x yy) := by
-  classical
-  subst hΔ
-  set Bad : Set (List Out) := {l | ¬ (GoodLS E (strOf l) N Lw (gend E.Δ M (strOf l)) ∧
-    GrowthS E (strOf l) (gend E.Δ M (strOf l)) N r G)} with hBad
-  have hsub : {ω | Unsafe E (es ω)} ⊆ {ω | slots (lotStr E (es ω)) M ∈ Bad} := by
-    intro ω hω
-    simp only [Set.mem_setOf_eq, hBad, not_not] at hω ⊢
-    intro hg
-    exact not_unsafe E hA (M := M) (hNF ω)
-      (good_congr E rfl hA.sane (sim_slots (lotStr E (es ω)) M) (by omega) hg) hω
-  refine (measure_mono hsub).trans ((hlaw Bad).trans (ENNReal.ofReal_le_ofReal ?_))
-  refine le_trans ?_ (settle_bound E rfl hA.sane hB P hx hyy0 hyy1 hT hNM hW hGL hhi1 hlo0 helo1)
-  apply Ex_mono_len
-  intro t ht
-  simp only [List.nil_append, Set.indicator, hBad, Set.mem_setOf_eq, Pi.one_apply]
-  split_ifs <;> simp_all
 
 end Cryptarchia.Prob

@@ -120,26 +120,6 @@ theorem anc_trans {u x v : ℕ} (h1 : F.Anc u x) (h2 : F.Anc x v) : F.Anc u v :=
     have := h1.1; have := h2.1; omega
   rw [this, Function.iterate_add_apply, h2.2, h1.2]
 
-/-- An ancestor with the same depth is the vertex itself. -/
-theorem anc_eq_of_dep {u v : ℕ} (h : F.Anc u v) (hd : F.dep u = F.dep v) : u = v := by
-  have := h.2; rw [hd, Nat.sub_self, Function.iterate_zero_apply] at this; exact this.symm
-
-/-- Two ancestors of the same vertex are ordered. -/
-theorem anc_total {x y v : ℕ} (hx : F.Anc x v) (hy : F.Anc y v) : F.Anc x y ∨ F.Anc y x := by
-  rcases le_total (F.dep x) (F.dep y) with h | h
-  · left
-    refine ⟨h, ?_⟩
-    have e : F.dep v - F.dep x = (F.dep y - F.dep x) + (F.dep v - F.dep y) := by
-      have := hx.1; have := hy.1; omega
-    have := hx.2
-    rwa [e, Function.iterate_add_apply, hy.2] at this
-  · right
-    refine ⟨h, ?_⟩
-    have e : F.dep v - F.dep y = (F.dep x - F.dep y) + (F.dep v - F.dep x) := by
-      have := hx.1; have := hy.1; omega
-    have := hy.2
-    rwa [e, Function.iterate_add_apply, hx.2] at this
-
 /-- `∼ℓ` passes to descendants. -/
 theorem sim_of_anc {ℓ u u' v v' : ℕ} (hu : F.Anc u u') (hv : F.Anc v v') (h : F.Sim ℓ u v) :
     F.Sim ℓ u' v' := by
@@ -182,15 +162,6 @@ theorem lab_iter_le {v : ℕ} (hv : v ∈ F.V) (j : ℕ) : F.lab (F.par^[j] v) �
     rw [Function.iterate_succ_apply]
     exact le_trans (ih (hF.par_mem v hv)) (hF.lab_par_le hv)
 
-theorem lab_iter_lt {v : ℕ} (hv : v ∈ F.V) {j : ℕ} (hj0 : 0 < j) (hj : j ≤ F.dep v) :
-    F.lab (F.par^[j] v) < F.lab v := by
-  obtain ⟨j, rfl⟩ : ∃ i, j = i + 1 := ⟨j - 1, by omega⟩
-  rw [Function.iterate_succ_apply']
-  have hm := hF.iter_mem hv j
-  have hne : F.par^[j] v ≠ 0 := by
-    intro h; have := hF.dep_iter hv j; rw [h, hF.root_dep] at this; omega
-  exact lt_of_lt_of_le (hF.lab_lt _ hm hne) (hF.lab_iter_le hv j)
-
 theorem anc_iter {v : ℕ} (hv : v ∈ F.V) {j : ℕ} (hj : j ≤ F.dep v) : F.Anc (F.par^[j] v) v := by
   refine ⟨by rw [hF.dep_iter hv]; omega, ?_⟩
   rw [hF.dep_iter hv]; congr 1; omega
@@ -208,12 +179,6 @@ theorem anc_par {v : ℕ} (hv : v ∈ F.V) : F.Anc (F.par v) v := by
   · have hd : 1 ≤ F.dep v := by
       rw [hF.dep_succ v hv h0]; omega
     simpa using this hd
-
-theorem anc_root {v : ℕ} (hv : v ∈ F.V) : F.Anc 0 v := by
-  have := hF.anc_iter hv (j := F.dep v) le_rfl
-  have h0 : F.par^[F.dep v] v = 0 := by
-    rw [← hF.dep_eq_zero (hF.iter_mem hv _), hF.dep_iter hv]; simp
-  rwa [h0] at this
 
 /-! ## Honest depth -/
 

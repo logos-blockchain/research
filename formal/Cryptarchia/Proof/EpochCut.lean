@@ -71,9 +71,6 @@ structure Config.Sane (c : Config) : Prop where
   offset_pos : 1 ≤ c.nonceOffset
   fix_le : c.nonceOffset + 2 ≤ c.epochLength
 
-theorem Config.spec_sane : Config.spec.Sane :=
-  ⟨by decide, by decide, by decide, by decide, by decide⟩
-
 /-- Epochs have positive length: `1 ≤ nonceOffset ≤ epochLength`. -/
 theorem Config.Sane.epochLength_pos {c : Config} (h : c.Sane) : 0 < c.epochLength :=
   lt_of_lt_of_le h.offset_pos h.offset_le
@@ -167,10 +164,6 @@ theorem chainUp_step {a : ℕ} {A : Block} (ha : st a = some A) (hne : a ≠ gen
     (hpar : Rooted st A.hdr.parent) (hslot : slotOf st A.hdr.parent < A.hdr.slot) :
     chainUp st a = chainUp st A.hdr.parent ++ [A] := by
   unfold chainUp; rw [chain_step ha hne hpar hslot]; simp
-
-theorem chainUp_genesis (hS : StoreOK st) : ∃ g, st genesisId = some g ∧ chainUp st genesisId = [g] := by
-  obtain ⟨g, hg, hs, -⟩ := hS.gen
-  exact ⟨g, hg, by unfold chainUp; rw [chain_genesis hg hs]; simp⟩
 
 /-- The chain of `b`, genesis first, starts with the chain of any ancestor. -/
 theorem chainUp_split (hS : StoreOK st) {b h : ℕ} (hb : Rooted st b) (hh : h ∈ chainIds st b) :

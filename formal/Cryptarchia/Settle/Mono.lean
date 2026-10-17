@@ -51,19 +51,11 @@ open Finset
 
 variable {Δ : ℕ} {w w' : CStr}
 
-/-- Up to slot `N`, `w'` has the same honest successes as `w`; after `N`, `w`
-has none; and `w'` has at least `w`'s adversarial slots. -/
-def AdvLe (N : ℕ) (w w' : CStr) : Prop :=
-  (∀ i, 1 ≤ i → i ≤ N → (w i).1 = (w' i).1) ∧ (∀ i, N < i → (w i).1 = 0) ∧
-    (∀ i, (w i).2 = true → (w' i).2 = true)
-
 /-- The weak form: equal honest successes up to `N`, adversarial slots included. -/
 def AdvLeW (N : ℕ) (w w' : CStr) : Prop :=
   (∀ i, 1 ≤ i → i ≤ N → (w i).1 = (w' i).1) ∧ (∀ i, (w i).2 = true → (w' i).2 = true)
 
 variable {N : ℕ}
-
-theorem AdvLe.weak (h : AdvLe N w w') : AdvLeW N w w' := ⟨h.1, h.2.2⟩
 
 theorem AdvLeW.refl (w : CStr) : AdvLeW N w w := ⟨fun _ _ _ => rfl, fun _ h => h⟩
 
@@ -101,13 +93,6 @@ theorem hD_eq (h : AdvLeW N w w') (a : ℕ) : ∀ b, b ≤ N → hD Δ w a b = h
     split
     · exact ih _ (by omega) (by omega)
     · rw [ih _ (by omega) (by omega)]
-
-theorem quiet_of (h : AdvLe N w w') (m : ℕ) : Quiet Δ w' m → Quiet Δ w m := by
-  unfold Quiet
-  intro hq j h1 h2 h3
-  by_cases hjN : j ≤ N
-  · rw [h.1 j h3 hjN]; exact hq j h1 h2 h3
-  · exact h.2.1 j (by omega)
 
 theorem quiet_of_le (h : AdvLeW N w w') {m : ℕ} (hm : m ≤ N) : Quiet Δ w' m → Quiet Δ w m := by
   unfold Quiet

@@ -114,9 +114,6 @@ structure GoodCondW (W : ℕ → ℕ) (e : ℕ → ℕ) (H : ℕ) : Prop where
     (bnd E.Δ (WS E es K) (t - W t) e k).2 < -(advCnt (WS E es K) (e k) (e (k + 1)) : ℤ)
   window : ∀ t, t ≤ H → occCnt (WS E es K) (t - W t) t ≤ E.c.k
 
-/-- The good event with a constant settlement window `Lw`. -/
-abbrev GoodCond (Lw : ℕ) (e : ℕ → ℕ) (H : ℕ) : Prop := GoodCondW E es K (fun _ => Lw) e H
-
 /-- Honest blocks up to `t` satisfy the depth axiom (A2). -/
 def A2Upto (t : ℕ) : Prop :=
   ∀ u ∈ (FT E es K).V, ∀ v ∈ (FT E es K).V, honL (wF E es).st (Late E es) u = true →
