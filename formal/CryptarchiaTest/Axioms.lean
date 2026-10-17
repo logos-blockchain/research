@@ -28,7 +28,7 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.Prob.recur_of
 #print axioms Cryptarchia.Prob.slotBand_pickM
 #print axioms Cryptarchia.Prob.cover_of_chain
-#print axioms Cryptarchia.signOK_all
+#print axioms Cryptarchia.wAt_le
 #print axioms Cryptarchia.Prob.occupied_le_wcnt
 #print axioms Cryptarchia.Prob.inB0_of_genesis
 #print axioms Cryptarchia.cons_of_lot

@@ -24,18 +24,14 @@ public import Cryptarchia.Proof.Structural
 public import Cryptarchia.Proof.NodeStep
 public import Cryptarchia.Proof.WorldStep
 public import Cryptarchia.Proof.Bridge
-public import Cryptarchia.Proof.Honest
 public import Cryptarchia.Proof.Timing
 public import Cryptarchia.Proof.Local
 public import Cryptarchia.Proof.Trace
-public import Cryptarchia.Proof.Honesty
-public import Cryptarchia.Proof.Support
 public import Cryptarchia.Proof.Main
 public import Cryptarchia.Proof.Settlement
 public import Cryptarchia.Proof.EpochCut
 public import Cryptarchia.Proof.Canon
 public import Cryptarchia.Proof.LotteryG
-public import Cryptarchia.Proof.Lottery
 public import Cryptarchia.Proof.LotteryE
 public import Cryptarchia.Proof.FinalE
 public import Cryptarchia.Proof.Recur
@@ -83,7 +79,6 @@ public import Cryptarchia.Prob.CertSpec
 public import Cryptarchia.Prob.CertClosed
 public import Cryptarchia.Prob.Pick
 public import Cryptarchia.Prob.Occupied
-public import Cryptarchia.Proof.Signers
 public import Cryptarchia.Proof.Consist
 public import Cryptarchia.Prob.Finality
 public import Cryptarchia.Prob.Closed

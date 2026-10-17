@@ -2,7 +2,7 @@ module
 
 public import Cryptarchia.Prob.TSIRO
 import Cryptarchia.Proof.NodeStep
-import Cryptarchia.Proof.Honest
+import Cryptarchia.Proof.EpochCut
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -34,7 +34,7 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
-import Cryptarchia.Proof.Signers
+import Cryptarchia.Proof.Trace
 
 /-!
 # The canonical chain's occupied slots are lottery wins (`hhi`)
@@ -46,7 +46,7 @@ every counted block and uncle carries a Proof of Leadership that verifies agains
 the epoch state derived on the block's parent chain, which below the cut is the
 canonical prefix (given consistent canonical prefixes, `hcons`); its winning note is
 the adversary's or an honest node's, and an honest signer was online at the slot
-(`signOK_all`).
+(`WorldOK.hon`).
 -/
 
 @[expose] public section
@@ -68,7 +68,7 @@ theorem cp_good (hA : Assm E) (e : ℕ) :
       ∀ x ∈ chainIds (wF E es).st b, x = genesisId ∨
         ∃ B, (wF E es).st x = some B ∧ validCore E.c (wF E es).st E.L E.O E.G B = true := by
   set n := idxE E es e
-  have hw := wAt_ok (es := es) hA.ord n
+  have hw := wAt_ok (es := es) hA n
   have hs := hw.nodes (i0 E es e)
   obtain ⟨hbr, hbc⟩ := hs.bimm_on_cloc hw.store
   set b := ((wAt E es n).node (i0 E es e)).bimm
@@ -76,7 +76,7 @@ theorem cp_good (hA : Assm E) (e : ℕ) :
     refine ⟨hbr, le_rfl, fun x hx => ?_⟩
     have hxc := chainIds_trans hw.store (hs.rooted _ hs.cloc) hbc hx
     exact hs.valid x (chainIds_closed hw.store hs.rooted hs.closed hs.cloc x hxc)
-  have hext := store_mono (es := es) hA.ord (idxE_le_length (E := E) (es := es) e)
+  have hext := store_mono (es := es) hA (idxE_le_length (E := E) (es := es) e)
   obtain ⟨hr, -, hv⟩ := GoodAt.mono hw.store hext le_rfl hgood
   exact ⟨b, hr, rfl, hv⟩
 
@@ -87,13 +87,13 @@ theorem state_par (hA : Assm E) {e : ℕ} {b : ℕ} (hb : Rooted (wF E es).st b)
     {B : Block} (hBid : B.hdr.id ∈ chainIds (wF E es).st b) (hB : (wF E es).st B.hdr.id = some B)
     (hB0 : B.hdr.id ≠ genesisId) (hsl : E.c.epochStart e ≤ B.hdr.slot) :
     epochState E.c E.L E.O E.G (chainUp (wF E es).st B.hdr.parent) e = CS E es e := by
-  have hS := (wAt_ok (es := es) hA.ord es.length).store
+  have hS := (wAt_ok (es := es) hA es.length).store
   have hBr := (anc_height hS hb hBid).1
   obtain ⟨B', hB', hpar, hpsl⟩ := hBr.inv hB0
   rw [hB] at hB'; cases hB'
   rcases Nat.eq_zero_or_pos e with h0 | he
   · subst h0
-    rw [epochState_es0 hS (store_genesis hA.ord _) hpar]
+    rw [epochState_es0 hS (store_genesis hA _) hpar]
     simp [CS]
   · apply state_of_prefix hA he
     have hce : E.c.cut e ≤ E.c.epochStart e := cut_le_start hA.sane he
@@ -129,12 +129,12 @@ theorem occ_of_header (hA : Assm E) {h : Header} {C P : List Block}
   | honest j =>
     left
     -- the signer is a node, online at the slot
-    have hS := (wAt_ok (es := es) hA.ord es.length).store
+    have hS := (wAt_ok (es := es) hA es.length).store
     cases hb : (wF E es).st h.id with
     | none => simp [genuine, hb] at hgen
     | some b' =>
       have hbh : b'.hdr = h := by simpa [genuine, hb] using hgen
-      obtain ⟨hjn, hjo⟩ := signOK_all (E := E) (es := es) es.length le_rfl h.id b' j hb (by rw [hbh, hsig])
+      obtain ⟨-, -, hjn, hjo, -⟩ := (wAt_ok (es := es) hA es.length).hon h.id b' j hb (by rw [hbh, hsig])
       rw [hbh] at hjo
       have hw : honW E.c s (fun η id => E.O.ticket η h.slot id) j = true := by
         unfold honW
@@ -184,9 +184,9 @@ theorem counted_occ (hA : Assm E) {e : ℕ}
         (inWindow E.c e))
     (hj1 : 1 ≤ j) :
     occA (slotOut E j (σE E es j) (fun η id => E.O.ticket η j id)) ∧ inWindow E.c e j = true := by
-  have hS := (wAt_ok (es := es) hA.ord es.length).store
+  have hS := (wAt_ok (es := es) hA es.length).store
   obtain ⟨b, hb, hCP, hval⟩ := cp_good (es := es) hA (e + 1)
-  have hgen := store_genesis (E := E) (es := es) hA.ord es.length
+  have hgen := store_genesis (E := E) (es := es) hA es.length
   -- an in-window canonical block other than genesis, valid, validated under the canonical state
   have hblk : ∀ B ∈ CP E es (e + 1), inWindow E.c e B.hdr.slot = true → B.hdr.id ≠ genesisId →
       (wF E es).st B.hdr.id = some B ∧ validCore E.c (wF E es).st E.L E.O E.G B = true ∧

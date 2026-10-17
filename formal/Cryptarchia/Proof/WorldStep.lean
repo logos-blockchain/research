@@ -2,7 +2,7 @@ module
 
 public import Cryptarchia.Proof.Structural
 public import Cryptarchia.Spec.Execution
-import Cryptarchia.Proof.NodeStep
+public import Cryptarchia.Proof.NodeStep
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -38,12 +38,12 @@ import Std.Tactic.BVDecide.Normalize.BitVec
 import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
-# Every event keeps the world well formed
+# Stores and worlds
 
 The store only grows (`StoreExt`); rooted blocks keep their chains, heights and
-validity when it does; and every event (a tick with honest proposals, a
-delivery, an adversarial block) keeps the store well formed, keeps every node
-well formed, and never lowers any node's local chain.
+validity when it does, and good blocks stay good (`GoodAt.mono`). The two moves that
+change a world's store: adding a block (`World.add`), and a node's lead step
+(`lead_cases`), which adds at most the node's proposal.
 -/
 
 @[expose] public section
@@ -54,6 +54,13 @@ variable {c : Config} {L : Ledger} {O : Oracle} {G : Genesis}
 
 /-- `st'` extends `st`. -/
 def StoreExt (st st' : Store) : Prop := ∀ b blk, st b = some blk → st' b = some blk
+
+/-- A block is **good at time `t`**: rooted, not from the future, its whole chain
+valid. The blocks of the settlement tree up to `N` are the good ones at `N`; every
+block of every node's tree is good at the current time. -/
+def GoodAt (c : Config) (L : Ledger) (O : Oracle) (G : Genesis) (st : Store) (t b : ℕ) : Prop :=
+  Rooted st b ∧ slotOf st b ≤ t ∧
+    ∀ x ∈ chainIds st b, x = genesisId ∨ ∃ B, st x = some B ∧ validCore c st L O G B = true
 
 variable {st st' : Store}
 
@@ -115,35 +122,50 @@ theorem validCore_ext (hS : StoreOK st) {B : Block} (hpar : Rooted st B.hdr.pare
   · intro U hU; exact validUncle_ext hx hS hpar (h6 U hU)
   · rwa [chainUp_ext hx hpar]
 
+/-- A rooted block valid in a store is valid in any extension. -/
+theorem valid_ext (hS : StoreOK st) {y : ℕ} (hy : Rooted st y)
+    (h : y = genesisId ∨ ∃ B, st y = some B ∧ validCore c st L O G B = true) :
+    y = genesisId ∨ ∃ B, st' y = some B ∧ validCore c st' L O G B = true := by
+  rcases eq_or_ne y genesisId with h0 | h0
+  · exact Or.inl h0
+  obtain ⟨B, hB, hv⟩ := h.resolve_left h0
+  obtain ⟨blk, hbk, hpr, -⟩ := hy.inv h0
+  rw [hbk] at hB; cases hB
+  exact Or.inr ⟨_, hx _ _ hbk, validCore_ext hx hS hpr hv⟩
+
 theorem nodeOK_ext (hS : StoreOK st) {k : ℕ} {s : NodeState} (hs : NodeOK k st L O G c s) :
     NodeOK k st' L O G c s := by
-  refine ⟨fun y hy => (hs.rooted y hy).mono hx, ?_, ?_, hs.gen, hs.cloc, ?_, hs.rule⟩
-  · intro y hy
-    rcases hs.valid y hy with h | ⟨B, hB, hv⟩
-    · exact Or.inl h
-    · refine Or.inr ⟨B, hx _ _ hB, ?_⟩
-      have hyr := hs.rooted y hy
-      have hy0 : y ≠ genesisId := by
-        intro h; subst h
-        unfold validCore at hv; simp only [Bool.and_eq_true, decide_eq_true_eq] at hv
-        have := hS.idOK _ _ hB
-        exact hv.1.1.1.1.1.1 this
-      obtain ⟨blk, hbk, hpr, -⟩ := hyr.inv hy0
-      rw [hbk] at hB; cases hB
-      exact validCore_ext hx hS hpr hv
+  refine ⟨fun y hy => (hs.rooted y hy).mono hx, fun y hy => valid_ext hx hS (hs.rooted y hy) (hs.valid y hy),
+    ?_, hs.gen, hs.cloc, ?_, hs.rule⟩
   · intro y hy
     rw [parentOf_ext hx (hs.rooted y hy).exists_blk]; exact hs.closed y hy
   · rw [hs.bimm, blockAtDepth_ext hx (hs.rooted _ hs.cloc)]
 
 end Ext
 
-/-! ## The world invariant -/
+/-- Goodness survives a growing store and a later time. -/
+theorem GoodAt.mono (hS : StoreOK st) (hx : StoreExt st st') {t t' b : ℕ} (htt : t ≤ t')
+    (h : GoodAt c L O G st t b) : GoodAt c L O G st' t' b := by
+  obtain ⟨hr, hsl, hv⟩ := h
+  refine ⟨hr.mono hx, by rw [slotOf_ext hx hr.exists_blk]; omega, fun x hx' => ?_⟩
+  rw [chainIds_ext hx hr] at hx'
+  exact valid_ext hx hS (anc_height hS hr hx').1 (hv x hx')
 
-/-- The world is well formed. -/
-structure WorldOK (E : Env) (w : World) : Prop where
-  store : StoreOK w.st
-  used : ∀ b, (∃ blk, w.st b = some blk) ↔ b ∈ w.used
-  nodes : ∀ i, NodeOK E.c.k w.st E.L E.O E.G E.c (w.node i)
+/-! ## Worlds -/
+
+variable {E : Env}
+
+@[simp] theorem add_st_self (w : World) (B : Block) : (w.add B).st B.hdr.id = some B := by
+  simp [World.add]
+
+theorem add_st_of_ne {w : World} {B : Block} {b : ℕ} (h : b ≠ B.hdr.id) : (w.add B).st b = w.st b := by
+  simp [World.add, h]
+
+theorem add_st_cases {w : World} {B C : Block} {b : ℕ} (h : (w.add B).st b = some C) :
+    (b = B.hdr.id ∧ C = B) ∨ w.st b = some C := by
+  by_cases hb : b = B.hdr.id
+  · subst hb; rw [add_st_self] at h; exact Or.inl ⟨rfl, (Option.some_inj.1 h).symm⟩
+  · rw [add_st_of_ne hb] at h; exact Or.inr h
 
 theorem fresh_not_used (w : World) : w.fresh ∉ w.used := by
   intro h
@@ -164,72 +186,6 @@ theorem fresh_not_used (w : World) : w.fresh ∉ w.used := by
   have := this w.used 0 w.fresh h
   unfold World.fresh at this; omega
 
-theorem genesis_used {E : Env} {w : World} (hw : WorldOK E w) : genesisId ∈ w.used := by
-  obtain ⟨g, hg, -, -⟩ := hw.store.gen
-  exact (hw.used genesisId).1 ⟨g, hg⟩
-
-/-- Adding a block under a fresh ID extends the store and keeps it well formed. -/
-theorem add_ok {E : Env} {w : World} (hw : WorldOK E w) (B : Block) (hfr : B.hdr.id ∉ w.used) :
-    StoreExt w.st (w.add B).st ∧ StoreOK (w.add B).st ∧
-      ∀ b, (∃ blk, (w.add B).st b = some blk) ↔ b ∈ (w.add B).used := by
-  have hnone : w.st B.hdr.id = none := by
-    by_contra h
-    obtain ⟨blk, hb⟩ := Option.ne_none_iff_exists'.1 h
-    exact hfr ((hw.used _).1 ⟨blk, hb⟩)
-  have hext : StoreExt w.st (w.add B).st := by
-    intro b blk hb
-    simp only [World.add]
-    rw [if_neg (by rintro rfl; rw [hnone] at hb; simp at hb)]; exact hb
-  refine ⟨hext, ⟨?_, ?_⟩, ?_⟩
-  · intro b blk hb
-    simp only [World.add] at hb
-    split at hb
-    · cases hb; rename_i h; exact h.symm
-    · exact hw.store.idOK b blk hb
-  · obtain ⟨g, hg, h1, h2⟩ := hw.store.gen
-    exact ⟨g, hext _ _ hg, h1, h2⟩
-  · intro b
-    simp only [World.add, List.mem_cons]
-    constructor
-    · rintro ⟨blk, hb⟩
-      split at hb
-      · left; assumption
-      · right; exact (hw.used b).1 ⟨blk, hb⟩
-    · rintro (rfl | h)
-      · exact ⟨B, by simp⟩
-      · obtain ⟨blk, hb⟩ := (hw.used b).2 h
-        refine ⟨blk, ?_⟩
-        rw [if_neg (by rintro rfl; exact hfr h)]; exact hb
-
-theorem init_ok (E : Env) : WorldOK E World.init := by
-  have hst : World.init.st genesisId = some genesisBlock := by simp [World.init]
-  have hS : StoreOK World.init.st := by
-    refine ⟨?_, ⟨genesisBlock, hst, rfl, rfl⟩⟩
-    intro b blk hb
-    simp only [World.init] at hb
-    split at hb
-    · cases hb; rename_i h; exact h.symm
-    · simp at hb
-  have hgr : Rooted World.init.st genesisId := hS.rooted_gen
-  refine ⟨hS, ?_, ?_⟩
-  · intro b
-    simp only [World.init, List.mem_singleton]
-    constructor
-    · rintro ⟨blk, hb⟩; split at hb <;> simp_all
-    · rintro rfl; exact ⟨genesisBlock, by simp⟩
-  · intro i
-    simp only [World.init]
-    refine ⟨?_, ?_, ?_, by simp, by simp, ?_, rfl⟩
-    · intro y hy; simp at hy; subst hy; exact hgr
-    · intro y hy; simp at hy; exact Or.inl hy
-    · intro y hy; simp at hy; subst hy
-      simp [parentOf, genesisBlock]
-    · -- `B_imm` of the genesis chain is genesis
-      have hmem := blockAtDepth_mem hS hgr E.c.k
-      have : chainIds World.init.st genesisId = [genesisId] := by
-        unfold chainIds; rw [chain_genesis hst rfl]; simp [genesisBlock]
-      rw [this] at hmem; simp at hmem; exact hmem.symm
-
 theorem propose_id {c : Config} {st : Store} {L : Ledger} {O : Oracle} {G : Genesis}
     {i sl newId : ℕ} {s : NodeState} {B : Block} (h : propose c st L O G i sl newId s = some B) :
     B.hdr.id = newId ∧ B.hdr.signer = .honest i ∧ B.hdr.parent = s.cloc ∧ B.hdr.slot = sl := by
@@ -240,103 +196,49 @@ theorem propose_id {c : Config} {st : Store} {L : Ledger} {O : Oracle} {G : Gene
     · simp at h
     · simp at h; subst h; simp
 
-/-- What an event preserves: the world invariant, a growing store, and every
-node's local-chain height. -/
-def StepOK (E : Env) (w w' : World) : Prop :=
-  WorldOK E w' ∧ StoreExt w.st w'.st ∧
-    ∀ j, height w.st (w.node j).cloc ≤ height w'.st (w'.node j).cloc
-
-theorem StepOK.trans {E : Env} {w₁ w₂ w₃ : World} (h1 : StepOK E w₁ w₂) (h2 : StepOK E w₂ w₃) :
-    StepOK E w₁ w₃ :=
-  ⟨h2.1, h1.2.1.trans h2.2.1, fun j => le_trans (h1.2.2 j) (h2.2.2 j)⟩
-
-theorem stepOK_refl {E : Env} {w : World} (hw : WorldOK E w) : StepOK E w w :=
-  ⟨hw, StoreExt.refl _, fun _ => le_rfl⟩
-
-theorem lead_ok (E : Env) (hord : E.OrderOK) {w : World} (hw : WorldOK E w) (i : ℕ) :
-    StepOK E w (w.lead E i) := by
+/-- **The two outcomes of a lead step**: nothing (the node is offline or does not
+win), or the node's proposal is added, logged, and processed by the node. -/
+theorem lead_cases (w : World) (i : ℕ) :
+    ((E.online i w.now = true → propose E.c w.st E.L E.O E.G i w.now w.fresh (w.node i) = none) ∧
+      w.lead E i = w) ∨
+    ∃ C, E.online i w.now = true ∧ propose E.c w.st E.L E.O E.G i w.now w.fresh (w.node i) = some C ∧
+      w.lead E i = { w.add C with
+        node := fun j => if j = i then
+          onBlock E.c (w.add C).st E.L E.O E.G E.fastPath (E.ord i) (w.add C).now (w.node i) C
+          else (w.add C).node j
+        honestLog := (C.hdr.id, w.now) :: w.honestLog } := by
   unfold World.lead
   split
-  · exact stepOK_refl hw
+  · rename_i h; exact Or.inl ⟨fun h' => by simp [h'] at h, rfl⟩
+  rename_i hio
+  simp only [Bool.not_eq_true', Bool.not_eq_false] at hio
   split
-  · exact stepOK_refl hw
-  rename_i B hB
-  obtain ⟨hid, -, -, -⟩ := propose_id hB
-  obtain ⟨hext, hS', hused'⟩ := add_ok hw B (by rw [hid]; exact fresh_not_used w)
-  have hB' : (w.add B).st B.hdr.id = some B := by simp [World.add]
-  have hn : ∀ j, NodeOK E.c.k (w.add B).st E.L E.O E.G E.c (w.node j) :=
-    fun j => nodeOK_ext hext hw.store (hw.nodes j)
-  obtain ⟨hon, honh⟩ := onBlock_ok hS' (hn i) E.fastPath (E.ord i) (hord i) (w.add B).now B hB'
-  refine ⟨⟨hS', hused', ?_⟩, hext, ?_⟩
-  · intro j
-    simp only
-    split
-    · rename_i h; subst h; exact hon
-    · exact hn j
-  · intro j
-    simp only
-    have hr := (hw.nodes j).rooted _ (hw.nodes j).cloc
-    split
-    · rename_i h; subst h
-      exact le_trans (le_of_eq (height_ext hext hr).symm) honh
-    · simpa [World.add] using le_of_eq (height_ext hext hr).symm
+  · rename_i h; exact Or.inl ⟨fun _ => h, rfl⟩
+  · rename_i C hC; exact Or.inr ⟨C, hio, hC, rfl⟩
 
-theorem step_ok (E : Env) (hord : E.OrderOK) {w : World} (hw : WorldOK E w) (e : Event) :
-    StepOK E w (w.step E e) := by
-  cases e with
-  | tick =>
-    simp only [World.step]
-    have h0 : StepOK E w { w with now := w.now + 1 } :=
-      ⟨⟨hw.store, hw.used, hw.nodes⟩, StoreExt.refl _, fun _ => le_rfl⟩
-    have key : ∀ (l : List ℕ) (w₀ : World), StepOK E w w₀ → StepOK E w (l.foldl (World.lead E) w₀) := by
-      intro l
-      induction l with
-      | nil => intro w₀ h; exact h
-      | cons i is ih =>
-        intro w₀ h
-        simp only [List.foldl_cons]
-        exact ih _ (h.trans (lead_ok E hord h.1 i))
-    exact key _ _ h0
-  | deliver i b =>
-    simp only [World.step]
-    split
-    · refine ⟨⟨hw.store, hw.used, ?_⟩, StoreExt.refl _, ?_⟩
-      · intro j
-        simp only
-        split
-        · rename_i h; subst h
-          exact (receive_ok hw.store (hw.nodes j) E.fastPath (E.ord j) (hord j) w.now b).1
-        · exact hw.nodes j
-      · intro j
-        simp only
-        split
-        · rename_i h; subst h
-          exact (receive_ok hw.store (hw.nodes j) E.fastPath (E.ord j) (hord j) w.now b).2
-        · exact le_rfl
-    · exact stepOK_refl hw
-  | create B =>
-    simp only [World.step]
-    split
-    · rename_i h
-      simp only [Bool.and_eq_true, decide_eq_true_eq, Bool.not_eq_true'] at h
-      have hnu : B.hdr.id ∉ w.used := by
-        intro hm; have := List.contains_iff_mem.2 hm; simp_all
-      obtain ⟨hext, hS', hused'⟩ := add_ok hw B hnu
-      refine ⟨⟨hS', hused', fun j => nodeOK_ext hext hw.store (hw.nodes j)⟩, hext, ?_⟩
-      intro j
-      simpa [World.add] using le_of_eq (height_ext hext ((hw.nodes j).rooted _ (hw.nodes j).cloc)).symm
-    · exact stepOK_refl hw
+theorem lead_now (w : World) (i : ℕ) : (w.lead E i).now = w.now := by
+  rcases lead_cases (E := E) w i with ⟨-, h⟩ | ⟨C, -, -, h⟩ <;> rw [h]; rfl
 
-/-- **Every execution keeps the world well formed**, the store growing and every
-node's local chain never losing height. -/
-theorem run_ok (E : Env) (hord : E.OrderOK) :
-    ∀ (es : List Event) (w : World), WorldOK E w → StepOK E w (run E w es) := by
-  intro es
-  induction es with
-  | nil => intro w hw; exact stepOK_refl hw
-  | cons e es ih =>
-    intro w hw
-    have h1 := step_ok E hord hw e
-    exact h1.trans (ih _ h1.1)
+theorem lead_other (w : World) {i j : ℕ} (hji : j ≠ i) : (w.lead E i).node j = w.node j := by
+  rcases lead_cases (E := E) w i with ⟨-, h⟩ | ⟨C, -, -, h⟩ <;> rw [h]
+  simp [hji, World.add]
+
+/-- A lead step adds at most the node's proposal. -/
+theorem lead_st {w : World} {i b : ℕ} {B : Block} (h : (w.lead E i).st b = some B) :
+    w.st b = some B ∨
+      (E.online i w.now = true ∧ propose E.c w.st E.L E.O E.G i w.now w.fresh (w.node i) = some B) := by
+  rcases lead_cases (E := E) w i with ⟨-, hL⟩ | ⟨C, hio, hC, hL⟩ <;> rw [hL] at h
+  · exact Or.inl h
+  · rcases add_st_cases h with ⟨-, rfl⟩ | h
+    · exact Or.inr ⟨hio, hC⟩
+    · exact Or.inl h
+
+/-- A winning node's lead step adds its proposal. -/
+theorem lead_st_some {w : World} {i : ℕ} {C : Block} (hio : E.online i w.now = true)
+    (hC : propose E.c w.st E.L E.O E.G i w.now w.fresh (w.node i) = some C) :
+    (w.lead E i).st C.hdr.id = some C := by
+  rcases lead_cases (E := E) w i with ⟨h, -⟩ | ⟨C', -, hC', hL⟩
+  · rw [h hio] at hC; cases hC
+  · rw [hC] at hC'; cases hC'; rw [hL]; exact add_st_self w C
 
 end Cryptarchia

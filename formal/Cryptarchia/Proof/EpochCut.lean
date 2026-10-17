@@ -2,7 +2,7 @@ module
 
 public import Cryptarchia.Proof.Lca
 public import Cryptarchia.Spec.EpochState
-import Cryptarchia.Proof.Honest
+import Cryptarchia.Proof.NodeStep
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -51,7 +51,8 @@ the cut when `PERIOD ≤ nonceOffset`. At the spec parameters the cut is
 `4⌊k/f⌋` slots (72 h) before the epoch starts.
 
 So two chains through a common block with slot at least `cut e - 1` derive the
-same epoch-`e` state (`epochState_common`). This replaces the first-epoch
+same epoch-`e` state (`epochState_common`); every chain derives the same state for
+the first epoch (`epochState_zero`). This replaces the first-epoch
 hypothesis wherever a block is validated on another chain than its own (uncles).
 -/
 
@@ -94,6 +95,45 @@ theorem Config.Sane.fix_ok {c : Config} (h : c.Sane) (e : ℕ) (he : 1 ≤ e) :
   omega
 
 variable {c : Config} {L : Ledger} {O : Oracle} {G : Genesis} {st : Store}
+
+theorem chainUp_ids (_hS : StoreOK st) {b : ℕ} (_hb : Rooted st b) :
+    (chainUp st b).map (·.hdr.id) = (chainIds st b).reverse := by
+  unfold chainUp chainIds; rw [List.map_reverse]
+
+/-- On a rooted chain, the only block with the genesis ID is the genesis block. -/
+theorem prefixBelow_zero (hS : StoreOK st) {b : ℕ} (hb : Rooted st b) {g : Block}
+    (hg : st genesisId = some g) : prefixBelow (chainUp st b) 0 = [g] := by
+  unfold prefixBelow
+  have hfil : (chainUp st b).filter (fun x => x.hdr.id = genesisId ∨ x.hdr.slot < 0) =
+      (chainUp st b).filter (fun x => x.hdr.id = genesisId) := by
+    apply List.filter_congr; intro x _; simp
+  rw [hfil]
+  -- every such block is `g`, and there is exactly one
+  have hall : ∀ x ∈ (chainUp st b).filter (fun x => x.hdr.id = genesisId), x = g := by
+    intro x hx
+    rw [List.mem_filter] at hx
+    have := mem_chainUp hS hx.1
+    simp only [decide_eq_true_eq] at hx
+    rw [hx.2, hg] at this; exact (Option.some_inj.1 this).symm
+  have hlen : ((chainUp st b).filter (fun x => x.hdr.id = genesisId)).length = 1 := by
+    have hc : ((chainUp st b).map (·.hdr.id)).count genesisId = 1 := by
+      rw [chainUp_ids hS hb, List.count_reverse]
+      exact List.count_eq_one_of_mem (chainIds_nodup hS hb) (genesis_mem_chainIds hS hb)
+    rw [List.count, List.countP_map, List.countP_eq_length_filter] at hc
+    rw [← hc]
+    congr 1
+  obtain ⟨y, hy⟩ := List.length_eq_one_iff.1 hlen
+  rw [hy]
+  have := hall y (by rw [hy]; exact List.mem_singleton_self y)
+  rw [this]
+
+/-- **Every chain derives the genesis epoch state for the first epoch.** -/
+theorem epochState_zero (hS : StoreOK st) {a b : ℕ} (ha : Rooted st a) (hb : Rooted st b) :
+    epochState c L O G (chainUp st a) 0 = epochState c L O G (chainUp st b) 0 := by
+  obtain ⟨g, hg, -, -⟩ := hS.gen
+  unfold epochState
+  have he : c.epochStart 0 = 0 := by simp [Config.epochStart]
+  simp only [he, Nat.zero_sub, prefixBelow_zero hS ha hg, prefixBelow_zero hS hb hg]
 
 theorem prefixBelow_prefixBelow (C : List Block) {a b : ℕ} (hab : a ≤ b) :
     prefixBelow (prefixBelow C b) a = prefixBelow C a := by

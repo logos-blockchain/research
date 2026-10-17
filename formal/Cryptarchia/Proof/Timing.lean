@@ -2,7 +2,6 @@ module
 
 public import Cryptarchia.Proof.EpochCut
 public import Cryptarchia.Proof.WorldStep
-import Cryptarchia.Proof.Honest
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -37,16 +36,14 @@ import Mathlib.Topology.Sheaves.Init
 import Std.Tactic.BVDecide.Normalize.BitVec
 
 /-!
-# Timing and honest blocks
+# Honest proposals and the assumptions
 
-Two more facts about every execution (in every epoch, for sane parameters):
-
-* no node's tree holds a block from the future (`slot ≤ now`);
-* every honest block is logged with its creation slot and passes the
-  node-independent validity checks.
-
-The second needs the ledger assumption that honest payloads execute
-(`HonestExec`).
+An honest node's proposal passes every node-independent check (`propose_valid`), in
+every epoch for sane parameters: its Proof of Leadership is the one the node
+computed, its uncles are blocks the node had accepted (valid on their own chains,
+hence on the proposal's, `polValid_common`), and its payload executes (an
+assumption on the ledger, `HonestExec`). It passes the proposer's own validation
+(`propose_header`). `Assm` collects the assumptions on the environment.
 -/
 
 @[expose] public section
@@ -65,11 +62,80 @@ def HonestStake (L : Ledger) : Prop :=
   ∀ (C : List Block) (s : ℕ) (n : Note), (∃ j, n.owner = .honest j) →
     n ∈ L.notes (prefixBelow C s) → n ∈ L.notes C
 
+theorem selectUncles_length (T : List ℕ) (cloc sl : ℕ) :
+    (selectUncles c st T cloc sl).length ≤ c.maxUncles := by
+  unfold selectUncles
+  simp only
+  generalize (List.mergeSort _ _) = l
+  have : ∀ (l : List Header) (acc : List Header), acc.length ≤ c.maxUncles →
+      (l.foldl (fun (acc : List Header) U =>
+        if acc.length < c.maxUncles && !(acc.map (·.slot)).contains U.slot then acc ++ [U] else acc)
+        acc).length ≤ c.maxUncles := by
+    intro l
+    induction l with
+    | nil => intro acc h; exact h
+    | cons U us ih =>
+      intro acc h
+      simp only [List.foldl_cons]
+      apply ih
+      split
+      · rename_i hc; simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
+        simp; omega
+      · exact h
+  exact this l [] (by simp)
+
+theorem mem_selectUncles {T : List ℕ} {cloc sl : ℕ} {U : Header}
+    (hU : U ∈ selectUncles c st T cloc sl) :
+    ∃ x ∈ T, ∃ blk, st x = some blk ∧ blk.hdr = U ∧ (chainIds st cloc).contains U.parent = true ∧
+      (chainIds st cloc).contains U.id = false ∧ U.slot < sl ∧ sl - slotOf st U.parent ≤ c.uncleWindow := by
+  unfold selectUncles at hU
+  simp only at hU
+  -- the picked uncles are among the sorted candidates
+  have hsub : ∀ (l : List Header) (acc : List Header), ∀ U ∈ l.foldl (fun (acc : List Header) U =>
+      if acc.length < c.maxUncles && !(acc.map (·.slot)).contains U.slot then acc ++ [U] else acc) acc,
+      U ∈ acc ∨ U ∈ l := by
+    intro l
+    induction l with
+    | nil => intro acc U h; exact Or.inl h
+    | cons V vs ih =>
+      intro acc U h
+      simp only [List.foldl_cons] at h
+      rcases ih _ U h with h | h
+      · split at h
+        · rcases List.mem_append.1 h with h | h
+          · exact Or.inl h
+          · simp at h; subst h; exact Or.inr List.mem_cons_self
+        · exact Or.inl h
+      · exact Or.inr (List.mem_cons_of_mem _ h)
+  rcases hsub _ [] U hU with h | h
+  · simp at h
+  rw [List.mem_mergeSort] at h
+  rw [List.mem_filter] at h
+  obtain ⟨hmem, hcond⟩ := h
+  simp only [Bool.and_eq_true, decide_eq_true_eq, Bool.not_eq_true'] at hcond
+  obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, -⟩ := hcond
+  rw [List.mem_map] at hmem
+  obtain ⟨blk, hblk, rfl⟩ := hmem
+  rw [List.mem_filterMap] at hblk
+  obtain ⟨x, hx, hxb⟩ := hblk
+  exact ⟨x, hx, blk, hxb, rfl, h1, h2, h3, h4⟩
+
+/-- The assumptions on the environment. (There is no delivery assumption: an
+honest block the network fails to deliver within `Δ` is `Late` and counts as
+adversarial in the settlement tree.) -/
+structure Assm (E : Env) : Prop where
+  ord : E.OrderOK
+  crash : ∀ i t t', t ≤ t' → E.online i t' = true → E.online i t = true
+  exec : HonestExec E.L
+  nodup : E.nodes.Nodup
+  sane : E.c.Sane
+  stake : HonestStake E.L
+
 /-- **An honest proposal is valid.** -/
 theorem propose_valid (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O G c s)
     {i t newId : ℕ} {B : Block} (hB : propose c st L O G i t newId s = some B)
     (hslots : ∀ x ∈ s.tree, slotOf st x < t) (hc : c.Sane) (hexec : HonestExec L)
-    {st' : Store} (hS' : StoreOK st') (hext : StoreExt st st') (hst' : st' B.hdr.id = some B)
+    {st' : Store} (hext : StoreExt st st') (hst' : st' B.hdr.id = some B)
     (hne : newId ≠ genesisId) :
     validCore c st' L O G B = true := by
   obtain ⟨hid, hsig, hpar, hsl⟩ := propose_id hB
@@ -146,5 +212,20 @@ theorem propose_valid (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O 
       have hid := hS.idOK _ _ hxb
       rw [hid, hext _ _ hxb]; simp
   · exact hexec _ _ _ hsig
+
+/-- **An honest proposal passes its proposer's validation.** -/
+theorem propose_header (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O G c s)
+    {i t newId : ℕ} {B : Block} (hB : propose c st L O G i t newId s = some B)
+    (hslots : ∀ x ∈ s.tree, slotOf st x < t) (hc : c.Sane) (hexec : HonestExec L)
+    {st' : Store} (hext : StoreExt st st') (hst' : st' B.hdr.id = some B)
+    (hne : newId ≠ genesisId) :
+    validHeader c st' L O G s.tree s.bimm t B = true := by
+  obtain ⟨-, -, hpar, hsl⟩ := propose_id hB
+  have hcr := hs.rooted _ hs.cloc
+  obtain ⟨hbr, hbc⟩ := hs.bimm_on_cloc hS
+  rw [validHeader_iff]
+  refine ⟨propose_valid hS hs hB hslots hc hexec hext hst' hne, hsl.le, hpar ▸ hs.cloc, ?_⟩
+  rw [hpar, height_ext hext hbr, height_ext hext hcr, hs.bimm, blockAtDepth_height hS hcr]
+  omega
 
 end Cryptarchia
