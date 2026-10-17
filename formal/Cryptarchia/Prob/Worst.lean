@@ -100,6 +100,18 @@ theorem forall₂_trans {l l' l'' : List Out} (h : List.Forall₂ OutLe l l') (h
 theorem forall₂_append {l l' m m' : List Out} (h : List.Forall₂ OutLe l l') (hm : List.Forall₂ OutLe m m') :
     List.Forall₂ OutLe (l ++ m) (l' ++ m') := List.rel_append h hm
 
+/-- **`x` decides `S` at length `M`**: every continuation of `x` to length `M` lies in `S`. -/
+def Decided (S : Set (List Out)) (M : ℕ) (x : List Out) : Prop :=
+  ∀ y : List Out, x.length + y.length = M → x ++ y ∈ S
+
+theorem Decided.append {S : Set (List Out)} {M : ℕ} {x : List Out} (h : Decided S M x) (z : List Out) :
+    Decided S M (x ++ z) := fun y hy => by
+  rw [List.append_assoc]; exact h _ (by simp only [List.length_append] at hy ⊢; omega)
+
+theorem Decided.mem {S : Set (List Out)} {M : ℕ} {x : List Out} (h : Decided S M x) (hx : x.length = M) :
+    x ∈ S := by
+  simpa using h [] (by simpa using hx)
+
 /-- Sums over outcomes. -/
 theorem sum_out {β : Type*} [AddCommMonoid β] (f : Out → β) :
     ∑ o, f o = ∑ h : Fin 3, (f ⟨h, false⟩ + f ⟨h, true⟩) := by

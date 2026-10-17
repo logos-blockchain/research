@@ -45,7 +45,9 @@ smaller cap's end is `Ms`, at most the larger cap's. So the lottery's good event
 (`GoodCap`) with the larger cap implies the one with the smaller cap (`good_trunc`), and
 with the smaller cap the event is determined by the first `Ms` slots (`good_congr_cap`).
 An outcome list dominating the lottery string's first `Ms` slots with the good event
-therefore gives a string dominating the lottery string with it (`good_dom`).
+therefore gives a string dominating the lottery string with it (`good_dom`), and a
+robust failure of the good event (`RBad`) at a horizon decides its failure at any later
+horizon (`lift_bad`).
 -/
 
 @[expose] public section
@@ -211,5 +213,37 @@ theorem good_dom {lot : CStr} {N M Lw r G : ℕ} (hNM : N < M)
     simp only [Out.toPair]
     rw [← (hdom i (by omega) h2).1]
     exact ⟨enc_hon_zero _, enc_hon_one _, trivial⟩
+
+/-- **The good event at a horizon implies it at an earlier one.** -/
+theorem good_horizon_mono {w : CStr} {N N' M Lw r G : ℕ} (hN : N' ≤ N) (hg : GoodCap E N M Lw r G w) :
+    GoodCap E N' M Lw r G w := by
+  obtain ⟨⟨h0, hm, hq, hu, hc, hw⟩, hgr⟩ := hg
+  exact ⟨⟨h0, hm, fun k hk => hq k (by omega), hu, fun t k h1 h2 h3 h4 => hc t k h1 (by omega) h3 h4,
+    fun t ht => hw t (by omega)⟩, fun ep hep hf => hgr ep hep (by omega)⟩
+
+/-- **The good event fails robustly** at `l`: every outcome list dominating `l` fails it. -/
+def RBad (N M Lw r G : ℕ) : Set (List Out) :=
+  {l | ∀ l', List.Forall₂ OutLe l l' → ¬ GoodCap E N M Lw r G (strOf l')}
+
+theorem RBad.upClosed {N M Lw r G : ℕ} : UpClosed (RBad E N M Lw r G) :=
+  fun _ _ h hl l' h' => hl l' (forall₂_trans h h')
+
+/-- **A robust failure cut at a horizon decides the failure up to `N`.** If `x`, of length
+`Ms`, fails robustly the good event up to `Ne < Ms` cut at `Ms`, then every continuation
+of `x` to length `M` fails robustly the good event up to `N ≥ Ne` cut at `M`. -/
+theorem lift_bad {N Ne Ms M Lw r G : ℕ} (hNe : Ne ≤ N) (hNs : Ne < Ms) (hMs : Ms ≤ M)
+    (hgr : ∀ ep, 1 ≤ ep → E.c.fix ep ≤ Ne → E.c.cut ep + G < Ms) {x : List Out} (hx : x.length = Ms)
+    (h : x ∈ RBad E Ne Ms Lw r G) : Decided (RBad E N M Lw r G) M x := by
+  intro y _ l' hl' hg
+  have hlen : Ms ≤ l'.length := by rw [← hl'.length_eq, List.length_append]; omega
+  have hsim : SimOn (strOf l') (strOf (l'.take Ms)) 0 Ms := by
+    intro i _ h2
+    have : strOf l' i = strOf (l'.take Ms) i := by
+      conv_lhs => rw [← List.take_append_drop Ms l']
+      exact strOf_append_of_le (by rw [List.length_take]; omega)
+    rw [this]; exact ⟨Iff.rfl, Iff.rfl, rfl⟩
+  have hl := List.forall₂_take Ms hl'
+  rw [List.take_append_of_le_length (by omega), List.take_of_length_le (by omega)] at hl
+  exact h _ hl (good_congr_cap E hsim hNs hgr (good_trunc E hNs hMs hgr (good_horizon_mono E hNe hg)))
 
 end Cryptarchia.Prob

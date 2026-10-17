@@ -36,10 +36,13 @@ import Mathlib.Topology.Sheaves.Init
 /-!
 # The per-epoch worst case, with the band needed only until the event is decided
 
-`law_le_epoch_dec`: as `law_le_epoch_ok`, but the band condition is needed at slot `n`
-only while the event is still undecided. A prefix is *decided* (`Dd`) when every
-continuation of it lies in the event; once decided, the indicator is `1` whatever
-happens next, so no law is needed for the remaining slots.
+`law_le_epoch_dec`: suppose that, given the past, each slot's outcome has the law
+`qh ⊗ Bern(qa)`, with `qh` in the honest polytope and `qa ≤ amax` of a family member
+that is known before the slot and changes only at epoch starts. Then every event `S`
+closed under adding adversarial slots is at most as likely as under the per-epoch
+worst-case kernel (`worstKE`). The band condition is needed at slot `n` only while the
+event is still undecided: once the first `n` outcomes decide `S` (`Decided`), the
+indicator is `1` whatever happens next, so no law is needed for the remaining slots.
 
 This lets one kernel bound cover events that each need the band only up to their own
 horizon: the per-epoch consistency failures and the final finality failure together.
@@ -78,8 +81,8 @@ theorem VE_ge_one {K : ℕ} {fam : Fin K → Band} {EL : ℕ} {F : List Out → 
 
 set_option maxHeartbeats 1600000 in
 /-- **From conditional slot laws to a kernel, with the band needed only until the event
-is decided.** As `law_le_epoch_ok`, but the condition at slot `n` is `ok n` or that the
-first `n` outcomes already decide the event (`Dd`: every continuation lies in `S`). -/
+is decided.** The condition at slot `n` is `ok n` or that the first `n` outcomes already
+decide the event. -/
 theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     {K : ℕ} {fam : Fin K → Band} (hP : ∀ b, (fam b).Prod) {EL M : ℕ} (hM : 0 < M)
     (X : ℕ → Ω → Out) (hXm : ∀ j, Measurable (X j))
@@ -94,14 +97,13 @@ theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure �
     (hcond : ∀ n < M, ∀ f : Ω → ℝ≥0∞, Measurable[m n] f → (∀ ω, ¬ ok n ω → f ω = 0) → ∀ o,
       ∫⁻ ω, f ω * (if X n ω = o then 1 else 0) ∂μ =
         ∫⁻ ω, f ω * ENNReal.ofReal (prodLaw (qh n ω) (qa n ω) o) ∂μ)
-    {S : Set (List Out)} (hS : UpClosed S) (hG : (goodB fam).Nonempty)
-    (Dd : List Out → Prop) (hDmono : ∀ x o, Dd x → Dd (x ++ [o]))
-    (hDS : ∀ x y : List Out, Dd x → x.length + y.length = M → x ++ y ∈ S) :
+    {S : Set (List Out)} (hS : UpClosed S) (hG : (goodB fam).Nonempty) :
     ∃ κ : Kern, κ.EpochFam EL fam ∧
       μ {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧
-          ∀ n < M, ok n ω ∨ Dd (List.ofFn fun k : Fin n => X k ω)} ≤
+          ∀ n < M, ok n ω ∨ Decided S M (List.ofFn fun k : Fin n => X k ω)} ≤
         ENNReal.ofReal (Ex κ M (S.indicator 1) []) := by
   classical
+  set Dd : List Out → Prop := Decided S M with hDd
   set F : List Out → ℝ := S.indicator 1 with hFdef
   have hF0 : ∀ l, 0 ≤ F l := fun l => Set.indicator_nonneg (fun _ _ => zero_le_one) l
   have hFm : ∀ l l', List.Forall₂ OutLe l l' → F l ≤ F l' := by
@@ -117,7 +119,7 @@ theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure �
   -- a decided prefix of length `n`: every continuation to length `M` lies in `S`
   have hD1 : ∀ n ω, n ≤ M → Dd (pre n ω) → ∀ y : List Out, y.length = M - n → 1 ≤ F (pre n ω ++ y) := by
     intro n ω hn hd y hy
-    rw [hFdef, Set.indicator_of_mem (hDS _ y hd (by rw [hpre_len]; omega))]; simp
+    rw [hFdef, Set.indicator_of_mem (hd y (by rw [hpre_len]; omega))]; simp
   set A : ℕ → Set Ω := fun n => {ω | ∀ j < n, ok j ω ∨ Dd (pre j ω)} with hAdef
   have hvec : ∀ n, Measurable[m n] (fun ω (k : Fin n) => X k ω) :=
     fun n => by letI := m n; exact measurable_pi_iff.mpr fun k : Fin n => hX n k.val k.2
@@ -177,7 +179,7 @@ theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure �
       rw [hsum]
       by_cases hd : Dd (pre n ω)
       · -- decided: the value stays one
-        have hd' : Dd (pre (n + 1) ω) := by rw [hpre_succ]; exact hDmono _ _ hd
+        have hd' : Dd (pre (n + 1) ω) := by rw [hpre_succ]; exact Decided.append hd _
         by_cases hA : ω ∈ A n
         · have hA1 : ω ∈ A (n + 1) := by rw [hAsucc]; exact ⟨hA, Or.inr hd⟩
           rw [Set.indicator_of_mem hA1, Set.indicator_of_mem (show ω ∈ W from ⟨hA, hd⟩)]

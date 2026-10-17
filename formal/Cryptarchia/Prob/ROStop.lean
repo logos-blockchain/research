@@ -39,7 +39,9 @@ import Cryptarchia.Prob.WorstStop
 /-!
 # The lottery law over many epochs, with the band needed only until decided
 
-`lottery_law_epoch_dec`: `lottery_law_epoch_ok` from `law_le_epoch_dec`.
+`lottery_law_epoch_dec`: `law_le_epoch_dec` for the lottery string under a random oracle,
+fresh lotteries and Δ-delivery (`Prob/RO`), with slot `n + 1` in the band of the member a
+fixed rule picks from its epoch and state (`pick`).
 -/
 
 @[expose] public section
@@ -54,21 +56,19 @@ variable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasu
 
 open Classical in
 /-- **The lottery law over many epochs, with the band needed only until the event is
-decided.** As `lottery_law_epoch_ok`, but slot `n + 1` needs to be in band only while the
-first `n` slots do not yet decide the event (`Dd`). -/
+decided.** Slot `n + 1` needs to be in band only while the first `n` slots do not yet
+decide the event. -/
 theorem lottery_law_epoch_dec (hA : Assm E) (es : Ω → List Event) {M : ℕ} (hM : 0 < M)
     (hdel : ∀ ω, DeltaDelivery (E.withO (O ω)) (es ω))
     (hO : RandomOracle μ O E.c.p)
     (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
     (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
     {K : ℕ} {fam : Fin K → Band} (hP : ∀ b, (fam b).Prod) (pick : ℕ → EpochState → Fin K)
-    (hG : (goodB fam).Nonempty) {S : Set (List Out)} (hS : UpClosed S)
-    (Dd : List Out → Prop) (hDmono : ∀ x o, Dd x → Dd (x ++ [o]))
-    (hDS : ∀ x y : List Out, Dd x → x.length + y.length = M → x ++ y ∈ S) :
+    (hG : (goodB fam).Nonempty) {S : Set (List Out)} (hS : UpClosed S) :
     ∃ κ : Kern, κ.EpochFam E.c.epochLength fam ∧
       μ {ω | slots (lotStr (E.withO (O ω)) (es ω)) M ∈ S ∧ ∀ n < M,
         SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
-          (σE (E.withO (O ω)) (es ω) (n + 1)) ∨ Dd (slots (lotStr (E.withO (O ω)) (es ω)) n)} ≤
+          (σE (E.withO (O ω)) (es ω) (n + 1)) ∨ Decided S M (slots (lotStr (E.withO (O ω)) (es ω)) n)} ≤
         ENNReal.ofReal (Ex κ M (S.indicator 1) []) := by
   set σ : Ω → ℕ → EpochState := fun ω => σE (E.withO (O ω)) (es ω) with hσ
   set X : ℕ → Ω → Out := fun k ω => slotOut E (k + 1) (σ ω (k + 1)) (tk O (k + 1) ω) with hX
@@ -93,8 +93,8 @@ theorem lottery_law_epoch_dec (hA : Assm E) (es : Ω → List Event) {M : ℕ} (
   set ok : ℕ → Ω → Prop := fun n ω => SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σ ω (n + 1)))) E (n + 1) (σ ω (n + 1)) with hok
   rw [show {ω | slots (lotStr (E.withO (O ω)) (es ω)) M ∈ S ∧ ∀ n < M,
       SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
-        (σE (E.withO (O ω)) (es ω) (n + 1)) ∨ Dd (slots (lotStr (E.withO (O ω)) (es ω)) n)} =
-      {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧ ∀ n < M, ok n ω ∨ Dd (List.ofFn fun k : Fin n => X k ω)} by
+        (σE (E.withO (O ω)) (es ω) (n + 1)) ∨ Decided S M (slots (lotStr (E.withO (O ω)) (es ω)) n)} =
+      {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧ ∀ n < M, ok n ω ∨ Decided S M (List.ofFn fun k : Fin n => X k ω)} by
     ext ω; simp only [Set.mem_setOf_eq, hslots ω, hslotsN]; exact Iff.rfl]
   exact law_le_epoch_dec μ hP hM X hXm (fun n => hist O σ (n + 1)) (fun n => hm _)
     (fun j n hjn => hist_mono O σ (by omega)) hXh
@@ -118,6 +118,6 @@ theorem lottery_law_epoch_dec (hA : Assm E) (es : Ω → List Event) {M : ℕ} (
       by_cases hω : ok n ω
       · rw [slot_law hO hA.nodup (n + 1) (σ ω (n + 1)) hω.nodup o]
       · rw [hf0 ω hω, zero_mul, zero_mul])
-    hS hG Dd hDmono hDS
+    hS hG
 
 end Cryptarchia.Prob

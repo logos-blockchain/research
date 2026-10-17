@@ -64,33 +64,6 @@ theorem slots_take (w : CStr) {m n : ℕ} (h : m ≤ n) : (slots w n).take m = s
   unfold slots
   rw [← List.map_take, List.take_range, min_eq_left h]
 
-/-- **The good event at a horizon implies it at an earlier one.** -/
-theorem good_horizon_mono (E : Env) {w : CStr} {N N' Lw r G : ℕ} {e : ℕ → ℕ} (hN : N' ≤ N)
-    (hg : GoodLS E w N Lw e ∧ GrowthS E w e N r G) : GoodLS E w N' Lw e ∧ GrowthS E w e N' r G := by
-  obtain ⟨⟨h0, hm, hq, hu, hc, hw⟩, hgr⟩ := hg
-  exact ⟨⟨h0, hm, fun k hk => hq k (by omega), hu, fun t k h1 h2 h3 h4 => hc t k h1 (by omega) h3 h4,
-    fun t ht => hw t (by omega)⟩, fun ep hep hf => hgr ep hep (by omega)⟩
-
-/-- **A failure cut at a horizon is a failure up to `N`.** If the first `Ms` outcomes of
-`l` (of length `M`) fail, robustly, the good event up to `Ne < Ms` cut at `Ms`, then `l`
-fails, robustly, the good event up to `N ≥ Ne` cut at `M`. -/
-theorem lift_bad (E : Env) {N Ne Ms M Lw r G : ℕ} (hNe : Ne ≤ N) (hNs : Ne < Ms) (hMs : Ms ≤ M)
-    (hgr : ∀ ep, 1 ≤ ep → E.c.fix ep ≤ Ne → E.c.cut ep + G < Ms) {l : List Out} (hl : l.length = M)
-    (h : ∀ l', List.Forall₂ OutLe (l.take Ms) l' → ¬ (GoodLS E (strOf l') Ne Lw (gend E.Δ Ms (strOf l')) ∧
-      GrowthS E (strOf l') (gend E.Δ Ms (strOf l')) Ne r G)) :
-    ∀ l', List.Forall₂ OutLe l l' → ¬ (GoodLS E (strOf l') N Lw (gend E.Δ M (strOf l')) ∧
-      GrowthS E (strOf l') (gend E.Δ M (strOf l')) N r G) := by
-  intro l' hl' hg
-  have hlen := hl'.length_eq
-  have hgs := good_trunc E (Ms := Ms) (Mb := M) hNs hMs hgr (good_horizon_mono E hNe hg)
-  have hsim : SimOn (strOf l') (strOf (l'.take Ms)) 0 Ms := by
-    intro i _ h2
-    have : strOf l' i = strOf (l'.take Ms) i := by
-      conv_lhs => rw [← List.take_append_drop Ms l']
-      exact strOf_append_of_le (by rw [List.length_take]; omega)
-    rw [this]; exact ⟨Iff.rfl, Iff.rfl, rfl⟩
-  exact h _ (List.forall₂_take Ms hl') (good_congr_cap E hsim hNs hgr hgs)
-
 /-- **Finality over many epochs, with the stake estimate.** A finality violation has
 probability at most `settleEps3E + Ne · bandEps`. -/
 theorem finality_tight {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
@@ -140,30 +113,17 @@ theorem finality_tight {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
     show SlotBand _ _ _ _
     rw [← hfam]
     exact slotBand_pickM hc hTb hA.nodup hon hok hcov hadv (hst ω (n + 1)) (hin (n + 1) h1 h2)
-  -- the events on outcome lists
-  set Bad_main : Set (List Out) := {l | ¬ (GoodLS E (strOf l) N Lw (gend E.Δ M (strOf l)) ∧
-    GrowthS E (strOf l) (gend E.Δ M (strOf l)) N r G)} with hBad_main
-  set S_main : Set (List Out) := {l | ∀ l', List.Forall₂ OutLe l l' → l' ∈ Bad_main} with hS_main
-  have hSm : UpClosed S_main := fun l l2 h hl l' h' => hl l' (forall₂_trans h h')
+  -- the events on outcome lists: the main failure, decided by any epoch's split
+  set S := RBad E N M Lw r G with hS
   set Nh : ℕ → ℕ := fun e => min (E.c.fix (e + 1)) N with hNh
-  set S_s : ℕ → Set (List Out) := fun e => {l | ∀ l', List.Forall₂ OutLe l l' →
-    ¬ (GoodLS E (strOf l') (Nh e) Lw (gend E.Δ (Nh e + 1) (strOf l')) ∧
-      GrowthS E (strOf l') (gend E.Δ (Nh e + 1) (strOf l')) (Nh e) r G)} with hS_s
   have hgr : ∀ e, ∀ ep, 1 ≤ ep → E.c.fix ep ≤ Nh e → E.c.cut ep + G < Nh e + 1 :=
     fun e => cut_add_lt hA.sane hOG (Nat.lt_succ_self _)
   have hNhe : ∀ e, Nh e = min (E.c.fix (e + 1)) N := fun e => rfl
   have hNM' : ∀ e, Nh e + 1 ≤ M := fun e => by have := min_le_right (E.c.fix (e + 1)) N; rw [hNhe]; omega
-  have hlift : ∀ e (x : List Out), x.length = M → x.take (Nh e + 1) ∈ S_s e → x ∈ S_main :=
-    fun e x hx hS l' hl' => lift_bad E (min_le_right _ _) (Nat.lt_succ_self _) (hNM' e) (hgr e) hx hS l' hl'
-  set Dd : List Out → Prop := fun x => ∃ e, 1 ≤ e ∧ Nh e + 1 ≤ x.length ∧ x.take (Nh e + 1) ∈ S_s e with hDd
-  have hDmono : ∀ x o, Dd x → Dd (x ++ [o]) := by
-    rintro x o ⟨e, h1, h3, h4⟩
-    refine ⟨e, h1, by simp; omega, ?_⟩
-    rwa [List.take_append_of_le_length h3]
-  have hDS : ∀ x y : List Out, Dd x → x.length + y.length = M → x ++ y ∈ S_main := by
-    rintro x y ⟨e, -, h3, h4⟩ hl
-    apply hlift e _ (by simp; omega)
-    rwa [List.take_append_of_le_length h3]
+  have hdec : ∀ e w, slots w (Nh e + 1) ∈ RBad E (Nh e) (Nh e + 1) Lw r G →
+      ∀ n, Nh e + 1 ≤ n → Decided S M (slots w n) := fun e w h n hn => by
+    rw [← List.take_append_drop (Nh e + 1) (slots w n), slots_take _ hn]
+    exact (lift_bad E (min_le_right _ _) (Nat.lt_succ_self _) (hNM' e) (hgr e) (slots_length _ _) h).append _
   -- the update holds off the split sets
   set Bad : ℕ → Set Ω := fun e => {ω | 1 ≤ e ∧
     prefixBelow (CP (E.withO (O ω)) (es ω) (e + 1)) (E.c.cut e) ≠ CP (E.withO (O ω)) (es ω) e} with hBad
@@ -174,7 +134,7 @@ theorem finality_tight {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
     have hc' : 1 ≤ e → prefixBelow (CP (E.withO (O ω)) (es ω) (e + 1)) (E.c.cut e) = CP (E.withO (O ω)) (es ω) e :=
       fun h1 => by by_contra hne; exact hB ⟨h1, hne⟩
     exact recur_of hA _ hc' (hlo ω e he) (occupied_le_wcnt (hA.withO (O ω)) hc')
-  set Tset : Set Ω := {ω | slots (lotStr (E.withO (O ω)) (es ω)) M ∈ S_main ∧ ∀ n < M, band ω n} with hTset
+  set Tset : Set Ω := {ω | slots (lotStr (E.withO (O ω)) (es ω)) M ∈ S ∧ ∀ n < M, band ω n} with hTset
   -- an unsafe execution: the main event in band, or some epoch out of band
   have h1 : {ω | Unsafe (E.withO (O ω)) (es ω)} ⊆ Tset ∪ {ω | ∃ e < Ne, ¬ InB E Tb (σE (E.withO (O ω)) (es ω)) e} := by
     intro ω hU
@@ -193,17 +153,17 @@ theorem finality_tight {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
   -- the main event and the splits, in band until decided
   by_cases hG : (goodB fam).Nonempty
   · have hsub3 : Tset ∪ ⋃ e ∈ Finset.range Ne, (Bad e ∩ {ω | ∀ e' ≤ e, InB E Tb (σE (E.withO (O ω)) (es ω)) e'}) ⊆
-        {ω | slots (lotStr (E.withO (O ω)) (es ω)) M ∈ S_main ∧ ∀ n < M,
+        {ω | slots (lotStr (E.withO (O ω)) (es ω)) M ∈ S ∧ ∀ n < M,
           SlotBand (fam (pickM E mem ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
-            (σE (E.withO (O ω)) (es ω) (n + 1)) ∨ Dd (slots (lotStr (E.withO (O ω)) (es ω)) n)} := by
+            (σE (E.withO (O ω)) (es ω) (n + 1)) ∨ Decided S M (slots (lotStr (E.withO (O ω)) (es ω)) n)} := by
       rintro ω (⟨hS, hb⟩ | hω)
       · exact ⟨hS, fun n hn => Or.inl (hb n hn)⟩
       · simp only [Set.mem_iUnion, Finset.mem_range] at hω
         obtain ⟨e, -, ⟨h1e, hsp⟩, hin⟩ := hω
-        have hsplit : slots (lotStr (E.withO (O ω)) (es ω)) (Nh e + 1) ∈ S_s e := fun l' hl' hg =>
+        have hsplit : slots (lotStr (E.withO (O ω)) (es ω)) (Nh e + 1) ∈ RBad E (Nh e) (Nh e + 1) Lw r G := fun l' hl' hg =>
           split_up (E.withO (O ω)) (hA.withO (O ω)) hlive (hNF ω) h1e (Nat.lt_succ_self _) (hgr e) hsp hl'
             ⟨goodLS_withO hg.1, hg.2⟩
-        refine ⟨hlift e _ (slots_length _ _) (by rw [slots_take _ (hNM' e)]; exact hsplit), fun n hn => ?_⟩
+        refine ⟨(hdec e _ hsplit M (hNM' e)).mem (slots_length _ _), fun n hn => ?_⟩
         by_cases hns : n < Nh e + 1
         · left
           have hfx : E.c.fix (e + 1) + 2 ≤ (e + 1) * E.c.epochLength := (hA.sane.fix_ok (e + 1) (by omega)).2
@@ -213,10 +173,9 @@ theorem finality_tight {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
             have := (Nat.div_lt_iff_lt_mul hEL).2 hlt
             omega
           exact hbandOf ω n (hin _ hm)
-        · right
-          exact ⟨e, h1e, by rw [slots_length]; omega, by rw [slots_take _ (by omega)]; exact hsplit⟩
+        · exact Or.inr (hdec e _ hsplit n (by omega))
     obtain ⟨κ, hκ, hbound⟩ := lottery_law_epoch_dec (M := M) hA es (by omega) hdel hO hσm hfresh hP (pickM E mem) hG
-      hSm Dd hDmono hDS
+      (RBad.upClosed E)
     refine (measure_mono hsub3).trans (hbound.trans (ENNReal.ofReal_le_ofReal ?_))
     refine le_trans ?_ (settle_bound3E E rfl hA.sane D.C.P (D.C.within hκ) D.C.hG
       (D.C.anyPhase hκ 0 (by decide) D.C.heS0) (D.C.anyPhase hκ 1 (by decide) D.C.heS1)
@@ -226,11 +185,8 @@ theorem finality_tight {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
     apply Ex_mono_len
     intro t _
     simp only [List.nil_append]
-    by_cases ht : t ∈ S_main
-    · have hb : t ∈ Bad_main := ht t (forall₂_refl t)
-      rw [Set.indicator_of_mem ht]
-      simp only [hBad_main, Set.mem_setOf_eq] at hb
-      rw [if_neg hb]; rfl
+    by_cases ht : t ∈ S
+    · rw [Set.indicator_of_mem ht, if_neg (ht t (forall₂_refl t))]; rfl
     · rw [Set.indicator_of_notMem ht]
       split_ifs <;> norm_num
   · -- no member has a nonempty polytope: nothing is in band
