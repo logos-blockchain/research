@@ -47,8 +47,8 @@ import Std.Tactic.BVDecide.Normalize.Prop
 /-!
 # The lottery law from a random oracle
 
-`final_bimm_prob2` assumes the law of the lottery string (`hlaw`). This file derives
-it from a random-oracle model of the note lottery.
+The probabilistic bounds need the law of the lottery string. This file derives each
+slot's law from a random-oracle model of the note lottery.
 
 **The model.** The oracle is random: `O ω`. The ticket of note `id` at slot `i`
 under nonce `η` is `(O ω).ticket η i id`. Slot `i`'s **ticket table**

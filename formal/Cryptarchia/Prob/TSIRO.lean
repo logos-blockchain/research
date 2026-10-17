@@ -46,13 +46,12 @@ import Std.Tactic.BVDecide.Normalize.Prop
 /-!
 # The stake estimate stays in band, from the random oracle
 
-Every epoch state a slot's lottery runs under must be within the band
-(`final_bimm_ro_epoch_ok` pays for the states that are not). This file bounds the
-probability that some epoch's estimate leaves the band.
+Every epoch state a slot's lottery runs under must be within the band. This file
+bounds the probability that some epoch's estimate leaves the band.
 
 * **Chernoff with predictable rates** (`chernoff_mg`, `chernoff_lo`, `chernoff_hi`):
-  if each slot's outcome has, given the past, a known law (the random oracle's
-  `slot_law` under fresh lotteries), then a count of slots whose outcome lies in a
+  if each slot's outcome has, given the past, a known law (`Adapted`; for the lottery,
+  `SlotLaws.ofRO` from the random oracle's `slot_law` under fresh lotteries), then a count of slots whose outcome lies in a
   set `A` concentrates around the sum of the slots' rates, even though the rates
   depend on the past (on the epoch state). The bounds are the multiplicative
   Chernoff exponents `m δ²/2` (below) and `m δ² (1/2 - 2δ/9)` (above), for any
@@ -61,8 +60,9 @@ probability that some epoch's estimate leaves the band.
   within `δ` of their rates, the next estimate is the specification's update of a
   count between `(1 - μ)` times the honest occupied slots and all occupied slots,
   and the stake path satisfies `StakePath`, then epoch `e + 1` is in band.
-* **`prob_out_of_band`**: the probability that some epoch before `Ne` is out of band
-  is at most `Ne · (exp(-m δ²/2) + exp(-m δ² (1/2 - 2δ/9)))`.
+* **`prob_out_of_band_cover`**: the probability that some epoch before `Ne` is out of
+  band, other than after a failure of the update, is at most
+  `Ne · (exp(-m δ²/2) + exp(-m δ² (1/2 - 2δ/9)))`.
 -/
 
 @[expose] public section
@@ -762,8 +762,10 @@ theorem SlotLaws.ofRO (hnd : E.nodes.Nodup) (hO : RandomOracle μ O E.c.p) {σ :
     rfl
 
 /-- **The estimate stays in band, with the update's failures kept together with any
-event `Tset`.** As `prob_out_of_band_seq`, but the failure sets stay inside one measure,
-united with `Tset`, so that a single bound can cover them all. -/
+event `Tset`.** Some epoch before `Ne` leaves the band only after an atypical window,
+which costs `bandEps` per epoch, or after the update fails (`Bad`) while all earlier
+epochs are in band; the failure sets stay inside one measure, united with `Tset`, so
+that a single bound can cover them all. -/
 theorem prob_out_of_band_cover (es : Ω → List Event) (hAd : SlotLaws μ O E fun ω => σE (E.withO (O ω)) (es ω))
     (hc : LotConsts E.c T.η) (hT : T.OK) (hb : E.c.betaP = E.c.precision)
     (hprec : 0 < E.c.precision) (hPf : 0 < E.c.period * E.c.fP) (hP1 : 1 ≤ E.c.period)

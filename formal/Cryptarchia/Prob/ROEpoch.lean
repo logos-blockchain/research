@@ -35,15 +35,11 @@ import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
 
 /-!
-# The lottery law over many epochs
+# Epochs and what is known before a slot
 
-Under a random oracle, fresh lotteries and Δ-delivery (`Prob/RO.lean`), suppose every
-epoch state a slot can run under is within the band of a member of a family, chosen
-by a fixed rule from the state (`pick`). A slot's epoch state depends only on its
-epoch (`σE`), so the member is the same for all slots of an epoch and known before
-each of them. `lottery_law_epoch` then bounds every event about the lottery string
-that is closed under adding adversarial slots by a kernel that keeps one member per
-epoch (`Kern.EpochFam`).
+A slot's epoch state depends only on its epoch (`σE`), so consecutive slots of one epoch
+run under the same state (`σE_succ`). What is known before a slot (`hist`) grows with
+the slot (`hist_mono`) and knows the slot's epoch state (`measurable_hist_σ`).
 -/
 
 @[expose] public section

@@ -42,25 +42,19 @@ import Mathlib.Topology.Sheaves.Init
 import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
-# From conditional slot laws to a kernel
+# Outcomes, the honest polytope and slot laws
 
 The lottery string of an execution is not sampled by one fixed kernel: the next
 slot's law depends on the epoch state, which depends on everything the adversary
-did. This file turns per-slot conditional laws into the kernel form the bounds
-use.
+did. This file sets up what turning per-slot conditional laws into a kernel needs
+(`Prob/WorstE`):
 
-Suppose that, given the past, each slot's outcome has the law `qh ⊗ Bern(qa)`: an
-honest part `qh` in the band's honest polytope (`HB`) and, independently, an
-adversarial win with probability `qa ≤ amax` (`hcond` in `law_le`). Take an event
-`S` about the first `M` slots that is closed under adding adversarial slots
-(`UpClosed`). Then `S` is at most as likely as under the **worst-case kernel**
-(`worstK`), which at each history plays the honest law in `HB` that maximizes the
-probability of `S` from there, with the adversary winning with probability
-exactly `amax`. That kernel is within the band (`worstK_within`).
-
-The worst case is a backward recursion (`Wv`): a maximum over the compact set
-`HB`, attained (`Wv_attain`). It is monotone in adversarial slots (`Wv_mono`),
-which is why an adversary winning less often than `amax` only helps.
+* outcome lists ordered by adversarial slots (`OutLe`), events closed under adding
+  them (`UpClosed`), and events decided by a prefix (`Decided`);
+* a band's **honest polytope** (`HB`, compact) and the slot laws `qh ⊗ Bern(a)`
+  (`prodLaw`); a kernel playing such a law with `qh ∈ HB` and `a = amax` is within the
+  band (`bandAt_prodLaw`);
+* slot outcomes with known conditional laws (`Adapted`).
 -/
 
 @[expose] public section

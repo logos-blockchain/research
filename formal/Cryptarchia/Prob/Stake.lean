@@ -57,11 +57,11 @@ runs under. This file derives it from:
 
 **The lottery.** A note with relative stake `x = v/D` wins with probability
 `w = threshold/p ≈ y - y²/2`, `y = λx`: the second-order expansion of
-`1 - e^{-y}`. The per-note error is cubic (`note_lose_lo`, `note_lose_hi`),
+`1 - e^{-y}`. The per-note error is cubic (`note_w`),
 so a list of notes with total exponent `Y = λ·S/D` all lose with probability
 within `e^{-Y}·(1 ± O(Y³ + rounding))` (`loss_lo`, `loss_hi`), however the stake
 is split. Exactly one honest node wins with probability at least `-P₀ ln P₀`,
-the Poisson value (`pOne_ge`).
+the Poisson value (`exactly_one_ge`).
 -/
 
 @[expose] public section
