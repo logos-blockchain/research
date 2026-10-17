@@ -1,8 +1,7 @@
 module
 
-public import Cryptarchia.Prob.Fail2
+public import Cryptarchia.Prob.Fail3E
 import Cryptarchia.Settle.Mono
-public import Cryptarchia.Prob.Reach2
 public import Cryptarchia.Prob.Tail
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
