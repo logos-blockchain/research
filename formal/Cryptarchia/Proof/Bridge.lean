@@ -159,14 +159,6 @@ section
 variable (hS : StoreOK st)
 include hS
 
-theorem height_genesis : height st genesisId = 0 := by
-  obtain ⟨g, hg, hs, -⟩ := hS.gen
-  simp [height, chain_genesis hg hs]
-
-theorem slotOf_genesis : slotOf st genesisId = 0 := by
-  obtain ⟨g, hg, hs, -⟩ := hS.gen
-  simp [slotOf, hg, hs]
-
 theorem GoodAt.parent {N b : ℕ} (h : GoodAt c L O G st N b) : GoodAt c L O G st N (parentOf st b) := by
   obtain ⟨hr, hsl, hv⟩ := h
   have hpr := hr.parent_rooted hS.genSelf

@@ -347,10 +347,9 @@ theorem tick_tree (hord : E.OrderOK) (hexec : HonestExec E.L) (hnd : E.nodes.Nod
           -- node `j` (= `i`) processed its own block
           have hsi : w₀.node j = w.node j := hsame j List.mem_cons_self
           have hnodes' := nodeOK_ext hextC hw₀.store (hw₀.nodes j)
-          rcases onBlock_tree_sub hnodes'.rule E.fastPath (E.ord j) (w₀.add C).now C x hx with h | h
+          rcases onBlock_tree hnodes'.rule E.fastPath (E.ord j) (w₀.add C).now hC' x hx with h | ⟨rfl, -⟩
           · rw [hsi] at h; exact absurd h hxn
-          · subst h
-            have hne : w₀.fresh ≠ genesisId := by
+          · have hne : w₀.fresh ≠ genesisId := by
               intro h0; have := fresh_not_used w₀; rw [h0] at this; exact this (genesis_used hw₀)
             have hslots : ∀ y ∈ (w₀.node j).tree, slotOf w₀.st y < w₀.now := by
               intro y hy; rw [hsi] at hy

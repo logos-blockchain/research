@@ -100,10 +100,10 @@ theorem lead_hon (hord : E.OrderOK) (hexec : HonestExec E.L) {w : World} (hw : W
     simp only at hx ⊢
     split at hx
     · rename_i hi; subst hi
-      exact onBlock_slots (hnodes' i').rule E.fastPath (E.ord i') (w.add B).now B hB'
-        (fun y hy => by
-          rw [slotOf_ext hext ((hw.nodes i').rooted y hy).exists_blk]
-          exact (hpast y hy).le) x hx
+      exact (onBlock_tree (hnodes' i').rule E.fastPath (E.ord i') (w.add B).now hB' x hx).elim
+        (fun hy => by
+          rw [slotOf_ext hext ((hw.nodes i').rooted x hy).exists_blk]
+          exact (hpast x hy).le) And.right
     · rw [slotOf_ext hext ((hw.nodes i').rooted x hx).exists_blk]; exact hh.slots i' x hx
   · intro b C hb hC
     simp only at hb ⊢
@@ -178,26 +178,6 @@ theorem tick_hon (hord : E.OrderOK) (hexec : HonestExec E.L) (hnd : E.nodes.Nodu
     (fun b B hb hn => by simp [w₁] at hb; rw [hb] at hn; simp at hn)
     (fun i _ x hx => lt_of_le_of_lt (hh.slots i x hx) (by simp [w₁]))
 
-theorem receive_slots {c : Config} {L : Ledger} {O : Oracle} {G : Genesis} {st : Store}
-    (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O G c s) (fastPath : Bool)
-    (ord : List ℕ → List ℕ) (hord : ∀ l, (ord l).Perm l) (now b : ℕ)
-    (hsl : ∀ x ∈ s.tree, slotOf st x ≤ now) :
-    ∀ x ∈ (receive c st L O G fastPath ord now s b).tree, slotOf st x ≤ now := by
-  unfold receive
-  have key : ∀ (l : List Block), (∀ x ∈ l, st x.hdr.id = some x) → ∀ s, NodeOK c.k st L O G c s →
-      (∀ x ∈ s.tree, slotOf st x ≤ now) →
-      ∀ x ∈ (l.foldl (onBlock c st L O G fastPath ord now) s).tree, slotOf st x ≤ now := by
-    intro l
-    induction l with
-    | nil => intro _ s _ h; exact h
-    | cons B bs ih =>
-      intro hst s hs hsl
-      simp only [List.foldl_cons]
-      have hB := hst B List.mem_cons_self
-      exact ih (fun x hx => hst x (List.mem_cons_of_mem _ hx)) _
-        (onBlock_ok hS hs fastPath ord hord now B hB).1 (onBlock_slots hs.rule fastPath ord now B hB hsl)
-  exact key _ (fun x hx => mem_chainUp_store hS hx) s hs hsl
-
 /-- **Every event** keeps the honest-block invariant, and honest blocks are only created by ticks, with the new slot. -/
 theorem step_hon (hord : E.OrderOK) (hexec : HonestExec E.L) (hnd : E.nodes.Nodup) {w : World}
     (hw : WorldOK E w) (hh : HonOK E w) (e : Event) (hc : E.c.Sane) :
@@ -215,8 +195,8 @@ theorem step_hon (hord : E.OrderOK) (hexec : HonestExec E.L) (hnd : E.nodes.Nodu
       simp only at hx ⊢
       split at hx
       · rename_i hji; subst hji
-        exact receive_slots hw.store (hw.nodes j) E.fastPath (E.ord j) (hord j) w.now b
-          (hh.slots j) x hx
+        exact ((receive_step hw.store (hw.nodes j) E.fastPath (E.ord j) (hord j) w.now b).tree
+          x hx).elim (hh.slots j x) id
       · exact hh.slots j x hx
     · exact ⟨hh, fun b' B hb hn _ => by rw [hb] at hn; simp at hn⟩
   | create B =>

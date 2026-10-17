@@ -450,8 +450,8 @@ theorem claimC (hA : Assm E) {Hh : ℕ} (hK : KOK E es K Hh) {W : ℕ → ℕ} {
           · subst hji
             rw [if_pos rfl] at hin ⊢
             obtain ⟨Bm, hBm⟩ : ∃ Bm, (wAt E es m).st h = some Bm := by
-              have := (receive_ok hwm.store (hwm.nodes i) E.fastPath (E.ord i) (hA.ord i)
-                (wAt E es m).now b).1
+              have := (receive_step hwm.store (hwm.nodes i) E.fastPath (E.ord i) (hA.ord i)
+                (wAt E es m).now b).ok
               exact (this.rooted h hin).exists_blk
             have hinv : FoldInv E.c E.L E.O E.G (wAt E es m).st (wAt E es m).now
                 (height (wAt E es m).st ((wAt E es m).node i).cloc) ((wAt E es m).node i).bimm ((wAt E es m).node i) :=

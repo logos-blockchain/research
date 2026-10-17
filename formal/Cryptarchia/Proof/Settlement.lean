@@ -150,9 +150,8 @@ theorem bimm_persist (hord : E.OrderOK) (hnd : E.nodes.Nodup) (i : ℕ) {n : ℕ
         · simp only
           split
           · rename_i hji; subst hji
-            have := fold_bimm hwm.store E.fastPath (E.ord i) (hord i) (wAt E es m).now
-              (chainUp (wAt E es m).st b) (fun x hx => mem_chainUp_store hwm.store hx) _ (hwm.nodes i)
-            exact this
+            exact (receive_step hwm.store (hwm.nodes i) E.fastPath (E.ord i) (hord i)
+              (wAt E es m).now b).bimm
           · exact self_mem_chainIds hwm.store hbr
         · exact self_mem_chainIds hwm.store hbr
       | create B =>

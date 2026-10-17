@@ -305,13 +305,13 @@ theorem step_ok (E : Env) (hord : E.OrderOK) {w : World} (hw : WorldOK E w) (e :
         simp only
         split
         · rename_i h; subst h
-          exact (receive_ok hw.store (hw.nodes j) E.fastPath (E.ord j) (hord j) w.now b).1
+          exact (receive_step hw.store (hw.nodes j) E.fastPath (E.ord j) (hord j) w.now b).ok
         · exact hw.nodes j
       · intro j
         simp only
         split
         · rename_i h; subst h
-          exact (receive_ok hw.store (hw.nodes j) E.fastPath (E.ord j) (hord j) w.now b).2
+          exact (receive_step hw.store (hw.nodes j) E.fastPath (E.ord j) (hord j) w.now b).mono
         · exact le_rfl
     · exact stepOK_refl hw
   | create B =>

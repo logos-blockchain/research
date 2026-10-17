@@ -84,6 +84,26 @@ structure NodeOK (k : ℕ) (st : Store) (L : Ledger) (O : Oracle) (G : Genesis) 
   bimm : s.bimm = blockAtDepth st s.cloc k
   rule : s.rule = .online
 
+theorem height_genesis (hS : StoreOK st) : height st genesisId = 0 := by
+  obtain ⟨g, hg, hs, -⟩ := hS.gen
+  simp [height, chain_genesis hg hs]
+
+theorem slotOf_genesis (hS : StoreOK st) : slotOf st genesisId = 0 := by
+  obtain ⟨g, hg, hs, -⟩ := hS.gen
+  simp [slotOf, hg, hs]
+
+/-- A block's parent is on its chain. -/
+theorem parent_mem_chainIds (hS : StoreOK st) {b : ℕ} (hb : Rooted st b) :
+    parentOf st b ∈ chainIds st b := by
+  rw [mem_chainIds hS hb]
+  rcases eq_or_ne b genesisId with h0 | h0
+  · subst h0
+    obtain ⟨g, hg, -, hgp⟩ := hS.gen
+    exact ⟨0, Nat.zero_le _, by simp [parentOf_eq hg, hgp]⟩
+  · refine ⟨1, ?_, rfl⟩
+    obtain ⟨blk, hbk, hp, hs⟩ := hb.inv h0
+    rw [height_step hbk h0 hp hs]; omega
+
 /-! ## Trees, tips and pruning -/
 
 /-- The fork-choice result is the running choice or one of the forks. -/
