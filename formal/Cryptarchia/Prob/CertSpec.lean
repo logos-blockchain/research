@@ -257,7 +257,7 @@ theorem finality_spec {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
   obtain ⟨κ, N, G, G', J, Lw, r, Tg, x, yy, ρ, Hmin⟩ := p
   obtain ⟨M, Ne, lp, lpi, tgt, bx, fin⟩ := q
   have f := finChkSpec.facts hfin
-  obtain ⟨⟨η, ζ, β, d, dy, K, ys⟩, famZL, Dz, Δ, c, z, s, d', τ⟩ := F
+  obtain ⟨⟨Δ, c, z, s, d', τ⟩, ⟨η, ζ, β, d, dy, K, ys⟩, famZL, Dz⟩ := F
   simp only at hK
   subst hK
   have hEL : E.c.epochLength = Config.spec.epochLength := by rw [hc]

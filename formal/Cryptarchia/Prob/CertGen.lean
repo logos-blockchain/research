@@ -152,18 +152,25 @@ end FamSpec
 
 /-! ## One phase index, from its seeds -/
 
-/-- What a certificate's index checks depend on: the band family, its integer bands over `D`
-(listed, as computed once at elaboration time), `Δ`, and the potential's parameters. -/
-structure FamCfg where
+/-- The potential's parameters, and the network delay. -/
+structure PotCfg where
+  /-- the network delay, in slots -/
+  Δ : ℕ
+  /-- the potential's base for the reach, and for the margin when cold -/
+  c : ℚ
+  z : ℚ
+  /-- the cold potential's first term's weight, and its second term's base -/
+  s : ℚ
+  d : ℚ
+  /-- the span term's base per slot -/
+  τ : ℚ
+
+/-- What a certificate's index checks depend on: the potential's parameters, the band family, and its
+integer bands over `D` (listed, as computed once at elaboration time). -/
+structure FamCfg extends PotCfg where
   S : FamSpec
   famZL : List (List ℤ)
   D : ℤ
-  Δ : ℕ
-  c : ℚ
-  z : ℚ
-  s : ℚ
-  d : ℚ
-  τ : ℚ
 
 /-- One index's data, computed at elaboration time: each member's post- and pre-switch seeds,
 in-epoch bound and the largest pre-switch bound, and the switching table's seeds and largest

@@ -536,7 +536,7 @@ theorem finality_closed_gen {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} 
   have h2 := ENNReal.ofReal_le_ofReal (band_closed_gen F p q hf k)
   have hS0 := epsS_nonneg p q f.shA N (k / p.m)
   have hB0 := bandC_nonneg q f.C10 f.C20 f.Q10 f.Q20 (k / p.m)
-  obtain ⟨⟨η, ζ, β, d, dy, K, ys⟩, famZL, Dz, Δ, c, z, s, d', τ⟩ := F
+  obtain ⟨⟨Δ, c, z, s, d', τ⟩, ⟨η, ζ, β, d, dy, K, ys⟩, famZL, Dz⟩ := F
   simp only at hK
   subst hK
   have hβ1 : β < 1 := by
