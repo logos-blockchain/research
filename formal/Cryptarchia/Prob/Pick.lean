@@ -82,7 +82,7 @@ theorem slotBand_pickM (hc : LotConsts E.c T.η) (hT : T.OK) (hnd : E.nodes.Nodu
     {K : ℕ} {mem : Fin (K + 1) → Member} (hok : ∀ k, (mem k).OK T.η T.ζ)
     (hcov : ∀ y, T.ylo ≤ y → y ≤ T.Yh → ∃ k, (mem k).ylo ≤ y ∧ y ≤ (mem k).yhi)
     (hadv : ∀ k, T.β * (mem k).yhi ≤ (1 - T.β) * (mem k).ahi)
-    {i : ℕ} {s : EpochState} (hst : StateOK E T i s) (hin : SlotIn E T i s) :
+    {i : ℕ} {s : EpochState} (hst : StateOK E T.β T.ζ i s) (hin : SlotIn E T i s) :
     SlotBand (mem (pickM E mem (i / E.c.epochLength) s)).B E i s := by
   obtain ⟨hy1, hy2, -⟩ := expo_range hT hst hin
   have hyE := yE_eq hon i s

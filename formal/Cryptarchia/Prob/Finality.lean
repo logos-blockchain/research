@@ -93,7 +93,7 @@ namespace Exec
 most a fraction `β` of the participating stake, honest and adversarial notes are small
 (`ζ`), and lead note identifiers are distinct. -/
 def StakeOK (E : Env) (o : Oracle) (es : List Event) (β ζ : ℝ) : Prop :=
-  ∀ i, StateOK E ⟨0, 0, 0, β, 0, 0, ζ⟩ i (σE (E.withO o) es i)
+  ∀ i, StateOK E β ζ i (σE (E.withO o) es i)
 
 /-- **Chain quality for the stake estimate**: in each of the first `Ne - 1` epochs, the
 canonical chain counts (as block or uncle slots) at least a fraction `1 - μ` of the
@@ -111,9 +111,6 @@ def StakeDrift (E : Env) (o : Oracle) (es : List Event) (ρ : ℝ) (Ne : ℕ) : 
 def MinStake (E : Env) (o : Oracle) (es : List Event) (Hmin : ℝ) : Prop := Prob.MinStake E (σE (E.withO o) es) Hmin
 
 end Exec
-
-theorem stateOK_of {E : Env} {T : TBand} {i : ℕ} {s : EpochState} (h : StateOK E ⟨0, 0, 0, T.β, 0, 0, T.ζ⟩ i s) :
-    StateOK E T i s := ⟨h.nodup, h.smallH, h.smallA, h.frac⟩
 
 /-- **Genesis in band**, from the genesis estimate being the genesis stake. -/
 theorem inB0_of_genesisOK {E : Env} {T : TBand} (hon : OnlineEpoch E) (hg : GenesisOK E)
@@ -175,7 +172,7 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     exact div_pos (by exact_mod_cast hprec) this
   exact finality_tight hM.assm es hN hM.delivery hM.oracle hM.measurable hM.fresh hΔ D hP hx hyy0 hyy1 hT
     hNM hhi1 hlo0 hlo1 helo1 hLw hOG hc hTb hb hprec hPf hP1 hPEL
-    (fun ω i => stateOK_of (E := E) (hS ω i))
+    hS
     (inB0_of_genesisOK hM.onlineEpoch hG (by linarith [hTb.μ1]) hg1 hg2) hNe (fun ω e he => hQ ω e he)
     (fun ω e he => stakePath_of_drift (E := E) hTb hl hK hP1 hρ hHm (hD ω e he) (hH ω) hup hdn)
     hM.onlineEpoch hM.live hfam hok hcov hadv

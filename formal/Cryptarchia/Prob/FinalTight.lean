@@ -83,7 +83,7 @@ theorem finality_tight {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
     {Tb : TBand} (hc : LotConsts E.c Tb.η) (hTb : Tb.OK) (hb : E.c.betaP = E.c.precision)
     (hprec : 0 < E.c.precision) (hPf : 0 < E.c.period * E.c.fP) (hP1 : 1 ≤ E.c.period)
     (hPEL : E.c.period ≤ E.c.epochLength)
-    (hst : ∀ ω i, StateOK E Tb i (σE (E.withO (O ω)) (es ω) i))
+    (hst : ∀ ω i, StateOK E Tb.β Tb.ζ i (σE (E.withO (O ω)) (es ω) i))
     (h0 : InB E Tb (fun _ => es0 E) 0) {Ne : ℕ} (hNe : M / E.c.epochLength < Ne)
     (hlo : ∀ ω e, e + 1 < Ne → (1 - Tb.μ) *
       hcnt E (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e ≤

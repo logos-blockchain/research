@@ -417,11 +417,11 @@ def SlotIn (E : Env) (T : TBand) (i : ℕ) (s : EpochState) : Prop :=
 
 /-- **What a state must satisfy regardless of its estimate**: distinct note
 identifiers, small notes, and the adversary's stake share at most `β`. -/
-structure StateOK (E : Env) (T : TBand) (i : ℕ) (s : EpochState) : Prop where
+structure StateOK (E : Env) (β ζ : ℝ) (i : ℕ) (s : EpochState) : Prop where
   nodup : (s.lead.map Note.id).Nodup
-  smallH : Small E.c s (honNotes E i s E.nodes) T.ζ
-  smallA : Small E.c s (advNotes s) T.ζ
-  frac : (1 - T.β) * astake s ≤ T.β * hstake E i s
+  smallH : Small E.c s (honNotes E i s E.nodes) ζ
+  smallA : Small E.c s (advNotes s) ζ
+  frac : (1 - β) * astake s ≤ β * hstake E i s
 
 theorem lam0_nonneg (c : Config) : 0 ≤ lam0 c := by unfold lam0; positivity
 
@@ -430,7 +430,7 @@ theorem hstake_nonneg (E : Env) (i : ℕ) (s : EpochState) : 0 ≤ hstake E i s 
 theorem astake_nonneg (s : EpochState) : 0 ≤ astake s := by unfold astake; positivity
 
 /-- The honest exponent of an in-band slot lies in `[ylo, Yh]`. -/
-theorem expo_range (hT : T.OK) {i : ℕ} {s : EpochState} (hst : StateOK E T i s) (hin : SlotIn E T i s) :
+theorem expo_range (hT : T.OK) {i : ℕ} {s : EpochState} (hst : StateOK E T.β T.ζ i s) (hin : SlotIn E T i s) :
     T.ylo ≤ expo E.c s (honNotes E i s E.nodes) ∧ expo E.c s (honNotes E i s E.nodes) ≤ T.Yh ∧
       expo E.c s (advNotes s) ≤ T.Ya := by
   have hD : (0 : ℝ) < s.D := by have := hst.smallH.D_pos; exact_mod_cast (by omega : 0 < s.D)
@@ -458,7 +458,7 @@ theorem expo_range (hT : T.OK) {i : ℕ} {s : EpochState} (hst : StateOK E T i s
 
 /-- **The honest rate of an in-band slot**: `D · P(some honest leader) ≥ λ H · clo`. -/
 theorem rate_hon_ge (hc : LotConsts E.c T.η) (hT : T.OK) {i : ℕ} {s : EpochState}
-    (hst : StateOK E T i s) (hin : SlotIn E T i s) :
+    (hst : StateOK E T.β T.ζ i s) (hin : SlotIn E T i s) :
     lam0 E.c * hstake E i s * T.clo ≤ s.D * rateA honA (lawS E i s) := by
   obtain ⟨hlo, hhi, -⟩ := expo_range hT hst hin
   have hD : (0 : ℝ) < s.D := by have := hst.smallH.D_pos; exact_mod_cast (by omega : 0 < s.D)
@@ -500,7 +500,7 @@ theorem rate_hon_ge (hc : LotConsts E.c T.η) (hT : T.OK) {i : ℕ} {s : EpochSt
 
 /-- **The occupied rate of an in-band slot**: `D · P(occupied) ≤ λ (H + A) · chi`. -/
 theorem rate_occ_le (hc : LotConsts E.c T.η) (hT : T.OK) {i : ℕ} {s : EpochState}
-    (hst : StateOK E T i s) (hin : SlotIn E T i s) :
+    (hst : StateOK E T.β T.ζ i s) (hin : SlotIn E T i s) :
     s.D * rateA occA (lawS E i s) ≤ lam0 E.c * (hstake E i s + astake s) * T.chi := by
   obtain ⟨hlo, hhi, hA⟩ := expo_range hT hst hin
   have hD : (0 : ℝ) < s.D := by have := hst.smallH.D_pos; exact_mod_cast (by omega : 0 < s.D)
@@ -556,7 +556,7 @@ theorem rate_occ_le (hc : LotConsts E.c T.η) (hT : T.OK) {i : ℕ} {s : EpochSt
 
 /-- The honest rate of an in-band slot is at least `ylo · clo`. -/
 theorem rate_hon_lo (hc : LotConsts E.c T.η) (hT : T.OK) {i : ℕ} {s : EpochState}
-    (hst : StateOK E T i s) (hin : SlotIn E T i s) : T.ylo * T.clo ≤ rateA honA (lawS E i s) := by
+    (hst : StateOK E T.β T.ζ i s) (hin : SlotIn E T i s) : T.ylo * T.clo ≤ rateA honA (lawS E i s) := by
   obtain ⟨hlo, -, -⟩ := expo_range hT hst hin
   have hD : (0 : ℝ) < s.D := by have := hst.smallH.D_pos; exact_mod_cast (by omega : 0 < s.D)
   have h := rate_hon_ge hc hT hst hin
@@ -652,7 +652,7 @@ estimate follows the update, and the stake path allows it, epoch `e + 1` is in b
 theorem band_step (hc : LotConsts E.c T.η) (hT : T.OK) (hb : E.c.betaP = E.c.precision)
     (hprec : 0 < E.c.precision) (hPf : 0 < E.c.period * E.c.fP) (hP1 : 1 ≤ E.c.period)
     (hPEL : E.c.period ≤ E.c.epochLength)
-    (hconst : ∀ i, σ i = σ (i / E.c.epochLength * E.c.epochLength)) (hst : ∀ i, StateOK E T i (σ i))
+    (hconst : ∀ i, σ i = σ (i / E.c.epochLength * E.c.epochLength)) (hst : ∀ i, StateOK E T.β T.ζ i (σ i))
     {e : ℕ} (hin : InB E T σ e) (hty : Typical E T σ X e) (hrec : Recur E T σ X e)
     (hpath : StakePath E T σ e) : InB E T σ (e + 1) := by
   set EL := E.c.epochLength with hELdef
@@ -766,7 +766,7 @@ theorem prob_out_of_band_cover (hA : Assm E) (es : Ω → List Event)
     (hc : LotConsts E.c T.η) (hT : T.OK) (hb : E.c.betaP = E.c.precision)
     (hprec : 0 < E.c.precision) (hPf : 0 < E.c.period * E.c.fP) (hP1 : 1 ≤ E.c.period)
     (hPEL : E.c.period ≤ E.c.epochLength)
-    (hst : ∀ ω i, StateOK E T i (σE (E.withO (O ω)) (es ω) i))
+    (hst : ∀ ω i, StateOK E T.β T.ζ i (σE (E.withO (O ω)) (es ω) i))
     (h0 : ∀ ω, InB E T (σE (E.withO (O ω)) (es ω)) 0) {Ne : ℕ} (Bad : ℕ → Set Ω)
     (hrec : ∀ ω e, e + 1 < Ne → ω ∉ Bad e → Recur E T (σE (E.withO (O ω)) (es ω))
       (fun k => slotOut E (k + 1) (σE (E.withO (O ω)) (es ω) (k + 1)) (tk O (k + 1) ω)) e)
