@@ -53,6 +53,19 @@ open Finset Settle
 
 variable {B : Band} {Δ M N : ℕ} {κ : Kern}
 
+/-- The growth blocks of epoch `ep` end `Δ + 1` slots before its fix slot. -/
+theorem nbD_fit (E : Env) {G T ep : ℕ} (hT : 1 ≤ T) (hep : 1 ≤ ep) (hpos : 0 < nbD E Δ G T) :
+    E.c.cut ep + G + nbD E Δ G T * (T + Δ) ≤ E.c.fix ep - Δ - 1 + Δ := by
+  have h1 : nbD E Δ G T * (T + Δ) ≤ growLen E Δ G + Δ := Nat.div_mul_le_self _ _
+  have hg : T + Δ ≤ growLen E Δ G + Δ := ((Nat.div_pos_iff).1 hpos).2
+  have h3 : E.c.cut ep + G + growLen E Δ G ≤ E.c.fix ep - Δ - 1 := by
+    unfold growLen at hg ⊢
+    unfold Config.cut Config.fix
+    have := epochStart_succ (c := E.c) (ep - 1)
+    rw [show ep - 1 + 1 = ep by omega] at this
+    omega
+  omega
+
 theorem bad_le3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ) {G G' J Lw r T : ℕ} {x yy : ℝ}
     (hx : 1 ≤ x) (hyy0 : 0 < yy) (hyy1 : yy ≤ 1) (hT : 1 ≤ T) (hNG : N + G < M) (hNG' : N + G' < M)
     (hNGG : N + G' + G < M)
@@ -114,6 +127,19 @@ theorem bad_le3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ)
       have := longF_one (Δ := Δ) (G := G) hno
       have := Finset.single_le_sum (fun y _ => n1 y) (Finset.mem_range.2 (show y < N + G' + 1 by omega))
       linarith
+    have hspan : ∀ k, gend Δ M (strOf h) k ≤ N + G' →
+        gend Δ M (strOf h) (k + 1) - gend Δ M (strOf h) (k - J) ≤ Lw := by
+      intro k hk
+      by_contra hsp
+      push Not at hsp
+      have hge : 1 ≤ spanH Δ M P.τ (k - J) (k + 1) h / P.τ ^ (Lw + 1) := by
+        unfold spanH
+        rw [if_pos (show k + 1 ≤ _ from hidx k (by omega)), le_div_iff₀ (by positivity), one_mul]
+        apply pow_le_pow_right₀ hτ
+        omega
+      have hkr : k < N + G' + 1 := by have := le_gend (Δ := Δ) (M := M) (w := strOf h) k; omega
+      have := Finset.single_le_sum (fun k _ => n3 k) (Finset.mem_range.2 hkr)
+      linarith
     apply good_of2 (G := G) (G' := G') (J := J) (Lw := Lw) (r := r) E hΔ hsane hlen hNG hNG'
     · intro y hy
       exact hq' y (by omega)
@@ -122,18 +148,7 @@ theorem bad_le3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ)
       have := occF_one (G' := G') hno
       have := Finset.single_le_sum (fun y _ => n2 y) (Finset.mem_range.2 (show y < N + 1 by omega))
       linarith
-    · intro k hk
-      by_contra hsp
-      push Not at hsp
-      have hk1 : k + 1 ≤ pidx Δ M (strOf h) h.length := hidx k (by omega)
-      have hge : 1 ≤ spanH Δ M P.τ (k - J) (k + 1) h / P.τ ^ (Lw + 1) := by
-        unfold spanH
-        rw [if_pos hk1, le_div_iff₀ (by positivity), one_mul]
-        apply pow_le_pow_right₀ hτ
-        omega
-      have hkr : k < N + G' + 1 := by have := le_gend (Δ := Δ) (M := M) (w := strOf h) k; omega
-      have := Finset.single_le_sum (fun k _ => n3 k) (Finset.mem_range.2 hkr)
-      linarith
+    · exact hspan
     · intro k hk hJ
       by_contra hne
       have hge : 1 ≤ failHE3 Δ M G Lw (N + G') (k - J) k h := by
@@ -149,18 +164,7 @@ theorem bad_le3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ)
           phase_short (N := N + G') hNGG hq'
             (le_trans (gend_strictMono.monotone (f := gend Δ M (strOf h)) (show i ≤ k by omega)) hc1.2)
         have hspk : gend Δ M (strOf h) k ≤ gend Δ M (strOf h) (k - J) + Lw := by
-          have hsp : gend Δ M (strOf h) (k + 1) - gend Δ M (strOf h) (k - J) ≤ Lw := by
-            by_contra hsp
-            push Not at hsp
-            have hk1 : k + 1 ≤ pidx Δ M (strOf h) h.length := hidx k (by omega)
-            have hge : 1 ≤ spanH Δ M P.τ (k - J) (k + 1) h / P.τ ^ (Lw + 1) := by
-              unfold spanH
-              rw [if_pos hk1, le_div_iff₀ (by positivity), one_mul]
-              apply pow_le_pow_right₀ hτ
-              omega
-            have hkr : k < N + G' + 1 := by omega
-            have := Finset.single_le_sum (fun k _ => n3 k) (Finset.mem_range.2 hkr)
-            linarith
+          have hsp := hspan k hc1.2
           have h1 := gend_strictMono (Δ := Δ) (M := M) (w := strOf h) (show k < k + 1 by omega)
           have h2 := gend_strictMono.monotone (f := gend Δ M (strOf h)) (show k - J ≤ k by omega)
           omega
@@ -206,18 +210,11 @@ theorem bad_le3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ)
             (nbD E Δ G T - 1)
           rw [show nbD E Δ G T - 1 + 1 = nbD E Δ G T by omega] at hb
           have hfit : E.c.cut ep + G + (nbD E Δ G T - 1) * (T + Δ) + T ≤ E.c.fix ep - Δ - 1 := by
-            have h1 : nbD E Δ G T * (T + Δ) ≤ growLen E Δ G + Δ := Nat.div_mul_le_self _ _
             have h2 : (nbD E Δ G T - 1) * (T + Δ) + T + Δ = nbD E Δ G T * (T + Δ) := by
               have : nbD E Δ G T = (nbD E Δ G T - 1) + 1 := by omega
               conv_rhs => rw [this]
               ring
-            have hg : T + Δ ≤ growLen E Δ G + Δ := ((Nat.div_pos_iff).1 hpos).2
-            have h3 : E.c.cut ep + G + growLen E Δ G ≤ E.c.fix ep - Δ - 1 := by
-              unfold growLen at hg ⊢
-              unfold Config.cut Config.fix
-              have := epochStart_succ (c := E.c) (ep - 1)
-              rw [show ep - 1 + 1 = ep by omega] at this
-              omega
+            have := nbD_fit E hT hep hpos
             omega
           have hm := hD_mono (Δ := Δ) (w := strOf h) (a := E.c.cut ep + G) hfit
           omega
@@ -330,14 +327,7 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
     have hfit : E.c.cut ep + G + nbD E Δ G T * (T + Δ) ≤ M := by
       rcases Nat.eq_zero_or_pos (nbD E Δ G T) with h0 | hpos
       · rw [h0]; omega
-      · have h1 : nbD E Δ G T * (T + Δ) ≤ growLen E Δ G + Δ := Nat.div_mul_le_self _ _
-        have hg : T + Δ ≤ growLen E Δ G + Δ := ((Nat.div_pos_iff).1 hpos).2
-        have h3 : E.c.cut ep + G + growLen E Δ G ≤ E.c.fix ep - Δ - 1 := by
-          unfold growLen at hg ⊢
-          unfold Config.cut Config.fix
-          have := epochStart_succ (c := E.c) (ep - 1)
-          rw [show ep - 1 + 1 = ep by omega] at this
-          omega
+      · have := nbD_fit E hT hep.1 hpos
         omega
     exact blocks_le (κ := κ) honQ (a0 := 1) (a1 := yy) (qlo := B.hlo) (qhi := B.hhi) zero_le_one hyy0.le
       (fun l => hB.hhi l) (fun l => hB.hlo l) hhi1 hlo0 (y := E.c.cut ep + G) (Lb := T + Δ) (T := T)
