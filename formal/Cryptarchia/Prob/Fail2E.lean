@@ -1,6 +1,6 @@
 module
 
-public import Cryptarchia.Prob.Cold2E
+public import Cryptarchia.Prob.Cold2
 public import Cryptarchia.Prob.Fail2
 import Cryptarchia.Settle.Mono
 import Mathlib.Algebra.Order.Floor.Extended

@@ -265,22 +265,12 @@ theorem runFrom_congr2 {w w' : CStr} {ℓ : ℕ} {e e' : ℕ → ℕ} (hmono : �
 end
 
 /-!
-## The cold condition fails rarely
+## The bound process from an anchor
 
-Fix an anchor phase `k0`. From `k0` on, run the bound process restarted with
-margin = reach (`rf`), as in `cold_of_run`. A **failure** at phase `k ≥ k0` is a
-phase that ends before `N`, at least `W` slots after phase `k0`, whose margin is
-not cold for the next phase (`failK`).
-
-`cold_anchor`: under a kernel within the band, the expected number of failures
-anchored at `k0` is at most `C · (1 + b / (1 - λr))`, with
-
-  `C = mz / (θ^W (1 - λp))`.
-
-The proof is a supermartingale over phases (`Ex_phase`). Before `k0` it tracks
-`c^ρ` (the reach bound, which has a stationary bound); after `k0` it tracks
-`V(ρ, μ) · θ^(slots since k0)`, which contracts by `λp` per phase in expectation
-(`ColdCert`), plus the failures so far.
+Fix an anchor phase `k0`. From `k0` on, the bound process restarted with margin = reach
+(`rf`); over one phase to the first phase end `h'` it takes one more step
+(`next_rf_succ`). Also the crossing pattern's weight (`crossG`) and geometric sums
+(`geom_mix`), for the potentials of the cold condition.
 -/
 
 open Finset Settle

@@ -2,7 +2,6 @@ module
 
 public import Cryptarchia.Prob.AutoE
 public import Cryptarchia.Prob.Cold2
-public import Cryptarchia.Prob.Cold2E
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic

@@ -52,7 +52,6 @@ public import Cryptarchia.Prob.Good
 public import Cryptarchia.Prob.Tail
 public import Cryptarchia.Prob.Final
 public import Cryptarchia.Prob.Auto
-public import Cryptarchia.Prob.Potential2
 public import Cryptarchia.Prob.Cold2
 public import Cryptarchia.Prob.Fail2
 public import Cryptarchia.Prob.Good2
@@ -64,7 +63,6 @@ public import Cryptarchia.Prob.Stake
 public import Cryptarchia.Prob.WorstE
 public import Cryptarchia.Prob.ROEpoch
 public import Cryptarchia.Prob.AutoE
-public import Cryptarchia.Prob.Cold2E
 public import Cryptarchia.Prob.Fail2E
 public import Cryptarchia.Prob.Final2E
 public import Cryptarchia.Prob.TSIRO
