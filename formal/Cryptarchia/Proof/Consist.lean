@@ -72,7 +72,7 @@ theorem cons_of_lot (hA : Assm E) (hlive : ∀ t, ∃ j ∈ E.nodes, E.online j 
     {w : CStr} (hdom : AdvLeW Hc (lotStrS E (σE E es) (lateAt E es)) w)
     (hL : GoodLSW E w Hc W e) (hLg : GrowthOn E w e Hc) :
     prefixBelow (CP E es (ep + 1)) (E.c.cut ep) = CP E es ep := by
-  obtain ⟨hG, hGr⟩ := stage hA hdom hL hLg ep
+  obtain ⟨hG, hGr⟩ := stage hA hdom hL hLg (ep + 1)
   have hcc : E.c.cut ep ≤ E.c.cut (ep + 1) := by
     unfold Config.cut
     have := epochStart_mono (c := E.c) (show ep - 1 ≤ ep + 1 - 1 by omega)
