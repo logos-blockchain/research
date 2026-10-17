@@ -1,8 +1,13 @@
 module
 
-public import Cryptarchia.Prob.Final2E
-public import Cryptarchia.Prob.Tail3E
+public import Cryptarchia.Prob.Fail3E
+public import Cryptarchia.Prob.Tail2
+import Cryptarchia.Prob.Tail
+public import Cryptarchia.Prob.Auto
+public import Cryptarchia.Prob.RO
+public import Cryptarchia.Prob.WorstE
 import Cryptarchia.Prob.ROEpoch
+public import Cryptarchia.Prob.Tail3E
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -37,19 +42,105 @@ import Mathlib.Topology.Sheaves.Init
 import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
-# Probabilistic finality over many epochs, with an in-epoch contraction
+# Certificates for a family of bands, one member per epoch
 
-`Cert3E` adds to a `Cert2E` an in-epoch contraction `lpi`: for each member, phase bounds
-`ei k` from its own tables (`vpost`, no switch) and a crossing bound `pat0 k` from its own
-band, meeting the class conditions with `lpi`. Phases that start more than `G` slots before an epoch boundary use them; the
-others pay `(lp / lpi)` each, at most `G` times per check window (`swCnt_noSw_le`,
-for `Lw + G < EL`). `final_bimm_ro_epoch3_ok` is `final_bimm_ro_epoch_ok` with the
-failed-checks term `lpi^J · (lp/lpi)^G · e₂ · stat`.
+`Cert2E` holds a potential certificate `P` (its constants and class conditions,
+with `P.e i` the bounds for phases cut at `G` slots and `P.lr`, `P.b`, `P.e 2`,
+`P.e 17` bounds for any phase), automaton solutions that switch member at any slot
+for the reach, the checked phase and spans (`vs`, `Cert2E.anyPhase`), and one-switch
+automaton solutions for the contraction (`vpre`, `vpost`, `vmax`, `Cert2E.truncPhase`).
+
+`Cert3E` adds an in-epoch contraction `lpi`: for each member, phase bounds `ei k` from its
+own tables (`vpost`, no switch) and a crossing bound `pat0 k` from its own band, meeting
+the class conditions with `lpi`. Phases that start more than `G` slots before an epoch
+boundary use them; the others pay `lp / lpi` each, at most `G` times per check window
+(`swCnt_noSw_le`, for `Lw + G < EL`). `Cert3E.bounds` and `Cert3E.inEpoch` give the
+settlement bound's hypotheses (`PhaseBounds`, `InEpoch`).
 -/
 
 @[expose] public section
 
 namespace Cryptarchia.Prob
+
+section
+
+open Finset Settle MeasureTheory
+
+/-- **A certificate for a family of bands with one member per epoch.** -/
+structure Cert2E (B : Band) (Δ : ℕ) {K : ℕ} (fam : Fin K → Band) (EL G : ℕ) where
+  P : Cert2 B Δ
+  weakF : ∀ k, B.Weaker (fam k)
+  hG : Δ + 1 ≤ G
+  hGEL : G + 1 < EL
+  /-- tables for phases of any length, switching member at any slot -/
+  vs : Fin 19 → ℕ → Fin 3 → Bool → ℝ
+  solS : ∀ i : Fin 19, (i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 17) → ∀ k,
+    AutoSol (fam k) Δ (xg P.c P.z P.s P.d P.τ i).1 (xg P.c P.z P.s P.d P.τ i).2.1 (xg P.c P.z P.s P.d P.τ i).2.2 (vs i)
+  heS0 : ∀ k, autoBound (fam k) (xg P.c P.z P.s P.d P.τ 0).1 (xg P.c P.z P.s P.d P.τ 0).2.1
+    (xg P.c P.z P.s P.d P.τ 0).2.2 (vs 0) ≤ P.lr
+  heS1 : ∀ k, autoBound (fam k) (xg P.c P.z P.s P.d P.τ 1).1 (xg P.c P.z P.s P.d P.τ 1).2.1
+    (xg P.c P.z P.s P.d P.τ 1).2.2 (vs 1) ≤ P.b
+  heS2 : ∀ k, autoBound (fam k) (xg P.c P.z P.s P.d P.τ 2).1 (xg P.c P.z P.s P.d P.τ 2).2.1
+    (xg P.c P.z P.s P.d P.τ 2).2.2 (vs 2) ≤ P.e 2
+  heS17 : ∀ k, autoBound (fam k) (xg P.c P.z P.s P.d P.τ 17).1 (xg P.c P.z P.s P.d P.τ 17).2.1
+    (xg P.c P.z P.s P.d P.τ 17).2.2 (vs 17) ≤ P.e 17
+  /-- one-switch tables for phases cut at `G` slots -/
+  vpre : Fin 19 → Fin K → ℕ → Fin 3 → Bool → ℝ
+  vpost : Fin 19 → Fin K → ℕ → Fin 3 → Bool → ℝ
+  vmax : Fin 19 → ℕ → Fin 3 → Bool → ℝ
+  solE : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → AutoSolE fam Δ (xg P.c P.z P.s P.d P.τ i).1 (xg P.c P.z P.s P.d P.τ i).2.1
+    (xg P.c P.z P.s P.d P.τ i).2.2 (vpre i) (vpost i) (vmax i)
+  heE : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ k, autoBound (fam k) (xg P.c P.z P.s P.d P.τ i).1
+    (xg P.c P.z P.s P.d P.τ i).2.1 (xg P.c P.z P.s P.d P.τ i).2.2 (vpre i k) ≤ P.e i
+
+variable {B : Band} {Δ M : ℕ} {κ : Kern}
+
+theorem xg_g_nonneg (P : Cert2 B Δ) (i : Fin 19) (a : Fin 3) (b u : Bool) :
+    0 ≤ (xg P.c P.z P.s P.d P.τ i).2.2 a b u := by
+  have hc0 : 0 < P.c := by linarith [P.hc]
+  have hz0 : 0 < P.z := by linarith [P.hz]
+  have hs0 : 0 < P.s := by linarith [P.hs]
+  have hd0 : 0 < P.d := P.hd0
+  fin_cases i <;> simp only [xg, xgN, gtab] <;> first | positivity | (split_ifs <;> positivity)
+
+section Derive
+
+variable {K EL G : ℕ} {fam : Fin K → Band} (C : Cert2E B Δ fam EL G) (hκ : κ.EpochFam EL fam)
+include C hκ
+
+theorem Cert2E.within : κ.Within B :=
+  hκ.fam.within fun B' hB' => by
+    obtain ⟨k, rfl⟩ := List.mem_ofFn.1 hB'
+    exact C.weakF k
+
+theorem Cert2E.anyPhase (i : Fin 19) (hi : i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 17) {e : ℝ}
+    (he : ∀ k, autoBound (fam k) (xg C.P.c C.P.z C.P.s C.P.d C.P.τ i).1 (xg C.P.c C.P.z C.P.s C.P.d C.P.τ i).2.1
+      (xg C.P.c C.P.z C.P.s C.P.d C.P.τ i).2.2 (C.vs i) ≤ e) :
+    ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP C.P i h.length) h ≤ e := by
+  intro h hpe hlM
+  obtain ⟨mem, hband, -⟩ := hκ
+  have hx := xg_nonneg C.P i
+  -- a phase from `h` ends by the horizon, so a cut at `M` slots keeps all of it
+  refine le_trans (ExPh_mono_on _ _ _ fun o t ht _ _ => le_of_eq ?_)
+    ((phase_autoT (m := h.length) (G := M) (fun _ => C.vs i) (fun h => fam (mem h)) hband
+      (xg_g_nonneg C.P i) (fun _ _ _ _ _ _ _ _ => le_rfl) (fun h _ _ => (C.solS i hi (mem h)).step)
+      (fun h => (C.solS i hi (mem h)).term) hx.1 hx.2 (by omega) C.P.hΔ (start_of_pe hpe hlM) rfl hlM).trans
+      (he (mem h)))
+  unfold truncG WP; rw [if_pos (by simp; omega)]
+
+theorem Cert2E.truncPhase : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ h, PE Δ M h → h.length < M →
+    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP C.P i h.length)) h ≤ C.P.e i := by
+  intro i h2 h17 h hpe hlM
+  obtain ⟨mem, hband, hmem⟩ := hκ
+  have hx := xg_nonneg C.P i
+  have hEL : 0 < EL := by have := C.hGEL; omega
+  have hG1 : 1 ≤ G := by have := C.hG; omega
+  exact phase_autoE (C.solE i h2 h17) (xg_g_nonneg C.P i) mem hband hmem hx.1 hx.2 hEL C.hGEL hG1
+    (C.heE i h2 h17) C.P.hΔ (start_of_pe hpe hlM) hlM
+
+end Derive
+
+end
 
 open Finset Settle MeasureTheory
 
@@ -61,7 +152,7 @@ structure Cert3E (B : Band) (Δ : ℕ) {K : ℕ} (fam : Fin K → Band) (EL G : 
   lpi : ℝ
   ei : Fin K → Fin 19 → ℝ
   pat0 : Fin K → ℝ
-  hcl : ∀ k, ClassOK C.P lpi (ei k) (pat0 k)
+  hcl : ∀ k, ClassOK C.P.c C.P.z C.P.s C.P.κ C.P.d lpi (ei k) (pat0 k)
   hlpi0 : 0 < lpi
   hlpi : lpi ≤ C.P.lp
   hpat : ∀ k, pat0 k ≤ (fam k).slo * (fam k).elo ^ Δ
@@ -107,14 +198,17 @@ section Derive
 variable {K EL G : ℕ} {fam : Fin K → Band} (D : Cert3E B Δ fam EL G) (hκ : κ.EpochFam EL fam)
 include D hκ
 
-/-- **A phase inside an epoch**: the starting member's class conditions, crossing bound
-and own-table phase bounds. -/
-theorem Cert3E.inEpoch : ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ ¬ NoSw EL G h.length →
-    ∃ (e : Fin 19 → ℝ) (pat : ℝ), ClassOK D.C.P D.lpi e pat ∧
-      pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h ∧
-      ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
-        ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP D.C.P i h.length)) h ≤ e i := by
-  intro h hpe hlM hnb
+/-- **The phase bounds** of the certificate. -/
+theorem Cert3E.bounds : PhaseBounds κ M G D.C.P :=
+  ⟨D.C.anyPhase hκ 0 (by decide) D.C.heS0, D.C.anyPhase hκ 1 (by decide) D.C.heS1,
+    D.C.anyPhase hκ 2 (by decide) D.C.heS2, D.C.anyPhase hκ 17 (by decide) D.C.heS17, D.C.truncPhase hκ⟩
+
+/-- **The in-epoch contraction**: a phase that starts more than `G` slots before an epoch
+boundary meets the starting member's class conditions, through its crossing bound and
+own-table phase bounds. -/
+theorem Cert3E.inEpoch {Lw : ℕ} (hLw : Lw + G < EL) :
+    InEpoch κ M G D.C.P D.lpi (fun t => ¬ NoSw EL G t) Lw G := by
+  refine ⟨D.hlpi0, D.hlpi, swCnt_noSw_le (by omega) hLw, fun h hpe hlM hnb => ?_⟩
   obtain ⟨mem, hband, hmem⟩ := hκ
   have hG1 : 1 ≤ G := by have := D.C.hG; have := D.C.P.hΔ; omega
   refine ⟨D.ei (mem h), D.pat0 (mem h), D.hcl (mem h),

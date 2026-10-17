@@ -1,7 +1,7 @@
 module
 
-public import Cryptarchia.Prob.Potential2
-public import Cryptarchia.Prob.Cold
+public import Cryptarchia.Prob.Auto
+public import Cryptarchia.Prob.Next
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Algebra.Order.Ring.Star
@@ -46,19 +46,181 @@ import Std.Tactic.BVDecide.Normalize.Prop
 /-!
 # The cold condition, sharper
 
-The same bad event as `Cold.lean` (a margin that is not cold), bounded with the
-two-term potential `V2` and with expectations over a phase taken through the
-automaton of `Auto.lean`. The potential contracts by `λp` per phase in every state
-(`ex_post2`), checked state class by state class: warm with positive or zero
-reach, and cold with reach `0, 1, 2, ≥ 3` and margin `-1` or `≤ -2`.
-
-The certificate (`Cert2`) holds the parameters and, for each of 19 expectations
-over one phase, a solution of the automaton recursion.
+The bad event of the cold condition (`Next.lean`: a margin that is not cold), bounded with
+a two-term potential `V2` and with expectations over a phase taken through the automaton
+(`Auto.lean`).
 -/
 
 @[expose] public section
 
 namespace Cryptarchia.Prob
+
+/-!
+## A two-term potential
+
+`V2(ρ, μ) = c^ρ` when warm, and `z^μ · (s c^ρ + κ d^ρ)` when cold (`0 < d ≤ 1`). The
+second term gives cold states with a small reach bound extra weight, which is
+where the single-term potential is loosest. The potential after one phase in closed
+form (`V2_stay`, `V2_rewarm`, `V2_warm_step`), and the honest-depth facts the class
+bounds use (`hD_le_honCnt`, `min_hD_le`).
+-/
+
+section
+
+open Finset Settle
+
+variable {Δ : ℕ} {w : CStr}
+
+/-- The potential. -/
+noncomputable def V2 (c z s κ d : ℝ) (st : ℤ × ℤ) : ℝ :=
+  if st.2 < 0 then z ^ st.2 * (s * c ^ st.1 + κ * d ^ st.1) else c ^ st.1
+
+variable {c z s κ d : ℝ}
+
+theorem V2_warm {st : ℤ × ℤ} (h : 0 ≤ st.2) : V2 c z s κ d st = c ^ st.1 := by
+  unfold V2; rw [if_neg (by omega)]
+
+theorem V2_cold {st : ℤ × ℤ} (h : st.2 < 0) : V2 c z s κ d st = z ^ st.2 * (s * c ^ st.1 + κ * d ^ st.1) := by
+  unfold V2; rw [if_pos h]
+
+theorem V2_pos (hc : 0 < c) (hz : 0 < z) (hs : 0 < s) (hκ : 0 ≤ κ) (hd : 0 < d) (st : ℤ × ℤ) :
+    0 < V2 c z s κ d st := by
+  unfold V2; split_ifs <;> positivity
+
+/-- Honest depth counts some of the honest slots. -/
+theorem hD_le_honCnt {a : ℕ} : ∀ b, hD Δ w a b ≤ honCnt w a b := by
+  intro b
+  induction b using Nat.strong_induction_on with
+  | _ b ih =>
+    unfold hD
+    by_cases hb : b ≤ a
+    · simp only [hb, ↓reduceDIte, Nat.zero_le]
+    · simp only [hb, ↓reduceDIte]
+      have hsplit := honCnt_succ (w := w) (a := a) (b := b - 1) (by omega)
+      rw [show b - 1 + 1 = b by omega] at hsplit
+      by_cases hw : (w b).1 = 0
+      · simp only [hw, ↓reduceIte]
+        have := ih (b - 1) (by omega)
+        rw [hsplit]; simp [hw]; exact this
+      · simp only [hw, ↓reduceIte]
+        have h1 := ih (b - Δ - 1) (by omega)
+        have h2 : honCnt w a (b - Δ - 1) ≤ honCnt w a (b - 1) := by
+          unfold honCnt
+          apply Finset.card_le_card
+          intro j hj; simp only [Finset.mem_filter, Finset.mem_Ioc] at hj ⊢; exact ⟨⟨hj.1.1, by omega⟩, hj.2⟩
+        rw [hsplit]; simp [hw]; omega
+
+theorem honIn_iff_honCnt {a b : ℕ} : HonIn w a b ↔ 1 ≤ honCnt w a b := by
+  unfold HonIn honCnt
+  constructor
+  · rintro ⟨i, h1, h2, h3⟩; exact Finset.card_pos.2 ⟨i, by simp; exact ⟨⟨h1, h2⟩, h3⟩⟩
+  · intro h
+    obtain ⟨i, hi⟩ := Finset.card_pos.1 h
+    simp only [Finset.mem_filter, Finset.mem_Ioc] at hi
+    exact ⟨i, hi.1.1, hi.1.2, hi.2⟩
+
+/-! ## The potential after one phase -/
+
+/-- **Staying cold.** -/
+theorem V2_stay {ℓ a b : ℕ} {st : ℤ × ℤ} (hm : st.2 ≤ st.1) (hcold : st.2 < -(advCnt w a b : ℤ)) :
+    V2 c z s κ d (step Δ w ℓ a b st) =
+      z ^ (st.2 + advCnt w a b - hD Δ w a b) *
+        (s * c ^ (max (st.1 + advCnt w a b - hD Δ w a b) (advCnt w a b)) +
+          κ * d ^ (max (st.1 + advCnt w a b - hD Δ w a b) (advCnt w a b))) := by
+  classical
+  rw [step_cases ℓ a b st hm, if_pos hcold]
+  have hH : (0 : ℤ) ≤ hD Δ w a b := by positivity
+  rw [V2_cold (by simp; omega)]
+
+/-- **Rewarming.** -/
+theorem V2_rewarm {ℓ a b : ℕ} {st : ℤ × ℤ} (hm : st.2 ≤ st.1) (hneg : st.2 < 0)
+    (hwarm : -(advCnt w a b : ℤ) ≤ st.2) :
+    V2 c z s κ d (step Δ w ℓ a b st) = c ^ (max (st.1 + advCnt w a b - hD Δ w a b) (advCnt w a b)) := by
+  classical
+  have hA1 : 1 ≤ advCnt w a b := by omega
+  have hx : ¬ Cross w ℓ a b := fun hx => by have := hx.1; omega
+  rw [step_cases ℓ a b st hm, if_neg (by omega), if_neg hx]
+  rw [V2_warm (show (0 : ℤ) ≤ _ from le_trans (by positivity) (le_max_right _ _))]
+
+/-- **A warm phase from a positive reach** stays warm. -/
+theorem V2_warm_step (hc : 1 ≤ c) {ℓ a b : ℕ} [Decidable (HonIn w a b)] {ρ : ℤ} (hρ : 1 ≤ ρ) :
+    V2 c z s κ d (step Δ w ℓ a b (ρ, ρ)) ≤
+      c ^ ρ * c ^ ((advCnt w a b : ℤ) - (if HonIn w a b then 1 else 0)) := by
+  classical
+  have hr := c_pow_reach (Δ := Δ) (w := w) (ℓ := ℓ) (a := a) (b := b) hc (st := (ρ, ρ))
+    (by simp; omega) (by simp)
+  simp only [show (1 : ℤ) ≤ (ρ, ρ).1 from hρ, ↓reduceIte] at hr
+  have hw : 0 ≤ (step Δ w ℓ a b (ρ, ρ)).2 := by
+    rw [step_cases ℓ a b (ρ, ρ) (by simp)]
+    simp only
+    have hA : (0 : ℤ) ≤ advCnt w a b := by positivity
+    rw [if_neg (by simp; omega)]
+    by_cases hx : Cross w ℓ a b
+    · rw [if_pos hx, hD_of_cross hx]; simp; omega
+    · rw [if_neg hx]; exact le_trans hA (le_max_right _ _)
+  rw [V2_warm hw]
+  exact hr
+
+/-- **A warm phase from zero reach.** A crossing makes the margin negative. -/
+theorem V2_warm_zero {ℓ a b : ℕ} [Decidable (Cross w ℓ a b)] :
+    V2 c z s κ d (step Δ w ℓ a b (0, 0)) ≤
+      c ^ (advCnt w a b : ℤ) - (if Cross w ℓ a b then 1 - (s + κ) * z⁻¹ else 0) := by
+  classical
+  rw [step_cases ℓ a b (0, 0) le_rfl]
+  simp only
+  have hA : (0 : ℤ) ≤ advCnt w a b := by positivity
+  have hH : (0 : ℤ) ≤ hD Δ w a b := by positivity
+  rw [if_neg (by omega)]
+  by_cases hx : Cross w ℓ a b
+  · rw [if_pos hx, if_pos hx]
+    have hA0 : advCnt w a b = 0 := hx.1
+    have hH1 : hD Δ w a b = 1 := hD_of_cross hx
+    simp only [hA0, hH1, Nat.cast_zero, Nat.cast_one, zero_add, zero_sub]
+    rw [V2_cold (by norm_num)]
+    simp [zpow_neg, zpow_one]; ring_nf; exact le_refl _
+  · rw [if_neg hx, if_neg hx, sub_zero]
+    have hmax : max ((0 : ℤ) + advCnt w a b - hD Δ w a b) (advCnt w a b) = advCnt w a b := by
+      apply max_eq_right; omega
+    rw [hmax, V2_warm (by simpa using hA)]
+
+/-- The failure indicator is paid for by the potential. -/
+theorem fail_le2 (hc : 1 ≤ c) (hz : 1 ≤ z) (hs : 1 ≤ s) (hκ : 0 ≤ κ) (hd : 0 < d) {st : ℤ × ℤ}
+    (hst : Inv st) (A : ℕ) :
+    (if -(A : ℤ) ≤ st.2 then (1 : ℝ) else 0) ≤ V2 c z s κ d st * z ^ (A : ℤ) := by
+  have hz0 : 0 < z := by linarith
+  have hc0 : 0 < c := by linarith
+  have hs0 : 0 < s := by linarith
+  split_ifs with h
+  · obtain ⟨h0, h1, h2⟩ := hst
+    rcases le_or_gt 0 st.2 with hμ | hμ
+    · rw [V2_warm hμ]
+      calc (1 : ℝ) ≤ c ^ st.1 * 1 := by rw [mul_one]; exact one_le_zpow₀ hc h0
+        _ ≤ c ^ st.1 * z ^ (A : ℤ) := mul_le_mul_of_nonneg_left (one_le_zpow₀ hz (by positivity))
+            (by positivity)
+    · rw [V2_cold hμ]
+      have h1 : (1 : ℝ) ≤ s * c ^ st.1 + κ * d ^ st.1 := by
+        have := one_le_zpow₀ hc h0
+        have : 0 ≤ κ * d ^ st.1 := by positivity
+        nlinarith
+      calc (1 : ℝ) ≤ 1 * (z ^ st.2 * z ^ (A : ℤ)) := by
+            rw [one_mul, ← zpow_add₀ hz0.ne']; exact one_le_zpow₀ hz (by omega)
+        _ ≤ (s * c ^ st.1 + κ * d ^ st.1) * (z ^ st.2 * z ^ (A : ℤ)) :=
+            mul_le_mul_of_nonneg_right h1 (by positivity)
+        _ = z ^ st.2 * (s * c ^ st.1 + κ * d ^ st.1) * z ^ (A : ℤ) := by ring
+  · have := V2_pos hc0 hz0 hs0 hκ hd st; positivity
+
+end
+
+/-!
+## The certificate and the potential after a phase
+
+The certificate (`Cert2`) holds the parameters, a bound for each of 19 expectations
+over one phase, and the class conditions (`ClassOK`) they meet: warm with positive or
+zero reach, and cold with reach `0, 1, 2, ≥ 3` and margin `-1` or `≤ -2`. The potential
+after a phase is at most a combination of the 19 weights (`post2_le`).
+-/
+
+section
 
 open Finset Settle
 
@@ -101,50 +263,13 @@ noncomputable def xgN (c z s d τ : ℝ) : ℕ → ℝ × ℝ × (Fin 3 → Bool
 /-- The 19 expectations over one phase. -/
 noncomputable def xg (c z s d τ : ℝ) (i : Fin 19) : ℝ × ℝ × (Fin 3 → Bool → Bool → ℝ) := xgN c z s d τ i.val
 
-/-- **The certificate.** -/
-structure Cert2 (B : Band) (Δ : ℕ) where
-  c : ℝ
-  z : ℝ
-  s : ℝ
-  κ : ℝ
-  d : ℝ
-  τ : ℝ
-  lp : ℝ
-  lr : ℝ
-  b : ℝ
-  /-- solutions of the automaton recursions -/
-  v : Fin 19 → ℕ → Fin 3 → Bool → ℝ
-  /-- the expectations they give -/
-  e : Fin 19 → ℝ
-  hc : 1 ≤ c
-  hz : 1 ≤ z
-  hs : 1 ≤ s
-  hκ : 0 ≤ κ
-  hd0 : 0 < d
-  hd1 : d ≤ 1
-  hsz : s + κ ≤ z
-  hτ : 1 ≤ τ
-  hlp0 : 0 ≤ lp
-  hlp : lp < 1
-  hlr0 : 0 ≤ lr
-  hlr1 : lr < 1
-  hb1 : 1 ≤ b
-  helo : 0 ≤ B.elo
-  hΔ : 0 < Δ
-  /-- the family of bands the automaton bounds cover; `B` is weaker than each -/
-  Bs : List Band
-  weak : ∀ B' ∈ Bs, B.Weaker B'
-  sol : ∀ i, ∀ B' ∈ Bs, AutoSol B' Δ (xg c z s d τ i).1 (xg c z s d τ i).2.1 (xg c z s d τ i).2.2 (v i)
-  he : ∀ i, ∀ B' ∈ Bs, autoBound B' (xg c z s d τ i).1 (xg c z s d τ i).2.1 (xg c z s d τ i).2.2 (v i) ≤ e i
-  /-- the span base is at least one -/
-  he17 : 1 ≤ e 17
-  /-- reach recursion -/
-  hlr : e 0 ≤ lr
-  hb : e 1 ≤ b
+/-- The class conditions of a contraction `lp` with phase bounds `e` and crossing bound
+`pat`, for the potential's constants `c z s κ d`. -/
+structure ClassOK (c z s κ d lp : ℝ) (e : Fin 19 → ℝ) (pat : ℝ) : Prop where
   /-- warm, positive reach -/
   w1 : e 0 ≤ lp
-  /-- warm, zero reach: a crossing has probability at least the pattern's -/
-  w0 : e 1 - (1 - (s + κ) * z⁻¹) * (B.slo * B.elo ^ Δ) ≤ lp
+  /-- warm, zero reach: a crossing has probability at least `pat` -/
+  w0 : e 1 - (1 - (s + κ) * z⁻¹) * pat ≤ lp
   /-- cold classes, margin -1, reach 0, 1, 2 -/
   m1r0 : s * (e 3 - lp) + κ * (e 7 - lp) ≤ 0
   m1r1 : s * c * (e 4 - lp) + κ * d * (e 8 - lp) ≤ 0
@@ -158,6 +283,37 @@ structure Cert2 (B : Band) (Δ : ℕ) where
   m2r2 : s * c ^ 2 * (e 6 - lp) + κ * d ^ 2 * (e 13 - lp) ≤ 0
   m2r3a : e 6 ≤ lp
   m2r3 : s * c ^ 3 * (e 6 - lp) + κ * d ^ 3 * max (e 14 - lp) 0 + κ * e 16 ≤ 0
+
+/-- **The certificate**: the potential's constants, its contraction `lp`, the reach
+recursion's `lr` and `b`, and the phase bounds `e` (`Cert2E` proves them). -/
+structure Cert2 (B : Band) (Δ : ℕ) where
+  c : ℝ
+  z : ℝ
+  s : ℝ
+  κ : ℝ
+  d : ℝ
+  τ : ℝ
+  lp : ℝ
+  lr : ℝ
+  b : ℝ
+  e : Fin 19 → ℝ
+  hc : 1 ≤ c
+  hz : 1 ≤ z
+  hs : 1 ≤ s
+  hκ : 0 ≤ κ
+  hd0 : 0 < d
+  hd1 : d ≤ 1
+  hsz : s + κ ≤ z
+  hτ : 1 ≤ τ
+  hlp0 : 0 ≤ lp
+  hlr0 : 0 ≤ lr
+  hlr1 : lr < 1
+  hb1 : 1 ≤ b
+  helo : 0 ≤ B.elo
+  hΔ : 0 < Δ
+  /-- the span base is at least one -/
+  he17 : 1 ≤ e 17
+  cls : ClassOK c z s κ d lp e (B.slo * B.elo ^ Δ)
 
 /-! ## Pointwise bounds -/
 
@@ -567,5 +723,167 @@ theorem xg_nonneg (P : Cert2 B Δ) (i : Fin 19) :
   have hd0 : 0 ≤ P.d := P.hd0.le
   have hτ : 0 ≤ P.τ := by linarith [P.hτ]
   fin_cases i <;> simp only [xg, xgN] <;> constructor <;> first | positivity | norm_num | assumption
+
+end
+
+/-!
+## The potential contracts over truncated phases
+
+With one band member per epoch, phase expectations are bounded only for phases cut
+at `G` slots (`phase_autoE`). The potential `V2` contracts by `lp` over such a phase
+in every state, from the class conditions and truncated per-expectation bounds
+(`ex_post2G_gen`, `ex_post2G_at`; one margin's classes at every reach, `class_row`).
+The crossing pattern of the warm-zero class has `Δ + 1` slots, so it survives the
+truncation when `Δ + 1 ≤ G` (`ex_cross_trunc`).
+-/
+
+open Finset Settle
+
+variable {B : Band} {Δ M : ℕ} {κ : Kern}
+
+theorem ex_cross_trunc {sl el : ℝ} (hel0 : 0 ≤ el) (hΔ : 0 < Δ) {h : List Out}
+    (hlM : h.length + Δ + 1 ≤ M) {G : ℕ} (hG : Δ + 1 ≤ G) (hs : sl ≤ κ.p h ⟨1, false⟩)
+    (hel : ∀ i < Δ, el ≤ κ.p (h ++ pat ⟨1, false⟩ i) Out.empty) :
+    sl * el ^ Δ ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h := by
+  classical
+  have hG0 : ∀ x, 0 ≤ truncG h.length G (crossG 1 h.length) x :=
+    truncG_nonneg (fun x => by unfold crossG; split_ifs <;> positivity)
+  have hl := phase_lower (κ := κ) hel0 hΔ hlM hG0 ⟨1, false⟩ (by decide) hel
+  have hval : truncG h.length G (crossG 1 h.length) (h ++ pat ⟨1, false⟩ Δ) = 1 := by
+    have hlen : (h ++ pat ⟨1, false⟩ Δ).length = h.length + 1 + Δ := by simp [pat]; omega
+    unfold truncG crossG
+    rw [hlen, if_pos (by omega), if_pos (pat_cross h ⟨1, false⟩ rfl rfl)]
+    simp
+  rw [hval, mul_one] at hl
+  have : sl * el ^ Δ ≤ κ.p h ⟨1, false⟩ * el ^ Δ := mul_le_mul_of_nonneg_right hs (by positivity)
+  linarith
+
+theorem iaOf_ne (st : ℤ × ℤ) : iaOf st ≠ 2 ∧ iaOf st ≠ 17 := by unfold iaOf; split_ifs <;> decide
+theorem ibOf_ne (st : ℤ × ℤ) : ibOf st ≠ 2 ∧ ibOf st ≠ 17 := by unfold ibOf; split_ifs <;> decide
+theorem iabsOf_ne (st : ℤ × ℤ) : iabsOf st ≠ 2 ∧ iabsOf st ≠ 17 := by unfold iabsOf; split_ifs <;> decide
+
+/-- **One margin's class conditions**, at every reach `ρ`: the terms `a` (indices `i0`, `i1`),
+`b` (`j0` to `j3`) and, from reach 3, the absolute term (`iab`). -/
+theorem class_row {c s κ d lp : ℝ} (hc : 1 ≤ c) (hs : 1 ≤ s) (hκ : 0 ≤ κ) (hd0 : 0 < d) (hd1 : d ≤ 1)
+    {e : Fin 19 → ℝ} {i0 i1 j0 j1 j2 j3 iab : Fin 19}
+    (m0 : s * (e i0 - lp) + κ * (e j0 - lp) ≤ 0) (m1 : s * c * (e i1 - lp) + κ * d * (e j1 - lp) ≤ 0)
+    (m2 : s * c ^ 2 * (e i1 - lp) + κ * d ^ 2 * (e j2 - lp) ≤ 0) (m3a : e i1 ≤ lp)
+    (m3 : s * c ^ 3 * (e i1 - lp) + κ * d ^ 3 * max (e j3 - lp) 0 + κ * e iab ≤ 0) {ρ : ℤ} (hρ : 0 ≤ ρ) :
+    s * c ^ ρ * (e (if ρ = 0 then i0 else i1) - lp) +
+      κ * d ^ ρ * (e (if ρ = 0 then j0 else if ρ = 1 then j1 else if ρ = 2 then j2 else j3) - lp) +
+      (if 3 ≤ ρ then κ * e iab else 0) ≤ 0 := by
+  by_cases r0 : ρ = 0
+  · simp only [r0, ↓reduceIte, zpow_zero, mul_one]; norm_num; linarith
+  · by_cases r1 : ρ = 1
+    · simp only [r1, ↓reduceIte, zpow_one]; norm_num; linarith
+    · by_cases r2 : ρ = 2
+      · simp only [r2, ↓reduceIte]; norm_num
+        simp only [pow_two] at m2 ⊢
+        linarith
+      · have h3 : 3 ≤ ρ := by omega
+        simp only [r0, r1, r2, ↓reduceIte, h3]
+        have hcρ : c ^ (3 : ℕ) ≤ c ^ ρ := by
+          rw [← zpow_natCast]; exact zpow_le_zpow_right₀ hc (by exact_mod_cast h3)
+        have hdρ : d ^ ρ ≤ d ^ (3 : ℕ) := by
+          rw [← zpow_natCast]; exact zpow_le_zpow_right_of_le_one₀ hd0 hd1 (by exact_mod_cast h3)
+        have t1 : s * c ^ ρ * (e i1 - lp) ≤ s * c ^ 3 * (e i1 - lp) := by
+          have := mul_le_mul_of_nonneg_left hcρ (by linarith : (0 : ℝ) ≤ s)
+          nlinarith
+        have t2 : κ * d ^ ρ * (e j3 - lp) ≤ κ * d ^ 3 * max (e j3 - lp) 0 := by
+          have hm := le_max_left (e j3 - lp) 0
+          have hm0 := le_max_right (e j3 - lp) 0
+          have h1' : κ * d ^ ρ * (e j3 - lp) ≤ κ * d ^ ρ * max (e j3 - lp) 0 :=
+            mul_le_mul_of_nonneg_left hm (by positivity)
+          have h2' : κ * d ^ ρ * max (e j3 - lp) 0 ≤ κ * d ^ 3 * max (e j3 - lp) 0 :=
+            mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left hdρ hκ) hm0
+          linarith
+        linarith
+
+/-- **The potential contracts by `lp` over one truncated phase**, in every state, for
+any phase bounds `e` and crossing bound `pat` meeting the class conditions. -/
+theorem ex_post2G_gen (P : Cert2 B Δ) {lp pat : ℝ} {e : Fin 19 → ℝ} (hcl : ClassOK P.c P.z P.s P.κ P.d lp e pat) {G : ℕ}
+    {st : ℤ × ℤ} (hst : Inv st) {h : List Out} (hlM : h.length + Δ + 1 ≤ M)
+    (hcross : pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h)
+    (hE : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
+      ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ e i) :
+    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (postB2 P st h.length)) h ≤
+      lp * V2 P.c P.z P.s P.κ P.d st := by
+  have hc := P.hc; have hz := P.hz; have hs := P.hs; have hκ := P.hκ
+  have hd0 := P.hd0; have hd1 := P.hd1
+  have hc0 : 0 < P.c := by linarith
+  have hz0 : 0 < P.z := by linarith
+  have hlM' : h.length < M := by omega
+  have E : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
+      ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ e i :=
+    fun i h2 h17 => hE i h2 h17
+  obtain ⟨h0, h1, h2⟩ := hst
+  by_cases hwarm : 1 ≤ st.1 ∧ st.2 = st.1
+  · have hT : truncG h.length G (postB2 P st h.length) =
+        fun h' => P.c ^ st.1 * truncG h.length G (WP P 0 h.length) h' := by
+      funext h'; unfold truncG postB2; rw [if_pos hwarm]; split_ifs <;> ring
+    rw [hT, ExPh_mul_const, V2_warm (by omega)]
+    have := mul_le_mul_of_nonneg_left ((E 0 (by decide) (by decide)).trans hcl.w1) (by positivity : (0 : ℝ) ≤ P.c ^ st.1)
+    linarith
+  · by_cases hneg : st.2 < 0
+    · rw [V2_cold hneg]
+      have hsc : 0 ≤ P.s * P.c ^ st.1 * P.z ^ st.2 := by have := P.hs; positivity
+      have hkd : 0 ≤ P.κ * P.d ^ st.1 * P.z ^ st.2 := by positivity
+      have hzμ : 0 < P.z ^ st.2 := by positivity
+      have hT : truncG h.length G (postB2 P st h.length) = fun h' =>
+          P.s * P.c ^ st.1 * P.z ^ st.2 * truncG h.length G (WP P (iaOf st) h.length) h' +
+            P.κ * P.d ^ st.1 * P.z ^ st.2 * truncG h.length G (WP P (ibOf st) h.length) h' +
+            (if 3 ≤ st.1 then P.κ * P.z ^ st.2 * truncG h.length G (WP P (iabsOf st) h.length) h' else 0) := by
+        funext h'; unfold truncG postB2; rw [if_neg hwarm, if_pos hneg]; split_ifs <;> ring
+      rw [hT]
+      have hlin : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun h' =>
+          P.s * P.c ^ st.1 * P.z ^ st.2 * truncG h.length G (WP P (iaOf st) h.length) h' +
+            P.κ * P.d ^ st.1 * P.z ^ st.2 * truncG h.length G (WP P (ibOf st) h.length) h' +
+            (if 3 ≤ st.1 then P.κ * P.z ^ st.2 * truncG h.length G (WP P (iabsOf st) h.length) h' else 0)) h ≤
+          P.s * P.c ^ st.1 * P.z ^ st.2 * e (iaOf st) + P.κ * P.d ^ st.1 * P.z ^ st.2 * e (ibOf st) +
+            (if 3 ≤ st.1 then P.κ * P.z ^ st.2 * e (iabsOf st) else 0) := by
+        rw [ExPh_add, ExPh_add, ExPh_mul_const, ExPh_mul_const]
+        have t1 := mul_le_mul_of_nonneg_left (E (iaOf st) (iaOf_ne st).1 (iaOf_ne st).2) hsc
+        have t2 := mul_le_mul_of_nonneg_left (E (ibOf st) (ibOf_ne st).1 (ibOf_ne st).2) hkd
+        split_ifs with h3
+        · rw [ExPh_mul_const]
+          have t3 := mul_le_mul_of_nonneg_left (E (iabsOf st) (iabsOf_ne st).1 (iabsOf_ne st).2)
+            (by positivity : (0 : ℝ) ≤ P.κ * P.z ^ st.2)
+          linarith
+        · rw [ExPh_const]; linarith
+      refine hlin.trans ?_
+      -- the class conditions
+      have key : P.s * P.c ^ st.1 * (e (iaOf st) - lp) + P.κ * P.d ^ st.1 * (e (ibOf st) - lp) +
+          (if 3 ≤ st.1 then P.κ * e (iabsOf st) else 0) ≤ 0 := by
+        unfold iaOf ibOf iabsOf
+        by_cases hm1 : st.2 = -1
+        · simp only [hm1, ↓reduceIte]
+          exact class_row hc hs hκ hd0 hd1 hcl.m1r0 hcl.m1r1 hcl.m1r2 hcl.m1r3a hcl.m1r3 h0
+        · simp only [hm1, ↓reduceIte]
+          exact class_row hc hs hκ hd0 hd1 hcl.m2r0 hcl.m2r1 hcl.m2r2 hcl.m2r3a hcl.m2r3 h0
+      have key' := mul_le_mul_of_nonneg_left key hzμ.le
+      split_ifs at key' ⊢ <;> nlinarith
+    · push Not at hneg
+      have hμ : st.2 = st.1 := by rcases h1 with h1 | h1 <;> [exact h1; omega]
+      have hρ0 : st.1 = 0 := by by_contra hne; exact hwarm ⟨by omega, hμ⟩
+      have hT : truncG h.length G (postB2 P st h.length) = fun h' =>
+          truncG h.length G (WP P 1 h.length) h' - (1 - (P.s + P.κ) * P.z⁻¹) * truncG h.length G (crossG 1 h.length) h' := by
+        funext h'; unfold truncG postB2; rw [if_neg hwarm, if_neg (show ¬ st.2 < 0 by omega)]; split_ifs <;> ring
+      rw [hT, V2_warm (by omega), hρ0, zpow_zero, mul_one, ExPh_sub, ExPh_mul_const]
+      have h1' := E 1 (by decide) (by decide)
+      have h2' := hcross
+      have hz1 : 0 ≤ 1 - (P.s + P.κ) * P.z⁻¹ := by
+        rw [sub_nonneg, ← div_eq_mul_inv, div_le_one hz0]; exact P.hsz
+      have := mul_le_mul_of_nonneg_left h2' hz1
+      linarith [hcl.w0]
+
+/-- **The potential contracts by `λp` over one truncated phase**, in every state. -/
+theorem ex_post2G_at (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 ≤ G)
+    {st : ℤ × ℤ} (hst : Inv st) {h : List Out} (hpe : PE Δ M h) (hlM : h.length + Δ + 1 ≤ M)
+    (hE : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
+      ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ P.e i) :
+    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (postB2 P st h.length)) h ≤
+      P.lp * V2 P.c P.z P.s P.κ P.d st :=
+  ex_post2G_gen P P.cls hst hlM
+    (ex_cross_trunc P.helo P.hΔ hlM hG (hW.slo h) fun _ _ => hW.elo _) hE
 
 end Cryptarchia.Prob

@@ -2,7 +2,7 @@ module
 
 public import Cryptarchia.Prob.Fail3E
 public import Cryptarchia.Prob.Tail2
-import Cryptarchia.Prob.Good
+import Cryptarchia.Prob.Tail
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -40,9 +40,12 @@ import Mathlib.Topology.Sheaves.Init
 /-!
 # The settlement bound with an in-epoch contraction
 
-As `Tail2E.lean`, with failed checks bounded through `fail_checkE3`: the failed-checks
-term is `lpi^J · (lp/lpi)^Ccap · e₂ · stat` instead of `lp^J · e₂ · stat`. A failed check
-counts only within `Lw` slots of its anchor; the span term already pays for longer spans.
+`settle_bound3E`: under a kernel within the band, with the phase bounds (`PhaseBounds`)
+and an in-epoch contraction (`InEpoch`), the good event `GoodLS` or the growth condition
+`GrowthS` fails with probability at most `settleEps3E`: long phases, long empty runs, long
+spans of `J + 1` phases, failed checks (`fail_checkE3`: `lpi^J · (lp/lpi)^Ccap · e₂ · stat`),
+crowded windows, large reach and slow growth. The bad indicator is at most a sum of these
+terms' indicators (`bad_le3E`), each bounded in expectation.
 -/
 
 @[expose] public section
@@ -52,6 +55,19 @@ namespace Cryptarchia.Prob
 open Finset Settle
 
 variable {B : Band} {Δ M N : ℕ} {κ : Kern}
+
+/-- The growth blocks of epoch `ep` end `Δ + 1` slots before its fix slot. -/
+theorem nbD_fit (E : Env) {G T ep : ℕ} (hT : 1 ≤ T) (hep : 1 ≤ ep) (hpos : 0 < nbD E Δ G T) :
+    E.c.cut ep + G + nbD E Δ G T * (T + Δ) ≤ E.c.fix ep - Δ - 1 + Δ := by
+  have h1 : nbD E Δ G T * (T + Δ) ≤ growLen E Δ G + Δ := Nat.div_mul_le_self _ _
+  have hg : T + Δ ≤ growLen E Δ G + Δ := ((Nat.div_pos_iff).1 hpos).2
+  have h3 : E.c.cut ep + G + growLen E Δ G ≤ E.c.fix ep - Δ - 1 := by
+    unfold growLen at hg ⊢
+    unfold Config.cut Config.fix
+    have := epochStart_succ (c := E.c) (ep - 1)
+    rw [show ep - 1 + 1 = ep by omega] at this
+    omega
+  omega
 
 theorem bad_le3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ) {G G' J Lw r T : ℕ} {x yy : ℝ}
     (hx : 1 ≤ x) (hyy0 : 0 < yy) (hyy1 : yy ≤ 1) (hT : 1 ≤ T) (hNG : N + G < M) (hNG' : N + G' < M)
@@ -114,6 +130,19 @@ theorem bad_le3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ)
       have := longF_one (Δ := Δ) (G := G) hno
       have := Finset.single_le_sum (fun y _ => n1 y) (Finset.mem_range.2 (show y < N + G' + 1 by omega))
       linarith
+    have hspan : ∀ k, gend Δ M (strOf h) k ≤ N + G' →
+        gend Δ M (strOf h) (k + 1) - gend Δ M (strOf h) (k - J) ≤ Lw := by
+      intro k hk
+      by_contra hsp
+      push Not at hsp
+      have hge : 1 ≤ spanH Δ M P.τ (k - J) (k + 1) h / P.τ ^ (Lw + 1) := by
+        unfold spanH
+        rw [if_pos (show k + 1 ≤ _ from hidx k (by omega)), le_div_iff₀ (by positivity), one_mul]
+        apply pow_le_pow_right₀ hτ
+        omega
+      have hkr : k < N + G' + 1 := by have := le_gend (Δ := Δ) (M := M) (w := strOf h) k; omega
+      have := Finset.single_le_sum (fun k _ => n3 k) (Finset.mem_range.2 hkr)
+      linarith
     apply good_of2 (G := G) (G' := G') (J := J) (Lw := Lw) (r := r) E hΔ hsane hlen hNG hNG'
     · intro y hy
       exact hq' y (by omega)
@@ -122,18 +151,7 @@ theorem bad_le3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ)
       have := occF_one (G' := G') hno
       have := Finset.single_le_sum (fun y _ => n2 y) (Finset.mem_range.2 (show y < N + 1 by omega))
       linarith
-    · intro k hk
-      by_contra hsp
-      push Not at hsp
-      have hk1 : k + 1 ≤ pidx Δ M (strOf h) h.length := hidx k (by omega)
-      have hge : 1 ≤ spanH Δ M P.τ (k - J) (k + 1) h / P.τ ^ (Lw + 1) := by
-        unfold spanH
-        rw [if_pos hk1, le_div_iff₀ (by positivity), one_mul]
-        apply pow_le_pow_right₀ hτ
-        omega
-      have hkr : k < N + G' + 1 := by have := le_gend (Δ := Δ) (M := M) (w := strOf h) k; omega
-      have := Finset.single_le_sum (fun k _ => n3 k) (Finset.mem_range.2 hkr)
-      linarith
+    · exact hspan
     · intro k hk hJ
       by_contra hne
       have hge : 1 ≤ failHE3 Δ M G Lw (N + G') (k - J) k h := by
@@ -149,18 +167,7 @@ theorem bad_le3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ)
           phase_short (N := N + G') hNGG hq'
             (le_trans (gend_strictMono.monotone (f := gend Δ M (strOf h)) (show i ≤ k by omega)) hc1.2)
         have hspk : gend Δ M (strOf h) k ≤ gend Δ M (strOf h) (k - J) + Lw := by
-          have hsp : gend Δ M (strOf h) (k + 1) - gend Δ M (strOf h) (k - J) ≤ Lw := by
-            by_contra hsp
-            push Not at hsp
-            have hk1 : k + 1 ≤ pidx Δ M (strOf h) h.length := hidx k (by omega)
-            have hge : 1 ≤ spanH Δ M P.τ (k - J) (k + 1) h / P.τ ^ (Lw + 1) := by
-              unfold spanH
-              rw [if_pos hk1, le_div_iff₀ (by positivity), one_mul]
-              apply pow_le_pow_right₀ hτ
-              omega
-            have hkr : k < N + G' + 1 := by omega
-            have := Finset.single_le_sum (fun k _ => n3 k) (Finset.mem_range.2 hkr)
-            linarith
+          have hsp := hspan k hc1.2
           have h1 := gend_strictMono (Δ := Δ) (M := M) (w := strOf h) (show k < k + 1 by omega)
           have h2 := gend_strictMono.monotone (f := gend Δ M (strOf h)) (show k - J ≤ k by omega)
           omega
@@ -206,18 +213,11 @@ theorem bad_le3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ)
             (nbD E Δ G T - 1)
           rw [show nbD E Δ G T - 1 + 1 = nbD E Δ G T by omega] at hb
           have hfit : E.c.cut ep + G + (nbD E Δ G T - 1) * (T + Δ) + T ≤ E.c.fix ep - Δ - 1 := by
-            have h1 : nbD E Δ G T * (T + Δ) ≤ growLen E Δ G + Δ := Nat.div_mul_le_self _ _
             have h2 : (nbD E Δ G T - 1) * (T + Δ) + T + Δ = nbD E Δ G T * (T + Δ) := by
               have : nbD E Δ G T = (nbD E Δ G T - 1) + 1 := by omega
               conv_rhs => rw [this]
               ring
-            have hg : T + Δ ≤ growLen E Δ G + Δ := ((Nat.div_pos_iff).1 hpos).2
-            have h3 : E.c.cut ep + G + growLen E Δ G ≤ E.c.fix ep - Δ - 1 := by
-              unfold growLen at hg ⊢
-              unfold Config.cut Config.fix
-              have := epochStart_succ (c := E.c) (ep - 1)
-              rw [show ep - 1 + 1 = ep by omega] at this
-              omega
+            have := nbD_fit E hT hep hpos
             omega
           have hm := hD_mono (Δ := Δ) (w := strOf h) (a := E.c.cut ep + G) hfit
           omega
@@ -244,19 +244,7 @@ noncomputable def settleEps3E (E : Env) (B : Band) (P : Cert2 B Δ) (lpi : ℝ) 
 
 theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ) (hB : κ.Within B)
     {G G' J Lw r T : ℕ} (hG : Δ + 1 ≤ G)
-    (hR0 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 0 h.length) h ≤ P.lr)
-    (hR1 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 1 h.length) h ≤ P.b)
-    (hC2 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 2 h.length) h ≤ P.e 2)
-    (h17 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 17 h.length) h ≤ P.e 17)
-    (hE : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ h, PE Δ M h → h.length < M →
-      ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ P.e i)
-    {lpi : ℝ} (hlpi0 : 0 < lpi) (hlpi : lpi ≤ P.lp)
-    (Sw : ℕ → Prop) {Ccap : ℕ} (hcap : ∀ t, swCnt Sw t (t + Lw) ≤ Ccap)
-    (hIn : ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ Sw h.length → ∃ (e : Fin 19 → ℝ) (pat : ℝ),
-      ClassOK P lpi e pat ∧
-      pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h ∧
-      ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
-        ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ e i)
+    (hb : PhaseBounds κ M G P) {lpi : ℝ} {Sw : ℕ → Prop} {Ccap : ℕ} (hI : InEpoch κ M G P lpi Sw Lw Ccap)
     {x yy : ℝ} (hx : 1 ≤ x) (hyy0 : 0 < yy) (hyy1 : yy ≤ 1) (hT : 1 ≤ T)
     (hNM : N + G + G' + Δ + 2 ≤ M)
     (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (hlo1 : B.hlo ≤ 1) (helo1 : B.elo ≤ 1) :
@@ -305,13 +293,13 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
   have e3 : ∀ k ∈ Finset.range (N + G' + 1), Ex κ M (spanH Δ M P.τ (k - J) (k + 1)) [] ≤ P.e 17 ^ (J + 1) := by
     intro k hk
     have h1 : k - J ≤ k + 1 := Nat.le_succ_of_le (Nat.sub_le k J)
-    refine (span_bound' P h17 hM h1).trans (pow_le_pow_right₀ P.he17 ?_)
+    refine (span_bound' P hb.s17 hM h1).trans (pow_le_pow_right₀ P.he17 ?_)
     omega
   have e4 : ∀ k ∈ Finset.Icc J (N + G'), Ex κ M (failHE3 Δ M G Lw (N + G') (k - J) k) [] ≤
       lpi ^ J * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
     intro k hk
     rw [Finset.mem_Icc] at hk
-    have := fail_checkE3 (M := M) P hB hG hR0 hR1 hC2 hE hlpi0 hlpi Sw hcap hIn (Hc := N + G') (by omega)
+    have := fail_checkE3 (M := M) P hB hG hb hI (Hc := N + G') (by omega)
       (k0 := k - J) (k := k) (by omega)
     rwa [show k - (k - J) = J by omega] at this
   have e5 : ∀ t ∈ Finset.range (N + 1), Ex κ M (winF Lw x t) [] ≤ (1 + (x - 1) * (1 - B.elo)) ^ Lw := by
@@ -328,7 +316,7 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
     have := mul_nonneg (by linarith : (0 : ℝ) ≤ x - 1) (by linarith : (0 : ℝ) ≤ 1 - B.elo)
     linarith
   have e6 : ∀ j0 ∈ Finset.range (N + G + 1), Ex κ M (reachH2 Δ M P.c j0) [] ≤ 1 + (P.b - 1) / (1 - P.lr) :=
-    fun j0 _ => reach_tail2' P hR0 hR1 hM j0
+    fun j0 _ => reach_tail2' P hb.r0 hb.r1 hM j0
   have e7 : ∀ ep ∈ Finset.Icc 1 (nEp E N), Ex κ M (depthF yy (E.c.cut ep + G) (T + Δ) T (nbD E Δ G T)) [] ≤
       (1 + (yy - 1) * PT 1 yy B.hlo B.hhi T) ^ nbD E Δ G T := by
     intro ep hep
@@ -342,14 +330,7 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
     have hfit : E.c.cut ep + G + nbD E Δ G T * (T + Δ) ≤ M := by
       rcases Nat.eq_zero_or_pos (nbD E Δ G T) with h0 | hpos
       · rw [h0]; omega
-      · have h1 : nbD E Δ G T * (T + Δ) ≤ growLen E Δ G + Δ := Nat.div_mul_le_self _ _
-        have hg : T + Δ ≤ growLen E Δ G + Δ := ((Nat.div_pos_iff).1 hpos).2
-        have h3 : E.c.cut ep + G + growLen E Δ G ≤ E.c.fix ep - Δ - 1 := by
-          unfold growLen at hg ⊢
-          unfold Config.cut Config.fix
-          have := epochStart_succ (c := E.c) (ep - 1)
-          rw [show ep - 1 + 1 = ep by omega] at this
-          omega
+      · have := nbD_fit E hT hep.1 hpos
         omega
     exact blocks_le (κ := κ) honQ (a0 := 1) (a1 := yy) (qlo := B.hlo) (qhi := B.hhi) zero_le_one hyy0.le
       (fun l => hB.hhi l) (fun l => hB.hlo l) hhi1 hlo0 (y := E.c.cut ep + G) (Lb := T + Δ) (T := T)
@@ -374,10 +355,9 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
     rw [Nat.card_Icc]; push_cast; have : (↑(N + G' + 1 - J) : ℝ) ≤ ↑(N + G' + 1) := by exact_mod_cast Nat.sub_le _ _
     push_cast at this; linarith
   have hfail0 : 0 ≤ lpi ^ J * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
-    have h1 : 0 ≤ P.e 2 := le_trans (ExPh_nonneg _ _ (fun y => WP_nonneg P 2 0 y (by decide)) _)
-      (hC2 [] (pe_nil hM) (by simpa using hM))
+    have h1 := hb.e2_nonneg hM
     have h2 : 0 ≤ (P.b - 1) / (1 - P.lr) := div_nonneg (by linarith [P.hb1]) (by linarith [P.hlr1])
-    exact mul_nonneg (mul_nonneg (mul_nonneg (pow_nonneg hlpi0.le _) (pow_nonneg (div_nonneg P.hlp0 hlpi0.le) _)) h1)
+    exact mul_nonneg (mul_nonneg (mul_nonneg (pow_nonneg hI.pos.le _) (pow_nonneg (div_nonneg P.hlp0 hI.pos.le) _)) h1)
       (by linarith)
   simp only [Finset.sum_const, Finset.card_range, Nat.card_Icc, nsmul_eq_mul] at s1 s2 s3 s4 s5 s6 s7
   have s4' : ((N + G' + 1 - J : ℕ) : ℝ) * (lpi ^ J * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr))) ≤

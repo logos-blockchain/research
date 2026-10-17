@@ -333,11 +333,8 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
             omega
           exact hbandOf ω n (hin _ hm)
         · exact Or.inr (hdec e _ hsplit n (by omega))
-    refine le_trans ?_ (settle_bound3E E rfl hA.sane D.C.P (D.C.within hκ) D.C.hG
-      (D.C.anyPhase hκ 0 (by decide) D.C.heS0) (D.C.anyPhase hκ 1 (by decide) D.C.heS1)
-      (D.C.anyPhase hκ 2 (by decide) D.C.heS2) (D.C.anyPhase hκ 17 (by decide) D.C.heS17) (D.C.truncPhase hκ)
-      D.hlpi0 D.hlpi (fun t => ¬ NoSw E.c.epochLength G t) (swCnt_noSw_le hEL hLw) (D.inEpoch hκ) hx hyy0 hyy1 hT
-      hNM hhi1 hlo0 hlo1 helo1)
+    refine le_trans ?_ (settle_bound3E E rfl hA.sane D.C.P (D.C.within hκ) D.C.hG (D.bounds hκ) (D.inEpoch hκ hLw)
+      hx hyy0 hyy1 hT hNM hhi1 hlo0 hlo1 helo1)
     apply Ex_mono_len
     intro t _
     simp only [List.nil_append]
