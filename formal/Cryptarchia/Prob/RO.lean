@@ -1,7 +1,7 @@
 module
 
 public import Cryptarchia.Prob.Worst
-public import Cryptarchia.Prob.Trunc
+public import Cryptarchia.Prob.Final
 public import Cryptarchia.Prob.Tail2
 public import Mathlib.Order.CompletePartialOrder
 public import Mathlib.Probability.Independence.Basic

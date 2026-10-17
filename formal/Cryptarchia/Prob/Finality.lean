@@ -1,7 +1,5 @@
 module
 
-import Cryptarchia.Prob.EpochInd
-import Cryptarchia.Prob.Trunc
 import Cryptarchia.Prob.Occupied
 import Cryptarchia.Proof.Recur
 import Cryptarchia.Prob.ROStop
