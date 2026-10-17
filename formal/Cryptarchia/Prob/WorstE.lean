@@ -523,27 +523,21 @@ theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure �
               rw [VE_bad hg]
               exact le_trans (VE_nonneg hP hF0 _ _ b0) (hsup b0 hb0)
       _ = _ := by rw [lintegral_const, measure_univ, mul_one]
-  have hMle : μ {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧
-      ∀ n < M, ok n ω ∨ Dd (List.ofFn fun k : Fin n => X k ω)} ≤ I M := by
-    have hv : Measurable (fun ω (k : Fin M) => X k ω) := measurable_pi_iff.mpr fun k : Fin M => hX.measurable k.val
-    have hms1 : MeasurableSet {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S} :=
-      hv (Set.toFinite {v : Fin M → Out | List.ofFn v ∈ S}).measurableSet
-    have hms : MeasurableSet {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧
-        ∀ n < M, ok n ω ∨ Dd (List.ofFn fun k : Fin n => X k ω)} :=
-      hms1.inter ((hX.le M) _ (hAm M le_rfl))
+  have hMle : μ ({ω | pre M ω ∈ S} ∩ A M) ≤ I M := by
+    have hms : MeasurableSet ({ω | pre M ω ∈ S} ∩ A M) :=
+      ((hvec M).mono (hX.le M) le_rfl (Set.toFinite {v : Fin M → Out | List.ofFn v ∈ S}).measurableSet).inter
+        ((hX.le M) _ (hAm M le_rfl))
     rw [← lintegral_indicator_one hms]
     simp only [hI]
     refine lintegral_mono fun ω => ?_
-    by_cases hω : List.ofFn (fun k : Fin M => X k ω) ∈ S ∧ ∀ n < M, ok n ω ∨ Dd (List.ofFn fun k : Fin n => X k ω)
-    · rw [Set.indicator_of_mem (show ω ∈ {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧
-          ∀ n < M, ok n ω ∨ Dd (List.ofFn fun k : Fin n => X k ω)} from hω), Set.indicator_of_mem (show ω ∈ A M from hω.2)]
+    by_cases hω : ω ∈ {ω | pre M ω ∈ S} ∩ A M
+    · rw [Set.indicator_of_mem hω, Set.indicator_of_mem hω.2]
       simp only [Pi.one_apply, hVdef, Nat.sub_self]
       split_ifs
       · exact le_rfl
       · show (1 : ℝ≥0∞) ≤ ENNReal.ofReal (F (pre M ω))
-        rw [hFdef, Set.indicator_of_mem hω.1]; simp
-    · rw [Set.indicator_of_notMem (show ω ∉ {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧
-          ∀ n < M, ok n ω ∨ Dd (List.ofFn fun k : Fin n => X k ω)} from hω)]; exact zero_le
+        rw [hFdef, Set.indicator_of_mem (show pre M ω ∈ S from hω.1)]; simp
+    · rw [Set.indicator_of_notMem hω]; exact zero_le
   exact hMle.trans ((hchain M le_rfl).trans h0)
 
 end Cryptarchia.Prob
