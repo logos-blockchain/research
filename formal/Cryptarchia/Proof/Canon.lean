@@ -231,9 +231,7 @@ block has passed the cut of `ep`. -/
 theorem bimm_past_cut (hA : Assm E)
     (hG : GoodCondW E es (Cons E es) W e H) (hGr : Growth E es e H) {ep : ℕ} (hep : 1 ≤ ep)
     (hFH : E.c.fix ep ≤ H) (hreach : E.c.fix ep ≤ (wF E es).now)
-    (hD : DomAt (E := E) (es := es) (K := Cons E es) (idxE E es ep)
-      ((wAt E es (idxE E es ep)).now - E.Δ - 1))
-    (hH : HonAt (E := E) (es := es) (K := Cons E es) (idxE E es ep))
+    (hI : InvAt E es (Cons E es) (idxE E es ep))
     {j : ℕ} (hj : j ∈ E.nodes) (hjo : E.online j (wAt E es (idxE E es ep)).now = true)
     (hKb : Cons E es ((wAt E es (idxE E es ep)).node j).bimm) :
     E.c.cut ep ≤ slotOf (wAt E es (idxE E es ep)).st ((wAt E es (idxE E es ep)).node j).bimm + 1 := by
@@ -249,7 +247,7 @@ theorem bimm_past_cut (hA : Assm E)
   have hbN : b ≤ (wF E es).now := by omega
   have hA2 : A2Upto E es (Cons E es) b := by
     intro u hu v hv huh hvh hvb huv
-    exact A2_of_Hon hA hmle hH u hu v hv huh hvh (by omega) huv
+    exact A2_of_Hon hA hmle hI.2 u hu v hv huh hvh (by omega) huv
   have hF := tree_valid_upto (c := E.c) (L := E.L) (O := E.O) (G := E.G) hS E.Δ b hbN
     (FTused_ok hA (cons_base hA)).1 (FTused_ok hA (cons_base hA)).2 hA2
   by_contra hlt
@@ -280,7 +278,7 @@ theorem bimm_past_cut (hA : Assm E)
     exact this
   have hadv : (0 : ℤ) ≤ (advCnt w (F.lab z) (e ph) : ℤ) := by positivity
   have hdom : (FT E es (Cons E es)).hd b ≤ C := by
-    have h1 := hD j hj hjo
+    have h1 := hI.1 j hj hjo
     rw [show (wAt E es m).now - E.Δ - 1 = b by omega] at h1
     rw [hC, ← height_ext hext hcr]; exact h1
   have hzh : height (wAt E es m).st z = C - E.c.k := by
@@ -305,9 +303,7 @@ immutable block has passed the cut and carries the canonical prefix. -/
 theorem canon_at (hA : Assm E)
     (hG : GoodCondW E es (Cons E es) W e H) (hGr : Growth E es e H) {ep : ℕ} (hep : 1 ≤ ep)
     (hFH : E.c.fix ep ≤ H) (hreach : E.c.fix ep ≤ (wF E es).now)
-    (hD : DomAt (E := E) (es := es) (K := Cons E es) (idxE E es ep)
-      ((wAt E es (idxE E es ep)).now - E.Δ - 1))
-    (hH : HonAt (E := E) (es := es) (K := Cons E es) (idxE E es ep))
+    (hI : InvAt E es (Cons E es) (idxE E es ep))
     (hKb : ∀ j ∈ E.nodes, E.online j (wAt E es (idxE E es ep)).now = true →
       Cons E es ((wAt E es (idxE E es ep)).node j).bimm)
     (hKc : ∀ j ∈ E.nodes, E.online j (wAt E es (idxE E es ep)).now = true →
@@ -321,14 +317,14 @@ theorem canon_at (hA : Assm E)
   have hex : ∃ j ∈ E.nodes, E.online j (wAt E es m).now = true := ⟨j, hj, hjo⟩
   have hi0 : i0 E es ep ∈ E.nodes ∧ E.online (i0 E es ep) (wAt E es m).now = true := by
     unfold i0; rw [dif_pos hex]; exact Classical.choose_spec hex
-  have hcj := bimm_past_cut hA hG hGr hep hFH hreach hD hH hj hjo (hKb j hj hjo)
-  have hci := bimm_past_cut hA hG hGr hep hFH hreach hD hH hi0.1 hi0.2 (hKb _ hi0.1 hi0.2)
+  have hcj := bimm_past_cut hA hG hGr hep hFH hreach hI hj hjo (hKb j hj hjo)
+  have hci := bimm_past_cut hA hG hGr hep hFH hreach hI hi0.1 hi0.2 (hKb _ hi0.1 hi0.2)
   refine ⟨hcj, ?_⟩
   have hwF := wAt_ok (es := es) hA es.length
   have hS := hwF.store
   have hw := wAt_ok (es := es) hA m
   have hext := store_mono (m := es.length) (es := es) hA hmle
-  have hagree := agree_of hA (cons_base hA) hG hmle (by rw [hnow]; exact hFH) hD hH hj hi0.1 hjo hi0.2
+  have hagree := agree_of hA (cons_base hA) hG hmle (by rw [hnow]; exact hFH) hI hj hi0.1 hjo hi0.2
     (hKc j hj hjo) (hKc _ hi0.1 hi0.2)
   have hci0 := (hw.nodes (i0 E es ep)).rooted _ (hw.nodes (i0 E es ep)).cloc
   have hbi0 := ((hw.nodes (i0 E es ep)).bimm_on_cloc hw.store)
@@ -349,8 +345,7 @@ the invariant at the fixing point. -/
 theorem canon_of (hA : Assm E)
     (hG : GoodCondW E es (Cons E es) W e H) (hGr : Growth E es e H) {ep : ℕ} (hep : 1 ≤ ep)
     (hFH : E.c.fix ep ≤ H) (hreach : E.c.fix ep ≤ (wF E es).now)
-    (hDm : ∀ m ≤ idxE E es ep, DomAt (E := E) (es := es) (K := Cons E es) m ((wAt E es m).now - E.Δ - 1) ∧
-      HonAt (E := E) (es := es) (K := Cons E es) m)
+    (hDm : ∀ m ≤ idxE E es ep, InvAt E es (Cons E es) m)
     (hKb : ∀ j ∈ E.nodes, E.online j (wAt E es (idxE E es ep)).now = true →
       Cons E es ((wAt E es (idxE E es ep)).node j).bimm)
     (hKc : ∀ j ∈ E.nodes, E.online j (wAt E es (idxE E es ep)).now = true →
@@ -365,7 +360,7 @@ theorem canon_of (hA : Assm E)
   set m := idxE E es ep with hm
   have hiom : E.online i (wAt E es m).now = true :=
     hA.crash i _ _ (now_mono (E := E) (es := es) hmn hn) hio
-  obtain ⟨hcut, hpre⟩ := canon_at hA hG hGr hep hFH hreach (hDm m le_rfl).1 (hDm m le_rfl).2
+  obtain ⟨hcut, hpre⟩ := canon_at hA hG hGr hep hFH hreach (hDm m le_rfl)
     hKb hKc hi hiom
   have hw := wAt_ok (es := es) hA n
   have hext := store_mono (m := es.length) (es := es) hA hn
@@ -405,8 +400,7 @@ current chain through an honest node's immutable block is consistent. -/
 theorem cons_step (hA : Assm E)
     (hG : GoodCondW E es (Cons E es) W e H) (hGr : Growth E es e H) :
     ∀ n ≤ es.length, (wAt E es n).now ≤ H →
-    (∀ m < n, DomAt (E := E) (es := es) (K := Cons E es) m ((wAt E es m).now - E.Δ - 1) ∧
-      HonAt (E := E) (es := es) (K := Cons E es) m) →
+    (∀ m < n, InvAt E es (Cons E es) m) →
     ∀ i ∈ E.nodes, E.online i (wAt E es n).now = true →
       ∀ cl, Rooted (wAt E es n).st cl → slotOf (wAt E es n).st cl ≤ (wAt E es n).now →
       ((wAt E es n).node i).bimm ∈ chainIds (wAt E es n).st cl → Cons E es cl := by
@@ -426,8 +420,7 @@ theorem cons_step (hA : Assm E)
       by_contra hge; push Not at hge
       have := now_mono (E := E) (es := es) hge hmle
       omega
-    have hIHm : ∀ m' < m, DomAt (E := E) (es := es) (K := Cons E es) m' ((wAt E es m').now - E.Δ - 1) ∧
-        HonAt (E := E) (es := es) (K := Cons E es) m' := fun m' hm' => hIH m' (by omega)
+    have hIHm : ∀ m' < m, InvAt E es (Cons E es) m' := fun m' hm' => hIH m' (by omega)
     obtain ⟨hKb, hKc⟩ := bimm_cloc_of hA hmle (ih m hmn hmle (by omega) hIHm)
     exact canon_of hA hG hGr hep (by omega) hreach (fun m' hm' => hIH m' (by omega)) hKb hKc hn hmn.le hi hio hcl hz
 

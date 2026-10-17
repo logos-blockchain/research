@@ -110,8 +110,7 @@ theorem canon_node (hA : Assm E)
   have hK := cons_ok hA hG hGr
   have hreach : E.c.fix ep ≤ (wF E es).now := by omega
   obtain ⟨hmle, hnow, -⟩ := idxE_spec (e := ep) hreach
-  have hDm : ∀ m ≤ idxE E es ep, DomAt (E := E) (es := es) (K := Cons E es) m
-      ((wAt E es m).now - E.Δ - 1) ∧ HonAt (E := E) (es := es) (K := Cons E es) m := fun m hm =>
+  have hDm : ∀ m ≤ idxE E es ep, InvAt E es (Cons E es) m := fun m hm =>
     main hA hK hG m (by omega) (le_trans (now_mono (E := E) (es := es) hm hmle) (by omega))
   obtain ⟨hKb, hKc⟩ := bimm_cloc_of hA hmle
     (cons_step hA hG hGr _ hmle (by omega) (fun m hm => hDm m hm.le))

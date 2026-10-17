@@ -271,12 +271,16 @@ def HonAt (n : ℕ) : Prop :=
   ∀ b B, (wAt E es n).st b = some B → IsHon B →
     (FT E es K).hd (B.hdr.slot - E.Δ - 1) ≤ height (wF E es).st B.hdr.parent
 
+/-- **The invariant at index `n`**: `DomAt` with the honest depth `Δ + 1` slots
+back, and `HonAt`. -/
+abbrev InvAt (E : Env) (es : List Event) (K : ℕ → Prop) (n : ℕ) : Prop :=
+  DomAt (E := E) (es := es) (K := K) n ((wAt E es n).now - E.Δ - 1) ∧ HonAt (E := E) (es := es) (K := K) n
+
 /-- The obligations on the block predicate: genesis, closure under parents, and,
 given the invariant before index `n`, every chain through a node's immutable block
 at `n` satisfies it. -/
 structure KOK (E : Env) (es : List Event) (K : ℕ → Prop) (H : ℕ) : Prop extends KBase E es K where
-  step : ∀ n ≤ es.length, (wAt E es n).now ≤ H → (∀ m < n, DomAt (E := E) (es := es) (K := K) m ((wAt E es m).now - E.Δ - 1) ∧
-      HonAt (E := E) (es := es) (K := K) m) →
+  step : ∀ n ≤ es.length, (wAt E es n).now ≤ H → (∀ m < n, InvAt E es K m) →
     ∀ i ∈ E.nodes, E.online i (wAt E es n).now = true →
       ∀ cl, Rooted (wAt E es n).st cl → slotOf (wAt E es n).st cl ≤ (wAt E es n).now →
       ((wAt E es n).node i).bimm ∈ chainIds (wAt E es n).st cl → K cl
@@ -374,7 +378,7 @@ theorem claimC (hA : Assm E) {Hh : ℕ} (hK : KOK E es K Hh) {W : ℕ → ℕ} {
     (hhF : h ∈ (FT E es K).V) {H : Block} (hH : (wF E es).st h = some H) (hHh : IsHon H)
     (hs1 : slotOf (wF E es).st h ≤ (wAt E es d).now)
     (hht : (FT E es K).hd ((wAt E es d).now - 1 - E.Δ) ≤ height (wF E es).st h)
-    (hIH : ∀ m ≤ d, DomAt (E := E) (es := es) (K := K) m ((wAt E es m).now - E.Δ - 1) ∧ HonAt (E := E) (es := es) (K := K) m) :
+    (hIH : ∀ m ≤ d, InvAt E es K m) :
     height (wF E es).st h ≤ height (wF E es).st ((wAt E es (d + 1)).node i).cloc := by
   have hextF : ∀ m, m ≤ es.length → StoreExt (wAt E es m).st (wF E es).st :=
     fun m hm => store_mono hA hm
@@ -453,7 +457,7 @@ propose, every honest node's local chain is at least as high as every honest
 block `Δ + 1` slots older than the new slot. -/
 theorem tickD (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ} {e : ℕ → ℕ} (hG : GoodCondW E es K W e H) {n : ℕ}
     (hn : n < es.length) (hnH : (wAt E es n).now ≤ H) (htick : es[n] = .tick)
-    (hIH : ∀ m < n, DomAt (E := E) (es := es) (K := K) m ((wAt E es m).now - E.Δ - 1) ∧ HonAt (E := E) (es := es) (K := K) m) :
+    (hIH : ∀ m < n, InvAt E es K m) :
     DomAt (E := E) (es := es) (K := K) n ((wAt E es n).now + 1 - E.Δ - 1) := by
   intro i hi hon
   have hwF := wAt_ok (es := es) hA es.length
@@ -509,8 +513,7 @@ theorem tickD (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ} {e :
 chain is at least as high as every honest block `Δ + 1` slots old, and every
 honest block extends such a chain. -/
 theorem main (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ} {e : ℕ → ℕ} (hG : GoodCondW E es K W e H) :
-    ∀ n ≤ es.length, (wAt E es n).now ≤ H → DomAt (E := E) (es := es) (K := K) n ((wAt E es n).now - E.Δ - 1) ∧
-      HonAt (E := E) (es := es) (K := K) n := by
+    ∀ n ≤ es.length, (wAt E es n).now ≤ H → InvAt E es K n := by
   have hwF := wAt_ok (es := es) hA es.length
   have hS := hwF.store
   intro n
@@ -537,8 +540,7 @@ theorem main (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ} {e : 
         · cases hb; obtain ⟨j, hj⟩ := hBh; simp [genesisBlock] at hj
         · simp at hb
     · have hnl : n < es.length := by omega
-      have hIH : ∀ m < n + 1, DomAt (E := E) (es := es) (K := K) m ((wAt E es m).now - E.Δ - 1) ∧
-          HonAt (E := E) (es := es) (K := K) m := fun m hm =>
+      have hIH : ∀ m < n + 1, InvAt E es K m := fun m hm =>
         ih m hm (by omega) (le_trans (now_mono (E := E) (es := es) (show m ≤ n + 1 by omega) hn) hnH)
       have hstep := wAt_succ E es hnl
       have h1 := wAt_le (es := es) hA (Nat.le_succ n)

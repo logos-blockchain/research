@@ -109,8 +109,7 @@ theorem cp_consistent (hA : Assm E) (hG : GoodCondW E es (Cons E es) W e H) (hGr
   set m := idxE E es (ep + 1) with hm
   have hmH : (wAt E es m).now ≤ H := by rw [hnow]; exact hfix
   have hK := cons_ok hA hG hGr
-  have hDm : ∀ m' ≤ m, DomAt (E := E) (es := es) (K := Cons E es) m' ((wAt E es m').now - E.Δ - 1) ∧
-      HonAt (E := E) (es := es) (K := Cons E es) m' := fun m' hm' =>
+  have hDm : ∀ m' ≤ m, InvAt E es (Cons E es) m' := fun m' hm' =>
     main hA hK hG m' (by omega) (le_trans (now_mono (E := E) (es := es) hm' hmle) hmH)
   obtain ⟨hKb, -⟩ := bimm_cloc_of hA hmle
     (hK.step m hmle hmH (fun m' hm' => hDm m' hm'.le))
@@ -119,7 +118,7 @@ theorem cp_consistent (hA : Assm E) (hG : GoodCondW E es (Cons E es) W e H) (hGr
     unfold i0; rw [dif_pos hon]; exact Classical.choose_spec hon
   set b := ((wAt E es m).node (i0 E es (ep + 1))).bimm with hb
   have hKbb : Cons E es b := hKb _ hi0.1 hi0.2
-  have hcut := bimm_past_cut hA hG hGr (by omega : 1 ≤ ep + 1) hfix hreach (hDm m le_rfl).1 (hDm m le_rfl).2
+  have hcut := bimm_past_cut hA hG hGr (by omega : 1 ≤ ep + 1) hfix hreach (hDm m le_rfl)
     hi0.1 hi0.2 hKbb
   -- its slot is past epoch `ep`'s start
   have hw := wAt_ok (es := es) hA m

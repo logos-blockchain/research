@@ -79,8 +79,7 @@ theorem cloc_genesis_at_zero (hA : Assm E) {n : ℕ} (hn : n ≤ es.length) (h0 
 node `j`'s local chain. -/
 theorem agree_of (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ → ℕ} {H : ℕ} (hG : GoodCondW E es K W e H)
     {n : ℕ} (hn : n ≤ es.length) (hnH : (wAt E es n).now ≤ H)
-    (hD : DomAt (E := E) (es := es) (K := K) n ((wAt E es n).now - E.Δ - 1))
-    (hH : HonAt (E := E) (es := es) (K := K) n) {i j : ℕ} (hi : i ∈ E.nodes) (hj : j ∈ E.nodes)
+    (hI : InvAt E es K n) {i j : ℕ} (hi : i ∈ E.nodes) (hj : j ∈ E.nodes)
     (hio : E.online i (wAt E es n).now = true) (hjo : E.online j (wAt E es n).now = true)
     (hKi : K ((wAt E es n).node i).cloc) (hKj : K ((wAt E es n).node j).cloc) :
     ((wAt E es n).node i).bimm ∈ chainIds (wAt E es n).st ((wAt E es n).node j).cloc := by
@@ -102,8 +101,8 @@ theorem agree_of (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ �
   have hgj := goodAt_FT hA hS hext hNF (tree_good hS (hw.nodes j) (hw.slots j) (hw.nodes j).cloc) hKj
   have hhd : ∀ l ∈ E.nodes, E.online l (wAt E es n).now = true →
       (FT E es K).hd (e k - E.Δ) ≤ height (wF E es).st ((wAt E es n).node l).cloc :=
-    fun l hl hlo => le_trans (FT_hd_mono (by omega)) (hD l hl hlo)
-  obtain ⟨x, hx1, hx2, hx3⟩ := nearAt hA hK hG hNF hnH (A2_of_Hon hA hn hH) ⟨hk1, hk2⟩ hgi hgj
+    fun l hl hlo => le_trans (FT_hd_mono (by omega)) (hI.1 l hl hlo)
+  obtain ⟨x, hx1, hx2, hx3⟩ := nearAt hA hK hG hNF hnH (A2_of_Hon hA hn hI.2) ⟨hk1, hk2⟩ hgi hgj
     (by rw [slotOf_ext hext hci.exists_blk]; exact hw.slots i _ (hw.nodes i).cloc)
     (by rw [slotOf_ext hext hcj.exists_blk]; exact hw.slots j _ (hw.nodes j).cloc)
     (hhd i hi hio) (hhd j hj hjo)
@@ -130,7 +129,7 @@ theorem agree_now (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ} 
     {n : ℕ} (hn : n ≤ es.length) (hnH : (wAt E es n).now ≤ H) {i j : ℕ} (hi : i ∈ E.nodes)
     (hj : j ∈ E.nodes) (hio : E.online i (wAt E es n).now = true) (hjo : E.online j (wAt E es n).now = true) :
     ((wAt E es n).node i).bimm ∈ chainIds (wAt E es n).st ((wAt E es n).node j).cloc :=
-  agree_of hA hK.toKBase hG hn hnH (main hA hK hG n hn hnH).1 (main hA hK hG n hn hnH).2 hi hj hio hjo
+  agree_of hA hK.toKBase hG hn hnH (main hA hK hG n hn hnH) hi hj hio hjo
     (cloc_K hA hK hG hn hnH hi hio) (cloc_K hA hK hG hn hnH hj hjo)
 
 /-- **`k`-deep finality.** A block that an honest node has committed as immutable
