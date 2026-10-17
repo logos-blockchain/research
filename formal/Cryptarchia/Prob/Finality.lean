@@ -242,11 +242,11 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     (add_le_add ?_ le_rfl))
   -- the main event and the splits, in band until decided
   by_cases hgood : (goodB fam).Nonempty
-  · have hsub3 : Tset ∪ ⋃ e ∈ Finset.range Ne, (Bad e ∩ {ω | ∀ e' ≤ e, InB E Tb (σE (E.withO (O ω)) (es ω)) e'}) ⊆
-        {ω | slots (lotStr (E.withO (O ω)) (es ω)) M ∈ S ∧ ∀ n < M,
-          SlotBand (fam (pickM E mem ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
-            (σE (E.withO (O ω)) (es ω) (n + 1)) ∨ Decided S M (slots (lotStr (E.withO (O ω)) (es ω)) n)} := by
-      rintro ω (⟨hS, hb⟩ | hω)
+  · obtain ⟨κ, hκ, hbound⟩ := lottery_law_epoch_dec (M := M) hA es (by omega) hdel hO hσm hfresh
+      (fun ω i => (hS ω i).nodup) hP (pickM E mem) hgood
+      (RBad.upClosed E)
+    refine (measure_mono ?_).trans (hbound.trans (ENNReal.ofReal_le_ofReal ?_))
+    · rintro ω (⟨hS, hb⟩ | hω)
       · exact ⟨hS, fun n hn => Or.inl (hb n hn)⟩
       · simp only [Set.mem_iUnion, Finset.mem_range] at hω
         obtain ⟨e, -, ⟨h1e, hsp⟩, hin⟩ := hω
@@ -264,10 +264,6 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
             omega
           exact hbandOf ω n (hin _ hm)
         · exact Or.inr (hdec e _ hsplit n (by omega))
-    obtain ⟨κ, hκ, hbound⟩ := lottery_law_epoch_dec (M := M) hA es (by omega) hdel hO hσm hfresh
-      (fun ω i => (hS ω i).nodup) hP (pickM E mem) hgood
-      (RBad.upClosed E)
-    refine (measure_mono hsub3).trans (hbound.trans (ENNReal.ofReal_le_ofReal ?_))
     refine le_trans ?_ (settle_bound3E E rfl hA.sane D.C.P (D.C.within hκ) D.C.hG
       (D.C.anyPhase hκ 0 (by decide) D.C.heS0) (D.C.anyPhase hκ 1 (by decide) D.C.heS1)
       (D.C.anyPhase hκ 2 (by decide) D.C.heS2) (D.C.anyPhase hκ 17 (by decide) D.C.heS17) (D.C.truncPhase hκ)
@@ -280,14 +276,13 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     · rw [Set.indicator_of_mem ht, if_neg (ht t (forall₂_refl t))]; rfl
     · rw [Set.indicator_of_notMem ht]
       split_ifs <;> norm_num
-  · -- no member has a nonempty polytope: nothing is in band
-    have hnone : ∀ ω n, ¬ band ω n := fun ω n hb => hgood ⟨_, mem_goodB.2 ⟨_, hb.hon⟩⟩
-    have hempty : Tset ∪ ⋃ e ∈ Finset.range Ne, (Bad e ∩ {ω | ∀ e' ≤ e, InB E Tb (σE (E.withO (O ω)) (es ω)) e'}) = ∅ := by
-      ext ω
-      simp only [Set.mem_union, Set.mem_iUnion, Finset.mem_range, Set.mem_inter_iff, Set.mem_empty_iff_false,
-        iff_false, not_or, not_exists, not_and]
-      refine ⟨fun h => hnone ω 0 (h.2 0 (by omega)), fun e _ _ hin => hnone ω 0 (hbandOf ω 0 ?_)⟩
-      rw [Nat.div_eq_of_lt (by omega)]; exact hin 0 (Nat.zero_le _)
-    rw [hempty, measure_empty]; exact zero_le
+  · -- no member has a nonempty polytope: nothing is in band, not even slot `1`
+    have hnone : ∀ ω, ¬ band ω 0 := fun ω hb => hgood ⟨_, mem_goodB.2 ⟨_, hb.hon⟩⟩
+    refine (measure_mono (t := ∅) fun ω hω => ?_).trans (by rw [measure_empty]; exact zero_le)
+    rcases hω with ⟨-, hb⟩ | hω
+    · exact hnone ω (hb 0 (by omega))
+    · simp only [Set.mem_iUnion, Finset.mem_range] at hω
+      obtain ⟨e, -, -, hin⟩ := hω
+      exact hnone ω (hbandOf ω 0 (by rw [Nat.div_eq_of_lt (by omega)]; exact hin 0 (Nat.zero_le _)))
 
 end Cryptarchia.Prob
