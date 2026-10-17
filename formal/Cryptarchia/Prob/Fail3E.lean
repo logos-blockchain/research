@@ -64,78 +64,6 @@ variable {B : Band} {Δ M : ℕ} {κ : Kern}
 
 /-! ## The crossing pattern inside an epoch -/
 
-theorem phase_lowerL {el : ℝ} (hel0 : 0 ≤ el) (hΔ : 0 < Δ) {l : List Out} (hlM : l.length + Δ + 1 ≤ M)
-    {G : List Out → ℝ} (hG : ∀ h, 0 ≤ G h) (o1 : Out) (ho1 : o1.hon ≠ 0)
-    (hel : ∀ i < Δ, el ≤ κ.p (l ++ pat o1 i) Out.empty) :
-    κ.p l o1 * el ^ Δ * G (l ++ pat o1 Δ) ≤ ExPh (κ := κ) (PE Δ M) (M - l.length - 1) G l := by
-  have hlen : ∀ i, (l ++ pat o1 i).length = l.length + 1 + i := fun i => by simp [pat]; omega
-  -- not a phase end before the pattern finishes
-  have hnot : ∀ i < Δ, ¬ PE Δ M (l ++ pat o1 i) := by
-    intro i hi
-    rintro (h1 | ⟨-, h2⟩)
-    · rw [hlen] at h1; omega
-    · have := h2 (l.length + 1) (by rw [hlen]; omega) (by rw [hlen]; omega) (by omega)
-      rw [strOf_pat_first] at this
-      exact ho1 (Fin.ext (by simpa [Out.toPair] using this))
-  have hend : PE Δ M (l ++ pat o1 Δ) := by
-    by_cases hM : (l ++ pat o1 Δ).length = M
-    · exact Or.inl hM
-    · refine Or.inr ⟨by rw [hlen] at hM ⊢; omega, ?_⟩
-      intro j h1 h2 _
-      rw [hlen] at h1 h2
-      exact (strOf_pat_after l o1 Δ j (by omega)).1
-  -- backward induction along the pattern
-  have key : ∀ j ≤ Δ, el ^ j * G (l ++ pat o1 Δ) ≤
-      ExU (κ := κ) (PE Δ M) (M - l.length - 1 - (Δ - j)) G (l ++ pat o1 (Δ - j)) := by
-    intro j hj
-    induction j with
-    | zero => simp only [pow_zero, one_mul, Nat.sub_zero]; rw [ExU_stop _ _ _ hend]
-    | succ j ih =>
-      have ih' := ih (by omega)
-      have hfuel : M - l.length - 1 - (Δ - (j + 1)) = (M - l.length - 1 - (Δ - j)) + 1 := by omega
-      rw [hfuel]
-      have hs := ExU_ge_snoc (κ := κ) hG (hnot (Δ - (j + 1)) (by omega))
-        (M - l.length - 1 - (Δ - j)) Out.empty
-      rw [List.append_assoc, pat_snoc, show Δ - (j + 1) + 1 = Δ - j by omega] at hs
-      have he := hel (Δ - (j + 1)) (by omega)
-      have hU := ExU_nonneg (κ := κ) (PE Δ M) (M - l.length - 1 - (Δ - j)) hG (l ++ pat o1 (Δ - j))
-      have he0 : 0 ≤ el ^ j * G (l ++ pat o1 Δ) := mul_nonneg (pow_nonneg hel0 _) (hG _)
-      calc el ^ (j + 1) * G (l ++ pat o1 Δ) = el * (el ^ j * G (l ++ pat o1 Δ)) := by ring
-        _ ≤ κ.p (l ++ pat o1 (Δ - (j + 1))) Out.empty *
-            ExU (κ := κ) (PE Δ M) (M - l.length - 1 - (Δ - j)) G (l ++ pat o1 (Δ - j)) := by
-            apply mul_le_mul he ih' he0 (κ.nonneg _ _)
-        _ ≤ _ := hs
-  have h0 := key Δ le_rfl
-  simp only [Nat.sub_self, Nat.sub_zero] at h0
-  unfold ExPh
-  have hsingle : κ.p l o1 * ExU (κ := κ) (PE Δ M) (M - l.length - 1) G (l ++ [o1]) ≤
-      ∑ o, κ.p l o * ExU (κ := κ) (PE Δ M) (M - l.length - 1) G (l ++ [o]) :=
-    Finset.single_le_sum (f := fun o => κ.p l o * ExU (κ := κ) (PE Δ M) (M - l.length - 1) G (l ++ [o]))
-      (fun o _ => mul_nonneg (κ.nonneg l o) (ExU_nonneg _ _ hG _)) (Finset.mem_univ o1)
-  have hp0 : pat o1 0 = [o1] := rfl
-  rw [hp0] at h0
-  calc κ.p l o1 * el ^ Δ * G (l ++ pat o1 Δ) = κ.p l o1 * (el ^ Δ * G (l ++ pat o1 Δ)) := by ring
-    _ ≤ κ.p l o1 * ExU (κ := κ) (PE Δ M) (M - l.length - 1) G (l ++ [o1]) :=
-        mul_le_mul_of_nonneg_left h0 (κ.nonneg l o1)
-    _ ≤ _ := hsingle
-
-theorem ex_cross_truncL {sl el : ℝ} (hel0 : 0 ≤ el) (hΔ : 0 < Δ) {h : List Out}
-    (hlM : h.length + Δ + 1 ≤ M) {G : ℕ} (hG : Δ + 1 ≤ G) (hs : sl ≤ κ.p h ⟨1, false⟩)
-    (hel : ∀ i < Δ, el ≤ κ.p (h ++ pat ⟨1, false⟩ i) Out.empty) :
-    sl * el ^ Δ ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h := by
-  classical
-  have hG0 : ∀ x, 0 ≤ truncG h.length G (crossG 1 h.length) x :=
-    truncG_nonneg (fun x => by unfold crossG; split_ifs <;> positivity)
-  have hl := phase_lowerL (κ := κ) hel0 hΔ hlM hG0 ⟨1, false⟩ (by decide) hel
-  have hval : truncG h.length G (crossG 1 h.length) (h ++ pat ⟨1, false⟩ Δ) = 1 := by
-    have hlen : (h ++ pat ⟨1, false⟩ Δ).length = h.length + 1 + Δ := by simp [pat]; omega
-    unfold truncG crossG
-    rw [hlen, if_pos (by omega), if_pos (pat_cross h ⟨1, false⟩ rfl rfl)]
-    simp
-  rw [hval, mul_one] at hl
-  have : sl * el ^ Δ ≤ κ.p h ⟨1, false⟩ * el ^ Δ := mul_le_mul_of_nonneg_right hs (by positivity)
-  linarith
-
 /-- No epoch boundary within `G` slots after `t`. -/
 def NoSw (EL G t : ℕ) : Prop := ∀ j, t < j → j ≤ t + G → (j + 1) % EL ≠ 0
 
@@ -157,7 +85,7 @@ theorem ex_cross_truncIn {EL K : ℕ} {fam : Fin K → Band} (mem : List Out →
     (hΔ : 0 < Δ) (hlM : h.length + Δ + 1 ≤ M) {G : ℕ} (hG : Δ + 1 ≤ G)
     (hnb : NoSw EL G h.length) :
     pat0 ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h := by
-  refine le_trans hpat (ex_cross_truncL (helo (mem h)) hΔ hlM hG (hband h).slo fun i hi => ?_)
+  refine le_trans hpat (ex_cross_trunc (helo (mem h)) hΔ hlM hG (hband h).slo fun i hi => ?_)
   have := (hband (h ++ pat ⟨1, false⟩ i)).elo
   rwa [mem_pat hmem hnb ⟨1, false⟩ i (by omega)] at this
 

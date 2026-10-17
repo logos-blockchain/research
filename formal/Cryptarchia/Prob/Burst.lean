@@ -275,10 +275,12 @@ theorem pat_snoc (o1 : Out) (i : ℕ) : pat o1 i ++ [Out.empty] = pat o1 (i + 1)
   unfold pat; simp [List.replicate_succ']
 
 /-- **One pattern, from below.** For `G ≥ 0`, the expectation over the next phase
-is at least the probability of the pattern times `G` at its end. -/
-theorem phase_lower (hB : κ.Within B) (helo : 0 ≤ B.elo) (hΔ : 0 < Δ) {l : List Out} (hlM : l.length + Δ + 1 ≤ M)
-    {G : List Out → ℝ} (hG : ∀ h, 0 ≤ G h) (o1 : Out) (ho1 : o1.hon ≠ 0) :
-    κ.p l o1 * B.elo ^ Δ * G (l ++ pat o1 Δ) ≤ ExPh (κ := κ) (PE Δ M) (M - l.length - 1) G l := by
+is at least the probability of the pattern times `G` at its end, with `el` a lower
+bound on the empty slots' probabilities along it. -/
+theorem phase_lower {el : ℝ} (hel0 : 0 ≤ el) (hΔ : 0 < Δ) {l : List Out} (hlM : l.length + Δ + 1 ≤ M)
+    {G : List Out → ℝ} (hG : ∀ h, 0 ≤ G h) (o1 : Out) (ho1 : o1.hon ≠ 0)
+    (hel : ∀ i < Δ, el ≤ κ.p (l ++ pat o1 i) Out.empty) :
+    κ.p l o1 * el ^ Δ * G (l ++ pat o1 Δ) ≤ ExPh (κ := κ) (PE Δ M) (M - l.length - 1) G l := by
   have hlen : ∀ i, (l ++ pat o1 i).length = l.length + 1 + i := fun i => by simp [pat]; omega
   -- not a phase end before the pattern finishes
   have hnot : ∀ i < Δ, ¬ PE Δ M (l ++ pat o1 i) := by
@@ -296,7 +298,7 @@ theorem phase_lower (hB : κ.Within B) (helo : 0 ≤ B.elo) (hΔ : 0 < Δ) {l : 
       rw [hlen] at h1 h2
       exact (strOf_pat_after l o1 Δ j (by omega)).1
   -- backward induction along the pattern
-  have key : ∀ j ≤ Δ, B.elo ^ j * G (l ++ pat o1 Δ) ≤
+  have key : ∀ j ≤ Δ, el ^ j * G (l ++ pat o1 Δ) ≤
       ExU (κ := κ) (PE Δ M) (M - l.length - 1 - (Δ - j)) G (l ++ pat o1 (Δ - j)) := by
     intro j hj
     induction j with
@@ -308,10 +310,10 @@ theorem phase_lower (hB : κ.Within B) (helo : 0 ≤ B.elo) (hΔ : 0 < Δ) {l : 
       have hs := ExU_ge_snoc (κ := κ) hG (hnot (Δ - (j + 1)) (by omega))
         (M - l.length - 1 - (Δ - j)) Out.empty
       rw [List.append_assoc, pat_snoc, show Δ - (j + 1) + 1 = Δ - j by omega] at hs
-      have he := hB.elo (l ++ pat o1 (Δ - (j + 1)))
+      have he := hel (Δ - (j + 1)) (by omega)
       have hU := ExU_nonneg (κ := κ) (PE Δ M) (M - l.length - 1 - (Δ - j)) hG (l ++ pat o1 (Δ - j))
-      have he0 : 0 ≤ B.elo ^ j * G (l ++ pat o1 Δ) := mul_nonneg (pow_nonneg helo _) (hG _)
-      calc B.elo ^ (j + 1) * G (l ++ pat o1 Δ) = B.elo * (B.elo ^ j * G (l ++ pat o1 Δ)) := by ring
+      have he0 : 0 ≤ el ^ j * G (l ++ pat o1 Δ) := mul_nonneg (pow_nonneg hel0 _) (hG _)
+      calc el ^ (j + 1) * G (l ++ pat o1 Δ) = el * (el ^ j * G (l ++ pat o1 Δ)) := by ring
         _ ≤ κ.p (l ++ pat o1 (Δ - (j + 1))) Out.empty *
             ExU (κ := κ) (PE Δ M) (M - l.length - 1 - (Δ - j)) G (l ++ pat o1 (Δ - j)) := by
             apply mul_le_mul he ih' he0 (κ.nonneg _ _)
@@ -325,7 +327,7 @@ theorem phase_lower (hB : κ.Within B) (helo : 0 ≤ B.elo) (hΔ : 0 < Δ) {l : 
       (fun o _ => mul_nonneg (κ.nonneg l o) (ExU_nonneg _ _ hG _)) (Finset.mem_univ o1)
   have hp0 : pat o1 0 = [o1] := rfl
   rw [hp0] at h0
-  calc κ.p l o1 * B.elo ^ Δ * G (l ++ pat o1 Δ) = κ.p l o1 * (B.elo ^ Δ * G (l ++ pat o1 Δ)) := by ring
+  calc κ.p l o1 * el ^ Δ * G (l ++ pat o1 Δ) = κ.p l o1 * (el ^ Δ * G (l ++ pat o1 Δ)) := by ring
     _ ≤ κ.p l o1 * ExU (κ := κ) (PE Δ M) (M - l.length - 1) G (l ++ [o1]) :=
         mul_le_mul_of_nonneg_left h0 (κ.nonneg l o1)
     _ ≤ _ := hsingle

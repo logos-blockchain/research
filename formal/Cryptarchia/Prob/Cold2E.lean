@@ -63,24 +63,21 @@ noncomputable def truncG (m G : ℕ) (f : List Out → ℝ) (h : List Out) : ℝ
 theorem truncG_nonneg {m G : ℕ} {f : List Out → ℝ} (hf : ∀ h, 0 ≤ f h) (h : List Out) : 0 ≤ truncG m G f h := by
   unfold truncG; split_ifs; exacts [hf h, le_rfl]
 
-theorem ex_cross_trunc (hB : κ.Within B) (helo : 0 ≤ B.elo) (hΔ : 0 < Δ) {θ : ℝ} (hθ : 0 ≤ θ) {h : List Out}
-    (hlM : h.length + Δ + 1 ≤ M) {G : ℕ} (hG : Δ + 1 ≤ G) :
-    B.slo * B.elo ^ Δ * θ ^ (Δ + 1) ≤
-      ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG θ h.length)) h := by
+theorem ex_cross_trunc {sl el : ℝ} (hel0 : 0 ≤ el) (hΔ : 0 < Δ) {h : List Out}
+    (hlM : h.length + Δ + 1 ≤ M) {G : ℕ} (hG : Δ + 1 ≤ G) (hs : sl ≤ κ.p h ⟨1, false⟩)
+    (hel : ∀ i < Δ, el ≤ κ.p (h ++ pat ⟨1, false⟩ i) Out.empty) :
+    sl * el ^ Δ ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h := by
   classical
-  have hG0 : ∀ x, 0 ≤ truncG h.length G (crossG θ h.length) x :=
+  have hG0 : ∀ x, 0 ≤ truncG h.length G (crossG 1 h.length) x :=
     truncG_nonneg (fun x => by unfold crossG; split_ifs <;> positivity)
-  have hl := phase_lower (κ := κ) hB helo hΔ hlM hG0 ⟨1, false⟩ (by decide)
-  have hval : truncG h.length G (crossG θ h.length) (h ++ pat ⟨1, false⟩ Δ) = θ ^ (Δ + 1) := by
+  have hl := phase_lower (κ := κ) hel0 hΔ hlM hG0 ⟨1, false⟩ (by decide) hel
+  have hval : truncG h.length G (crossG 1 h.length) (h ++ pat ⟨1, false⟩ Δ) = 1 := by
     have hlen : (h ++ pat ⟨1, false⟩ Δ).length = h.length + 1 + Δ := by simp [pat]; omega
     unfold truncG crossG
     rw [hlen, if_pos (by omega), if_pos (pat_cross h ⟨1, false⟩ rfl rfl)]
-    rw [show h.length + 1 + Δ - h.length = Δ + 1 by omega, mul_one]
-  rw [hval] at hl
-  have hs := hB.slo h
-  have : B.slo * B.elo ^ Δ * θ ^ (Δ + 1) ≤ κ.p h ⟨1, false⟩ * B.elo ^ Δ * θ ^ (Δ + 1) := by
-    apply mul_le_mul_of_nonneg_right _ (by positivity)
-    exact mul_le_mul_of_nonneg_right hs (by positivity)
+    simp
+  rw [hval, mul_one] at hl
+  have : sl * el ^ Δ ≤ κ.p h ⟨1, false⟩ * el ^ Δ := mul_le_mul_of_nonneg_right hs (by positivity)
   linarith
 
 theorem iaOf_ne (st : ℤ × ℤ) : iaOf st ≠ 2 ∧ iaOf st ≠ 17 := by unfold iaOf; split_ifs <;> decide
@@ -244,6 +241,6 @@ theorem ex_post2G_at (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 
     ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (postB2 P st h.length)) h ≤
       P.lp * V2 P.c P.z P.s P.κ P.d st :=
   ex_post2G_gen P P.classOK hst hlM
-    (by simpa using ex_cross_trunc (κ := κ) (θ := 1) hW P.helo P.hΔ zero_le_one hlM hG) hE
+    (ex_cross_trunc P.helo P.hΔ hlM hG (hW.slo h) fun i _ => hW.elo _) hE
 
 end Cryptarchia.Prob
