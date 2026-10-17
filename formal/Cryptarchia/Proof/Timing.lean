@@ -135,7 +135,7 @@ structure Assm (E : Env) : Prop where
 theorem propose_valid (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O G c s)
     {i t newId : ℕ} {B : Block} (hB : propose c st L O G i t newId s = some B)
     (hslots : ∀ x ∈ s.tree, slotOf st x < t) (hc : c.Sane) (hexec : HonestExec L)
-    {st' : Store} (hS' : StoreOK st') (hext : StoreExt st st') (hst' : st' B.hdr.id = some B)
+    {st' : Store} (hext : StoreExt st st') (hst' : st' B.hdr.id = some B)
     (hne : newId ≠ genesisId) :
     validCore c st' L O G B = true := by
   obtain ⟨hid, hsig, hpar, hsl⟩ := propose_id hB
@@ -217,14 +217,14 @@ theorem propose_valid (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O 
 theorem propose_header (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O G c s)
     {i t newId : ℕ} {B : Block} (hB : propose c st L O G i t newId s = some B)
     (hslots : ∀ x ∈ s.tree, slotOf st x < t) (hc : c.Sane) (hexec : HonestExec L)
-    {st' : Store} (hS' : StoreOK st') (hext : StoreExt st st') (hst' : st' B.hdr.id = some B)
+    {st' : Store} (hext : StoreExt st st') (hst' : st' B.hdr.id = some B)
     (hne : newId ≠ genesisId) :
     validHeader c st' L O G s.tree s.bimm t B = true := by
   obtain ⟨-, -, hpar, hsl⟩ := propose_id hB
   have hcr := hs.rooted _ hs.cloc
   obtain ⟨hbr, hbc⟩ := hs.bimm_on_cloc hS
   rw [validHeader_iff]
-  refine ⟨propose_valid hS hs hB hslots hc hexec hS' hext hst' hne, hsl.le, hpar ▸ hs.cloc, ?_⟩
+  refine ⟨propose_valid hS hs hB hslots hc hexec hext hst' hne, hsl.le, hpar ▸ hs.cloc, ?_⟩
   rw [hpar, height_ext hext hbr, height_ext hext hcr, hs.bimm, blockAtDepth_height hS hcr]
   omega
 

@@ -311,7 +311,7 @@ theorem lead_ok (hA : Assm E) {w w₀ : World} (hw : WorldOK E w) (h : StepOK E 
   have hn : ∀ j, NodeOK E.c.k (w₀.add C).st E.L E.O E.G E.c (w₀.node j) :=
     fun j => nodeOK_ext hext hw₀.store (hw₀.nodes j)
   have hval := propose_header hw₀.store (hw₀.nodes i) hC (tick_past hw h hnow hsame) hA.sane hA.exec
-    hS' hext hC' (fun h0 => fresh_not_used w₀ (h0 ▸ genesis_used hw₀))
+    hext hC' (fun h0 => fresh_not_used w₀ (h0 ▸ genesis_used hw₀))
   -- the earlier blocks signed by `i` are from before the tick
   have hsig' : ∀ b B, w₀.st b = some B → B.hdr.signer = .honest i → B.hdr.slot < w₀.now := by
     intro b B hb hj
@@ -429,7 +429,7 @@ theorem tick_tree (hA : Assm E) {w : World} (hw : WorldOK E w) :
     have hnewC : C.hdr.id ∉ (w₀.node j).tree := fun hin =>
       fresh_not_used w₀ (hid ▸ (hw₀.used _).1 ((hw₀.nodes j).rooted _ hin).exists_blk)
     exact own_adopt hS' hn E.fastPath (E.ord j) (hA.ord j) _ C hC' hpar hnewC
-      (propose_header hw₀.store (hw₀.nodes j) hC (tick_past hw h hnow hsame) hA.sane hA.exec hS'
+      (propose_header hw₀.store (hw₀.nodes j) hC (tick_past hw h hnow hsame) hA.sane hA.exec
         hext hC' (fun h0 => fresh_not_used w₀ (h0 ▸ genesis_used hw₀)))
   · rw [if_neg hji] at hx ⊢
     rw [show (w₀.add C).node j = w₀.node j from rfl, height_ext hext ((hw₀.nodes j).rooted x hx),

@@ -66,7 +66,7 @@ theorem bimm_persist (hA : Assm E) (i : ℕ) {n n' : ℕ} (hnn : n ≤ n') :
   (wAt_le hA hnn).bimm i
 
 /-- Before the first slot, every honest node is still on genesis. -/
-theorem cloc_genesis_at_zero (hA : Assm E) {n : ℕ} (hn : n ≤ es.length) (h0 : (wAt E es n).now = 0)
+theorem cloc_genesis_at_zero (hA : Assm E) {n : ℕ} (h0 : (wAt E es n).now = 0)
     (i : ℕ) : ((wAt E es n).node i).cloc = genesisId := by
   have hw := wAt_ok (es := es) hA n
   by_contra hne
@@ -89,7 +89,7 @@ theorem agree_of (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ �
   have hci := (hw.nodes i).cloc_rooted
   have hcj := (hw.nodes j).cloc_rooted
   rcases Nat.eq_zero_or_pos (wAt E es n).now with h0 | hpos
-  · rw [cloc_genesis_at_zero hA hn h0 j, (hw.nodes i).bimm, cloc_genesis_at_zero hA hn h0 i]
+  · rw [cloc_genesis_at_zero hA h0 j, (hw.nodes i).bimm, cloc_genesis_at_zero hA h0 i]
     have hmem := blockAtDepth_mem hS hS.rooted_gen E.c.k
     have hgen : chainIds (wAt E es n).st genesisId = [genesisId] := by
       obtain ⟨g, hg, hs, -⟩ := hS.gen

@@ -161,7 +161,7 @@ theorem anc_iff {late : ℕ → Prop} {used : List ℕ} {N u b : ℕ} (hb : Root
 
 /-- **The settlement tree up to slot `t` is a PoS tree**, given the depth axiom
 for honest blocks up to `t`. -/
-theorem tree_valid_upto {late : ℕ → Prop} {used : List ℕ} {N : ℕ} (Δ t : ℕ) (htN : t ≤ N)
+theorem tree_valid_upto {late : ℕ → Prop} {used : List ℕ} {N : ℕ} (Δ t : ℕ)
     (hgen : genesisId ∈ used) (hpar : ∀ b ∈ used, GoodAt c L O G st N b → parentOf st b ∈ used)
     (hA2 : ∀ u ∈ (stree c L O G st late used N).V, ∀ v ∈ (stree c L O G st late used N).V,
       honL st late u = true → honL st late v = true → slotOf st v ≤ t → slotOf st u + Δ < slotOf st v →

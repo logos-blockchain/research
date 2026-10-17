@@ -185,7 +185,7 @@ theorem idxE_spec {e : ℕ} (hreach : E.c.fix e ≤ (wF E es).now) :
 
 /-- The first index at which the clock reaches `E.c.fix e` is at most any index at
 which it has. -/
-theorem idxE_le {e n : ℕ} (hn : n ≤ es.length) (h : E.c.fix e ≤ (wAt E es n).now) : idxE E es e ≤ n := by
+theorem idxE_le {e n : ℕ} (h : E.c.fix e ≤ (wAt E es n).now) : idxE E es e ≤ n := by
   classical
   have hex : ∃ n, n = es.length ∨ E.c.fix e ≤ (wAt E es n).now := ⟨es.length, Or.inl rfl⟩
   exact Nat.find_min' hex (Or.inr h)
@@ -248,7 +248,7 @@ theorem bimm_past_cut (hA : Assm E)
   have hA2 : A2Upto E es (Cons E es) b := by
     intro u hu v hv huh hvh hvb huv
     exact A2_of_Hon hA hmle hI.2 u hu v hv huh hvh (by omega) huv
-  have hF := tree_valid_upto (c := E.c) (L := E.L) (O := E.O) (G := E.G) hS E.Δ b hbN
+  have hF := tree_valid_upto (c := E.c) (L := E.L) (O := E.O) (G := E.G) hS E.Δ b
     (FTused_ok hA (cons_base hA)).1 (FTused_ok hA (cons_base hA)).2 hA2
   by_contra hlt
   push Not at hlt
@@ -377,7 +377,7 @@ theorem canon_of (hA : Assm E)
 
 /-- The immutable block and local chain of every node satisfy a predicate that
 holds for every chain through the node's immutable block. -/
-theorem bimm_cloc_of {n : ℕ} (hA : Assm E) (hn : n ≤ es.length) {P : ℕ → Prop}
+theorem bimm_cloc_of {n : ℕ} (hA : Assm E) {P : ℕ → Prop}
     (hP : ∀ i ∈ E.nodes, E.online i (wAt E es n).now = true →
       ∀ cl, Rooted (wAt E es n).st cl → slotOf (wAt E es n).st cl ≤ (wAt E es n).now →
       ((wAt E es n).node i).bimm ∈ chainIds (wAt E es n).st cl → P cl) :
@@ -421,7 +421,7 @@ theorem cons_step (hA : Assm E)
       have := now_mono (E := E) (es := es) hge hmle
       omega
     have hIHm : ∀ m' < m, InvAt E es (Cons E es) m' := fun m' hm' => hIH m' (by omega)
-    obtain ⟨hKb, hKc⟩ := bimm_cloc_of hA hmle (ih m hmn hmle (by omega) hIHm)
+    obtain ⟨hKb, hKc⟩ := bimm_cloc_of hA (ih m hmn hmle (by omega) hIHm)
     exact canon_of hA hG hGr hep (by omega) hreach (fun m' hm' => hIH m' (by omega)) hKb hKc hn hmn.le hi hio hcl hz
 
 /-- **The canonical-consistency predicate meets its obligations** up to the horizon. -/

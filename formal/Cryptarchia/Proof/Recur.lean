@@ -111,7 +111,7 @@ theorem cp_consistent (hA : Assm E) (hG : GoodCondW E es (Cons E es) W e H) (hGr
   have hK := cons_ok hA hG hGr
   have hDm : ∀ m' ≤ m, InvAt E es (Cons E es) m' := fun m' hm' =>
     main hA hK hG m' (by omega) (le_trans (now_mono (E := E) (es := es) hm' hmle) hmH)
-  obtain ⟨hKb, -⟩ := bimm_cloc_of hA hmle
+  obtain ⟨hKb, -⟩ := bimm_cloc_of hA
     (hK.step m hmle hmH (fun m' hm' => hDm m' hm'.le))
   -- the reference node is online
   have hi0 : i0 E es (ep + 1) ∈ E.nodes ∧ E.online (i0 E es (ep + 1)) (wAt E es m).now = true := by

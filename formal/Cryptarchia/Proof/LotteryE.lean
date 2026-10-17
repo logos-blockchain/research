@@ -112,9 +112,9 @@ theorem canon_node (hA : Assm E)
   obtain ⟨hmle, hnow, -⟩ := idxE_spec (e := ep) hreach
   have hDm : ∀ m ≤ idxE E es ep, InvAt E es (Cons E es) m := fun m hm =>
     main hA hK hG m (by omega) (le_trans (now_mono (E := E) (es := es) hm hmle) (by omega))
-  obtain ⟨hKb, hKc⟩ := bimm_cloc_of hA hmle
+  obtain ⟨hKb, hKc⟩ := bimm_cloc_of hA
     (cons_step hA hG hGr _ hmle (by omega) (fun m hm => hDm m hm.le))
-  exact canon_of hA hG hGr hep hfixH hreach hDm hKb hKc hn (idxE_le hn hFn) hi hio hcl hz
+  exact canon_of hA hG hGr hep hfixH hreach hDm hKb hKc hn (idxE_le hFn) hi hio hcl hz
 
 /-- **Every honest leader runs the canonical lottery** at every tick up to `Hs`. -/
 theorem node_state (hA : Assm E)
@@ -212,7 +212,7 @@ theorem advLeW_lotE (hA : Assm E)
     (hG : GoodCondW E es (Cons E es) W e H') (hGr : Growth E es e H') (hH'N : H' ≤ (wF E es).now)
     {Hs : ℕ} (hcov : ∀ ep, 1 ≤ ep → E.c.epochStart ep ≤ Hs → E.c.fix ep ≤ H') (hHs : Hs ≤ (wF E es).now) :
     AdvLeW Hs (WS E es (Cons E es)) (lotStrS E (σE E es) (lateAt E es)) :=
-  advLeW_upto hA (fun n hn _ htH j hj hjo => node_state hA hG hGr hH'N hcov hn.le htH hj hjo)
+  advLeW_upto hA (fun _ hn _ htH _ hj hjo => node_state hA hG hGr hH'N hcov hn.le htH hj hjo)
     (fun b B hb hBh hBs => hon_cons_upto hA hG hGr hH'N hcov es.length le_rfl b B hb hBh hBs)
     (advStatesOK_E hA) hHs
 

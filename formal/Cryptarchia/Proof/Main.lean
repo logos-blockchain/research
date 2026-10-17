@@ -181,7 +181,7 @@ theorem nearAt (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ → 
       height (wF E es).st u - height (wF E es).st x ≤ E.c.k := by
   have hw := wAt_ok (es := es) hA es.length
   have hS := hw.store
-  have hFt := tree_valid_upto (c := E.c) (L := E.L) (O := E.O) (G := E.G) hS E.Δ t htN
+  have hFt := tree_valid_upto (c := E.c) (L := E.L) (O := E.O) (G := E.G) hS E.Δ t
     (FTused_ok hA hK).1 (FTused_ok hA hK).2 hA2
   set Ft := (FT E es K).restrict t
   have hur : Rooted (wF E es).st u := (mem_stree.1 hu).2.1
