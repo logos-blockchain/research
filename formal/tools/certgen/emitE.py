@@ -2,8 +2,8 @@
 
 Plans the certificate (`planE.make`, cached in `res_<NAME>.pkl`), optimizes the settlement
 parameters (`optnum`), sets the target and writes the files (`emitF.emit`):
-* `Certs/<name>/Fam.lean`  the band family and the potential's parameters;
-* `Certs/<name>/I<i>.lean` index i's seeds and bounds, computed at elaboration time, and its check;
+* `Certs/<name>/Data.lean` the band family, the potential's parameters, and each index's seeds and
+                           bounds, computed at elaboration time, with its check;
 * `Certs/<name>.lean`      the chosen numbers, the main checks and the finality theorem.
 Usage: python3 emitE.py BETA DELTA DELTA_TSI K N NAME OUTDIR [all|emit] [MU]
 (`emit` reuses the saved plan `res_<NAME>.pkl`.)

@@ -1,24 +1,6 @@
 module
 
-public import Cryptarchia.Prob.Certs.E20D11C.I0
-public import Cryptarchia.Prob.Certs.E20D11C.I1
-public import Cryptarchia.Prob.Certs.E20D11C.I2
-public import Cryptarchia.Prob.Certs.E20D11C.I3
-public import Cryptarchia.Prob.Certs.E20D11C.I4
-public import Cryptarchia.Prob.Certs.E20D11C.I5
-public import Cryptarchia.Prob.Certs.E20D11C.I6
-public import Cryptarchia.Prob.Certs.E20D11C.I7
-public import Cryptarchia.Prob.Certs.E20D11C.I8
-public import Cryptarchia.Prob.Certs.E20D11C.I9
-public import Cryptarchia.Prob.Certs.E20D11C.I10
-public import Cryptarchia.Prob.Certs.E20D11C.I11
-public import Cryptarchia.Prob.Certs.E20D11C.I12
-public import Cryptarchia.Prob.Certs.E20D11C.I13
-public import Cryptarchia.Prob.Certs.E20D11C.I14
-public import Cryptarchia.Prob.Certs.E20D11C.I15
-public import Cryptarchia.Prob.Certs.E20D11C.I16
-public import Cryptarchia.Prob.Certs.E20D11C.I17
-public import Cryptarchia.Prob.Certs.E20D11C.I18
+public import Cryptarchia.Prob.Certs.E20D11C.Data
 public import Cryptarchia.Prob.CertClosed
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic

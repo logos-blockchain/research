@@ -12,7 +12,7 @@ Instances of the finality theorem at the specification's parameters, generated b
 parameters and the settlement parameters. Lean computes the rest, the bands, the automaton tables
 (from seeds found by Newton's method at elaboration time, `eval%`) and the bounds, and the kernel
 checks it; the proofs are generic (`Cryptarchia/Prob/CertGen.lean`, `CertSpec.lean`,
-`CertClosed.lean`). Building the three takes about 1.6 min (`lake build CryptarchiaCerts`).
+`CertClosed.lean`). Building the three takes about 2.5 min (`lake build CryptarchiaCerts`).
 
 Each bounds a finality violation from the plain assumptions of `Cryptarchia.Prob.finality`,
 with β = 0.2, Δ = 11 slots, μ = 0.13, ρ = 1.01, `Hmin` = 10⁶:
