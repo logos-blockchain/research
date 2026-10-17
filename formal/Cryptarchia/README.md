@@ -53,7 +53,7 @@ The assumptions on the environment are the fields of `Assm E`:
 | `Model` | tickets are a random oracle; each slot's lottery is fresh (no grinding); honest blocks are delivered within Δ; honest nodes follow the protocol and only crash; they go online or offline only at epoch boundaries; some honest node is online at every slot; each slot's epoch state is measurable |
 | `GenesisOK` | the genesis stake estimate is the genesis stake, all of it online |
 | `Exec.StakeOK β ζ` | the adversary holds at most a fraction β of the participating stake; notes are small (ζ); lead note identifiers are distinct |
-| `Exec.ChainQuality μ` | in every epoch, the canonical chain counts (as block or uncle slots) at least a fraction `1 − μ` of the window's slots an online honest node won. **Assumed** at μ = 0.1, with simulation evidence (`tools/forksim`): about 1 % lost in normal operation, up to about 10 % under worst-case scheduling or a balance attack; chain growth alone proves μ ≈ 0.25 |
+| `Exec.ChainQuality μ` | in every epoch, the canonical chain counts (as block or uncle slots) at least a fraction `1 − μ` of the window's slots an online honest node won. **Assumed** at μ = 0.13. An adversary that cannot predict honest leaders, with first-seen tie-breaking, can force about 0.122 at the band's fastest rates (a two-branch attack, solved as an MDP and replayed on an explicit block tree with the specification's uncle selection); one that can predict them, which `Model` does not exclude, about 0.22. Chain growth alone proves μ ≈ 0.25 |
 | `Exec.StakeDrift ρ` | from each epoch to the next, honest online stake grows by at most a factor ρ and participating stake shrinks by at most a factor ρ, slot for slot against the previous epoch's window |
 | `Exec.MinStake Hmin` | honest online stake is at least `Hmin` at every slot (it absorbs the estimate's fixed-point rounding) |
 
@@ -61,25 +61,25 @@ Two of these replace conditions of the earlier statements that a reader could no
 
 ## Certified numbers
 
-Three certificates, as Lean theorems with standard axioms only, under the assumptions of `finality` above with β = 0.2, μ = 0.1, ρ = 1.01 and `Hmin` = 10⁶. Two are numeric, at the specification's depth (`finality` in `Prob/Certs/E20D11M2.lean` and `Prob/Certs/E20D11.lean`):
+Three certificates, as Lean theorems with standard axioms only, under the assumptions of `finality` above with β = 0.2, μ = 0.13, ρ = 1.01 and `Hmin` = 10⁶. Two are numeric, at the specification's depth (`finality` in `Prob/Certs/E20D11M2.lean` and `Prob/Certs/E20D11.lean`):
 
 > f = 1/30, k = 2160, Δ = 11 slots, with the specification's stake inference and the adversary free to withhold all its blocks:
-> * executions up to slot 5,184,000 (two months, 9 epochs): **P(finality violation) ≤ 3.6e-13**;
-> * executions up to slot 31,536,000 (one year, 49 epochs): **P(finality violation) ≤ 2.1e-12**.
+> * executions up to slot 5,184,000 (two months, 9 epochs): **P(finality violation) ≤ 1.6e-11**;
+> * executions up to slot 31,536,000 (one year, 49 epochs): **P(finality violation) ≤ 8.8e-11**.
 
-Each bound is `settleEps3E + Ne · bandEps`: the settlement bound (1.5e-13 and 9e-13), which covers canonical-prefix consistency in every epoch as well as finality, plus the estimate's band (2.3e-14 per epoch). The band of slot rates is derived from the stake estimate (TSI band δ = 8.5 %, 32 band members), with room for the stake drift ρ.
+Each bound is `settleEps3E + Ne · bandEps`: the settlement bound (1.6e-11 and 8.7e-11), which covers canonical-prefix consistency in every epoch as well as finality, plus the estimate's band (2.1e-14 per epoch). The band of slot rates is derived from the stake estimate (TSI band δ = 8.5 %, 32 band members), with room for the stake drift ρ.
 
 The third is in closed form (`finality_closed` in `Prob/Certs/E20D11C.lean`): for **every depth k ≥ 1000 and every horizon N**, at the specification with depth `k` (`Config.specK k`: epochs of `300 k` slots), P(finality violation) ≤ `epsC N k`, a sum of nine terms `(N + c) · A · qᵗ` and `Ne · C · qᵗ` in `t = ⌊k/20⌋`, `Ne = ⌊N / (300 k)⌋ + 2`. The automaton certificates do not depend on `k`, and the settlement lengths grow linearly in `t` (`Prob/Closed.lean`). `finality_closed_short` folds it into two rates:
 
-> P(finality violation) ≤ (N + 19 t + 761) · (7.8e-31 + 2.885 · 0.666201ᵗ) + Ne · 1.561 · 0.745004ᵗ.
+> P(finality violation) ≤ (N + 19 t + 706) · (6.9e-28 + 0.9276 · 0.700570ᵗ) + Ne · 1.562 · 0.745235ᵗ.
 
 | k | two months | one year |
 |---|---|---|
-| 1500 | 2.3e-7 | |
-| 2160 | 4.8e-13 | 2.7e-12 |
-| 3000 | 5.6e-19 | |
+| 1500 | 7.8e-6 | |
+| 2160 | 5.0e-11 | 3.0e-10 |
+| 3000 | 1.5e-17 | |
 
-(`epsC`; the short form is within a factor 3.5 at k = 2160.) Each 20 blocks of depth multiply the settlement part by about 0.67 and the band part by about 0.75. The constant 7.8e-31 bounds a phase lasting longer than a fixed 759 slots (`settleEps3E`'s first term); it does not decay in `k`. At k = 1000 the bound is 2e-2.
+(`epsC`; the short form is within a factor 2 at k = 2160.) Each 20 blocks of depth multiply the settlement part by about 0.70 and the band part by about 0.75. The constant 6.9e-28 bounds a phase lasting longer than a fixed 704 slots (`settleEps3E`'s first term); it does not decay in `k`. At k = 1000 the bound is 9e-2.
 
 Other configurations are generated by `tools/certgen` (one-epoch, genesis and multi-epoch variants; see its README). Indicative values from the same method include:
 - β = 0.1 over a year: about 1e-40;
@@ -135,7 +135,7 @@ Each point is resolved so that theorems cover both readings, or in the adversary
 2. **The bootstrap rule** (density-based fork choice over `s_gen` slots).
 3. **Nonce grinding.**
 4. **The estimate's update from the execution.** The recursion (`cs_succ_D`), canonical-prefix consistency (`cp_consistent`, `cons_of_lot` and the epoch induction) and the upper count (`occupied_le_wcnt`) are proven. Two steps remain:
-   - Replace the assumed μ = 0.1 in `hlo` with a proof. Chain growth gives μ ≈ 0.25. The uncle rule counts only forks whose parent is on the chain, so deeper forks are lost; `tools/forksim` measures this.
+   - Replace the assumed μ = 0.13 in `hlo` with a proof. Chain growth gives μ ≈ 0.25. The uncle rule counts only forks whose parent is on the chain, so deeper forks are lost. Against an adversary that cannot predict honest leaders the best attack found forces about 0.122, so a proof needs a causality condition in `Model` (the execution up to slot t independent of later honest tickets); without it, an adversary that steers each honest leader forces about 0.22.
 5. **Tighter bounds.** The current method has two known sources of slack:
    - one window length shared across epochs of different rates; counting the window in occupied slots would remove it;
    - the two-term potential, against the exact chain.
