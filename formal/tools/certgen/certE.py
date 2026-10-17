@@ -68,11 +68,22 @@ def band_eps_float(T, P=PERIOD):
     return math.exp(-m * d * d / 2) + math.exp(-m * d * d * (0.5 - 2 / 9 * d))
 
 
+def geom_ys(ylo, Yh, K, d=12):
+    """`geomYs`: K members splitting [ylo, Yh] geometrically, at the least ratio with d decimals whose
+    K-th power reaches Yh / ylo, each rounded down to d digits, the last up"""
+    u = 10 ** d
+    lo, hi = 0, -(-Yh // ylo) * u
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if Yh / ylo <= Fr(mid, u) ** K: hi = mid
+        else: lo = mid + 1
+    return [rdn(ylo * Fr(lo, u) ** j, d) for j in range(K)] + [rup(Yh, d)]
+
+
 def epoch_members(T, K, d=12):
-    """K members covering the honest exponent [ylo, Yh] geometrically."""
+    """K members covering the honest exponent [ylo, Yh] geometrically (`geomYs`)."""
     dv = tband_derived(T)
-    lo, hi = float(dv['ylo']), float(dv['Yh'])
-    ys = [rdn(dv['ylo'], d)] + [rdn(Fr(lo * (hi / lo) ** (j / K)), d) for j in range(1, K)] + [rup(dv['Yh'], d)]
+    ys = geom_ys(dv['ylo'], dv['Yh'], K, d)
     beta = T['beta']
     out = []
     for j in range(K):

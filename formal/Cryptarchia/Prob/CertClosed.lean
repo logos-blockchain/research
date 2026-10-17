@@ -67,14 +67,15 @@ structure ClosedData where
   m : ℕ
   /-- the least depth -/
   k0 : ℕ
-  /-- the tilts, the stake drift per epoch, the minimum honest stake -/
-  x : ℚ
-  yy : ℚ
+  /-- the stake drift per epoch, the minimum honest stake -/
   ρ : ℚ
   Hmin : ℚ
 
 /-- **A closed-form certificate's derived numbers** (`ClosedData.derive`). -/
 structure ClosedDerived where
+  /-- the crowded-window and slow-growth tilts, the best for each `t` -/
+  x : ℚ
+  yy : ℚ
   /-- the potential's contractions -/
   lp : ℚ
   lpi : ℚ
@@ -106,7 +107,7 @@ structure ClosedDerived where
   As : ℚ
   qb : ℚ
   Ab : ℚ
-deriving DecidableEq
+deriving DecidableEq, Lean.ToExpr
 
 /-- The band's closed form per epoch. -/
 noncomputable def ClosedDerived.bandC (q : ClosedDerived) (t : ℕ) : ℝ :=
@@ -139,7 +140,7 @@ namespace FamCfg
 
 
 /-- **The derived numbers** of a closed-form certificate: the contractions from the tables' bounds
-(`lpOf`, `lpiOf`), the growth blocks, each settlement term's constant and rate, the band's terms and
+(`lpOf`, `lpiOf`), the growth blocks, the tilts by rule, each settlement term's constant and rate, the band's terms and
 the short form's rates, every power bounded outward to 14 digits, as the generator computes them
 (`emitC.closed_consts`). -/
 def _root_.Cryptarchia.Prob.ClosedData.derive (p : ClosedData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
@@ -151,19 +152,23 @@ def _root_.Cryptarchia.Prob.ClosedData.derive (p : ClosedData) (F : FamCfg) (Bq 
   let dn := powDnQ 14
   let nb := 120 * p.m / (p.T + F.Δ)
   let nb0 := (3 + p.G + (p.T + F.Δ) - 1) / (p.T + F.Δ) + 1
-  let bs := 1 + (p.yy - 1) * (if 1 ≤ p.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T)
+  -- the tilts: the best for `w` slots reaching `m` occupied ones, and for `nb` blocks staying below
+  -- `m + ρr` successes
+  let x := max 1 (tilt 5 p.w (p.m - 1) (1 - Bq.elo))
+  let yy := let v := tilt 4 nb (p.m + p.ρr - 1) (1 - (1 - Bq.hlo) ^ p.T); if 0 < v ∧ v < 1 then v else 1
+  let bs := 1 + (yy - 1) * (if 1 ≤ yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T)
   let A1 := up (rupQ 14 (1 - (1 - Bq.hhi) ^ F.Δ)) (p.G / F.Δ)
   let q2 := up (rupQ 14 (1 - Bq.hlo)) p.g
   let A3 := rupQ 14 (eOf dat 17 / F.τ)
   let q3 := rupQ 14 (up (eOf dat 17) p.j / dn F.τ p.w)
   let A4 := rupQ 14 (up (lp / lpi) p.G * eOf dat 2 * stat)
   let q4 := up lpi p.j
-  let A5 := rupQ 14 (1 / p.x)
-  let q5 := rupQ 14 (up (1 + (p.x - 1) * (1 - Bq.elo)) p.w / dn p.x p.m)
+  let A5 := rupQ 14 (1 / x)
+  let q5 := rupQ 14 (up (1 + (x - 1) * (1 - Bq.elo)) p.w / dn x p.m)
   let A6 := rupQ 14 (stat / F.c)
   let q6 := rupQ 14 (1 / dn F.c p.ρr)
-  let A7 := rupQ 14 ((1 / rdnQ 14 bs) ^ nb0 * (1 / p.yy) ^ p.m)
-  let q7 := rupQ 14 (up (rupQ 14 bs) nb / dn p.yy (p.m + p.ρr))
+  let A7 := rupQ 14 ((1 / rdnQ 14 bs) ^ nb0 * (1 / yy) ^ p.m)
+  let q7 := rupQ 14 (up (rupQ 14 bs) nb / dn yy (p.m + p.ρr))
   let a1 := T.ylo * T.clo * T.δ ^ 2 / 2
   let a2 := T.ylo * T.clo * T.δ ^ 2 * (1 / 2 - 2 / 9 * T.δ)
   let C1 := rupQ 10 (1 / (1 - a1))
@@ -176,7 +181,7 @@ def _root_.Cryptarchia.Prob.ClosedData.derive (p : ClosedData) (F : FamCfg) (Bq 
   let As := rupQ 6 ((q2 / qs) ^ t0) + rupQ 6 (A3 * (q3 / qs) ^ t0) + rupQ 6 (A4 * (q4 / qs) ^ t0) +
     rupQ 6 (A5 * (q5 / qs) ^ t0) + rupQ 6 (A6 * (q6 / qs) ^ t0) + rupQ 6 (A7 * (q7 / qs) ^ t0)
   let Ab := rupQ 6 (C1 * ((1 / Q1) / qb) ^ t0) + rupQ 6 (C2 * ((1 / Q2) / qb) ^ t0)
-  ⟨lp, lpi, nb, nb0, A1, q2, A3, q3, A4, q4, A5, q5, A6, q6, A7, q7, C1, Q1, C2, Q2, t0, qs, As, qb, Ab⟩
+  ⟨x, yy, lp, lpi, nb, nb0, A1, q2, A3, q3, A4, q4, A5, q5, A6, q6, A7, q7, C1, Q1, C2, Q2, t0, qs, As, qb, Ab⟩
 
 /-- **Every numeric condition of a closed-form certificate.** -/
 def closedChk (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) (p : ClosedData) (q : ClosedDerived) :
@@ -196,23 +201,23 @@ def closedChk (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) 
     decide (powUpQ 14 (q.lp / q.lpi) p.G * eOf dat 2 * (1 + (bOf dat - 1) / (1 - lrOf dat)) ≤ q.A4) &&
     decide (0 < q.lpi) &&
     decide (powUpQ 14 q.lpi p.j ≤ q.q4) &&
-    decide (1 / p.x ≤ q.A5) &&
-    decide (0 ≤ 1 + (p.x - 1) * (1 - Bq.elo)) &&
-    decide (1 ≤ p.x) &&
-    decide (0 < powDnQ 14 p.x p.m) &&
-    decide (powUpQ 14 (1 + (p.x - 1) * (1 - Bq.elo)) p.w / powDnQ 14 p.x p.m ≤ q.q5) &&
+    decide (1 / q.x ≤ q.A5) &&
+    decide (0 ≤ 1 + (q.x - 1) * (1 - Bq.elo)) &&
+    decide (1 ≤ q.x) &&
+    decide (0 < powDnQ 14 q.x p.m) &&
+    decide (powUpQ 14 (1 + (q.x - 1) * (1 - Bq.elo)) p.w / powDnQ 14 q.x p.m ≤ q.q5) &&
     decide ((1 + (bOf dat - 1) / (1 - lrOf dat)) / F.c ≤ q.A6) &&
     decide (0 ≤ F.c) &&
     decide (0 < powDnQ 14 F.c p.ρr) &&
     decide (1 / powDnQ 14 F.c p.ρr ≤ q.q6) &&
-    decide (0 < 1 + (p.yy - 1) * (if 1 ≤ p.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T)) &&
-    decide (0 < p.yy) &&
-    decide (p.yy ≤ 1) &&
-    decide ((1 / (1 + (p.yy - 1) * (if 1 ≤ p.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T))) ^ q.nb0 *
-      (1 / p.yy) ^ p.m ≤ q.A7) &&
-    decide (0 < powDnQ 14 p.yy (p.m + p.ρr)) &&
-    decide (powUpQ 14 (1 + (p.yy - 1) * (if 1 ≤ p.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T)) q.nb /
-      powDnQ 14 p.yy (p.m + p.ρr) ≤ q.q7) &&
+    decide (0 < 1 + (q.yy - 1) * (if 1 ≤ q.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T)) &&
+    decide (0 < q.yy) &&
+    decide (q.yy ≤ 1) &&
+    decide ((1 / (1 + (q.yy - 1) * (if 1 ≤ q.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T))) ^ q.nb0 *
+      (1 / q.yy) ^ p.m ≤ q.A7) &&
+    decide (0 < powDnQ 14 q.yy (p.m + p.ρr)) &&
+    decide (powUpQ 14 (1 + (q.yy - 1) * (if 1 ≤ q.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T)) q.nb /
+      powDnQ 14 q.yy (p.m + p.ρr) ≤ q.q7) &&
     decide (0 ≤ Bq.hhi) &&
     decide (Bq.hhi ≤ 1) &&
     decide (0 ≤ Bq.hlo) &&
@@ -280,23 +285,23 @@ structure ClosedFacts (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : 
   c4a : powUpQ 14 (q.lp / q.lpi) p.G * eOf dat 2 * (1 + (bOf dat - 1) / (1 - lrOf dat)) ≤ q.A4
   lpi0 : 0 < q.lpi
   c4 : powUpQ 14 q.lpi p.j ≤ q.q4
-  c5a : 1 / p.x ≤ q.A5
-  w50 : 0 ≤ 1 + (p.x - 1) * (1 - Bq.elo)
-  x1 : 1 ≤ p.x
-  xm : 0 < powDnQ 14 p.x p.m
-  c5 : powUpQ 14 (1 + (p.x - 1) * (1 - Bq.elo)) p.w / powDnQ 14 p.x p.m ≤ q.q5
+  c5a : 1 / q.x ≤ q.A5
+  w50 : 0 ≤ 1 + (q.x - 1) * (1 - Bq.elo)
+  x1 : 1 ≤ q.x
+  xm : 0 < powDnQ 14 q.x p.m
+  c5 : powUpQ 14 (1 + (q.x - 1) * (1 - Bq.elo)) p.w / powDnQ 14 q.x p.m ≤ q.q5
   c6a : (1 + (bOf dat - 1) / (1 - lrOf dat)) / F.c ≤ q.A6
   c0 : 0 ≤ F.c
   cr : 0 < powDnQ 14 F.c p.ρr
   c6 : 1 / powDnQ 14 F.c p.ρr ≤ q.q6
-  bs0 : 0 < 1 + (p.yy - 1) * (if 1 ≤ p.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T)
-  yy0 : 0 < p.yy
-  yy1 : p.yy ≤ 1
-  c7a : (1 / (1 + (p.yy - 1) * (if 1 ≤ p.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T))) ^ q.nb0 *
-      (1 / p.yy) ^ p.m ≤ q.A7
-  yym : 0 < powDnQ 14 p.yy (p.m + p.ρr)
-  c7 : powUpQ 14 (1 + (p.yy - 1) * (if 1 ≤ p.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T)) q.nb /
-      powDnQ 14 p.yy (p.m + p.ρr) ≤ q.q7
+  bs0 : 0 < 1 + (q.yy - 1) * (if 1 ≤ q.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T)
+  yy0 : 0 < q.yy
+  yy1 : q.yy ≤ 1
+  c7a : (1 / (1 + (q.yy - 1) * (if 1 ≤ q.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T))) ^ q.nb0 *
+      (1 / q.yy) ^ p.m ≤ q.A7
+  yym : 0 < powDnQ 14 q.yy (p.m + p.ρr)
+  c7 : powUpQ 14 (1 + (q.yy - 1) * (if 1 ≤ q.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T)) q.nb /
+      powDnQ 14 q.yy (p.m + p.ρr) ≤ q.q7
   hhi0 : 0 ≤ Bq.hhi
   hhi1 : Bq.hhi ≤ 1
   hlo0 : 0 ≤ Bq.hlo
@@ -369,10 +374,10 @@ theorem eps_closed_gen (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} {T :
     (hM : F.mainChk Bq p.κ q.lp q.lpi dat = true) (hf : closedChk F Bq dat T p q = true)
     (E : Env) {k : ℕ} (hk : E.c.k = k) (N : ℕ) (hnb : q.nb * (k / p.m) ≤ nbD E F.Δ p.G p.T + q.nb0) :
     settleEps3E E Bq.toBand (cert2 hM) q.lpi p.G N p.G (p.g * (k / p.m)) (p.j * (k / p.m)) (p.w * (k / p.m))
-      (p.ρr * (k / p.m)) p.T p.x p.yy ≤ p.epsS q N (k / p.m) := by
+      (p.ρr * (k / p.m)) p.T q.x q.yy ≤ p.epsS q N (k / p.m) := by
   have f := closedChk.facts hf
-  set bsQ : ℚ := 1 + (p.yy - 1) * (if 1 ≤ p.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T) with hbsQ
-  have hbs : 1 + ((p.yy : ℝ) - 1) * PT 1 (p.yy : ℝ) Bq.toBand.hlo Bq.toBand.hhi p.T = (bsQ : ℝ) := by
+  set bsQ : ℚ := 1 + (q.yy - 1) * (if 1 ≤ q.yy then 1 - (1 - Bq.hhi) ^ p.T else 1 - (1 - Bq.hlo) ^ p.T) with hbsQ
+  have hbs : 1 + ((q.yy : ℝ) - 1) * PT 1 (q.yy : ℝ) Bq.toBand.hlo Bq.toBand.hhi p.T = (bsQ : ℝ) := by
     simp only [BandR.toBand_hlo, BandR.toBand_hhi]; rw [pt_cast, hbsQ]; push_cast; ring
   have hF : (0 : ℝ) ≤ 1 + ((bOf dat : ℚ) - 1) / (1 - (lrOf dat : ℚ)) := by exact_mod_cast f.F0
   have he2 : (0 : ℝ) ≤ (eOf dat 2 : ℚ) := by exact_mod_cast f.e20
@@ -395,9 +400,9 @@ theorem eps_closed_gen (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} {T :
     refine (mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right ra he2) hF).trans ?_
     exact_mod_cast f.c4a
   have h4 : (q.lpi : ℝ) ^ p.j ≤ (q.q4 : ℝ) := pow_le_of_powUpQ 14 _ rfl rfl f.lpi0.le f.c4
-  have h5a : 1 / (p.x : ℝ) ≤ (q.A5 : ℝ) := by exact_mod_cast f.c5a
-  have h5 : (1 + ((p.x : ℝ) - 1) * (1 - Bq.toBand.elo)) ^ p.w / (p.x : ℝ) ^ p.m ≤ (q.q5 : ℝ) := by
-    have hb : 1 + ((p.x : ℝ) - 1) * (1 - Bq.toBand.elo) = ((1 + (p.x - 1) * (1 - Bq.elo) : ℚ) : ℝ) := by
+  have h5a : 1 / (q.x : ℝ) ≤ (q.A5 : ℝ) := by exact_mod_cast f.c5a
+  have h5 : (1 + ((q.x : ℝ) - 1) * (1 - Bq.toBand.elo)) ^ p.w / (q.x : ℝ) ^ p.m ≤ (q.q5 : ℝ) := by
+    have hb : 1 + ((q.x : ℝ) - 1) * (1 - Bq.toBand.elo) = ((1 + (q.x - 1) * (1 - Bq.elo) : ℚ) : ℝ) := by
       simp only [BandR.toBand_elo]; push_cast; ring
     rw [hb]
     refine (div_le_div_of_bounds (pow_nonneg (by exact_mod_cast f.w50) _) (pow_le_powUpQ 14 f.w50 p.w)
@@ -409,15 +414,15 @@ theorem eps_closed_gen (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} {T :
     show 1 / (F.c : ℝ) ^ p.ρr ≤ q.q6
     refine (one_div_le_one_div_of_le (by exact_mod_cast f.cr) (powDnQ_le_pow 14 f.c0 _)).trans ?_
     exact_mod_cast f.c6
-  have hb0 : 0 < 1 + ((p.yy : ℝ) - 1) * PT 1 (p.yy : ℝ) Bq.toBand.hlo Bq.toBand.hhi p.T := by
+  have hb0 : 0 < 1 + ((q.yy : ℝ) - 1) * PT 1 (q.yy : ℝ) Bq.toBand.hlo Bq.toBand.hhi p.T := by
     rw [hbs]; exact_mod_cast f.bs0
   have hbs0 : (0 : ℚ) < bsQ := f.bs0
-  have h7a : (1 / (1 + ((p.yy : ℝ) - 1) * PT 1 (p.yy : ℝ) Bq.toBand.hlo Bq.toBand.hhi p.T)) ^ q.nb0 *
-      (1 / (p.yy : ℝ)) ^ p.m ≤ (q.A7 : ℝ) := by
+  have h7a : (1 / (1 + ((q.yy : ℝ) - 1) * PT 1 (q.yy : ℝ) Bq.toBand.hlo Bq.toBand.hhi p.T)) ^ q.nb0 *
+      (1 / (q.yy : ℝ)) ^ p.m ≤ (q.A7 : ℝ) := by
     rw [hbs]
     exact_mod_cast f.c7a
-  have h7 : (1 + ((p.yy : ℝ) - 1) * PT 1 (p.yy : ℝ) Bq.toBand.hlo Bq.toBand.hhi p.T) ^ q.nb /
-      (p.yy : ℝ) ^ (p.m + p.ρr) ≤ (q.q7 : ℝ) := by
+  have h7 : (1 + ((q.yy : ℝ) - 1) * PT 1 (q.yy : ℝ) Bq.toBand.hlo Bq.toBand.hhi p.T) ^ q.nb /
+      (q.yy : ℝ) ^ (p.m + p.ρr) ≤ (q.q7 : ℝ) := by
     rw [hbs]
     refine (div_le_div_of_bounds (pow_nonneg (by exact_mod_cast hbs0.le) _) (pow_le_powUpQ 14 hbs0.le q.nb)
       (by exact_mod_cast f.yym) (powDnQ_le_pow 14 f.yy0.le (p.m + p.ρr))).trans ?_
@@ -551,7 +556,7 @@ theorem finality_closed_gen {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} 
     es hMod hN hΔ
     (cert3E hM hS hD hBq hidx E.c.epochLength p.G f.G1 (by rw [hEL]; have := f.GEL; omega)) (FamSpec.prod hS)
     (G' := p.g * (k / p.m)) (J := p.j * (k / p.m)) (Lw := p.w * (k / p.m)) (r := p.ρr * (k / p.m)) (T := p.T)
-    (x := p.x) (yy := p.yy)
+    (x := q.x) (yy := q.yy)
     (by exact_mod_cast f.x1) (by exact_mod_cast f.yy0) (by exact_mod_cast f.yy1) f.T1 le_rfl
     (by simp only [BandR.toBand_hhi]; exact_mod_cast f.hhi1) (by simp only [BandR.toBand_hlo]; exact_mod_cast f.hlo0)
     (by simp only [BandR.toBand_hlo]; exact_mod_cast f.hlo1) (by simp only [BandR.toBand_elo]; exact_mod_cast f.helo1)

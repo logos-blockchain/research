@@ -127,18 +127,48 @@ def driftChkQ (c : Config) (T : TBandQ) (ρ Hmin : ℚ) : Bool :=
 
 /-! ## The final checks -/
 
+/-! ## The estimate's band and the breakpoints, by rule -/
+
+/-- The least `n` in `[lo, hi]` with `P n`, by binary search with fuel `f` (for `P` monotone); `hi` if
+there is none. -/
+def FamCfg.leastTrue (P : ℕ → Bool) : ℕ → ℕ → ℕ → ℕ
+  | 0, lo, _ => lo
+  | f + 1, lo, hi =>
+    if lo < hi then
+      if P ((lo + hi) / 2) then leastTrue P f lo ((lo + hi) / 2) else leastTrue P f ((lo + hi) / 2 + 1) hi
+    else lo
+
+/-- **The estimate's band**, from the stake drift `ρ` and the least honest stake `Hmin`: `n` rounds of
+the drift conditions solved for `ℓhi` (rounded up to `d` digits) and for `ℓlo` (rounded down), from
+`f_p / (1 ∓ δ)`, as the generator computes it (`certE.tband`). -/
+def TBandQ.ofDrift (c : Config) (μ β δ η ζ ρ Hmin : ℚ) (d n : ℕ) : TBandQ :=
+  let Kc := KcQ c
+  let lh := lam0Q c * Hmin
+  let P : ℚ := c.period
+  let step := fun (b : ℚ × ℚ) =>
+    let (llo, lhi) := b
+    let T : TBandQ := ⟨llo, lhi, μ, β, δ, η, ζ⟩
+    (rdnQ d ((1 - Kc * ρ) / (Kc * (1 + δ) * T.chi * P * ρ + 3 / lh)),
+      rupQ d ((1 - μ) / (Kc * (1 - μ) * (1 - δ) * T.clo * (P - 1) / ρ - 2 / lh)))
+  let fp : ℚ := (c.fP : ℚ) / c.precision
+  let (llo, lhi) := step^[n] (fp / (1 + δ), fp / (1 - δ))
+  ⟨llo, lhi, μ, β, δ, η, ζ⟩
+
+/-- **The breakpoints**: `K` members splitting `[ylo, Yh]` geometrically, at the least ratio with `d`
+decimals whose `K`-th power reaches `Yh / ylo`, each rounded down to `d` digits, the last up. -/
+def geomYs (ylo Yh : ℚ) (K d : ℕ) : List ℚ :=
+  let u : ℚ := 10 ^ d
+  let m := FamCfg.leastTrue (fun m => decide (Yh / ylo ≤ ((m : ℚ) / u) ^ K)) 64 0 (⌈Yh / ylo⌉.toNat * 10 ^ d)
+  (List.range K).map (fun j => rdnQ d (ylo * ((m : ℚ) / u) ^ j)) ++ [rupQ d Yh]
+
+/-! ## The final checks -/
+
 /-- **A certificate's chosen numbers** beyond the family and the potential's parameters. -/
 structure SpecData where
   /-- the potential's weight of the cold potential's second term -/
   κ : ℚ
   /-- the horizon: executions up to slot `N` -/
   N : ℕ
-  /-- the slots of a span and of a crowded window, and the growth block -/
-  Lw : ℕ
-  T : ℕ
-  /-- the crowded-window and slow-growth tilts -/
-  x : ℚ
-  yy : ℚ
   /-- the share of the main terms each lesser term may take (`SpecData.derive`) -/
   ε : ℚ
   /-- the stake drift per epoch and the minimum honest stake -/
@@ -147,13 +177,19 @@ structure SpecData where
 
 /-- **A certificate's derived numbers** (`SpecData.derive`). -/
 structure SpecDerived where
-  /-- the phases of a span, where the span term reaches the failed-checks term -/
+  /-- the slots of a span and of a crowded window, and the phases of a span, minimizing the main terms -/
+  Lw : ℕ
   J : ℕ
+  /-- the crowded-window tilt, the best for `Lw` -/
+  x : ℚ
   /-- the phase cut, the longest empty run and the reach bound: each the least making its term at most
   `ε` times the main terms -/
   G : ℕ
   G' : ℕ
   r : ℕ
+  /-- the growth block, the best of `1, …, 64`, and the slow-growth tilt, the best for it -/
+  T : ℕ
+  yy : ℚ
   /-- the slots the analysis covers, and the epochs they span -/
   M : ℕ
   Ne : ℕ
@@ -164,55 +200,83 @@ structure SpecDerived where
   tgt : ℚ
   bx : ℚ
   fin : ℚ
-deriving DecidableEq
+deriving DecidableEq, Lean.ToExpr
+
+deriving instance Lean.ToExpr for TBandQ
 
 namespace FamCfg
 
-/-- The least `n` in `[lo, hi]` with `P n`, by binary search with fuel `f` (for `P` monotone); `hi` if
-there is none. -/
-def leastTrue (P : ℕ → Bool) : ℕ → ℕ → ℕ → ℕ
+/-- The first `n ∈ [lo, lo + m)` minimizing `f`. -/
+def argmin (f : ℕ → ℚ) (lo m : ℕ) : ℕ :=
+  (List.range m).foldl (fun b i => if f (lo + i) < f b then lo + i else b) lo
+
+/-- A minimizer of `f` on `[lo, hi]` by ternary search with fuel `n` (exact for `f` unimodal): the
+interval shrinks by a third each round, and its last three points are compared. -/
+def tmin (f : ℕ → ℚ) : ℕ → ℕ → ℕ → ℕ
   | 0, lo, _ => lo
-  | f + 1, lo, hi =>
-    if lo < hi then
-      if P ((lo + hi) / 2) then leastTrue P f lo ((lo + hi) / 2) else leastTrue P f ((lo + hi) / 2 + 1) hi
-    else lo
+  | n + 1, lo, hi =>
+    if hi ≤ lo + 2 then argmin f lo (hi + 1 - lo)
+    else if f (lo + (hi - lo) / 3) ≤ f (hi - (hi - lo) / 3) then tmin f n lo (hi - (hi - lo) / 3)
+    else tmin f n (lo + (hi - lo) / 3) hi
 
 /-- The growth window's depth blocks at the specification (`nbD`). -/
 def nbSpec (Δ G T : ℕ) : ℕ :=
   (Config.spec.epochLength - Config.spec.nonceOffset - Δ - 3 - G + Δ) / (T + Δ)
 
-/-- **The derived numbers**: the slots and epochs the analysis covers, the contractions from the tables'
-bounds (`lpOf`, `lpiOf`), the settlement and band bounds rounded up to 2 and 4 digits, and their sum
-over the epochs rounded up to 2 digits. -/
+/-- The best tilt `(m + 1)(1 - p) / ((n - m - 1) p)` of the Chernoff bound `(1 + (x - 1) p)ⁿ / x^(m+1)`
+on `n` trials of chance `p` reaching `m + 1`, rounded down to `d` digits. -/
+def tilt (d n m : ℕ) (p : ℚ) : ℚ := rdnQ d ((m + 1) * (1 - p) / (((n : ℚ) - m - 1) * p))
+
+/-- **The derived numbers.** The contractions from the tables' bounds (`lpOf`, `lpiOf`). Then the
+settlement parameters by rule: the window `Lw` and the span's phases `J` minimizing the main terms
+(spans, failed checks and crowded windows, the window at its best tilt `x`);
+the phase cut `G`, the longest empty run `G'` and the reach bound `r`, each the least making its term
+at most `ε` times these three; the growth block `T` minimizing the slow-growth term at its best tilt
+`yy`. Last the slots and epochs covered, the settlement and band bounds rounded up to 2 and 4 digits,
+and their sum over the epochs rounded up to 2 digits. -/
 def _root_.Cryptarchia.Prob.SpecData.derive (p : SpecData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
     (T : TBandQ) : SpecDerived :=
+  let k := Config.spec.k
   let lp := F.lpOf Bq p.κ dat
   let lpi := F.lpiOf p.κ dat
   let stat := 1 + (bOf dat - 1) / (1 - lrOf dat)
   -- the main terms: spans, failed checks (without the phase cut's factor) and crowded windows
-  let span := fun J : ℕ => (p.N + 1 : ℚ) * powUpQ 14 (eOf dat 17) (J + 1) / powDnQ 14 F.τ (p.Lw + 1)
+  let span := fun (Lw J : ℕ) => (p.N + 1 : ℚ) * powUpQ 14 (eOf dat 17) (J + 1) / powDnQ 14 F.τ (Lw + 1)
   let fail := fun J : ℕ => (p.N + 1 : ℚ) * powUpQ 14 lpi J * eOf dat 2 * stat
-  let win := (p.N + 1 : ℚ) * powUpQ 14 (1 + (p.x - 1) * (1 - Bq.elo)) p.Lw / powDnQ 14 p.x (Config.spec.k + 1)
-  let J := leastTrue (fun j => decide (fail j ≤ span j)) 64 1 (2 ^ 15)
-  let m0 := span J + fail J + win
+  let xOf := fun Lw : ℕ => max 1 (tilt 5 Lw k (1 - Bq.elo))
+  let win := fun Lw : ℕ =>
+    (p.N + 1 : ℚ) * powUpQ 14 (1 + (xOf Lw - 1) * (1 - Bq.elo)) Lw / powDnQ 14 (xOf Lw) (k + 1)
+  let JOf := fun Lw : ℕ => tmin (fun j => span Lw j + fail j) 64 1 (2 ^ 15)
+  let Lw := tmin (fun L => span L (JOf L) + fail (JOf L) + win L) 64 (k + 2) ⌊(k + 1 : ℚ) / (1 - Bq.elo)⌋.toNat
+  let J := JOf Lw
+  let m0 := span Lw J + fail J + win Lw
   -- the lesser terms, each at most `ε · m0`
   let G' := leastTrue (fun n => decide ((p.N + 1 : ℚ) * powUpQ 14 (1 - Bq.hlo) n ≤ p.ε * m0)) 64 1 (2 ^ 14)
   let mG := leastTrue (fun n => decide ((p.N + 1 : ℚ) * powUpQ 14 (1 - (1 - Bq.hhi) ^ F.Δ) n ≤ p.ε * m0)) 64 1 (2 ^ 10)
   let G := max (2 * F.Δ) (F.Δ * mG + F.Δ)
   let r := leastTrue (fun n => decide ((p.N + G + 1 : ℚ) * stat / powDnQ 14 F.c (n + 1) ≤ p.ε * m0)) 64 0 (2 ^ 12)
+  -- slow growth: `nb` blocks of `T` slots, each with an honest success with chance `pt`, at most `k + r`
+  let yyOf := fun Tg : ℕ =>
+    let pt := 1 - (1 - Bq.hlo) ^ Tg
+    let v := tilt 4 (nbSpec F.Δ G Tg) (k + r - 1) pt
+    if 0 < v ∧ v < 1 then v else 1
+  let grow := fun Tg : ℕ =>
+    powUpQ 14 (1 + (yyOf Tg - 1) * (1 - (1 - Bq.hlo) ^ Tg)) (nbSpec F.Δ G Tg) / powDnQ 14 (yyOf Tg) (k + r)
+  let Tg := argmin grow 1 64
+  let yy := yyOf Tg
   let M := p.N + G + G' + F.Δ + 2
   let Ne := M / Config.spec.epochLength + 1
-  let tgt := rupQ 2 (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi p.x p.yy
-    Config.spec.k ((p.N + 2) / Config.spec.epochLength) (nbSpec F.Δ G p.T) G p.N G G' J p.Lw r p.T)
+  let tgt := rupQ 2 (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi (xOf Lw) yy
+    k ((p.N + 2) / Config.spec.epochLength) (nbSpec F.Δ G Tg) G p.N G G' J Lw r Tg)
   let bx := rupQ 4 (bandEpsQ 14 4096 T Config.spec.period)
-  ⟨J, G, G', r, M, Ne, lp, lpi, tgt, bx, rupQ 2 (tgt + Ne * bx)⟩
+  ⟨Lw, J, xOf Lw, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, rupQ 2 (tgt + Ne * bx)⟩
 
 /-- **Every numeric condition of the finality theorem at the specification**: the settlement bound
 below `tgt`, the band's below `bx`, `tgt + Ne · bx ≤ fin`, and the conditions of `Prob.finality`. -/
 def finChkSpec (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) (p : SpecData) (q : SpecDerived) :
     Bool :=
-  let ⟨_, N, Lw, Tg, x, yy, _, ρ, Hmin⟩ := p
-  let ⟨J, G, G', r, M, Ne, lp, lpi, tgt, bx, fin⟩ := q
+  let ⟨_, N, _, ρ, Hmin⟩ := p
+  let ⟨Lw, J, x, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, fin⟩ := q
   settleChkQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy Config.spec.k G Lw r Tg &&
     decide (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy Config.spec.k
       ((N + 2) / Config.spec.epochLength) (nbSpec F.Δ G Tg) G N G G' J Lw r Tg ≤ tgt) &&
@@ -261,7 +325,7 @@ structure SpecFacts (F : FamCfg) (Bq : BandR) (lp lpi : ℚ) (dat : Fin 19 → I
 
 theorem finChkSpec.facts {F : FamCfg} {Bq : BandR} {κ lp lpi : ℚ} {dat : Fin 19 → IdxData} {T : TBandQ}
     {N M Ne G G' J Lw r Tg : ℕ} {x yy ρ Hmin tgt bx fin : ℚ}
-    {ε : ℚ} (h : finChkSpec F Bq dat T ⟨κ, N, Lw, Tg, x, yy, ε, ρ, Hmin⟩ ⟨J, G, G', r, M, Ne, lp, lpi, tgt, bx, fin⟩ = true) :
+    {ε : ℚ} (h : finChkSpec F Bq dat T ⟨κ, N, ε, ρ, Hmin⟩ ⟨Lw, J, x, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, fin⟩ = true) :
     SpecFacts F Bq lp lpi dat T N M Ne G G' J Lw r Tg x yy ρ Hmin tgt bx fin := by
   simp only [finChkSpec, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨eps, epsle⟩, band⟩, bandle⟩, fin⟩, tgt0⟩, bx0⟩, hx⟩, hyy0⟩, hyy1⟩, hT⟩, hNM⟩, hhi1⟩, hlo0⟩, hlo1⟩, helo1⟩, hLw⟩, hOG⟩, hNe⟩, hG1⟩, hGEL⟩, ok⟩, drift⟩, hη⟩, hζ⟩, hβ⟩, hηlot⟩, cov0⟩, cov1⟩ := h
@@ -280,8 +344,8 @@ theorem finality_spec {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
     (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β T.ζ) (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ q.Ne)
     (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) p.ρ q.Ne) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) p.Hmin) :
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal q.fin := by
-  obtain ⟨κ, N, Lw, Tg, x, yy, ε, ρ, Hmin⟩ := p
-  obtain ⟨J, G, G', r, M, Ne, lp, lpi, tgt, bx, fin⟩ := q
+  obtain ⟨κ, N, ε, ρ, Hmin⟩ := p
+  obtain ⟨Lw, J, x, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, fin⟩ := q
   have f := finChkSpec.facts hfin
   obtain ⟨⟨Δ, c, z, s, d', τ⟩, ⟨η, ζ, β, d, dy, K, ys⟩, famZL, Dz⟩ := F
   simp only at hK

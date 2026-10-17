@@ -41,30 +41,40 @@ def closed_value(cf, N, t, g, G):
     return math.log(sum(terms))
 
 
+def float_tilts(B, m, w, rho, nb, Tg):
+    """the tilts of `emitF.closed_tilts`, in floats"""
+    q = 1 - float(B['elo']); pt = 1 - (1 - float(B['hlo'])) ** Tg
+    x = max(1.0, m * (1 - q) / ((w - m) * q)) if w > m else 1.0
+    den = (nb - m - rho) * pt
+    yy = (m + rho) * (1 - pt) / den if den > 0 else 1.0
+    return x, (yy if 0 < yy < 1 else 1.0)
+
+
 def opt_params(P, B, cfg, D, N_ref=5184000, k_ref=2160):
-    """integer per-t lengths and the free reals, minimizing the closed form at (N_ref, k_ref),
-    with every term decaying"""
+    """integer per-t lengths minimizing the closed form at (N_ref, k_ref), with every term decaying; the
+    tilts follow their rule"""
     from scipy.optimize import minimize
     m = M_DIV; t_ref = k_ref // m; G = cfg['G']
     best = None
     divs = [t - D for t in range(D + 5, 120 * m) if (120 * m) % t == 0]
     for Tg in divs[:14]:
+        nb = 120 * m // (Tg + D)
         def obj(p):
-            j, w, g, rho, x, yy = p
-            if min(j, w, g, rho) <= 0 or x <= 1.0001 or not (0.05 < yy < 0.9999): return 1e9
-            cf = closed_floats(P, B, cfg, D, math.ceil(j), math.ceil(w), math.ceil(g), math.ceil(rho), x, yy, Tg)
+            j, w, g, rho = (math.ceil(v) for v in p)
+            if min(j, w, g, rho) <= 0: return 1e9
+            x, yy = float_tilts(B, m, w, rho, nb, Tg)
+            if x <= 1.0001 or yy >= 0.9999: return 1e9
+            cf = closed_floats(P, B, cfg, D, j, w, g, rho, x, yy, Tg)
             if max(cf[k] for k in ('q2', 'q3', 'q4', 'q5', 'q6', 'q7')) >= 0: return 1e9
-            return closed_value(cf, N_ref, t_ref, math.ceil(g), G)
-        for x0 in [1.15, 1.22]:
-            for yy0 in [0.5, 0.8]:
-                r = minimize(obj, [9.07 * m, 16.2 * m, 0.85 * m, 0.147 * m, x0, yy0], method='Nelder-Mead',
-                             options=dict(maxiter=6000, xatol=1e-7, fatol=1e-10))
-                if best is None or r.fun < best[0]: best = (r.fun, Tg, r.x)
-    _, Tg, (j, w, g, rho, x, yy) = best
-    J, W, Gp, R = math.ceil(j), math.ceil(w), math.ceil(g), math.ceil(rho)
-    X, YY = rdn(Fr(x), 5), rdn(Fr(yy), 4)
-    cf = closed_floats(P, B, cfg, D, J, W, Gp, R, float(X), float(YY), Tg)
-    return dict(j=J, w=W, g=Gp, rho=R, x=X, yy=YY, Tg=Tg,
+            return closed_value(cf, N_ref, t_ref, g, G)
+        r = minimize(obj, [9.07 * m, 16.2 * m, 0.85 * m, 0.147 * m], method='Nelder-Mead',
+                     options=dict(maxiter=6000, xatol=1e-7, fatol=1e-10))
+        if best is None or r.fun < best[0]: best = (r.fun, Tg, r.x)
+    _, Tg, p = best
+    J, W, Gp, R = (math.ceil(v) for v in p)
+    x, yy = float_tilts(B, m, W, R, 120 * m // (Tg + D), Tg)
+    cf = closed_floats(P, B, cfg, D, J, W, Gp, R, x, yy, Tg)
+    return dict(j=J, w=W, g=Gp, rho=R, Tg=Tg,
                 rate=max(cf[k] for k in ('q2', 'q3', 'q4', 'q5', 'q6', 'q7')),
                 ref=math.exp(closed_value(cf, N_ref, t_ref, Gp, G)))
 
@@ -95,7 +105,10 @@ if __name__ == "__main__":
     else:
         res = planE.make(beta, D, delta, K, 5184000, mu=mu)
         pickle.dump(res, open(pk, 'wb'))
-    cfg, T, fam, B, P, Ts = res
+    cfg, T = res[:2]
+    # the family and its tables, by the current rules, for the planned potential
+    import emitE
+    fam, B, P = emitE.retable(cfg, T, K)
     cl = opt_params(P, B, cfg, D)
     cl['k0'] = k0
     print('closed params', cl)

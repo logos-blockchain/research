@@ -64,14 +64,14 @@ Two of these replace conditions of the earlier statements that a reader could no
 Three certificates, as Lean theorems with standard axioms only, under the assumptions of `finality` above with β = 0.2, μ = 0.13, ρ = 1.01 and `Hmin` = 10⁶. Two are numeric, at the specification's depth (`finality` in `Prob/Certs/E20D11M2.lean` and `Prob/Certs/E20D11.lean`):
 
 > f = 1/30, k = 2160, Δ = 11 slots, with the specification's stake inference and the adversary free to withhold all its blocks:
-> * executions up to slot 5,184,000 (two months, 9 epochs): **P(finality violation) ≤ 1.5e-11**;
-> * executions up to slot 31,536,000 (one year, 49 epochs): **P(finality violation) ≤ 8.3e-11**.
+> * executions up to slot 5,184,000 (two months, 9 epochs): **P(finality violation) ≤ 1.3e-11**;
+> * executions up to slot 31,536,000 (one year, 49 epochs): **P(finality violation) ≤ 7.2e-11**.
 
-Each bound is `settleEps3E + Ne · bandEps`: the settlement bound (1.4e-11 and 8.1e-11), which covers canonical-prefix consistency in every epoch as well as finality, plus the estimate's band (2.1e-14 per epoch). The band of slot rates is derived from the stake estimate (TSI band δ = 8.5 %, 32 band members), with room for the stake drift ρ.
+Each bound is `settleEps3E + Ne · bandEps`: the settlement bound (1.2e-11 and 7.0e-11), which covers canonical-prefix consistency in every epoch as well as finality, plus the estimate's band (2.3e-14 per epoch). The band of slot rates is derived from the stake estimate (TSI band δ = 8.5 %, 32 band members), with room for the stake drift ρ.
 
 The third is in closed form (`finality_closed` in `Prob/Certs/E20D11C.lean`): for **every depth k ≥ 1000 and every horizon N**, at the specification with depth `k` (`Config.specK k`: epochs of `300 k` slots), P(finality violation) ≤ `par.epsC der N k`, a sum of nine terms `(N + c) · A · qᵗ` and `Ne · C · qᵗ` in `t = ⌊k/20⌋`, `Ne = ⌊N / (300 k)⌋ + 2`. The automaton certificates do not depend on `k`, and the settlement lengths grow linearly in `t` (`Prob/Closed.lean`). `finality_closed_short` folds it into two rates:
 
-> P(finality violation) ≤ (N + 19 t + 706) · (6.9e-28 + 0.9276 · 0.700570ᵗ) + Ne · 1.562 · 0.745235ᵗ.
+> P(finality violation) ≤ (N + 18 t + 706) · (6.9e-28 + 0.8048 · 0.700570ᵗ) + Ne · 1.562 · 0.745235ᵗ.
 
 | k | two months | one year |
 |---|---|---|

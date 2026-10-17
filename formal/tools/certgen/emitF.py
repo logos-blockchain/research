@@ -10,9 +10,9 @@ computations exactly, so the generator knows every check passes before it writes
   bounds, computed at elaboration time, with its check;
 - `NAME.lean`: the main checks and, at the specification, the finality theorem.
 """
-import os
+import os, math
 from fractions import Fraction as Fr
-from certnum import rup
+from certnum import rup, rdn
 from gen import lean_q as q
 from cert2 import check_cert
 from certE import EL, PERIOD, tband_derived, check_class
@@ -48,24 +48,25 @@ def record(fields):
     return out
 
 
-def fam_fields(beta, K, ys):
-    return [("η", "1 / 10 ^ 70", "the lottery threshold's approximation error"),
-            ("ζ", "1 / 10 ^ 16", "the largest note's share of the stake"),
-            ("β", qQ(beta), "the adversary's share of the participating stake"),
+def fam_fields(K):
+    return [("η", "Tq.η", "the lottery threshold's approximation error"),
+            ("ζ", "Tq.ζ", "the largest note's share of the stake"),
+            ("β", "Tq.β", "the adversary's share of the participating stake"),
             ("d", "13", "significant digits of the bands' fields"),
             ("dy", "12", "significant digits of the adversarial exponent's bound"),
             ("K", str(K), "the members"),
-            ("ys", "[" + ", ".join(qQ(y) for y in ys) + "]", "the breakpoints: member k has honest exponent in [ys k, ys (k + 1)]")]
+            ("ys", f"eval% geomYs Tq.ylo Tq.Yh {K} 12", "the breakpoints: [ylo, Yh] split geometrically")]
 
 
-def tq_fields(T):
-    return [("ℓlo", qQ(T['llo']), "the estimate's band, below: ℓlo ≤ λ V / D"),
-            ("ℓhi", qQ(T['lhi']), "and above: λ V / D ≤ ℓhi"),
-            ("μ", qQ(T['mu']), "the canonical chain's loss of honestly won slots (`ChainQuality`)"),
-            ("β", qQ(T['beta']), "the adversary's share of the participating stake"),
-            ("δ", qQ(T['delta']), "the estimate's relative band per epoch"),
-            ("η", "1 / 10 ^ 70", "the lottery threshold's approximation error"),
-            ("ζ", "1 / 10 ^ 16", "the largest note's share of the stake")]
+def tq_args(T):
+    """`TBandQ.ofDrift`'s arguments beyond the configuration, each with a line comment"""
+    return [(qQ(T['mu']), "μ: the canonical chain's loss of honestly won slots (`ChainQuality`)"),
+            (qQ(T['beta']), "β: the adversary's share of the participating stake"),
+            (qQ(T['delta']), "δ: the estimate's relative band per epoch"),
+            ("(1 / 10 ^ 70)", "η: the lottery threshold's approximation error"),
+            ("(1 / 10 ^ 16)", "ζ: the largest note's share of the stake"),
+            ("par.ρ par.Hmin", "the stake drift and the least honest stake"),
+            ("8 30", "8 digits, 30 rounds")]
 
 
 POT = [("κ", "the weight of the cold potential's second term"),
@@ -126,24 +127,59 @@ def least(P, lo, hi):
     return lo
 
 
+def tilt(d, n, m, p):
+    """`tilt`: the best tilt (m + 1)(1 - p) / ((n - m - 1) p), rounded down to d digits"""
+    den = (n - m - 1) * p
+    return rdn((m + 1) * (1 - p) / den, d) if den != 0 else Fr(0)
+
+
+def argmin(f, lo, m):
+    """`argmin`: the first n in [lo, lo + m) minimizing f"""
+    best = lo
+    for i in range(m):
+        if f(lo + i) < f(best): best = lo + i
+    return best
+
+
+def tmin(f, lo, hi, n=64):
+    """`tmin`: a minimizer of f on [lo, hi] by ternary search"""
+    for _ in range(n):
+        if hi <= lo + 2: return argmin(f, lo, hi + 1 - lo)
+        m1, m2 = lo + (hi - lo) // 3, hi - (hi - lo) // 3
+        if f(m1) <= f(m2): hi = m2
+        else: lo = m1
+    return lo
+
+
+def nb_spec(D, G, Tg): return (EL - PERIOD - D - 3 - G + D) // (Tg + D)
+
+
 def spec_rules(cfg, B, e, lr, b, lpi, eps):
-    """`J` where the span term reaches the failed-checks term, and `G'`, `G`, `r` each the least making
-    its term at most `eps` times the main terms"""
-    D, k, N, Lw, x = cfg['Delta'], cfg['k'], cfg['N'], cfg['Lw'], Fr(cfg['x'])
+    """`SpecData.derive`'s rules: `Lw` and `J` minimizing the main terms, the window at its best tilt `x`; `G'`, `G`, `r` each the least making
+    its term at most `eps` times these; `T` minimizing the slow-growth term at its best tilt `yy`"""
+    D, k, N = cfg['Delta'], cfg['k'], cfg['N']
     tau, c = Fr(cfg['tau']), Fr(cfg['c'])
     up = lambda base, n: powq.pow_up(14, base, n)
     dn = lambda base, n: powq.pow_dn(14, base, n)
     stat = 1 + (b - 1) / (1 - lr)
-    span = lambda J: (N + 1) * up(e[17], J + 1) / dn(tau, Lw + 1)
+    span = lambda Lw, J: (N + 1) * up(e[17], J + 1) / dn(tau, Lw + 1)
     fail = lambda J: (N + 1) * up(lpi, J) * e[2] * stat
-    win = (N + 1) * up(1 + (x - 1) * (1 - B['elo']), Lw) / dn(x, k + 1)
-    J = least(lambda j: fail(j) <= span(j), 1, 2 ** 15)
-    m0 = span(J) + fail(J) + win
+    x_of = lambda Lw: max(Fr(1), tilt(5, Lw, k, 1 - B['elo']))
+    win = lambda Lw: (N + 1) * up(1 + (x_of(Lw) - 1) * (1 - B['elo']), Lw) / dn(x_of(Lw), k + 1)
+    J_of = lambda Lw: tmin(lambda j: span(Lw, j) + fail(j), 1, 2 ** 15)
+    Lw = tmin(lambda L: span(L, J_of(L)) + fail(J_of(L)) + win(L), k + 2, math.floor((k + 1) / (1 - B['elo'])))
+    J = J_of(Lw)
+    m0 = span(Lw, J) + fail(J) + win(Lw)
     Gp = least(lambda n: (N + 1) * up(1 - B['hlo'], n) <= eps * m0, 1, 2 ** 14)
     mG = least(lambda n: (N + 1) * up(1 - (1 - B['hhi']) ** D, n) <= eps * m0, 1, 2 ** 10)
     G = max(2 * D, D * mG + D)
     r = least(lambda n: (N + G + 1) * stat / dn(c, n + 1) <= eps * m0, 0, 2 ** 12)
-    return J, G, Gp, r
+    def yy_of(Tg):
+        v = tilt(4, nb_spec(D, G, Tg), k + r - 1, 1 - (1 - B['hlo']) ** Tg)
+        return v if 0 < v < 1 else Fr(1)
+    grow = lambda Tg: up(1 + (yy_of(Tg) - 1) * (1 - (1 - B['hlo']) ** Tg), nb_spec(D, G, Tg)) / dn(yy_of(Tg), k + r)
+    Tg = argmin(grow, 1, 64)
+    return dict(Lw=Lw, J=J, x=x_of(Lw), G=G, Gp=Gp, r=r, T=Tg, yy=yy_of(Tg))
 
 
 # ---- the files
@@ -191,10 +227,9 @@ def emitZ_ext(): return EXT
 
 
 def write_params(cfg, fam, T, par_type, par_fields, sub, ns, name, closed=False):
-    """`Params.lean`: every number the search chose, each with a line comment"""
+    """`Params.lean`: every number the search chose, each with a line comment; the estimate's band and
+    the breakpoints by rule"""
     D = cfg['Delta']; K = len(fam)
-    beta = Fr(cfg['beta']).limit_denominator(1000)
-    ys = [m['ylo'] for m in fam] + [fam[-1]['yhi']]
     c, z, s, d, tau = (Fr(cfg[v]) for v in ['c', 'z', 's', 'd', 'tau'])
     pot = [("Δ", str(D), "the network delay, in slots"),
            ("c", qQ(c), "the potential's base for the reach"),
@@ -203,12 +238,16 @@ def write_params(cfg, fam, T, par_type, par_fields, sub, ns, name, closed=False)
            ("d", qQ(d), "the base of the cold potential's second term"),
            ("τ", qQ(tau), "the span term's base per slot")]
     lib = "CertClosed" if closed else "CertSpec"
-    txt = (imports([f"public import Cryptarchia.Prob.{lib}\n"]) + f"""
+    args = tq_args(T)
+    w = max(len(v) for v, _ in args)
+    tq = "".join(f"    {v.ljust(w)}  -- {cm}\n" for v, cm in args)
+    txt = (imports([f"public import Cryptarchia.Prob.{lib}\n", f"meta import Cryptarchia.Prob.{lib}\n"]) + f"""
 /-!
 # {name}: the chosen numbers
 
-Generated by `tools/certgen/emitF.py`. Every number of the certificate that a search chose; Lean
-computes the rest (`Data.lean`, the main file) and the kernel checks it.
+Generated by `tools/certgen/emitF.py`. Every number of the certificate that a search chose, and the
+rules for the estimate's band and the band family's breakpoints; Lean computes the rest (`Data.lean`,
+the main file) and the kernel checks it.
 -/
 
 {SEC}
@@ -216,18 +255,20 @@ namespace {ns}
 
 open Cryptarchia Cryptarchia.Prob
 
-/-- The band family. -/
-def S : FamSpec where
-{record(fam_fields(beta, K, ys))}
 /-- The potential's parameters. -/
 def pot : PotCfg where
 {record(pot)}
 /-- The certificate's other chosen numbers. -/
 def par : {par_type} where
 {record(par_fields)}
-/-- The estimate's band: `λV/D ∈ [ℓlo, ℓhi]`, μ = {T['mu']}, β = {T['beta']}, δ = {T['delta']}. -/
-def Tq : TBandQ where
-{record(tq_fields(T))}
+/-- The estimate's band `λV/D ∈ [ℓlo, ℓhi]`: the least that the stake drift allows
+(`TBandQ.ofDrift`). -/
+def Tq : TBandQ :=
+  eval% TBandQ.ofDrift {"(Config.specK par.k0)" if closed else "Config.spec"}
+{tq}
+/-- The band family: {K} members over the estimate's band. -/
+def S : FamSpec where
+{record(fam_fields(K))}
 end {ns}
 """)
     open(f"{sub}/Params.lean", "w").write(txt)
@@ -319,8 +360,6 @@ def emit(cfg, T, fam, B, P, name, out_dir, target=None):
     """write a certificate at the specification: `Params.lean`, `Data.lean`, `NAME.lean`; its bounds are derived
     (`SpecData.derive`), and `target` is only compared with them"""
     D = cfg['Delta']; K = len(fam); N = cfg['N']; k = cfg['k']
-    Lw, Tg = cfg['Lw'], cfg['T']
-    x, yy = Fr(cfg['x']), Fr(cfg['yy'])
     c, z, s, kap, d, tau = (Fr(cfg[v]) for v in ['c', 'z', 's', 'kap', 'd', 'tau'])
     ns = f"Cryptarchia.Prob.Certs.{name}"
     sub = f"{out_dir}/{name}"
@@ -328,7 +367,8 @@ def emit(cfg, T, fam, B, P, name, out_dir, target=None):
     for old in os.listdir(sub):
         if old.endswith('.lean'): os.remove(f"{sub}/{old}")
     dats, e, lr, b, lp, lpi = check_all(cfg, T, fam, B, P)
-    J, G, Gp, r = spec_rules(cfg, B, e, lr, b, lpi, EPS)
+    rl = spec_rules(cfg, B, e, lr, b, lpi, EPS)
+    Lw, J, x, G, Gp, r, Tg, yy = (rl[v] for v in ['Lw', 'J', 'x', 'G', 'Gp', 'r', 'T', 'yy'])
     assert D + 1 <= G
     # the derived numbers (`SpecData.derive`)
     M = N + G + Gp + D + 2
@@ -345,16 +385,12 @@ def emit(cfg, T, fam, B, P, name, out_dir, target=None):
     beta = T['beta']
     spec_fields = [("κ", qQ(kap), POT[0][1]),
         ("N", N, "the horizon: executions up to slot N"),
-        ("Lw", Lw, "the slots of a span, and of a crowded window"),
-        ("T", Tg, "the growth block, in slots"),
-        ("x", qQ(x), "the crowded-window tilt"),
-        ("yy", qQ(yy), "the slow-growth tilt"),
         ("ε", qQ(EPS), "each lesser term (long phases, long empty runs, large reach) at most this share of the main ones"),
         ("ρ", qQ(T['rho']), "the stake drift per epoch (`StakeDrift`)"),
         ("Hmin", qQ(T['hmin']), "the least honest online stake (`MinStake`)")]
     write_params(cfg, fam, T, "SpecData", spec_fields, sub, ns, name)
     write_data(sub, ns, name)
-    txt = (imports([f"public import {ns}.Data\n"], ext=True) + f"""
+    txt = (imports([f"public import {ns}.Data\n", f"meta import {ns}.Data\n"], ext=True) + f"""
 /-!
 # Multi-epoch finality certificate: β = {beta}, Δ = {D}, k = {k}, {K} members
 
@@ -362,11 +398,11 @@ Generated by `tools/certgen/emitF.py`. The specification's parameters (f = 1/30,
 `Config.spec`'s. The certificate is the data below; Lean computes the rest and the kernel checks it
 (`CertGen.lean`, `CertSpec.lean`):
 
-- the chosen numbers: the band family, the potential's parameters, the other numbers `par` and the
-  estimate's band `Tq` (`Params.lean`);
+- the chosen numbers: the potential's parameters and the other numbers `par`, with the estimate's
+  band and the band family by rule (`Params.lean`);
 - each phase index's tables (`Data.lean`);
-- the derived numbers `der` (`SpecData.derive`): the contractions, and the bounds on settlement, on
-  leaving the band in one epoch and on a finality violation;
+- the derived numbers `der` (`SpecData.derive`): the contractions, the settlement parameters by rule,
+  and the bounds on settlement, on leaving the band in one epoch and on a finality violation;
 - the checks of the potential (`mainOK`) and of every numeric condition (`finOK`).
 -/
 
@@ -383,11 +419,12 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
   intro i; fin_cases i
   exacts [{", ".join(f"chk{i}" for i in range(19))}]
 
-/-- The derived numbers: the phases of a span (J = {J}), the phase cut (G = {G}), the longest empty run
-(G' = {Gp}) and the reach bound (r = {r}) by their rules, the slots and epochs covered, the contractions
-from the tables' bounds, and the bounds on settlement ({float(tgt):.2e}), on leaving the band in one epoch ({float(bx):.3e}) and on a
-finality violation ({float(fin):.2e}). -/
-def der : SpecDerived := par.derive F F.S.weakest dat Tq
+/-- The derived numbers (`SpecData.derive`), computed at elaboration time: the contractions from the
+tables' bounds; the settlement parameters by their rules (Lw = {Lw}, J = {J}, G = {G}, G' = {Gp},
+r = {r}, T = {Tg}) and tilts; the slots and epochs covered; and the bounds on settlement
+({float(tgt):.2e}), on leaving the band in one epoch ({float(bx):.3e}) and on a finality violation
+({float(fin):.2e}). The kernel checks every condition on them (`mainOK`, `finOK`). -/
+def der : SpecDerived := eval% par.derive F F.S.weakest dat Tq
 
 theorem derNe : der.Ne = {Ne} := by decide +kernel
 
@@ -412,8 +449,9 @@ theorem finality {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measur
     (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) {q(T['rho'])} {Ne})
     (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) {q(T['hmin'])}) :
     μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal {q(fin)} := by
+  have hT : Tq.β = {qQ(beta)} ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = {qQ(T['mu'])} := by decide +kernel
   have h := FamCfg.finality_spec F par der mainOK famOK dOK rfl idxOK rfl Tq finOK hc hΔ es hM hN hG
-    (fun ω => by simpa [Tq] using hS ω) (fun ω => by simpa [Tq, derNe] using hQ ω)
+    (fun ω => by rw [hT.1, hT.2.1]; simpa using hS ω) (fun ω => by rw [hT.2.2, derNe]; simpa using hQ ω)
     (fun ω => by simpa [par, derNe] using hD ω) (fun ω => by simpa [par] using hH ω)
   rw [derFin] at h
   simpa using h
@@ -431,7 +469,7 @@ def closed_derive(cfg, T, B, dats, lp, lpi, cl):
     import emitC
     from certnum import rdn
     D = cfg['Delta']; m = emitC.M_DIV
-    G, g, j, w, rho, Tg, x, yy, k0 = cl['G'], cl['g'], cl['j'], cl['w'], cl['rho'], cl['Tg'], cl['x'], cl['yy'], cl['k0']
+    G, g, j, w, rho, Tg, k0 = cl['G'], cl['g'], cl['j'], cl['w'], cl['rho'], cl['Tg'], cl['k0']
     e, lr, b = derived(dats)
     tau, c = Fr(cfg['tau']), Fr(cfg['c'])
     hhi, hlo, elo = B['hhi'], B['hlo'], B['elo']
@@ -440,6 +478,7 @@ def closed_derive(cfg, T, B, dats, lp, lpi, cl):
     stat = 1 + (b - 1) / (1 - lr)
     nb = 120 * m // (Tg + D)
     nb0 = (3 + G + (Tg + D) - 1) // (Tg + D) + 1
+    x, yy = closed_tilts(B, m, w, rho, nb, Tg)
     bs = 1 + (yy - 1) * (1 - (1 - hhi) ** Tg if 1 <= yy else 1 - (1 - hlo) ** Tg)
     C = dict(A1=up(rup(1 - (1 - hhi) ** D, 14), G // D), q2=up(rup(1 - hlo, 14), g),
              A3=rup(e[17] / tau, 14), q3=rup(up(e[17], j) / dn(tau, w), 14),
@@ -464,7 +503,15 @@ def closed_derive(cfg, T, B, dats, lp, lpi, cl):
         assert 0 <= a <= 1 - 1 / Cb and 0 < Qb <= dn(1 + 180 * m * a / 4096, 4096)
     assert sum(A_ * (q_ ** t0 / qs ** t0) for A_, q_ in zip(Ai, qi)) <= As
     assert sum(Cb * ((1 / Qb) ** t0 / qb ** t0) for Cb, Qb in zip(Cs, Qs)) <= Ab
-    return dict(lp=lp, lpi=lpi, nb=nb, nb0=nb0, C=C, Cs=Cs, Qs=Qs, t0=t0, qs=qs, As=As, qb=qb, Ab=Ab)
+    return dict(x=x, yy=yy, lp=lp, lpi=lpi, nb=nb, nb0=nb0, C=C, Cs=Cs, Qs=Qs, t0=t0, qs=qs, As=As, qb=qb, Ab=Ab)
+
+
+def closed_tilts(B, m, w, rho, nb, Tg):
+    """`ClosedData.derive`'s tilts: the best for `w` slots reaching `m` occupied ones, and for `nb`
+    blocks staying below `m + rho` successes"""
+    x = max(Fr(1), tilt(5, w, m - 1, 1 - B['elo']))
+    v = tilt(4, nb, m + rho - 1, 1 - (1 - B['hlo']) ** Tg)
+    return x, (v if 0 < v < 1 else Fr(1))
 
 
 def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
@@ -492,8 +539,6 @@ def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
         ("T", cl['Tg'], "the growth block, in slots"),
         ("m", m_, "the depth per t"),
         ("k0", cl['k0'], "the least depth"),
-        ("x", qQ(cl['x']), "the crowded-window tilt"),
-        ("yy", qQ(cl['yy']), "the slow-growth tilt"),
         ("ρ", qQ(T['rho']), "the stake drift per epoch (`StakeDrift`)"),
         ("Hmin", qQ(T['hmin']), "the least honest online stake (`MinStake`)")]
     write_params(cfg, fam, T, "ClosedData", par_f, sub, ns, name, closed=True)
@@ -505,7 +550,7 @@ def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
     (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) {q(T['mu'])} (N / (300 * k) + 2))
     (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) {q(T['rho'])} (N / (300 * k) + 2))
     (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) {q(T['hmin'])})"""
-    txt = (imports([f"public import {ns}.Data\n", "public import Cryptarchia.Prob.CertClosed\n"],
+    txt = (imports([f"public import {ns}.Data\n", f"meta import {ns}.Data\n", "public import Cryptarchia.Prob.CertClosed\n"],
                    ext=True) + f"""
 /-!
 # Closed-form finality certificate: β = {beta}, Δ = {D}, every k ≥ {k0}, {K} members
@@ -532,15 +577,18 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
   intro i; fin_cases i
   exacts [{", ".join(f"chk{i}" for i in range(19))}]
 
-/-- The derived numbers: the contractions from the tables' bounds, the growth blocks, each settlement
-term's constant and rate, the band's terms, and the short form's rates. -/
-def der : ClosedDerived := par.derive F F.S.weakest dat Tq
+/-- The derived numbers (`ClosedData.derive`), computed at elaboration time: the tilts by rule, the
+contractions from the tables' bounds, the growth blocks, each settlement term's constant and rate, the
+band's terms, and the short form's rates. The kernel checks every condition on them (`closedOK`). -/
+def der : ClosedDerived := eval% par.derive F F.S.weakest dat Tq
 
 theorem derNb : der.nb = {q_['nb']} ∧ der.nb0 = {q_['nb0']} := by decide +kernel
 
 theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by decide +kernel
 
 theorem closedOK : FamCfg.closedChk F F.S.weakest dat Tq par der = true := by decide +kernel
+
+theorem hTq : Tq.β = {qQ(beta)} ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = {qQ(T['mu'])} := by decide +kernel
 
 /-- **Finality in closed form.** f = 1/30, Δ = {D} slots, any depth `k ≥ {k0}` and any horizon `N`.
 Under the execution model (`Model`), if the genesis estimate is the genesis stake, the adversary
@@ -554,8 +602,8 @@ theorem finality_closed {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory
   FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
     (fun k hk => by simp only [par, derNb.1, derNb.2, F, pot] at hk ⊢; omega) (fun k hk => by simp only [par] at hk ⊢; omega)
     (fun k hk => by simp only [par, F, pot] at hk ⊢; omega) E hc hk hΔ es hM hN hG
-    (fun ω => by simpa [Tq] using hS ω) (fun ω => by simpa [Tq] using hQ ω) (fun ω => by simpa [par] using hD ω)
-    (fun ω => by simpa [par] using hH ω)
+    (fun ω => by rw [hTq.1, hTq.2.1]; simpa using hS ω) (fun ω => by rw [hTq.2.2]; simpa using hQ ω)
+    (fun ω => by simpa [par] using hD ω) (fun ω => by simpa [par] using hH ω)
 
 /-- **Finality in closed form, short**: with `t = k / {m_}` and `Ne = N / (300 k) + 2` epochs, a
 finality violation has probability at most

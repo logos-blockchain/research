@@ -23,7 +23,8 @@ open Lean Elab Term Meta
 /-- `eval% e`: the value of `e`, computed at elaboration time, as a literal. -/
 syntax (name := evalLit) "eval% " term : term
 
-/-- The value of `e : α` as a literal, for the types certificates compute. -/
+/-- The value of `e : α` as a literal: integers, rationals and lists of them directly, any other
+type through its `ToExpr` instance. -/
 meta unsafe def evalLitImpl (e ty : Expr) : MetaM Expr := do
   if ← isDefEq ty (mkConst ``Int) then
     return toExpr (← evalExpr Int ty e)
@@ -39,7 +40,10 @@ meta unsafe def evalLitImpl (e ty : Expr) : MetaM Expr := do
     let rat := Lean.mkConst ``Rat
     return qs.foldr (fun q l => mkApp3 (Lean.mkConst ``List.cons [0]) rat
       (mkApp2 (Lean.mkConst ``Rat.divInt) (toExpr q.num) (toExpr (q.den : Int))) l) (mkApp (Lean.mkConst ``List.nil [0]) rat)
-  throwError "eval%: unsupported type {ty}"
+  -- any other type with a `ToExpr` instance, such as a record of derived numbers
+  let u ← decLevel (← getLevel ty)
+  let inst ← synthInstance (mkApp (mkConst ``ToExpr [u]) ty)
+  evalExpr Expr (mkConst ``Expr) (mkApp3 (mkConst ``ToExpr.toExpr [u]) ty inst e)
 
 @[implemented_by evalLitImpl]
 meta opaque evalLitCore (e ty : Expr) : MetaM Expr

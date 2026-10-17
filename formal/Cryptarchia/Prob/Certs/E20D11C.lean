@@ -1,6 +1,7 @@
 module
 
 public import Cryptarchia.Prob.Certs.E20D11C.Data
+meta import Cryptarchia.Prob.Certs.E20D11C.Data
 public import Cryptarchia.Prob.CertClosed
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
@@ -62,15 +63,18 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
   intro i; fin_cases i
   exacts [chk0, chk1, chk2, chk3, chk4, chk5, chk6, chk7, chk8, chk9, chk10, chk11, chk12, chk13, chk14, chk15, chk16, chk17, chk18]
 
-/-- The derived numbers: the contractions from the tables' bounds, the growth blocks, each settlement
-term's constant and rate, the band's terms, and the short form's rates. -/
-def der : ClosedDerived := par.derive F F.S.weakest dat Tq
+/-- The derived numbers (`ClosedData.derive`), computed at elaboration time: the tilts by rule, the
+contractions from the tables' bounds, the growth blocks, each settlement term's constant and rate, the
+band's terms, and the short form's rates. The kernel checks every condition on them (`closedOK`). -/
+def der : ClosedDerived := eval% par.derive F F.S.weakest dat Tq
 
-theorem derNb : der.nb = 96 ∧ der.nb0 = 30 := by decide +kernel
+theorem derNb : der.nb = 80 ∧ der.nb0 = 25 := by decide +kernel
 
 theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by decide +kernel
 
 theorem closedOK : FamCfg.closedChk F F.S.weakest dat Tq par der = true := by decide +kernel
+
+theorem hTq : Tq.β = (1 / 5 : ℚ) ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = (13 / 100 : ℚ) := by decide +kernel
 
 /-- **Finality in closed form.** f = 1/30, Δ = 11 slots, any depth `k ≥ 1000` and any horizon `N`.
 Under the execution model (`Model`), if the genesis estimate is the genesis stake, the adversary
@@ -89,12 +93,12 @@ theorem finality_closed {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Me
   FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
     (fun k hk => by simp only [par, derNb.1, derNb.2, F, pot] at hk ⊢; omega) (fun k hk => by simp only [par] at hk ⊢; omega)
     (fun k hk => by simp only [par, F, pot] at hk ⊢; omega) E hc hk hΔ es hM hN hG
-    (fun ω => by simpa [Tq] using hS ω) (fun ω => by simpa [Tq] using hQ ω) (fun ω => by simpa [par] using hD ω)
-    (fun ω => by simpa [par] using hH ω)
+    (fun ω => by rw [hTq.1, hTq.2.1]; simpa using hS ω) (fun ω => by rw [hTq.2.2]; simpa using hQ ω)
+    (fun ω => by simpa [par] using hD ω) (fun ω => by simpa [par] using hH ω)
 
 /-- **Finality in closed form, short**: with `t = k / 20` and `Ne = N / (300 k) + 2` epochs, a
 finality violation has probability at most
-`(N + 19 t + 706) · (6.9e-28 + 0.9276 · 0.700570ᵗ) + Ne · 1.562 · 0.745235ᵗ`:
+`(N + 18 t + 706) · (6.9e-28 + 0.8048 · 0.700570ᵗ) + Ne · 1.562 · 0.745235ᵗ`:
 settlement at rate 0.7006 per 20 blocks of depth, the estimate's band at rate 0.7452. -/
 theorem finality_closed_short {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
     [MeasureTheory.IsProbabilityMeasure μ] {O : Ω → Oracle} (E : Env) {k : ℕ} (hc : E.c = Config.specK k) (hk : 1000 ≤ k) (hΔ : E.Δ = 11) (es : Ω → List Event)

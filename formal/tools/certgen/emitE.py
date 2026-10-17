@@ -1,17 +1,38 @@
 """Emit a multi-epoch certificate at the specification's parameters as Lean files.
 
-Plans the certificate (`planE.make`, cached in `res_<NAME>.pkl`), optimizes the settlement
-parameters (`optnum`), sets the target and writes the files (`emitF.emit`):
+Plans the certificate (`planE.make`, cached in `res_<NAME>.pkl`: the potential's parameters) and
+writes the files (`emitF.emit`); the settlement parameters follow their rules:
 * `Certs/<name>/Params.lean` every number the search chose;
 * `Certs/<name>/Data.lean`   the family's integer bands and each index's seeds and bounds, computed at
                              elaboration time, with the kernel's checks;
 * `Certs/<name>.lean`      the chosen numbers, the main checks and the finality theorem.
 Usage: python3 emitE.py BETA DELTA DELTA_TSI K N NAME OUTDIR [all|emit] [MU]
-(`emit` reuses the saved plan `res_<NAME>.pkl`.)
+(`emit` reuses the saved plan `res_<NAME>.pkl` and rebuilds the family's tables.)
 """
 import sys, os, json
-from certnum import rup
 import planE
+
+def retable(cfg, T, K):
+    """the family, its weakest band and its tables, for the potential the plan chose"""
+    from fractions import Fraction as Fr
+    from certE import epoch_members, weakest, build_E, lp_in_exact
+    from cert2 import lp_exact
+    from certnum import rdn
+    D = cfg['Delta']
+    fam = epoch_members(T, K)
+    bands = [m['B'] for m in fam]
+    B = weakest(bands)
+    c, z, s, kap, d, tau = (Fr(cfg[v]) for v in ['c', 'z', 's', 'kap', 'd', 'tau'])
+    P = build_E(bands, D, c, z, s, kap, d, tau)
+    P['lp'] = lp_exact(B, D, c, z, s, kap, d, P['e'])
+    P['eik'], P['patk'] = [], []
+    for kk, Bk in enumerate(bands):
+        ek = [Fr(0)] * 19
+        for i in P['eIn']: ek[i] = P['eIn'][i][kk]
+        P['eik'].append(ek); P['patk'].append(rdn(Bk['slo'] * Bk['elo'] ** D, 13))
+    P['lpi'] = max(lp_in_exact(D, c, z, s, kap, d, P['eik'][kk], P['patk'][kk]) for kk in range(len(bands)))
+    return fam, B, P
+
 
 if __name__ == "__main__":
     import pickle
@@ -21,20 +42,14 @@ if __name__ == "__main__":
     mu = float(sys.argv[9]) if len(sys.argv) > 9 else 0.0
     pk = f"res_{name}.pkl"
     if mode == 'emit' and os.path.exists(pk):
-        res = pickle.load(open(pk, 'rb'))
+        cfg, T = pickle.load(open(pk, 'rb'))[:2]
+        fam, B, P = retable(cfg, T, K)
     else:
         res = planE.make(beta, D, delta, K, N, mu=mu)
         pickle.dump(res, open(pk, 'wb'))
-    cfg, T, fam, B, P, Ts = res
-    # the settlement parameters, optimized against the exact terms (`optnum`)
-    import optnum
-    cand, _ = optnum.optimize(cfg, B, P)
-    cfg = dict(cfg, **cand)
-    _, Ts, _ = planE.terms(cfg, B, P)
-    tot = sum(Ts)
-    # the settlement bound's target: the planned total, rounded up to two significant digits
-    target = rup(tot, 2)
+        cfg, T, fam, B, P, _ = res
+    # the settlement parameters follow their rules (`SpecData.derive`, `emitF.spec_rules`)
     import emitF
-    fin, tgt, bx = emitF.emit(cfg, T, fam, B, P, name, out_dir, target)
-    json.dump(dict(cfg, target=str(tgt)), open(f"cfgE_{name}.json", "w"), indent=1)
+    fin, tgt, bx = emitF.emit(cfg, T, fam, B, P, name, out_dir)
+    json.dump(dict(cfg, settle=str(tgt)), open(f"cfgE_{name}.json", "w"), indent=1)
     print(name, 'settlement', tgt, 'band', bx, 'finality', fin)
