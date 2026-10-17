@@ -131,27 +131,21 @@ theorem step_le_one (A : Out → Prop) [DecidablePred A] (t : ℝ) (law : Out �
 variable {μ}
 
 /-- **The exponential supermartingale.** Slot `k`'s outcome `X k` has law `law k ω`
-given what is known before it (`F k`, which knows the earlier outcomes and the law
-itself). Then for every finite set of slots `W` and every `t`,
+given what is known before it (`Adapted`). Then for every finite set of slots `W` and
+every `t`,
 `E[∏_{k ∈ W} exp(t·1_A(X k) - (eᵗ - 1)·rate k)] ≤ 1`. -/
-theorem chernoff_mg (X : ℕ → Ω → Out) (hXm : ∀ k, Measurable (X k))
-    (F : ℕ → MeasurableSpace Ω) (hF : ∀ n, F n ≤ mΩ) (hFmono : ∀ j n, j ≤ n → F j ≤ F n)
-    (hXF : ∀ n j, j < n → Measurable[F n] (X j))
-    (law : ℕ → Ω → Out → ℝ) (hlaw0 : ∀ n ω o, 0 ≤ law n ω o) (hlaw1 : ∀ n ω, ∑ o, law n ω o = 1)
-    (hlawm : ∀ n o, Measurable[F n] fun ω => law n ω o)
-    (hfr : ∀ n (f : Ω → ℝ≥0∞), Measurable[F n] f → ∀ o,
-      ∫⁻ ω, f ω * (if X n ω = o then 1 else 0) ∂μ = ∫⁻ ω, f ω * ENNReal.ofReal (law n ω o) ∂μ)
-    (A : Out → Prop) [DecidablePred A] (t : ℝ) (W : Finset ℕ) :
+theorem chernoff_mg {X : ℕ → Ω → Out} {F : ℕ → MeasurableSpace Ω} {law : ℕ → Ω → Out → ℝ}
+    (hX : Adapted μ X F law) (A : Out → Prop) [DecidablePred A] (t : ℝ) (W : Finset ℕ) :
     ∫⁻ ω, ∏ k ∈ W, ENNReal.ofReal (exp (t * indA A (X k ω) - (exp t - 1) * rateA A (law k ω))) ∂μ ≤ 1 := by
   -- measurability of the factors
   have hrate : ∀ k, Measurable[F k] fun ω => rateA A (law k ω) := fun k =>
-    Finset.measurable_sum _ fun o _ => (hlawm k o).mul_const _
+    Finset.measurable_sum _ fun o _ => (hX.law_meas k o).mul_const _
   have hfac : ∀ n k, k < n → Measurable[F n] fun ω =>
       ENNReal.ofReal (exp (t * indA A (X k ω) - (exp t - 1) * rateA A (law k ω))) := by
     intro n k hk
     have h1 : Measurable[F n] fun ω => indA A (X k ω) :=
-      (measurable_of_countable (indA A)).comp (hXF n k hk)
-    have h2 : Measurable[F n] fun ω => rateA A (law k ω) := (hrate k).mono (hFmono k n hk.le) le_rfl
+      (measurable_of_countable (indA A)).comp (hX.meas n k hk)
+    have h2 : Measurable[F n] fun ω => rateA A (law k ω) := (hrate k).mono (hX.mono k n hk.le) le_rfl
     exact ENNReal.measurable_ofReal.comp (measurable_exp.comp ((h1.const_mul t).sub (h2.const_mul _)))
   induction W using Finset.induction_on_max with
   | empty => simp
@@ -175,41 +169,35 @@ theorem chernoff_mg (X : ℕ → Ω → Out) (hXm : ∀ k, Measurable (X k))
         = ∑ o, ∫⁻ ω, (G ω * g ω o) * (if X a ω = o then 1 else 0) ∂μ := by
           simp only [hpt]
           refine lintegral_finset_sum _ fun o _ => ?_
-          exact ((hG.mul (hgm o)).mono (hF a) le_rfl).mul
-            (Measurable.ite ((hXm a) (measurableSet_singleton o)) measurable_const measurable_const)
+          exact ((hG.mul (hgm o)).mono (hX.le a) le_rfl).mul
+            (Measurable.ite ((hX.measurable a) (measurableSet_singleton o)) measurable_const measurable_const)
       _ = ∑ o, ∫⁻ ω, (G ω * g ω o) * ENNReal.ofReal (law a ω o) ∂μ :=
-          Finset.sum_congr rfl fun o _ => hfr a _ (hG.mul (hgm o)) o
+          Finset.sum_congr rfl fun o _ => hX.cond a _ (hG.mul (hgm o)) o
       _ = ∫⁻ ω, G ω * ∑ o, g ω o * ENNReal.ofReal (law a ω o) ∂μ := by
           have hmo : ∀ o ∈ (Finset.univ : Finset Out), Measurable fun ω => G ω * g ω o * ENNReal.ofReal (law a ω o) :=
-            fun o _ => ((hG.mul (hgm o)).mono (hF a) le_rfl).mul
-              (ENNReal.measurable_ofReal.comp ((hlawm a o).mono (hF a) le_rfl))
+            fun o _ => ((hG.mul (hgm o)).mono (hX.le a) le_rfl).mul
+              (ENNReal.measurable_ofReal.comp ((hX.law_meas a o).mono (hX.le a) le_rfl))
           rw [← lintegral_finset_sum _ hmo]
           refine lintegral_congr fun ω => ?_
           rw [Finset.mul_sum]; exact Finset.sum_congr rfl fun o _ => by ring
       _ ≤ ∫⁻ ω, G ω ∂μ := by
           refine lintegral_mono fun ω => ?_
           calc G ω * ∑ o, g ω o * ENNReal.ofReal (law a ω o) ≤ G ω * 1 :=
-                mul_le_mul_right (step_le_one A t (law a ω) (hlaw0 a ω) (hlaw1 a ω)) _
+                mul_le_mul_right (step_le_one A t (law a ω) (hX.nonneg a ω) (hX.sum_one a ω)) _
             _ = G ω := mul_one _
 
 /-- **Markov on the supermartingale.** An event on which the exponent is at least `r`
 has probability at most `e^{-r}`. -/
-theorem chernoff_tail (X : ℕ → Ω → Out) (hXm : ∀ k, Measurable (X k))
-    (F : ℕ → MeasurableSpace Ω) (hF : ∀ n, F n ≤ mΩ) (hFmono : ∀ j n, j ≤ n → F j ≤ F n)
-    (hXF : ∀ n j, j < n → Measurable[F n] (X j))
-    (law : ℕ → Ω → Out → ℝ) (hlaw0 : ∀ n ω o, 0 ≤ law n ω o) (hlaw1 : ∀ n ω, ∑ o, law n ω o = 1)
-    (hlawm : ∀ n o, Measurable[F n] fun ω => law n ω o)
-    (hfr : ∀ n (f : Ω → ℝ≥0∞), Measurable[F n] f → ∀ o,
-      ∫⁻ ω, f ω * (if X n ω = o then 1 else 0) ∂μ = ∫⁻ ω, f ω * ENNReal.ofReal (law n ω o) ∂μ)
-    (A : Out → Prop) [DecidablePred A] (t : ℝ) (W : Finset ℕ) (r : ℝ) (S : Set Ω)
+theorem chernoff_tail {X : ℕ → Ω → Out} {F : ℕ → MeasurableSpace Ω} {law : ℕ → Ω → Out → ℝ}
+    (hX : Adapted μ X F law) (A : Out → Prop) [DecidablePred A] (t : ℝ) (W : Finset ℕ) (r : ℝ) (S : Set Ω)
     (hS : ∀ ω ∈ S, r ≤ t * ∑ k ∈ W, indA A (X k ω) - (exp t - 1) * ∑ k ∈ W, rateA A (law k ω)) :
     μ S ≤ ENNReal.ofReal (exp (-r)) := by
   set Z : Ω → ℝ≥0∞ := fun ω =>
     ∏ k ∈ W, ENNReal.ofReal (exp (t * indA A (X k ω) - (exp t - 1) * rateA A (law k ω))) with hZ
   have hZm : Measurable Z := by
     refine Finset.measurable_prod _ fun k _ => ENNReal.measurable_ofReal.comp (measurable_exp.comp ?_)
-    exact (((measurable_of_countable (indA A)).comp (hXm k)).const_mul t).sub
-      ((Finset.measurable_sum _ fun o _ => ((hlawm k o).mono (hF k) le_rfl).mul_const _).const_mul _)
+    exact (((measurable_of_countable (indA A)).comp (hX.measurable k)).const_mul t).sub
+      ((Finset.measurable_sum _ fun o _ => ((hX.law_meas k o).mono (hX.le k) le_rfl).mul_const _).const_mul _)
   have hZe : ∀ ω, Z ω = ENNReal.ofReal (exp (t * ∑ k ∈ W, indA A (X k ω) - (exp t - 1) * ∑ k ∈ W, rateA A (law k ω))) := by
     intro ω
     simp only [hZ]
@@ -223,24 +211,18 @@ theorem chernoff_tail (X : ℕ → Ω → Out) (hXm : ∀ k, Measurable (X k))
     _ ≤ (∫⁻ ω, Z ω ∂μ) / ENNReal.ofReal (exp r) :=
         meas_ge_le_lintegral_div hZm.aemeasurable (by simp [exp_pos]) ENNReal.ofReal_ne_top
     _ ≤ 1 / ENNReal.ofReal (exp r) :=
-        ENNReal.div_le_div_right (chernoff_mg X hXm F hF hFmono hXF law hlaw0 hlaw1 hlawm hfr A t W) _
+        ENNReal.div_le_div_right (chernoff_mg hX A t W) _
     _ = ENNReal.ofReal (exp (-r)) := by
         rw [one_div, ← ENNReal.ofReal_inv_of_pos (exp_pos r), exp_neg]
 
 /-- **Lower tail**: the count falls below `(1 - δ)` times the sum of the rates, while
 that sum is at least `m`, with probability at most `exp(-m δ²/2)`. -/
-theorem chernoff_lo (X : ℕ → Ω → Out) (hXm : ∀ k, Measurable (X k))
-    (F : ℕ → MeasurableSpace Ω) (hF : ∀ n, F n ≤ mΩ) (hFmono : ∀ j n, j ≤ n → F j ≤ F n)
-    (hXF : ∀ n j, j < n → Measurable[F n] (X j))
-    (law : ℕ → Ω → Out → ℝ) (hlaw0 : ∀ n ω o, 0 ≤ law n ω o) (hlaw1 : ∀ n ω, ∑ o, law n ω o = 1)
-    (hlawm : ∀ n o, Measurable[F n] fun ω => law n ω o)
-    (hfr : ∀ n (f : Ω → ℝ≥0∞), Measurable[F n] f → ∀ o,
-      ∫⁻ ω, f ω * (if X n ω = o then 1 else 0) ∂μ = ∫⁻ ω, f ω * ENNReal.ofReal (law n ω o) ∂μ)
-    (A : Out → Prop) [DecidablePred A] (W : Finset ℕ) {δ m : ℝ} (hδ : 0 ≤ δ) (S : Set Ω)
+theorem chernoff_lo {X : ℕ → Ω → Out} {F : ℕ → MeasurableSpace Ω} {law : ℕ → Ω → Out → ℝ}
+    (hX : Adapted μ X F law) (A : Out → Prop) [DecidablePred A] (W : Finset ℕ) {δ m : ℝ} (hδ : 0 ≤ δ) (S : Set Ω)
     (hS : ∀ ω ∈ S, ∑ k ∈ W, indA A (X k ω) < (1 - δ) * ∑ k ∈ W, rateA A (law k ω) ∧
       m ≤ ∑ k ∈ W, rateA A (law k ω)) :
     μ S ≤ ENNReal.ofReal (exp (-(m * δ ^ 2 / 2))) := by
-  refine chernoff_tail X hXm F hF hFmono hXF law hlaw0 hlaw1 hlawm hfr A (-δ) W _ S fun ω hω => ?_
+  refine chernoff_tail hX A (-δ) W _ S fun ω hω => ?_
   obtain ⟨h1, h2⟩ := hS ω hω
   set c := ∑ k ∈ W, indA A (X k ω)
   set R := ∑ k ∈ W, rateA A (law k ω)
@@ -248,31 +230,25 @@ theorem chernoff_lo (X : ℕ → Ω → Out) (hXm : ∀ k, Measurable (X k))
   have hd2 : 0 ≤ δ ^ 2 / 2 := by positivity
   -- `-δ c + (1 - e^{-δ}) R ≥ R (1 - e^{-δ} - δ + δ²) ≥ R δ²/2 ≥ m δ²/2`
   have hR : 0 ≤ R := Finset.sum_nonneg fun k _ =>
-    Finset.sum_nonneg fun o _ => mul_nonneg (hlaw0 k ω o) (indA_nonneg A o)
+    Finset.sum_nonneg fun o _ => mul_nonneg (hX.nonneg k ω o) (indA_nonneg A o)
   have : -(exp (-δ) - 1) * R ≥ (δ - δ ^ 2 / 2) * R := mul_le_mul_of_nonneg_right (by linarith) hR
   nlinarith [mul_le_mul_of_nonneg_right h2 hd2]
 
 /-- **Upper tail**: the count exceeds `(1 + δ)` times the sum of the rates, while that
 sum is at least `m`, with probability at most `exp(-m δ² (1/2 - 2δ/9))` (`δ ≤ 1`). -/
-theorem chernoff_hi (X : ℕ → Ω → Out) (hXm : ∀ k, Measurable (X k))
-    (F : ℕ → MeasurableSpace Ω) (hF : ∀ n, F n ≤ mΩ) (hFmono : ∀ j n, j ≤ n → F j ≤ F n)
-    (hXF : ∀ n j, j < n → Measurable[F n] (X j))
-    (law : ℕ → Ω → Out → ℝ) (hlaw0 : ∀ n ω o, 0 ≤ law n ω o) (hlaw1 : ∀ n ω, ∑ o, law n ω o = 1)
-    (hlawm : ∀ n o, Measurable[F n] fun ω => law n ω o)
-    (hfr : ∀ n (f : Ω → ℝ≥0∞), Measurable[F n] f → ∀ o,
-      ∫⁻ ω, f ω * (if X n ω = o then 1 else 0) ∂μ = ∫⁻ ω, f ω * ENNReal.ofReal (law n ω o) ∂μ)
-    (A : Out → Prop) [DecidablePred A] (W : Finset ℕ) {δ m : ℝ} (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1) (S : Set Ω)
+theorem chernoff_hi {X : ℕ → Ω → Out} {F : ℕ → MeasurableSpace Ω} {law : ℕ → Ω → Out → ℝ}
+    (hX : Adapted μ X F law) (A : Out → Prop) [DecidablePred A] (W : Finset ℕ) {δ m : ℝ} (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1) (S : Set Ω)
     (hS : ∀ ω ∈ S, (1 + δ) * ∑ k ∈ W, rateA A (law k ω) < ∑ k ∈ W, indA A (X k ω) ∧
       m ≤ ∑ k ∈ W, rateA A (law k ω)) :
     μ S ≤ ENNReal.ofReal (exp (-(m * δ ^ 2 * (1 / 2 - 2 / 9 * δ)))) := by
-  refine chernoff_tail X hXm F hF hFmono hXF law hlaw0 hlaw1 hlawm hfr A δ W _ S fun ω hω => ?_
+  refine chernoff_tail hX A δ W _ S fun ω hω => ?_
   obtain ⟨h1, h2⟩ := hS ω hω
   set c := ∑ k ∈ W, indA A (X k ω)
   set R := ∑ k ∈ W, rateA A (law k ω)
   have hq := exp_sub_one_le_cubic hδ0 hδ1
   have hk : 0 ≤ δ ^ 2 * (1 / 2 - 2 / 9 * δ) := mul_nonneg (by positivity) (by linarith)
   have hR : 0 ≤ R := Finset.sum_nonneg fun k _ =>
-    Finset.sum_nonneg fun o _ => mul_nonneg (hlaw0 k ω o) (indA_nonneg A o)
+    Finset.sum_nonneg fun o _ => mul_nonneg (hX.nonneg k ω o) (indA_nonneg A o)
   have : (exp δ - 1) * R ≤ (δ + δ ^ 2 / 2 + 2 / 9 * δ ^ 3) * R := mul_le_mul_of_nonneg_right hq hR
   have : δ * ((1 + δ) * R) ≤ δ * c := mul_le_mul_of_nonneg_left h1.le hδ0
   nlinarith [mul_le_mul_of_nonneg_right h2 hk]
@@ -756,6 +732,31 @@ noncomputable def bandEps (T : TBand) (P : ℕ) : ℝ :=
   exp (-(((P : ℝ) - 1) * (T.ylo * T.clo) * T.δ ^ 2 / 2)) +
     exp (-(((P : ℝ) - 1) * (T.ylo * T.clo) * T.δ ^ 2 * (1 / 2 - 2 / 9 * T.δ)))
 
+/-- **The lottery's slots under a random oracle and fresh lotteries have known
+conditional laws**: given what is known before slot `n + 1` (`hist`), its outcome has
+its state's slot law (`freeze`, `slot_law`). -/
+theorem Adapted.ofRO (hnd : E.nodes.Nodup) (hO : RandomOracle μ O E.c.p) {σ : Ω → ℕ → EpochState}
+    (hσm : ∀ i, Measurable fun ω => σ ω i) (hfresh : Fresh μ O σ)
+    (hs : ∀ ω i, ((σ ω i).lead.map Note.id).Nodup) :
+    Adapted μ (fun k ω => slotOut E (k + 1) (σ ω (k + 1)) (tk O (k + 1) ω)) (fun n => hist O σ (n + 1))
+      (fun n ω => lawS E (n + 1) (σ ω (n + 1))) := by
+  have hm : ∀ n, hist O σ n ≤ ‹MeasurableSpace Ω› := fun n =>
+    sup_le (iSup₂_le fun j _ => (hO.meas j).comap_le) (iSup₂_le fun j _ => (hσm j).comap_le)
+  have hTh : ∀ n j, j < n → Measurable[hist O σ n] (tk O j) := fun n j hj =>
+    (comap_measurable (tk O j)).mono (le_sup_of_le_left (le_iSup₂_of_le j (Finset.mem_range.2 hj) le_rfl)) le_rfl
+  have hσh : ∀ n j, j ≤ n → Measurable[hist O σ n] (fun ω => σ ω j) := fun n j hj =>
+    (measurable_hist_σ O σ j).mono (hist_mono O σ hj) le_rfl
+  refine ⟨fun n => hm _, fun j n h => hist_mono O σ (by omega), fun n j hj => ?_, fun n o => ?_,
+    fun n ω o => lawS_nonneg hO.pos hnd _ _ o, fun n ω => lawS_sum _ _, fun n f hf o => ?_⟩
+  · exact (measurable_slotOut₂ E (j + 1)).comp
+      ((hTh (n + 1) (j + 1) (by omega)).prodMk (hσh (n + 1) (j + 1) (by omega)))
+  · exact (measurable_of_countable fun s : EpochState => lawS E (n + 1) s o).comp (measurable_hist_σ O σ _)
+  · refine (freeze (hm _) (measurable_hist_σ O σ _) (hO.meas (n + 1)) (hfresh (n + 1))
+      (g := fun s T => slotOut E (n + 1) s T) (fun s => measurable_slotOut E (n + 1) s) o hf).trans
+      (lintegral_congr fun ω => ?_)
+    rw [slot_law hO hnd (n + 1) (σ ω (n + 1)) (hs ω (n + 1)) o]
+    rfl
+
 /-- **The estimate stays in band, with the update's failures kept together with any
 event `Tset`.** As `prob_out_of_band_seq`, but the failure sets stay inside one measure,
 united with `Tset`, so that a single bound can cover them all. -/
@@ -776,31 +777,7 @@ theorem prob_out_of_band_cover (hA : Assm E) (es : Ω → List Event)
         Ne * ENNReal.ofReal (bandEps T E.c.period) := by
   set σ : Ω → ℕ → EpochState := fun ω => σE (E.withO (O ω)) (es ω) with hσ
   set X : ℕ → Ω → Out := fun k ω => slotOut E (k + 1) (σ ω (k + 1)) (tk O (k + 1) ω) with hX
-  have hm : ∀ n, hist O σ n ≤ ‹MeasurableSpace Ω› := fun n =>
-    sup_le (iSup₂_le fun j _ => (hO.meas j).comap_le) (iSup₂_le fun j _ => (hσm j).comap_le)
-  have hTh : ∀ n j, j < n → Measurable[hist O σ n] (tk O j) := fun n j hj =>
-    (comap_measurable (tk O j)).mono (le_sup_of_le_left (le_iSup₂_of_le j (Finset.mem_range.2 hj) le_rfl)) le_rfl
-  have hσh : ∀ n j, j ≤ n → Measurable[hist O σ n] (fun ω => σ ω j) := fun n j hj =>
-    (comap_measurable (fun ω => σ ω j)).mono
-      (le_sup_of_le_right (le_iSup₂_of_le j (Finset.mem_range.2 (by omega)) le_rfl)) le_rfl
-  have hXm : ∀ j, Measurable (X j) := fun j =>
-    (measurable_slotOut₂ E (j + 1)).comp ((hO.meas (j + 1)).prodMk (hσm (j + 1)))
-  have hXh : ∀ n j, j < n → Measurable[hist O σ (n + 1)] (X j) := fun n j hj =>
-    (measurable_slotOut₂ E (j + 1)).comp ((hTh (n + 1) (j + 1) (by omega)).prodMk (hσh (n + 1) (j + 1) (by omega)))
-  set law : ℕ → Ω → Out → ℝ := fun n ω => lawS E (n + 1) (σ ω (n + 1)) with hlaw
-  have hFm : ∀ j n, j ≤ n → hist O σ (j + 1) ≤ hist O σ (n + 1) := fun j n h => hist_mono O σ (by omega)
-  have hlaw0 : ∀ n ω o, 0 ≤ law n ω o := fun n ω o => lawS_nonneg hO.pos hA.nodup _ _ o
-  have hlaw1 : ∀ n ω, ∑ o, law n ω o = 1 := fun n ω => lawS_sum _ _
-  have hlawm : ∀ n o, Measurable[hist O σ (n + 1)] fun ω => law n ω o := fun n o =>
-    (measurable_of_countable fun s : EpochState => lawS E (n + 1) s o).comp (hσh (n + 1) (n + 1) le_rfl)
-  have hfr : ∀ n (f : Ω → ℝ≥0∞), Measurable[hist O σ (n + 1)] f → ∀ o,
-      ∫⁻ ω, f ω * (if X n ω = o then 1 else 0) ∂μ = ∫⁻ ω, f ω * ENNReal.ofReal (law n ω o) ∂μ := by
-    intro n f hf o
-    have h := freeze (m := hist O σ (n + 1)) (μ := μ) (hm _) (hσh (n + 1) (n + 1) le_rfl) (hO.meas (n + 1))
-      (hfresh (n + 1)) (g := fun s T => slotOut E (n + 1) s T) (fun s => measurable_slotOut E (n + 1) s) o hf
-    refine h.trans (lintegral_congr fun ω => ?_)
-    rw [slot_law hO hA.nodup (n + 1) (σ ω (n + 1)) (hst ω (n + 1)).nodup o]
-    rfl
+  have hAd := Adapted.ofRO hA.nodup hO hσm hfresh fun ω i => (hst ω i).nodup
   have hEL : 0 < E.c.epochLength := by omega
   have hconst : ∀ ω i, σ ω i = σ ω (i / E.c.epochLength * E.c.epochLength) := fun ω i =>
     σE_const (E.withO (O ω)) (es ω) hEL i
@@ -851,10 +828,10 @@ theorem prob_out_of_band_cover (hA : Assm E) (es : Ω → List Event)
     exact h2 (band_step hc hT hb hprec hPf hP1 hPEL (hconst ω) (hst ω) hin ⟨hno.1 hin, hno.2 hin⟩
       (hrec ω e (by omega) hB) (hpath ω e (by omega)))
   have hLo : ∀ e, μ (Lo e) ≤ ENNReal.ofReal (exp (-(m * T.δ ^ 2 / 2))) := fun e =>
-    chernoff_lo X hXm (fun n => hist O σ (n + 1)) (fun n => hm _) hFm hXh law hlaw0 hlaw1 hlawm hfr honA
+    chernoff_lo hAd honA
       (win E e) hT.δ0.le (Lo e) fun ω ⟨hin, hno⟩ => ⟨lt_of_not_ge hno, hmH ω e hin⟩
   have hHi : ∀ e, μ (Hi e) ≤ ENNReal.ofReal (exp (-(m * T.δ ^ 2 * (1 / 2 - 2 / 9 * T.δ)))) := fun e =>
-    chernoff_hi X hXm (fun n => hist O σ (n + 1)) (fun n => hm _) hFm hXh law hlaw0 hlaw1 hlawm hfr occA
+    chernoff_hi hAd occA
       (win E e) hT.δ0.le hT.δ1 (Hi e) fun ω ⟨hin, hno⟩ => ⟨lt_of_not_ge hno, hmW ω e hin⟩
   have hA' : μ (⋃ e ∈ Finset.range Ne, (Lo e ∪ Hi e)) ≤ Ne * ENNReal.ofReal (bandEps T E.c.period) :=
     calc μ (⋃ e ∈ Finset.range Ne, (Lo e ∪ Hi e)) ≤ ∑ e ∈ Finset.range Ne, μ (Lo e ∪ Hi e) :=

@@ -35,6 +35,7 @@ public import Cryptarchia.Prob.RO
 public import Cryptarchia.Prob.WorstE
 import Cryptarchia.Prob.ROEpoch
 import Cryptarchia.Prob.WorstStop
+import Cryptarchia.Prob.TSIRO
 
 /-!
 # The lottery law over many epochs, with the band needed only until decided
@@ -63,6 +64,7 @@ theorem lottery_law_epoch_dec (hA : Assm E) (es : Ω → List Event) {M : ℕ} (
     (hO : RandomOracle μ O E.c.p)
     (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
     (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
+    (hs : ∀ ω i, ((σE (E.withO (O ω)) (es ω) i).lead.map Note.id).Nodup)
     {K : ℕ} {fam : Fin K → Band} (hP : ∀ b, (fam b).Prod) (pick : ℕ → EpochState → Fin K)
     (hG : (goodB fam).Nonempty) {S : Set (List Out)} (hS : UpClosed S) :
     ∃ κ : Kern, κ.EpochFam E.c.epochLength fam ∧
@@ -78,46 +80,22 @@ theorem lottery_law_epoch_dec (hA : Assm E) (es : Ω → List Event) {M : ℕ} (
     intro k h1 h2
     rw [slots_get, List.getElem_ofFn]
     exact enc_lotStr (hdel ω) (k + 1)
-  have hslots : ∀ ω, slots (lotStr (E.withO (O ω)) (es ω)) M = List.ofFn (fun k : Fin M => X k ω) := hslotsN M
-  have hm : ∀ n, hist O σ n ≤ ‹MeasurableSpace Ω› := fun n =>
-    sup_le (iSup₂_le fun j _ => (hO.meas j).comap_le) (iSup₂_le fun j _ => (hσm j).comap_le)
-  have hTh : ∀ n j, j < n → Measurable[hist O σ n] (tk O j) := fun n j hj =>
-    (comap_measurable (tk O j)).mono (le_sup_of_le_left (le_iSup₂_of_le j (Finset.mem_range.2 hj) le_rfl)) le_rfl
-  have hσh : ∀ n j, j ≤ n → Measurable[hist O σ n] (fun ω => σ ω j) := fun n j hj =>
-    (comap_measurable (fun ω => σ ω j)).mono
-      (le_sup_of_le_right (le_iSup₂_of_le j (Finset.mem_range.2 (by omega)) le_rfl)) le_rfl
-  have hXm : ∀ j, Measurable (X j) := fun j =>
-    (measurable_slotOut₂ E (j + 1)).comp ((hO.meas (j + 1)).prodMk (hσm (j + 1)))
-  have hXh : ∀ n j, j < n → Measurable[hist O σ (n + 1)] (X j) := fun n j hj =>
-    (measurable_slotOut₂ E (j + 1)).comp ((hTh (n + 1) (j + 1) (by omega)).prodMk (hσh (n + 1) (j + 1) (by omega)))
   set ok : ℕ → Ω → Prop := fun n ω => SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σ ω (n + 1)))) E (n + 1) (σ ω (n + 1)) with hok
   rw [show {ω | slots (lotStr (E.withO (O ω)) (es ω)) M ∈ S ∧ ∀ n < M,
       SlotBand (fam (pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1)))) E (n + 1)
         (σE (E.withO (O ω)) (es ω) (n + 1)) ∨ Decided S M (slots (lotStr (E.withO (O ω)) (es ω)) n)} =
       {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧ ∀ n < M, ok n ω ∨ Decided S M (List.ofFn fun k : Fin n => X k ω)} by
-    ext ω; simp only [Set.mem_setOf_eq, hslots ω, hslotsN]; exact Iff.rfl]
-  exact law_le_epoch_dec μ hP hM X hXm (fun n => hist O σ (n + 1)) (fun n => hm _)
-    (fun j n hjn => hist_mono O σ (by omega)) hXh
-    (fun n ω => qhRO E (n + 1) (σ ω (n + 1))) (fun n ω => qaRO E.c (σ ω (n + 1)))
+    ext ω; simp only [Set.mem_setOf_eq, hslotsN]; exact Iff.rfl]
+  exact law_le_epoch_dec μ hP hM (Adapted.ofRO hA.nodup hO hσm hfresh hs)
     (fun n ω => pick ((n + 1) / E.c.epochLength) (σ ω (n + 1))) ok
-    (fun n _ => (hσh (n + 1) (n + 1) le_rfl) (MeasurableSet.of_discrete
+    (fun n _ => (measurable_hist_σ O σ (n + 1)) (MeasurableSet.of_discrete
       (s := {s : EpochState | SlotBand (fam (pick ((n + 1) / E.c.epochLength) s)) E (n + 1) s})))
-    (fun n hn ω hb => ⟨hb.hon, by unfold qaRO; linarith [loss_le_one hO.pos (σ ω (n + 1)) (advNotes (σ ω (n + 1)))],
-        hb.adv⟩)
-    (fun n _ => (measurable_of_countable (pick ((n + 1) / E.c.epochLength))).comp (hσh (n + 1) (n + 1) le_rfl))
+    (fun n _ ω hb => ⟨hb.hon, hb.adv⟩)
+    (fun n _ => (measurable_of_countable (pick ((n + 1) / E.c.epochLength))).comp (measurable_hist_σ O σ (n + 1)))
     (fun n ω hc => by
       show pick ((n + 2) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 2)) =
         pick ((n + 1) / E.c.epochLength) (σE (E.withO (O ω)) (es ω) (n + 1))
       rw [σE_succ (E.withO (O ω)) (es ω) hc, div_succ_of_mod hc])
-    (fun n _ o => (measurable_of_countable fun s : EpochState =>
-      ENNReal.ofReal (prodLaw (qhRO E (n + 1) s) (qaRO E.c s) o)).comp (hσh (n + 1) (n + 1) le_rfl))
-    (fun n hn f hf hf0 o => by
-      have h := freeze (m := hist O σ (n + 1)) (μ := μ) (hm _) (hσh (n + 1) (n + 1) le_rfl) (hO.meas (n + 1))
-        (hfresh (n + 1)) (g := fun s T => slotOut E (n + 1) s T) (fun s => measurable_slotOut E (n + 1) s) o hf
-      refine h.trans (lintegral_congr fun ω => ?_)
-      by_cases hω : ok n ω
-      · rw [slot_law hO hA.nodup (n + 1) (σ ω (n + 1)) hω.nodup o]
-      · rw [hf0 ω hω, zero_mul, zero_mul])
     hS hG
 
 end Cryptarchia.Prob

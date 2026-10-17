@@ -174,7 +174,8 @@ theorem finality_tight {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
             omega
           exact hbandOf ω n (hin _ hm)
         · exact Or.inr (hdec e _ hsplit n (by omega))
-    obtain ⟨κ, hκ, hbound⟩ := lottery_law_epoch_dec (M := M) hA es (by omega) hdel hO hσm hfresh hP (pickM E mem) hG
+    obtain ⟨κ, hκ, hbound⟩ := lottery_law_epoch_dec (M := M) hA es (by omega) hdel hO hσm hfresh
+      (fun ω i => (hst ω i).nodup) hP (pickM E mem) hG
       (RBad.upClosed E)
     refine (measure_mono hsub3).trans (hbound.trans (ENNReal.ofReal_le_ofReal ?_))
     refine le_trans ?_ (settle_bound3E E rfl hA.sane D.C.P (D.C.within hκ) D.C.hG

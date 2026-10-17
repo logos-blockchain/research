@@ -71,4 +71,10 @@ theorem hist_mono (O : Ω → Oracle) (σ : Ω → ℕ → EpochState) {j n : �
   sup_le_sup (iSup₂_le fun i hi => le_iSup₂_of_le i (Finset.mem_range.2 (by have := Finset.mem_range.1 hi; omega)) le_rfl)
     (iSup₂_le fun i hi => le_iSup₂_of_le i (Finset.mem_range.2 (by have := Finset.mem_range.1 hi; omega)) le_rfl)
 
+/-- Slot `n`'s epoch state is known before slot `n`'s tickets are drawn. -/
+theorem measurable_hist_σ (O : Ω → Oracle) (σ : Ω → ℕ → EpochState) (n : ℕ) :
+    Measurable[hist O σ n] fun ω => σ ω n :=
+  (comap_measurable (fun ω => σ ω n)).mono
+    (le_sup_of_le_right (le_iSup₂_of_le n (Finset.mem_range.2 (Nat.lt_succ_self n)) le_rfl)) le_rfl
+
 end Cryptarchia.Prob

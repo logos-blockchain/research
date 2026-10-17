@@ -222,8 +222,26 @@ theorem bandAt_prodLaw {κ : Kern} {l : List Out} {B : Band} (hB : B.Prod) {q : 
   · rw [pra]; exact hB.alo
   · rw [prha]; exact le_trans hB.halo (mul_le_mul_of_nonneg_right mem.2.2.1 ha0)
 
-/-! ## Conditional laws to the worst-case kernel -/
+/-! ## Slot outcomes with known conditional laws -/
 
 open scoped ENNReal
+
+/-- **Slot outcomes with known conditional laws.** `m n` is what is known before outcome
+`X n` is drawn: it grows with `n` and knows the earlier outcomes and the law `law n`, and
+given it, `X n` has that law. -/
+structure Adapted {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure Ω) (X : ℕ → Ω → Out)
+    (m : ℕ → MeasurableSpace Ω) (law : ℕ → Ω → Out → ℝ) : Prop where
+  le : ∀ n, m n ≤ mΩ
+  mono : ∀ j n, j ≤ n → m j ≤ m n
+  meas : ∀ n j, j < n → Measurable[m n] (X j)
+  law_meas : ∀ n o, Measurable[m n] fun ω => law n ω o
+  nonneg : ∀ n ω o, 0 ≤ law n ω o
+  sum_one : ∀ n ω, ∑ o, law n ω o = 1
+  cond : ∀ n (f : Ω → ℝ≥0∞), Measurable[m n] f → ∀ o,
+    ∫⁻ ω, f ω * (if X n ω = o then 1 else 0) ∂μ = ∫⁻ ω, f ω * ENNReal.ofReal (law n ω o) ∂μ
+
+theorem Adapted.measurable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} {X : ℕ → Ω → Out}
+    {m : ℕ → MeasurableSpace Ω} {law : ℕ → Ω → Out → ℝ} (h : Adapted μ X m law) (j : ℕ) : Measurable (X j) :=
+  (h.meas (j + 1) j (Nat.lt_succ_self j)).mono (h.le _) le_rfl
 
 end Cryptarchia.Prob

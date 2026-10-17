@@ -81,22 +81,17 @@ theorem VE_ge_one {K : ℕ} {fam : Fin K → Band} {EL : ℕ} {F : List Out → 
 
 set_option maxHeartbeats 1600000 in
 /-- **From conditional slot laws to a kernel, with the band needed only until the event
-is decided.** The condition at slot `n` is `ok n` or that the first `n` outcomes already
-decide the event. -/
+is decided.** Given the past, slot `n`'s outcome has the law `qh ⊗ Bern(qa)` (`hX`); when
+`ok n`, that law is within the member `Bsel n`. The condition at slot `n` is `ok n` or that
+the first `n` outcomes already decide the event. -/
 theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     {K : ℕ} {fam : Fin K → Band} (hP : ∀ b, (fam b).Prod) {EL M : ℕ} (hM : 0 < M)
-    (X : ℕ → Ω → Out) (hXm : ∀ j, Measurable (X j))
-    (m : ℕ → MeasurableSpace Ω) (hm : ∀ n, m n ≤ mΩ) (hmono : ∀ j n, j ≤ n → m j ≤ m n)
-    (hX : ∀ n j, j < n → Measurable[m n] (X j))
-    (qh : ℕ → Ω → Fin 3 → ℝ) (qa : ℕ → Ω → ℝ) (Bsel : ℕ → Ω → Fin K)
-    (ok : ℕ → Ω → Prop) (hokm : ∀ n < M, MeasurableSet[m n] {ω | ok n ω})
-    (hQ : ∀ n < M, ∀ ω, ok n ω → qh n ω ∈ HB (fam (Bsel n ω)) ∧ 0 ≤ qa n ω ∧ qa n ω ≤ (fam (Bsel n ω)).amax)
+    {X : ℕ → Ω → Out} {m : ℕ → MeasurableSpace Ω} {qh : ℕ → Ω → Fin 3 → ℝ} {qa : ℕ → Ω → ℝ}
+    (hX : Adapted μ X m fun n ω => prodLaw (qh n ω) (qa n ω))
+    (Bsel : ℕ → Ω → Fin K) (ok : ℕ → Ω → Prop) (hokm : ∀ n < M, MeasurableSet[m n] {ω | ok n ω})
+    (hQ : ∀ n < M, ∀ ω, ok n ω → qh n ω ∈ HB (fam (Bsel n ω)) ∧ qa n ω ≤ (fam (Bsel n ω)).amax)
     (hBm : ∀ n < M, Measurable[m n] (Bsel n))
     (hBc : ∀ n ω, (n + 2) % EL ≠ 0 → Bsel (n + 1) ω = Bsel n ω)
-    (hQm : ∀ n < M, ∀ o, Measurable[m n] fun ω => ENNReal.ofReal (prodLaw (qh n ω) (qa n ω) o))
-    (hcond : ∀ n < M, ∀ f : Ω → ℝ≥0∞, Measurable[m n] f → (∀ ω, ¬ ok n ω → f ω = 0) → ∀ o,
-      ∫⁻ ω, f ω * (if X n ω = o then 1 else 0) ∂μ =
-        ∫⁻ ω, f ω * ENNReal.ofReal (prodLaw (qh n ω) (qa n ω) o) ∂μ)
     {S : Set (List Out)} (hS : UpClosed S) (hG : (goodB fam).Nonempty) :
     ∃ κ : Kern, κ.EpochFam EL fam ∧
       μ {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧
@@ -122,7 +117,7 @@ theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure �
     rw [hFdef, Set.indicator_of_mem (hd y (by rw [hpre_len]; omega))]; simp
   set A : ℕ → Set Ω := fun n => {ω | ∀ j < n, ok j ω ∨ Dd (pre j ω)} with hAdef
   have hvec : ∀ n, Measurable[m n] (fun ω (k : Fin n) => X k ω) :=
-    fun n => by letI := m n; exact measurable_pi_iff.mpr fun k : Fin n => hX n k.val k.2
+    fun n => by have h := hX.meas n; letI := m n; exact measurable_pi_iff.mpr fun k : Fin n => h k.val k.2
   have hDm : ∀ n, MeasurableSet[m n] {ω | Dd (pre n ω)} := by
     intro n
     have : {ω | Dd (pre n ω)} = (fun ω (k : Fin n) => X k ω) ⁻¹' {v | Dd (List.ofFn v)} := rfl
@@ -134,7 +129,7 @@ theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure �
     rw [this]
     exact Finset.measurableSet_biInter _ fun j hj => by
       have hj' := Finset.mem_range.1 hj
-      exact (hmono j n hj'.le _ (hokm j (by omega))).union (hmono j n hj'.le _ (hDm j))
+      exact (hX.mono j n hj'.le _ (hokm j (by omega))).union (hX.mono j n hj'.le _ (hDm j))
   have hAsucc : ∀ n, A (n + 1) = A n ∩ ({ω | ok n ω} ∪ {ω | Dd (pre n ω)}) := by
     intro n; ext ω; simp only [hAdef, Set.mem_setOf_eq, Set.mem_inter_iff, Set.mem_union]
     constructor
@@ -164,12 +159,10 @@ theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure �
       letI := m n
       exact ((measurable_of_countable (fun p : (Fin n → Out) × Fin K =>
         ENNReal.ofReal (nextV EL hG (VE EL F hG k) (List.ofFn p.1 ++ [o]) p.2))).comp hpair).indicator hUm
-    have hf0 : ∀ o ω, ¬ ok n ω → f o ω = 0 := fun o ω hω => by
-      simp only [hf, Set.indicator, hU, Set.mem_inter_iff, Set.mem_setOf_eq]; rw [if_neg (fun h => hω h.1.2)]
     have hind : ∀ o, Measurable fun ω => (if X n ω = o then (1 : ℝ≥0∞) else 0) := fun o =>
-      (measurable_of_countable (fun x : Out => if x = o then (1 : ℝ≥0∞) else 0)).comp (hXm n)
+      (measurable_of_countable (fun x : Out => if x = o then (1 : ℝ≥0∞) else 0)).comp (hX.measurable n)
     set W : Set Ω := A n ∩ {ω | Dd (pre n ω)} with hW
-    have hWm : MeasurableSet W := (hm n) _ (hAn.inter hDn)
+    have hWm : MeasurableSet W := (hX.le n) _ (hAn.inter hDn)
     -- pointwise: the decided part carries over; the rest is bounded through the law
     have hnext : ∀ ω, (A (n + 1)).indicator (V (n + 1)) ω ≤
         W.indicator (V n) ω + ∑ o, f o ω * (if X n ω = o then 1 else 0) := by
@@ -231,24 +224,23 @@ theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure �
           simp only [hI]; exact lintegral_mono fun ω => hnext ω
       _ = ∫⁻ ω, W.indicator (V n) ω ∂μ + ∫⁻ ω, ∑ o, f o ω * (if X n ω = o then 1 else 0) ∂μ := by
           refine lintegral_add_right _ ?_
-          exact Finset.measurable_sum _ fun o _ => ((hfm o).mono (hm n) le_rfl).mul (hind o)
+          exact Finset.measurable_sum _ fun o _ => ((hfm o).mono (hX.le n) le_rfl).mul (hind o)
       _ = ∫⁻ ω, W.indicator (V n) ω ∂μ + ∑ o, ∫⁻ ω, f o ω * (if X n ω = o then 1 else 0) ∂μ := by
           congr 1
-          exact lintegral_finsetSum _ fun o _ => ((hfm o).mono (hm n) le_rfl).mul (hind o)
+          exact lintegral_finsetSum _ fun o _ => ((hfm o).mono (hX.le n) le_rfl).mul (hind o)
       _ = ∫⁻ ω, W.indicator (V n) ω ∂μ + ∑ o, ∫⁻ ω, f o ω * ENNReal.ofReal (prodLaw (qh n ω) (qa n ω) o) ∂μ := by
           congr 1
-          exact Finset.sum_congr rfl fun o _ => hcond n hn (f o) (hfm o) (hf0 o) o
+          exact Finset.sum_congr rfl fun o _ => hX.cond n (f o) (hfm o) o
       _ = ∫⁻ ω, W.indicator (V n) ω ∂μ + ∫⁻ ω, ∑ o, f o ω * ENNReal.ofReal (prodLaw (qh n ω) (qa n ω) o) ∂μ := by
           congr 1
-          exact (lintegral_finsetSum _ fun o _ => (((hfm o).mul (hQm n hn o))).mono (hm n) le_rfl).symm
+          exact (lintegral_finsetSum _ fun o _ => (((hfm o).mul (ENNReal.measurable_ofReal.comp (hX.law_meas n o)))).mono (hX.le n) le_rfl).symm
       _ ≤ ∫⁻ ω, W.indicator (V n) ω ∂μ + ∫⁻ ω, U.indicator (V n) ω ∂μ := by
           gcongr with ω
           by_cases hω : ω ∈ U
-          · obtain ⟨hq, ha0, ha⟩ := hQ n hn ω hω.1.2
-            have ha1 : qa n ω ≤ 1 := le_trans ha (hP _).a1
+          · obtain ⟨hq, ha⟩ := hQ n hn ω hω.1.2
             have hnn : ∀ o, 0 ≤ prodLaw (qh n ω) (qa n ω) o *
                 nextV EL hG (VE EL F hG k) (pre n ω ++ [o]) (Bsel n ω) :=
-              fun o => mul_nonneg (prodLaw_nonneg hq.1 ha0 ha1 o) (nextV_nonneg (VE_nonneg hP hF0 k) _ _)
+              fun o => mul_nonneg (hX.nonneg n ω o) (nextV_nonneg (VE_nonneg hP hF0 k) _ _)
             rw [Set.indicator_of_mem hω]
             calc ∑ o, f o ω * ENNReal.ofReal (prodLaw (qh n ω) (qa n ω) o)
                 = ENNReal.ofReal (∑ o, prodLaw (qh n ω) (qa n ω) o *
@@ -256,7 +248,7 @@ theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure �
                   rw [ENNReal.ofReal_sum_of_nonneg fun o _ => hnn o]
                   refine Finset.sum_congr rfl fun o _ => ?_
                   simp only [hf, Set.indicator_of_mem hω]
-                  rw [mul_comm, ENNReal.ofReal_mul (prodLaw_nonneg hq.1 ha0 ha1 o)]
+                  rw [mul_comm, ENNReal.ofReal_mul (hX.nonneg n ω o)]
               _ ≤ V n ω := by
                   have hnd : ¬ Dd (pre n ω) := hω.2
                   show _ ≤ (if Dd (pre n ω) then 1 else ENNReal.ofReal (VE EL F hG (M - n) (pre n ω) (Bsel n ω)))
@@ -271,7 +263,7 @@ theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure �
           rw [Set.indicator_union_of_disjoint hdisj, lintegral_add_left]
           exact (measurable_of_countable (fun p : (Fin n → Out) × Fin K => (if Dd (List.ofFn p.1) then (1 : ℝ≥0∞)
             else ENNReal.ofReal (VE EL F hG (M - n) (List.ofFn p.1) p.2)))).comp
-              (hpair.mono (hm n) le_rfl) |>.indicator hWm
+              (hpair.mono (hX.le n) le_rfl) |>.indicator hWm
       _ ≤ I n := by
           simp only [hI]
           refine lintegral_mono fun ω => Set.indicator_le_indicator_of_subset ?_ (fun _ => zero_le) ω
@@ -310,12 +302,12 @@ theorem law_le_epoch_dec {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure �
       _ = _ := by rw [lintegral_const, measure_univ, mul_one]
   have hMle : μ {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧
       ∀ n < M, ok n ω ∨ Dd (List.ofFn fun k : Fin n => X k ω)} ≤ I M := by
-    have hv : Measurable (fun ω (k : Fin M) => X k ω) := measurable_pi_iff.mpr fun k : Fin M => hXm k.val
+    have hv : Measurable (fun ω (k : Fin M) => X k ω) := measurable_pi_iff.mpr fun k : Fin M => hX.measurable k.val
     have hms1 : MeasurableSet {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S} :=
       hv (Set.toFinite {v : Fin M → Out | List.ofFn v ∈ S}).measurableSet
     have hms : MeasurableSet {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧
         ∀ n < M, ok n ω ∨ Dd (List.ofFn fun k : Fin n => X k ω)} :=
-      hms1.inter ((hm M) _ (hAm M le_rfl))
+      hms1.inter ((hX.le M) _ (hAm M le_rfl))
     rw [← lintegral_indicator_one hms]
     simp only [hI]
     refine lintegral_mono fun ω => ?_
