@@ -63,12 +63,14 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
   intro i; fin_cases i
   exacts [chk0, chk1, chk2, chk3, chk4, chk5, chk6, chk7, chk8, chk9, chk10, chk11, chk12, chk13, chk14, chk15, chk16, chk17, chk18]
 
-/-- The derived numbers (`ClosedData.derive`), computed at elaboration time: the tilts by rule, the
-contractions from the tables' bounds, the growth blocks, each settlement term's constant and rate, the
-band's terms, and the short form's rates. The kernel checks every condition on them (`closedOK`). -/
+/-- The derived numbers (`ClosedData.derive`), computed at elaboration time: the contractions from the
+tables' bounds, the settlement parameters by their rules (G = 638, and per t: g = 18, j = 171,
+w = 314, ρr = 3; T = 29) and the tilts, the growth blocks, each settlement term's constant
+and rate, the band's terms, and the short form's rates. The kernel checks every condition on them (`closedOK`). -/
 def der : ClosedDerived := eval% par.derive F F.S.weakest dat Tq
 
-theorem derNb : der.nb = 80 ∧ der.nb0 = 25 := by decide +kernel
+theorem derLen : der.nb = 60 ∧ der.nb0 = 18 ∧ der.G = 638 ∧ der.g = 18 ∧ der.w = 314 ∧
+    der.T = 29 := by decide +kernel
 
 theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by decide +kernel
 
@@ -91,15 +93,16 @@ theorem finality_closed {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Me
     (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) (1000000 : ℝ)) :
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (par.epsC der N k) :=
   FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
-    (fun k hk => by simp only [par, derNb.1, derNb.2, F, pot] at hk ⊢; omega) (fun k hk => by simp only [par] at hk ⊢; omega)
-    (fun k hk => by simp only [par, F, pot] at hk ⊢; omega) E hc hk hΔ es hM hN hG
+    (fun k hk => by obtain ⟨h1, h2, h3, -, -, h6⟩ := derLen; simp only [par, h1, h2, h3, h6, F, pot] at hk ⊢; omega)
+    (fun k hk => by obtain ⟨-, -, h3, -, h5, -⟩ := derLen; simp only [par, h3, h5] at hk ⊢; omega)
+    (fun k hk => by obtain ⟨-, -, h3, h4, -, -⟩ := derLen; simp only [par, h3, h4, F, pot] at hk ⊢; omega) E hc hk hΔ es hM hN hG
     (fun ω => by rw [hTq.1, hTq.2.1]; simpa using hS ω) (fun ω => by rw [hTq.2.2]; simpa using hQ ω)
     (fun ω => by simpa [par] using hD ω) (fun ω => by simpa [par] using hH ω)
 
 /-- **Finality in closed form, short**: with `t = k / 20` and `Ne = N / (300 k) + 2` epochs, a
 finality violation has probability at most
-`(N + 18 t + 706) · (6.9e-28 + 0.8048 · 0.700570ᵗ) + Ne · 1.562 · 0.745235ᵗ`:
-settlement at rate 0.7006 per 20 blocks of depth, the estimate's band at rate 0.7452. -/
+`(N + 18 t + 640) · (2.4e-25 + 0.5816 · 0.702021ᵗ) + Ne · 1.562 · 0.745235ᵗ`:
+settlement at rate 0.7020 per 20 blocks of depth, the estimate's band at rate 0.7452. -/
 theorem finality_closed_short {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
     [MeasureTheory.IsProbabilityMeasure μ] {O : Ω → Oracle} (E : Env) {k : ℕ} (hc : E.c = Config.specK k) (hk : 1000 ≤ k) (hΔ : E.Δ = 11) (es : Ω → List Event)
     (hM : Model μ O E es) {N : ℕ} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) (hG : GenesisOK E)

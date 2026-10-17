@@ -29,14 +29,11 @@ def pot : PotCfg where
 /-- The certificate's other chosen numbers. -/
 def par : ClosedData where
   κ := (547 / 5000 : ℚ)  -- the weight of the cold potential's second term
-  G := 704               -- the phase cut: longer phases count as failures
-  g := 18                -- the longest empty run, per t = k / 20
-  j := 172               -- the phases of a span, per t
-  w := 315               -- the slots of a span, and of a crowded window, per t
-  ρr := 4                -- the reach bound, per t
-  T := 19                -- the growth block, in slots
-  m := 20                -- the depth per t
+  m := 20                -- the depth per step of t = k / m
   k0 := 1000             -- the least depth
+  N1 := 5184000          -- the horizon the settlement parameters are fitted at
+  k1 := 2160             -- and the depth
+  ε := (1 / 100 : ℚ)     -- each lesser term (long phases, long empty runs, large reach) at most this share of the main ones
   ρ := (101 / 100 : ℚ)   -- the stake drift per epoch (`StakeDrift`)
   Hmin := (1000000 : ℚ)  -- the least honest online stake (`MinStake`)
 

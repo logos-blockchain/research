@@ -18,67 +18,6 @@ import certE, planE
 M_DIV = 20     # t = k / M_DIV
 
 
-def closed_floats(P, B, cfg, D, j, w, g, rho, x, yy, Tg):
-    """the closed form's constants and rates, in floats (as `closed_section` bounds them)"""
-    f = float; m = M_DIV; G = cfg['G']
-    e17, tau, lpi, lp, e2, b, lr = f(P['e'][17]), f(Fr(cfg['tau'])), f(P['lpi']), f(P['lp']), f(P['e'][2]), f(P['b']), f(P['lr'])
-    c = f(Fr(cfg['c'])); hhi, hlo, elo = f(B['hhi']), f(B['hlo']), f(B['elo'])
-    stat = 1 + (b - 1) / (1 - lr)
-    nb = 120 * m // (Tg + D); nb0 = -(-(3 + G) // (Tg + D)) + 1
-    bs = 1 + (yy - 1) * (1 - (1 - hlo) ** Tg)
-    L = math.log
-    return dict(A1=(1 - (1 - hhi) ** D) ** (G // D), q2=g * L(1 - hlo), A3=e17 / tau, q3=j * L(e17) - w * L(tau),
-                A4=(lp / lpi) ** G * e2 * stat, q4=j * L(lpi), A5=1 / x, q5=w * L(1 + (x - 1) * (1 - elo)) - m * L(x),
-                A6=stat / c, q6=-rho * L(c), A7=bs ** -nb0 * yy ** -m, q7=nb * L(bs) - (m + rho) * L(yy))
-
-
-def closed_value(cf, N, t, g, G):
-    """log of the settlement part of the closed form at (N, t)"""
-    E = math.exp
-    terms = [(N + g * t + 1) * cf['A1'], (N + 1) * E(cf['q2'] * t), (N + g * t + 1) * cf['A3'] * E(cf['q3'] * t),
-             (N + g * t + 1) * cf['A4'] * E(cf['q4'] * t), (N + 1) * cf['A5'] * E(cf['q5'] * t),
-             (N + G + 1) * cf['A6'] * E(cf['q6'] * t), (N + 2) * cf['A7'] * E(cf['q7'] * t)]
-    return math.log(sum(terms))
-
-
-def float_tilts(B, m, w, rho, nb, Tg):
-    """the tilts of `emitF.closed_tilts`, in floats"""
-    q = 1 - float(B['elo']); pt = 1 - (1 - float(B['hlo'])) ** Tg
-    x = max(1.0, m * (1 - q) / ((w - m) * q)) if w > m else 1.0
-    den = (nb - m - rho) * pt
-    yy = (m + rho) * (1 - pt) / den if den > 0 else 1.0
-    return x, (yy if 0 < yy < 1 else 1.0)
-
-
-def opt_params(P, B, cfg, D, N_ref=5184000, k_ref=2160):
-    """integer per-t lengths minimizing the closed form at (N_ref, k_ref), with every term decaying; the
-    tilts follow their rule"""
-    from scipy.optimize import minimize
-    m = M_DIV; t_ref = k_ref // m; G = cfg['G']
-    best = None
-    divs = [t - D for t in range(D + 5, 120 * m) if (120 * m) % t == 0]
-    for Tg in divs[:14]:
-        nb = 120 * m // (Tg + D)
-        def obj(p):
-            j, w, g, rho = (math.ceil(v) for v in p)
-            if min(j, w, g, rho) <= 0: return 1e9
-            x, yy = float_tilts(B, m, w, rho, nb, Tg)
-            if x <= 1.0001 or yy >= 0.9999: return 1e9
-            cf = closed_floats(P, B, cfg, D, j, w, g, rho, x, yy, Tg)
-            if max(cf[k] for k in ('q2', 'q3', 'q4', 'q5', 'q6', 'q7')) >= 0: return 1e9
-            return closed_value(cf, N_ref, t_ref, g, G)
-        r = minimize(obj, [9.07 * m, 16.2 * m, 0.85 * m, 0.147 * m], method='Nelder-Mead',
-                     options=dict(maxiter=6000, xatol=1e-7, fatol=1e-10))
-        if best is None or r.fun < best[0]: best = (r.fun, Tg, r.x)
-    _, Tg, p = best
-    J, W, Gp, R = (math.ceil(v) for v in p)
-    x, yy = float_tilts(B, m, W, R, 120 * m // (Tg + D), Tg)
-    cf = closed_floats(P, B, cfg, D, J, W, Gp, R, x, yy, Tg)
-    return dict(j=J, w=W, g=Gp, rho=R, Tg=Tg,
-                rate=max(cf[k] for k in ('q2', 'q3', 'q4', 'q5', 'q6', 'q7')),
-                ref=math.exp(closed_value(cf, N_ref, t_ref, Gp, G)))
-
-
 def eval_closed(consts, Qs, Cs, cl, G, N, k):
     """the closed form's value, in floats"""
     t = k // M_DIV; g = cl['g']
@@ -109,18 +48,19 @@ if __name__ == "__main__":
     # the family and its tables, by the current rules, for the planned potential
     import emitE
     fam, B, P = emitE.retable(cfg, T, K)
-    cl = opt_params(P, B, cfg, D)
-    cl['k0'] = k0
-    print('closed params', cl)
     import emitF
+    # the settlement parameters follow their rules at (N1, k1) (`ClosedData.derive`, `emitF.closed_rules`)
+    cl = dict(k0=k0, m=M_DIV, N1=5184000, k1=2160, eps=emitF.EPS)
     q_ = emitF.emit_closed(cfg, T, fam, B, P, name, out_dir, cl)
+    cl = q_['cl']
+    print('closed params', {kk: (str(v) if isinstance(v, Fr) else v) for kk, v in cl.items()})
     consts, Qs, Cs = q_['C'], q_['Qs'], q_['Cs']
     short = {kk: q_[kk] for kk in ('t0', 'qs', 'As', 'qb', 'Ab')}
     for (N, k) in [(5184000, 2160), (31536000, 2160), (5184000, 1000), (5184000, 1500), (5184000, 3000)]:
-        s, band = eval_closed(consts, Qs, Cs, cl, cfg['G'], N, k)
+        s, band = eval_closed(consts, Qs, Cs, cl, cl['G'], N, k)
         print(f'N={N} k={k}: settlement {s:.3e} band {band:.3e} total {s + band:.3e}')
         t = k // M_DIV; f = {kk: float(v) for kk, v in short.items()}
-        sh = (N + cl['g'] * t + cfg['G'] + 2) * (float(consts['A1']) + f['As'] * f['qs'] ** t) + (N // (300 * k) + 2) * f['Ab'] * f['qb'] ** t
+        sh = (N + cl['g'] * t + cl['G'] + 2) * (float(consts['A1']) + f['As'] * f['qs'] ** t) + (N // (300 * k) + 2) * f['Ab'] * f['qb'] ** t
         print(f'   short form {sh:.3e}')
     json.dump(dict(cfg, closed={kk: str(v) for kk, v in cl.items()}, consts={kk: str(v) for kk, v in consts.items()},
                    Q=[str(Q) for Q in Qs]), open(f"cfgC_{name}.json", "w"), indent=1)

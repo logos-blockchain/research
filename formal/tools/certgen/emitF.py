@@ -464,13 +464,46 @@ end {ns}
 
 # ---- closed-form certificates (`CertClosed.lean`)
 
+def closed_rules(cfg, B, e, lr, b, lpi, cl):
+    """`ClosedData.derive`'s rules, at the horizon `N1` and depth `k1`: `w`, `j` minimizing the main terms
+    (the window at its best tilt `x`); `g`, `ρr` each the least making its term at most `ε` times these,
+    and `G` against them decayed to `t1 + t1 / 4`; `T` minimizing the slow-growth rate at its best tilt `yy`"""
+    D, m, N1, eps = cfg['Delta'], cl['m'], cl['N1'], cl['eps']
+    t1 = cl['k1'] // m
+    tau, c = Fr(cfg['tau']), Fr(cfg['c'])
+    up = lambda base, n: powq.pow_up(14, base, n)
+    dn = lambda base, n: powq.pow_dn(14, base, n)
+    stat = 1 + (b - 1) / (1 - lr)
+    at1 = lambda A, r: (N1 + 1) * A * up(r, t1)
+    x_of = lambda w: max(Fr(1), tilt(5, w, m - 1, 1 - B['elo']))
+    span = lambda w, j: at1(e[17] / tau, up(e[17], j) / dn(tau, w))
+    fail = lambda j: at1(e[2] * stat, up(lpi, j))
+    win = lambda w: at1(1 / x_of(w), up(1 + (x_of(w) - 1) * (1 - B['elo']), w) / dn(x_of(w), m))
+    j_of = lambda w: tmin(lambda j: span(w, j) + fail(j), 1, 2 ** 12)
+    w = tmin(lambda w: span(w, j_of(w)) + fail(j_of(w)) + win(w), m + 1, math.floor(Fr(m) / (1 - B['elo'])))
+    j = j_of(w)
+    m0 = span(w, j) + fail(j) + win(w)
+    m2 = m0 * up(up(e[17], j) / dn(tau, w), t1 // 4)
+    mG = least(lambda n: (N1 + 1) * up(1 - (1 - B['hhi']) ** D, n) <= eps * m2, 1, 2 ** 10)
+    G = max(2 * D, D * mG + D)
+    g = least(lambda n: at1(Fr(1), up(1 - B['hlo'], n)) <= eps * m0, 1, 2 ** 10)
+    rho = least(lambda n: at1(stat / c, 1 / dn(c, n)) <= eps * m0, 0, 2 ** 8)
+    def yy_of(Tg):
+        v = tilt(4, 120 * m // (Tg + D), m + rho - 1, 1 - (1 - B['hlo']) ** Tg)
+        return v if 0 < v < 1 else Fr(1)
+    rate = lambda Tg: up(1 + (yy_of(Tg) - 1) * (1 - (1 - B['hlo']) ** Tg), 120 * m // (Tg + D)) / dn(yy_of(Tg), m + rho)
+    Tg = argmin(rate, 1, 64)
+    return dict(G=G, g=g, j=j, w=w, rho=rho, Tg=Tg, x=x_of(w), yy=yy_of(Tg))
+
+
 def closed_derive(cfg, T, B, dats, lp, lpi, cl):
     """`ClosedData.derive`: the closed form's derived numbers, from the tables' bounds"""
     import emitC
     from certnum import rdn
-    D = cfg['Delta']; m = emitC.M_DIV
-    G, g, j, w, rho, Tg, k0 = cl['G'], cl['g'], cl['j'], cl['w'], cl['rho'], cl['Tg'], cl['k0']
+    D = cfg['Delta']; m = cl['m']
     e, lr, b = derived(dats)
+    cl = dict(cl, **closed_rules(cfg, B, e, lr, b, lpi, cl))
+    G, g, j, w, rho, Tg, x, yy, k0 = cl['G'], cl['g'], cl['j'], cl['w'], cl['rho'], cl['Tg'], cl['x'], cl['yy'], cl['k0']
     tau, c = Fr(cfg['tau']), Fr(cfg['c'])
     hhi, hlo, elo = B['hhi'], B['hlo'], B['elo']
     up = lambda base, n: powq.pow_up(14, base, n)
@@ -478,7 +511,6 @@ def closed_derive(cfg, T, B, dats, lp, lpi, cl):
     stat = 1 + (b - 1) / (1 - lr)
     nb = 120 * m // (Tg + D)
     nb0 = (3 + G + (Tg + D) - 1) // (Tg + D) + 1
-    x, yy = closed_tilts(B, m, w, rho, nb, Tg)
     bs = 1 + (yy - 1) * (1 - (1 - hhi) ** Tg if 1 <= yy else 1 - (1 - hlo) ** Tg)
     C = dict(A1=up(rup(1 - (1 - hhi) ** D, 14), G // D), q2=up(rup(1 - hlo, 14), g),
              A3=rup(e[17] / tau, 14), q3=rup(up(e[17], j) / dn(tau, w), 14),
@@ -503,15 +535,7 @@ def closed_derive(cfg, T, B, dats, lp, lpi, cl):
         assert 0 <= a <= 1 - 1 / Cb and 0 < Qb <= dn(1 + 180 * m * a / 4096, 4096)
     assert sum(A_ * (q_ ** t0 / qs ** t0) for A_, q_ in zip(Ai, qi)) <= As
     assert sum(Cb * ((1 / Qb) ** t0 / qb ** t0) for Cb, Qb in zip(Cs, Qs)) <= Ab
-    return dict(x=x, yy=yy, lp=lp, lpi=lpi, nb=nb, nb0=nb0, C=C, Cs=Cs, Qs=Qs, t0=t0, qs=qs, As=As, qb=qb, Ab=Ab)
-
-
-def closed_tilts(B, m, w, rho, nb, Tg):
-    """`ClosedData.derive`'s tilts: the best for `w` slots reaching `m` occupied ones, and for `nb`
-    blocks staying below `m + rho` successes"""
-    x = max(Fr(1), tilt(5, w, m - 1, 1 - B['elo']))
-    v = tilt(4, nb, m + rho - 1, 1 - (1 - B['hlo']) ** Tg)
-    return x, (v if 0 < v < 1 else Fr(1))
+    return dict(cl=cl, lp=lp, lpi=lpi, nb=nb, nb0=nb0, C=C, Cs=Cs, Qs=Qs, t0=t0, qs=qs, As=As, qb=qb, Ab=Ab)
 
 
 def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
@@ -525,20 +549,17 @@ def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
     for old in os.listdir(sub):
         if old.endswith('.lean'): os.remove(f"{sub}/{old}")
     dats, e, lr, b, lp, lpi = check_all(cfg, T, fam, B, P)
-    m_ = emitC.M_DIV
-    cl = dict(cl, G=cfg['G'])
+    m_ = cl['m']
     q_ = closed_derive(cfg, T, B, dats, lp, lpi, cl)
+    cl = q_['cl']
     C = q_['C']
     beta = T['beta']
     par_f = [("κ", qQ(kap), POT[0][1]),
-        ("G", cl['G'], "the phase cut: longer phases count as failures"),
-        ("g", cl['g'], f"the longest empty run, per t = k / {m_}"),
-        ("j", cl['j'], "the phases of a span, per t"),
-        ("w", cl['w'], "the slots of a span, and of a crowded window, per t"),
-        ("ρr", cl['rho'], "the reach bound, per t"),
-        ("T", cl['Tg'], "the growth block, in slots"),
-        ("m", m_, "the depth per t"),
+        ("m", m_, "the depth per step of t = k / m"),
         ("k0", cl['k0'], "the least depth"),
+        ("N1", cl['N1'], "the horizon the settlement parameters are fitted at"),
+        ("k1", cl['k1'], "and the depth"),
+        ("ε", qQ(cl['eps']), "each lesser term (long phases, long empty runs, large reach) at most this share of the main ones"),
         ("ρ", qQ(T['rho']), "the stake drift per epoch (`StakeDrift`)"),
         ("Hmin", qQ(T['hmin']), "the least honest online stake (`MinStake`)")]
     write_params(cfg, fam, T, "ClosedData", par_f, sub, ns, name, closed=True)
@@ -577,12 +598,14 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
   intro i; fin_cases i
   exacts [{", ".join(f"chk{i}" for i in range(19))}]
 
-/-- The derived numbers (`ClosedData.derive`), computed at elaboration time: the tilts by rule, the
-contractions from the tables' bounds, the growth blocks, each settlement term's constant and rate, the
-band's terms, and the short form's rates. The kernel checks every condition on them (`closedOK`). -/
+/-- The derived numbers (`ClosedData.derive`), computed at elaboration time: the contractions from the
+tables' bounds, the settlement parameters by their rules (G = {cl['G']}, and per t: g = {cl['g']}, j = {cl['j']},
+w = {cl['w']}, ρr = {cl['rho']}; T = {cl['Tg']}) and the tilts, the growth blocks, each settlement term's constant
+and rate, the band's terms, and the short form's rates. The kernel checks every condition on them (`closedOK`). -/
 def der : ClosedDerived := eval% par.derive F F.S.weakest dat Tq
 
-theorem derNb : der.nb = {q_['nb']} ∧ der.nb0 = {q_['nb0']} := by decide +kernel
+theorem derLen : der.nb = {q_['nb']} ∧ der.nb0 = {q_['nb0']} ∧ der.G = {cl['G']} ∧ der.g = {cl['g']} ∧ der.w = {cl['w']} ∧
+    der.T = {cl['Tg']} := by decide +kernel
 
 theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by decide +kernel
 
@@ -600,8 +623,9 @@ theorem finality_closed {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory
     [MeasureTheory.IsProbabilityMeasure μ] {{O : Ω → Oracle}} {hyps} :
     μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal (par.epsC der N k) :=
   FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
-    (fun k hk => by simp only [par, derNb.1, derNb.2, F, pot] at hk ⊢; omega) (fun k hk => by simp only [par] at hk ⊢; omega)
-    (fun k hk => by simp only [par, F, pot] at hk ⊢; omega) E hc hk hΔ es hM hN hG
+    (fun k hk => by obtain ⟨h1, h2, h3, -, -, h6⟩ := derLen; simp only [par, h1, h2, h3, h6, F, pot] at hk ⊢; omega)
+    (fun k hk => by obtain ⟨-, -, h3, -, h5, -⟩ := derLen; simp only [par, h3, h5] at hk ⊢; omega)
+    (fun k hk => by obtain ⟨-, -, h3, h4, -, -⟩ := derLen; simp only [par, h3, h4, F, pot] at hk ⊢; omega) E hc hk hΔ es hM hN hG
     (fun ω => by rw [hTq.1, hTq.2.1]; simpa using hS ω) (fun ω => by rw [hTq.2.2]; simpa using hQ ω)
     (fun ω => by simpa [par] using hD ω) (fun ω => by simpa [par] using hH ω)
 

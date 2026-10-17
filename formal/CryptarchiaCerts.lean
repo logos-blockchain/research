@@ -25,7 +25,7 @@ with β = 0.2, Δ = 11 slots, μ = 0.13, ρ = 1.01, `Hmin` = 10⁶:
   `Ne · C · qᵗ` in `t = k / 20`, `Ne = N / (300 k) + 2` epochs. At k = 2160 it gives `5.0e-11`
   over two months and `3.0e-10` over a year; each 20 blocks of depth multiply it by about
   0.70 (settlement) and 0.75 (the estimate's band). `E20D11C.finality_closed_short` states it as
-  `(N + 18 t + 706) · (6.9e-28 + 0.8048 · 0.700570ᵗ) + Ne · 1.562 · 0.745235ᵗ`.
+  `(N + 18 t + 640) · (2.4e-25 + 0.5816 · 0.702021ᵗ) + Ne · 1.562 · 0.745235ᵗ`.
 
 Other configurations can be generated with `tools/certgen` (see its README).
 -/
