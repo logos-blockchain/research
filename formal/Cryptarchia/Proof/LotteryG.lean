@@ -48,10 +48,9 @@ execution:
 * every adversarial block of the settlement tree (for the block predicate `K`)
   is validated under `σ` of its slot.
 
-Then the execution's string is dominated by the lottery string (`advLe_lotS`).
-`Proof/Lottery.lean` is the first-epoch instance (`σ = es0`, `K = True`);
-`Proof/LotteryE.lean` is the multi-epoch one (`σ` = canonical states,
-`K` = consistency).
+Then the execution's string is weakly dominated by the lottery string up to a
+horizon (`advLeW_upto`). `Proof/LotteryE.lean` is the instance (`σ` = canonical
+states, `K` = consistency).
 -/
 
 @[expose] public section

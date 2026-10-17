@@ -35,7 +35,6 @@ public import Cryptarchia.Proof.Settlement
 public import Cryptarchia.Proof.EpochCut
 public import Cryptarchia.Proof.Canon
 public import Cryptarchia.Proof.LotteryG
-public import Cryptarchia.Proof.Lottery
 public import Cryptarchia.Proof.LotteryE
 public import Cryptarchia.Proof.FinalE
 public import Cryptarchia.Proof.Recur
