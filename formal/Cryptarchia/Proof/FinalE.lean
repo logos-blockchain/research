@@ -46,13 +46,13 @@ its law depends only on the canonical stake distribution and stake estimate of
 the epoch, which the probability layer bounds.
 
 `GoodLSW w N W e` is the good event on a string `w` up to `N`, with a settlement
-window `W t` that may depend on the slot (`GoodLS w N Lw e` is the constant case); `GrowthOn` the
-growth condition (both from `Proof/Canon.lean` and `Proof/Final.lean`).
+window `W t` that may depend on the slot (`GoodLS w N Lw e` is the constant case;
+both from `Proof/Main.lean`); `GrowthOn` the growth condition (from `Proof/Canon.lean`).
 
 **Staged argument.** Domination of the execution's string by the lottery string
 needs canonical states, which need settlement, which needs the good event on the
 execution's string. The circle is broken epoch by epoch (`stage`): with the
-invariant up to `H_s = min (E.c.fix (s+1)) now`, every epoch starting by `H_(s+1)` is
+invariant up to `H_s = min (min (E.c.fix (s+1)) now) N`, every epoch starting by `H_(s+1)` is
 already fixed, so domination holds up to `H_(s+1)`, and with it the execution's
 good event up to `H_(s+1)`.
 
@@ -71,19 +71,6 @@ namespace Cryptarchia
 open Settle
 
 variable (E : Env)
-
-/-- **The good event on a string `w`**, up to `N`. -/
-structure GoodLSW (w : CStr) (N : ℕ) (W : ℕ → ℕ) (e : ℕ → ℕ) : Prop where
-  e0 : e 0 = 0
-  mono : ∀ k, e k ≤ e (k + 1)
-  quiet : ∀ k, e k ≤ N → Quiet E.Δ w (e k)
-  unb : ∀ t, ∃ k, t ≤ e k
-  cold : ∀ t k, W t < t → t ≤ N → e k + 1 ≤ t → t ≤ e (k + 1) →
-    (bnd E.Δ w (t - W t) e k).2 < -(advCnt w (e k) (e (k + 1)) : ℤ)
-  window : ∀ t, t ≤ N → occCnt w (t - W t) t ≤ E.c.k
-
-/-- The good event with a constant settlement window `Lw`. -/
-abbrev GoodLS (w : CStr) (N Lw : ℕ) (e : ℕ → ℕ) : Prop := GoodLSW E w N (fun _ => Lw) e
 
 variable {E} {es : List Event} {W : ℕ → ℕ} {e : ℕ → ℕ}
 
@@ -127,16 +114,15 @@ theorem epochStart_epochOf_succ (c : Config) (hc : c.Sane) (t : ℕ) :
   rw [Nat.add_mul, one_mul]; exact this
 
 /-- **The stages.** For every `s`, the execution's good event and growth hold up
-to `min (E.c.fix (s+1)) now`. -/
+to `min (min (E.c.fix (s+1)) now) N`. -/
 theorem stage (hA : Assm E)
-    {N : ℕ} (hNF : (wF E es).now ≤ N) {w : CStr} (hdom : AdvLeW N (lotStrS E (σE E es) (lateAt E es)) w)
+    {N : ℕ} {w : CStr} (hdom : AdvLeW N (lotStrS E (σE E es) (lateAt E es)) w)
     (hL : GoodLSW E w N W e) (hLg : GrowthOn E w e N) :
-    ∀ s, GoodCondW E es (Cons E es) W e (min (E.c.fix (s + 1)) (wF E es).now) ∧
-      Growth E es e (min (E.c.fix (s + 1)) (wF E es).now) := by
+    ∀ s, GoodCondW E es (Cons E es) W e (min (min (E.c.fix (s + 1)) (wF E es).now) N) ∧
+      Growth E es e (min (min (E.c.fix (s + 1)) (wF E es).now) N) := by
   have hfix : ∀ ep, 1 ≤ ep → E.c.cut ep ≤ E.c.fix ep ∧ E.c.fix ep + 2 ≤ E.c.epochStart ep :=
     fun ep h => hA.sane.fix_ok ep h
   have hfix2 : ∀ ep, 1 ≤ ep → E.c.fix ep + 2 ≤ E.c.epochStart ep := fun ep h => (hfix ep h).2
-  -- the fixing points are ordered with the epochs
   have hord : ∀ ep ep', 1 ≤ ep → ep ≤ ep' → E.c.fix ep ≤ E.c.fix ep' := by
     intro ep ep' h1 h2
     rcases Nat.eq_or_lt_of_le h2 with h | h
@@ -146,37 +132,38 @@ theorem stage (hA : Assm E)
       have a3 : E.c.epochStart ep ≤ E.c.epochStart (ep' - 1) := epochStart_mono (by omega)
       unfold Config.cut at a2
       omega
-  -- one stage from a previous horizon `H'`
-  have step : ∀ (H' Hs : ℕ), H' ≤ (wF E es).now → Hs ≤ (wF E es).now →
+  have step : ∀ (H' Hs : ℕ), H' ≤ (wF E es).now → Hs ≤ (wF E es).now → Hs ≤ N →
       GoodCondW E es (Cons E es) W e H' → Growth E es e H' →
       (∀ ep, 1 ≤ ep → E.c.epochStart ep ≤ Hs → E.c.fix ep ≤ H') →
       GoodCondW E es (Cons E es) W e Hs ∧ Growth E es e Hs := by
-    intro H' Hs hH' hHs hG hGr hcov
-    have hle := (advLeW_lotE hA hG hGr hH' hcov hHs).trans hdom (by omega)
-    exact ⟨good_of_dom hle (by omega) hL, growth_of_dom hle (by omega) hL.mono hLg⟩
+    intro H' Hs hH' hHs hHN hG hGr hcov
+    have hle := (advLeW_lotE hA hG hGr hH' hcov hHs).trans hdom hHN
+    exact ⟨good_of_dom hle hHN hL, growth_of_dom hle hHN hL.mono hLg⟩
   intro s
   induction s with
   | zero =>
-    -- from the empty horizon: no epoch starts by `E.c.fix 1`
     have hG0 : GoodCondW E es (Cons E es) W e 0 := good_zero hL.e0 hL.mono hL.unb
     have hGr0 : Growth E es e 0 := by
       intro ep hep hF
       have := (hfix ep hep).1
       have : 1 ≤ E.c.cut ep := by unfold Config.cut; have := hA.sane.offset_pos; omega
       omega
-    refine step 0 _ (Nat.zero_le _) (min_le_right _ _) hG0 hGr0 ?_
+    refine step 0 _ (Nat.zero_le _) (le_trans (min_le_left _ _) (min_le_right _ _)) (min_le_right _ _) hG0 hGr0 ?_
     intro ep hep hst
     simp only [Nat.zero_add] at hst
     have a1 := hfix2 1 le_rfl
     have a2 : E.c.epochStart 1 ≤ E.c.epochStart ep := epochStart_mono hep
-    have := min_le_left (E.c.fix 1) (wF E es).now
+    have := le_trans (min_le_left (min (E.c.fix 1) (wF E es).now) N) (min_le_left (E.c.fix 1) (wF E es).now)
     omega
   | succ s ih =>
-    refine step _ _ (min_le_right _ _) (min_le_right _ _) ih.1 ih.2 ?_
+    refine step _ _ (le_trans (min_le_left _ _) (min_le_right _ _)) (le_trans (min_le_left _ _) (min_le_right _ _))
+      (min_le_right _ _) ih.1 ih.2 ?_
     intro ep hep hst
-    have hm1 := min_le_left (E.c.fix (s + 1 + 1)) (wF E es).now
-    have hm2 := min_le_right (E.c.fix (s + 1 + 1)) (wF E es).now
-    -- the epoch starts before `E.c.fix (s+2)`, so it is at most `s+1`
+    have hm1 : min (min (E.c.fix (s + 1 + 1)) (wF E es).now) N ≤ E.c.fix (s + 1 + 1) :=
+      le_trans (min_le_left _ _) (min_le_left _ _)
+    have hm2 : min (min (E.c.fix (s + 1 + 1)) (wF E es).now) N ≤ (wF E es).now :=
+      le_trans (min_le_left _ _) (min_le_right _ _)
+    have hm3 := min_le_right (min (E.c.fix (s + 1 + 1)) (wF E es).now) N
     have hep' : ep ≤ s + 1 := by
       by_contra hc; push Not at hc
       have a1 := hfix2 (s + 1 + 1) (by omega)
@@ -184,7 +171,7 @@ theorem stage (hA : Assm E)
       omega
     have h1 := hord ep (s + 1) hep hep'
     have h2 := hfix2 ep hep
-    exact le_min h1 (by omega)
+    exact le_min (le_min h1 (by omega)) (by omega)
 
 /-- **`k`-deep finality from the lottery, over any number of epochs.** Each
 epoch's canonical state is read at the config's fixing time (`Config.fix`, two
@@ -212,8 +199,8 @@ theorem final_bimm_dom (hA : Assm E)
     unfold Config.cut at a1
     simp only [Nat.add_sub_cancel] at a1
     omega
-  obtain ⟨hG, hGr⟩ := stage hA hNF hdom hL (growthS_on E hLg) (E.c.epochOf (wF E es).now + 1)
-  rw [hmin] at hG hGr
+  obtain ⟨hG, hGr⟩ := stage hA hdom hL (growthS_on E hLg) (E.c.epochOf (wF E es).now + 1)
+  rw [hmin, min_eq_left hNF] at hG hGr
   exact bimm_final_epochs hA hG hGr hnn hn' (now_mono hn' le_rfl) hi hj hio hjo
 
 end Cryptarchia

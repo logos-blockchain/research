@@ -1,7 +1,7 @@
 module
 
 public import Cryptarchia.Proof.Structural
-import Cryptarchia.Proof.Bridge
+public import Cryptarchia.Proof.Bridge
 import Cryptarchia.Proof.EpochCut
 import Cryptarchia.Proof.Maintenance
 import Cryptarchia.Proof.NodeStep
@@ -77,12 +77,6 @@ theorem bimm_anc (hS : StoreOK st) {cl x k : ℕ} (hcl : Rooted st cl) (hx : x �
   have hbm := blockAtDepth_mem hS hcl k
   have hbh := blockAtDepth_height hS hcl k
   exact chainIds_total hS hcl hx hbm (by omega)
-
-/-- A block is **good at time `t`**: rooted, not from the future, its whole chain
-valid. Every block of every node's tree is. -/
-def GoodAt (c : Config) (L : Ledger) (O : Oracle) (G : Genesis) (st : Store) (t b : ℕ) : Prop :=
-  Rooted st b ∧ slotOf st b ≤ t ∧
-    ∀ x ∈ chainIds st b, x = genesisId ∨ ∃ B, st x = some B ∧ validCore c st L O G B = true
 
 /-- The settlement input: every good candidate at least as high as `H0` meets the
 chain of `h` within `k` blocks. -/

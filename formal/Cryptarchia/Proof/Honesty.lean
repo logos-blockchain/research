@@ -60,25 +60,6 @@ structure HonOK (E : Env) (w : World) : Prop where
   slots : ∀ i, ∀ x ∈ (w.node i).tree, slotOf w.st x ≤ w.now
   hon : ∀ b B, w.st b = some B → IsHon B → GoodAt E.c E.L E.O E.G w.st w.now b
 
-theorem GoodAt.mono {c : Config} {L : Ledger} {O : Oracle} {G : Genesis} {st st' : Store}
-    (hS : StoreOK st) (hx : StoreExt st st') {t t' b : ℕ} (htt : t ≤ t')
-    (h : GoodAt c L O G st t b) : GoodAt c L O G st' t' b := by
-  obtain ⟨hr, hsl, hv⟩ := h
-  refine ⟨hr.mono hx, by rw [slotOf_ext hx hr.exists_blk]; omega, ?_⟩
-  intro x hx'
-  rw [chainIds_ext hx hr] at hx'
-  rcases hv x hx' with h0 | ⟨B, hB, hvB⟩
-  · exact Or.inl h0
-  · refine Or.inr ⟨B, hx _ _ hB, ?_⟩
-    have hxr := (anc_height hS hr hx').1
-    have hx0 : x ≠ genesisId := by
-      intro h0; subst h0
-      unfold validCore at hvB; simp only [Bool.and_eq_true, decide_eq_true_eq] at hvB
-      exact hvB.1.1.1.1.1.1 (hS.idOK _ _ hB)
-    obtain ⟨blk, hbk, hpr, -⟩ := hxr.inv hx0
-    rw [hbk] at hB; cases hB
-    exact validCore_ext hx hS hpr hvB
-
 theorem init_hon : HonOK E World.init := by
   refine ⟨?_, ?_⟩
   · intro i x hx; simp [World.init] at hx; subst hx; simp [World.init, slotOf, genesisBlock]

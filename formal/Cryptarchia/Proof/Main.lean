@@ -54,10 +54,9 @@ config is laid out as the spec does; honest stakers never spend their notes. The
 is no delivery assumption: honest blocks not delivered within Δ are `Late` and
 count as adversarial.
 
-**The good event** (`GoodCond`), on the characteristic string of the execution's
-settlement tree, for a settlement window `W t` (in slots, possibly depending on the
-time `t`; constant `Lw` in `GoodCond`) and a phase
-decomposition `e`:
+**The good event** (`GoodLSW`; `GoodCondW` on the characteristic string of the
+execution's settlement tree), for a settlement window `W t` (in slots, possibly
+depending on the time `t`; constant `Lw` in `GoodLS`) and a phase decomposition `e`:
 * `cold`: at every time `t > W t`, the margin bound for divergence before
   `t - W t` is cold at the start of the phase containing `t - 1`;
 * `window`: the `W t` slots before `t` hold at most `k` occupied slots.
@@ -103,16 +102,22 @@ structure Assm (E : Env) : Prop where
   sane : E.c.Sane
   stake : HonestStake E.L
 
-/-- The good event, up to the horizon `H` (the whole execution for `H = now`), with
-a settlement window `W t` (in slots) that may depend on the time `t`. -/
-structure GoodCondW (W : ℕ → ℕ) (e : ℕ → ℕ) (H : ℕ) : Prop where
+/-- **The good event on a string `w`**, up to `N`. -/
+structure GoodLSW (w : CStr) (N : ℕ) (W : ℕ → ℕ) (e : ℕ → ℕ) : Prop where
   e0 : e 0 = 0
   mono : ∀ k, e k ≤ e (k + 1)
-  quiet : ∀ k, e k ≤ H → Quiet E.Δ (WS E es K) (e k)
+  quiet : ∀ k, e k ≤ N → Quiet E.Δ w (e k)
   unb : ∀ t, ∃ k, t ≤ e k
-  cold : ∀ t k, W t < t → t ≤ H → e k + 1 ≤ t → t ≤ e (k + 1) →
-    (bnd E.Δ (WS E es K) (t - W t) e k).2 < -(advCnt (WS E es K) (e k) (e (k + 1)) : ℤ)
-  window : ∀ t, t ≤ H → occCnt (WS E es K) (t - W t) t ≤ E.c.k
+  cold : ∀ t k, W t < t → t ≤ N → e k + 1 ≤ t → t ≤ e (k + 1) →
+    (bnd E.Δ w (t - W t) e k).2 < -(advCnt w (e k) (e (k + 1)) : ℤ)
+  window : ∀ t, t ≤ N → occCnt w (t - W t) t ≤ E.c.k
+
+/-- The good event with a constant settlement window `Lw`. -/
+abbrev GoodLS (w : CStr) (N Lw : ℕ) (e : ℕ → ℕ) : Prop := GoodLSW E w N (fun _ => Lw) e
+
+/-- The good event of the execution, up to the horizon `H` (the whole execution for
+`H = now`), with a settlement window `W t` (in slots) that may depend on the time `t`. -/
+abbrev GoodCondW (W : ℕ → ℕ) (e : ℕ → ℕ) (H : ℕ) : Prop := GoodLSW E (WS E es K) H W e
 
 /-- Honest blocks up to `t` satisfy the depth axiom (A2). -/
 def A2Upto (t : ℕ) : Prop :=
@@ -139,7 +144,7 @@ good blocks. -/
 theorem FTused_ok (hA : Assm E) (hK : KBase E es K) :
     genesisId ∈ (wF E es).used.filter (fun b => decide (K b)) ∧
       ∀ b ∈ (wF E es).used.filter (fun b => decide (K b)),
-        Good E.c E.L E.O E.G (wF E es).st (wF E es).now b →
+        GoodAt E.c E.L E.O E.G (wF E es).st (wF E es).now b →
           parentOf (wF E es).st b ∈ (wF E es).used.filter (fun b => decide (K b)) := by
   classical
   have hw := wAt_ok (es := es) hA.ord es.length
@@ -314,23 +319,8 @@ theorem goodAt_FT (hA : Assm E) {st : Store} (hS : StoreOK st) (hext : StoreExt 
     {t cl : ℕ} (htN : t ≤ (wF E es).now) (hg : GoodAt E.c E.L E.O E.G st t cl) (hKc : K cl) :
     cl ∈ (FT E es K).V := by
   have hw := wAt_ok (es := es) hA.ord es.length
-  obtain ⟨hr, hsl, hv⟩ := hg
-  refine mem_stree.2 ⟨mem_FTused.2 ⟨(hw.used cl).1 (hr.mono hext).exists_blk, hKc⟩, hr.mono hext, ?_, ?_⟩
-  · rw [slotOf_ext hext hr.exists_blk]; omega
-  · intro x hx
-    rw [chainIds_ext hext hr] at hx
-    rcases hv x hx with h0 | ⟨B, hB, hvB⟩
-    · exact Or.inl h0
-    · refine Or.inr ⟨B, hext _ _ hB, ?_⟩
-      have hxr := (anc_height hS hr hx).1
-      have hx0 : x ≠ genesisId := by
-        intro h0; subst h0
-        unfold validCore at hvB; simp only [Bool.and_eq_true, decide_eq_true_eq] at hvB
-        exact hvB.1.1.1.1.1.1 (hS.idOK _ _ hB)
-      obtain ⟨blk, hbk, hpr, -⟩ := hxr.inv hx0
-      have : B = blk := by rw [hbk] at hB; exact (Option.some_inj.1 hB).symm
-      rw [this] at hvB ⊢
-      exact validCore_ext hext hS hpr hvB
+  have hg' := hg.mono hS hext htN
+  exact mem_stree.2 ⟨mem_FTused.2 ⟨(hw.used cl).1 hg'.1.exists_blk, hKc⟩, hg'⟩
 
 /-- **The settlement input for Claims A and B**, at time `t` of the execution. -/
 theorem near_now (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ → ℕ} {H : ℕ} (hG : GoodCondW E es K W e H) {t : ℕ}

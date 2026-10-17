@@ -1,6 +1,6 @@
 module
 
-public import Cryptarchia.Proof.Structural
+public import Cryptarchia.Proof.WorldStep
 public import Cryptarchia.Settle.Tree
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
@@ -61,9 +61,11 @@ open Settle
 
 variable (c : Config) (L : Ledger) (O : Oracle) (G : Genesis) (st : Store)
 
-/-- A block of the settlement tree: rooted, its whole chain valid, slot at most `N`. -/
-def Good (N b : ℕ) : Prop :=
-  Rooted st b ∧ slotOf st b ≤ N ∧
+/-- A block is **good at time `t`**: rooted, not from the future, its whole chain
+valid. The blocks of the settlement tree up to `N` are the good ones at `N`; every
+block of every node's tree is good at the current time. -/
+def GoodAt (t b : ℕ) : Prop :=
+  Rooted st b ∧ slotOf st b ≤ t ∧
     ∀ x ∈ chainIds st b, x = genesisId ∨ ∃ B, st x = some B ∧ validCore c st L O G B = true
 
 /-- Honest blocks (and genesis). -/
@@ -85,7 +87,7 @@ open Classical in
 /-- **The settlement tree** of a store, over the IDs `used`, up to slot `N`; the
 honest vertices are the honest blocks not marked `late`. -/
 noncomputable def stree (late : ℕ → Prop) (used : List ℕ) (N : ℕ) : PTree where
-  V := used.toFinset.filter (fun b => Good c L O G st N b)
+  V := used.toFinset.filter (fun b => GoodAt c L O G st N b)
   par := parentOf st
   lab := slotOf st
   hon := honL st late
@@ -105,8 +107,27 @@ noncomputable def Settle.PTree.restrict (F : PTree) (t : ℕ) : PTree :=
 
 variable {c L O G st}
 
+/-- Goodness survives a growing store and a later time. -/
+theorem GoodAt.mono {st' : Store} (hS : StoreOK st) (hx : StoreExt st st') {t t' b : ℕ}
+    (htt : t ≤ t') (h : GoodAt c L O G st t b) : GoodAt c L O G st' t' b := by
+  obtain ⟨hr, hsl, hv⟩ := h
+  refine ⟨hr.mono hx, by rw [slotOf_ext hx hr.exists_blk]; omega, ?_⟩
+  intro x hx'
+  rw [chainIds_ext hx hr] at hx'
+  rcases hv x hx' with h0 | ⟨B, hB, hvB⟩
+  · exact Or.inl h0
+  · refine Or.inr ⟨B, hx _ _ hB, ?_⟩
+    have hxr := (anc_height hS hr hx').1
+    have hx0 : x ≠ genesisId := by
+      intro h0; subst h0
+      unfold validCore at hvB; simp only [Bool.and_eq_true, decide_eq_true_eq] at hvB
+      exact hvB.1.1.1.1.1.1 (hS.idOK _ _ hB)
+    obtain ⟨blk, hbk, hpr, -⟩ := hxr.inv hx0
+    rw [hbk] at hB; cases hB
+    exact validCore_ext hx hS hpr hvB
+
 theorem mem_stree {late : ℕ → Prop} {used : List ℕ} {N b : ℕ} :
-    b ∈ (stree c L O G st late used N).V ↔ b ∈ used ∧ Good c L O G st N b := by
+    b ∈ (stree c L O G st late used N).V ↔ b ∈ used ∧ GoodAt c L O G st N b := by
   classical
   show b ∈ used.toFinset.filter _ ↔ _
   rw [Finset.mem_filter, List.mem_toFinset]
@@ -146,7 +167,7 @@ theorem slotOf_genesis : slotOf st genesisId = 0 := by
   obtain ⟨g, hg, hs, -⟩ := hS.gen
   simp [slotOf, hg, hs]
 
-theorem Good.parent {N b : ℕ} (h : Good c L O G st N b) : Good c L O G st N (parentOf st b) := by
+theorem GoodAt.parent {N b : ℕ} (h : GoodAt c L O G st N b) : GoodAt c L O G st N (parentOf st b) := by
   obtain ⟨hr, hsl, hv⟩ := h
   have hpr := hr.parent_rooted hS.genSelf
   have hpc : parentOf st b ∈ chainIds st b := by
@@ -169,7 +190,7 @@ theorem Good.parent {N b : ℕ} (h : Good c L O G st N b) : Good c L O G st N (p
     rw [slotOf_eq hbk] at hsl
     omega
 
-theorem good_genesis (N : ℕ) : Good c L O G st N genesisId := by
+theorem good_genesis (N : ℕ) : GoodAt c L O G st N genesisId := by
   refine ⟨hS.rooted_gen, by rw [slotOf_genesis hS]; omega, ?_⟩
   intro x hx
   left
@@ -192,14 +213,14 @@ theorem anc_iff {late : ℕ → Prop} {used : List ℕ} {N u b : ℕ} (hb : Root
 /-- **The settlement tree up to slot `t` is a PoS tree**, given the depth axiom
 for honest blocks up to `t`. -/
 theorem tree_valid_upto {late : ℕ → Prop} {used : List ℕ} {N : ℕ} (Δ t : ℕ) (htN : t ≤ N)
-    (hgen : genesisId ∈ used) (hpar : ∀ b ∈ used, Good c L O G st N b → parentOf st b ∈ used)
+    (hgen : genesisId ∈ used) (hpar : ∀ b ∈ used, GoodAt c L O G st N b → parentOf st b ∈ used)
     (hA2 : ∀ u ∈ (stree c L O G st late used N).V, ∀ v ∈ (stree c L O G st late used N).V,
       honL st late u = true → honL st late v = true → slotOf st v ≤ t → slotOf st u + Δ < slotOf st v →
       height st u < height st v) :
     ((stree c L O G st late used N).restrict t).Valid Δ (sstr c L O G st late used N) t := by
   classical
   have hmem : ∀ b, b ∈ ((stree c L O G st late used N).restrict t).V ↔
-      Good c L O G st N b ∧ b ∈ used ∧ slotOf st b ≤ t := by
+      GoodAt c L O G st N b ∧ b ∈ used ∧ slotOf st b ≤ t := by
     intro b
     rw [mem_restrict, mem_stree]
     constructor

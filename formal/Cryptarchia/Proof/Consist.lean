@@ -52,67 +52,6 @@ open Settle
 
 variable {E : Env} {es : List Event} {W : ℕ → ℕ} {e : ℕ → ℕ}
 
-/-- **The stages, up to a horizon `N`.** As `stage`, without assuming that the
-execution ends by `N`: the execution's good event and growth hold up to
-`min (min (E.c.fix (s+1)) now) N`. -/
-theorem stage_cap (hA : Assm E)
-    {N : ℕ} {w : CStr} (hdom : AdvLeW N (lotStrS E (σE E es) (lateAt E es)) w)
-    (hL : GoodLSW E w N W e) (hLg : GrowthOn E w e N) :
-    ∀ s, GoodCondW E es (Cons E es) W e (min (min (E.c.fix (s + 1)) (wF E es).now) N) ∧
-      Growth E es e (min (min (E.c.fix (s + 1)) (wF E es).now) N) := by
-  have hfix : ∀ ep, 1 ≤ ep → E.c.cut ep ≤ E.c.fix ep ∧ E.c.fix ep + 2 ≤ E.c.epochStart ep :=
-    fun ep h => hA.sane.fix_ok ep h
-  have hfix2 : ∀ ep, 1 ≤ ep → E.c.fix ep + 2 ≤ E.c.epochStart ep := fun ep h => (hfix ep h).2
-  have hord : ∀ ep ep', 1 ≤ ep → ep ≤ ep' → E.c.fix ep ≤ E.c.fix ep' := by
-    intro ep ep' h1 h2
-    rcases Nat.eq_or_lt_of_le h2 with h | h
-    · rw [h]
-    · have a1 := (hfix ep h1).2
-      have a2 := (hfix ep' (by omega)).1
-      have a3 : E.c.epochStart ep ≤ E.c.epochStart (ep' - 1) := epochStart_mono (by omega)
-      unfold Config.cut at a2
-      omega
-  have step : ∀ (H' Hs : ℕ), H' ≤ (wF E es).now → Hs ≤ (wF E es).now → Hs ≤ N →
-      GoodCondW E es (Cons E es) W e H' → Growth E es e H' →
-      (∀ ep, 1 ≤ ep → E.c.epochStart ep ≤ Hs → E.c.fix ep ≤ H') →
-      GoodCondW E es (Cons E es) W e Hs ∧ Growth E es e Hs := by
-    intro H' Hs hH' hHs hHN hG hGr hcov
-    have hle := (advLeW_lotE hA hG hGr hH' hcov hHs).trans hdom hHN
-    exact ⟨good_of_dom hle hHN hL, growth_of_dom hle hHN hL.mono hLg⟩
-  intro s
-  induction s with
-  | zero =>
-    have hG0 : GoodCondW E es (Cons E es) W e 0 := good_zero hL.e0 hL.mono hL.unb
-    have hGr0 : Growth E es e 0 := by
-      intro ep hep hF
-      have := (hfix ep hep).1
-      have : 1 ≤ E.c.cut ep := by unfold Config.cut; have := hA.sane.offset_pos; omega
-      omega
-    refine step 0 _ (Nat.zero_le _) (le_trans (min_le_left _ _) (min_le_right _ _)) (min_le_right _ _) hG0 hGr0 ?_
-    intro ep hep hst
-    simp only [Nat.zero_add] at hst
-    have a1 := hfix2 1 le_rfl
-    have a2 : E.c.epochStart 1 ≤ E.c.epochStart ep := epochStart_mono hep
-    have := le_trans (min_le_left (min (E.c.fix 1) (wF E es).now) N) (min_le_left (E.c.fix 1) (wF E es).now)
-    omega
-  | succ s ih =>
-    refine step _ _ (le_trans (min_le_left _ _) (min_le_right _ _)) (le_trans (min_le_left _ _) (min_le_right _ _))
-      (min_le_right _ _) ih.1 ih.2 ?_
-    intro ep hep hst
-    have hm1 : min (min (E.c.fix (s + 1 + 1)) (wF E es).now) N ≤ E.c.fix (s + 1 + 1) :=
-      le_trans (min_le_left _ _) (min_le_left _ _)
-    have hm2 : min (min (E.c.fix (s + 1 + 1)) (wF E es).now) N ≤ (wF E es).now :=
-      le_trans (min_le_left _ _) (min_le_right _ _)
-    have hm3 := min_le_right (min (E.c.fix (s + 1 + 1)) (wF E es).now) N
-    have hep' : ep ≤ s + 1 := by
-      by_contra hc; push Not at hc
-      have a1 := hfix2 (s + 1 + 1) (by omega)
-      have a2 : E.c.epochStart (s + 1 + 1) ≤ E.c.epochStart ep := epochStart_mono (by omega)
-      omega
-    have h1 := hord ep (s + 1) hep hep'
-    have h2 := hfix2 ep hep
-    exact le_min (le_min h1 (by omega)) (by omega)
-
 /-- An epoch whose fixing time the execution never reaches is fixed at its end. -/
 theorem idxE_eq_length {ep : ℕ} (h : (wF E es).now < E.c.fix ep) : idxE E es ep = es.length := by
   classical
@@ -133,7 +72,7 @@ theorem cons_of_lot (hA : Assm E) (hlive : ∀ t, ∃ j ∈ E.nodes, E.online j 
     {w : CStr} (hdom : AdvLeW Hc (lotStrS E (σE E es) (lateAt E es)) w)
     (hL : GoodLSW E w Hc W e) (hLg : GrowthOn E w e Hc) :
     prefixBelow (CP E es (ep + 1)) (E.c.cut ep) = CP E es ep := by
-  obtain ⟨hG, hGr⟩ := stage_cap hA hdom hL hLg ep
+  obtain ⟨hG, hGr⟩ := stage hA hdom hL hLg ep
   have hcc : E.c.cut ep ≤ E.c.cut (ep + 1) := by
     unfold Config.cut
     have := epochStart_mono (c := E.c) (show ep - 1 ≤ ep + 1 - 1 by omega)
