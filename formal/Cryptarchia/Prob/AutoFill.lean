@@ -44,17 +44,17 @@ supplies. Here the kernel computes the seeds as well, so a certificate needs no 
 
 * **Fills are solutions by construction** (`fillAllZ_entry`). Every entry of a fill other
   than a seed is at least its floor `lo` and at least each band's step, rounded up. So the
-  recursion holds everywhere once it holds at the three seeds (`seedOKZ`), and `autoSolZ`,
-  `preSolZ` and the domination by `vmax` need no pass over the table (`autoSolZ_fill`,
-  `preSolZ_fill`, `le_maxTabZ`).
+  recursion holds everywhere once it holds at the three seeds (`seedOKZ`): the fill is an
+  `AutoSol` or a `PreSol` with no pass over the table (`fill_autoSol`, `fill_preSol`), and
+  below the entrywise maximum `vmax` by construction (`le_maxTabZ`).
 * **Seeds by Newton's method** (`solveSeedsZ`). The seeds are a fixed point of a monotone,
   piecewise affine map of three integers. Newton steps on finite differences find it, raised
   by a small pad, then steps of the map itself until the seeds are a solution. Across a band
   family each member starts from the previous member's seeds (`seedsZ`, `preSeedsZ`). A
   certificate runs the solver at elaboration time (`eval%`, `EvalLit.lean`) and the kernel
   only checks its result, so the solver needs no soundness theorem.
-* **One check per phase index** (`oneSwitchF_sound`, `switchF_sound`), with the
-  conclusions of `oneSwitchZ_sound` and `switchZ_sound`.
+* **One check per phase index** (`oneSwitchF_sound`, `switchF_sound`): the one-switch
+  tables (`AutoSolE`) or the switching table, for the whole family, with their bounds.
 -/
 
 @[expose] public section
@@ -195,35 +195,38 @@ theorem fillAllZ_sol (hM : 0 < X.M D) {B : BandZ} (hB : B ∈ Bs)
 
 end Fill
 
-theorem allQ_of {Δ : ℕ} {p : ℕ → Fin 3 → Bool → Bool} (h : ∀ q < Δ, ∀ a u, p q a u = true) :
-    allQ Δ p = true := by
-  unfold allQ
-  rw [List.all_eq_true]
-  intro q hq
-  have hq := List.mem_range.1 hq
-  simp only [all6, h q hq, Bool.and_self]
-
 /-- The terminal table rounded up is a floor above `g`. -/
 theorem gFloorZ_ge {X : PhZ} {S : ℤ} (hgd : 0 < X.gd) (q : ℕ) (a : Fin 3) (u : Bool) :
     X.gn a true u * S ≤ gFloorZ X S q a u * X.gd := cdivZ_mul_ge hgd
 
-theorem autoSolZ_fill {Bs : List BandZ} {D : ℤ} {Δ : ℕ} {X : PhZ} {S : ℤ} {lo : ℕ → Fin 3 → Bool → ℤ}
-    {top : Fin 3 → ℤ} (hM : 0 < X.M D) (hgd : 0 < X.gd) (hlo : ∀ q < Δ, ∀ a u, X.gn a true u * S ≤ lo q a u * X.gd)
-    {B : BandZ} (hB : B ∈ Bs) (hs : seedOKZ B D Δ X S lo (fillAllZ Bs D Δ X S lo top) = true) :
-    autoSolZ B D Δ X S (fillAllZ Bs D Δ X S lo top) = true := by
-  refine allQ_of fun q hq a u => ?_
-  obtain ⟨h1, h2⟩ := fillAllZ_sol hM hB hs hq a u
-  simp only [Bool.and_eq_true, decide_eq_true_eq]
-  exact ⟨(hlo q hq a u).trans (mul_le_mul_of_nonneg_right h1 hgd.le), h2⟩
+section Sol
 
-theorem preSolZ_fill {Bs : List BandZ} {D : ℤ} {Δ : ℕ} {X : PhZ} {S : ℤ} {vmax : ℕ → Fin 3 → Bool → ℤ}
-    {top : Fin 3 → ℤ} (hM : 0 < X.M D) {B : BandZ} (hB : B ∈ Bs)
+variable {B : BandZ} {D : ℤ} {b : BandQ} {Bb : Band} (hR : B.Rep D b) (hA : b.Agrees Bb) (hD : 0 < D) {X : PhZ}
+  {x θ : ℚ} {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S) {Δ : ℕ} {Bs : List BandZ}
+  (hB : B ∈ Bs) {top : Fin 3 → ℤ}
+include hR hA hD hX hS hB
+
+/-- **A fill floored at `g` whose seeds check solves the recursion.** -/
+theorem fill_autoSol (hs : seedOKZ B D Δ X S (gFloorZ X S) (fillAllZ Bs D Δ X S (gFloorZ X S) top) = true) :
+    AutoSol Bb Δ x θ (castG g) (castZ S (fillAllZ Bs D Δ X S (gFloorZ X S) top)) where
+  term q hq a u := by
+    have hgd : (0 : ℝ) < X.gd := by exact_mod_cast hX.gd
+    have hS' : (0 : ℝ) < S := by exact_mod_cast hS
+    refine le_trans ?_ (castZ_le hS (fillAllZ_sol (X.M_pos hX hD) hB hs hq a u).1)
+    rw [castG, castZ, hX.g]
+    push_cast
+    rw [div_le_div_iff₀ hgd hS']
+    exact_mod_cast gFloorZ_ge hX.gd q a u
+  step q hq a u := stepZ_le hR hA hD hX hS (fillAllZ_sol (X.M_pos hX hD) hB hs hq a u).2
+
+/-- **A fill floored at `vmax` whose seeds check is a pre-switch table.** -/
+theorem fill_preSol {vmax : ℕ → Fin 3 → Bool → ℤ}
     (hs : seedOKZ B D Δ X S vmax (fillAllZ Bs D Δ X S vmax top) = true) :
-    preSolZ B D Δ X S vmax (fillAllZ Bs D Δ X S vmax top) = true := by
-  refine allQ_of fun q hq a u => ?_
-  obtain ⟨h1, h2⟩ := fillAllZ_sol hM hB hs hq a u
-  simp only [Bool.and_eq_true, decide_eq_true_eq]
-  exact ⟨h1, h2⟩
+    PreSol Bb Δ x θ (castG g) (castZ S vmax) (castZ S (fillAllZ Bs D Δ X S vmax top)) where
+  dom _ hq a u := castZ_le hS (fillAllZ_sol (X.M_pos hX hD) hB hs hq a u).1
+  step _ hq a u := stepZ_le hR hA hD hX hS (fillAllZ_sol (X.M_pos hX hD) hB hs hq a u).2
+
+end Sol
 
 /-! ## Tables listed once -/
 
@@ -262,10 +265,6 @@ theorem le_maxTabZ {Δ : ℕ} {ts : List (ℕ → Fin 3 → Bool → ℤ)} {t : 
   unfold maxTabZ
   rw [memoZ_eq hq]
   exact (foldl_max_ge (fun t => t q a u) ts 0).2 t ht
-
-theorem leTabZ_max {Δ : ℕ} {ts : List (ℕ → Fin 3 → Bool → ℤ)} {t : ℕ → Fin 3 → Bool → ℤ} (ht : t ∈ ts) :
-    leTabZ Δ t (maxTabZ Δ ts) = true :=
-  allQ_of fun _ hq a u => decide_eq_true (le_maxTabZ ht hq a u)
 
 /-! ## Seeds by Newton's method -/
 
@@ -430,20 +429,17 @@ def chkOneF (famZ : Fin K → BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (p
 theorem oneSwitchF_sound (hR : ∀ k, (famZ k).Rep D (famQ k)) (hA : ∀ k, (famQ k).Agrees (fam k)) (hD : 0 < D)
     (hX : X.Rep x θ g) (hS : 0 < S) {postTop preTop : Fin K → Fin 3 → ℤ} {eIn : Fin K → ℚ} {eE : ℚ}
     (h : (List.finRange K).all (chkOneF famZ D Δ X S postTop preTop eIn eE) = true) :
-    AutoSolE fam Δ x θ (castG g) (fun k => castT (castZ S (preF famZ D Δ X S postTop preTop k)))
-        (fun k => castT (castZ S (postF famZ D Δ X S postTop k))) (castT (castZ S (vmaxF famZ D Δ X S postTop))) ∧
-      (∀ k, autoBound (fam k) x θ (castG g) (castT (castZ S (postF famZ D Δ X S postTop k))) ≤ eIn k) ∧
-      (∀ k, autoBound (fam k) x θ (castG g) (castT (castZ S (preF famZ D Δ X S postTop preTop k))) ≤ eE) := by
-  have hM := X.M_pos hX hD
-  have hgd := hX.gd
-  refine oneSwitchZ_sound hR hA hD hX hS fun k => ?_
-  have hk := List.all_eq_true.1 h k (List.mem_finRange k)
-  simp only [chkOneF, Bool.and_eq_true] at hk
-  obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := hk
-  simp only [Bool.and_eq_true]
-  refine ⟨⟨⟨⟨autoSolZ_fill hM hgd (fun q _ a u => gFloorZ_ge hgd q a u) (List.mem_singleton_self _) h1,
-    leTabZ_max (List.mem_map.2 ⟨k, List.mem_finRange k, rfl⟩)⟩,
-    preSolZ_fill hM (List.mem_singleton_self _) h2⟩, h3⟩, h4⟩
+    AutoSolE fam Δ x θ (castG g) (fun k => castZ S (preF famZ D Δ X S postTop preTop k))
+        (fun k => castZ S (postF famZ D Δ X S postTop k)) (castZ S (vmaxF famZ D Δ X S postTop)) ∧
+      (∀ k, autoBound (fam k) x θ (castG g) (castZ S (postF famZ D Δ X S postTop k)) ≤ eIn k) ∧
+      (∀ k, autoBound (fam k) x θ (castG g) (castZ S (preF famZ D Δ X S postTop preTop k)) ≤ eE) := by
+  have hk : ∀ k, _ := fun k => List.all_eq_true.1 h k (List.mem_finRange k)
+  simp only [chkOneF, Bool.and_eq_true, decide_eq_true_eq] at hk
+  have hB := fun k => List.mem_singleton_self (famZ k)
+  refine ⟨⟨fun k => fill_autoSol (hR k) (hA k) hD hX hS (hB k) (hk k).1.1.1,
+    fun k q hq a u => castZ_le hS (le_maxTabZ (List.mem_map.2 ⟨k, List.mem_finRange k, rfl⟩) hq a u),
+    fun k => fill_preSol (hR k) (hA k) hD hX hS (hB k) (hk k).1.1.2⟩,
+    fun k => autoBoundZ_le (hR k) (hA k) hD hX hS (hk k).1.2, fun k => autoBoundZ_le (hR k) (hA k) hD hX hS (hk k).2⟩
 
 /-- Every check of member `k` against a switching table. -/
 def chkSwF (famZ : Fin K → BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (top : Fin 3 → ℤ) (eS : Fin K → ℚ)
@@ -455,18 +451,13 @@ def chkSwF (famZ : Fin K → BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (to
 theorem switchF_sound (hR : ∀ k, (famZ k).Rep D (famQ k)) (hA : ∀ k, (famQ k).Agrees (fam k)) (hD : 0 < D)
     (hX : X.Rep x θ g) (hS : 0 < S) {top : Fin 3 → ℤ} {eS : Fin K → ℚ}
     (h : (List.finRange K).all (chkSwF famZ D Δ X S top eS) = true) :
-    (∀ k, AutoSol (fam k) Δ x θ (castG g)
-        (castT (castZ S (fillAllZ ((List.finRange K).map famZ) D Δ X S (gFloorZ X S) top)))) ∧
+    (∀ k, AutoSol (fam k) Δ x θ (castG g) (castZ S (fillAllZ ((List.finRange K).map famZ) D Δ X S (gFloorZ X S) top))) ∧
       (∀ k, autoBound (fam k) x θ (castG g)
-        (castT (castZ S (fillAllZ ((List.finRange K).map famZ) D Δ X S (gFloorZ X S) top))) ≤ eS k) := by
-  have hM := X.M_pos hX hD
-  have hgd := hX.gd
-  refine switchZ_sound hR hA hD hX hS fun k => ?_
-  have hk := List.all_eq_true.1 h k (List.mem_finRange k)
-  simp only [chkSwF, Bool.and_eq_true] at hk
-  simp only [Bool.and_eq_true]
-  exact ⟨autoSolZ_fill hM hgd (fun q _ a u => gFloorZ_ge hgd q a u)
-    (List.mem_map.2 ⟨k, List.mem_finRange k, rfl⟩) hk.1, hk.2⟩
+        (castZ S (fillAllZ ((List.finRange K).map famZ) D Δ X S (gFloorZ X S) top)) ≤ eS k) := by
+  have hk : ∀ k, _ := fun k => List.all_eq_true.1 h k (List.mem_finRange k)
+  simp only [chkSwF, Bool.and_eq_true, decide_eq_true_eq] at hk
+  exact ⟨fun k => fill_autoSol (hR k) (hA k) hD hX hS (List.mem_map.2 ⟨k, List.mem_finRange k, rfl⟩) (hk k).1,
+    fun k => autoBoundZ_le (hR k) (hA k) hD hX hS (hk k).2⟩
 
 end Index
 

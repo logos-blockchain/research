@@ -73,8 +73,6 @@ public import Cryptarchia.Prob.FinalTSI
 public import Cryptarchia.Prob.Fail3E
 public import Cryptarchia.Prob.Tail3E
 public import Cryptarchia.Prob.Final3E
-public import Cryptarchia.Prob.CertE
-public import Cryptarchia.Prob.AutoQ
 public import Cryptarchia.Prob.AutoZ
 public import Cryptarchia.Prob.AutoFill
 public import Cryptarchia.Prob.FamQ

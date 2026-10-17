@@ -1,6 +1,7 @@
 module
 
-public import Cryptarchia.Prob.AutoQ
+public import Cryptarchia.Prob.AutoE
+public import Cryptarchia.Prob.Cold2
 public import Cryptarchia.Prob.Cold2E
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
@@ -37,25 +38,93 @@ import Mathlib.Topology.Sheaves.Init
 /-!
 # Automaton checks over the integers, with computed tables
 
-The checks of `AutoQ`, in integer arithmetic. A band's `slot4` fields are integers over a
-common denominator `D` (`BandZ.Rep`), a phase expectation's `x`, `θ`, `g` integers over
-their own denominators (`PhZ.Rep`), and a table integers over a scale `S`. Every check is
-then a comparison of integers, exactly equivalent to the rational one (`stepZ_cast`,
-`slot4Z_cast`), and the kernel evaluates it with its arbitrary-precision `Nat` arithmetic,
-without the normalization of rationals.
+A certificate checks its automaton tables (`AutoSol`, `PreSol`, the domination by `vmax`,
+`autoBound ≤ e`) by `decide +kernel`, in integer arithmetic. A band's `slot4` fields are
+integers over a common denominator `D` (`BandZ.Rep`, against the rational fields `BandQ`), a
+phase expectation's `x`, `θ`, `g` integers over their own denominators (`PhZ.Rep`, against
+the rational `xgNQ`), and a table integers over a scale `S` (`castZ`). A recursion step and a
+phase bound are then integers exactly proportional to the real ones (`stepZ_cast`,
+`autoBoundZ_cast`), so an integer comparison gives the real one (`stepZ_le`, `autoBoundZ_le`),
+and the kernel evaluates it with its arbitrary-precision `Nat` arithmetic. This adds no axioms.
 
-A table checked by `autoSolZ` or `preSolZ` refers back to itself only through the three
-entries `v 0 a true`, the state just after an honest success; every other entry is one
-recursion step from the next row. `fillZ` computes the table from those three entries
-(`top`), row by row from `q = Δ - 1` down, each step rounded up to the scale and floored at
-`lo`; `fillAllZ` does the same with the step's maximum over several bands. A certificate
-gives only the three entries per table. The tables are then checked as before, so neither
-needs a soundness theorem: a wrong entry makes a check fail.
+A table refers back to itself only through the three entries `v 0 a true`, the state just
+after an honest success; every other entry is one recursion step from the next row. `fillZ`
+computes the table from those three entries (`top`), row by row from `q = Δ - 1` down, each
+step rounded up to the scale and floored at `lo`; `fillAllZ` does the same with the step's
+maximum over several bands. A certificate gives only the three entries per table.
 -/
 
 @[expose] public section
 
 namespace Cryptarchia.Prob
+
+/-- The fields of a band that `slot4` reads, over `ℚ`. -/
+structure BandQ where
+  hhi : ℚ
+  hlo : ℚ
+  amax : ℚ
+  hahi : ℚ
+  alo : ℚ
+  halo : ℚ
+
+/-- `B` has the values of `b` in the fields `slot4` reads. -/
+structure BandQ.Agrees (b : BandQ) (B : Band) : Prop where
+  hhi : B.hhi = b.hhi
+  hlo : B.hlo = b.hlo
+  amax : B.amax = b.amax
+  hahi : B.hahi = b.hahi
+  alo : B.alo = b.alo
+  halo : B.halo = b.halo
+
+/-! ## Tables -/
+
+/-- A terminal table over `ℚ`, cast to `ℝ`. -/
+noncomputable def castG (g : Fin 3 → Bool → Bool → ℚ) : Fin 3 → Bool → Bool → ℝ := fun a b u => g a b u
+
+/-- `gtab` over `ℚ`. -/
+def gtabQ (t0 t1 t2 : Bool → Bool → ℚ) : Fin 3 → Bool → Bool → ℚ := fun a b u =>
+  if a.val = 0 then t0 b u else if a.val = 1 then t1 b u else t2 b u
+
+/-- `xgN` over `ℚ`. -/
+def xgNQ (c z s d τ : ℚ) : ℕ → ℚ × ℚ × (Fin 3 → Bool → Bool → ℚ)
+  | 0 => (c, 1, gtabQ (fun b _ => if b then c⁻¹ else 1) (fun b _ => if b then c⁻¹ else 1) (fun b _ => if b then c⁻¹ else 1))
+  | 1 => (c, 1, fun _ _ _ => 1)
+  | 2 => (z, 1, gtabQ (fun b _ => if b then 1 else 0) (fun _ _ => 1) (fun _ _ => 1))
+  | 3 => (c, 1, gtabQ (fun b _ => if b then z⁻¹ else 1) (fun _ _ => z / s) (fun _ _ => z / s))
+  | 4 => (c, 1, gtabQ (fun b _ => if b then (c * z)⁻¹ else 1) (fun _ _ => z / s) (fun _ _ => z / s))
+  | 5 => (c * z, 1, gtabQ (fun b _ => if b then z⁻¹ else 1) (fun b _ => if b then z⁻¹ else 1) (fun b _ => if b then s⁻¹ else 1))
+  | 6 => (c * z, 1, gtabQ (fun b _ => if b then (c * z)⁻¹ else 1) (fun b _ => if b then (c * z)⁻¹ else 1)
+      (fun b _ => if b then s⁻¹ else 1))
+  | 7 => (d * z, 1, gtabQ (fun b _ => if b then z⁻¹ else 1) (fun _ _ => 0) (fun _ _ => 0))
+  | 8 => (d * z, 1, gtabQ (fun b _ => if b then (d * z)⁻¹ else 1) (fun _ _ => 0) (fun _ _ => 0))
+  | 9 => (d * z, 1, gtabQ (fun b u => if b then (if u then (d * d * z)⁻¹ else (d * z)⁻¹) else 1) (fun _ _ => 0) (fun _ _ => 0))
+  | 10 => (d * z, 1, gtabQ (fun b u => if u then 0 else if b then (d * z)⁻¹ else 1) (fun _ _ => 0) (fun _ _ => 0))
+  | 11 => (d * z, 1, fun _ b _ => if b then z⁻¹ else 1)
+  | 12 => (d * z, 1, fun _ b _ => if b then (d * z)⁻¹ else 1)
+  | 13 => (d * z, 1, fun _ b u => if b then (if u then (d * d * z)⁻¹ else (d * z)⁻¹) else 1)
+  | 14 => (d * z, 1, fun _ b u => if u then 0 else if b then (d * z)⁻¹ else 1)
+  | 15 => (z, 1, gtabQ (fun _ u => if u then z⁻¹ else 0) (fun _ _ => 0) (fun _ _ => 0))
+  | 16 => (z, 1, fun _ _ u => if u then z⁻¹ else 0)
+  | 17 => (1, τ, fun _ _ _ => 1)
+  | _ => (1, 1, fun _ _ _ => 1)
+
+/-- A triple over `ℚ`, cast to `ℝ`. -/
+noncomputable def castX (p : ℚ × ℚ × (Fin 3 → Bool → Bool → ℚ)) : ℝ × ℝ × (Fin 3 → Bool → Bool → ℝ) :=
+  ((p.1 : ℝ), (p.2.1 : ℝ), castG p.2.2)
+
+theorem xgN_ofQ (c z s d τ : ℚ) (i : ℕ) :
+    xgN (c : ℝ) z s d τ i = castX (xgNQ c z s d τ i) := by
+  rcases i with _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | i <;>
+    refine Prod.ext ?_ (Prod.ext ?_ ?_) <;> simp only [xgN, xgNQ, castX] <;> (try funext a b u) <;>
+    (try simp only [castG, gtab, gtabQ]) <;> (try split_ifs) <;> push_cast <;> rfl
+
+/-- `xg` at rational parameters, given as real literals. -/
+theorem xg_ofQ {c z s d τ : ℚ} {c' z' s' d' τ' : ℝ} (hc : (c : ℝ) = c') (hz : (z : ℝ) = z')
+    (hs : (s : ℝ) = s') (hd : (d : ℝ) = d') (hτ : (τ : ℝ) = τ') (i : Fin 19) :
+    xg c' z' s' d' τ' i = castX (xgNQ c z s d τ i.val) := by
+  subst hc hz hs hd hτ; exact xgN_ofQ c z s d τ i.val
+
+/-! ## Over the integers -/
 
 /-- The fields of a band that `slot4` reads, as integers over a common denominator. -/
 structure BandZ where
@@ -88,16 +157,17 @@ def slot4Z (B : BandZ) (D : ℤ) (F : Bool → Bool → ℤ) : ℤ :=
     (F true true - F true false - F false true + F false false) *
       (if F true false + F false true ≤ F true true + F false false then B.hahi else B.halo)
 
-theorem slot4Z_cast {B : BandZ} {D : ℤ} {b : BandQ} (hR : B.Rep D b) (hD : 0 < D) (F : Bool → Bool → ℤ)
-    {c : ℚ} (hc : 0 < c) : (slot4Z B D F : ℚ) = D * c * slot4Q b (fun h a => (F h a : ℚ) / c) := by
-  have hD' : (0 : ℚ) < D := by exact_mod_cast hD
-  have e1 : ∀ x y : ℤ, ((x : ℚ) / c ≤ (y : ℚ) / c ↔ x ≤ y) := fun x y => by
+theorem slot4Z_cast {B : BandZ} {D : ℤ} {b : BandQ} {Bb : Band} (hR : B.Rep D b) (hA : b.Agrees Bb) (hD : 0 < D)
+    (F : Bool → Bool → ℤ) {c : ℝ} (hc : 0 < c) : (slot4Z B D F : ℝ) = D * c * slot4 Bb (fun h a => (F h a : ℝ) / c) := by
+  have hD' : (0 : ℝ) < D := by exact_mod_cast hD
+  have e1 : ∀ x y : ℤ, ((x : ℝ) / c ≤ (y : ℝ) / c ↔ x ≤ y) := fun x y => by
     rw [div_le_div_iff_of_pos_right hc, Int.cast_le]
-  have e2 : ∀ x y z w : ℤ, ((x : ℚ) / c + (y : ℚ) / c ≤ (z : ℚ) / c + (w : ℚ) / c ↔ x + y ≤ z + w) :=
+  have e2 : ∀ x y z w : ℤ, ((x : ℝ) / c + (y : ℝ) / c ≤ (z : ℝ) / c + (w : ℝ) / c ↔ x + y ≤ z + w) :=
     fun x y z w => by
       rw [← add_div, ← add_div, div_le_div_iff_of_pos_right hc, ← Int.cast_add, ← Int.cast_add, Int.cast_le]
-  unfold slot4Z slot4Q
-  simp only [e1, e2, hR.hhi, hR.hlo, hR.amax, hR.hahi, hR.alo, hR.halo]
+  unfold slot4Z slot4
+  simp only [e1, e2, hA.hhi, hA.hlo, hA.amax, hA.hahi, hA.alo, hA.halo, hR.hhi, hR.hlo, hR.amax, hR.hahi, hR.alo,
+    hR.halo]
   split_ifs <;> push_cast <;> field_simp
 
 /-- A phase expectation's numbers over the integers: `x = xn / xd`, `θ = θn / θd`,
@@ -137,8 +207,8 @@ def SZ : ℤ := 18446744073709551616
 
 theorem SZ_pos : 0 < SZ := by decide
 
-/-- A table of integers at scale `S`, over `ℚ`. -/
-def castZ (S : ℤ) (v : ℕ → Fin 3 → Bool → ℤ) : ℕ → Fin 3 → Bool → ℚ := fun q a u => (v q a u : ℚ) / S
+/-- A table of integers at scale `S`, over `ℝ`. -/
+noncomputable def castZ (S : ℤ) (v : ℕ → Fin 3 → Bool → ℤ) : ℕ → Fin 3 → Bool → ℝ := fun q a u => (v q a u : ℝ) / S
 
 /-- A table from its integers listed by `(q, a, u)` in lexicographic order; `0` beyond. -/
 def tabZ (l : List ℤ) : ℕ → Fin 3 → Bool → ℤ := fun q a u =>
@@ -152,26 +222,26 @@ def stepZ (B : BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (w : ℕ → Fin 
       else if q + 1 = Δ then X.gn (acap (a.val + if aa then 1 else 0)) true u * S
         else w (q + 1) (acap (a.val + if aa then 1 else 0)) u * X.gd))
 
-theorem stepZ_cast {B : BandZ} {D : ℤ} {b : BandQ} (hR : B.Rep D b) (hD : 0 < D) {X : PhZ} {x θ : ℚ}
-    {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S) (Δ : ℕ)
+theorem stepZ_cast {B : BandZ} {D : ℤ} {b : BandQ} {Bb : Band} (hR : B.Rep D b) (hA : b.Agrees Bb) (hD : 0 < D)
+    {X : PhZ} {x θ : ℚ} {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S) (Δ : ℕ)
     (w : ℕ → Fin 3 → Bool → ℤ) (q : ℕ) (a : Fin 3) (u : Bool) :
-    (stepZ B D Δ X S w q a u : ℚ) = (X.M D : ℚ) * S * stepQ b Δ x θ g (castZ S w) q a u := by
-  have hxd : (0 : ℚ) < X.xd := by exact_mod_cast hX.xd
-  have hθd : (0 : ℚ) < X.θd := by exact_mod_cast hX.θd
-  have hgd : (0 : ℚ) < X.gd := by exact_mod_cast hX.gd
-  have hS' : (0 : ℚ) < S := by exact_mod_cast hS
-  unfold stepZ stepQ
-  rw [Int.cast_mul, slot4Z_cast hR hD _ (c := X.xd * S * X.gd) (by positivity)]
+    (stepZ B D Δ X S w q a u : ℝ) = (X.M D : ℝ) * S * stepR Bb Δ x θ (castG g) (castZ S w) q a u := by
+  have hxd : (0 : ℝ) < X.xd := by exact_mod_cast hX.xd
+  have hθd : (0 : ℝ) < X.θd := by exact_mod_cast hX.θd
+  have hgd : (0 : ℝ) < X.gd := by exact_mod_cast hX.gd
+  have hS' : (0 : ℝ) < S := by exact_mod_cast hS
+  unfold stepZ stepR
+  rw [Int.cast_mul, slot4Z_cast hR hA hD _ (c := X.xd * S * X.gd) (by positivity)]
   have hF : (fun (h aa : Bool) => (((if aa then X.xn else X.xd) *
       (if h then w 0 (acap (a.val + if aa then 1 else 0)) true * X.gd
         else if q + 1 = Δ then X.gn (acap (a.val + if aa then 1 else 0)) true u * S
-          else w (q + 1) (acap (a.val + if aa then 1 else 0)) u * X.gd) : ℤ) : ℚ) / (X.xd * S * X.gd)) =
-      (fun (hh aa : Bool) => (if aa then x else 1) *
+          else w (q + 1) (acap (a.val + if aa then 1 else 0)) u * X.gd) : ℤ) : ℝ) / (X.xd * S * X.gd)) =
+      (fun (hh aa : Bool) => (if aa then (x : ℝ) else 1) *
         (if hh then castZ S w 0 (acap (a.val + if aa then 1 else 0)) true
-          else if q + 1 = Δ then g (acap (a.val + if aa then 1 else 0)) true u
+          else if q + 1 = Δ then castG g (acap (a.val + if aa then 1 else 0)) true u
             else castZ S w (q + 1) (acap (a.val + if aa then 1 else 0)) u)) := by
     funext hh aa
-    simp only [castZ, hX.x, hX.g]
+    simp only [castZ, castG, hX.x, hX.g]
     split_ifs <;> push_cast <;> field_simp
   rw [hF, hX.θ]
   unfold PhZ.M
@@ -183,22 +253,23 @@ def autoBoundZ (B : BandZ) (D : ℤ) (X : PhZ) (S : ℤ) (v : ℕ → Fin 3 → 
   X.θn * slot4Z B D (fun hh aa => (if aa then X.xn else X.xd) *
     (if hh then v 0 (acap (if aa then 1 else 0)) false * X.gd else X.gn (acap (if aa then 1 else 0)) false false * S))
 
-theorem autoBoundZ_cast {B : BandZ} {D : ℤ} {b : BandQ} (hR : B.Rep D b) (hD : 0 < D) {X : PhZ} {x θ : ℚ}
-    {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S) (v : ℕ → Fin 3 → Bool → ℤ) :
-    (autoBoundZ B D X S v : ℚ) = (X.M D : ℚ) * S * autoBoundQ b x θ g (castZ S v) := by
-  have hxd : (0 : ℚ) < X.xd := by exact_mod_cast hX.xd
-  have hθd : (0 : ℚ) < X.θd := by exact_mod_cast hX.θd
-  have hgd : (0 : ℚ) < X.gd := by exact_mod_cast hX.gd
-  have hS' : (0 : ℚ) < S := by exact_mod_cast hS
-  unfold autoBoundZ autoBoundQ
-  rw [Int.cast_mul, slot4Z_cast hR hD _ (c := X.xd * S * X.gd) (by positivity)]
+theorem autoBoundZ_cast {B : BandZ} {D : ℤ} {b : BandQ} {Bb : Band} (hR : B.Rep D b) (hA : b.Agrees Bb)
+    (hD : 0 < D) {X : PhZ} {x θ : ℚ} {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S)
+    (v : ℕ → Fin 3 → Bool → ℤ) :
+    (autoBoundZ B D X S v : ℝ) = (X.M D : ℝ) * S * autoBound Bb x θ (castG g) (castZ S v) := by
+  have hxd : (0 : ℝ) < X.xd := by exact_mod_cast hX.xd
+  have hθd : (0 : ℝ) < X.θd := by exact_mod_cast hX.θd
+  have hgd : (0 : ℝ) < X.gd := by exact_mod_cast hX.gd
+  have hS' : (0 : ℝ) < S := by exact_mod_cast hS
+  unfold autoBoundZ autoBound
+  rw [Int.cast_mul, slot4Z_cast hR hA hD _ (c := X.xd * S * X.gd) (by positivity)]
   have hF : (fun (h aa : Bool) => (((if aa then X.xn else X.xd) *
       (if h then v 0 (acap (if aa then 1 else 0)) false * X.gd
-        else X.gn (acap (if aa then 1 else 0)) false false * S) : ℤ) : ℚ) / (X.xd * S * X.gd)) =
-      (fun (hh aa : Bool) => (if aa then x else 1) *
-        (if hh then castZ S v 0 (acap (if aa then 1 else 0)) false else g (acap (if aa then 1 else 0)) false false)) := by
+        else X.gn (acap (if aa then 1 else 0)) false false * S) : ℤ) : ℝ) / (X.xd * S * X.gd)) =
+      (fun (hh aa : Bool) => (if aa then (x : ℝ) else 1) *
+        (if hh then castZ S v 0 (acap (if aa then 1 else 0)) false else castG g (acap (if aa then 1 else 0)) false false)) := by
     funext hh aa
-    simp only [castZ, hX.x, hX.g]
+    simp only [castZ, castG, hX.x, hX.g]
     split_ifs <;> push_cast <;> field_simp
   rw [hF, hX.θ]
   unfold PhZ.M
@@ -207,77 +278,37 @@ theorem autoBoundZ_cast {B : BandZ} {D : ℤ} {b : BandQ} (hR : B.Rep D b) (hD :
 
 /-! ## The checks -/
 
-theorem allQ_mono {Δ : ℕ} {p p' : ℕ → Fin 3 → Bool → Bool}
-    (h : ∀ q < Δ, ∀ a u, p q a u = true → p' q a u = true) (hp : allQ Δ p = true) : allQ Δ p' = true := by
-  unfold allQ at hp ⊢
-  rw [List.all_eq_true] at hp ⊢
-  intro q hq
-  have h6 := hp q hq
-  have hq' := List.mem_range.1 hq
-  simp only [all6, Bool.and_eq_true] at h6 ⊢
-  obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩ := h6
-  exact ⟨⟨⟨⟨⟨h q hq' _ _ h1, h q hq' _ _ h2⟩, h q hq' _ _ h3⟩, h q hq' _ _ h4⟩, h q hq' _ _ h5⟩, h q hq' _ _ h6⟩
+section Checks
 
-/-- `AutoSol` over the integers. -/
-def autoSolZ (B : BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (v : ℕ → Fin 3 → Bool → ℤ) : Bool :=
-  allQ Δ fun q a u => decide (X.gn a true u * S ≤ v q a u * X.gd) && decide (stepZ B D Δ X S v q a u ≤ v q a u * X.M D)
+variable {B : BandZ} {D : ℤ} {b : BandQ} {Bb : Band} (hR : B.Rep D b) (hA : b.Agrees Bb) (hD : 0 < D) {X : PhZ}
+  {x θ : ℚ} {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S)
+include hR hA hD hX hS
 
-theorem autoSolZ_sound {B : BandZ} {D : ℤ} {b : BandQ} (hR : B.Rep D b) (hD : 0 < D) {X : PhZ} {x θ : ℚ}
-    {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S) {Δ : ℕ} {v : ℕ → Fin 3 → Bool → ℤ}
-    (h : autoSolZ B D Δ X S v = true) : autoSolQ b Δ x θ g (castZ S v) = true := by
-  have hgd : (0 : ℚ) < X.gd := by exact_mod_cast hX.gd
-  have hS' : (0 : ℚ) < S := by exact_mod_cast hS
-  have hM : (0 : ℚ) < X.M D := by exact_mod_cast X.M_pos hX hD
-  refine allQ_mono (fun q _ a u hp => ?_) h
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hp ⊢
-  refine ⟨?_, ?_⟩
-  · rw [hX.g, castZ, div_le_div_iff₀ hgd hS']; exact_mod_cast hp.1
-  · have e := stepZ_cast hR hD hX hS Δ v q a u
-    have h2 : (stepZ B D Δ X S v q a u : ℚ) ≤ (v q a u : ℚ) * X.M D := by exact_mod_cast hp.2
-    rw [e] at h2
-    rw [castZ, le_div_iff₀ hS']
-    nlinarith [mul_pos hM hS']
+/-- The recursion over the integers at a state gives it over `ℝ`. -/
+theorem stepZ_le {Δ : ℕ} {w : ℕ → Fin 3 → Bool → ℤ} {q : ℕ} {a : Fin 3} {u : Bool}
+    (h : stepZ B D Δ X S w q a u ≤ w q a u * X.M D) : stepR Bb Δ x θ (castG g) (castZ S w) q a u ≤ castZ S w q a u := by
+  have hS' : (0 : ℝ) < S := by exact_mod_cast hS
+  have hM : (0 : ℝ) < X.M D := by exact_mod_cast X.M_pos hX hD
+  have h2 : (stepZ B D Δ X S w q a u : ℝ) ≤ (w q a u : ℝ) * X.M D := by exact_mod_cast h
+  rw [stepZ_cast hR hA hD hX hS] at h2
+  rw [castZ, le_div_iff₀ hS']
+  nlinarith [mul_pos hM hS']
 
-/-- `PreSol` over the integers. -/
-def preSolZ (B : BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (vmax vpre : ℕ → Fin 3 → Bool → ℤ) : Bool :=
-  allQ Δ fun q a u => decide (vmax q a u ≤ vpre q a u) && decide (stepZ B D Δ X S vpre q a u ≤ vpre q a u * X.M D)
+/-- A phase bound over the integers gives it over `ℝ`. -/
+theorem autoBoundZ_le {v : ℕ → Fin 3 → Bool → ℤ} {e : ℚ} (h : (autoBoundZ B D X S v : ℚ) ≤ e * (X.M D * S : ℤ)) :
+    autoBound Bb x θ (castG g) (castZ S v) ≤ e := by
+  have hS' : (0 : ℝ) < S := by exact_mod_cast hS
+  have hM : (0 : ℝ) < X.M D := by exact_mod_cast X.M_pos hX hD
+  have h2 : (autoBoundZ B D X S v : ℝ) ≤ (e : ℝ) * (X.M D * S : ℤ) := by exact_mod_cast h
+  rw [autoBoundZ_cast hR hA hD hX hS] at h2
+  push_cast at h2
+  nlinarith [mul_pos hM hS']
 
-theorem preSolZ_sound {B : BandZ} {D : ℤ} {b : BandQ} (hR : B.Rep D b) (hD : 0 < D) {X : PhZ} {x θ : ℚ}
-    {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S) {Δ : ℕ} {vmax vpre : ℕ → Fin 3 → Bool → ℤ}
-    (h : preSolZ B D Δ X S vmax vpre = true) : preSolQ b Δ x θ g (castZ S vmax) (castZ S vpre) = true := by
-  have hS' : (0 : ℚ) < S := by exact_mod_cast hS
-  have hM : (0 : ℚ) < X.M D := by exact_mod_cast X.M_pos hX hD
-  refine allQ_mono (fun q _ a u hp => ?_) h
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hp ⊢
-  refine ⟨?_, ?_⟩
-  · simp only [castZ]; exact div_le_div_of_nonneg_right (by exact_mod_cast hp.1) hS'.le
-  · have e := stepZ_cast hR hD hX hS Δ vpre q a u
-    have h2 : (stepZ B D Δ X S vpre q a u : ℚ) ≤ (vpre q a u : ℚ) * X.M D := by exact_mod_cast hp.2
-    rw [e] at h2
-    rw [castZ, le_div_iff₀ hS']
-    nlinarith [mul_pos hM hS']
+end Checks
 
-/-- Domination `v ≤ w` below `Δ`, over the integers. -/
-def leTabZ (Δ : ℕ) (v w : ℕ → Fin 3 → Bool → ℤ) : Bool := allQ Δ fun q a u => decide (v q a u ≤ w q a u)
-
-theorem leTabZ_sound {Δ : ℕ} {S : ℤ} (hS : 0 < S) {v w : ℕ → Fin 3 → Bool → ℤ} (h : leTabZ Δ v w = true) :
-    leTabQ Δ (castZ S v) (castZ S w) = true := by
-  have hS' : (0 : ℚ) < S := by exact_mod_cast hS
-  refine allQ_mono (fun q _ a u hp => ?_) h
-  simp only [decide_eq_true_eq] at hp ⊢
-  simp only [castZ]; exact div_le_div_of_nonneg_right (by exact_mod_cast hp) hS'.le
-
-theorem autoBoundZ_sound {B : BandZ} {D : ℤ} {b : BandQ} (hR : B.Rep D b) (hD : 0 < D) {X : PhZ} {x θ : ℚ}
-    {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S) {v : ℕ → Fin 3 → Bool → ℤ} {e : ℚ}
-    (h : decide ((autoBoundZ B D X S v : ℚ) ≤ e * (X.M D * S : ℤ)) = true) :
-    decide (autoBoundQ b x θ g (castZ S v) ≤ e) = true := by
-  have hS' : (0 : ℚ) < S := by exact_mod_cast hS
-  have hM : (0 : ℚ) < X.M D := by exact_mod_cast X.M_pos hX hD
-  simp only [decide_eq_true_eq] at h ⊢
-  rw [autoBoundZ_cast hR hD hX hS] at h
-  push_cast at h
-  have hMS := mul_pos hM hS'
-  nlinarith
+theorem castZ_le {S : ℤ} (hS : 0 < S) {v w : ℕ → Fin 3 → Bool → ℤ} {q : ℕ} {a : Fin 3} {u : Bool}
+    (h : v q a u ≤ w q a u) : castZ S v q a u ≤ castZ S w q a u :=
+  div_le_div_of_nonneg_right (by exact_mod_cast h) (by exact_mod_cast hS.le)
 
 /-! ## Tables by backward recursion -/
 
@@ -315,46 +346,6 @@ def fillZ (B : BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (lo : ℕ → Fin
 
 /-- The terminal table `g` at scale `S`, rounded up: the floor of a post-switch table. -/
 def gFloorZ (X : PhZ) (S : ℤ) : ℕ → Fin 3 → Bool → ℤ := fun _ a u => cdivZ (X.gn a true u * S) X.gd
-
-/-! ## A whole index, for a family of bands -/
-
-/-- **The one-switch tables of an index, for the whole family**, from the integer checks
-for each member `k`: the post-switch table solves the member's recursion and lies below
-`vmax`, the pre-switch table solves it above `vmax`, and both phase bounds hold. -/
-theorem oneSwitchZ_sound {K : ℕ} {famZ : Fin K → BandZ} {D : ℤ} {famQ : Fin K → BandQ} {fam : Fin K → Band}
-    (hR : ∀ k, (famZ k).Rep D (famQ k)) (hA : ∀ k, (famQ k).Agrees (fam k)) (hD : 0 < D) {X : PhZ} {x θ : ℚ}
-    {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S) {Δ : ℕ}
-    {post pre : Fin K → ℕ → Fin 3 → Bool → ℤ} {vmax : ℕ → Fin 3 → Bool → ℤ} {eIn : Fin K → ℚ} {eE : ℚ}
-    (h : ∀ k, (autoSolZ (famZ k) D Δ X S (post k) && leTabZ Δ (post k) vmax &&
-      preSolZ (famZ k) D Δ X S vmax (pre k) &&
-      decide ((autoBoundZ (famZ k) D X S (post k) : ℚ) ≤ eIn k * (X.M D * S : ℤ)) &&
-      decide ((autoBoundZ (famZ k) D X S (pre k) : ℚ) ≤ eE * (X.M D * S : ℤ))) = true) :
-    AutoSolE fam Δ x θ (castG g) (fun k => castT (castZ S (pre k))) (fun k => castT (castZ S (post k)))
-        (castT (castZ S vmax)) ∧
-      (∀ k, autoBound (fam k) x θ (castG g) (castT (castZ S (post k))) ≤ eIn k) ∧
-      (∀ k, autoBound (fam k) x θ (castG g) (castT (castZ S (pre k))) ≤ eE) := by
-  have hk : ∀ k, _ := fun k => h k
-  simp only [Bool.and_eq_true] at hk
-  refine ⟨AutoSolE.mk' (fun k => autoSol_ofQ (hA k) (autoSolZ_sound (hR k) hD hX hS (hk k).1.1.1.1))
-    (fun k => leTab_ofQ (leTabZ_sound hS (hk k).1.1.1.2))
-    (fun k => preSol_ofQ (hA k) (preSolZ_sound (hR k) hD hX hS (hk k).1.1.2)), fun k => ?_, fun k => ?_⟩
-  · exact autoBound_le_ofQ (hA k) rfl (autoBoundZ_sound (hR k) hD hX hS (hk k).1.2)
-  · exact autoBound_le_ofQ (hA k) rfl (autoBoundZ_sound (hR k) hD hX hS (hk k).2)
-
-/-- **A switching table of an index, for the whole family**: it solves every member's
-recursion, with each member's phase bound. -/
-theorem switchZ_sound {K : ℕ} {famZ : Fin K → BandZ} {D : ℤ} {famQ : Fin K → BandQ} {fam : Fin K → Band}
-    (hR : ∀ k, (famZ k).Rep D (famQ k)) (hA : ∀ k, (famQ k).Agrees (fam k)) (hD : 0 < D) {X : PhZ} {x θ : ℚ}
-    {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S) {Δ : ℕ}
-    {vs : ℕ → Fin 3 → Bool → ℤ} {eS : Fin K → ℚ}
-    (h : ∀ k, (autoSolZ (famZ k) D Δ X S vs &&
-      decide ((autoBoundZ (famZ k) D X S vs : ℚ) ≤ eS k * (X.M D * S : ℤ))) = true) :
-    (∀ k, AutoSol (fam k) Δ x θ (castG g) (castT (castZ S vs))) ∧
-      (∀ k, autoBound (fam k) x θ (castG g) (castT (castZ S vs)) ≤ eS k) := by
-  have hk : ∀ k, _ := fun k => h k
-  simp only [Bool.and_eq_true] at hk
-  exact ⟨fun k => autoSol_ofQ (hA k) (autoSolZ_sound (hR k) hD hX hS (hk k).1),
-    fun k => autoBound_le_ofQ (hA k) rfl (autoBoundZ_sound (hR k) hD hX hS (hk k).2)⟩
 
 /-! ## The class conditions -/
 

@@ -63,6 +63,12 @@ open Finset Settle
 
 variable {κ : Kern} {Δ M EL K : ℕ} {fam : Fin K → Band}
 
+/-- A pre-switch table of one member: above `vmax`, and its own recursion. -/
+structure PreSol (B : Band) (Δ : ℕ) (x θ : ℝ) (g : Fin 3 → Bool → Bool → ℝ)
+    (vmax vpre : ℕ → Fin 3 → Bool → ℝ) : Prop where
+  dom : ∀ q < Δ, ∀ a u, vmax q a u ≤ vpre q a u
+  step : ∀ q < Δ, ∀ a u, stepR B Δ x θ g vpre q a u ≤ vpre q a u
+
 /-- **A one-switch automaton solution** for adversary factor `x`, tilt `θ`, table `g`. -/
 structure AutoSolE (fam : Fin K → Band) (Δ : ℕ) (x θ : ℝ) (g : Fin 3 → Bool → Bool → ℝ)
     (vpre vpost : Fin K → ℕ → Fin 3 → Bool → ℝ) (vmax : ℕ → Fin 3 → Bool → ℝ) : Prop where
@@ -70,14 +76,8 @@ structure AutoSolE (fam : Fin K → Band) (Δ : ℕ) (x θ : ℝ) (g : Fin 3 →
   post : ∀ k, AutoSol (fam k) Δ x θ g (vpost k)
   /-- `vmax` is above every member's post-switch table -/
   maxp : ∀ k, ∀ q < Δ, ∀ a u, vpost k q a u ≤ vmax q a u
-  /-- before the switch: above `vmax` (a switch may still come) -/
-  dom : ∀ k, ∀ q < Δ, ∀ a u, vmax q a u ≤ vpre k q a u
-  /-- before the switch: the member's own recursion -/
-  step : ∀ k, ∀ q < Δ, ∀ a u, θ * slot4 (fam k) (fun hh aa =>
-    (if aa then x else 1) *
-      (if hh then vpre k 0 (acap (a.val + if aa then 1 else 0)) true
-        else if q + 1 = Δ then g (acap (a.val + if aa then 1 else 0)) true u
-          else vpre k (q + 1) (acap (a.val + if aa then 1 else 0)) u)) ≤ vpre k q a u
+  /-- before the switch: above `vmax` (a switch may still come), and the member's own recursion -/
+  pre : ∀ k, PreSol (fam k) Δ x θ g vmax (vpre k)
 
 /-- The phase weight, truncated at `G` slots. -/
 noncomputable def Wt2G (x θ : ℝ) (g : Fin 3 → Bool → Bool → ℝ) (m G : ℕ) (h : List Out) : ℝ :=
@@ -133,11 +133,7 @@ section AutoT
 variable {x θ : ℝ} {g : Fin 3 → Bool → Bool → ℝ} (T : List Out → ℕ → Fin 3 → Bool → ℝ)
   (bandOf : List Out → Band) (hTb : ∀ h, κ.BandAt (bandOf h) h) (hg0 : ∀ a b u, 0 ≤ g a b u) {m G : ℕ}
   (hTnext : ∀ h, m ≤ h.length → h.length + 1 ≤ m + G → ∀ o, ∀ q < Δ, ∀ a u, T (h ++ [o]) q a u ≤ T h q a u)
-  (hTstep : ∀ h, m ≤ h.length → h.length < m + G → ∀ q < Δ, ∀ a u, θ * slot4 (bandOf h) (fun hh aa =>
-    (if aa then x else 1) *
-      (if hh then T h 0 (acap (a.val + if aa then 1 else 0)) true
-        else if q + 1 = Δ then g (acap (a.val + if aa then 1 else 0)) true u
-          else T h (q + 1) (acap (a.val + if aa then 1 else 0)) u)) ≤ T h q a u)
+  (hTstep : ∀ h, m ≤ h.length → h.length < m + G → ∀ q < Δ, ∀ a u, stepR (bandOf h) Δ x θ g (T h) q a u ≤ T h q a u)
   (hTterm : ∀ h, ∀ q < Δ, ∀ a u, g a true u ≤ T h q a u)
 
 include hTb hg0 hTnext hTstep hTterm in
@@ -388,22 +384,18 @@ theorem vtab_next (hEL : 0 < EL) {m G : ℕ} (hG : G + 1 < EL) {h : List Out} (h
   · rw [if_neg hs]
     by_cases hb : (h.length + 2) % EL = 0
     · rw [if_pos ((swtd_succ hm).2 (Or.inr hb))]
-      exact le_trans (hv.maxp _ q hq a u) (hv.dom _ q hq a u)
+      exact le_trans (hv.maxp _ q hq a u) ((hv.pre _).dom q hq a u)
     · rw [if_neg (fun h' => ((swtd_succ hm).1 h').elim hs hb), hmem h o hb]
 
 include hv in
 /-- The step table satisfies the member's recursion. -/
-theorem vtab_step {m : ℕ} (h : List Out) : ∀ q < Δ, ∀ a u, θ * slot4 (fam (mem h)) (fun hh aa =>
-    (if aa then x else 1) *
-      (if hh then vtab vpre vpost EL m mem h 0 (acap (a.val + if aa then 1 else 0)) true
-        else if q + 1 = Δ then g (acap (a.val + if aa then 1 else 0)) true u
-          else vtab vpre vpost EL m mem h (q + 1) (acap (a.val + if aa then 1 else 0)) u)) ≤
-      vtab vpre vpost EL m mem h q a u := by
+theorem vtab_step {m : ℕ} (h : List Out) : ∀ q < Δ, ∀ a u,
+    stepR (fam (mem h)) Δ x θ g (vtab vpre vpost EL m mem h) q a u ≤ vtab vpre vpost EL m mem h q a u := by
   classical
   intro q hq a u
   by_cases hs : Swtd EL m h.length
   · simp only [vtab, hs, ↓reduceIte]; exact (hv.post (mem h)).step q hq a u
-  · simp only [vtab, hs, ↓reduceIte]; exact hv.step (mem h) q hq a u
+  · simp only [vtab, hs, ↓reduceIte]; exact (hv.pre (mem h)).step q hq a u
 
 include hv in
 theorem vtab_term {m : ℕ} (h : List Out) : ∀ q < Δ, ∀ a u, g a true u ≤ vtab vpre vpost EL m mem h q a u := by
@@ -412,7 +404,7 @@ theorem vtab_term {m : ℕ} (h : List Out) : ∀ q < Δ, ∀ a u, g a true u ≤
   by_cases hs : Swtd EL m h.length
   · simp only [vtab, hs, ↓reduceIte]; exact (hv.post (mem h)).term q hq a u
   · simp only [vtab, hs, ↓reduceIte]
-    exact le_trans ((hv.post (mem h)).term q hq a u) (le_trans (hv.maxp (mem h) q hq a u) (hv.dom (mem h) q hq a u))
+    exact le_trans ((hv.post (mem h)).term q hq a u) (le_trans (hv.maxp (mem h) q hq a u) ((hv.pre (mem h)).dom q hq a u))
 
 include hv hg0 hband hmem in
 /-- **One phase, one member per epoch, truncated at `G` slots.** -/

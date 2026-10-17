@@ -131,6 +131,15 @@ noncomputable def Wt2 (x θ : ℝ) (g : Fin 3 → Bool → Bool → ℝ) (m : �
     g (acap (advCnt (strOf h) m h.length)) (decide (1 ≤ honCnt (strOf h) m h.length))
       (decide (2 ≤ honCnt (strOf h) m h.length))
 
+/-- One step of the automaton recursion at state `(q, a, u2)`, for adversary factor `x`,
+tilt `θ`, terminal table `g` and table `w`: the bound of the next slot's outcomes. -/
+noncomputable def stepR (B : Band) (Δ : ℕ) (x θ : ℝ) (g : Fin 3 → Bool → Bool → ℝ) (w : ℕ → Fin 3 → Bool → ℝ)
+    (q : ℕ) (a : Fin 3) (u2 : Bool) : ℝ :=
+  θ * slot4 B (fun hh aa => (if aa then x else 1) *
+    (if hh then w 0 (acap (a.val + if aa then 1 else 0)) true
+      else if q + 1 = Δ then g (acap (a.val + if aa then 1 else 0)) true u2
+        else w (q + 1) (acap (a.val + if aa then 1 else 0)) u2))
+
 /-- A solution of the automaton recursion for adversary factor `x`, tilt `θ` and
 terminal table `g`: `v q a u2` bounds the rest of a burst `q` slots after its last
 honest success, with `min(A, 2) = a` and `U2 = u2` so far. -/
@@ -139,11 +148,7 @@ structure AutoSol (B : Band) (Δ : ℕ) (x θ : ℝ) (g : Fin 3 → Bool → Boo
   /-- a run cut by the horizon is covered -/
   term : ∀ q < Δ, ∀ a u2, g a true u2 ≤ v q a u2
   /-- the recursion -/
-  step : ∀ q < Δ, ∀ a u2, θ * slot4 B (fun hh aa =>
-    (if aa then x else 1) *
-      (if hh then v 0 (acap (a.val + if aa then 1 else 0)) true
-        else if q + 1 = Δ then g (acap (a.val + if aa then 1 else 0)) true u2
-          else v (q + 1) (acap (a.val + if aa then 1 else 0)) u2)) ≤ v q a u2
+  step : ∀ q < Δ, ∀ a u2, stepR B Δ x θ g v q a u2 ≤ v q a u2
 
 variable {Δ M : ℕ}
 

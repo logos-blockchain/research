@@ -245,16 +245,16 @@ def idxChk (i : ℕ) (dat : IdxData) : Bool :=
 
 /-- The tables, over `ℝ`. -/
 noncomputable def vsR (i : ℕ) (dat : IdxData) : ℕ → Fin 3 → Bool → ℝ :=
-  castT (castZ SZ (fillAllZ F.famL F.D F.Δ (F.X i) SZ (gFloorZ (F.X i) SZ) (seedL dat.vs)))
+  castZ SZ (fillAllZ F.famL F.D F.Δ (F.X i) SZ (gFloorZ (F.X i) SZ) (seedL dat.vs))
 
 noncomputable def vpostR (i : ℕ) (dat : IdxData) (k : Fin F.S.K) : ℕ → Fin 3 → Bool → ℝ :=
-  castT (castZ SZ (postF F.famZ F.D F.Δ (F.X i) SZ (F.postTop dat) k))
+  castZ SZ (postF F.famZ F.D F.Δ (F.X i) SZ (F.postTop dat) k)
 
 noncomputable def vpreR (i : ℕ) (dat : IdxData) (k : Fin F.S.K) : ℕ → Fin 3 → Bool → ℝ :=
-  castT (castZ SZ (preF F.famZ F.D F.Δ (F.X i) SZ (F.postTop dat) (F.preTop dat) k))
+  castZ SZ (preF F.famZ F.D F.Δ (F.X i) SZ (F.postTop dat) (F.preTop dat) k)
 
 noncomputable def vmaxR (i : ℕ) (dat : IdxData) : ℕ → Fin 3 → Bool → ℝ :=
-  castT (castZ SZ (vmaxF F.famZ F.D F.Δ (F.X i) SZ (F.postTop dat)))
+  castZ SZ (vmaxF F.famZ F.D F.Δ (F.X i) SZ (F.postTop dat))
 
 /-- `xg` at the potential's parameters, over `ℝ`. -/
 noncomputable abbrev xgR (i : Fin 19) := xg F.c F.z F.s F.d F.τ i
