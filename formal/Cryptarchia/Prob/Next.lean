@@ -147,6 +147,17 @@ theorem firstPE_of_reached {h : List Out} (hlM : h.length < M) (o : Out) (t : Li
     rw [hp]
     exact hk _ (by simp at h2; omega)
 
+/-- **Monotonicity over one phase**: on the first phase ends after `h`. -/
+theorem ExPh_mono_first {h : List Out} (hlM : h.length < M) {F G : List Out → ℝ}
+    (hFG : ∀ h', FirstPE Δ M h h' → F h' ≤ G h') :
+    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) F h ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) G h :=
+  ExPh_mono_on _ _ _ fun o t ht hk hend => hFG _ (firstPE_of_reached hlM o t ht hk hend)
+
+/-- A value that no first phase end after `h` exceeds bounds the expectation. -/
+theorem ExPh_le_first {h : List Out} (hlM : h.length < M) {F : List Out → ℝ} {c : ℝ}
+    (hF : ∀ h', FirstPE Δ M h h' → F h' ≤ c) : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) F h ≤ c :=
+  (ExPh_mono_first hlM hF).trans (le_of_eq (ExPh_const _ _ _ _))
+
 theorem start_of_pe {h : List Out} (hpe : PE Δ M h) (hlM : h.length < M) : Start Δ h := by
   rcases hpe with h1 | ⟨-, h2⟩
   · omega

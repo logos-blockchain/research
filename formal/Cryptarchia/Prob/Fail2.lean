@@ -135,34 +135,24 @@ theorem psiS_step (P : Cert2 B Δ)
   have hτ0 : 0 ≤ P.τ := by linarith [P.hτ]
   obtain ⟨j, hj⟩ : ∃ j, pidx Δ M (strOf h) h.length = j := ⟨_, rfl⟩
   have hej : gend Δ M (strOf h) j = h.length := by rw [← hj]; exact gend_pidx_pe hpe
-  have reach : ∀ (o : Out) (t : List Out), t.length ≤ M - h.length - 1 →
-      (∀ k' < t.length, ¬ PE Δ M (h ++ [o] ++ t.take k')) →
-      (PE Δ M (h ++ [o] ++ t) ∨ t.length = M - h.length - 1) → FirstPE Δ M h (h ++ [o] ++ t) :=
-    fun o t ht hk hend => firstPE_of_reached hlM o t ht hk hend
   have he17 : 0 ≤ P.e 17 := by
     have := h17 h hpe hlM
     refine le_trans (ExPh_nonneg _ _ (fun y => ?_) _) this
     rw [WP17]; positivity
   by_cases h1 : j < k0
   · -- constant until the anchor
-    have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (Ψs Δ M P k0 k1) h ≤
-        ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun _ => P.e 17 ^ (k1 - k0)) h := by
-      apply ExPh_mono_on
-      intro o t ht hk' hend
-      have hf := reach o t ht hk' hend
-      generalize hh' : h ++ [o] ++ t = h' at hf ⊢
-      have hp' := next_pidx hpe hlM hf
-      rw [hj] at hp'
-      unfold Ψs
-      rw [hp']
-      by_cases h2 : j + 1 < k0
-      · rw [if_pos h2]
-      · have hk0 : k0 = j + 1 := by omega
-        have hl := next_gend_last hpe hlM hf
-        rw [hj] at hl
-        rw [if_neg h2, if_pos (by omega), hk0, hl, Nat.sub_self, pow_zero, mul_one]
-    refine hle.trans (le_of_eq ?_)
-    rw [ExPh_const]; unfold Ψs; rw [hj, if_pos h1]
+    refine (ExPh_le_first hlM fun h' hf => ?_).trans (le_of_eq (show P.e 17 ^ (k1 - k0) = _ by
+      unfold Ψs; rw [hj, if_pos h1]))
+    have hp' := next_pidx hpe hlM hf
+    rw [hj] at hp'
+    unfold Ψs
+    rw [hp']
+    by_cases h2 : j + 1 < k0
+    · rw [if_pos h2]
+    · have hk0 : k0 = j + 1 := by omega
+      have hl := next_gend_last hpe hlM hf
+      rw [hj] at hl
+      rw [if_neg h2, if_pos (by omega), hk0, hl, Nat.sub_self, pow_zero, mul_one]
   · push Not at h1
     by_cases h2 : j < k1
     · -- one more phase of the span
@@ -170,10 +160,7 @@ theorem psiS_step (P : Cert2 B Δ)
       have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (Ψs Δ M P k0 k1) h ≤
           ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun h' => P.e 17 ^ (k1 - (j + 1)) *
             P.τ ^ (h.length - gend Δ M (strOf h) k0) * WP P 17 h.length h') h := by
-        apply ExPh_mono_on
-        intro o t ht hk' hend
-        have hf := reach o t ht hk' hend
-        generalize hh' : h ++ [o] ++ t = h' at hf ⊢
+        refine ExPh_mono_first hlM fun h' hf => ?_
         have hp' := next_pidx hpe hlM hf
         rw [hj] at hp'
         have hg0 := next_gend hpe hlM hf (i := k0) (by rw [hj]; exact h1)
@@ -189,23 +176,17 @@ theorem psiS_step (P : Cert2 B Δ)
       rw [hj, if_neg (by omega), if_pos (by omega), show k1 - j = (k1 - (j + 1)) + 1 by omega, pow_succ]
       ring
     · -- the span is complete
-      have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (Ψs Δ M P k0 k1) h ≤
-          ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun _ => Ψs Δ M P k0 k1 h) h := by
-        apply ExPh_mono_on
-        intro o t ht hk' hend
-        have hf := reach o t ht hk' hend
-        generalize hh' : h ++ [o] ++ t = h' at hf ⊢
-        have hp' := next_pidx hpe hlM hf
-        rw [hj] at hp'
-        have hg0 := next_gend hpe hlM hf (i := k0) (by rw [hj]; omega)
-        have hg1 := next_gend hpe hlM hf (i := k1) (by rw [hj]; omega)
-        unfold Ψs
-        rw [hp', hj, if_neg (by omega), if_neg (by omega), if_neg (by omega), hg0, hg1]
-        by_cases h3 : j ≤ k1
-        · have hjk : j = k1 := by omega
-          rw [if_pos h3, hjk, Nat.sub_self, pow_zero, one_mul, ← hjk, hej]
-        · rw [if_neg h3]
-      exact hle.trans (le_of_eq (ExPh_const _ _ _ _))
+      refine ExPh_le_first hlM fun h' hf => ?_
+      have hp' := next_pidx hpe hlM hf
+      rw [hj] at hp'
+      have hg0 := next_gend hpe hlM hf (i := k0) (by rw [hj]; omega)
+      have hg1 := next_gend hpe hlM hf (i := k1) (by rw [hj]; omega)
+      unfold Ψs
+      rw [hp', hj, if_neg (by omega), if_neg (by omega), if_neg (by omega), hg0, hg1]
+      by_cases h3 : j ≤ k1
+      · have hjk : j = k1 := by omega
+        rw [if_pos h3, hjk, Nat.sub_self, pow_zero, one_mul, ← hjk, hej]
+      · rw [if_neg h3]
 
 /-- **Long spans are rare.** -/
 theorem span_bound' (P : Cert2 B Δ)

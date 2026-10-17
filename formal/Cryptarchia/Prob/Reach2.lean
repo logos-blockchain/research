@@ -77,10 +77,6 @@ theorem phiR2_step (P : Cert2 B Δ)
   classical
   have hc0 : 0 < P.c := by linarith [P.hc]
   obtain ⟨j, hj⟩ : ∃ j, pidx Δ M (strOf h) h.length = j := ⟨_, rfl⟩
-  have reach : ∀ (o : Out) (t : List Out), t.length ≤ M - h.length - 1 →
-      (∀ k < t.length, ¬ PE Δ M (h ++ [o] ++ t.take k)) →
-      (PE Δ M (h ++ [o] ++ t) ∨ t.length = M - h.length - 1) → FirstPE Δ M h (h ++ [o] ++ t) :=
-    fun o t ht hk hend => firstPE_of_reached hlM o t ht hk hend
   by_cases hjk : j < j0
   · obtain ⟨ρ, hρ⟩ : ∃ ρ, (bnd Δ (strOf h) 0 (gend Δ M (strOf h)) j).1 = ρ := ⟨_, rfl⟩
     have hρ0 : 0 ≤ ρ := by rw [← hρ]; exact bnd_fst_nonneg j
@@ -90,10 +86,7 @@ theorem phiR2_step (P : Cert2 B Δ)
         ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun h' => P.lr ^ (n - 1) *
           (if 1 ≤ ρ then P.c ^ ρ * WP P 0 h.length h' else WP P 1 h.length h') +
             (P.b - P.lr) * ∑ i ∈ Finset.range (n - 1), P.lr ^ i) h := by
-      apply ExPh_mono_on
-      intro o t ht hk hend
-      have hf := reach o t ht hk hend
-      generalize hh' : h ++ [o] ++ t = h' at hf ⊢
+      refine ExPh_mono_first hlM fun h' hf => ?_
       have hp' := next_pidx hpe hlM hf
       have hbs := next_bnd_succ hpe hlM hf
       rw [hj] at hp' hbs
@@ -154,18 +147,12 @@ theorem phiR2_step (P : Cert2 B Δ)
       rw [hS, hpow, hc1]
       nlinarith
   · push Not at hjk
-    have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (Φr2 Δ M P j0) h ≤
-        ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun _ => Φr2 Δ M P j0 h) h := by
-      apply ExPh_mono_on
-      intro o t ht hk hend
-      have hf := reach o t ht hk hend
-      generalize hh' : h ++ [o] ++ t = h' at hf ⊢
-      have hp' := next_pidx hpe hlM hf
-      have hb := next_bnd hpe hlM hf (i := j0) (by rw [hj]; exact hjk)
-      rw [hj] at hp'
-      unfold Φr2
-      rw [hp', hj, if_neg (by omega), if_neg (by omega), hb]
-    exact hle.trans (le_of_eq (ExPh_const _ _ _ _))
+    refine ExPh_le_first hlM fun h' hf => ?_
+    have hp' := next_pidx hpe hlM hf
+    have hb := next_bnd hpe hlM hf (i := j0) (by rw [hj]; exact hjk)
+    rw [hj] at hp'
+    unfold Φr2
+    rw [hp', hj, if_neg (by omega), if_neg (by omega), hb]
 
 theorem reachH2_le_phi (P : Cert2 B Δ) (j0 : ℕ) (h : List Out) : reachH2 Δ M P.c j0 h ≤ Φr2 Δ M P j0 h := by
   have hc0 : 0 < P.c := by linarith [P.hc]

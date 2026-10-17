@@ -159,10 +159,6 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
   have hRg1 : 1 ≤ P.lp / lpi := by rw [le_div_iff₀ hlpi0]; linarith
   have hRg0 : 0 ≤ P.lp / lpi := by linarith
   obtain ⟨j, hj⟩ : ∃ j, pidx Δ M (strOf h) h.length = j := ⟨_, rfl⟩
-  have reach : ∀ (o : Out) (t : List Out), t.length ≤ M - h.length - 1 →
-      (∀ k' < t.length, ¬ PE Δ M (h ++ [o] ++ t.take k')) →
-      (PE Δ M (h ++ [o] ++ t) ∨ t.length = M - h.length - 1) → FirstPE Δ M h (h ++ [o] ++ t) :=
-    fun o t ht hk hend => firstPE_of_reached hlM o t ht hk hend
   have hF : 0 ≤ lpi ^ (k - k0) * (P.lp / lpi) ^ Ccap * P.e 2 := by positivity
   by_cases hjk : j < k0
   · -- before the anchor
@@ -174,10 +170,7 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
         ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun h' => lpi ^ (k - k0) * (P.lp / lpi) ^ Ccap * P.e 2 * (P.lr ^ (n - 1) *
           (if 1 ≤ ρ then P.c ^ ρ * WP P 0 h.length h' else WP P 1 h.length h') +
             (P.b - P.lr) * ∑ i ∈ Finset.range (n - 1), P.lr ^ i)) h := by
-      apply ExPh_mono_on
-      intro o t ht hk hend
-      have hf := reach o t ht hk hend
-      generalize hh' : h ++ [o] ++ t = h' at hf ⊢
+      refine ExPh_mono_first hlM fun h' hf => ?_
       have hp' := next_pidx hpe hlM hf
       have hbs := next_bnd_succ hpe hlM hf
       rw [hj] at hp' hbs
@@ -274,10 +267,7 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
           subst hjeq
           have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 j) h ≤
               ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun h' => V2 P.c P.z P.s P.κ P.d st * WP P 2 h.length h') h := by
-            apply ExPh_mono_on
-            intro o t ht hk hend
-            have hf := reach o t ht hk hend
-            generalize hh' : h ++ [o] ++ t = h' at hf ⊢
+            refine ExPh_mono_first hlM fun h' hf => ?_
             have hp' := next_pidx hpe hlM hf
             rw [hj] at hp'
             have hfn := next_failC_new (Hc := Hc) hpe hlM hf (k0 := k0) (by rw [hj]; exact hjk)
@@ -329,10 +319,7 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
                 ExPh (κ := κ) (PE Δ M) (M - h.length - 1)
                   (fun h' => lpi ^ (k - (j + 1)) * (P.lp / lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 *
                     truncG h.length G (postB2 P st h.length) h') h := by
-              apply ExPh_mono_on
-              intro o t ht hk hend
-              have hf := reach o t ht hk hend
-              generalize hh' : h ++ [o] ++ t = h' at hf ⊢
+              refine ExPh_mono_first hlM fun h' hf => ?_
               have hp' := next_pidx hpe hlM hf
               have hrs := next_rf_succ hpe hlM hf (k0 := k0) (by rw [hj]; exact hjk)
               rw [hj] at hp' hrs
@@ -392,94 +379,74 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
                       (pow_le_pow_right₀ hRg1 hc1) (pow_nonneg hlpi0.le _)) he2) (mul_nonneg hlpi0.le hVs)
                 _ = _ := by rw [hkj, pow_succ]; ring
           · -- the window is over: nothing more
-            have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k) h ≤
-                ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun _ => 0) h := by
-              apply ExPh_mono_on
-              intro o t ht hk hend
-              have hf := reach o t ht hk hend
-              generalize hh' : h ++ [o] ++ t = h' at hf ⊢
-              have hp' := next_pidx hpe hlM hf
-              rw [hj] at hp'
-              have hg0 : gend Δ M (strOf h') k0 = gend Δ M (strOf h) k0 :=
-                next_gend hpe hlM hf (by rw [hj]; exact hjk)
-              unfold ΦfE3
-              rw [hp', if_neg (by omega), if_pos (by omega), hg0, hT0,
-                if_neg (fun hc => by have := hf.lt; have := hc.2.2; omega)]
-            refine hle.trans ?_
-            rw [ExPh_const, hval]
-            positivity
+            refine (ExPh_le_first (c := 0) hlM fun h' hf => ?_).trans (by rw [hval]; positivity)
+            have hp' := next_pidx hpe hlM hf
+            rw [hj] at hp'
+            have hg0 : gend Δ M (strOf h') k0 = gend Δ M (strOf h) k0 :=
+              next_gend hpe hlM hf (by rw [hj]; exact hjk)
+            unfold ΦfE3
+            rw [hp', if_neg (by omega), if_pos (by omega), hg0, hT0,
+              if_neg (fun hc => by have := hf.lt; have := hc.2.2; omega)]
       · -- past the horizon: nothing more
         have hval : ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h = 0 := by
           unfold ΦfE3; rw [hj, if_neg (by omega), if_pos hjk2, hT0, if_neg hHl]
         rw [hval]
-        have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k) h ≤
-            ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun _ => 0) h := by
-          apply ExPh_mono_on
-          intro o t ht hk hend
-          have hf := reach o t ht hk hend
-          generalize hh' : h ++ [o] ++ t = h' at hf ⊢
-          have hp' := next_pidx hpe hlM hf
-          rw [hj] at hp'
-          have hg0 : gend Δ M (strOf h') k0 = gend Δ M (strOf h) k0 :=
-            next_gend hpe hlM hf (by rw [hj]; exact hjk)
-          unfold ΦfE3
-          rw [hp', if_neg (by omega)]
-          by_cases hj' : j + 1 ≤ k
-          · rw [if_pos hj']
-            have hnn := (noLong_next (G := G) hpe hlM hf (k0 := k0) (by rw [hj]; exact hjk))
-            rw [hj] at hnn
-            rw [hg0, hT0, if_neg (fun hc => hHl ⟨by have := hf.lt; omega, (hnn.1 hc.2.1).1,
-              by have := hf.lt; have := hc.2.2; omega⟩)]
-          · rw [if_neg hj']
-            have hjeq : j = k := by omega
-            unfold failHE3
-            by_cases hnl : NoLong Δ M G k0 k (strOf h') ∧ gend Δ M (strOf h') k ≤ gend Δ M (strOf h') k0 + L
-            · rw [if_pos hnl]
-              have hnl0 : NoLong Δ M G k0 j (strOf h) := by
-                rw [hjeq]; exact (noLong_stable hpe hlM hf (by rw [hj]; omega)).1 hnl.1
-              have hsp : h.length ≤ T0 := by
-                have h2 := hnl.2
-                rw [next_gend hpe hlM hf (show k ≤ _ by rw [hj]; omega), hg0, ← hjeq, hgj, hT0] at h2
-                exact h2
-              unfold failH
-              rw [hp', if_pos (by omega)]
-              have hfn := next_failC_new (Hc := Hc) hpe hlM hf (k0 := k0) (by rw [hj]; exact hjk)
-              rw [hj] at hfn
-              rw [← hjeq, hfn, if_neg (fun hc => hHl ⟨hc.1, hnl0, hsp⟩)]
-            · rw [if_neg hnl]
-        exact hle.trans (le_of_eq (ExPh_const _ _ _ _))
-    · -- after the check: the failure is fixed
-      push Not at hjk2
-      have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k) h ≤
-          ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun _ => ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h) h := by
-        apply ExPh_mono_on
-        intro o t ht hk hend
-        have hf := reach o t ht hk hend
-        generalize hh' : h ++ [o] ++ t = h' at hf ⊢
+        refine ExPh_le_first hlM fun h' hf => ?_
         have hp' := next_pidx hpe hlM hf
         rw [hj] at hp'
-        have hst' := noLong_stable (G := G) (k0 := k0) (j := k) hpe hlM hf (by rw [hj]; omega)
-        have hgk := next_gend hpe hlM hf (i := k) (by rw [hj]; omega)
-        have hgk0 := next_gend hpe hlM hf (i := k0) (by rw [hj]; omega)
-        have hC : (NoLong Δ M G k0 k (strOf h') ∧ gend Δ M (strOf h') k ≤ gend Δ M (strOf h') k0 + L) ↔
-            (NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L) := by
-          rw [hgk, hgk0]; exact and_congr_left fun _ => hst'
-        have e1 : ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h' =
-            (if NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L then
-              failC Δ M Hc k0 k (strOf h') else 0) := by
-          unfold ΦfE3 failHE3 failH; rw [hp', if_neg (by omega), if_neg (by omega)]
-          by_cases hn : NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L
-          · rw [if_pos (hC.2 hn), if_pos hn, if_pos (by omega)]
-          · rw [if_neg (fun h'' => hn (hC.1 h'')), if_neg hn]
-        have e2 : ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h =
-            (if NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L then
-              failC Δ M Hc k0 k (strOf h) else 0) := by
-          unfold ΦfE3 failHE3 failH; rw [hj, if_neg (by omega), if_neg (by omega)]
-          by_cases hn : NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L
-          · rw [if_pos hn, if_pos hn, if_pos (by omega)]
-          · rw [if_neg hn, if_neg hn]
-        rw [e1, e2, next_failC_old hpe hlM hf (by rw [hj]; exact hjk2) (by omega)]
-      exact hle.trans (le_of_eq (ExPh_const _ _ _ _))
+        have hg0 : gend Δ M (strOf h') k0 = gend Δ M (strOf h) k0 :=
+          next_gend hpe hlM hf (by rw [hj]; exact hjk)
+        unfold ΦfE3
+        rw [hp', if_neg (by omega)]
+        by_cases hj' : j + 1 ≤ k
+        · rw [if_pos hj']
+          have hnn := (noLong_next (G := G) hpe hlM hf (k0 := k0) (by rw [hj]; exact hjk))
+          rw [hj] at hnn
+          rw [hg0, hT0, if_neg (fun hc => hHl ⟨by have := hf.lt; omega, (hnn.1 hc.2.1).1,
+            by have := hf.lt; have := hc.2.2; omega⟩)]
+        · rw [if_neg hj']
+          have hjeq : j = k := by omega
+          unfold failHE3
+          by_cases hnl : NoLong Δ M G k0 k (strOf h') ∧ gend Δ M (strOf h') k ≤ gend Δ M (strOf h') k0 + L
+          · rw [if_pos hnl]
+            have hnl0 : NoLong Δ M G k0 j (strOf h) := by
+              rw [hjeq]; exact (noLong_stable hpe hlM hf (by rw [hj]; omega)).1 hnl.1
+            have hsp : h.length ≤ T0 := by
+              have h2 := hnl.2
+              rw [next_gend hpe hlM hf (show k ≤ _ by rw [hj]; omega), hg0, ← hjeq, hgj, hT0] at h2
+              exact h2
+            unfold failH
+            rw [hp', if_pos (by omega)]
+            have hfn := next_failC_new (Hc := Hc) hpe hlM hf (k0 := k0) (by rw [hj]; exact hjk)
+            rw [hj] at hfn
+            rw [← hjeq, hfn, if_neg (fun hc => hHl ⟨hc.1, hnl0, hsp⟩)]
+          · rw [if_neg hnl]
+    · -- after the check: the failure is fixed
+      push Not at hjk2
+      refine ExPh_le_first hlM fun h' hf => ?_
+      have hp' := next_pidx hpe hlM hf
+      rw [hj] at hp'
+      have hst' := noLong_stable (G := G) (k0 := k0) (j := k) hpe hlM hf (by rw [hj]; omega)
+      have hgk := next_gend hpe hlM hf (i := k) (by rw [hj]; omega)
+      have hgk0 := next_gend hpe hlM hf (i := k0) (by rw [hj]; omega)
+      have hC : (NoLong Δ M G k0 k (strOf h') ∧ gend Δ M (strOf h') k ≤ gend Δ M (strOf h') k0 + L) ↔
+          (NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L) := by
+        rw [hgk, hgk0]; exact and_congr_left fun _ => hst'
+      have e1 : ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h' =
+          (if NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L then
+            failC Δ M Hc k0 k (strOf h') else 0) := by
+        unfold ΦfE3 failHE3 failH; rw [hp', if_neg (by omega), if_neg (by omega)]
+        by_cases hn : NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L
+        · rw [if_pos (hC.2 hn), if_pos hn, if_pos (by omega)]
+        · rw [if_neg (fun h'' => hn (hC.1 h'')), if_neg hn]
+      have e2 : ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h =
+          (if NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L then
+            failC Δ M Hc k0 k (strOf h) else 0) := by
+        unfold ΦfE3 failHE3 failH; rw [hj, if_neg (by omega), if_neg (by omega)]
+        by_cases hn : NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L
+        · rw [if_pos hn, if_pos hn, if_pos (by omega)]
+        · rw [if_neg hn, if_neg hn]
+      rw [e1, e2, next_failC_old hpe hlM hf (by rw [hj]; exact hjk2) (by omega)]
 
 theorem failHE3_le_phi (P : Cert2 B Δ) (he2 : 0 ≤ P.e 2) {lpi : ℝ} (hlpi0 : 0 < lpi) (Sw : ℕ → Prop)
     {Ccap G L Hc k0 k : ℕ} (hk0 : k0 ≤ k) (h : List Out) :
