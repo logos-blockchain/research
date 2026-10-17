@@ -89,7 +89,6 @@ public import Cryptarchia.Proof.Consist
 public import Cryptarchia.Prob.Trunc
 public import Cryptarchia.Prob.EpochInd
 public import Cryptarchia.Prob.Drift
-public import Cryptarchia.Prob.WorstStop
 public import Cryptarchia.Prob.ROStop
 public import Cryptarchia.Prob.Finality
 public import Cryptarchia.Prob.Closed

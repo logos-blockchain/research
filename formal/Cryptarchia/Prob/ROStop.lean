@@ -34,7 +34,6 @@ import Mathlib.Topology.Sheaves.Init
 public import Cryptarchia.Prob.RO
 public import Cryptarchia.Prob.WorstE
 import Cryptarchia.Prob.ROEpoch
-import Cryptarchia.Prob.WorstStop
 public import Cryptarchia.Prob.TSIRO
 
 /-!
