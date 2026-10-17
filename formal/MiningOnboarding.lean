@@ -1,9 +1,13 @@
 -- Formalization of `reports/mining_funded_onboarding.tex`.
-import MiningOnboarding.Model
-import MiningOnboarding.AFunction
-import MiningOnboarding.Qualification
-import MiningOnboarding.SmallGrowth
-import MiningOnboarding.Difficulty
-import MiningOnboarding.ContinuingEntry
-import MiningOnboarding.PoolDepletion
-import MiningOnboarding.Explore
+module -- shake: keep-all
+
+public import MiningOnboarding.Model
+public import MiningOnboarding.AFunction
+public import MiningOnboarding.Qualification
+public import MiningOnboarding.SmallGrowth
+public import MiningOnboarding.Difficulty
+public import MiningOnboarding.ContinuingEntry
+public import MiningOnboarding.PoolDepletion
+public import MiningOnboarding.Explore
+
+@[expose] public section
