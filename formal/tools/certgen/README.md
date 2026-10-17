@@ -21,11 +21,11 @@ Example: `python3 plan.py 0.3 11 > plan_0.3_11.json && python3 mkcfg.py 0.3 11 B
 
 Each table is given by its three entries at `(0, a, true)`, the state just after an honest success: every other entry is one recursion step from the next row, so Lean computes the table from them by backward recursion (`fillZ`, and `fillAllZ` for a switching table, the step's maximum over the members), each step rounded up to the scale `2⁶⁴`. A one-switch index also gives `vmax` in full, so that each member's checks stand alone. The checks (`AutoSol`, `PreSol`, `post ≤ vmax`, `autoBound ≤ e`) run in integer arithmetic (`Cryptarchia/Prob/AutoZ.lean`): band fields over a common denominator (`famZ`, `DZ` in `Fam.lean`), `x`, `θ`, `g` over theirs (`X<i>`), tables at scale `2⁶⁴`. Each integer check is exactly equivalent to the rational one (`stepZ_cast`, `slot4Z_cast`), so its soundness comes from the lemmas in `AutoQ.lean`; the kernel evaluates it with its arbitrary-precision `Nat` arithmetic, by `decide +kernel`, with no normalization of rationals. No axioms beyond Lean's standard three. `emitZ.py` mirrors the Lean computation exactly and runs every check before writing a file. Each index has its own file (`I<i>.lean`), and Lake checks the 19 in parallel; a whole certificate (32 members) builds in about 1.5 min. The generated files are modules, with the imports `lake shake` computes (`EXT`, `FAM_IMPORTS`, `MAIN_IMPORTS` in `emitE.py`); after changing the emitted proofs, rerun `lake shake CryptarchiaCerts` and update those lists.
 
-Examples (the committed certificates, with μ = 0.1 and the default stake drift ρ = 1.01, `RHO` in `certE.py`):
+Examples (the committed certificates, with μ = 0.13 and the default stake drift ρ = 1.01, `RHO` in `certE.py`):
 
 ```sh
-python3 emitE.py 0.2 11 0.085 32 31536000 E20D11 ../../Cryptarchia/Prob/Certs all 0.1
-python3 emitE.py 0.2 11 0.085 32 5184000 E20D11M2 ../../Cryptarchia/Prob/Certs all 0.1
+python3 emitE.py 0.2 11 0.085 32 31536000 E20D11 ../../Cryptarchia/Prob/Certs all 0.13
+python3 emitE.py 0.2 11 0.085 32 5184000 E20D11M2 ../../Cryptarchia/Prob/Certs all 0.13
 ```
 
 The arguments are β, Δ, the TSI band δ, the number of band members, the horizon, the name, the output directory, `all` or `main`, and μ. More members narrow each member's exponent range and so tighten the automaton bounds; δ trades the band term `Ne · bandEps` (smaller for larger δ) against the members' spread (wider for larger δ). At β = 0.2 the best total was at K = 32 and δ = 0.085 (sweeps over K ∈ {6, 10, 16, 24, 32}, δ ∈ {0.075, …, 0.09}).
@@ -37,4 +37,4 @@ The arguments are β, Δ, the TSI band δ, the number of band members, the horiz
 - `finality_closed`: the bound `epsC N k`, the sum of the nine geometric terms;
 - `finality_closed_short`: the same, folded from `t ≥ K0 / 20` on into one settlement rate and one band rate (`geom_le_of`).
 
-Example (the committed certificate): `python3 emitC.py 0.2 11 0.085 32 E20D11C ../../Cryptarchia/Prob/Certs 1000 0.1 101/100`. It prints the bound at a few `(N, k)`.
+Example (the committed certificate): `python3 emitC.py 0.2 11 0.085 32 E20D11C ../../Cryptarchia/Prob/Certs 1000 0.13 101/100`. It prints the bound at a few `(N, k)`.
