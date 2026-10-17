@@ -35,15 +35,11 @@ import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
 
 /-!
-# The lottery law over many epochs
+# Epochs and what is known before a slot
 
-Under a random oracle, fresh lotteries and Δ-delivery (`Prob/RO.lean`), suppose every
-epoch state a slot can run under is within the band of a member of a family, chosen
-by a fixed rule from the state (`pick`). A slot's epoch state depends only on its
-epoch (`σE`), so the member is the same for all slots of an epoch and known before
-each of them. `lottery_law_epoch` then bounds every event about the lottery string
-that is closed under adding adversarial slots by a kernel that keeps one member per
-epoch (`Kern.EpochFam`).
+A slot's epoch state depends only on its epoch (`σE`), so consecutive slots of one epoch
+run under the same state (`σE_succ`). What is known before a slot (`hist`) grows with
+the slot (`hist_mono`) and knows the slot's epoch state (`measurable_hist_σ`).
 -/
 
 @[expose] public section
@@ -70,5 +66,11 @@ theorem div_succ_of_mod {EL n : ℕ} (h : (n + 2) % EL ≠ 0) : (n + 2) / EL = (
 theorem hist_mono (O : Ω → Oracle) (σ : Ω → ℕ → EpochState) {j n : ℕ} (h : j ≤ n) : hist O σ j ≤ hist O σ n :=
   sup_le_sup (iSup₂_le fun i hi => le_iSup₂_of_le i (Finset.mem_range.2 (by have := Finset.mem_range.1 hi; omega)) le_rfl)
     (iSup₂_le fun i hi => le_iSup₂_of_le i (Finset.mem_range.2 (by have := Finset.mem_range.1 hi; omega)) le_rfl)
+
+/-- Slot `n`'s epoch state is known before slot `n`'s tickets are drawn. -/
+theorem measurable_hist_σ (O : Ω → Oracle) (σ : Ω → ℕ → EpochState) (n : ℕ) :
+    Measurable[hist O σ n] fun ω => σ ω n :=
+  (comap_measurable (fun ω => σ ω n)).mono
+    (le_sup_of_le_right (le_iSup₂_of_le n (Finset.mem_range.2 (Nat.lt_succ_self n)) le_rfl)) le_rfl
 
 end Cryptarchia.Prob

@@ -42,25 +42,19 @@ import Mathlib.Topology.Sheaves.Init
 import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
-# From conditional slot laws to a kernel
+# Outcomes, the honest polytope and slot laws
 
 The lottery string of an execution is not sampled by one fixed kernel: the next
 slot's law depends on the epoch state, which depends on everything the adversary
-did. This file turns per-slot conditional laws into the kernel form the bounds
-use.
+did. This file sets up what turning per-slot conditional laws into a kernel needs
+(`Prob/WorstE`):
 
-Suppose that, given the past, each slot's outcome has the law `qh ⊗ Bern(qa)`: an
-honest part `qh` in the band's honest polytope (`HB`) and, independently, an
-adversarial win with probability `qa ≤ amax` (`hcond` in `law_le`). Take an event
-`S` about the first `M` slots that is closed under adding adversarial slots
-(`UpClosed`). Then `S` is at most as likely as under the **worst-case kernel**
-(`worstK`), which at each history plays the honest law in `HB` that maximizes the
-probability of `S` from there, with the adversary winning with probability
-exactly `amax`. That kernel is within the band (`worstK_within`).
-
-The worst case is a backward recursion (`Wv`): a maximum over the compact set
-`HB`, attained (`Wv_attain`). It is monotone in adversarial slots (`Wv_mono`),
-which is why an adversary winning less often than `amax` only helps.
+* outcome lists ordered by adversarial slots (`OutLe`), events closed under adding
+  them (`UpClosed`), and events decided by a prefix (`Decided`);
+* a band's **honest polytope** (`HB`, compact) and the slot laws `qh ⊗ Bern(a)`
+  (`prodLaw`); a kernel playing such a law with `qh ∈ HB` and `a = amax` is within the
+  band (`bandAt_prodLaw`);
+* slot outcomes with known conditional laws (`Adapted`).
 -/
 
 @[expose] public section
@@ -99,6 +93,18 @@ theorem forall₂_trans {l l' l'' : List Out} (h : List.Forall₂ OutLe l l') (h
 
 theorem forall₂_append {l l' m m' : List Out} (h : List.Forall₂ OutLe l l') (hm : List.Forall₂ OutLe m m') :
     List.Forall₂ OutLe (l ++ m) (l' ++ m') := List.rel_append h hm
+
+/-- **`x` decides `S` at length `M`**: every continuation of `x` to length `M` lies in `S`. -/
+def Decided (S : Set (List Out)) (M : ℕ) (x : List Out) : Prop :=
+  ∀ y : List Out, x.length + y.length = M → x ++ y ∈ S
+
+theorem Decided.append {S : Set (List Out)} {M : ℕ} {x : List Out} (h : Decided S M x) (z : List Out) :
+    Decided S M (x ++ z) := fun y hy => by
+  rw [List.append_assoc]; exact h _ (by simp only [List.length_append] at hy ⊢; omega)
+
+theorem Decided.mem {S : Set (List Out)} {M : ℕ} {x : List Out} (h : Decided S M x) (hx : x.length = M) :
+    x ∈ S := by
+  simpa using h [] (by simpa using hx)
 
 /-- Sums over outcomes. -/
 theorem sum_out {β : Type*} [AddCommMonoid β] (f : Out → β) :
@@ -210,8 +216,26 @@ theorem bandAt_prodLaw {κ : Kern} {l : List Out} {B : Band} (hB : B.Prod) {q : 
   · rw [pra]; exact hB.alo
   · rw [prha]; exact le_trans hB.halo (mul_le_mul_of_nonneg_right mem.2.2.1 ha0)
 
-/-! ## Conditional laws to the worst-case kernel -/
+/-! ## Slot outcomes with known conditional laws -/
 
 open scoped ENNReal
+
+/-- **Slot outcomes with known conditional laws.** `m n` is what is known before outcome
+`X n` is drawn: it grows with `n` and knows the earlier outcomes and the law `law n`, and
+given it, `X n` has that law. -/
+structure Adapted {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure Ω) (X : ℕ → Ω → Out)
+    (m : ℕ → MeasurableSpace Ω) (law : ℕ → Ω → Out → ℝ) : Prop where
+  le : ∀ n, m n ≤ mΩ
+  mono : ∀ j n, j ≤ n → m j ≤ m n
+  meas : ∀ n j, j < n → Measurable[m n] (X j)
+  law_meas : ∀ n o, Measurable[m n] fun ω => law n ω o
+  nonneg : ∀ n ω o, 0 ≤ law n ω o
+  sum_one : ∀ n ω, ∑ o, law n ω o = 1
+  cond : ∀ n (f : Ω → ℝ≥0∞), Measurable[m n] f → ∀ o,
+    ∫⁻ ω, f ω * (if X n ω = o then 1 else 0) ∂μ = ∫⁻ ω, f ω * ENNReal.ofReal (law n ω o) ∂μ
+
+theorem Adapted.measurable {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} {X : ℕ → Ω → Out}
+    {m : ℕ → MeasurableSpace Ω} {law : ℕ → Ω → Out → ℝ} (h : Adapted μ X m law) (j : ℕ) : Measurable (X j) :=
+  (h.meas (j + 1) j (Nat.lt_succ_self j)).mono (h.le _) le_rfl
 
 end Cryptarchia.Prob

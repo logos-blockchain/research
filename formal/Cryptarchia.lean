@@ -69,7 +69,6 @@ public import Cryptarchia.Prob.Cold2E
 public import Cryptarchia.Prob.Fail2E
 public import Cryptarchia.Prob.Final2E
 public import Cryptarchia.Prob.TSIRO
-public import Cryptarchia.Prob.FinalTSI
 public import Cryptarchia.Prob.Fail3E
 public import Cryptarchia.Prob.Tail3E
 public import Cryptarchia.Prob.Final3E
@@ -86,12 +85,6 @@ public import Cryptarchia.Prob.Pick
 public import Cryptarchia.Prob.Occupied
 public import Cryptarchia.Proof.Signers
 public import Cryptarchia.Proof.Consist
-public import Cryptarchia.Prob.Trunc
-public import Cryptarchia.Prob.EpochInd
-public import Cryptarchia.Prob.Drift
-public import Cryptarchia.Prob.WorstStop
-public import Cryptarchia.Prob.ROStop
-public import Cryptarchia.Prob.FinalTight
 public import Cryptarchia.Prob.Finality
 public import Cryptarchia.Prob.Closed
 public import Cryptarchia.Prob.ExpBound

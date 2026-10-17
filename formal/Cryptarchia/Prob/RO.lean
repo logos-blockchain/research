@@ -47,8 +47,8 @@ import Std.Tactic.BVDecide.Normalize.Prop
 /-!
 # The lottery law from a random oracle
 
-`final_bimm_prob2` assumes the law of the lottery string (`hlaw`). This file derives
-it from a random-oracle model of the note lottery.
+The probabilistic bounds need the law of the lottery string. This file derives each
+slot's law from a random-oracle model of the note lottery.
 
 **The model.** The oracle is random: `O ω`. The ticket of note `id` at slot `i`
 under nonce `η` is `(O ω).ticket η i id`. Slot `i`'s **ticket table**
@@ -113,9 +113,6 @@ def slotOut (E : Env) (i : ℕ) (s : EpochState) (T : Tab) : Out :=
 
 /-- Slot `i`'s ticket table. -/
 def tk {Ω : Type*} (O : Ω → Oracle) (i : ℕ) (ω : Ω) : Tab := fun η id => (O ω).ticket η i id
-
-/-- The environment with oracle `O`. -/
-def _root_.Cryptarchia.Env.withO (E : Env) (O : Oracle) : Env := { E with O := O }
 
 /-- Under Δ-delivery, the lottery string is the slot outcomes. -/
 theorem enc_lotStr {E : Env} {O : Oracle} {es : List Event} (hD : DeltaDelivery (E.withO O) es) (i : ℕ) :
@@ -565,69 +562,18 @@ theorem slot_law (hO : RandomOracle μ O E.c.p) (hnd : E.nodes.Nodup) (i : ℕ) 
   rw [hset]
   fin_cases h <;> cases b <;> simp [prodLaw, qhRO, qaRO, a0, a1, a2, b0, b1, b2]
 
-/-- The assumptions do not involve the oracle. -/
-theorem _root_.Cryptarchia.Assm.withO {E : Env} (h : Assm E) (O : Oracle) : Assm (E.withO O) :=
-  ⟨h.ord, h.crash, h.exec, h.nodup, h.sane, h.stake⟩
-
-/-- The good event does not involve the oracle. -/
-theorem goodLS_withO {E : Env} {O : Oracle} {w : CStr} {N Lw : ℕ} {e : ℕ → ℕ} (h : GoodLS E w N Lw e) :
-    GoodLS (E.withO O) w N Lw e :=
-  ⟨h.e0, h.mono, h.quiet, h.unb, h.cold, h.window⟩
-
 /-! ## From an unsafe execution to an event closed under adversarial slots -/
 
-theorem enc_hon_zero (p : ℕ × Bool) : (enc p).hon.val = 0 ↔ p.1 = 0 := by
-  unfold enc; split_ifs <;> simp_all
-
-theorem enc_hon_one (p : ℕ × Bool) : (enc p).hon.val = 1 ↔ p.1 = 1 := by
-  unfold enc; split_ifs <;> simp_all
-
-theorem slots_get (w : CStr) (M k : ℕ) (hk : k < (slots w M).length) :
-    (slots w M)[k] = enc (w (k + 1)) := by
-  simp [slots]
-
-/-- **Unsafe executions are bad for every dominating outcome list.** If an execution
-is unsafe, then every outcome list with the lottery string's honest leaders and at
-least its adversarial slots fails the good event. -/
-theorem unsafe_up (E : Env) (hA : Assm E) {es : List Event} {N M Lw r G : ℕ} (hNF : (wF E es).now ≤ N)
-    (hNM : N + G < M) (hU : Unsafe E es) {l' : List Out}
-    (hl : List.Forall₂ OutLe (slots (lotStr E es) M) l') :
-    ¬ (GoodLS E (strOf l') N Lw (gend E.Δ M (strOf l')) ∧ GrowthS E (strOf l') (gend E.Δ M (strOf l')) N r G) := by
-  classical
-  intro hg
-  set lot := lotStr E es with hlot
-  obtain ⟨hlen, hget⟩ := List.forall₂_iff_get.1 hl
-  rw [slots_length] at hlen
-  -- the outcome at slot `i` of `l'` dominates the lottery string's
-  have hdom1 : ∀ i, 1 ≤ i → i ≤ M → OutLe (enc (lot i)) (l'.getD (i - 1) Out.empty) := by
-    intro i h1 h2
-    have hk1 : i - 1 < (slots lot M).length := by rw [slots_length]; omega
-    have hk2 : i - 1 < l'.length := by omega
-    have := hget (i - 1) hk1 hk2
-    rw [List.getD_eq_getElem _ _ hk2]
-    simp only [List.get_eq_getElem, slots_get, show i - 1 + 1 = i by omega] at this
-    exact this
-  set w : CStr := fun i => if 1 ≤ i ∧ i ≤ M then ((lot i).1, (strOf l' i).2) else lot i with hw
-  have hstr : ∀ i, 1 ≤ i → strOf l' i = (l'.getD (i - 1) Out.empty).toPair := by
-    intro i hi; unfold strOf; rw [if_neg (by omega)]
-  have hdom : AdvLeW N lot w := by
-    refine ⟨fun i _ _ => by simp only [hw]; split_ifs <;> rfl, fun i hi => ?_⟩
-    simp only [hw]
-    split_ifs with h
-    · rw [hstr i h.1]
-      exact (hdom1 i h.1 h.2).2 (by simpa [enc] using hi)
-    · exact hi
-  have hsim : SimOn (strOf l') w 0 M := by
-    intro i h1 h2
-    have hd := hdom1 i (by omega) h2
-    simp only [hw, if_pos (show 1 ≤ i ∧ i ≤ M by omega)]
-    rw [hstr i (by omega)]
-    simp only [Out.toPair]
-    rw [← hd.1]
-    exact ⟨enc_hon_zero _, enc_hon_one _, trivial⟩
-  have hgw := good_congr E rfl hA.sane hsim hNM hg
+/-- **An unsafe execution's lottery string fails the good event robustly**: every
+outcome list with its honest leaders and at least its adversarial slots fails it. -/
+theorem unsafe_up (E : Env) (hA : Assm E) {O : Oracle} {es : List Event} {N M Lw r G : ℕ}
+    (hNF : (wF (E.withO O) es).now ≤ N) (hNM : N + G < M) (hU : Unsafe (E.withO O) es) :
+    slots (lotStr (E.withO O) es) M ∈ RBad E N M Lw r G := by
+  intro l' hl hg
+  obtain ⟨w, hdom, hgw⟩ := good_dom (E.withO O) (by omega)
+    (fun ep hep _ => by have := ((hA.withO O).sane.fix_ok ep hep).1; omega) hl hg.withO
   obtain ⟨n, n', i, j, hnn, hn', hi, hj, hio, hjo, hb⟩ := hU
-  exact hb (final_bimm_dom hA hNF hdom hgw.1 hgw.2 hnn hn' hi hj hio hjo)
+  exact hb (final_bimm_dom (hA.withO O) hNF hdom hgw.1 hgw.2 hnn hn' hi hj hio hjo)
 
 /-! ## Probabilistic finality from the random oracle -/
 
@@ -643,11 +589,10 @@ what is known before it, including the epoch state the slot's lottery runs under
 def Fresh (μ : Measure Ω) (O : Ω → Oracle) (σ : Ω → ℕ → EpochState) : Prop :=
   ∀ i, Indep (hist O σ i) (MeasurableSpace.comap (tk O i) inferInstance) μ
 
-/-- **The band condition on an epoch state** for slot `i`: the lead notes have
-distinct identifiers, the honest part of the slot's law is in the band's honest
-polytope, and the adversary wins with probability at most `amax`. -/
+/-- **The band condition on an epoch state** for slot `i`: the honest part of the
+slot's law is in the band's honest polytope, and the adversary wins with probability
+at most `amax`. -/
 structure SlotBand (B : Band) (E : Env) (i : ℕ) (s : EpochState) : Prop where
-  nodup : (s.lead.map Note.id).Nodup
   hon : qhRO E i s ∈ HB B
   adv : qaRO E.c s ≤ B.amax
 
