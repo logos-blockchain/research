@@ -34,6 +34,57 @@ def is_sw(i): return i in (0, 1, 2, 17)
 def is_one(i): return i not in (2, 17)
 
 
+# ---- the records' fields, each with a line comment
+
+def record(fields):
+    """the fields of a `where` record, `(name, value, comment)`, with aligned line comments; a long
+    field's comment goes on the line above it"""
+    short = [len(f"  {n} := {v}") for n, v, _ in fields if len(f"  {n} := {v}") <= 80]
+    w = max(short) if short else 0
+    out = ""
+    for n, v, c in fields:
+        line = f"  {n} := {v}"
+        out += f"  -- {c}\n{line}\n" if len(line) > 80 else line.ljust(w) + f"  -- {c}\n"
+    return out
+
+
+def fam_fields(beta, K, ys):
+    return [("η", "1 / 10 ^ 70", "the lottery threshold's approximation error"),
+            ("ζ", "1 / 10 ^ 16", "the largest note's share of the stake"),
+            ("β", qQ(beta), "the adversary's share of the participating stake"),
+            ("d", "13", "significant digits of the bands' fields"),
+            ("dy", "12", "significant digits of the adversarial exponent's bound"),
+            ("K", str(K), "the members"),
+            ("ys", "[" + ", ".join(qQ(y) for y in ys) + "]", "the breakpoints: member k has honest exponent in [ys k, ys (k + 1)]")]
+
+
+def cfg_fields(D, c, z, s, d, tau):
+    return [("S", "S", "the band family"),
+            ("famZL", "eval% S.famZList S.DZ", "the members' integer bands, computed once"),
+            ("D", "eval% S.DZ", "their common denominator"),
+            ("Δ", str(D), "the network delay, in slots"),
+            ("c", qQ(c), "the potential's base for the reach"),
+            ("z", qQ(z), "the potential's base for the margin, when cold"),
+            ("s", qQ(s), "the weight of the cold potential's first term"),
+            ("d", qQ(d), "the base of the cold potential's second term"),
+            ("τ", qQ(tau), "the span term's base per slot")]
+
+
+def tq_fields(T):
+    return [("ℓlo", qQ(T['llo']), "the estimate's band, below: ℓlo ≤ λ V / D"),
+            ("ℓhi", qQ(T['lhi']), "and above: λ V / D ≤ ℓhi"),
+            ("μ", qQ(T['mu']), "the canonical chain's loss of honestly won slots (`ChainQuality`)"),
+            ("β", qQ(T['beta']), "the adversary's share of the participating stake"),
+            ("δ", qQ(T['delta']), "the estimate's relative band per epoch"),
+            ("η", "1 / 10 ^ 70", "the lottery threshold's approximation error"),
+            ("ζ", "1 / 10 ^ 16", "the largest note's share of the stake")]
+
+
+POT = [("κ", "the weight of the cold potential's second term"),
+       ("lp", "the potential's contraction per phase"),
+       ("lpi", "its contraction per phase inside an epoch")]
+
+
 # ---- the index computations of `FamCfg` (`CertGen.lean`), with its fixed solver settings
 
 PAD = 2 ** 8
@@ -125,13 +176,12 @@ def fam_lines(cfg, fam):
     c, z, s, d, tau = (Fr(cfg[v]) for v in ['c', 'z', 's', 'd', 'tau'])
     return f"""/-! ## The band family and the potential -/
 
-/-- The band family: {K} members, β = {beta}; member `k` has honest exponent in `[ys k, ys (k + 1)]`. -/
-def S : FamSpec := ⟨1 / 10 ^ 70, 1 / 10 ^ 16, {qQ(beta)}, 13, 12, {K},
-  [{", ".join(qQ(y) for y in ys)}]⟩
-
-/-- The family's integer bands (computed once), `Δ = {D}` and the potential's `c z s d τ`. -/
-def F : FamCfg := ⟨S, eval% S.famZList S.DZ, eval% S.DZ, {D}, {qQ(c)}, {qQ(z)}, {qQ(s)}, {qQ(d)}, {qQ(tau)}⟩
-
+/-- The band family. -/
+def S : FamSpec where
+{record(fam_fields(beta, K, ys))}
+/-- The family's integer bands and the potential's parameters. -/
+def F : FamCfg where
+{record(cfg_fields(D, c, z, s, d, tau))}
 theorem famOK : F.S.chk F.famZ F.D = true := by decide +kernel
 
 theorem dOK : 0 < F.D := by decide +kernel
@@ -239,7 +289,23 @@ def emit(cfg, T, fam, B, P, name, out_dir, target):
     assert M // EL < Ne and N + G + Gp + D + 2 <= M and Lw + G < EL and PERIOD + G + 2 <= EL
     write_data(cfg, fam, sub, ns, name)
     beta = T['beta']
-    tq = f"⟨{qQ(T['llo'])}, {qQ(T['lhi'])}, {qQ(T['mu'])}, {qQ(beta)}, {qQ(T['delta'])}, {ETA_ZETA.replace(') (', '), (')}⟩"
+    spec_fields = [(n, v, c_) for (n, c_), v in zip(POT, [qQ(kap), qQ(P['lp']), qQ(P['lpi'])])] + [
+        ("N", N, "the horizon: executions up to slot N"),
+        ("M", M, "the slots the analysis covers, N + G + G' + Δ + 2"),
+        ("Ne", Ne, "the epochs they span"),
+        ("G", G, "the phase cut: longer phases count as failures"),
+        ("G'", Gp, "the longest empty run"),
+        ("J", J, "the phases of a span"),
+        ("Lw", Lw, "the slots of a span, and of a crowded window"),
+        ("r", r, "the reach bound"),
+        ("T", Tg, "the growth block, in slots"),
+        ("x", qQ(x), "the crowded-window tilt"),
+        ("yy", qQ(yy), "the slow-growth tilt"),
+        ("ρ", qQ(T['rho']), "the stake drift per epoch (`StakeDrift`)"),
+        ("Hmin", qQ(T['hmin']), "the least honest online stake (`MinStake`)"),
+        ("tgt", qQ(target), f"the bound on settlement failing, {float(target):.2e}"),
+        ("bx", qQ(BX), f"the bound on leaving the band in one epoch, {float(BX):.3e}"),
+        ("fin", qQ(FINAL), f"the bound on a finality violation, {float(FINAL):.2e}")]
     txt = (imports([f"public import {ns}.Data\n"], ext=True) + f"""
 /-!
 # Multi-epoch finality certificate: β = {beta}, Δ = {D}, k = {k}, {K} members
@@ -269,29 +335,10 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
 
 /-- The certificate's chosen numbers. -/
 def par : SpecData where
-  κ := {qQ(kap)}
-  lp := {qQ(P['lp'])}
-  lpi := {qQ(P['lpi'])}
-  N := {N}
-  M := {M}
-  Ne := {Ne}
-  G := {G}
-  G' := {Gp}
-  J := {J}
-  Lw := {Lw}
-  r := {r}
-  T := {Tg}
-  x := {qQ(x)}
-  yy := {qQ(yy)}
-  ρ := {qQ(T['rho'])}
-  Hmin := {qQ(T['hmin'])}
-  tgt := {qQ(target)}
-  bx := {qQ(BX)}
-  fin := {qQ(FINAL)}
-
+{record(spec_fields)}
 /-- The estimate's band: `λV/D ∈ [ℓlo, ℓhi]`, μ = {T['mu']}, β = {beta}, δ = {T['delta']}. -/
-def Tq : TBandQ := {tq}
-
+def Tq : TBandQ where
+{record(tq_fields(T))}
 theorem mainOK : F.mainChk F.S.weakest par.κ par.lp par.lpi dat = true := by decide +kernel
 
 theorem finOK : FamCfg.finChkSpec F F.S.weakest dat Tq par = true := by decide +kernel
@@ -379,14 +426,38 @@ def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
     C, sh = cd['C'], cd['short']
     write_data(cfg, fam, sub, ns, name)
     beta = T['beta']
-    tq = f"⟨{qQ(T['llo'])}, {qQ(T['lhi'])}, {qQ(T['mu'])}, {qQ(beta)}, {qQ(T['delta'])}, (1 / 10 ^ 70), (1 / 10 ^ 16)⟩"
-    flds = [("κ", qQ(kap)), ("lp", qQ(P['lp'])), ("lpi", qQ(P['lpi'])), ("G", cd['G']), ("g", cd['g']), ("j", cd['j']),
-            ("w", cd['w']), ("ρr", cd['rho']), ("T", cd['T']), ("m", cd['m']), ("nb", cd['nb']), ("nb0", cd['nb0']),
-            ("k0", cd['k0']), ("x", qQ(cd['x'])), ("yy", qQ(cd['yy'])), ("ρ", qQ(T['rho'])), ("Hmin", qQ(T['hmin']))]
-    flds += [(kk, qQ(C[kk])) for kk in ['A1', 'q2', 'A3', 'q3', 'A4', 'q4', 'A5', 'q5', 'A6', 'q6', 'A7', 'q7']]
-    flds += [("C1", qQ(cd['Cs'][0])), ("Q1", qQ(cd['Qs'][0])), ("C2", qQ(cd['Cs'][1])), ("Q2", qQ(cd['Qs'][1])),
-             ("t0", sh['t0']), ("qs", qQ(sh['qs'])), ("As", qQ(sh['As'])), ("qb", qQ(sh['qb'])), ("Ab", qQ(sh['Ab']))]
-    par = "".join(f"  {kk} := {v}\n" for kk, v in flds)
+    m_ = cd['m']
+    terms = {2: "long empty runs", 3: "long spans", 4: "failed checks", 5: "crowded windows", 6: "large reach",
+             7: "slow growth"}
+    flds = [(n, v, c_) for (n, c_), v in zip(POT, [qQ(kap), qQ(P['lp']), qQ(P['lpi'])])] + [
+        ("G", cd['G'], "the phase cut: longer phases count as failures"),
+        ("g", cd['g'], f"the longest empty run, per t = k / {m_}"),
+        ("j", cd['j'], "the phases of a span, per t"),
+        ("w", cd['w'], "the slots of a span, and of a crowded window, per t"),
+        ("ρr", cd['rho'], "the reach bound, per t"),
+        ("T", cd['T'], "the growth block, in slots"),
+        ("m", m_, "the depth per t"),
+        ("nb", cd['nb'], "the growth blocks per t"),
+        ("nb0", cd['nb0'], "less these"),
+        ("k0", cd['k0'], "the least depth"),
+        ("x", qQ(cd['x']), "the crowded-window tilt"),
+        ("yy", qQ(cd['yy']), "the slow-growth tilt"),
+        ("ρ", qQ(T['rho']), "the stake drift per epoch (`StakeDrift`)"),
+        ("Hmin", qQ(T['hmin']), "the least honest online stake (`MinStake`)"),
+        ("A1", qQ(C['A1']), "long phases: (N + g t + 1) · A1")]
+    for i in range(2, 8):
+        if i > 2: flds.append((f"A{i}", qQ(C[f'A{i}']), f"{terms[i]}: A{i} · q{i}ᵗ per horizon slot"))
+        flds.append((f"q{i}", qQ(C[f'q{i}']), f"{terms[i]}: the rate per t" if i > 2 else f"{terms[i]}: (N + 1) · q2ᵗ"))
+    flds += [("C1", qQ(cd['Cs'][0]), "the band, below: C1 · (1 / Q1)ᵗ per epoch"),
+             ("Q1", qQ(cd['Qs'][0]), "its rate"),
+             ("C2", qQ(cd['Cs'][1]), "the band, above: C2 · (1 / Q2)ᵗ per epoch"),
+             ("Q2", qQ(cd['Qs'][1]), "its rate"),
+             ("t0", sh['t0'], "the short form holds from t ≥ t0"),
+             ("qs", qQ(sh['qs']), f"its settlement rate, {float(sh['qs']):.6f}"),
+             ("As", qQ(sh['As']), "and constant"),
+             ("qb", qQ(sh['qb']), f"its band rate, {float(sh['qb']):.6f}"),
+             ("Ab", qQ(sh['Ab']), "and constant")]
+    par = record(flds)
     k0, g, G = cd['k0'], cd['g'], cd['G']
     hyps = f"""(E : Env) {{k : ℕ}} (hc : E.c = Config.specK k) (hk : {k0} ≤ k) (hΔ : E.Δ = {D}) (es : Ω → List Event)
     (hM : Model μ O E es) {{N : ℕ}} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) (hG : GenesisOK E)
@@ -422,8 +493,8 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
 def par : ClosedData where
 {par}
 /-- The estimate's band: `λV/D ∈ [ℓlo, ℓhi]`, μ = {T['mu']}, β = {beta}, δ = {T['delta']}. -/
-def Tq : TBandQ := {tq}
-
+def Tq : TBandQ where
+{record(tq_fields(T))}
 theorem mainOK : F.mainChk F.S.weakest par.κ par.lp par.lpi dat = true := by decide +kernel
 
 theorem closedOK : FamCfg.closedChk F F.S.weakest dat Tq par = true := by decide +kernel

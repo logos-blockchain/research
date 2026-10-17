@@ -64,28 +64,35 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
 
 /-- The certificate's chosen numbers. -/
 def par : SpecData where
-  κ := (1161 / 10000 : ℚ)
-  lp := (9993122321859 / 10000000000000 : ℚ)
-  lpi := (1247304775463 / 1250000000000 : ℚ)
-  N := 5184000
-  M := 5186921
-  Ne := 9
-  G := 737
-  G' := 2171
-  J := 18473
-  Lw := 33871
-  r := 449
-  T := 19
-  x := (3091 / 2500 : ℚ)
-  yy := (4371 / 5000 : ℚ)
-  ρ := (101 / 100 : ℚ)
-  Hmin := (1000000 : ℚ)
-  tgt := (3 / 200000000000 : ℚ)
-  bx := (2343 / 100000000000000000 : ℚ)
-  fin := (1 / 62500000000 : ℚ)
+  κ := (1161 / 10000 : ℚ)                     -- the weight of the cold potential's second term
+  lp := (9993122321859 / 10000000000000 : ℚ)  -- the potential's contraction per phase
+  lpi := (1247304775463 / 1250000000000 : ℚ)  -- its contraction per phase inside an epoch
+  N := 5184000                                -- the horizon: executions up to slot N
+  M := 5186921                                -- the slots the analysis covers, N + G + G' + Δ + 2
+  Ne := 9                                     -- the epochs they span
+  G := 737                                    -- the phase cut: longer phases count as failures
+  G' := 2171                                  -- the longest empty run
+  J := 18473                                  -- the phases of a span
+  Lw := 33871                                 -- the slots of a span, and of a crowded window
+  r := 449                                    -- the reach bound
+  T := 19                                     -- the growth block, in slots
+  x := (3091 / 2500 : ℚ)                      -- the crowded-window tilt
+  yy := (4371 / 5000 : ℚ)                     -- the slow-growth tilt
+  ρ := (101 / 100 : ℚ)                        -- the stake drift per epoch (`StakeDrift`)
+  Hmin := (1000000 : ℚ)                       -- the least honest online stake (`MinStake`)
+  tgt := (3 / 200000000000 : ℚ)               -- the bound on settlement failing, 1.50e-11
+  bx := (2343 / 100000000000000000 : ℚ)       -- the bound on leaving the band in one epoch, 2.343e-14
+  fin := (1 / 62500000000 : ℚ)                -- the bound on a finality violation, 1.60e-11
 
 /-- The estimate's band: `λV/D ∈ [ℓlo, ℓhi]`, μ = 13/100, β = 1/5, δ = 17/200. -/
-def Tq : TBandQ := ⟨(30111159 / 1000000000 : ℚ), (18668233 / 500000000 : ℚ), (13 / 100 : ℚ), (1 / 5 : ℚ), (17 / 200 : ℚ), (1 / 10 ^ 70), (1 / 10 ^ 16)⟩
+def Tq : TBandQ where
+  ℓlo := (30111159 / 1000000000 : ℚ)  -- the estimate's band, below: ℓlo ≤ λ V / D
+  ℓhi := (18668233 / 500000000 : ℚ)   -- and above: λ V / D ≤ ℓhi
+  μ := (13 / 100 : ℚ)                 -- the canonical chain's loss of honestly won slots (`ChainQuality`)
+  β := (1 / 5 : ℚ)                    -- the adversary's share of the participating stake
+  δ := (17 / 200 : ℚ)                 -- the estimate's relative band per epoch
+  η := 1 / 10 ^ 70                    -- the lottery threshold's approximation error
+  ζ := 1 / 10 ^ 16                    -- the largest note's share of the stake
 
 theorem mainOK : F.mainChk F.S.weakest par.κ par.lp par.lpi dat = true := by decide +kernel
 

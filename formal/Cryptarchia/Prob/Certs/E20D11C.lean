@@ -61,47 +61,54 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
 
 /-- The certificate's chosen numbers. -/
 def par : ClosedData where
-  κ := (547 / 5000 : ℚ)
-  lp := (9991766645103 / 10000000000000 : ℚ)
-  lpi := (9979331723103 / 10000000000000 : ℚ)
-  G := 704
-  g := 19
-  j := 172
-  w := 315
-  ρr := 3
-  T := 14
-  m := 20
-  nb := 96
-  nb0 := 30
-  k0 := 1000
-  x := (12307 / 10000 : ℚ)
-  yy := (997 / 1250 : ℚ)
-  ρ := (101 / 100 : ℚ)
-  Hmin := (1000000 : ℚ)
-  A1 := (68540061675157 / 100000000000000000000000000000000000000000 : ℚ)
-  q2 := (63295647758391 / 100000000000000 : ℚ)
-  A3 := (10142598762951 / 10000000000000 : ℚ)
-  q3 := (3363687461371 / 5000000000000 : ℚ)
-  A4 := (7730462945107 / 20000000000000 : ℚ)
-  q4 := (35028456115191 / 50000000000000 : ℚ)
-  A5 := (16250914113919 / 20000000000000 : ℚ)
-  q5 := (17124504232097 / 25000000000000 : ℚ)
-  A6 := (21840405971703 / 10000000000000 : ℚ)
-  q6 := (63751989880813 / 100000000000000 : ℚ)
-  A7 := (441101827619 / 800000000 : ℚ)
-  q7 := (14790947058993 / 25000000000000 : ℚ)
-  C1 := (10000849 / 10000000 : ℚ)
-  Q1 := (6787204045793 / 5000000000000 : ℚ)
-  C2 := (1000081693 / 1000000000 : ℚ)
-  Q2 := (13418599101303 / 10000000000000 : ℚ)
-  t0 := 50
-  qs := (70057 / 100000 : ℚ)
-  As := (2319019 / 2500000 : ℚ)
-  qb := (149047 / 200000 : ℚ)
-  Ab := (780757 / 500000 : ℚ)
+  κ := (547 / 5000 : ℚ)                                                    -- the weight of the cold potential's second term
+  lp := (9991766645103 / 10000000000000 : ℚ)                               -- the potential's contraction per phase
+  lpi := (9979331723103 / 10000000000000 : ℚ)                              -- its contraction per phase inside an epoch
+  G := 704                                                                 -- the phase cut: longer phases count as failures
+  g := 19                                                                  -- the longest empty run, per t = k / 20
+  j := 172                                                                 -- the phases of a span, per t
+  w := 315                                                                 -- the slots of a span, and of a crowded window, per t
+  ρr := 3                                                                  -- the reach bound, per t
+  T := 14                                                                  -- the growth block, in slots
+  m := 20                                                                  -- the depth per t
+  nb := 96                                                                 -- the growth blocks per t
+  nb0 := 30                                                                -- less these
+  k0 := 1000                                                               -- the least depth
+  x := (12307 / 10000 : ℚ)                                                 -- the crowded-window tilt
+  yy := (997 / 1250 : ℚ)                                                   -- the slow-growth tilt
+  ρ := (101 / 100 : ℚ)                                                     -- the stake drift per epoch (`StakeDrift`)
+  Hmin := (1000000 : ℚ)                                                    -- the least honest online stake (`MinStake`)
+  A1 := (68540061675157 / 100000000000000000000000000000000000000000 : ℚ)  -- long phases: (N + g t + 1) · A1
+  q2 := (63295647758391 / 100000000000000 : ℚ)                             -- long empty runs: (N + 1) · q2ᵗ
+  A3 := (10142598762951 / 10000000000000 : ℚ)                              -- long spans: A3 · q3ᵗ per horizon slot
+  q3 := (3363687461371 / 5000000000000 : ℚ)                                -- long spans: the rate per t
+  A4 := (7730462945107 / 20000000000000 : ℚ)                               -- failed checks: A4 · q4ᵗ per horizon slot
+  q4 := (35028456115191 / 50000000000000 : ℚ)                              -- failed checks: the rate per t
+  A5 := (16250914113919 / 20000000000000 : ℚ)                              -- crowded windows: A5 · q5ᵗ per horizon slot
+  q5 := (17124504232097 / 25000000000000 : ℚ)                              -- crowded windows: the rate per t
+  A6 := (21840405971703 / 10000000000000 : ℚ)                              -- large reach: A6 · q6ᵗ per horizon slot
+  q6 := (63751989880813 / 100000000000000 : ℚ)                             -- large reach: the rate per t
+  A7 := (441101827619 / 800000000 : ℚ)                                     -- slow growth: A7 · q7ᵗ per horizon slot
+  q7 := (14790947058993 / 25000000000000 : ℚ)                              -- slow growth: the rate per t
+  C1 := (10000849 / 10000000 : ℚ)                                          -- the band, below: C1 · (1 / Q1)ᵗ per epoch
+  Q1 := (6787204045793 / 5000000000000 : ℚ)                                -- its rate
+  C2 := (1000081693 / 1000000000 : ℚ)                                      -- the band, above: C2 · (1 / Q2)ᵗ per epoch
+  Q2 := (13418599101303 / 10000000000000 : ℚ)                              -- its rate
+  t0 := 50                                                                 -- the short form holds from t ≥ t0
+  qs := (70057 / 100000 : ℚ)                                               -- its settlement rate, 0.700570
+  As := (2319019 / 2500000 : ℚ)                                            -- and constant
+  qb := (149047 / 200000 : ℚ)                                              -- its band rate, 0.745235
+  Ab := (780757 / 500000 : ℚ)                                              -- and constant
 
 /-- The estimate's band: `λV/D ∈ [ℓlo, ℓhi]`, μ = 13/100, β = 1/5, δ = 17/200. -/
-def Tq : TBandQ := ⟨(30108409 / 1000000000 : ℚ), (2333537 / 62500000 : ℚ), (13 / 100 : ℚ), (1 / 5 : ℚ), (17 / 200 : ℚ), (1 / 10 ^ 70), (1 / 10 ^ 16)⟩
+def Tq : TBandQ where
+  ℓlo := (30108409 / 1000000000 : ℚ)  -- the estimate's band, below: ℓlo ≤ λ V / D
+  ℓhi := (2333537 / 62500000 : ℚ)     -- and above: λ V / D ≤ ℓhi
+  μ := (13 / 100 : ℚ)                 -- the canonical chain's loss of honestly won slots (`ChainQuality`)
+  β := (1 / 5 : ℚ)                    -- the adversary's share of the participating stake
+  δ := (17 / 200 : ℚ)                 -- the estimate's relative band per epoch
+  η := 1 / 10 ^ 70                    -- the lottery threshold's approximation error
+  ζ := 1 / 10 ^ 16                    -- the largest note's share of the stake
 
 theorem mainOK : F.mainChk F.S.weakest par.κ par.lp par.lpi dat = true := by decide +kernel
 
