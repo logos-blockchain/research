@@ -61,7 +61,7 @@ structure Cert3E (B : Band) (Δ : ℕ) {K : ℕ} (fam : Fin K → Band) (EL G : 
   lpi : ℝ
   ei : Fin K → Fin 19 → ℝ
   pat0 : Fin K → ℝ
-  hcl : ∀ k, ClassOK C.P lpi (ei k) (pat0 k)
+  hcl : ∀ k, ClassOK C.P.c C.P.z C.P.s C.P.κ C.P.d lpi (ei k) (pat0 k)
   hlpi0 : 0 < lpi
   hlpi : lpi ≤ C.P.lp
   hpat : ∀ k, pat0 k ≤ (fam k).slo * (fam k).elo ^ Δ
@@ -110,7 +110,7 @@ include D hκ
 /-- **A phase inside an epoch**: the starting member's class conditions, crossing bound
 and own-table phase bounds. -/
 theorem Cert3E.inEpoch : ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ ¬ NoSw EL G h.length →
-    ∃ (e : Fin 19 → ℝ) (pat : ℝ), ClassOK D.C.P D.lpi e pat ∧
+    ∃ (e : Fin 19 → ℝ) (pat : ℝ), ClassOK D.C.P.c D.C.P.z D.C.P.s D.C.P.κ D.C.P.d D.lpi e pat ∧
       pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h ∧
       ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
         ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP D.C.P i h.length)) h ≤ e i := by

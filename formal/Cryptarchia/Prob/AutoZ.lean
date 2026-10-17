@@ -368,14 +368,14 @@ def classOKQ (c z s κ d lp : ℚ) (e : Fin 19 → ℚ) (pat : ℚ) : Bool :=
     decide (s * c ^ 2 * (e 6 - lp) + κ * d ^ 2 * (e 13 - lp) ≤ 0) && decide (e 6 ≤ lp) &&
     decide (s * c ^ 3 * (e 6 - lp) + κ * d ^ 3 * max (e 14 - lp) 0 + κ * e 16 ≤ 0)
 
-theorem ClassOK.ofQ {B : Band} {Δ : ℕ} {P : Cert2 B Δ} {c z s κ d lp pat : ℚ} {e : Fin 19 → ℚ}
-    {lp' pat' : ℝ} {e' : Fin 19 → ℝ} (hc : P.c = c) (hz : P.z = z) (hs : P.s = s) (hκ : P.κ = κ)
-    (hd : P.d = d) (hlp : lp' = lp) (he : ∀ i, e' i = e i) (hpat : pat' = pat)
-    (h : classOKQ c z s κ d lp e pat = true) : ClassOK P lp' e' pat' := by
+theorem ClassOK.ofQ {c z s κ d lp pat : ℚ} {e : Fin 19 → ℚ} {c' z' s' κ' d' lp' pat' : ℝ}
+    {e' : Fin 19 → ℝ} (hc : c' = c) (hz : z' = z) (hs : s' = s) (hκ : κ' = κ) (hd : d' = d) (hlp : lp' = lp)
+    (he : ∀ i, e' i = e i) (hpat : pat' = pat)
+    (h : classOKQ c z s κ d lp e pat = true) : ClassOK c' z' s' κ' d' lp' e' pat' := by
   simp only [classOKQ, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩ := h
-  subst hlp hpat
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp only [he, hc, hz, hs, hκ, hd] <;>
+  subst hc hz hs hκ hd hlp hpat
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp only [he] <;>
     exact_mod_cast ‹_›
 
 end Cryptarchia.Prob

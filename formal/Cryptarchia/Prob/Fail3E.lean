@@ -140,7 +140,7 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
     {lpi : ℝ} (hlpi0 : 0 < lpi) (hlpi : lpi ≤ P.lp)
     (Sw : ℕ → Prop) {Ccap L : ℕ} (hcap : ∀ t, swCnt Sw t (t + L) ≤ Ccap)
     (hIn : ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ Sw h.length → ∃ (e : Fin 19 → ℝ) (pat : ℝ),
-      ClassOK P lpi e pat ∧
+      ClassOK P.c P.z P.s P.κ P.d lpi e pat ∧
       pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h ∧
       ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
         ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ e i)
@@ -418,7 +418,7 @@ theorem fail_checkE3 (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 
     {lpi : ℝ} (hlpi0 : 0 < lpi) (hlpi : lpi ≤ P.lp)
     (Sw : ℕ → Prop) {Ccap L : ℕ} (hcap : ∀ t, swCnt Sw t (t + L) ≤ Ccap)
     (hIn : ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ Sw h.length → ∃ (e : Fin 19 → ℝ) (pat : ℝ),
-      ClassOK P lpi e pat ∧
+      ClassOK P.c P.z P.s P.κ P.d lpi e pat ∧
       pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h ∧
       ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
         ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ e i)

@@ -52,8 +52,8 @@ automaton of `Auto.lean`. The potential contracts by `λp` per phase in every st
 (`ex_post2`), checked state class by state class: warm with positive or zero
 reach, and cold with reach `0, 1, 2, ≥ 3` and margin `-1` or `≤ -2`.
 
-The certificate (`Cert2`) holds the parameters and, for each of 19 expectations
-over one phase, a solution of the automaton recursion.
+The certificate (`Cert2`) holds the parameters, a bound for each of 19 expectations
+over one phase, and the class conditions (`ClassOK`) they meet.
 -/
 
 @[expose] public section
@@ -101,50 +101,13 @@ noncomputable def xgN (c z s d τ : ℝ) : ℕ → ℝ × ℝ × (Fin 3 → Bool
 /-- The 19 expectations over one phase. -/
 noncomputable def xg (c z s d τ : ℝ) (i : Fin 19) : ℝ × ℝ × (Fin 3 → Bool → Bool → ℝ) := xgN c z s d τ i.val
 
-/-- **The certificate.** -/
-structure Cert2 (B : Band) (Δ : ℕ) where
-  c : ℝ
-  z : ℝ
-  s : ℝ
-  κ : ℝ
-  d : ℝ
-  τ : ℝ
-  lp : ℝ
-  lr : ℝ
-  b : ℝ
-  /-- solutions of the automaton recursions -/
-  v : Fin 19 → ℕ → Fin 3 → Bool → ℝ
-  /-- the expectations they give -/
-  e : Fin 19 → ℝ
-  hc : 1 ≤ c
-  hz : 1 ≤ z
-  hs : 1 ≤ s
-  hκ : 0 ≤ κ
-  hd0 : 0 < d
-  hd1 : d ≤ 1
-  hsz : s + κ ≤ z
-  hτ : 1 ≤ τ
-  hlp0 : 0 ≤ lp
-  hlp : lp < 1
-  hlr0 : 0 ≤ lr
-  hlr1 : lr < 1
-  hb1 : 1 ≤ b
-  helo : 0 ≤ B.elo
-  hΔ : 0 < Δ
-  /-- the family of bands the automaton bounds cover; `B` is weaker than each -/
-  Bs : List Band
-  weak : ∀ B' ∈ Bs, B.Weaker B'
-  sol : ∀ i, ∀ B' ∈ Bs, AutoSol B' Δ (xg c z s d τ i).1 (xg c z s d τ i).2.1 (xg c z s d τ i).2.2 (v i)
-  he : ∀ i, ∀ B' ∈ Bs, autoBound B' (xg c z s d τ i).1 (xg c z s d τ i).2.1 (xg c z s d τ i).2.2 (v i) ≤ e i
-  /-- the span base is at least one -/
-  he17 : 1 ≤ e 17
-  /-- reach recursion -/
-  hlr : e 0 ≤ lr
-  hb : e 1 ≤ b
+/-- The class conditions of a contraction `lp` with phase bounds `e` and crossing bound
+`pat`, for the potential's constants `c z s κ d`. -/
+structure ClassOK (c z s κ d lp : ℝ) (e : Fin 19 → ℝ) (pat : ℝ) : Prop where
   /-- warm, positive reach -/
   w1 : e 0 ≤ lp
-  /-- warm, zero reach: a crossing has probability at least the pattern's -/
-  w0 : e 1 - (1 - (s + κ) * z⁻¹) * (B.slo * B.elo ^ Δ) ≤ lp
+  /-- warm, zero reach: a crossing has probability at least `pat` -/
+  w0 : e 1 - (1 - (s + κ) * z⁻¹) * pat ≤ lp
   /-- cold classes, margin -1, reach 0, 1, 2 -/
   m1r0 : s * (e 3 - lp) + κ * (e 7 - lp) ≤ 0
   m1r1 : s * c * (e 4 - lp) + κ * d * (e 8 - lp) ≤ 0
@@ -158,6 +121,37 @@ structure Cert2 (B : Band) (Δ : ℕ) where
   m2r2 : s * c ^ 2 * (e 6 - lp) + κ * d ^ 2 * (e 13 - lp) ≤ 0
   m2r3a : e 6 ≤ lp
   m2r3 : s * c ^ 3 * (e 6 - lp) + κ * d ^ 3 * max (e 14 - lp) 0 + κ * e 16 ≤ 0
+
+/-- **The certificate**: the potential's constants, its contraction `lp`, the reach
+recursion's `lr` and `b`, and the phase bounds `e` (`Cert2E` proves them). -/
+structure Cert2 (B : Band) (Δ : ℕ) where
+  c : ℝ
+  z : ℝ
+  s : ℝ
+  κ : ℝ
+  d : ℝ
+  τ : ℝ
+  lp : ℝ
+  lr : ℝ
+  b : ℝ
+  e : Fin 19 → ℝ
+  hc : 1 ≤ c
+  hz : 1 ≤ z
+  hs : 1 ≤ s
+  hκ : 0 ≤ κ
+  hd0 : 0 < d
+  hd1 : d ≤ 1
+  hsz : s + κ ≤ z
+  hτ : 1 ≤ τ
+  hlp0 : 0 ≤ lp
+  hlr0 : 0 ≤ lr
+  hlr1 : lr < 1
+  hb1 : 1 ≤ b
+  helo : 0 ≤ B.elo
+  hΔ : 0 < Δ
+  /-- the span base is at least one -/
+  he17 : 1 ≤ e 17
+  cls : ClassOK c z s κ d lp e (B.slo * B.elo ^ Δ)
 
 /-! ## Pointwise bounds -/
 

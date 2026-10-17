@@ -84,28 +84,9 @@ theorem iaOf_ne (st : ℤ × ℤ) : iaOf st ≠ 2 ∧ iaOf st ≠ 17 := by unfol
 theorem ibOf_ne (st : ℤ × ℤ) : ibOf st ≠ 2 ∧ ibOf st ≠ 17 := by unfold ibOf; split_ifs <;> decide
 theorem iabsOf_ne (st : ℤ × ℤ) : iabsOf st ≠ 2 ∧ iabsOf st ≠ 17 := by unfold iabsOf; split_ifs <;> decide
 
-/-- The class conditions of a contraction `lp` with phase bounds `e` and crossing bound
-`pat`, for the potential's constants of `P`. -/
-structure ClassOK (P : Cert2 B Δ) (lp : ℝ) (e : Fin 19 → ℝ) (pat : ℝ) : Prop where
-  w1 : e 0 ≤ lp
-  w0 : e 1 - (1 - (P.s + P.κ) * P.z⁻¹) * pat ≤ lp
-  m1r0 : P.s * (e 3 - lp) + P.κ * (e 7 - lp) ≤ 0
-  m1r1 : P.s * P.c * (e 4 - lp) + P.κ * P.d * (e 8 - lp) ≤ 0
-  m1r2 : P.s * P.c ^ 2 * (e 4 - lp) + P.κ * P.d ^ 2 * (e 9 - lp) ≤ 0
-  m1r3a : e 4 ≤ lp
-  m1r3 : P.s * P.c ^ 3 * (e 4 - lp) + P.κ * P.d ^ 3 * max (e 10 - lp) 0 + P.κ * e 15 ≤ 0
-  m2r0 : P.s * (e 5 - lp) + P.κ * (e 11 - lp) ≤ 0
-  m2r1 : P.s * P.c * (e 6 - lp) + P.κ * P.d * (e 12 - lp) ≤ 0
-  m2r2 : P.s * P.c ^ 2 * (e 6 - lp) + P.κ * P.d ^ 2 * (e 13 - lp) ≤ 0
-  m2r3a : e 6 ≤ lp
-  m2r3 : P.s * P.c ^ 3 * (e 6 - lp) + P.κ * P.d ^ 3 * max (e 14 - lp) 0 + P.κ * e 16 ≤ 0
-
-theorem Cert2.classOK (P : Cert2 B Δ) : ClassOK P P.lp P.e (B.slo * B.elo ^ Δ) :=
-  ⟨P.w1, P.w0, P.m1r0, P.m1r1, P.m1r2, P.m1r3a, P.m1r3, P.m2r0, P.m2r1, P.m2r2, P.m2r3a, P.m2r3⟩
-
 /-- **The potential contracts by `lp` over one truncated phase**, in every state, for
 any phase bounds `e` and crossing bound `pat` meeting the class conditions. -/
-theorem ex_post2G_gen (P : Cert2 B Δ) {lp pat : ℝ} {e : Fin 19 → ℝ} (hcl : ClassOK P lp e pat) {G : ℕ}
+theorem ex_post2G_gen (P : Cert2 B Δ) {lp pat : ℝ} {e : Fin 19 → ℝ} (hcl : ClassOK P.c P.z P.s P.κ P.d lp e pat) {G : ℕ}
     {st : ℤ × ℤ} (hst : Inv st) {h : List Out} (hlM : h.length + Δ + 1 ≤ M)
     (hcross : pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h)
     (hE : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
@@ -240,7 +221,7 @@ theorem ex_post2G_at (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 
       ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ P.e i) :
     ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (postB2 P st h.length)) h ≤
       P.lp * V2 P.c P.z P.s P.κ P.d st :=
-  ex_post2G_gen P P.classOK hst hlM
+  ex_post2G_gen P P.cls hst hlM
     (ex_cross_trunc P.helo P.hΔ hlM hG (hW.slo h) fun i _ => hW.elo _) hE
 
 end Cryptarchia.Prob

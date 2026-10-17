@@ -312,7 +312,7 @@ def cert2ChkQ (Bq : BandR) (Δ : ℕ) (c z s κ d τ lp lr b : ℚ) (e : Fin 19 
     decide (1 ≤ b) && decide (0 ≤ Bq.elo) && decide (0 < Δ) && decide (1 ≤ e 17) && decide (e 0 ≤ lr) && decide (e 1 ≤ b) &&
     classOKQ c z s κ d lp e (Bq.slo * Bq.elo ^ Δ)
 
-/-- The conditions `cert2ChkQ` checks, by name. -/
+/-- The conditions `cert2ChkQ` checks, by name (those `Cert2` uses). -/
 structure Cert2FactsQ (Bq : BandR) (Δ : ℕ) (c z s κ d τ lp lr b : ℚ) (e : Fin 19 → ℚ) : Prop where
   hc : 1 ≤ c
   hz : 1 ≤ z
@@ -323,36 +323,22 @@ structure Cert2FactsQ (Bq : BandR) (Δ : ℕ) (c z s κ d τ lp lr b : ℚ) (e :
   hsz : s + κ ≤ z
   hτ : 1 ≤ τ
   hlp0 : 0 ≤ lp
-  hlp : lp < 1
   hlr0 : 0 ≤ lr
   hlr1 : lr < 1
   hb1 : 1 ≤ b
   helo : 0 ≤ Bq.elo
   hΔ : 0 < Δ
   he17 : 1 ≤ e 17
-  hlr : e 0 ≤ lr
-  hb : e 1 ≤ b
-  w1 : e 0 ≤ lp
-  w0 : e 1 - (1 - (s + κ) * z⁻¹) * (Bq.slo * Bq.elo ^ Δ) ≤ lp
-  m1r0 : s * (e 3 - lp) + κ * (e 7 - lp) ≤ 0
-  m1r1 : s * c * (e 4 - lp) + κ * d * (e 8 - lp) ≤ 0
-  m1r2 : s * c ^ 2 * (e 4 - lp) + κ * d ^ 2 * (e 9 - lp) ≤ 0
-  m1r3a : e 4 ≤ lp
-  m1r3 : s * c ^ 3 * (e 4 - lp) + κ * d ^ 3 * max (e 10 - lp) 0 + κ * e 15 ≤ 0
-  m2r0 : s * (e 5 - lp) + κ * (e 11 - lp) ≤ 0
-  m2r1 : s * c * (e 6 - lp) + κ * d * (e 12 - lp) ≤ 0
-  m2r2 : s * c ^ 2 * (e 6 - lp) + κ * d ^ 2 * (e 13 - lp) ≤ 0
-  m2r3a : e 6 ≤ lp
-  m2r3 : s * c ^ 3 * (e 6 - lp) + κ * d ^ 3 * max (e 14 - lp) 0 + κ * e 16 ≤ 0
+  cls : classOKQ c z s κ d lp e (Bq.slo * Bq.elo ^ Δ) = true
 
 theorem cert2ChkQ.facts {Bq : BandR} {Δ : ℕ} {c z s κ d τ lp lr b : ℚ} {e : Fin 19 → ℚ}
     (h : cert2ChkQ Bq Δ c z s κ d τ lp lr b e = true) : Cert2FactsQ Bq Δ c z s κ d τ lp lr b e := by
-  simp only [cert2ChkQ, classOKQ, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hc, hz⟩, hs⟩, hκ⟩, hd0⟩, hd1⟩, hsz⟩, hτ⟩, hlp0⟩, hlp⟩, hlr0⟩, hlr1⟩, hb1⟩, helo⟩, hΔ⟩, he17⟩, hlr⟩, hb⟩, ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨w1, w0⟩, m1r0⟩, m1r1⟩, m1r2⟩, m1r3a⟩, m1r3⟩, m2r0⟩, m2r1⟩, m2r2⟩, m2r3a⟩, m2r3⟩⟩ := h
-  exact ⟨hc, hz, hs, hκ, hd0, hd1, hsz, hτ, hlp0, hlp, hlr0, hlr1, hb1, helo, hΔ, he17, hlr, hb, w1, w0, m1r0, m1r1, m1r2, m1r3a, m1r3, m2r0, m2r1, m2r2, m2r3a, m2r3⟩
+  simp only [cert2ChkQ, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hc, hz⟩, hs⟩, hκ⟩, hd0⟩, hd1⟩, hsz⟩, hτ⟩, hlp0⟩, -⟩, hlr0⟩, hlr1⟩, hb1⟩, helo⟩, hΔ⟩, he17⟩, -⟩, -⟩,
+    cls⟩ := h
+  exact ⟨hc, hz, hs, hκ, hd0, hd1, hsz, hτ, hlp0, hlr0, hlr1, hb1, helo, hΔ, he17, cls⟩
 
-/-- **The potential certificate** from its numbers, with an empty family (`Cert2E` gives the
-phase bounds). -/
+/-- **The potential certificate** from its numbers (`Cert2E` gives the phase bounds). -/
 noncomputable def Cert2.ofQ (Bq : BandR) (Δ : ℕ) (c z s κ d τ lp lr b : ℚ) (e : Fin 19 → ℚ)
     (h : cert2ChkQ Bq Δ c z s κ d τ lp lr b e = true) : Cert2 Bq.toBand Δ where
   c := c
@@ -364,7 +350,6 @@ noncomputable def Cert2.ofQ (Bq : BandR) (Δ : ℕ) (c z s κ d τ lp lr b : ℚ
   lp := lp
   lr := lr
   b := b
-  v := fun _ _ _ _ => 0
   e := fun i => e i
   hc := by exact_mod_cast (cert2ChkQ.facts h).hc
   hz := by exact_mod_cast (cert2ChkQ.facts h).hz
@@ -375,31 +360,14 @@ noncomputable def Cert2.ofQ (Bq : BandR) (Δ : ℕ) (c z s κ d τ lp lr b : ℚ
   hsz := by exact_mod_cast (cert2ChkQ.facts h).hsz
   hτ := by exact_mod_cast (cert2ChkQ.facts h).hτ
   hlp0 := by exact_mod_cast (cert2ChkQ.facts h).hlp0
-  hlp := by exact_mod_cast (cert2ChkQ.facts h).hlp
   hlr0 := by exact_mod_cast (cert2ChkQ.facts h).hlr0
   hlr1 := by exact_mod_cast (cert2ChkQ.facts h).hlr1
   hb1 := by exact_mod_cast (cert2ChkQ.facts h).hb1
   helo := by simp only [BandR.toBand_elo]; exact_mod_cast (cert2ChkQ.facts h).helo
   hΔ := (cert2ChkQ.facts h).hΔ
-  Bs := []
-  weak := fun _ hB => by simp at hB
-  sol := fun _ _ hB => by simp at hB
-  he := fun _ _ hB => by simp at hB
   he17 := by exact_mod_cast (cert2ChkQ.facts h).he17
-  hlr := by exact_mod_cast (cert2ChkQ.facts h).hlr
-  hb := by exact_mod_cast (cert2ChkQ.facts h).hb
-  w1 := by exact_mod_cast (cert2ChkQ.facts h).w1
-  w0 := by simp only [BandR.toBand_slo, BandR.toBand_elo]; exact_mod_cast (cert2ChkQ.facts h).w0
-  m1r0 := by exact_mod_cast (cert2ChkQ.facts h).m1r0
-  m1r1 := by exact_mod_cast (cert2ChkQ.facts h).m1r1
-  m1r2 := by exact_mod_cast (cert2ChkQ.facts h).m1r2
-  m1r3a := by exact_mod_cast (cert2ChkQ.facts h).m1r3a
-  m1r3 := by exact_mod_cast (cert2ChkQ.facts h).m1r3
-  m2r0 := by exact_mod_cast (cert2ChkQ.facts h).m2r0
-  m2r1 := by exact_mod_cast (cert2ChkQ.facts h).m2r1
-  m2r2 := by exact_mod_cast (cert2ChkQ.facts h).m2r2
-  m2r3a := by exact_mod_cast (cert2ChkQ.facts h).m2r3a
-  m2r3 := by exact_mod_cast (cert2ChkQ.facts h).m2r3
+  cls := ClassOK.ofQ rfl rfl rfl rfl rfl rfl (fun _ => rfl) (by simp only [BandR.toBand_slo, BandR.toBand_elo]; push_cast; rfl)
+    (cert2ChkQ.facts h).cls
 
 namespace FamCfg
 
