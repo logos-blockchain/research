@@ -143,6 +143,62 @@ namespace Cryptarchia
 
 variable {c : Config} {L : Ledger} {O : Oracle} {G : Genesis} {st : Store}
 
+/-- **A proposer adopts its own block** (or something higher): the block is one
+above the local chain, so the fork-choice loop either switches to it or has
+already moved higher. -/
+theorem own_adopt (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O G c s)
+    (fastPath : Bool) (ord : List ℕ → List ℕ) (hord : ∀ l, (ord l).Perm l) (now : ℕ) (B : Block)
+    (hB : st B.hdr.id = some B) (hpar : B.hdr.parent = s.cloc) (hnew : B.hdr.id ∉ s.tree)
+    (hval : validHeader c st L O G s.tree s.bimm now B = true) :
+    height st B.hdr.id ≤ height st (onBlock c st L O G fastPath ord now s B).cloc := by
+  obtain ⟨cl, hcl, heq⟩ := onBlock_acc hs.rule fastPath ord hnew hval
+  rw [heq]
+  rcases hcl with ⟨rfl, -⟩ | rfl
+  · exact le_rfl
+  set T' := s.tree ++ [B.hdr.id]
+  have hT := accept_ok hs hB hval
+  have hcr := hs.rooted _ hs.cloc
+  have hBr : Rooted st B.hdr.id := (hT _ (List.mem_append_right _ (List.mem_singleton_self _))).1
+  have hBh := accept_height hs hB hval
+  rw [hpar] at hBh
+  have hT'r : ∀ y ∈ T', Rooted st y := fun y hy => (hT y hy).1
+  unfold forkChoice; simp only
+  have htips : ∀ f ∈ ord (tips st T'), f ∈ T' := fun f hf =>
+    List.mem_of_mem_filter ((hord (tips st T')).mem_iff.1 hf)
+  have hr : ∀ f ∈ ord (tips st T'), Rooted st f := fun f hf => hT'r f (htips f hf)
+  -- `B` is a tip: nothing in the tree has it as parent
+  have hBtip : B.hdr.id ∈ tips st T' := by
+    unfold tips
+    rw [List.mem_filter]
+    refine ⟨List.mem_append_right _ (List.mem_singleton_self _), ?_⟩
+    simp only [Bool.not_eq_true', List.any_eq_false, decide_eq_true_eq, not_and]
+    intro x hx hxne hxp
+    rw [List.mem_append] at hx
+    rcases hx with hx | hx
+    · exact hnew (hxp ▸ hs.closed x hx)
+    · simp at hx; exact hxne hx
+  have hBf : B.hdr.id ∈ ord (tips st T') := (hord _).mem_iff.2 hBtip
+  let P : ℕ → Prop := fun cl => Rooted st cl ∧ (cl = s.cloc ∨ height st s.cloc < height st cl)
+  exact fc_reaches hS P c.k (ord (tips st T')) hr hBf
+    (by
+      intro cl hP hclr hlt
+      rcases hP.2 with rfl | hP'
+      · -- the running choice is still the local chain, the parent of `B`
+        have hin := parent_mem_chainIds hS hBr
+        rw [parentOf_eq hB, hpar] at hin
+        obtain ⟨hla, hlb, hmax⟩ := lca_spec hS hcr hBr
+        have := hmax s.cloc (self_mem_chainIds hS hcr) hin
+        have := (anc_height hS (anc_height hS hcr hla).1 this).2.1
+        have := (anc_height hS hcr hla).2.1
+        omega
+      · omega)
+    s.cloc ⟨hcr, Or.inl rfl⟩ hcr
+    (by
+      intro c' f hP hf hswitch
+      obtain ⟨-, -, hlt⟩ := onlineStep_switch hS hP.1 (hr f hf) hswitch
+      refine ⟨hr f hf, Or.inr ?_⟩
+      rcases hP.2 with rfl | hP' <;> omega)
+
 /-- The fold invariant: a well-formed node, no block from the future, and a
 local chain at least `H0` high. -/
 def FoldInv (c : Config) (L : Ledger) (O : Oracle) (G : Genesis) (st : Store) (now H0 z : ℕ)
@@ -319,7 +375,7 @@ theorem claimB {b : ℕ} (hbr : Rooted st b) (hhb : h ∈ chainIds st b) {s : No
   have hRst : ∀ x ∈ R, st x.hdr.id = some x := by
     intro x hx
     have : x ∈ chainUp st b := by rw [hR]; exact List.mem_append_right _ hx
-    exact mem_chainUp_store hS this
+    exact mem_chainUp hS this
   -- the rest keeps `h`'s chain and never lowers the local chain
   have hrest : ∀ (l : List Block), (∀ x ∈ l, st x.hdr.id = some x) → ∀ s₀,
       FoldInv c L O G st now H0 z s₀ → (∀ x ∈ chainIds st h, x ∈ s₀.tree) →

@@ -89,7 +89,7 @@ theorem cons_of_lot (hA : Assm E) (hlive : ∀ t, ∃ j ∈ E.nodes, E.online j 
     have hidx := idxE_eq_length (E := E) (es := es) hshort
     rcases le_or_gt (E.c.fix ep) (wF E es).now with hreach' | hshort'
     · -- epoch `ep` is fixed, epoch `ep + 1` only at the end
-      have hw := wAt_ok (es := es) hA.ord es.length
+      have hw := wAt_ok (es := es) hA es.length
       have hon : ∃ j ∈ E.nodes, E.online j (wAt E es (idxE E es (ep + 1))).now = true := by
         rw [hidx]; exact hlive _
       have hi0 : i0 E es (ep + 1) ∈ E.nodes ∧ E.online (i0 E es (ep + 1)) (wAt E es (idxE E es (ep + 1))).now = true := by

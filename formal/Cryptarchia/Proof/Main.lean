@@ -1,11 +1,10 @@
 module
 
 public import Cryptarchia.Proof.Bridge
-public import Cryptarchia.Proof.Honesty
+public import Cryptarchia.Proof.Trace
 public import Cryptarchia.Settle.Phases
 public import Cryptarchia.Settle.TreeBasic
 import Cryptarchia.Proof.NodeStep
-import Cryptarchia.Proof.Support
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -91,17 +90,6 @@ open Classical in
 noncomputable abbrev WS : CStr :=
   sstr E.c E.L E.O E.G (wF E es).st (Late E es) ((wF E es).used.filter (fun b => decide (K b))) (wF E es).now
 
-/-- The assumptions on the execution `es`. (There is no delivery assumption: an
-honest block the network fails to deliver within `Δ` is `Late` and counts as
-adversarial in the settlement tree.) -/
-structure Assm (E : Env) : Prop where
-  ord : E.OrderOK
-  crash : ∀ i t t', t ≤ t' → E.online i t' = true → E.online i t = true
-  exec : HonestExec E.L
-  nodup : E.nodes.Nodup
-  sane : E.c.Sane
-  stake : HonestStake E.L
-
 /-- **The good event on a string `w`**, up to `N`. -/
 structure GoodLSW (w : CStr) (N : ℕ) (W : ℕ → ℕ) (e : ℕ → ℕ) : Prop where
   e0 : e 0 = 0
@@ -147,12 +135,23 @@ theorem FTused_ok (hA : Assm E) (hK : KBase E es K) :
         GoodAt E.c E.L E.O E.G (wF E es).st (wF E es).now b →
           parentOf (wF E es).st b ∈ (wF E es).used.filter (fun b => decide (K b)) := by
   classical
-  have hw := wAt_ok (es := es) hA.ord es.length
+  have hw := wAt_ok (es := es) hA es.length
   refine ⟨mem_FTused.2 ⟨(hw.used _).1 hw.store.rooted_gen.exists_blk, hK.gen⟩, ?_⟩
   intro b hb hg
   rw [mem_FTused] at hb ⊢
   have hp := hg.parent hw.store
   exact ⟨(hw.used _).1 hp.1.exists_blk, hK.par b hg.1 hb.2⟩
+
+theorem restrict_hd {F : PTree} {t m : ℕ} (hm : m ≤ t) : (F.restrict t).hd m = F.hd m := by
+  classical
+  unfold PTree.hd
+  congr 1
+  ext v
+  simp only [Finset.mem_filter, mem_restrict]
+  constructor
+  · rintro ⟨⟨h1, -⟩, h2⟩; exact ⟨h1, h2⟩
+  · rintro ⟨h1, h2, h3⟩; exact ⟨⟨h1, show F.lab v ≤ t by
+      exact le_trans h3 hm⟩, h2, h3⟩
 
 /-- The phase containing `t - 1`. -/
 theorem phase_of {e : ℕ → ℕ} (he0 : e 0 = 0) (hmono : ∀ k, e k ≤ e (k + 1)) (hunb : ∀ t, ∃ k, t ≤ e k)
@@ -180,7 +179,7 @@ theorem nearAt (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ → 
     (hdv : (FT E es K).hd (e k - E.Δ) ≤ height (wF E es).st v) :
     ∃ x, x ∈ chainIds (wF E es).st u ∧ x ∈ chainIds (wF E es).st v ∧
       height (wF E es).st u - height (wF E es).st x ≤ E.c.k := by
-  have hw := wAt_ok (es := es) hA.ord es.length
+  have hw := wAt_ok (es := es) hA es.length
   have hS := hw.store
   have hFt := tree_valid_upto (c := E.c) (L := E.L) (O := E.O) (G := E.G) hS E.Δ t htN
     (FTused_ok hA hK).1 (FTused_ok hA hK).2 hA2
@@ -228,7 +227,7 @@ theorem FT_hd_exists (hA : Assm E) (hK : KBase E es K) (m : ℕ) :
     ∃ v ∈ (FT E es K).V, honL (wF E es).st (Late E es) v = true ∧ slotOf (wF E es).st v ≤ m ∧
       height (wF E es).st v = (FT E es K).hd m := by
   classical
-  have hw := wAt_ok (es := es) hA.ord es.length
+  have hw := wAt_ok (es := es) hA es.length
   have hS := hw.store
   have hg : genesisId ∈ (FT E es K).V := mem_stree.2 ⟨(FTused_ok hA hK).1, good_genesis hS _⟩
   have hne : ((FT E es K).V.filter (fun v => (FT E es K).hon v = true ∧ (FT E es K).lab v ≤ m)).Nonempty :=
@@ -286,24 +285,14 @@ structure KOK (E : Env) (es : List Event) (K : ℕ → Prop) (H : ℕ) : Prop ex
 theorem A2_of_Hon (hA : Assm E) {n : ℕ} (hn : n ≤ es.length) (hH : HonAt (E := E) (es := es) (K := K) n) :
     A2Upto E es K (wAt E es n).now := by
   intro u hu v hv huh hvh hvn huv
-  have hw := wAt_ok (es := es) hA.ord es.length
+  have hw := wAt_ok (es := es) hA es.length
   have hS := hw.store
   have hvr := (mem_stree.1 hv).2.1
   have hv0 : v ≠ genesisId := by
     intro h; subst h; rw [slotOf_genesis hS] at huv; omega
   obtain ⟨B, hB, hBh⟩ := honB_signed (honB_of_honL hvh) hv0 hvr.exists_blk
   -- `v` is already stored at `n`
-  have hvn' : (wAt E es n).st v = some B := by
-    by_contra hne
-    have hnone : (wAt E es n).st v = none := by
-      cases h : (wAt E es n).st v with
-      | none => rfl
-      | some B' =>
-        exfalso; apply hne
-        have := store_mono (E := E) (es := es) hA.ord hn v B' h
-        rw [hB] at this; rw [h, this]
-    have := created_later (es := es) hA.ord hA.exec hA.nodup hA.sane es.length hn le_rfl v B hB hBh hnone
-    rw [slotOf_eq hB] at hvn; omega
+  have hvn' := (wAt_le (es := es) hA hn).old hB hBh (by rw [slotOf_eq hB] at hvn; exact hvn)
   have hpar := hH v B hvn' hBh
   obtain ⟨blk, hbk, hpr, hsl⟩ := hvr.inv hv0
   have hBb : B = blk := by rw [hbk] at hB; exact (Option.some_inj.1 hB).symm
@@ -318,7 +307,7 @@ the settlement tree. -/
 theorem goodAt_FT (hA : Assm E) {st : Store} (hS : StoreOK st) (hext : StoreExt st (wF E es).st)
     {t cl : ℕ} (htN : t ≤ (wF E es).now) (hg : GoodAt E.c E.L E.O E.G st t cl) (hKc : K cl) :
     cl ∈ (FT E es K).V := by
-  have hw := wAt_ok (es := es) hA.ord es.length
+  have hw := wAt_ok (es := es) hA es.length
   have hg' := hg.mono hS hext htN
   exact mem_stree.2 ⟨mem_FTused.2 ⟨(hw.used cl).1 hg'.1.exists_blk, hKc⟩, hg'⟩
 
@@ -347,22 +336,29 @@ theorem near_now (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ �
   refine ⟨x, hx1, hx2, ?_⟩
   rw [← e1, ← height_ext hext hxr]; exact hx3
 
+/-- Heights at a point of the execution are heights in the final store. -/
+theorem height_wF (hA : Assm E) {m x : ℕ} (hm : m ≤ es.length) (hx : Rooted (wAt E es m).st x) :
+    height (wF E es).st x = height (wAt E es m).st x := height_ext (store_mono hA hm) hx
+
+/-- A node's local chain never loses height, in the final store. -/
+theorem cloc_mono (hA : Assm E) {n m : ℕ} (hnm : n ≤ m) (hm : m ≤ es.length) (i : ℕ) :
+    height (wF E es).st ((wAt E es n).node i).cloc ≤ height (wF E es).st ((wAt E es m).node i).cloc := by
+  rw [height_wF hA (hnm.trans hm) ((wAt_ok hA n).nodes i).cloc_rooted,
+    height_wF hA hm ((wAt_ok hA m).nodes i).cloc_rooted]
+  exact (wAt_le hA hnm).mono i
+
 theorem genesis_not_hon (hA : Assm E) {n : ℕ} {B : Block}
     (hB : (wAt E es n).st genesisId = some B) : ¬ IsHon B := by
-  have h0 : (wAt E es 0).st genesisId = some genesisBlock := by
-    rw [wAt_zero]; simp [World.init]
-  have := store_mono (E := E) (es := es) hA.ord (Nat.zero_le n) _ _ h0
-  rw [hB] at this
-  have hBB : B = genesisBlock := Option.some_inj.1 this
-  rintro ⟨j, hj⟩; rw [hBB] at hj; simp [genesisBlock] at hj
+  rw [store_genesis hA n] at hB; cases hB
+  rintro ⟨j, hj⟩; simp [genesisBlock] at hj
 
 /-- An honest block stored at some point is rooted there, with a slot of at least
 one and at most the current time. -/
-theorem hon_stored (hA : Assm E) {m : ℕ} (hm : m ≤ es.length) {h : ℕ} {B : Block}
+theorem hon_stored (hA : Assm E) {m h : ℕ} {B : Block}
     (hB : (wAt E es m).st h = some B) (hBh : IsHon B) :
     GoodAt E.c E.L E.O E.G (wAt E es m).st (wAt E es m).now h ∧ 1 ≤ slotOf (wAt E es m).st h ∧
       h ≠ genesisId := by
-  have hg := (hon_all (es := es) hA.ord hA.exec hA.nodup hA.sane m hm).hon h B hB hBh
+  have hg := (wAt_ok (es := es) hA m).good hB hBh
   have h0 : h ≠ genesisId := by
     intro h0; subst h0; exact genesis_not_hon hA hB hBh
   refine ⟨hg, ?_, h0⟩
@@ -381,32 +377,28 @@ theorem claimC (hA : Assm E) {Hh : ℕ} (hK : KOK E es K Hh) {W : ℕ → ℕ} {
     (hIH : ∀ m ≤ d, DomAt (E := E) (es := es) (K := K) m ((wAt E es m).now - E.Δ - 1) ∧ HonAt (E := E) (es := es) (K := K) m) :
     height (wF E es).st h ≤ height (wF E es).st ((wAt E es (d + 1)).node i).cloc := by
   have hextF : ∀ m, m ≤ es.length → StoreExt (wAt E es m).st (wF E es).st :=
-    fun m hm => store_mono hA.ord hm
-  have hconv : ∀ m, m ≤ es.length → ∀ x, Rooted (wAt E es m).st x →
-      height (wF E es).st x = height (wAt E es m).st x := fun m hm x hx => height_ext (hextF m hm) hx
-  have hclocR : ∀ m, Rooted (wAt E es m).st ((wAt E es m).node i).cloc := fun m =>
-    ((wAt_ok (es := es) hA.ord m).nodes i).rooted _ ((wAt_ok (es := es) hA.ord m).nodes i).cloc
+    fun m hm => store_mono hA hm
   -- the settlement input at any time `m ≤ d` at which `h` is stored
   have hnear_m : ∀ m, m ≤ d → ∀ (Bm : Block), (wAt E es m).st h = some Bm →
       Near E.c E.L E.O E.G (wAt E es m).st (wAt E es m).now
         (height (wAt E es m).st ((wAt E es m).node i).cloc) h ((wAt E es m).node i).bimm := by
     intro m hmd Bm hBm
-    have hwm := wAt_ok (es := es) hA.ord m
+    have hwm := wAt_ok (es := es) hA m
     have hBmh : IsHon Bm := by
       have := hextF m (by omega) h Bm hBm; rw [hH] at this
       rw [← Option.some_inj.1 this]; exact hHh
-    obtain ⟨hg, hs1', -⟩ := hon_stored hA (by omega) hBm hBmh
+    obtain ⟨hg, hs1', -⟩ := hon_stored hA hBm hBmh
     have hnd := now_mono (E := E) (es := es) hmd (by omega)
     have honm : E.online i (wAt E es m).now = true := hA.crash i _ _ hnd hion
     have hDom := (hIH m hmd).1 i hi honm
     have hHon := (hIH m hmd).2
     have hH0 : (FT E es K).hd ((wAt E es m).now - E.Δ - 1) ≤
         height (wAt E es m).st ((wAt E es m).node i).cloc := by
-      rw [← hconv m (by omega) _ (hclocR m)]; exact hDom
+      rw [← height_wF hA (by omega) (hwm.nodes i).cloc_rooted]; exact hDom
     have hdh : ∀ k, e k + 1 ≤ (wAt E es m).now →
         (FT E es K).hd (e k - E.Δ) ≤ height (wAt E es m).st h := by
       intro k hk
-      rw [← hconv m (by omega) _ hg.1]
+      rw [← height_wF hA (by omega) hg.1]
       refine le_trans (FT_hd_mono ?_) hht
       omega
     exact near_now hA hK.toKBase hG (by have := hg.2.1; omega) (now_mono (by omega) le_rfl)
@@ -425,21 +417,18 @@ theorem claimC (hA : Assm E) {Hh : ℕ} (hK : KOK E es K Hh) {W : ℕ → ℕ} {
     | succ m ih =>
       intro hm hin
       have hml : m < es.length := by omega
-      have hwm := wAt_ok (es := es) hA.ord m
-      have hmono := height_mono_idx (E := E) (es := es) hA.ord (Nat.le_succ m) i
-      rw [← hconv m (by omega) _ (hclocR m), ← hconv (m + 1) (by omega) _ (hclocR (m + 1))] at hmono
+      have hwm := wAt_ok (es := es) hA m
       by_cases hold : h ∈ ((wAt E es m).node i).tree
-      · exact le_trans (ih (by omega) hold) hmono
-      have hhr1 : Rooted (wAt E es (m + 1)).st h :=
-        ((wAt_ok (es := es) hA.ord (m + 1)).nodes i).rooted h hin
-      rw [hconv (m + 1) (by omega) _ hhr1, hconv (m + 1) (by omega) _ (hclocR (m + 1))]
+      · exact le_trans (ih (by omega) hold) (cloc_mono hA (Nat.le_succ m) (by omega) i)
+      have hw1 := wAt_ok (es := es) hA (m + 1)
+      rw [height_wF hA (by omega) ((hw1.nodes i).rooted h hin),
+        height_wF hA (by omega) (hw1.nodes i).cloc_rooted]
       have hstep := wAt_succ E es hml
-      have hhonm := hon_all (es := es) hA.ord hA.exec hA.nodup hA.sane m (by omega)
       rw [hstep] at hin ⊢
       cases hev' : es[m] with
       | tick =>
         rw [hev'] at hin
-        exact tick_tree hA.ord hA.exec hA.nodup hwm hhonm hA.sane i h hin hold
+        exact tick_tree hA hwm i h hin hold
       | deliver j b =>
         rw [hev'] at hin
         simp only [World.step] at hin ⊢
@@ -453,13 +442,9 @@ theorem claimC (hA : Assm E) {Hh : ℕ} (hK : KOK E es K Hh) {W : ℕ → ℕ} {
               have := (receive_step hwm.store (hwm.nodes i) E.fastPath (E.ord i) (hA.ord i)
                 (wAt E es m).now b).ok
               exact (this.rooted h hin).exists_blk
-            have hinv : FoldInv E.c E.L E.O E.G (wAt E es m).st (wAt E es m).now
-                (height (wAt E es m).st ((wAt E es m).node i).cloc) ((wAt E es m).node i).bimm ((wAt E es m).node i) :=
-              ⟨hwm.nodes i, hhonm.slots i, le_rfl,
-                self_mem_chainIds hwm.store ((hwm.nodes i).bimm_on_cloc hwm.store).1⟩
             exact fold_adds hwm.store (hnear_m m (by omega) Bm hBm) E.fastPath (E.ord i) (hA.ord i)
-              (chainUp (wAt E es m).st b) (fun x hx => mem_chainUp_store hwm.store hx)
-              ((wAt E es m).node i) hinv hold hin
+              (chainUp (wAt E es m).st b) (fun x hx => mem_chainUp hwm.store hx)
+              ((wAt E es m).node i) (hwm.foldInv i) hold hin
           · rw [if_neg hji] at hin; exact absurd hin hold
         · rw [if_neg hc] at hin; exact absurd hin hold
       | create B =>
@@ -468,28 +453,13 @@ theorem claimC (hA : Assm E) {Hh : ℕ} (hK : KOK E es K Hh) {W : ℕ → ℕ} {
         split at hin <;> exact absurd hin hold
   -- at the delivery itself, `h` is accepted
   apply hQ (d + 1) le_rfl
-  have hwd := wAt_ok (es := es) hA.ord d
-  have hhond := hon_all (es := es) hA.ord hA.exec hA.nodup hA.sane d (by omega)
+  have hwd := wAt_ok (es := es) hA d
   -- `h` is stored at `d`: its slot is not after the delivery
-  obtain ⟨Bd, hBd⟩ : ∃ Bd, (wAt E es d).st h = some Bd := by
-    by_contra hno
-    push Not at hno
-    have hnone : (wAt E es d).st h = none := by
-      cases hh : (wAt E es d).st h with
-      | none => rfl
-      | some B' => exact absurd hh (hno B')
-    have := created_later (es := es) hA.ord hA.exec hA.nodup hA.sane es.length (by omega) le_rfl h H hH hHh hnone
-    rw [slotOf_eq hH] at hs1; omega
-  have hBdh : IsHon Bd := by
-    have := hextF d (by omega) h Bd hBd; rw [hH] at this
-    rw [← Option.some_inj.1 this]; exact hHh
-  obtain ⟨hg, -, -⟩ := hon_stored hA (by omega) hBd hBdh
-  have hinv : FoldInv E.c E.L E.O E.G (wAt E es d).st (wAt E es d).now
-      (height (wAt E es d).st ((wAt E es d).node i).cloc) ((wAt E es d).node i).bimm ((wAt E es d).node i) :=
-    ⟨hwd.nodes i, hhond.slots i, le_rfl,
-      self_mem_chainIds hwd.store ((hwd.nodes i).bimm_on_cloc hwd.store).1⟩
-  have hB := claimB hwd.store hg.1 hg.2.2 hg.2.1 (hnear_m d le_rfl Bd hBd) E.fastPath (E.ord i)
-    (hA.ord i) hg.1 (self_mem_chainIds hwd.store hg.1) hinv
+  have hBd := (wAt_le (es := es) hA (show d ≤ es.length by omega)).old hH hHh
+    (by rw [slotOf_eq hH] at hs1; exact hs1)
+  obtain ⟨hg, -, -⟩ := hon_stored hA hBd hHh
+  have hB := claimB hwd.store hg.1 hg.2.2 hg.2.1 (hnear_m d le_rfl H hBd) E.fastPath (E.ord i)
+    (hA.ord i) hg.1 (self_mem_chainIds hwd.store hg.1) (hwd.foldInv i)
   rw [wAt_succ E es hd, hev]
   simp only [World.step]
   rw [if_pos (by simp [hion]; exact hi)]
@@ -504,7 +474,7 @@ theorem tickD (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ} {e :
     (hIH : ∀ m < n, DomAt (E := E) (es := es) (K := K) m ((wAt E es m).now - E.Δ - 1) ∧ HonAt (E := E) (es := es) (K := K) m) :
     DomAt (E := E) (es := es) (K := K) n ((wAt E es n).now + 1 - E.Δ - 1) := by
   intro i hi hon
-  have hwF := wAt_ok (es := es) hA.ord es.length
+  have hwF := wAt_ok (es := es) hA es.length
   have hS := hwF.store
   obtain ⟨v, hv, hvh, hvl, hve⟩ := FT_hd_exists hA hK.toKBase ((wAt E es n).now + 1 - E.Δ - 1)
   rw [← hve]
@@ -518,7 +488,7 @@ theorem tickD (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ} {e :
     rw [wAt_succ E es hn, step_now, htick]
   have hNF := now_mono (E := E) (es := es) (m := es.length) (n := n + 1) hn le_rfl
   -- the Δ-delivery of `v` to `i`
-  have hlog := log_all hA.ord es.length le_rfl v V hV hVh
+  have hlog := (hwF.hon v V _ hV hVh.choose_spec).log
   have hsl : slotOf (wF E es).st v = V.hdr.slot := slotOf_eq hV
   -- `v` is timely: honest vertices of the tree are the honest blocks not late
   have hdel : Delivered E es v := not_not.mp (not_late_of_honL hvh hv0)
@@ -551,12 +521,7 @@ theorem tickD (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ} {e :
     (by rw [hve]; exact FT_hd_mono (by
       have := now_mono (E := E) (es := es) hdn.le hn.le; omega))
     (fun m hm => hIH m (by omega))
-  have hmono := height_mono_idx (E := E) (es := es) hA.ord (show d + 1 ≤ n by omega) i
-  have hr1 := ((wAt_ok (es := es) hA.ord (d + 1)).nodes i).rooted _ ((wAt_ok (es := es) hA.ord (d + 1)).nodes i).cloc
-  have hr2 := ((wAt_ok (es := es) hA.ord n).nodes i).rooted _ ((wAt_ok (es := es) hA.ord n).nodes i).cloc
-  rw [← height_ext (store_mono (m := es.length) hA.ord (by omega : d + 1 ≤ es.length)) hr1,
-    ← height_ext (store_mono (m := es.length) hA.ord (by omega : n ≤ es.length)) hr2] at hmono
-  exact le_trans hC hmono
+  exact le_trans hC (cloc_mono hA (show d + 1 ≤ n by omega) hn.le i)
 
 /-- **The main invariant.** Throughout the execution, every honest node's local
 chain is at least as high as every honest block `Δ + 1` slots old, and every
@@ -564,7 +529,7 @@ honest block extends such a chain. -/
 theorem main (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ} {e : ℕ → ℕ} (hG : GoodCondW E es K W e H) :
     ∀ n ≤ es.length, (wAt E es n).now ≤ H → DomAt (E := E) (es := es) (K := K) n ((wAt E es n).now - E.Δ - 1) ∧
       HonAt (E := E) (es := es) (K := K) n := by
-  have hwF := wAt_ok (es := es) hA.ord es.length
+  have hwF := wAt_ok (es := es) hA es.length
   have hS := hwF.store
   intro n
   induction n using Nat.strong_induction_on with
@@ -594,74 +559,32 @@ theorem main (hA : Assm E) {H : ℕ} (hK : KOK E es K H) {W : ℕ → ℕ} {e : 
           HonAt (E := E) (es := es) (K := K) m := fun m hm =>
         ih m hm (by omega) (le_trans (now_mono (E := E) (es := es) (show m ≤ n + 1 by omega) hn) hnH)
       have hstep := wAt_succ E es hnl
-      have hwn := wAt_ok (es := es) hA.ord n
-      have hmono : ∀ i, height (wF E es).st ((wAt E es n).node i).cloc ≤
-          height (wF E es).st ((wAt E es (n + 1)).node i).cloc := by
-        intro i
-        have h := height_mono_idx (E := E) (es := es) hA.ord (Nat.le_succ n) i
-        have hr1 := (hwn.nodes i).rooted _ (hwn.nodes i).cloc
-        have hr2 := ((wAt_ok (es := es) hA.ord (n + 1)).nodes i).rooted _
-          ((wAt_ok (es := es) hA.ord (n + 1)).nodes i).cloc
-        rw [← height_ext (store_mono (m := es.length) hA.ord (by omega : n ≤ es.length)) hr1,
-          ← height_ext (store_mono (m := es.length) hA.ord (by omega : n + 1 ≤ es.length)) hr2] at h
-        exact h
-      have hext : StoreExt (wAt E es n).st (wAt E es (n + 1)).st := store_mono hA.ord (Nat.le_succ n)
-      cases hev : es[n] with
-      | tick =>
-        have hD' := tickD hA hK hG hnl (le_trans (now_mono (E := E) (es := es) (Nat.le_succ n) hn) hnH) hev
-          (fun m hm => hIH m (by omega))
-        have hnow : (wAt E es (n + 1)).now = (wAt E es n).now + 1 := by
-          rw [hstep, step_now, hev]
-        refine ⟨?_, ?_⟩
-        · intro i hi hon
-          rw [hnow] at hon ⊢
-          exact le_trans (hD' i hi (hA.crash i _ _ (Nat.le_succ _) hon)) (hmono i)
-        · intro b B hb hBh
-          by_cases hold : (wAt E es n).st b = none
-          · -- a block created by this tick
-            rw [hstep, hev] at hb
-            obtain ⟨-, j, hj, hpj⟩ := tick_new hA.ord hA.nodup hwn b B hb hold
-            have hpar := hpj.1
-            have hjon := hpj.2
-            have hsl := (tick_hon hA.ord hA.exec hA.nodup hwn
-              (hon_all (es := es) hA.ord hA.exec hA.nodup hA.sane n (by omega)) hA.sane).2 b B hb hold
-            rw [hsl, hpar]
-            exact hD' j hj (hA.crash j _ _ (Nat.le_succ _) hjon)
-          · obtain ⟨B', hB'⟩ := Option.ne_none_iff_exists'.1 hold
-            have : B' = B := by
-              have := hext b B' hB'; rw [hb] at this; exact (Option.some_inj.1 this).symm
-            rw [← this] at hBh ⊢
-            exact (hIH n (by omega)).2 b B' hB' hBh
-      | deliver j b =>
-        have hnow : (wAt E es (n + 1)).now = (wAt E es n).now := by rw [hstep, step_now, hev]; rfl
-        have hst : (wAt E es (n + 1)).st = (wAt E es n).st := by
-          rw [hstep, hev]; simp only [World.step]; split <;> rfl
-        refine ⟨?_, ?_⟩
-        · intro i hi hon; rw [hnow] at hon ⊢; exact le_trans ((hIH n (by omega)).1 i hi hon) (hmono i)
-        · intro b' B hb hBh; rw [hst] at hb; exact (hIH n (by omega)).2 b' B hb hBh
-      | create C =>
-        have hnow : (wAt E es (n + 1)).now = (wAt E es n).now := by rw [hstep, step_now, hev]; rfl
-        refine ⟨?_, ?_⟩
-        · intro i hi hon; rw [hnow] at hon ⊢; exact le_trans ((hIH n (by omega)).1 i hi hon) (hmono i)
-        · intro b B hb hBh
-          by_cases hold : (wAt E es n).st b = none
-          · exfalso
-            rw [hstep, hev] at hb
-            simp only [World.step] at hb
-            split at hb
-            · rename_i hc
-              simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
-              by_cases hbC : b = C.hdr.id
-              · subst hbC
-                have : B = C := by simp [World.add] at hb; exact hb.symm
-                obtain ⟨j, hj⟩ := hBh; rw [this, hc.1] at hj; cases hj
-              · have : (World.add (wAt E es n) C).st b = (wAt E es n).st b := by simp [World.add, hbC]
-                rw [this, hold] at hb; simp at hb
-            · rw [hold] at hb; simp at hb
-          · obtain ⟨B', hB'⟩ := Option.ne_none_iff_exists'.1 hold
-            have : B' = B := by
-              have := hext b B' hB'; rw [hb] at this; exact (Option.some_inj.1 this).symm
-            rw [← this] at hBh ⊢
-            exact (hIH n (by omega)).2 b B' hB' hBh
+      have h1 := wAt_le (es := es) hA (Nat.le_succ n)
+      have hnow : (wAt E es (n + 1)).now =
+          (wAt E es n).now + (match es[n] with | .tick => 1 | _ => 0) := by rw [hstep]; exact step_now _ _
+      -- dominance at the new time, by the local chains before the event
+      have hD : ∀ i ∈ E.nodes, E.online i (wAt E es (n + 1)).now = true →
+          (FT E es K).hd ((wAt E es (n + 1)).now - E.Δ - 1) ≤
+            height (wF E es).st ((wAt E es n).node i).cloc := by
+        intro i hi hon
+        cases hev : es[n] with
+        | tick =>
+          rw [hev] at hnow; rw [hnow] at hon ⊢
+          exact tickD hA hK hG hnl (le_trans (now_mono (Nat.le_succ n) hn) hnH) hev
+            (fun m hm => hIH m (by omega)) i hi (hA.crash i _ _ (Nat.le_succ _) hon)
+        | deliver j b | create C =>
+          rw [hev] at hnow; simp only [Nat.add_zero] at hnow; rw [hnow] at hon ⊢
+          exact (hIH n (by omega)).1 i hi hon
+      refine ⟨fun i hi hon => le_trans (hD i hi hon) (cloc_mono hA (Nat.le_succ n) hn i), ?_⟩
+      intro b B hb hBh
+      by_cases hold : (wAt E es n).st b = none
+      · -- a block created by the event: by a tick, on a node's local chain
+        obtain ⟨hev, j, hj, hpar, hsl, hjon⟩ := new_hon hA hnl hb hold hBh
+        rw [hev] at hnow
+        rw [hpar, hsl, ← hnow]
+        exact hD j hj (by rw [hnow]; exact hjon)
+      · obtain ⟨B', hB'⟩ := Option.ne_none_iff_exists'.1 hold
+        obtain rfl : B' = B := Option.some_inj.1 ((h1.ext b B' hB').symm.trans hb)
+        exact (hIH n (by omega)).2 b B' hB' hBh
 
 end Cryptarchia

@@ -126,6 +126,9 @@ theorem slot_anc_le (hS : StoreOK st) {a b : ℕ} (hb : Rooted st b) (ha : a ∈
     · obtain ⟨blk, hbk, -, hs⟩ := hb.inv h0
       rw [parentOf_eq hbk, slotOf_eq hbk]; exact hs.le
 
+theorem NodeOK.cloc_rooted {k : ℕ} {s : NodeState} (hs : NodeOK k st L O G c s) : Rooted st s.cloc :=
+  hs.rooted _ hs.cloc
+
 /-! ## Trees, tips and pruning -/
 
 /-- The fork-choice result is the running choice or one of the forks. -/

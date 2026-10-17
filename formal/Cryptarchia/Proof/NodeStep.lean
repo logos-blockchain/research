@@ -78,7 +78,7 @@ theorem mem_chainF_store (hS : StoreOK st) : ∀ n b x, x ∈ chainF st n b → 
         · subst h; rw [hid]; exact hb
         · exact ih _ _ h
 
-theorem mem_chainUp_store (hS : StoreOK st) {b : ℕ} {x : Block} (h : x ∈ chainUp st b) :
+theorem mem_chainUp (hS : StoreOK st) {b : ℕ} {x : Block} (h : x ∈ chainUp st b) :
     st x.hdr.id = some x := by
   unfold chainUp chain at h
   rw [List.mem_reverse] at h
@@ -164,6 +164,15 @@ theorem accept_ok {s : NodeState} (hs : NodeOK c.k st L O G c s) {now : ℕ} {B 
   · rw [List.mem_singleton] at hy; subst hy
     exact ⟨Rooted.step _ B hB hne (hs.rooted _ hpar) hslot,
       by rw [parentOf_eq hB]; exact List.mem_append_left _ hpar, Or.inr ⟨B, hB, hcore⟩⟩
+
+/-- An accepted block is one above its parent. -/
+theorem accept_height {s : NodeState} (hs : NodeOK c.k st L O G c s) {now : ℕ} {B : Block}
+    (hB : st B.hdr.id = some B) (hval : validHeader c st L O G s.tree s.bimm now B = true) :
+    height st B.hdr.id = height st B.hdr.parent + 1 := by
+  obtain ⟨hcore, -, hpar, -⟩ := (validHeader_iff c st L O G _ _ _ _).1 hval
+  unfold validCore at hcore
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at hcore
+  exact height_step hB hcore.1.1.1.1.1.1 (hs.rooted _ hpar) hcore.1.1.1.1.2
 
 /-- **The local chain on accepting a block** is in the extended tree, rooted, and no
 lower than before. -/
@@ -345,6 +354,6 @@ theorem foldl_step (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O G c
 theorem receive_step (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O G c s)
     (fastPath : Bool) (ord : List ℕ → List ℕ) (hord : ∀ l, (ord l).Perm l) (now b : ℕ) :
     NodeStep c L O G st now s (receive c st L O G fastPath ord now s b) :=
-  foldl_step hS hs fastPath ord hord now (fun _ hx => mem_chainUp_store hS hx)
+  foldl_step hS hs fastPath ord hord now (fun _ hx => mem_chainUp hS hx)
 
 end Cryptarchia

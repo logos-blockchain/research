@@ -61,13 +61,6 @@ open Settle
 
 variable (c : Config) (L : Ledger) (O : Oracle) (G : Genesis) (st : Store)
 
-/-- A block is **good at time `t`**: rooted, not from the future, its whole chain
-valid. The blocks of the settlement tree up to `N` are the good ones at `N`; every
-block of every node's tree is good at the current time. -/
-def GoodAt (t b : ℕ) : Prop :=
-  Rooted st b ∧ slotOf st b ≤ t ∧
-    ∀ x ∈ chainIds st b, x = genesisId ∨ ∃ B, st x = some B ∧ validCore c st L O G B = true
-
 /-- Honest blocks (and genesis). -/
 def honB (b : ℕ) : Bool :=
   decide (b = genesisId) || (match st b with
@@ -106,25 +99,6 @@ noncomputable def Settle.PTree.restrict (F : PTree) (t : ℕ) : PTree :=
   { F with V := F.V.filter (fun v => F.lab v ≤ t) }
 
 variable {c L O G st}
-
-/-- Goodness survives a growing store and a later time. -/
-theorem GoodAt.mono {st' : Store} (hS : StoreOK st) (hx : StoreExt st st') {t t' b : ℕ}
-    (htt : t ≤ t') (h : GoodAt c L O G st t b) : GoodAt c L O G st' t' b := by
-  obtain ⟨hr, hsl, hv⟩ := h
-  refine ⟨hr.mono hx, by rw [slotOf_ext hx hr.exists_blk]; omega, ?_⟩
-  intro x hx'
-  rw [chainIds_ext hx hr] at hx'
-  rcases hv x hx' with h0 | ⟨B, hB, hvB⟩
-  · exact Or.inl h0
-  · refine Or.inr ⟨B, hx _ _ hB, ?_⟩
-    have hxr := (anc_height hS hr hx').1
-    have hx0 : x ≠ genesisId := by
-      intro h0; subst h0
-      unfold validCore at hvB; simp only [Bool.and_eq_true, decide_eq_true_eq] at hvB
-      exact hvB.1.1.1.1.1.1 (hS.idOK _ _ hB)
-    obtain ⟨blk, hbk, hpr, -⟩ := hxr.inv hx0
-    rw [hbk] at hB; cases hB
-    exact validCore_ext hx hS hpr hvB
 
 theorem mem_stree {late : ℕ → Prop} {used : List ℕ} {N b : ℕ} :
     b ∈ (stree c L O G st late used N).V ↔ b ∈ used ∧ GoodAt c L O G st N b := by

@@ -3,7 +3,6 @@ module
 public import Cryptarchia.Proof.Main
 import Cryptarchia.Proof.NodeStep
 import Cryptarchia.Proof.Settlement
-import Cryptarchia.Proof.Support
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Algebra.Order.Ring.Star
@@ -194,7 +193,7 @@ theorem idxE_le {e n : ℕ} (hn : n ≤ es.length) (h : E.c.fix e ≤ (wAt E es 
 theorem cons_gen (hA : Assm E) : Cons E es genesisId := by
   have hEL := hA.sane.epochLength_pos
   intro e he hs
-  have hw := wAt_ok (es := es) hA.ord es.length
+  have hw := wAt_ok (es := es) hA es.length
   rw [slotOf_genesis hw.store] at hs
   have : E.c.epochLength ≤ E.c.epochStart e := by
     unfold Config.epochStart; exact Nat.le_mul_of_pos_left _ he
@@ -207,7 +206,7 @@ theorem cut_le_start {c : Config} (hc : c.Sane) {e : ℕ} (he : 1 ≤ e) : c.cut
 
 theorem cons_par (hA : Assm E) {b : ℕ} (hb : Rooted (wF E es).st b) (hK : Cons E es b) :
     Cons E es (parentOf (wF E es).st b) := by
-  have hw := wAt_ok (es := es) hA.ord es.length
+  have hw := wAt_ok (es := es) hA es.length
   have hS := hw.store
   intro e he hs
   have hpb := parent_mem_chainIds hS hb
@@ -242,11 +241,10 @@ theorem bimm_past_cut (hA : Assm E)
   obtain ⟨hmle, hnow, -⟩ := idxE_spec hreach
   set m := idxE E es ep with hm
   set b := E.c.fix ep - E.Δ - 1 with hb
-  have hwF := wAt_ok (es := es) hA.ord es.length
+  have hwF := wAt_ok (es := es) hA es.length
   have hS := hwF.store
-  have hw := wAt_ok (es := es) hA.ord m
-  have hext := store_mono (m := es.length) (es := es) hA.ord hmle
-  have hh := hon_all (es := es) hA.ord hA.exec hA.nodup hA.sane m hmle
+  have hw := wAt_ok (es := es) hA m
+  have hext := store_mono (m := es.length) (es := es) hA hmle
   have hmN : (wAt E es m).now ≤ (wF E es).now := now_mono hmle le_rfl
   have hbN : b ≤ (wF E es).now := by omega
   have hA2 : A2Upto E es (Cons E es) b := by
@@ -256,12 +254,12 @@ theorem bimm_past_cut (hA : Assm E)
     (FTused_ok hA (cons_base hA)).1 (FTused_ok hA (cons_base hA)).2 hA2
   by_contra hlt
   push Not at hlt
-  have hcr := (hw.nodes j).rooted _ (hw.nodes j).cloc
+  have hcr := (hw.nodes j).cloc_rooted
   obtain ⟨hbr, hbc⟩ := (hw.nodes j).bimm_on_cloc hw.store
   set z := ((wAt E es m).node j).bimm with hz
   have hzT : z ∈ ((wAt E es m).node j).tree :=
     chainIds_closed hw.store (hw.nodes j).rooted (hw.nodes j).closed (hw.nodes j).cloc z hbc
-  have hzG := tree_good hw.store (hw.nodes j) (hh.slots j) hzT
+  have hzG := tree_good hw.store (hw.nodes j) (hw.slots j) hzT
   have hzFT : z ∈ (FT E es (Cons E es)).V := goodAt_FT hA hw.store hext hmN hzG hKb
   have hzs : slotOf (wF E es).st z = slotOf (wAt E es m).st z := slotOf_ext hext hbr.exists_blk
   have hzF : z ∈ ((FT E es (Cons E es)).restrict b).V :=
@@ -326,10 +324,10 @@ theorem canon_at (hA : Assm E)
   have hcj := bimm_past_cut hA hG hGr hep hFH hreach hD hH hj hjo (hKb j hj hjo)
   have hci := bimm_past_cut hA hG hGr hep hFH hreach hD hH hi0.1 hi0.2 (hKb _ hi0.1 hi0.2)
   refine ⟨hcj, ?_⟩
-  have hwF := wAt_ok (es := es) hA.ord es.length
+  have hwF := wAt_ok (es := es) hA es.length
   have hS := hwF.store
-  have hw := wAt_ok (es := es) hA.ord m
-  have hext := store_mono (m := es.length) (es := es) hA.ord hmle
+  have hw := wAt_ok (es := es) hA m
+  have hext := store_mono (m := es.length) (es := es) hA hmle
   have hagree := agree_of hA (cons_base hA) hG hmle (by rw [hnow]; exact hFH) hD hH hj hi0.1 hjo hi0.2
     (hKc j hj hjo) (hKc _ hi0.1 hi0.2)
   have hci0 := (hw.nodes (i0 E es ep)).rooted _ (hw.nodes (i0 E es ep)).cloc
@@ -361,7 +359,7 @@ theorem canon_of (hA : Assm E)
     (hio : E.online i (wAt E es n).now = true) {cl : ℕ}
     (hcl : Rooted (wAt E es n).st cl) (hz : ((wAt E es n).node i).bimm ∈ chainIds (wAt E es n).st cl) :
     prefixBelow (chainUp (wF E es).st cl) (E.c.cut ep) = CP E es ep := by
-  have hwF := wAt_ok (es := es) hA.ord es.length
+  have hwF := wAt_ok (es := es) hA es.length
   have hS := hwF.store
   obtain ⟨hmle, -, -⟩ := idxE_spec hreach
   set m := idxE E es ep with hm
@@ -369,15 +367,15 @@ theorem canon_of (hA : Assm E)
     hA.crash i _ _ (now_mono (E := E) (es := es) hmn hn) hio
   obtain ⟨hcut, hpre⟩ := canon_at hA hG hGr hep hFH hreach (hDm m le_rfl).1 (hDm m le_rfl).2
     hKb hKc hi hiom
-  have hw := wAt_ok (es := es) hA.ord n
-  have hext := store_mono (m := es.length) (es := es) hA.ord hn
-  have hwm := wAt_ok (es := es) hA.ord m
-  have hpers := bimm_persist (es := es) hA.ord hA.nodup i (n := m) n hmn hn
+  have hw := wAt_ok (es := es) hA n
+  have hext := store_mono (m := es.length) (es := es) hA hn
+  have hwm := wAt_ok (es := es) hA m
+  have hpers := bimm_persist (es := es) hA i hmn
   have hmem : ((wAt E es m).node i).bimm ∈ chainIds (wAt E es n).st cl :=
     chainIds_trans hw.store hcl hz hpers
   rw [← chainIds_ext hext hcl] at hmem
   have hbm := ((hwm.nodes i).bimm_on_cloc hwm.store).1
-  have hextm := store_mono (m := es.length) (es := es) hA.ord hmle
+  have hextm := store_mono (m := es.length) (es := es) hA hmle
   rw [prefixBelow_common (s := E.c.cut ep) hS (hcl.mono hext) hmem
     (by rw [slotOf_ext hextm hbm.exists_blk]; exact hcut)]
   exact hpre
@@ -390,17 +388,16 @@ theorem bimm_cloc_of {n : ℕ} (hA : Assm E) (hn : n ≤ es.length) {P : ℕ →
       ((wAt E es n).node i).bimm ∈ chainIds (wAt E es n).st cl → P cl) :
     (∀ j ∈ E.nodes, E.online j (wAt E es n).now = true → P ((wAt E es n).node j).bimm) ∧
       (∀ j ∈ E.nodes, E.online j (wAt E es n).now = true → P ((wAt E es n).node j).cloc) := by
-  have hw := wAt_ok (es := es) hA.ord n
-  have hh := hon_all (es := es) hA.ord hA.exec hA.nodup hA.sane n hn
+  have hw := wAt_ok (es := es) hA n
   constructor
   · intro j hj hjo
     obtain ⟨hbr, hbc⟩ := (hw.nodes j).bimm_on_cloc hw.store
     exact hP j hj hjo _ hbr
-      (le_trans (slot_anc_le hw.store ((hw.nodes j).rooted _ (hw.nodes j).cloc) hbc)
-        (hh.slots j _ (hw.nodes j).cloc))
+      (le_trans (slot_anc_le hw.store (hw.nodes j).cloc_rooted hbc)
+        (hw.slots j _ (hw.nodes j).cloc))
       (self_mem_chainIds hw.store hbr)
   · intro j hj hjo
-    exact hP j hj hjo _ ((hw.nodes j).rooted _ (hw.nodes j).cloc) (hh.slots j _ (hw.nodes j).cloc)
+    exact hP j hj hjo _ (hw.nodes j).cloc_rooted (hw.slots j _ (hw.nodes j).cloc)
       ((hw.nodes j).bimm_on_cloc hw.store).2
 
 /-- **The consistency obligation**, up to the horizon: at every point, every
@@ -417,7 +414,7 @@ theorem cons_step (hA : Assm E)
   induction n using Nat.strong_induction_on with
   | _ n ih =>
     intro hn hnH hIH i hi hio cl hcl hsl hz ep hep hs
-    have hext := store_mono (m := es.length) (es := es) hA.ord hn
+    have hext := store_mono (m := es.length) (es := es) hA hn
     have hslF : slotOf (wF E es).st cl = slotOf (wAt E es n).st cl := slotOf_ext hext hcl.exists_blk
     have hnN : (wAt E es n).now ≤ (wF E es).now := now_mono hn le_rfl
     have hfix2 := (hA.sane.fix_ok ep hep).2
