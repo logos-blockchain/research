@@ -181,6 +181,7 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
       Ne * ENNReal.ofReal (bandEps Tb E.c.period) := by
   classical
   obtain ⟨hA, hdel, hO, hσm, hfresh, hon, hlive⟩ := hM
+  have hAd := SlotLaws.ofRO hA.nodup hO hσm hfresh fun ω i => (hS ω i).nodup
   have hEL : 0 < E.c.epochLength := hA.sane.epochLength_pos
   have hl : 0 < lam0 E.c := by unfold lam0; have := hc.p_pos; have := hc.t0_pos; positivity
   have hK : 0 < Kc E.c := by
@@ -236,14 +237,13 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
       obtain ⟨n, hn, hnb⟩ := hb
       exact ⟨(n + 1) / E.c.epochLength, lt_of_le_of_lt (Nat.div_le_div_right (by omega)) hNe,
         fun hin => hnb (hbandOf ω n hin)⟩
-  refine (measure_mono h1).trans ((prob_out_of_band_cover hA es hO hσm hfresh hc hTb hb hprec hPf hP1 hPEL hS
+  refine (measure_mono h1).trans ((prob_out_of_band_cover es hAd hc hTb hb hprec hPf hP1 hPEL hS
     (fun ω => inB0_of_genesis (inB0_of_genesisOK hon hG (by linarith [hTb.μ1]) hg1 hg2)) Bad hrec
     (fun ω e he => stakePath_of_drift hTb hl hK hP1 hρ hHm (hD ω e he) (hH ω) hup hdn) Tset).trans
     (add_le_add ?_ le_rfl))
   -- the main event and the splits, in band until decided
   by_cases hgood : (goodB fam).Nonempty
-  · obtain ⟨κ, hκ, hbound⟩ := lottery_law_epoch_dec (M := M) hA es (by omega) hdel hO hσm hfresh
-      (fun ω i => (hS ω i).nodup) hP (pickM E mem) hgood
+  · obtain ⟨κ, hκ, hbound⟩ := lottery_law_epoch_dec (M := M) es (by omega) hdel hAd hP (pickM E mem) hgood
       (RBad.upClosed E)
     refine (measure_mono ?_).trans (hbound.trans (ENNReal.ofReal_le_ofReal ?_))
     · rintro ω (⟨hS, hb⟩ | hω)

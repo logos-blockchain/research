@@ -732,14 +732,18 @@ noncomputable def bandEps (T : TBand) (P : ℕ) : ℝ :=
   exp (-(((P : ℝ) - 1) * (T.ylo * T.clo) * T.δ ^ 2 / 2)) +
     exp (-(((P : ℝ) - 1) * (T.ylo * T.clo) * T.δ ^ 2 * (1 / 2 - 2 / 9 * T.δ)))
 
-/-- **The lottery's slots under a random oracle and fresh lotteries have known
-conditional laws**: given what is known before slot `n + 1` (`hist`), its outcome has
-its state's slot law (`freeze`, `slot_law`). -/
-theorem Adapted.ofRO (hnd : E.nodes.Nodup) (hO : RandomOracle μ O E.c.p) {σ : Ω → ℕ → EpochState}
+variable (μ O E) in
+/-- **The lottery's slots under states `σ` have their slot laws**: given what is known
+before slot `n + 1` (`hist`), its outcome has its state's slot law. -/
+abbrev SlotLaws (σ : Ω → ℕ → EpochState) : Prop :=
+  Adapted μ (fun k ω => slotOut E (k + 1) (σ ω (k + 1)) (tk O (k + 1) ω)) (fun n => hist O σ (n + 1))
+    (fun n ω => lawS E (n + 1) (σ ω (n + 1)))
+
+/-- **Under a random oracle and fresh lotteries, the lottery's slots have their slot
+laws** (`freeze`, `slot_law`). -/
+theorem SlotLaws.ofRO (hnd : E.nodes.Nodup) (hO : RandomOracle μ O E.c.p) {σ : Ω → ℕ → EpochState}
     (hσm : ∀ i, Measurable fun ω => σ ω i) (hfresh : Fresh μ O σ)
-    (hs : ∀ ω i, ((σ ω i).lead.map Note.id).Nodup) :
-    Adapted μ (fun k ω => slotOut E (k + 1) (σ ω (k + 1)) (tk O (k + 1) ω)) (fun n => hist O σ (n + 1))
-      (fun n ω => lawS E (n + 1) (σ ω (n + 1))) := by
+    (hs : ∀ ω i, ((σ ω i).lead.map Note.id).Nodup) : SlotLaws μ O E σ := by
   have hm : ∀ n, hist O σ n ≤ ‹MeasurableSpace Ω› := fun n =>
     sup_le (iSup₂_le fun j _ => (hO.meas j).comap_le) (iSup₂_le fun j _ => (hσm j).comap_le)
   have hTh : ∀ n j, j < n → Measurable[hist O σ n] (tk O j) := fun n j hj =>
@@ -760,10 +764,7 @@ theorem Adapted.ofRO (hnd : E.nodes.Nodup) (hO : RandomOracle μ O E.c.p) {σ : 
 /-- **The estimate stays in band, with the update's failures kept together with any
 event `Tset`.** As `prob_out_of_band_seq`, but the failure sets stay inside one measure,
 united with `Tset`, so that a single bound can cover them all. -/
-theorem prob_out_of_band_cover (hA : Assm E) (es : Ω → List Event)
-    (hO : RandomOracle μ O E.c.p)
-    (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
-    (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
+theorem prob_out_of_band_cover (es : Ω → List Event) (hAd : SlotLaws μ O E fun ω => σE (E.withO (O ω)) (es ω))
     (hc : LotConsts E.c T.η) (hT : T.OK) (hb : E.c.betaP = E.c.precision)
     (hprec : 0 < E.c.precision) (hPf : 0 < E.c.period * E.c.fP) (hP1 : 1 ≤ E.c.period)
     (hPEL : E.c.period ≤ E.c.epochLength)
@@ -777,7 +778,6 @@ theorem prob_out_of_band_cover (hA : Assm E) (es : Ω → List Event)
         Ne * ENNReal.ofReal (bandEps T E.c.period) := by
   set σ : Ω → ℕ → EpochState := fun ω => σE (E.withO (O ω)) (es ω) with hσ
   set X : ℕ → Ω → Out := fun k ω => slotOut E (k + 1) (σ ω (k + 1)) (tk O (k + 1) ω) with hX
-  have hAd := Adapted.ofRO hA.nodup hO hσm hfresh fun ω i => (hst ω i).nodup
   have hEL : 0 < E.c.epochLength := by omega
   have hconst : ∀ ω i, σ ω i = σ ω (i / E.c.epochLength * E.c.epochLength) := fun ω i =>
     σE_const (E.withO (O ω)) (es ω) hEL i
@@ -796,7 +796,7 @@ theorem prob_out_of_band_cover (hA : Assm E) (es : Ω → List Event)
       _ ≤ _ := Finset.sum_le_sum fun k hk =>
           rate_hon_lo hc hT (hst ω (k + 1)) (he (k + 1) (mem_win hP1 hPEL hk).1 (mem_win hP1 hPEL hk).2)
   have hmW : ∀ ω e, InB E T (σ ω) e → m ≤ wrate E (σ ω) e := fun ω e he =>
-    le_trans (hmH ω e he) (Finset.sum_le_sum fun k _ => rate_hon_le_occ hO.pos _ _)
+    le_trans (hmH ω e he) (Finset.sum_le_sum fun k _ => rate_hon_le_occ hc.p_pos _ _)
   -- the first epoch out of band follows an atypical window
   set Lo : ℕ → Set Ω := fun e => {ω | InB E T (σ ω) e ∧ ¬ (1 - T.δ) * hrate E (σ ω) e ≤ hcnt E (fun k => X k ω) e}
   set Hi : ℕ → Set Ω := fun e => {ω | InB E T (σ ω) e ∧ ¬ wcnt E (fun k => X k ω) e ≤ (1 + T.δ) * wrate E (σ ω) e}

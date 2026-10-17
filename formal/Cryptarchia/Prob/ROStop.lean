@@ -35,7 +35,7 @@ public import Cryptarchia.Prob.RO
 public import Cryptarchia.Prob.WorstE
 import Cryptarchia.Prob.ROEpoch
 import Cryptarchia.Prob.WorstStop
-import Cryptarchia.Prob.TSIRO
+public import Cryptarchia.Prob.TSIRO
 
 /-!
 # The lottery law over many epochs, with the band needed only until decided
@@ -59,12 +59,8 @@ open Classical in
 /-- **The lottery law over many epochs, with the band needed only until the event is
 decided.** Slot `n + 1` needs to be in band only while the first `n` slots do not yet
 decide the event. -/
-theorem lottery_law_epoch_dec (hA : Assm E) (es : Ω → List Event) {M : ℕ} (hM : 0 < M)
-    (hdel : ∀ ω, DeltaDelivery (E.withO (O ω)) (es ω))
-    (hO : RandomOracle μ O E.c.p)
-    (hσm : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i)
-    (hfresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω))
-    (hs : ∀ ω i, ((σE (E.withO (O ω)) (es ω) i).lead.map Note.id).Nodup)
+theorem lottery_law_epoch_dec (es : Ω → List Event) {M : ℕ} (hM : 0 < M)
+    (hdel : ∀ ω, DeltaDelivery (E.withO (O ω)) (es ω)) (hAd : SlotLaws μ O E fun ω => σE (E.withO (O ω)) (es ω))
     {K : ℕ} {fam : Fin K → Band} (hP : ∀ b, (fam b).Prod) (pick : ℕ → EpochState → Fin K)
     (hG : (goodB fam).Nonempty) {S : Set (List Out)} (hS : UpClosed S) :
     ∃ κ : Kern, κ.EpochFam E.c.epochLength fam ∧
@@ -86,7 +82,7 @@ theorem lottery_law_epoch_dec (hA : Assm E) (es : Ω → List Event) {M : ℕ} (
         (σE (E.withO (O ω)) (es ω) (n + 1)) ∨ Decided S M (slots (lotStr (E.withO (O ω)) (es ω)) n)} =
       {ω | List.ofFn (fun k : Fin M => X k ω) ∈ S ∧ ∀ n < M, ok n ω ∨ Decided S M (List.ofFn fun k : Fin n => X k ω)} by
     ext ω; simp only [Set.mem_setOf_eq, hslotsN]; exact Iff.rfl]
-  exact law_le_epoch_dec μ hP hM (Adapted.ofRO hA.nodup hO hσm hfresh hs)
+  exact law_le_epoch_dec μ hP hM hAd
     (fun n ω => pick ((n + 1) / E.c.epochLength) (σ ω (n + 1))) ok
     (fun n _ => (measurable_hist_σ O σ (n + 1)) (MeasurableSet.of_discrete
       (s := {s : EpochState | SlotBand (fam (pick ((n + 1) / E.c.epochLength) s)) E (n + 1) s})))
