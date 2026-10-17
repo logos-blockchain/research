@@ -216,7 +216,7 @@ Truncated at `G` slots (`G + 1 < EL`), a phase crosses at most one boundary. So 
 **one-switch automaton** bounds it (`AutoSolE`): for each member a solution `vpost`
 of its own recursion, a table `vmax` above all of them, and for each member a
 solution `vpre` of its recursion that also stays above `vmax`, where the phase may
-still switch to any member. Phases longer than `G` get weight `0` (`Wt2G`); the
+still switch to any member. Phases longer than `G` get weight `0` (`truncG`); the
 long-phase term of the settlement bound pays for them.
 -/
 
@@ -240,9 +240,11 @@ structure AutoSolE (fam : Fin K → Band) (Δ : ℕ) (x θ : ℝ) (g : Fin 3 →
   /-- before the switch: above `vmax` (a switch may still come), and the member's own recursion -/
   pre : ∀ k, PreSol (fam k) Δ x θ g vmax (vpre k)
 
-/-- The phase weight, truncated at `G` slots. -/
-noncomputable def Wt2G (x θ : ℝ) (g : Fin 3 → Bool → Bool → ℝ) (m G : ℕ) (h : List Out) : ℝ :=
-  if h.length ≤ m + G then Wt2 x θ g m h else 0
+/-- A phase function, cut at `G` slots after `m`. -/
+noncomputable def truncG (m G : ℕ) (f : List Out → ℝ) (h : List Out) : ℝ := if h.length ≤ m + G then f h else 0
+
+theorem truncG_nonneg {m G : ℕ} {f : List Out → ℝ} (hf : ∀ h, 0 ≤ f h) (h : List Out) : 0 ≤ truncG m G f h := by
+  unfold truncG; split_ifs; exacts [hf h, le_rfl]
 
 /-- An epoch boundary between history lengths `m` (exclusive) and `n` (inclusive). -/
 def Swtd (EL m n : ℕ) : Prop := ∃ j, m < j ∧ j ≤ n ∧ (j + 1) % EL = 0
@@ -301,13 +303,13 @@ include hTb hg0 hTnext hTstep hTterm in
 /-- **Inside a burst, with abstract tables**, truncated at `G` slots. -/
 theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
     ∀ (n : ℕ) (h : List Out) (q : ℕ), InBurst m h q → q < Δ → h.length + n = M → h.length ≤ m + G →
-      ExU (κ := κ) (PE Δ M) n (Wt2G x θ g m G) h ≤
+      ExU (κ := κ) (PE Δ M) n (truncG m G (Wt2 x θ g m)) h ≤
         θ ^ (h.length - m) * x ^ advCnt (strOf h) m h.length *
           T h q (acap (advCnt (strOf h) m h.length)) (decide (2 ≤ honCnt (strOf h) m h.length))
   | 0, h, q, hb, hq, hn, hG' => by
     have hPE : PE Δ M h := Or.inl (by omega)
     rw [ExU_stop _ _ _ hPE]
-    unfold Wt2G; rw [if_pos hG']
+    unfold truncG; rw [if_pos hG']
     have hB1 : 1 ≤ honCnt (strOf h) m h.length := by
       obtain ⟨i, h1, h2, h3⟩ := hb.honIn
       unfold honCnt; exact Finset.card_pos.2 ⟨i, by simp; exact ⟨⟨h1, h2⟩, h3⟩⟩
@@ -325,7 +327,7 @@ theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
       le_trans (hg0 _ _ _) (hTterm h q' hq' a' u')
     rcases Nat.eq_or_lt_of_le hG' with hGe | hGl
     · -- the truncation: nothing more counts
-      rw [ExU_zero_beyond (κ := κ) (L := m + G) (fun h' hl => by unfold Wt2G; rw [if_neg (by omega)])
+      rw [ExU_zero_beyond (κ := κ) (L := m + G) (fun h' hl => by unfold truncG; rw [if_neg (by omega)])
         n h (by omega) hnPE]
       exact mul_nonneg (by positivity) (hvn q hq _ _)
     rw [ExU_go _ _ _ hnPE]
@@ -345,7 +347,7 @@ theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
       (if hh then v 0 (acap (a.val + if aa then 1 else 0)) true
         else if q + 1 = Δ then g (acap (a.val + if aa then 1 else 0)) true (decide (2 ≤ nh))
           else v (q + 1) (acap (a.val + if aa then 1 else 0)) (decide (2 ≤ nh))) with hF
-    have hcont : ∀ o, ExU (κ := κ) (PE Δ M) n (Wt2G x θ g m G) (h ++ [o]) ≤ W0 * θ * F (decide (o.hon ≠ 0)) o.adv := by
+    have hcont : ∀ o, ExU (κ := κ) (PE Δ M) n (truncG m G (Wt2 x θ g m)) (h ++ [o]) ≤ W0 * θ * F (decide (o.hon ≠ 0)) o.adv := by
       intro o
       have hWo := Wt2_snoc (x := x) (θ := θ) (g := g) h o hm
       rw [← hW0, ← ha, ← hnh] at hWo
@@ -376,7 +378,7 @@ theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
         have d2 : decide (2 ≤ nh + 1) = true := decide_eq_true (by omega)
         by_cases hM : (h ++ [o]).length = M
         · rw [ExU_stop _ _ _ (Or.inl hM)]
-          unfold Wt2G; rw [if_pos (by simp; omega), hWo, d1, d2]
+          unfold truncG; rw [if_pos (by simp; omega), hWo, d1, d2]
           have := hTterm h 0 (by have := hb.p_gt; omega) a' true
           calc W0 * (θ * (if o.adv then x else 1)) * g a' true true
               ≤ W0 * (θ * (if o.adv then x else 1)) * v 0 a' true :=
@@ -402,7 +404,7 @@ theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
         · rw [if_neg (show ¬ (q + 1 = Δ) by omega)]
           by_cases hM : (h ++ [o]).length = M
           · rw [ExU_stop _ _ _ (Or.inl hM)]
-            unfold Wt2G; rw [if_pos (by simp; omega), hWo, d1]
+            unfold truncG; rw [if_pos (by simp; omega), hWo, d1]
             have := hTterm h (q + 1) hq1 a' (decide (2 ≤ nh))
             calc W0 * (θ * (if o.adv then x else 1)) * g a' true (decide (2 ≤ nh))
                 ≤ W0 * (θ * (if o.adv then x else 1)) * v (q + 1) a' (decide (2 ≤ nh)) :=
@@ -421,9 +423,9 @@ theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
             · exact Or.inl hM
             · exact Or.inr ⟨by simp at hM ⊢; omega, hb'.quiet_of (by omega)⟩
           rw [ExU_stop _ _ _ hPE]
-          unfold Wt2G; rw [if_pos (by simp; omega), hWo, d1]
+          unfold truncG; rw [if_pos (by simp; omega), hWo, d1]
           apply le_of_eq; ring
-    calc ∑ o, κ.p h o * ExU (κ := κ) (PE Δ M) n (Wt2G x θ g m G) (h ++ [o])
+    calc ∑ o, κ.p h o * ExU (κ := κ) (PE Δ M) n (truncG m G (Wt2 x θ g m)) (h ++ [o])
         ≤ ∑ o, κ.p h o * (W0 * θ * F (decide (o.hon ≠ 0)) o.adv) :=
           Finset.sum_le_sum fun o _ => mul_le_mul_of_nonneg_left (hcont o) (κ.nonneg h o)
       _ = W0 * θ * ∑ o, κ.p h o * F (decide (o.hon ≠ 0)) o.adv := by
@@ -437,7 +439,7 @@ include hTb hg0 hTnext hTstep hTterm in
 bound of the start's band with the start's table. -/
 theorem phase_autoT (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hG1 : 1 ≤ G) (hΔ : 0 < Δ) {l : List Out} (hl : Start Δ l)
     (hlm : l.length = m) (hlM : l.length < M) :
-    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (Wt2G x θ g l.length G) l ≤ autoBound (bandOf l) x θ g (T l) := by
+    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (truncG l.length G (Wt2 x θ g l.length)) l ≤ autoBound (bandOf l) x θ g (T l) := by
   classical
   subst hlm
   have hBl := hTb l
@@ -450,7 +452,7 @@ theorem phase_autoT (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hG1 : 1 ≤ G) (hΔ : 0 < �
     (if hh then v 0 (acap (if aa then 1 else 0)) false else g (acap (if aa then 1 else 0)) false false) with hF
   have hA0 : advCnt (strOf l) m m = 0 := advCnt_self _
   have hH0 : honCnt (strOf l) m m = 0 := by unfold honCnt; simp
-  have hcont : ∀ o, ExU (κ := κ) (PE Δ M) (M - m - 1) (Wt2G x θ g m G) (l ++ [o]) ≤ θ * F (decide (o.hon ≠ 0)) o.adv := by
+  have hcont : ∀ o, ExU (κ := κ) (PE Δ M) (M - m - 1) (truncG m G (Wt2 x θ g m)) (l ++ [o]) ≤ θ * F (decide (o.hon ≠ 0)) o.adv := by
     intro o
     have hWo := Wt2_snoc (x := x) (θ := θ) (g := g) l o (le_of_eq hm.symm)
     rw [← hm, hA0, hH0, Nat.sub_self, pow_zero, pow_zero, one_mul, one_mul] at hWo
@@ -480,7 +482,7 @@ theorem phase_autoT (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hG1 : 1 ≤ G) (hΔ : 0 < �
         split_ifs <;> simp
       by_cases hM : (l ++ [o]).length = M
       · rw [ExU_stop _ _ _ (Or.inl hM)]
-        unfold Wt2G; rw [if_pos (by simp; omega), hWo]
+        unfold truncG; rw [if_pos (by simp; omega), hWo]
         simp only [ho, ne_eq, not_false_eq_true, ↓reduceIte, zero_add, le_refl, decide_true,
           Nat.one_lt_ofNat, Nat.not_ofNat_le_one, decide_false]
         have := hTterm l 0 hΔ (acap (if o.adv then 1 else 0)) false
@@ -504,11 +506,11 @@ theorem phase_autoT (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hG1 : 1 ≤ G) (hΔ : 0 < �
         · exact Or.inl hM
         · exact Or.inr ⟨by simp at hM ⊢; omega, by simpa using start_snoc_empty hl o ho⟩
       rw [ExU_stop _ _ _ hPE]
-      unfold Wt2G; rw [if_pos (by simp; omega), hWo]
+      unfold truncG; rw [if_pos (by simp; omega), hWo]
       simp [ho]
       ring_nf; exact le_refl _
   unfold ExPh autoBound
-  calc ∑ o, κ.p l o * ExU (κ := κ) (PE Δ M) (M - m - 1) (Wt2G x θ g m G) (l ++ [o])
+  calc ∑ o, κ.p l o * ExU (κ := κ) (PE Δ M) (M - m - 1) (truncG m G (Wt2 x θ g m)) (l ++ [o])
       ≤ ∑ o, κ.p l o * (θ * F (decide (o.hon ≠ 0)) o.adv) :=
         Finset.sum_le_sum fun o _ => mul_le_mul_of_nonneg_left (hcont o) (κ.nonneg l o)
     _ = θ * ∑ o, κ.p l o * F (decide (o.hon ≠ 0)) o.adv := by
@@ -572,7 +574,7 @@ include hv hg0 hband hmem in
 theorem phase_autoE (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hEL : 0 < EL) {G : ℕ} (hG : G + 1 < EL) (hG1 : 1 ≤ G)
     {e : ℝ} (he : ∀ k, autoBound (fam k) x θ g (vpre k) ≤ e) (hΔ : 0 < Δ) {l : List Out} (hl : Start Δ l)
     (hlM : l.length < M) :
-    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (Wt2G x θ g l.length G) l ≤ e := by
+    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (truncG l.length G (Wt2 x θ g l.length)) l ≤ e := by
   classical
   have hvl : vtab vpre vpost EL l.length mem l = vpre (mem l) := by
     unfold vtab; rw [if_neg (fun ⟨j, h1, h2, _⟩ => by omega)]
@@ -590,7 +592,7 @@ theorem phase_autoIn {x θ : ℝ} {g : Fin 3 → Bool → Bool → ℝ} {vpost :
     (hx : 0 ≤ x) (hθ : 0 ≤ θ) {G : ℕ} (hG1 : 1 ≤ G) {e : ℝ} {l : List Out}
     (he : autoBound (fam (mem l)) x θ g (vpost (mem l)) ≤ e) (hΔ : 0 < Δ) (hl : Start Δ l) (hlM : l.length < M)
     (hnb : ∀ j, l.length < j → j ≤ l.length + G → (j + 1) % EL ≠ 0) :
-    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (Wt2G x θ g l.length G) l ≤ e :=
+    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (truncG l.length G (Wt2 x θ g l.length)) l ≤ e :=
   (phase_autoT (m := l.length) (G := G) (fun h => vpost (mem h)) (fun h => fam (mem h)) hband hg0
     (fun h hm hlen o q _ a u => by rw [hmem h o (hnb (h.length + 1) (by omega) (by omega))])
     (fun h _ _ => (hpost (mem h)).step) (fun h => (hpost (mem h)).term) hx hθ hG1 hΔ hl rfl hlM).trans he

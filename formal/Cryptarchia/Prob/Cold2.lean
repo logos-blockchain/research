@@ -741,12 +741,6 @@ open Finset Settle
 
 variable {B : Band} {Δ M : ℕ} {κ : Kern}
 
-/-- A phase function, cut at `G` slots after `m`. -/
-noncomputable def truncG (m G : ℕ) (f : List Out → ℝ) (h : List Out) : ℝ := if h.length ≤ m + G then f h else 0
-
-theorem truncG_nonneg {m G : ℕ} {f : List Out → ℝ} (hf : ∀ h, 0 ≤ f h) (h : List Out) : 0 ≤ truncG m G f h := by
-  unfold truncG; split_ifs; exacts [hf h, le_rfl]
-
 theorem ex_cross_trunc {sl el : ℝ} (hel0 : 0 ≤ el) (hΔ : 0 < Δ) {h : List Out}
     (hlM : h.length + Δ + 1 ≤ M) {G : ℕ} (hG : Δ + 1 ≤ G) (hs : sl ≤ κ.p h ⟨1, false⟩)
     (hel : ∀ i < Δ, el ≤ κ.p (h ++ pat ⟨1, false⟩ i) Out.empty) :

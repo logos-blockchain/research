@@ -126,7 +126,7 @@ theorem Cert2E.anyPhase (i : Fin 19) (hi : i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 17)
       (xg_g_nonneg C.P i) (fun _ _ _ _ _ _ _ _ => le_rfl) (fun h _ _ => (C.solS i hi (mem h)).step)
       (fun h => (C.solS i hi (mem h)).term) hx.1 hx.2 (by omega) C.P.hΔ (start_of_pe hpe hlM) rfl hlM).trans
       (he (mem h)))
-  unfold Wt2G WP; rw [if_pos (by simp; omega)]
+  unfold truncG WP; rw [if_pos (by simp; omega)]
 
 theorem Cert2E.truncPhase : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ h, PE Δ M h → h.length < M →
     ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP C.P i h.length)) h ≤ C.P.e i := by
