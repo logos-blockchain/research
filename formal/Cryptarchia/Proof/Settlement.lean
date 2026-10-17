@@ -96,14 +96,14 @@ theorem agree_of (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ �
       obtain ⟨g, hg, hs, -⟩ := hS.gen
       unfold chainIds; rw [chain_genesis hg hs]; simp [hS.idOK _ _ hg]
     rw [hgen] at hmem ⊢; exact hmem
-  obtain ⟨k, hk1, hk2⟩ := phase_of hG.e0 hG.mono hG.unb hpos
+  obtain ⟨k, hk1, hk2⟩ := phase_of hG.e0 hG.unb hpos
   have hNF : (wAt E es n).now ≤ (wF E es).now := now_mono hn le_rfl
   have hgi := goodAt_FT hA hS hext hNF (tree_good hS (hw.nodes i) (hw.slots i) (hw.nodes i).cloc) hKi
   have hgj := goodAt_FT hA hS hext hNF (tree_good hS (hw.nodes j) (hw.slots j) (hw.nodes j).cloc) hKj
   have hhd : ∀ l ∈ E.nodes, E.online l (wAt E es n).now = true →
       (FT E es K).hd (e k - E.Δ) ≤ height (wF E es).st ((wAt E es n).node l).cloc :=
     fun l hl hlo => le_trans (FT_hd_mono (by omega)) (hD l hl hlo)
-  obtain ⟨x, hx1, hx2, hx3⟩ := nearAt hA hK hG hpos hNF hnH (A2_of_Hon hA hn hH) ⟨hk1, hk2⟩ hgi hgj
+  obtain ⟨x, hx1, hx2, hx3⟩ := nearAt hA hK hG hNF hnH (A2_of_Hon hA hn hH) ⟨hk1, hk2⟩ hgi hgj
     (by rw [slotOf_ext hext hci.exists_blk]; exact hw.slots i _ (hw.nodes i).cloc)
     (by rw [slotOf_ext hext hcj.exists_blk]; exact hw.slots j _ (hw.nodes j).cloc)
     (hhd i hi hio) (hhd j hj hjo)

@@ -366,6 +366,23 @@ theorem run_ok (hA : Assm E) (es : List Event) {w : World} (hw : WorldOK E w) :
     StepOK E w (run E w es) :=
   foldl_inv (P := StepOK E w) (fun _ h e _ => h.trans (step_ok hA h.ok e)) w (stepOK_refl hw)
 
+/-- What an event does to a node: it is a tick, or leaves the node alone, or
+delivers a block to it, leaving the store alone. -/
+theorem step_node (w : World) (e : Event) (i : ℕ) :
+    e = .tick ∨ (w.step E e).node i = w.node i ∨
+      ∃ b, (w.step E e).st = w.st ∧ (w.step E e).node i =
+        receive E.c w.st E.L E.O E.G E.fastPath (E.ord i) w.now (w.node i) b := by
+  cases e with
+  | tick => exact Or.inl rfl
+  | deliver j b =>
+    simp only [World.step]
+    split
+    · by_cases hij : i = j
+      · subst hij; exact Or.inr (Or.inr ⟨b, rfl, by simp⟩)
+      · exact Or.inr (Or.inl (by simp [hij]))
+    · exact Or.inr (Or.inl rfl)
+  | create B => simp only [World.step]; split <;> exact Or.inr (Or.inl rfl)
+
 /-! ## What a tick adds -/
 
 /-- **What a tick adds**: honest blocks for the new slot, each signed by a node

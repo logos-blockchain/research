@@ -154,7 +154,7 @@ theorem restrict_hd {F : PTree} {t m : ℕ} (hm : m ≤ t) : (F.restrict t).hd m
       exact le_trans h3 hm⟩, h2, h3⟩
 
 /-- The phase containing `t - 1`. -/
-theorem phase_of {e : ℕ → ℕ} (he0 : e 0 = 0) (hmono : ∀ k, e k ≤ e (k + 1)) (hunb : ∀ t, ∃ k, t ≤ e k)
+theorem phase_of {e : ℕ → ℕ} (he0 : e 0 = 0) (hunb : ∀ t, ∃ k, t ≤ e k)
     {t : ℕ} (ht : 1 ≤ t) : ∃ k, e k + 1 ≤ t ∧ t ≤ e (k + 1) := by
   classical
   have hex : ∃ k, t ≤ e k := hunb t
@@ -172,7 +172,7 @@ open Classical in
 with slots up to `t`, at least as high as the honest depth at the start of the
 phase, meet within `k` blocks below the first. -/
 theorem nearAt (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ → ℕ} {H : ℕ} (hG : GoodCondW E es K W e H) {t : ℕ}
-    (ht1 : 1 ≤ t) (htN : t ≤ (wF E es).now) (htH : t ≤ H) (hA2 : A2Upto E es K t) {k : ℕ}
+    (htN : t ≤ (wF E es).now) (htH : t ≤ H) (hA2 : A2Upto E es K t) {k : ℕ}
     (hk : e k + 1 ≤ t ∧ t ≤ e (k + 1)) {u v : ℕ} (hu : u ∈ (FT E es K).V) (hv : v ∈ (FT E es K).V)
     (hsu : slotOf (wF E es).st u ≤ t) (hsv : slotOf (wF E es).st v ≤ t)
     (hdu : (FT E es K).hd (e k - E.Δ) ≤ height (wF E es).st u)
@@ -321,13 +321,13 @@ theorem near_now (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ �
     Near E.c E.L E.O E.G st t H0 h z := by
   intro cl hg hcl hz
   have hclF := goodAt_FT hA hS hext htN hg (hKc cl hg hz)
-  obtain ⟨k, hk1, hk2⟩ := phase_of hG.e0 hG.mono hG.unb ht1
+  obtain ⟨k, hk1, hk2⟩ := phase_of hG.e0 hG.unb ht1
   have hclr := hg.1
   have e1 : height (wF E es).st cl = height st cl := height_ext hext hclr
   have e2 : height (wF E es).st h = height st h := height_ext hext hhr
   have hdcl : (FT E es K).hd (e k - E.Δ) ≤ height (wF E es).st cl := by
     rw [e1]; exact le_trans (FT_hd_mono (by omega)) (le_trans hH0 hcl)
-  obtain ⟨x, hx1, hx2, hx3⟩ := nearAt hA hK hG ht1 htN htH hA2 ⟨hk1, hk2⟩ hclF hhF
+  obtain ⟨x, hx1, hx2, hx3⟩ := nearAt hA hK hG htN htH hA2 ⟨hk1, hk2⟩ hclF hhF
     (by rw [slotOf_ext hext hclr.exists_blk]; exact hg.2.1)
     (by rw [slotOf_ext hext hhr.exists_blk]; exact hsh) hdcl (by rw [e2]; exact hdh k hk1)
   rw [chainIds_ext hext hclr] at hx1
@@ -423,34 +423,16 @@ theorem claimC (hA : Assm E) {Hh : ℕ} (hK : KOK E es K Hh) {W : ℕ → ℕ} {
       have hw1 := wAt_ok (es := es) hA (m + 1)
       rw [height_wF hA (by omega) ((hw1.nodes i).rooted h hin),
         height_wF hA (by omega) (hw1.nodes i).cloc_rooted]
-      have hstep := wAt_succ E es hml
-      rw [hstep] at hin ⊢
-      cases hev' : es[m] with
-      | tick =>
-        rw [hev'] at hin
-        exact tick_tree hA hwm i h hin hold
-      | deliver j b =>
-        rw [hev'] at hin
-        simp only [World.step] at hin ⊢
-        by_cases hc : (E.nodes.contains j && E.online j (wAt E es m).now) = true
-        · rw [if_pos hc] at hin ⊢
-          simp only at hin ⊢
-          by_cases hji : i = j
-          · subst hji
-            rw [if_pos rfl] at hin ⊢
-            obtain ⟨Bm, hBm⟩ : ∃ Bm, (wAt E es m).st h = some Bm := by
-              have := (receive_step hwm.store (hwm.nodes i) E.fastPath (E.ord i) (hA.ord i)
-                (wAt E es m).now b).ok
-              exact (this.rooted h hin).exists_blk
-            exact fold_adds hwm.store (hnear_m m (by omega) Bm hBm) E.fastPath (E.ord i) (hA.ord i)
-              (chainUp (wAt E es m).st b) (fun x hx => mem_chainUp hwm.store hx)
-              ((wAt E es m).node i) (hwm.foldInv i) hold hin
-          · rw [if_neg hji] at hin; exact absurd hin hold
-        · rw [if_neg hc] at hin; exact absurd hin hold
-      | create B =>
-        rw [hev'] at hin
-        simp only [World.step] at hin
-        split at hin <;> exact absurd hin hold
+      rw [wAt_succ E es hml] at hin ⊢
+      rcases step_node (E := E) (wAt E es m) es[m] i with hev' | hsame | ⟨b, hst, hrec⟩
+      · rw [hev'] at hin ⊢; exact tick_tree hA hwm i h hin hold
+      · rw [hsame] at hin; exact absurd hin hold
+      · rw [hrec] at hin; rw [hst, hrec]
+        obtain ⟨Bm, hBm⟩ := ((receive_step hwm.store (hwm.nodes i) E.fastPath (E.ord i) (hA.ord i)
+          (wAt E es m).now b).ok.rooted h hin).exists_blk
+        exact fold_adds hwm.store (hnear_m m (by omega) Bm hBm) E.fastPath (E.ord i) (hA.ord i)
+          (chainUp (wAt E es m).st b) (fun x hx => mem_chainUp hwm.store hx)
+          ((wAt E es m).node i) (hwm.foldInv i) hold hin
   -- at the delivery itself, `h` is accepted
   apply hQ (d + 1) le_rfl
   have hwd := wAt_ok (es := es) hA d
