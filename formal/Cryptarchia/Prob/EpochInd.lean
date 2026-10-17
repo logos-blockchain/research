@@ -31,7 +31,7 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
-import Cryptarchia.Prob.Trunc
+public import Cryptarchia.Prob.Trunc
 import Cryptarchia.Proof.Consist
 public import Cryptarchia.Prob.Final
 public import Cryptarchia.Prob.Worst
@@ -61,41 +61,9 @@ theorem split_up (E : Env) (hA : Assm E) (hlive : ∀ t, ∃ j ∈ E.nodes, E.on
     (hgr : ∀ ep', 1 ≤ ep' → E.c.fix ep' ≤ min (E.c.fix (ep + 1)) N → E.c.cut ep' + G < Ms)
     (hsplit : prefixBelow (CP E es (ep + 1)) (E.c.cut ep) ≠ CP E es ep) {l' : List Out}
     (hl : List.Forall₂ OutLe (slots (lotStr E es) Ms) l') :
-    ¬ (GoodLS E (strOf l') (min (E.c.fix (ep + 1)) N) Lw (gend E.Δ Ms (strOf l')) ∧
-      GrowthS E (strOf l') (gend E.Δ Ms (strOf l')) (min (E.c.fix (ep + 1)) N) r G) := by
-  classical
+    ¬ GoodCap E (min (E.c.fix (ep + 1)) N) Ms Lw r G (strOf l') := by
   intro hg
-  set Ne := min (E.c.fix (ep + 1)) N
-  set lot := lotStr E es with hlot
-  obtain ⟨hlen, hget⟩ := List.forall₂_iff_get.1 hl
-  rw [slots_length] at hlen
-  have hdom1 : ∀ i, 1 ≤ i → i ≤ Ms → OutLe (enc (lot i)) (l'.getD (i - 1) Out.empty) := by
-    intro i h1 h2
-    have hk1 : i - 1 < (slots lot Ms).length := by rw [slots_length]; omega
-    have hk2 : i - 1 < l'.length := by omega
-    have := hget (i - 1) hk1 hk2
-    rw [List.getD_eq_getElem _ _ hk2]
-    simp only [List.get_eq_getElem, slots_get, show i - 1 + 1 = i by omega] at this
-    exact this
-  set w : CStr := fun i => if 1 ≤ i ∧ i ≤ Ms then ((lot i).1, (strOf l' i).2) else lot i with hw
-  have hstr : ∀ i, 1 ≤ i → strOf l' i = (l'.getD (i - 1) Out.empty).toPair := by
-    intro i hi; unfold strOf; rw [if_neg (by omega)]
-  have hdom : AdvLeW Ne lot w := by
-    refine ⟨fun i _ _ => by simp only [hw]; split_ifs <;> rfl, fun i hi => ?_⟩
-    simp only [hw]
-    split_ifs with h
-    · rw [hstr i h.1]
-      exact (hdom1 i h.1 h.2).2 (by simpa [enc] using hi)
-    · exact hi
-  have hsim : SimOn (strOf l') w 0 Ms := by
-    intro i h1 h2
-    have hd := hdom1 i (by omega) h2
-    simp only [hw, if_pos (show 1 ≤ i ∧ i ≤ Ms by omega)]
-    rw [hstr i (by omega)]
-    simp only [Out.toPair]
-    rw [← hd.1]
-    exact ⟨enc_hon_zero _, enc_hon_one _, trivial⟩
-  have hgw := good_congr_cap E rfl hsim hMs hgr hg
+  obtain ⟨w, hdom, hgw⟩ := good_dom E hMs hgr hl hg
   exact hsplit (cons_of_lot hA hlive hep (min_le_min le_rfl hNF) hdom hgw.1 (growthS_on E hgw.2))
 
 /-- Growth witnesses of epochs fixed by a horizon lie before it. -/

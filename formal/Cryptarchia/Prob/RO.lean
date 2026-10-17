@@ -1,7 +1,7 @@
 module
 
 public import Cryptarchia.Prob.Worst
-public import Cryptarchia.Prob.Final
+public import Cryptarchia.Prob.Trunc
 public import Cryptarchia.Prob.Tail2
 public import Mathlib.Order.CompletePartialOrder
 public import Mathlib.Probability.Independence.Basic
@@ -576,56 +576,15 @@ theorem goodLS_withO {E : Env} {O : Oracle} {w : CStr} {N Lw : ℕ} {e : ℕ →
 
 /-! ## From an unsafe execution to an event closed under adversarial slots -/
 
-theorem enc_hon_zero (p : ℕ × Bool) : (enc p).hon.val = 0 ↔ p.1 = 0 := by
-  unfold enc; split_ifs <;> simp_all
-
-theorem enc_hon_one (p : ℕ × Bool) : (enc p).hon.val = 1 ↔ p.1 = 1 := by
-  unfold enc; split_ifs <;> simp_all
-
-theorem slots_get (w : CStr) (M k : ℕ) (hk : k < (slots w M).length) :
-    (slots w M)[k] = enc (w (k + 1)) := by
-  simp [slots]
-
 /-- **Unsafe executions are bad for every dominating outcome list.** If an execution
 is unsafe, then every outcome list with the lottery string's honest leaders and at
 least its adversarial slots fails the good event. -/
 theorem unsafe_up (E : Env) (hA : Assm E) {es : List Event} {N M Lw r G : ℕ} (hNF : (wF E es).now ≤ N)
     (hNM : N + G < M) (hU : Unsafe E es) {l' : List Out}
-    (hl : List.Forall₂ OutLe (slots (lotStr E es) M) l') :
-    ¬ (GoodLS E (strOf l') N Lw (gend E.Δ M (strOf l')) ∧ GrowthS E (strOf l') (gend E.Δ M (strOf l')) N r G) := by
-  classical
+    (hl : List.Forall₂ OutLe (slots (lotStr E es) M) l') : ¬ GoodCap E N M Lw r G (strOf l') := by
   intro hg
-  set lot := lotStr E es with hlot
-  obtain ⟨hlen, hget⟩ := List.forall₂_iff_get.1 hl
-  rw [slots_length] at hlen
-  -- the outcome at slot `i` of `l'` dominates the lottery string's
-  have hdom1 : ∀ i, 1 ≤ i → i ≤ M → OutLe (enc (lot i)) (l'.getD (i - 1) Out.empty) := by
-    intro i h1 h2
-    have hk1 : i - 1 < (slots lot M).length := by rw [slots_length]; omega
-    have hk2 : i - 1 < l'.length := by omega
-    have := hget (i - 1) hk1 hk2
-    rw [List.getD_eq_getElem _ _ hk2]
-    simp only [List.get_eq_getElem, slots_get, show i - 1 + 1 = i by omega] at this
-    exact this
-  set w : CStr := fun i => if 1 ≤ i ∧ i ≤ M then ((lot i).1, (strOf l' i).2) else lot i with hw
-  have hstr : ∀ i, 1 ≤ i → strOf l' i = (l'.getD (i - 1) Out.empty).toPair := by
-    intro i hi; unfold strOf; rw [if_neg (by omega)]
-  have hdom : AdvLeW N lot w := by
-    refine ⟨fun i _ _ => by simp only [hw]; split_ifs <;> rfl, fun i hi => ?_⟩
-    simp only [hw]
-    split_ifs with h
-    · rw [hstr i h.1]
-      exact (hdom1 i h.1 h.2).2 (by simpa [enc] using hi)
-    · exact hi
-  have hsim : SimOn (strOf l') w 0 M := by
-    intro i h1 h2
-    have hd := hdom1 i (by omega) h2
-    simp only [hw, if_pos (show 1 ≤ i ∧ i ≤ M by omega)]
-    rw [hstr i (by omega)]
-    simp only [Out.toPair]
-    rw [← hd.1]
-    exact ⟨enc_hon_zero _, enc_hon_one _, trivial⟩
-  have hgw := good_congr E rfl hA.sane hsim hNM hg
+  obtain ⟨w, hdom, hgw⟩ :=
+    good_dom E (by omega) (fun ep hep _ => by have := (hA.sane.fix_ok ep hep).1; omega) hl hg
   obtain ⟨n, n', i, j, hnn, hn', hi, hj, hio, hjo, hb⟩ := hU
   exact hb (final_bimm_dom hA hNF hdom hgw.1 hgw.2 hnn hn' hi hj hio hjo)
 

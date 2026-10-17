@@ -89,7 +89,7 @@ theorem lift_bad (E : Env) {N Ne Ms M Lw r G : ℕ} (hNe : Ne ≤ N) (hNs : Ne <
       conv_lhs => rw [← List.take_append_drop Ms l']
       exact strOf_append_of_le (by rw [List.length_take]; omega)
     rw [this]; exact ⟨Iff.rfl, Iff.rfl, rfl⟩
-  exact h _ (List.forall₂_take Ms hl') (good_congr_cap E rfl hsim hNs hgr hgs)
+  exact h _ (List.forall₂_take Ms hl') (good_congr_cap E hsim hNs hgr hgs)
 
 /-- **Finality over many epochs, with the stake estimate.** A finality violation has
 probability at most `settleEps3E + Ne · bandEps`. -/

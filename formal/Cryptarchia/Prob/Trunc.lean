@@ -33,16 +33,19 @@ import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
 public import Cryptarchia.Prob.Phases
 public import Cryptarchia.Proof.FinalE
-import Cryptarchia.Prob.Final
+public import Cryptarchia.Prob.Final
+public import Cryptarchia.Prob.Worst
 
 /-!
 # The good event, cut at a horizon
 
 The greedy phase ends `gend Δ M` cap the last phase at `M`. Below a smaller cap `Ms`
 the ends agree with those for any larger cap `Mb` (`gend_agree`), and past it the
-smaller cap's end is `Ms`, at most the larger cap's. So the lottery's good event with
-the larger cap implies the one with the smaller cap (`good_trunc`), and with the smaller
-cap the event is determined by the first `Ms` slots (`good_congr_cap`).
+smaller cap's end is `Ms`, at most the larger cap's. So the lottery's good event
+(`GoodCap`) with the larger cap implies the one with the smaller cap (`good_trunc`), and
+with the smaller cap the event is determined by the first `Ms` slots (`good_congr_cap`).
+An outcome list dominating the lottery string's first `Ms` slots with the good event
+therefore gives a string dominating the lottery string with it (`good_dom`).
 -/
 
 @[expose] public section
@@ -108,12 +111,15 @@ theorem gend_cap {Ms Mb : ℕ} (hMs : Ms ≤ Mb) {k : ℕ} (hk : gend Δ Ms w k 
 
 variable (E : Env)
 
+/-- **The lottery's good event** up to `N`, with the phases capped at `M`. -/
+abbrev GoodCap (N M Lw r G : ℕ) (w : CStr) : Prop :=
+  GoodLS E w N Lw (gend E.Δ M w) ∧ GrowthS E w (gend E.Δ M w) N r G
+
 /-- **The good event with the larger cap implies the one with the smaller cap**, for a
 horizon below the smaller cap whose growth witnesses lie below it too. -/
 theorem good_trunc {N Lw r G Ms Mb : ℕ} (hNs : N < Ms) (hMs : Ms ≤ Mb)
     (hgr : ∀ ep, 1 ≤ ep → E.c.fix ep ≤ N → E.c.cut ep + G < Ms)
-    (hg : GoodLS E w N Lw (gend E.Δ Mb w) ∧ GrowthS E w (gend E.Δ Mb w) N r G) :
-    GoodLS E w N Lw (gend E.Δ Ms w) ∧ GrowthS E w (gend E.Δ Ms w) N r G := by
+    (hg : GoodCap E N Mb Lw r G w) : GoodCap E N Ms Lw r G w := by
   obtain ⟨⟨h0, -, hq, -, hcold, hwin⟩, hgr'⟩ := hg
   have hag : ∀ k, (gend E.Δ Ms w k < Ms ∨ gend E.Δ Mb w k < Ms) → ∀ j ≤ k, gend E.Δ Ms w j = gend E.Δ Mb w j :=
     gend_agree hMs
@@ -145,29 +151,22 @@ theorem good_trunc {N Lw r G Ms Mb : ℕ} (hNs : N < Ms) (hMs : Ms ≤ Mb)
     rw [bnd_congr2 (w' := w) gend_mono j hagj (fun _ _ _ => ⟨Iff.rfl, Iff.rfl, rfl⟩)]
     exact j3
 
-/-- **`good_congr` with the horizon's growth witnesses bounded**: the good event with
-cap `M` is determined by the first `M` slots, given `N < M` and growth witnesses below
-`M`. -/
-theorem good_congr_cap (hΔ : E.Δ = Δ) {w w' : CStr} {M : ℕ} (h : SimOn w w' 0 M)
+/-- **The good event sees the string only up to the cap**, given `N < M` and growth
+witnesses below `M`. -/
+theorem good_congr_cap {w w' : CStr} {M : ℕ} (h : SimOn w w' 0 M)
     {N Lw r G : ℕ} (hNM : N < M) (hgr : ∀ ep, 1 ≤ ep → E.c.fix ep ≤ N → E.c.cut ep + G < M)
-    (hg : GoodLS E w N Lw (gend Δ M w) ∧ GrowthS E w (gend Δ M w) N r G) :
-    GoodLS E w' N Lw (gend Δ M w') ∧ GrowthS E w' (gend Δ M w') N r G := by
-  have he : gend Δ M w = gend Δ M w' := funext (gend_congr_all h)
+    (hg : GoodCap E N M Lw r G w) : GoodCap E N M Lw r G w' := by
+  have he : gend E.Δ M w = gend E.Δ M w' := funext (gend_congr_all h)
+  unfold GoodCap
   rw [← he]
   obtain ⟨⟨h0, hmono, hq, hunb, hcold, hwin⟩, hgr'⟩ := hg
-  refine ⟨⟨h0, hmono, ?_, hunb, ?_, ?_⟩, ?_⟩
-  · intro k hk
-    have := hq k hk
-    rw [hΔ] at this ⊢
-    exact (quiet_congr (h.mono (Nat.zero_le _) (by omega))).1 this
+  refine ⟨⟨h0, hmono, fun k hk => (quiet_congr (h.mono (Nat.zero_le _) (by omega))).1 (hq k hk), hunb, ?_, ?_⟩, ?_⟩
   · intro t k h1 h2 h3 h4
-    have := hcold t k h1 h2 h3 h4
-    have hk1 : gend Δ M w (k + 1) ≤ M := by
+    have hk1 : gend E.Δ M w (k + 1) ≤ M := by
       rw [gend_succ]; exact nextE_le (by omega)
-    rw [hΔ] at this ⊢
-    rw [← bnd_congr gend_mono k (h.mono le_rfl (by have := gend_mono (Δ := Δ) (M := M) (w := w) k; omega)),
+    rw [← bnd_congr gend_mono k (h.mono le_rfl (by have := gend_mono (Δ := E.Δ) (M := M) (w := w) k; omega)),
       ← advCnt_congr (h.mono (Nat.zero_le _) hk1)]
-    exact this
+    exact hcold t k h1 h2 h3 h4
   · intro t ht
     rw [← occCnt_congr (h.mono (Nat.zero_le _) (by omega))]
     exact hwin t ht
@@ -175,11 +174,42 @@ theorem good_congr_cap (hΔ : E.Δ = Δ) {w w' : CStr} {M : ℕ} (h : SimOn w w'
     obtain ⟨j, h1, h2, h3, h4⟩ := hgr' ep hep hfix
     have hcg := hgr ep hep hfix
     refine ⟨j, h1, h2, ?_, ?_⟩
-    · rw [hΔ] at h3 ⊢
-      rw [← bnd_congr gend_mono j (h.mono le_rfl (by omega))]
+    · rw [← bnd_congr gend_mono j (h.mono le_rfl (by omega))]
       exact h3
-    · rw [hΔ] at h4 ⊢
-      rw [← hD_congr (h.mono (Nat.zero_le _) (by unfold Config.fix at hfix ⊢; omega))]
+    · rw [← hD_congr (h.mono (Nat.zero_le _) (by unfold Config.fix at hfix ⊢; omega))]
       exact h4
+
+/-- **A dominating outcome list with the good event gives a dominating string with it.**
+If `l'` dominates the first `M` slots of `lot` and has the good event up to `N < M`
+(growth witnesses below `M`), so does a string with `lot`'s honest leaders and at least
+its adversarial slots. -/
+theorem good_dom {lot : CStr} {N M Lw r G : ℕ} (hNM : N < M)
+    (hgr : ∀ ep, 1 ≤ ep → E.c.fix ep ≤ N → E.c.cut ep + G < M) {l' : List Out}
+    (hl : List.Forall₂ OutLe (slots lot M) l') (hg : GoodCap E N M Lw r G (strOf l')) :
+    ∃ w, AdvLeW N lot w ∧ GoodCap E N M Lw r G w := by
+  obtain ⟨hlen, hget⟩ := List.forall₂_iff_get.1 hl
+  rw [slots_length] at hlen
+  -- the outcome at slot `i` of `l'` dominates the lottery string's
+  have hdom : ∀ i, 1 ≤ i → i ≤ M → OutLe (enc (lot i)) (l'.getD (i - 1) Out.empty) := by
+    intro i h1 h2
+    have hk : i - 1 < l'.length := by omega
+    have := hget (i - 1) (by rw [slots_length]; omega) hk
+    rw [List.getD_eq_getElem _ _ hk]
+    simp only [List.get_eq_getElem, slots_get, show i - 1 + 1 = i by omega] at this
+    exact this
+  have hstr : ∀ i, 1 ≤ i → strOf l' i = (l'.getD (i - 1) Out.empty).toPair := by
+    intro i hi; unfold strOf; rw [if_neg (by omega)]
+  refine ⟨fun i => if 1 ≤ i ∧ i ≤ M then ((lot i).1, (strOf l' i).2) else lot i,
+    ⟨fun i _ _ => by dsimp only; split_ifs <;> rfl, fun i hi => ?_⟩, good_congr_cap E (fun i h1 h2 => ?_) hNM hgr hg⟩
+  · dsimp only
+    split_ifs with h
+    · rw [hstr i h.1]
+      exact (hdom i h.1 h.2).2 (by simpa [enc] using hi)
+    · exact hi
+  · simp only [if_pos (show 1 ≤ i ∧ i ≤ M by omega)]
+    rw [hstr i (by omega)]
+    simp only [Out.toPair]
+    rw [← (hdom i (by omega) h2).1]
+    exact ⟨enc_hon_zero _, enc_hon_one _, trivial⟩
 
 end Cryptarchia.Prob

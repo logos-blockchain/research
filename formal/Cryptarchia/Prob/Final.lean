@@ -36,14 +36,13 @@ import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
 
 /-!
-# Probabilistic finality
+# Lottery strings as outcome lists
 
-The lottery string of an execution, cut to its first `M` slots and with honest
-leader counts capped at two, is a list of outcomes (`slots`). The good event
-`GoodLS` and the growth condition `GrowthS` see the string only through that list
-(`good_congr`). So if the law of the list is (at most) that of a kernel within a
-band, the deterministic finality theorem `final_bimm_epochs` and the bound
-`settle_bound` give probabilistic finality (`final_bimm_prob`).
+The lottery string of an execution (`lotStr`), cut to its first `M` slots and with
+honest leader counts capped at two, is a list of outcomes (`slots`). Strings that agree
+up to the cap have the same phase ends (`gend_congr_all`), so the good event sees the
+string only through that list (`good_congr_cap`, `Prob/Trunc`). A finality violation is
+`Unsafe`.
 -/
 
 @[expose] public section
@@ -59,6 +58,16 @@ def enc (p : ℕ × Bool) : Out := ⟨if p.1 = 0 then 0 else if p.1 = 1 then 1 e
 def slots (w : CStr) (M : ℕ) : List Out := (List.range M).map fun i => enc (w (i + 1))
 
 theorem slots_length (w : CStr) (M : ℕ) : (slots w M).length = M := by simp [slots]
+
+theorem slots_get (w : CStr) (M k : ℕ) (hk : k < (slots w M).length) :
+    (slots w M)[k] = enc (w (k + 1)) := by
+  simp [slots]
+
+theorem enc_hon_zero (p : ℕ × Bool) : (enc p).hon.val = 0 ↔ p.1 = 0 := by
+  unfold enc; split_ifs <;> simp_all
+
+theorem enc_hon_one (p : ℕ × Bool) : (enc p).hon.val = 1 ↔ p.1 = 1 := by
+  unfold enc; split_ifs <;> simp_all
 
 variable {Δ M : ℕ}
 
@@ -76,41 +85,6 @@ theorem gend_congr_all {w w' : CStr} (h : SimOn w w' 0 M) : ∀ k, gend Δ M w k
         rw [gend_succ] at hk; omega
       · push Not at hm
         rw [nextE_of_ge hm, nextE_of_ge hm]
-
-/-- **The good event sees the string only up to the horizon.** -/
-theorem good_congr (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) {w w' : CStr} (h : SimOn w w' 0 M)
-    {N Lw r G : ℕ} (hNM : N + G < M)
-    (hg : GoodLS E w N Lw (gend Δ M w) ∧ GrowthS E w (gend Δ M w) N r G) :
-    GoodLS E w' N Lw (gend Δ M w') ∧ GrowthS E w' (gend Δ M w') N r G := by
-  have he : gend Δ M w = gend Δ M w' := funext (gend_congr_all h)
-  rw [← he]
-  obtain ⟨⟨h0, hmono, hq, hunb, hcold, hwin⟩, hgr⟩ := hg
-  refine ⟨⟨h0, hmono, ?_, hunb, ?_, ?_⟩, ?_⟩
-  · intro k hk
-    have := hq k hk
-    rw [hΔ] at this ⊢
-    exact (quiet_congr (h.mono (Nat.zero_le _) (by omega))).1 this
-  · intro t k h1 h2 h3 h4
-    have := hcold t k h1 h2 h3 h4
-    have hk1 : gend Δ M w (k + 1) ≤ M := by
-      rw [gend_succ]; exact nextE_le (by omega)
-    rw [hΔ] at this ⊢
-    rw [← bnd_congr gend_mono k (h.mono le_rfl (by have := gend_mono (Δ := Δ) (M := M) (w := w) k; omega)),
-      ← advCnt_congr (h.mono (Nat.zero_le _) hk1)]
-    exact this
-  · intro t ht
-    rw [← occCnt_congr (h.mono (Nat.zero_le _) (by omega))]
-    exact hwin t ht
-  · intro ep hep hfix
-    obtain ⟨j, h1, h2, h3, h4⟩ := hgr ep hep hfix
-    have hcf := (hsane.fix_ok ep hep).1
-    refine ⟨j, h1, h2, ?_, ?_⟩
-    · rw [hΔ] at h3 ⊢
-      rw [← bnd_congr gend_mono j (h.mono le_rfl (by omega))]
-      exact h3
-    · rw [hΔ] at h4 ⊢
-      rw [← hD_congr (h.mono (Nat.zero_le _) (by unfold Config.fix at hfix ⊢; omega))]
-      exact h4
 
 /-- The lottery string of an execution. -/
 noncomputable abbrev lotStr (E : Env) (es : List Event) : CStr := lotStrS E (σE E es) (lateAt E es)
