@@ -84,6 +84,43 @@ theorem iaOf_ne (st : ℤ × ℤ) : iaOf st ≠ 2 ∧ iaOf st ≠ 17 := by unfol
 theorem ibOf_ne (st : ℤ × ℤ) : ibOf st ≠ 2 ∧ ibOf st ≠ 17 := by unfold ibOf; split_ifs <;> decide
 theorem iabsOf_ne (st : ℤ × ℤ) : iabsOf st ≠ 2 ∧ iabsOf st ≠ 17 := by unfold iabsOf; split_ifs <;> decide
 
+/-- **One margin's class conditions**, at every reach `ρ`: the terms `a` (indices `i0`, `i1`),
+`b` (`j0` to `j3`) and, from reach 3, the absolute term (`iab`). -/
+theorem class_row {c s κ d lp : ℝ} (hc : 1 ≤ c) (hs : 1 ≤ s) (hκ : 0 ≤ κ) (hd0 : 0 < d) (hd1 : d ≤ 1)
+    {e : Fin 19 → ℝ} {i0 i1 j0 j1 j2 j3 iab : Fin 19}
+    (m0 : s * (e i0 - lp) + κ * (e j0 - lp) ≤ 0) (m1 : s * c * (e i1 - lp) + κ * d * (e j1 - lp) ≤ 0)
+    (m2 : s * c ^ 2 * (e i1 - lp) + κ * d ^ 2 * (e j2 - lp) ≤ 0) (m3a : e i1 ≤ lp)
+    (m3 : s * c ^ 3 * (e i1 - lp) + κ * d ^ 3 * max (e j3 - lp) 0 + κ * e iab ≤ 0) {ρ : ℤ} (hρ : 0 ≤ ρ) :
+    s * c ^ ρ * (e (if ρ = 0 then i0 else i1) - lp) +
+      κ * d ^ ρ * (e (if ρ = 0 then j0 else if ρ = 1 then j1 else if ρ = 2 then j2 else j3) - lp) +
+      (if 3 ≤ ρ then κ * e iab else 0) ≤ 0 := by
+  by_cases r0 : ρ = 0
+  · simp only [r0, ↓reduceIte, zpow_zero, mul_one]; norm_num; linarith
+  · by_cases r1 : ρ = 1
+    · simp only [r1, ↓reduceIte, zpow_one]; norm_num; linarith
+    · by_cases r2 : ρ = 2
+      · simp only [r2, ↓reduceIte]; norm_num
+        simp only [pow_two] at m2 ⊢
+        linarith
+      · have h3 : 3 ≤ ρ := by omega
+        simp only [r0, r1, r2, ↓reduceIte, h3]
+        have hcρ : c ^ (3 : ℕ) ≤ c ^ ρ := by
+          rw [← zpow_natCast]; exact zpow_le_zpow_right₀ hc (by exact_mod_cast h3)
+        have hdρ : d ^ ρ ≤ d ^ (3 : ℕ) := by
+          rw [← zpow_natCast]; exact zpow_le_zpow_right_of_le_one₀ hd0 hd1 (by exact_mod_cast h3)
+        have t1 : s * c ^ ρ * (e i1 - lp) ≤ s * c ^ 3 * (e i1 - lp) := by
+          have := mul_le_mul_of_nonneg_left hcρ (by linarith : (0 : ℝ) ≤ s)
+          nlinarith
+        have t2 : κ * d ^ ρ * (e j3 - lp) ≤ κ * d ^ 3 * max (e j3 - lp) 0 := by
+          have hm := le_max_left (e j3 - lp) 0
+          have hm0 := le_max_right (e j3 - lp) 0
+          have h1' : κ * d ^ ρ * (e j3 - lp) ≤ κ * d ^ ρ * max (e j3 - lp) 0 :=
+            mul_le_mul_of_nonneg_left hm (by positivity)
+          have h2' : κ * d ^ ρ * max (e j3 - lp) 0 ≤ κ * d ^ 3 * max (e j3 - lp) 0 :=
+            mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left hdρ hκ) hm0
+          linarith
+        linarith
+
 /-- **The potential contracts by `lp` over one truncated phase**, in every state, for
 any phase bounds `e` and crossing bound `pat` meeting the class conditions. -/
 theorem ex_post2G_gen (P : Cert2 B Δ) {lp pat : ℝ} {e : Fin 19 → ℝ} (hcl : ClassOK P.c P.z P.s P.κ P.d lp e pat) {G : ℕ}
@@ -142,62 +179,9 @@ theorem ex_post2G_gen (P : Cert2 B Δ) {lp pat : ℝ} {e : Fin 19 → ℝ} (hcl 
         unfold iaOf ibOf iabsOf
         by_cases hm1 : st.2 = -1
         · simp only [hm1, ↓reduceIte]
-          by_cases r0 : st.1 = 0
-          · simp only [r0, ↓reduceIte, zpow_zero, mul_one]; norm_num; linarith [hcl.m1r0]
-          · by_cases r1 : st.1 = 1
-            · simp only [r1, ↓reduceIte, zpow_one]; norm_num; linarith [hcl.m1r1]
-            · by_cases r2 : st.1 = 2
-              · simp only [r2, ↓reduceIte]; norm_num
-                have := hcl.m1r2; simp only [pow_two] at this ⊢
-                linarith
-              · have h3 : 3 ≤ st.1 := by omega
-                simp only [r0, r1, r2, ↓reduceIte, h3]
-                have hcρ : P.c ^ (3 : ℕ) ≤ P.c ^ st.1 := by
-                  rw [← zpow_natCast]; exact zpow_le_zpow_right₀ hc (by exact_mod_cast h3)
-                have hdρ : P.d ^ st.1 ≤ P.d ^ (3 : ℕ) := by
-                  rw [← zpow_natCast]; exact zpow_le_zpow_right_of_le_one₀ hd0 hd1 (by exact_mod_cast h3)
-                have ha := hcl.m1r3a
-                have t1 : P.s * P.c ^ st.1 * (e 4 - lp) ≤ P.s * P.c ^ 3 * (e 4 - lp) := by
-                  have := mul_le_mul_of_nonneg_left hcρ (by linarith : (0 : ℝ) ≤ P.s)
-                  nlinarith
-                have t2 : P.κ * P.d ^ st.1 * (e 10 - lp) ≤ P.κ * P.d ^ 3 * max (e 10 - lp) 0 := by
-                  have hm := le_max_left (e 10 - lp) 0
-                  have hm0 := le_max_right (e 10 - lp) 0
-                  have : 0 ≤ P.d ^ st.1 := by positivity
-                  have h1' : P.κ * P.d ^ st.1 * (e 10 - lp) ≤ P.κ * P.d ^ st.1 * max (e 10 - lp) 0 :=
-                    mul_le_mul_of_nonneg_left hm (by positivity)
-                  have h2' : P.κ * P.d ^ st.1 * max (e 10 - lp) 0 ≤ P.κ * P.d ^ 3 * max (e 10 - lp) 0 :=
-                    mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left hdρ hκ) hm0
-                  linarith
-                linarith [hcl.m1r3]
+          exact class_row hc hs hκ hd0 hd1 hcl.m1r0 hcl.m1r1 hcl.m1r2 hcl.m1r3a hcl.m1r3 h0
         · simp only [hm1, ↓reduceIte]
-          by_cases r0 : st.1 = 0
-          · simp only [r0, ↓reduceIte, zpow_zero, mul_one]; norm_num; linarith [hcl.m2r0]
-          · by_cases r1 : st.1 = 1
-            · simp only [r1, ↓reduceIte, zpow_one]; norm_num; linarith [hcl.m2r1]
-            · by_cases r2 : st.1 = 2
-              · simp only [r2, ↓reduceIte]; norm_num
-                have := hcl.m2r2; simp only [pow_two] at this ⊢
-                linarith
-              · have h3 : 3 ≤ st.1 := by omega
-                simp only [r0, r1, r2, ↓reduceIte, h3]
-                have hcρ : P.c ^ (3 : ℕ) ≤ P.c ^ st.1 := by
-                  rw [← zpow_natCast]; exact zpow_le_zpow_right₀ hc (by exact_mod_cast h3)
-                have hdρ : P.d ^ st.1 ≤ P.d ^ (3 : ℕ) := by
-                  rw [← zpow_natCast]; exact zpow_le_zpow_right_of_le_one₀ hd0 hd1 (by exact_mod_cast h3)
-                have ha := hcl.m2r3a
-                have t1 : P.s * P.c ^ st.1 * (e 6 - lp) ≤ P.s * P.c ^ 3 * (e 6 - lp) := by
-                  have := mul_le_mul_of_nonneg_left hcρ (by linarith : (0 : ℝ) ≤ P.s)
-                  nlinarith
-                have t2 : P.κ * P.d ^ st.1 * (e 14 - lp) ≤ P.κ * P.d ^ 3 * max (e 14 - lp) 0 := by
-                  have hm := le_max_left (e 14 - lp) 0
-                  have hm0 := le_max_right (e 14 - lp) 0
-                  have h1' : P.κ * P.d ^ st.1 * (e 14 - lp) ≤ P.κ * P.d ^ st.1 * max (e 14 - lp) 0 :=
-                    mul_le_mul_of_nonneg_left hm (by positivity)
-                  have h2' : P.κ * P.d ^ st.1 * max (e 14 - lp) 0 ≤ P.κ * P.d ^ 3 * max (e 14 - lp) 0 :=
-                    mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left hdρ hκ) hm0
-                  linarith
-                linarith [hcl.m2r3]
+          exact class_row hc hs hκ hd0 hd1 hcl.m2r0 hcl.m2r1 hcl.m2r2 hcl.m2r3a hcl.m2r3 h0
       have key' := mul_le_mul_of_nonneg_left key hzμ.le
       split_ifs at key' ⊢ <;> nlinarith
     · push Not at hneg
@@ -222,6 +206,6 @@ theorem ex_post2G_at (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 
     ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (postB2 P st h.length)) h ≤
       P.lp * V2 P.c P.z P.s P.κ P.d st :=
   ex_post2G_gen P P.cls hst hlM
-    (ex_cross_trunc P.helo P.hΔ hlM hG (hW.slo h) fun i _ => hW.elo _) hE
+    (ex_cross_trunc P.helo P.hΔ hlM hG (hW.slo h) fun _ _ => hW.elo _) hE
 
 end Cryptarchia.Prob
