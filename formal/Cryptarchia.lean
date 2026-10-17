@@ -85,7 +85,6 @@ public import Cryptarchia.Prob.Pick
 public import Cryptarchia.Prob.Occupied
 public import Cryptarchia.Proof.Signers
 public import Cryptarchia.Proof.Consist
-public import Cryptarchia.Prob.ROStop
 public import Cryptarchia.Prob.Finality
 public import Cryptarchia.Prob.Closed
 public import Cryptarchia.Prob.ExpBound
