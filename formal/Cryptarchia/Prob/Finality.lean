@@ -1,6 +1,5 @@
 module
 
-public import Cryptarchia.Prob.Drift
 import Cryptarchia.Prob.EpochInd
 import Cryptarchia.Prob.Trunc
 import Cryptarchia.Prob.Occupied
