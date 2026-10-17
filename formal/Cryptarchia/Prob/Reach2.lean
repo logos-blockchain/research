@@ -154,14 +154,46 @@ theorem phiR2_step (P : Cert2 B Δ)
     unfold Φr2
     rw [hp', hj, if_neg (by omega), if_neg (by omega), hb]
 
-theorem reachH2_le_phi (P : Cert2 B Δ) (j0 : ℕ) (h : List Out) : reachH2 Δ M P.c j0 h ≤ Φr2 Δ M P j0 h := by
+/-- Before the anchor `j0`, a function at most `F · Φr2` at the next phase end
+contracts as `Φr2` does. -/
+theorem phiR2_pre (P : Cert2 B Δ)
+    (hR0 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 0 h.length) h ≤ P.lr)
+    (hR1 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 1 h.length) h ≤ P.b)
+    (j0 : ℕ) {h : List Out} (hpe : PE Δ M h) (hlM : h.length < M) {F : ℝ} (hF : 0 ≤ F) {Φ : List Out → ℝ}
+    (hΦ : ∀ h', FirstPE Δ M h h' → Φ h' ≤ F * Φr2 Δ M P j0 h') :
+    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) Φ h ≤ F * Φr2 Δ M P j0 h := by
+  refine (ExPh_mono_first hlM hΦ).trans ?_
+  rw [ExPh_mul_const]; exact mul_le_mul_of_nonneg_left (phiR2_step P hR0 hR1 j0 hpe hlM) hF
+
+theorem Φr2_nonneg (P : Cert2 B Δ) (j0 : ℕ) (h : List Out) : 0 ≤ Φr2 Δ M P j0 h := by
   have hc0 : 0 < P.c := by linarith [P.hc]
-  unfold reachH2 Φr2
-  by_cases h1 : j0 ≤ pidx Δ M (strOf h) h.length
-  · rw [if_pos h1, if_neg (by omega)]
-  · rw [if_neg h1, if_pos (by omega)]
-    apply add_nonneg (mul_nonneg (pow_nonneg P.hlr0 _) (zpow_nonneg hc0.le _))
+  unfold Φr2; split_ifs
+  · apply add_nonneg (mul_nonneg (pow_nonneg P.hlr0 _) (zpow_nonneg hc0.le _))
     exact mul_nonneg (by linarith [P.hb1, P.hlr1]) (Finset.sum_nonneg fun i _ => pow_nonneg P.hlr0 _)
+  · exact zpow_nonneg hc0.le _
+
+theorem reachH2_le_phi (P : Cert2 B Δ) (j0 : ℕ) (h : List Out) : reachH2 Δ M P.c j0 h ≤ Φr2 Δ M P j0 h := by
+  unfold reachH2
+  split_ifs with h1
+  · unfold Φr2; rw [if_neg (by omega)]
+  · exact Φr2_nonneg P j0 h
+
+/-- The potential at genesis. -/
+theorem Φr2_nil_le (P : Cert2 B Δ) (j0 : ℕ) : Φr2 Δ M P j0 [] ≤ 1 + (P.b - 1) / (1 - P.lr) := by
+  have hp0 : pidx Δ M (strOf []) ([] : List Out).length = 0 := by
+    apply Nat.eq_zero_of_le_zero
+    exact pidx_le_of (by simp [gend_zero])
+  unfold Φr2
+  rw [hp0]
+  have hb0 : (bnd Δ (strOf []) 0 (gend Δ M (strOf [])) 0).1 = 0 := rfl
+  split_ifs with h1
+  · rw [hb0, zpow_zero, mul_one, Nat.sub_zero]
+    exact geom_mix P.hlr0 P.hlr1 P.hb1 j0
+  · have hj : j0 = 0 := by omega
+    subst hj
+    rw [hb0, zpow_zero]
+    have : 0 ≤ (P.b - 1) / (1 - P.lr) := div_nonneg (by linarith [P.hb1]) (by linarith [P.hlr1])
+    linarith
 
 /-- **The reach bound at any phase has a uniform exponential moment.** -/
 theorem reach_tail2' (P : Cert2 B Δ)
@@ -174,21 +206,6 @@ theorem reach_tail2' (P : Cert2 B Δ)
         have := Ex_phase (κ := κ) (PE Δ M) (Φ := Φr2 Δ M P j0) (M := M)
           (fun h hpe hlM => phiR2_step P hR0 hR1 j0 hpe hlM) (pe_nil hM) (by simp)
         simpa using this
-    _ ≤ 1 + (P.b - 1) / (1 - P.lr) := by
-        have hp0 : pidx Δ M (strOf []) ([] : List Out).length = 0 := by
-          apply Nat.eq_zero_of_le_zero
-          exact pidx_le_of (by simp [gend_zero])
-        unfold Φr2
-        rw [hp0]
-        have hgeo := geom_le P.hlr0 P.hlr1 j0
-        have hb0 : (bnd Δ (strOf []) 0 (gend Δ M (strOf [])) 0).1 = 0 := rfl
-        split_ifs with h1
-        · rw [hb0, zpow_zero, mul_one, Nat.sub_zero]
-          exact geom_mix P.hlr0 P.hlr1 P.hb1 j0
-        · have hj : j0 = 0 := by omega
-          subst hj
-          rw [hb0, zpow_zero]
-          have : 0 ≤ (P.b - 1) / (1 - P.lr) := div_nonneg (by linarith [P.hb1]) (by linarith [P.hlr1])
-          linarith
+    _ ≤ _ := Φr2_nil_le P j0
 
 end Cryptarchia.Prob
