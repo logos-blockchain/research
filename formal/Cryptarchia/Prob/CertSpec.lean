@@ -129,15 +129,10 @@ def driftChkQ (c : Config) (T : TBandQ) (ρ Hmin : ℚ) : Bool :=
 
 /-- **A certificate's chosen numbers** beyond the family and the potential's parameters. -/
 structure SpecData where
-  /-- the potential's weight of the second term -/
+  /-- the potential's weight of the cold potential's second term -/
   κ : ℚ
-  /-- the potential's contraction per phase, and inside an epoch -/
-  lp : ℚ
-  lpi : ℚ
-  /-- the horizon (executions up to slot `N`), the slots the analysis covers, and the epochs it spans -/
+  /-- the horizon: executions up to slot `N` -/
   N : ℕ
-  M : ℕ
-  Ne : ℕ
   /-- the phase cut `G`, the empty-run length `G'`, the span `J` phases and `Lw` slots, the reach `r`,
   the growth block `T` -/
   G : ℕ
@@ -152,40 +147,66 @@ structure SpecData where
   /-- the stake drift per epoch and the minimum honest stake -/
   ρ : ℚ
   Hmin : ℚ
+
+/-- **A certificate's derived numbers** (`FamCfg.specDerive`). -/
+structure SpecDerived where
+  /-- the slots the analysis covers, and the epochs they span -/
+  M : ℕ
+  Ne : ℕ
+  /-- the potential's contraction per phase, and inside an epoch -/
+  lp : ℚ
+  lpi : ℚ
   /-- the bounds: settlement, leaving the band in one epoch, and a finality violation -/
   tgt : ℚ
   bx : ℚ
   fin : ℚ
+deriving DecidableEq
 
 namespace FamCfg
 
 /-- The growth window's depth blocks at the specification (`nbD`). -/
-def nbSpec (Δ G T : ℕ) : ℕ := (648000 - 388800 - Δ - 3 - G + Δ) / (T + Δ)
+def nbSpec (Δ G T : ℕ) : ℕ :=
+  (Config.spec.epochLength - Config.spec.nonceOffset - Δ - 3 - G + Δ) / (T + Δ)
+
+/-- **The derived numbers**: the slots and epochs the analysis covers, the contractions from the tables'
+bounds (`lpOf`, `lpiOf`), the settlement and band bounds rounded up to 2 and 4 digits, and their sum
+over the epochs rounded up to 2 digits. -/
+def specDerive (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) (p : SpecData) : SpecDerived :=
+  let M := p.N + p.G + p.G' + F.Δ + 2
+  let Ne := M / Config.spec.epochLength + 1
+  let lp := F.lpOf Bq p.κ dat
+  let lpi := F.lpiOf p.κ dat
+  let tgt := rupQ 2 (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi p.x p.yy
+    Config.spec.k ((p.N + 2) / Config.spec.epochLength) (nbSpec F.Δ p.G p.T) p.G p.N p.G p.G' p.J p.Lw p.r p.T)
+  let bx := rupQ 4 (bandEpsQ 14 4096 T Config.spec.period)
+  ⟨M, Ne, lp, lpi, tgt, bx, rupQ 2 (tgt + Ne * bx)⟩
 
 /-- **Every numeric condition of the finality theorem at the specification**: the settlement bound
 below `tgt`, the band's below `bx`, `tgt + Ne · bx ≤ fin`, and the conditions of `Prob.finality`. -/
-def finChkSpec (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) (p : SpecData) : Bool :=
-  let ⟨_, lp, lpi, N, M, Ne, G, G', J, Lw, r, Tg, x, yy, ρ, Hmin, tgt, bx, fin⟩ := p
-  settleChkQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy 2160 G Lw r Tg &&
-    decide (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy 2160
-      ((N + 2) / 648000) (nbSpec F.Δ G Tg) G N G G' J Lw r Tg ≤ tgt) &&
-    bandChkQ 14 4096 T 388800 && decide (bandEpsQ 14 4096 T 388800 ≤ bx) && decide (tgt + Ne * bx ≤ fin) &&
+def finChkSpec (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) (p : SpecData) (q : SpecDerived) :
+    Bool :=
+  let ⟨_, N, G, G', J, Lw, r, Tg, x, yy, ρ, Hmin⟩ := p
+  let ⟨M, Ne, lp, lpi, tgt, bx, fin⟩ := q
+  settleChkQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy Config.spec.k G Lw r Tg &&
+    decide (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy Config.spec.k
+      ((N + 2) / Config.spec.epochLength) (nbSpec F.Δ G Tg) G N G G' J Lw r Tg ≤ tgt) &&
+    bandChkQ 14 4096 T Config.spec.period && decide (bandEpsQ 14 4096 T Config.spec.period ≤ bx) && decide (tgt + Ne * bx ≤ fin) &&
     decide (0 ≤ tgt) && decide (0 ≤ bx) &&
     decide (1 ≤ x) && decide (0 < yy) && decide (yy ≤ 1) && decide (1 ≤ Tg) && decide (N + G + G' + F.Δ + 2 ≤ M) &&
     decide (Bq.hhi ≤ 1) && decide (0 ≤ Bq.hlo) && decide (Bq.hlo ≤ 1) && decide (Bq.elo ≤ 1) &&
-    decide (Lw + G < 648000) && decide (388800 + G + 2 ≤ 648000) && decide (M / 648000 < Ne) &&
-    decide (F.Δ + 1 ≤ G) && decide (G + 1 < 648000) && T.okQ && driftChkQ Config.spec T ρ Hmin &&
+    decide (Lw + G < Config.spec.epochLength) && decide (Config.spec.nonceOffset + G + 2 ≤ Config.spec.epochLength) && decide (M / Config.spec.epochLength < Ne) &&
+    decide (F.Δ + 1 ≤ G) && decide (G + 1 < Config.spec.epochLength) && T.okQ && driftChkQ Config.spec T ρ Hmin &&
     decide (F.S.η = T.η) && decide (F.S.ζ = T.ζ) && decide (F.S.β = T.β) && decide (T.η = 1 / 10 ^ 70) &&
     decide (F.S.ys.getD 0 0 ≤ T.ylo) && decide (T.Yh ≤ F.S.ys.getD F.S.K 0)
 
 /-- The conditions `finChkSpec` checks, by name. -/
 structure SpecFacts (F : FamCfg) (Bq : BandR) (lp lpi : ℚ) (dat : Fin 19 → IdxData) (T : TBandQ)
     (N M Ne G G' J Lw r Tg : ℕ) (x yy ρ Hmin tgt bx fin : ℚ) : Prop where
-  eps : settleChkQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy 2160 G Lw r Tg = true
-  epsle : settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy 2160
-      ((N + 2) / 648000) (nbSpec F.Δ G Tg) G N G G' J Lw r Tg ≤ tgt
-  band : bandChkQ 14 4096 T 388800 = true
-  bandle : bandEpsQ 14 4096 T 388800 ≤ bx
+  eps : settleChkQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy Config.spec.k G Lw r Tg = true
+  epsle : settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy Config.spec.k
+      ((N + 2) / Config.spec.epochLength) (nbSpec F.Δ G Tg) G N G G' J Lw r Tg ≤ tgt
+  band : bandChkQ 14 4096 T Config.spec.period = true
+  bandle : bandEpsQ 14 4096 T Config.spec.period ≤ bx
   fin : tgt + Ne * bx ≤ fin
   tgt0 : 0 ≤ tgt
   bx0 : 0 ≤ bx
@@ -198,11 +219,11 @@ structure SpecFacts (F : FamCfg) (Bq : BandR) (lp lpi : ℚ) (dat : Fin 19 → I
   hlo0 : 0 ≤ Bq.hlo
   hlo1 : Bq.hlo ≤ 1
   helo1 : Bq.elo ≤ 1
-  hLw : Lw + G < 648000
-  hOG : 388800 + G + 2 ≤ 648000
-  hNe : M / 648000 < Ne
+  hLw : Lw + G < Config.spec.epochLength
+  hOG : Config.spec.nonceOffset + G + 2 ≤ Config.spec.epochLength
+  hNe : M / Config.spec.epochLength < Ne
   hG1 : F.Δ + 1 ≤ G
-  hGEL : G + 1 < 648000
+  hGEL : G + 1 < Config.spec.epochLength
   ok : T.okQ = true
   drift : driftChkQ Config.spec T ρ Hmin = true
   hη : F.S.η = T.η
@@ -214,7 +235,7 @@ structure SpecFacts (F : FamCfg) (Bq : BandR) (lp lpi : ℚ) (dat : Fin 19 → I
 
 theorem finChkSpec.facts {F : FamCfg} {Bq : BandR} {κ lp lpi : ℚ} {dat : Fin 19 → IdxData} {T : TBandQ}
     {N M Ne G G' J Lw r Tg : ℕ} {x yy ρ Hmin tgt bx fin : ℚ}
-    (h : finChkSpec F Bq dat T ⟨κ, lp, lpi, N, M, Ne, G, G', J, Lw, r, Tg, x, yy, ρ, Hmin, tgt, bx, fin⟩ = true) :
+    (h : finChkSpec F Bq dat T ⟨κ, N, G, G', J, Lw, r, Tg, x, yy, ρ, Hmin⟩ ⟨M, Ne, lp, lpi, tgt, bx, fin⟩ = true) :
     SpecFacts F Bq lp lpi dat T N M Ne G G' J Lw r Tg x yy ρ Hmin tgt bx fin := by
   simp only [finChkSpec, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨eps, epsle⟩, band⟩, bandle⟩, fin⟩, tgt0⟩, bx0⟩, hx⟩, hyy0⟩, hyy1⟩, hT⟩, hNM⟩, hhi1⟩, hlo0⟩, hlo1⟩, helo1⟩, hLw⟩, hOG⟩, hNe⟩, hG1⟩, hGEL⟩, ok⟩, drift⟩, hη⟩, hζ⟩, hβ⟩, hηlot⟩, cov0⟩, cov1⟩ := h
@@ -224,22 +245,23 @@ theorem finChkSpec.facts {F : FamCfg} {Bq : BandR} {κ lp lpi : ℚ} {dat : Fin 
 family's (`FamSpec.chk`), the main file's (`mainChk`) and the numeric conditions (`finChkSpec`)
 give the finality bound `fin` under the execution assumptions. -/
 theorem finality_spec {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
-    {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} (p : SpecData)
-    (hM : F.mainChk Bq p.κ p.lp p.lpi dat = true) (hS : F.S.chk F.famZ F.D = true) (hD : 0 < F.D)
+    {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} (p : SpecData) (q : SpecDerived)
+    (hM : F.mainChk Bq p.κ q.lp q.lpi dat = true) (hS : F.S.chk F.famZ F.D = true) (hD : 0 < F.D)
     (hBq : Bq = F.S.weakest) (hidx : ∀ i : Fin 19, F.idxChk i (dat i) = true) {n : ℕ} (hK : F.S.K = n + 1)
-    (T : TBandQ) (hfin : finChkSpec F Bq dat T p = true)
+    (T : TBandQ) (hfin : finChkSpec F Bq dat T p q = true)
     (hc : E.c = Config.spec) (hΔ : E.Δ = F.Δ) (es : Ω → List Event) (hMod : Model μ O E es)
     (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ p.N) (hG : GenesisOK E)
-    (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β T.ζ) (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ p.Ne)
-    (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) p.ρ p.Ne) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) p.Hmin) :
-    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal p.fin := by
-  obtain ⟨κ, lp, lpi, N, M, Ne, G, G', J, Lw, r, Tg, x, yy, ρ, Hmin, tgt, bx, fin⟩ := p
+    (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β T.ζ) (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ q.Ne)
+    (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) p.ρ q.Ne) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) p.Hmin) :
+    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal q.fin := by
+  obtain ⟨κ, N, G, G', J, Lw, r, Tg, x, yy, ρ, Hmin⟩ := p
+  obtain ⟨M, Ne, lp, lpi, tgt, bx, fin⟩ := q
   have f := finChkSpec.facts hfin
   obtain ⟨⟨η, ζ, β, d, dy, K, ys⟩, famZL, Dz, Δ, c, z, s, d', τ⟩ := F
   simp only at hK
   subst hK
-  have hEL : E.c.epochLength = 648000 := by rw [hc]; rfl
-  have hP : E.c.period = 388800 := by rw [hc]; rfl
+  have hEL : E.c.epochLength = Config.spec.epochLength := by rw [hc]
+  have hP : E.c.period = Config.spec.period := by rw [hc]
   have hδ := f.drift
   simp only [driftChkQ, Bool.and_eq_true, decide_eq_true_eq] at hδ
   obtain ⟨⟨⟨⟨⟨hup, hdn⟩, hg1⟩, hg2⟩, hρ⟩, hHm⟩ := hδ
@@ -256,10 +278,10 @@ theorem finality_spec {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
     (by simp only [BandR.toBand_hhi]; exact_mod_cast f.hhi1) (by simp only [BandR.toBand_hlo]; exact_mod_cast f.hlo0)
     (by simp only [BandR.toBand_hlo]; exact_mod_cast f.hlo1) (by simp only [BandR.toBand_elo]; exact_mod_cast f.helo1)
     (by rw [hEL]; exact f.hLw)
-    (by rw [hc, show Config.spec.nonceOffset = 388800 from rfl, show Config.spec.epochLength = 648000 from rfl]; exact f.hOG)
+    (by rw [hc]; exact f.hOG)
     (by rw [hc]; simp only [TBandQ.toTBand, f.hηlot]; convert lot_spec using 2; norm_num)
     (TBandQ.ok_of f.ok) (by rw [hc]; rfl) (by rw [hc]; decide) (by rw [hc]; decide)
-    (by rw [hP]; norm_num) (by rw [hP, hEL]; norm_num) (by rw [hEL]; exact f.hNe)
+    (by rw [hP]; decide) (by rw [hP, hEL]; decide) (by rw [hEL]; exact f.hNe)
     (mem := FamSpec.mem ⟨η, ζ, β, d, dy, n + 1, ys⟩) (fun k => rfl)
     (fun k => by have := FamSpec.ok hS k; simp only [TBandQ.toTBand, ← f.hη, ← f.hζ]; exact this)
     (cover_of_chain (by simpa using FamSpec.chained ⟨η, ζ, β, d, dy, n + 1, ys⟩ rfl)
@@ -275,10 +297,10 @@ theorem finality_spec {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
     (by rw [hc, ← lam0Q_cast]; simp only [TBandQ.toTBand]; exact_mod_cast hg2)
     hG hSt hQ hDr hH
   rw [hP] at hb
-  have hk : E.c.k = 2160 := by rw [hc]; rfl
-  have hne : nEp E N = (N + 2) / 648000 := by unfold nEp; rw [hEL]
+  have hk : E.c.k = Config.spec.k := by rw [hc]
+  have hne : nEp E N = (N + 2) / Config.spec.epochLength := by unfold nEp; rw [hEL]
   have hnb : nbD E Δ G Tg = nbSpec Δ G Tg := by
-    unfold nbD growLen nbSpec; rw [hEL, hc, show Config.spec.nonceOffset = 388800 from rfl]
+    unfold nbD growLen nbSpec; rw [hc]
   have h1 := (settleEps3E_le_Q (d := 14) (lpi := lpi) (x := x) (yy := yy) (Ccap := G) (N := N) (G := G) (G' := G')
     (J := J) (Lw := Lw) (r := r) (T := Tg) (cert2 hM) Bq rfl rfl rfl rfl rfl rfl rfl rfl hk hne hnb f.eps).trans
     (Rat.cast_le.2 f.epsle)

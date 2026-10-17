@@ -20,7 +20,7 @@ with β = 0.2, Δ = 11 slots, μ = 0.13, ρ = 1.01, `Hmin` = 10⁶:
 * `E20D11.finality` — every epoch for a year (slot 31536000) at k = 2160: `8.8e-11`.
 * `E20D11M2.finality` — the same over two months (slot 5184000): `1.6e-11`.
 * `E20D11C.finality_closed` — every depth `k ≥ 1000` and every horizon `N`, at the
-  specification with depth `k` (`Config.specK k`): `par.epsC N k`, a sum of terms `(N + c) · A · qᵗ` and
+  specification with depth `k` (`Config.specK k`): `par.epsC der N k`, a sum of terms `(N + c) · A · qᵗ` and
   `Ne · C · qᵗ` in `t = k / 20`, `Ne = N / (300 k) + 2` epochs. At k = 2160 it gives `5.0e-11`
   over two months and `3.0e-10` over a year; each 20 blocks of depth multiply it by about
   0.70 (settlement) and 0.75 (the estimate's band). `E20D11C.finality_closed_short` states it as

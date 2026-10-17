@@ -69,50 +69,6 @@ def opt_params(P, B, cfg, D, N_ref=5184000, k_ref=2160):
                 ref=math.exp(closed_value(cf, N_ref, t_ref, Gp, G)))
 
 
-def closed_consts(cfg, T, B, P, D, cl):
-    """the closed form's constants: each settlement term's `A` and `q`, the band's `C` and `Q`, and
-    the short form's rates; every power bounded outward to 14 digits (`powq`)"""
-    import powq
-    G = cfg['G']; m = M_DIV; k0 = cl['k0']
-    j, w, g, rho, Tg, x, yy = cl['j'], cl['w'], cl['g'], cl['rho'], cl['Tg'], cl['x'], cl['yy']
-    e17, e2, lp, lr, b, lpi = P['e'][17], P['e'][2], P['lp'], P['lr'], P['b'], P['lpi']
-    tau, c = Fr(cfg['tau']), Fr(cfg['c'])
-    hhi, hlo, elo = B['hhi'], B['hlo'], B['elo']
-    up = lambda base, n: powq.pow_up(14, base, n)
-    dn = lambda base, n: powq.pow_dn(14, base, n)
-    stat = 1 + (b - 1) / (1 - lr)
-    nb = 120 * m // (Tg + D)
-    assert 120 * m == nb * (Tg + D)
-    nb0 = -(-(3 + G) // (Tg + D)) + 1
-    bs = 1 + (yy - 1) * (1 - (1 - hlo) ** Tg)
-    consts = dict(A1=up(rup(1 - (1 - hhi) ** D, 14), G // D), q2=up(rup(1 - hlo, 14), g),
-                  A3=rup(e17 / tau, 14), q3=rup(up(e17, j) / dn(tau, w), 14),
-                  A4=rup(up(lp / lpi, G) * e2 * stat, 14), q4=up(lpi, j),
-                  A5=rup(1 / x, 14), q5=rup(up(1 + (x - 1) * (1 - elo), w) / dn(x, m), 14),
-                  A6=rup(stat / c, 14), q6=rup(1 / dn(c, rho), 14),
-                  A7=rup((1 / rdn(bs, 14)) ** nb0 * (1 / yy) ** m, 14), q7=rup(up(rup(bs, 14), nb) / dn(yy, m + rho), 14))
-    # the band: exp a ≤ 1 / (1 - a) ≤ C, and exp (-p0 a) ≤ 1 / Q
-    dv = certE.tband_derived(T)
-    delta = T['delta']
-    a1 = dv['ylo'] * dv['clo'] * delta ** 2 / 2
-    a2 = dv['ylo'] * dv['clo'] * delta ** 2 * (Fr(1, 2) - Fr(2, 9) * delta)
-    nexp, p0 = 4096, 180 * m
-    Cs = [rup(1 / (1 - a), 10) for a in (a1, a2)]
-    Qs = [dn(1 + rdn(p0 * a, 8) / nexp, nexp) for a in (a1, a2)]
-    # the short form: from t0 = k0 / m on, every settlement term under the slowest settlement rate
-    # qs, every band term under the slower band rate qb
-    t0 = k0 // m
-    qi = {i: consts[f'q{i}'] for i in range(2, 8)}
-    Ai = {2: Fr(1), **{i: consts[f'A{i}'] for i in range(3, 8)}}
-    qs = rup(max(qi.values()), 6)
-    bq = [1 / Q for Q in Qs]
-    qb = rup(max(bq), 6)
-    As = sum(rup(Ai[i] * (qi[i] / qs) ** t0, 6) for i in qi)
-    Ab = sum(rup(Cs[i] * (bq[i] / qb) ** t0, 6) for i in range(2))
-    short = dict(t0=t0, qs=qs, As=As, qb=qb, Ab=Ab)
-    return consts, Qs, nb, nb0, Cs, short
-
-
 def eval_closed(consts, Qs, Cs, cl, G, N, k):
     """the closed form's value, in floats"""
     t = k // M_DIV; g = cl['g']
@@ -144,8 +100,9 @@ if __name__ == "__main__":
     cl['k0'] = k0
     print('closed params', cl)
     import emitF
-    emitF.emit_closed(cfg, T, fam, B, P, name, out_dir, cl)
-    consts, Qs, nb, nb0, Cs, short = closed_consts(cfg, T, B, P, D, cl)
+    q_ = emitF.emit_closed(cfg, T, fam, B, P, name, out_dir, cl)
+    consts, Qs, Cs = q_['C'], q_['Qs'], q_['Cs']
+    short = {kk: q_[kk] for kk in ('t0', 'qs', 'As', 'qb', 'Ab')}
     for (N, k) in [(5184000, 2160), (31536000, 2160), (5184000, 1000), (5184000, 1500), (5184000, 3000)]:
         s, band = eval_closed(consts, Qs, Cs, cl, cfg['G'], N, k)
         print(f'N={N} k={k}: settlement {s:.3e} band {band:.3e} total {s + band:.3e}')

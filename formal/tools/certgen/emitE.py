@@ -34,6 +34,6 @@ if __name__ == "__main__":
     # the settlement bound's target: the planned total, rounded up to two significant digits
     target = rup(tot, 2)
     import emitF
-    emitF.emit(cfg, T, fam, B, P, name, out_dir, target)
-    json.dump(dict(cfg, target=str(target)), open(f"cfgE_{name}.json", "w"), indent=1)
-    print(name, 'target', target)
+    fin, tgt, bx = emitF.emit(cfg, T, fam, B, P, name, out_dir, target)
+    json.dump(dict(cfg, target=str(tgt)), open(f"cfgE_{name}.json", "w"), indent=1)
+    print(name, 'settlement', tgt, 'band', bx, 'finality', fin)

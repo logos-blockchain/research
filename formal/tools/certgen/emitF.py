@@ -234,29 +234,33 @@ end {ns}
 
 
 def check_all(cfg, T, fam, B, P):
-    """every index's data and the main checks, mirrored; returns the indices' data and the derived
-    expectations"""
+    """every index's data, the expectations and contractions derived from them, and the main checks,
+    mirrored; returns the indices' data, the expectations, and the contractions"""
+    from cert2 import lp_exact
     D = cfg['Delta']
     Dz, famZ = emitZ.fam_z(fam)
     args = tuple(Fr(cfg[v]) for v in ['c', 'z', 's', 'd', 'tau'])
     dats = [index_data(i, famZ, Dz, D, emitZ.ph_z(i, *args)) for i in range(19)]
     e, lr, b = derived(dats)
-    # below the planned values, so the planned contractions and targets hold
     for i in range(19):
         assert e[i] <= P['e'][i], ('e', i)
-        if is_one(i): assert all(x <= y for x, y in zip(dats[i]['eIn'], P['eIn'][i])), ('eIn', i)
-    assert lr <= P['lr'] and b <= P['b']
     c, z, s, kap, d, tau = (Fr(cfg[v]) for v in ['c', 'z', 's', 'kap', 'd', 'tau'])
-    ok, oks = check_cert(B, D, c, z, s, kap, d, tau, P['lp'], lr, b, e)
+    # the contractions (`lpOf`, `lpiOf`)
+    lp = lp_exact(B, D, c, z, s, kap, d, e)
+    eik = [[dats[i]['eIn'][k] if is_one(i) else Fr(0) for i in range(19)] for k in range(len(fam))]
+    lpi = max([Fr(0)] + [lp_exact({'slo': P['patk'][k], 'elo': Fr(1)}, D, c, z, s, kap, d, eik[k])
+                         for k in range(len(fam))])
+    ok, oks = check_cert(B, D, c, z, s, kap, d, tau, lp, lr, b, e)
     assert ok, [j for j, o in enumerate(oks) if not o]
-    for k, m in enumerate(fam):
-        ek = [dats[i]['eIn'][k] if is_one(i) else Fr(0) for i in range(19)]
-        assert check_class(D, c, z, s, kap, d, P['lpi'], ek, P['patk'][k])[0], ('class', k)
-    return dats, e, lr, b
+    assert 0 < lpi <= lp
+    for k in range(len(fam)):
+        assert check_class(D, c, z, s, kap, d, lpi, eik[k], P['patk'][k])[0], ('class', k)
+    return dats, e, lr, b, lp, lpi
 
 
-def emit(cfg, T, fam, B, P, name, out_dir, target):
-    """write a certificate at the specification: `Data.lean`, `NAME.lean`"""
+def emit(cfg, T, fam, B, P, name, out_dir, target=None):
+    """write a certificate at the specification: `Data.lean`, `NAME.lean`; its bounds are derived
+    (`specDerive`), and `target` is only compared with them"""
     D = cfg['Delta']; K = len(fam); N = cfg['N']; k = cfg['k']
     G, Gp, J, Lw, r, Tg = cfg['G'], cfg['Gp'], cfg['J'], cfg['Lw'], cfg['r'], cfg['T']
     x, yy = Fr(cfg['x']), Fr(cfg['yy'])
@@ -266,33 +270,23 @@ def emit(cfg, T, fam, B, P, name, out_dir, target):
     os.makedirs(sub, exist_ok=True)
     for old in os.listdir(sub):
         if old.endswith('.lean'): os.remove(f"{sub}/{old}")
-    dats, e, lr, b = check_all(cfg, T, fam, B, P)
-    # the settlement and band bounds, below their targets
+    dats, e, lr, b, lp, lpi = check_all(cfg, T, fam, B, P)
+    # the derived numbers (`specDerive`)
     M = N + G + Gp + D + 2
     Ne = M // EL + 1
     nb = (EL - PERIOD - D - 3 - G + D) // (Tg + D)
     ne = (N + 2) // EL
-    sq = powq.settle_q(powq.D_POW, D, B, e[17], tau, P['lp'], e[2], b, lr, c, P['lpi'], x, yy, k, ne, nb, G, N, G, Gp,
-                       J, Lw, r, Tg)
-    assert sq <= target, (float(sq), float(target))
+    tgt = rup(powq.settle_q(powq.D_POW, D, B, e[17], tau, lp, e[2], b, lr, c, lpi, x, yy, k, ne, nb, G, N, G, Gp,
+                            J, Lw, r, Tg), 2)
     dv = tband_derived(T)
-    from gen import chain
-    from certnum import rdn
-    # the band's bound: 1 / Q per term, Q from `exp (-a) ≤ 1 / (1 + a / n) ^ n` with `a` rounded down
-    n = powq.N_EXP
-    m = (PERIOD - 1) * dv['ylo'] * dv['clo']
-    a1 = m * T['delta'] ** 2 / 2; a2 = m * T['delta'] ** 2 * (Fr(1, 2) - Fr(2, 9) * T['delta'])
-    Qs = [chain(1 + rdn(a, 8) / n, n, False, name='bq')[1] for a in (a1, a2)]
-    BX = rup(1 / Qs[0] + 1 / Qs[1], 4)
-    assert powq.band_q(powq.D_POW, n, dv, T['delta'], PERIOD) <= BX
-    FINAL = rup(target + Ne * BX, 2)
-    assert M // EL < Ne and N + G + Gp + D + 2 <= M and Lw + G < EL and PERIOD + G + 2 <= EL
+    bx = rup(powq.band_q(powq.D_POW, powq.N_EXP, dv, T['delta'], PERIOD), 4)
+    fin = rup(tgt + Ne * bx, 2)
+    if target is not None and tgt > target: print(name, 'derived settlement bound', float(tgt), 'above', float(target))
+    assert M // EL < Ne and Lw + G < EL and PERIOD + G + 2 <= EL
     write_data(cfg, fam, sub, ns, name)
     beta = T['beta']
-    spec_fields = [(n, v, c_) for (n, c_), v in zip(POT, [qQ(kap), qQ(P['lp']), qQ(P['lpi'])])] + [
+    spec_fields = [("κ", qQ(kap), POT[0][1]),
         ("N", N, "the horizon: executions up to slot N"),
-        ("M", M, "the slots the analysis covers, N + G + G' + Δ + 2"),
-        ("Ne", Ne, "the epochs they span"),
         ("G", G, "the phase cut: longer phases count as failures"),
         ("G'", Gp, "the longest empty run"),
         ("J", J, "the phases of a span"),
@@ -302,21 +296,27 @@ def emit(cfg, T, fam, B, P, name, out_dir, target):
         ("x", qQ(x), "the crowded-window tilt"),
         ("yy", qQ(yy), "the slow-growth tilt"),
         ("ρ", qQ(T['rho']), "the stake drift per epoch (`StakeDrift`)"),
-        ("Hmin", qQ(T['hmin']), "the least honest online stake (`MinStake`)"),
-        ("tgt", qQ(target), f"the bound on settlement failing, {float(target):.2e}"),
-        ("bx", qQ(BX), f"the bound on leaving the band in one epoch, {float(BX):.3e}"),
-        ("fin", qQ(FINAL), f"the bound on a finality violation, {float(FINAL):.2e}")]
+        ("Hmin", qQ(T['hmin']), "the least honest online stake (`MinStake`)")]
+    der_fields = [
+        ("M", M, "the slots the analysis covers, N + G + G' + Δ + 2"),
+        ("Ne", Ne, "the epochs they span, M / epoch length + 1"),
+        ("lp", qQ(lp), POT[1][1] + ", the least meeting the class conditions"),
+        ("lpi", qQ(lpi), POT[2][1] + ", likewise for each member"),
+        ("tgt", qQ(tgt), f"the bound on settlement failing, {float(tgt):.2e}"),
+        ("bx", qQ(bx), f"the bound on leaving the band in one epoch, {float(bx):.3e}"),
+        ("fin", qQ(fin), f"the bound on a finality violation, tgt + Ne · bx, {float(fin):.2e}")]
     txt = (imports([f"public import {ns}.Data\n"], ext=True) + f"""
 /-!
 # Multi-epoch finality certificate: β = {beta}, Δ = {D}, k = {k}, {K} members
 
-Generated by `tools/certgen/emitF.py`. The certificate is the data below; Lean computes the rest
-and the kernel checks it (`CertGen.lean`, `CertSpec.lean`):
+Generated by `tools/certgen/emitF.py`. The specification's parameters (f = 1/30, k = {k}) are
+`Config.spec`'s. The certificate is the data below; Lean computes the rest and the kernel checks it
+(`CertGen.lean`, `CertSpec.lean`):
 
 - the band family, the potential's parameters and each phase index's tables (`Data.lean`);
-- the chosen numbers `par`: the potential's `κ`, contractions `lp` and `lpi`, the settlement
-  parameters and the bounds on settlement (`{float(target):.2e}`), on leaving the band in one epoch
-  (`{float(BX):.3e}`) and on a finality violation; and the estimate's band `Tq`;
+- the chosen numbers `par` and the estimate's band `Tq`;
+- the derived numbers `der`, as Lean derives them (`derOK`): the contractions, and the bounds on
+  settlement, on leaving the band in one epoch and on a finality violation;
 - the checks of the potential (`mainOK`) and of every numeric condition (`finOK`).
 -/
 
@@ -339,16 +339,21 @@ def par : SpecData where
 /-- The estimate's band: `λV/D ∈ [ℓlo, ℓhi]`, μ = {T['mu']}, β = {beta}, δ = {T['delta']}. -/
 def Tq : TBandQ where
 {record(tq_fields(T))}
-theorem mainOK : F.mainChk F.S.weakest par.κ par.lp par.lpi dat = true := by decide +kernel
+/-- The derived numbers. -/
+def der : SpecDerived where
+{record(der_fields)}
+theorem derOK : F.specDerive F.S.weakest dat Tq par = der := by decide +kernel
 
-theorem finOK : FamCfg.finChkSpec F F.S.weakest dat Tq par = true := by decide +kernel
+theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by decide +kernel
+
+theorem finOK : FamCfg.finChkSpec F F.S.weakest dat Tq par der = true := by decide +kernel
 
 /-- **Finality, certified.** f = 1/30, k = {k}, Δ = {D} slots, executions up to slot {N}. Under the
 execution model (`Model`), if the genesis estimate is the genesis stake, the adversary holds at most
 {float(beta)} of the participating stake, the canonical chain counts at least {float(1 - T['mu'])} of
 each window's honestly won slots, stake drifts by at most a factor {float(T['rho'])} per epoch and
 honest online stake is at least {T['hmin']}, a finality violation has probability at most
-{float(FINAL):.2e}. -/
+{float(fin):.2e}. -/
 theorem finality {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measure Ω}}
     [MeasureTheory.IsProbabilityMeasure μ] {{O : Ω → Oracle}} (E : Env) (hc : E.c = Config.spec) (hΔ : E.Δ = {D})
     (es : Ω → List Event) (hM : Model μ O E es) (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ {N})
@@ -357,63 +362,64 @@ theorem finality {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measur
     (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) {q(T['mu'])} {Ne})
     (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) {q(T['rho'])} {Ne})
     (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) {q(T['hmin'])}) :
-    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal {q(FINAL)} := by
-  have h := FamCfg.finality_spec F par mainOK famOK dOK rfl idxOK rfl Tq finOK hc hΔ es hM hN hG
-    (fun ω => by simpa [Tq] using hS ω) (fun ω => by simpa [Tq, par] using hQ ω)
-    (fun ω => by simpa [par] using hD ω) (fun ω => by simpa [par] using hH ω)
-  simpa [par] using h
+    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal {q(fin)} := by
+  have h := FamCfg.finality_spec F par der mainOK famOK dOK rfl idxOK rfl Tq finOK hc hΔ es hM hN hG
+    (fun ω => by simpa [Tq] using hS ω) (fun ω => by simpa [Tq, der] using hQ ω)
+    (fun ω => by simpa [par, der] using hD ω) (fun ω => by simpa [par] using hH ω)
+  simpa [der] using h
 
 end {ns}
 """)
     open(f"{out_dir}/{name}.lean", "w").write(txt)
-    return FINAL
+    return fin, tgt, bx
 
 
 # ---- closed-form certificates (`CertClosed.lean`)
 
-def closed_data(cfg, T, B, P, dats, cl):
-    """the closed form's chosen numbers, as `emitC.closed_section` sets them, every check of
-    `closedChk` mirrored"""
+def closed_derive(cfg, T, B, dats, lp, lpi, cl):
+    """`closedDerive`: the closed form's derived numbers, from the tables' bounds"""
     import emitC
     from certnum import rdn
-    D = cfg['Delta']; G = cfg['G']; m = emitC.M_DIV
-    j, w, g, rho, Tg, x, yy, k0 = cl['j'], cl['w'], cl['g'], cl['rho'], cl['Tg'], cl['x'], cl['yy'], cl['k0']
+    D = cfg['Delta']; m = emitC.M_DIV
+    G, g, j, w, rho, Tg, x, yy, k0 = cl['G'], cl['g'], cl['j'], cl['w'], cl['rho'], cl['Tg'], cl['x'], cl['yy'], cl['k0']
     e, lr, b = derived(dats)
-    e17, e2, lp, lpi = e[17], e[2], P['lp'], P['lpi']
     tau, c = Fr(cfg['tau']), Fr(cfg['c'])
     hhi, hlo, elo = B['hhi'], B['hlo'], B['elo']
+    up = lambda base, n: powq.pow_up(14, base, n)
+    dn = lambda base, n: powq.pow_dn(14, base, n)
+    stat = 1 + (b - 1) / (1 - lr)
     nb = 120 * m // (Tg + D)
-    assert 120 * m == nb * (Tg + D)
-    nb0 = -(-(3 + G) // (Tg + D)) + 1
-    # the constants, as `emitC` computes them (from the planned bounds)
-    consts, Qs, _, _, Cs, short = emitC.closed_consts(cfg, T, B, P, D, cl)
-    d = powq.D_POW
-    up, dn = (lambda xx, n: powq.pow_up(d, xx, n)), (lambda xx, n: powq.pow_dn(d, xx, n))
-    STAT = 1 + (b - 1) / (1 - lr)
+    nb0 = (3 + G + (Tg + D) - 1) // (Tg + D) + 1
     bs = 1 + (yy - 1) * (1 - (1 - hhi) ** Tg if 1 <= yy else 1 - (1 - hlo) ** Tg)
-    C = consts
-    assert up(1 - (1 - hhi) ** D, G // D) <= C['A1'] and up(1 - hlo, g) <= C['q2']
-    assert e17 / tau <= C['A3'] and up(e17, j) / dn(tau, w) <= C['q3']
-    assert up(lp / lpi, G) * e2 * STAT <= C['A4'] and up(lpi, j) <= C['q4']
-    assert 1 / x <= C['A5'] and up(1 + (x - 1) * (1 - elo), w) / dn(x, m) <= C['q5']
-    assert STAT / c <= C['A6'] and 1 / dn(c, rho) <= C['q6']
-    assert bs > 0 and (1 / bs) ** nb0 * (1 / yy) ** m <= C['A7'] and up(bs, nb) / dn(yy, m + rho) <= C['q7']
+    C = dict(A1=up(rup(1 - (1 - hhi) ** D, 14), G // D), q2=up(rup(1 - hlo, 14), g),
+             A3=rup(e[17] / tau, 14), q3=rup(up(e[17], j) / dn(tau, w), 14),
+             A4=rup(up(lp / lpi, G) * e[2] * stat, 14), q4=up(lpi, j),
+             A5=rup(1 / x, 14), q5=rup(up(1 + (x - 1) * (1 - elo), w) / dn(x, m), 14),
+             A6=rup(stat / c, 14), q6=rup(1 / dn(c, rho), 14),
+             A7=rup((1 / rdn(bs, 14)) ** nb0 * (1 / yy) ** m, 14), q7=rup(up(rup(bs, 14), nb) / dn(yy, m + rho), 14))
     dv = tband_derived(T); delta = T['delta']
     a1 = dv['ylo'] * dv['clo'] * delta ** 2 / 2; a2 = dv['ylo'] * dv['clo'] * delta ** 2 * (Fr(1, 2) - Fr(2, 9) * delta)
+    Cs = [rup(1 / (1 - a), 10) for a in (a1, a2)]
+    Qs = [dn(1 + rdn(180 * m * a, 8) / 4096, 4096) for a in (a1, a2)]
+    t0 = k0 // m
+    qi = [C[f'q{i}'] for i in range(2, 8)]
+    Ai = [Fr(1)] + [C[f'A{i}'] for i in range(3, 8)]
+    qs = rup(max(qi), 6)
+    qb = rup(max(1 / Qs[0], 1 / Qs[1]), 6)
+    As = sum(rup(A_ * (q_ / qs) ** t0, 6) for A_, q_ in zip(Ai, qi))
+    Ab = sum(rup(Cb * ((1 / Qb) / qb) ** t0, 6) for Cb, Qb in zip(Cs, Qs))
+    # every condition of `closedChk`
+    assert e[17] / tau <= C['A3'] and bs > 0 and 0 < lpi and m * t0 <= k0
     for a, Cb, Qb in ((a1, Cs[0], Qs[0]), (a2, Cs[1], Qs[1])):
         assert 0 <= a <= 1 - 1 / Cb and 0 < Qb <= dn(1 + 180 * m * a / 4096, 4096)
-    t0 = short['t0']
-    qi = [C['q2'], C['q3'], C['q4'], C['q5'], C['q6'], C['q7']]
-    Ai = [1, C['A3'], C['A4'], C['A5'], C['A6'], C['A7']]
-    assert sum(A_ * (q_ ** t0 / short['qs'] ** t0) for A_, q_ in zip(Ai, qi)) <= short['As']
-    assert sum(Cb * ((1 / Qb) ** t0 / short['qb'] ** t0) for Cb, Qb in zip(Cs, Qs)) <= short['Ab']
-    assert m * t0 <= k0
-    return dict(G=G, g=g, j=j, w=w, rho=rho, T=Tg, m=m, nb=nb, nb0=nb0, k0=k0, x=x, yy=yy, C=C, Cs=Cs, Qs=Qs,
-                short=short)
+    assert sum(A_ * (q_ ** t0 / qs ** t0) for A_, q_ in zip(Ai, qi)) <= As
+    assert sum(Cb * ((1 / Qb) ** t0 / qb ** t0) for Cb, Qb in zip(Cs, Qs)) <= Ab
+    return dict(lp=lp, lpi=lpi, nb=nb, nb0=nb0, C=C, Cs=Cs, Qs=Qs, t0=t0, qs=qs, As=As, qb=qb, Ab=Ab)
 
 
 def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
     """write a closed-form certificate: `Data.lean`, `NAME.lean`"""
+    import emitC
     D = cfg['Delta']; K = len(fam)
     kap = Fr(cfg['kap'])
     ns = f"Cryptarchia.Prob.Certs.{name}"
@@ -421,44 +427,46 @@ def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
     os.makedirs(sub, exist_ok=True)
     for old in os.listdir(sub):
         if old.endswith('.lean'): os.remove(f"{sub}/{old}")
-    dats, e, lr, b = check_all(cfg, T, fam, B, P)
-    cd = closed_data(cfg, T, B, P, dats, cl)
-    C, sh = cd['C'], cd['short']
+    dats, e, lr, b, lp, lpi = check_all(cfg, T, fam, B, P)
+    m_ = emitC.M_DIV
+    cl = dict(cl, G=cfg['G'])
+    q_ = closed_derive(cfg, T, B, dats, lp, lpi, cl)
+    C = q_['C']
     write_data(cfg, fam, sub, ns, name)
     beta = T['beta']
-    m_ = cd['m']
+    par_f = [("κ", qQ(kap), POT[0][1]),
+        ("G", cl['G'], "the phase cut: longer phases count as failures"),
+        ("g", cl['g'], f"the longest empty run, per t = k / {m_}"),
+        ("j", cl['j'], "the phases of a span, per t"),
+        ("w", cl['w'], "the slots of a span, and of a crowded window, per t"),
+        ("ρr", cl['rho'], "the reach bound, per t"),
+        ("T", cl['Tg'], "the growth block, in slots"),
+        ("m", m_, "the depth per t"),
+        ("k0", cl['k0'], "the least depth"),
+        ("x", qQ(cl['x']), "the crowded-window tilt"),
+        ("yy", qQ(cl['yy']), "the slow-growth tilt"),
+        ("ρ", qQ(T['rho']), "the stake drift per epoch (`StakeDrift`)"),
+        ("Hmin", qQ(T['hmin']), "the least honest online stake (`MinStake`)")]
     terms = {2: "long empty runs", 3: "long spans", 4: "failed checks", 5: "crowded windows", 6: "large reach",
              7: "slow growth"}
-    flds = [(n, v, c_) for (n, c_), v in zip(POT, [qQ(kap), qQ(P['lp']), qQ(P['lpi'])])] + [
-        ("G", cd['G'], "the phase cut: longer phases count as failures"),
-        ("g", cd['g'], f"the longest empty run, per t = k / {m_}"),
-        ("j", cd['j'], "the phases of a span, per t"),
-        ("w", cd['w'], "the slots of a span, and of a crowded window, per t"),
-        ("ρr", cd['rho'], "the reach bound, per t"),
-        ("T", cd['T'], "the growth block, in slots"),
-        ("m", m_, "the depth per t"),
-        ("nb", cd['nb'], "the growth blocks per t"),
-        ("nb0", cd['nb0'], "less these"),
-        ("k0", cd['k0'], "the least depth"),
-        ("x", qQ(cd['x']), "the crowded-window tilt"),
-        ("yy", qQ(cd['yy']), "the slow-growth tilt"),
-        ("ρ", qQ(T['rho']), "the stake drift per epoch (`StakeDrift`)"),
-        ("Hmin", qQ(T['hmin']), "the least honest online stake (`MinStake`)"),
-        ("A1", qQ(C['A1']), "long phases: (N + g t + 1) · A1")]
+    der_f = [("lp", qQ(lp), POT[1][1] + ", the least meeting the class conditions"),
+             ("lpi", qQ(lpi), POT[2][1] + ", likewise for each member"),
+             ("nb", q_['nb'], "the growth blocks per t"),
+             ("nb0", q_['nb0'], "less these"),
+             ("A1", qQ(C['A1']), "long phases: (N + g t + 1) · A1")]
     for i in range(2, 8):
-        if i > 2: flds.append((f"A{i}", qQ(C[f'A{i}']), f"{terms[i]}: A{i} · q{i}ᵗ per horizon slot"))
-        flds.append((f"q{i}", qQ(C[f'q{i}']), f"{terms[i]}: the rate per t" if i > 2 else f"{terms[i]}: (N + 1) · q2ᵗ"))
-    flds += [("C1", qQ(cd['Cs'][0]), "the band, below: C1 · (1 / Q1)ᵗ per epoch"),
-             ("Q1", qQ(cd['Qs'][0]), "its rate"),
-             ("C2", qQ(cd['Cs'][1]), "the band, above: C2 · (1 / Q2)ᵗ per epoch"),
-             ("Q2", qQ(cd['Qs'][1]), "its rate"),
-             ("t0", sh['t0'], "the short form holds from t ≥ t0"),
-             ("qs", qQ(sh['qs']), f"its settlement rate, {float(sh['qs']):.6f}"),
-             ("As", qQ(sh['As']), "and constant"),
-             ("qb", qQ(sh['qb']), f"its band rate, {float(sh['qb']):.6f}"),
-             ("Ab", qQ(sh['Ab']), "and constant")]
-    par = record(flds)
-    k0, g, G = cd['k0'], cd['g'], cd['G']
+        if i > 2: der_f.append((f"A{i}", qQ(C[f'A{i}']), f"{terms[i]}: A{i} · q{i}ᵗ per horizon slot"))
+        der_f.append((f"q{i}", qQ(C[f'q{i}']), f"{terms[i]}: the rate per t" if i > 2 else f"{terms[i]}: (N + 1) · q2ᵗ"))
+    der_f += [("C1", qQ(q_['Cs'][0]), "the band, below: C1 · (1 / Q1)ᵗ per epoch"),
+              ("Q1", qQ(q_['Qs'][0]), "its rate"),
+              ("C2", qQ(q_['Cs'][1]), "the band, above: C2 · (1 / Q2)ᵗ per epoch"),
+              ("Q2", qQ(q_['Qs'][1]), "its rate"),
+              ("t0", q_['t0'], "the short form holds from t ≥ t0 = k0 / m"),
+              ("qs", qQ(q_['qs']), f"its settlement rate, {float(q_['qs']):.6f}"),
+              ("As", qQ(q_['As']), "and constant"),
+              ("qb", qQ(q_['qb']), f"its band rate, {float(q_['qb']):.6f}"),
+              ("Ab", qQ(q_['Ab']), "and constant")]
+    k0, g, G = cl['k0'], cl['g'], cl['G']
     hyps = f"""(E : Env) {{k : ℕ}} (hc : E.c = Config.specK k) (hk : {k0} ≤ k) (hΔ : E.Δ = {D}) (es : Ω → List Event)
     (hM : Model μ O E es) {{N : ℕ}} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) (hG : GenesisOK E)
     (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) {q(beta)} (1 / 10 ^ 16))
@@ -470,10 +478,12 @@ def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
 /-!
 # Closed-form finality certificate: β = {beta}, Δ = {D}, every k ≥ {k0}, {K} members
 
-Generated by `tools/certgen/emitF.py`. The certificate is the data below; Lean computes the rest
-and the kernel checks it (`CertGen.lean`, `CertClosed.lean`). The settlement parameters grow
-linearly in `t = k / {cd['m']}`, and `finality_closed` bounds a finality violation by `par.epsC N k`, a
-sum of geometric terms in `t`, for every depth `k ≥ {k0}` and every horizon `N`.
+Generated by `tools/certgen/emitF.py`. The specification's parameters (f = 1/30, any depth `k`) are
+`Config.specK k`'s. The certificate is the data below; Lean computes the rest and the kernel checks
+it (`CertGen.lean`, `CertClosed.lean`). The settlement parameters grow linearly in `t = k / {m_}`, and
+`finality_closed` bounds a finality violation by `par.epsC der N k`, a sum of geometric terms in `t`,
+for every depth `k ≥ {k0}` and every horizon `N`; the derived numbers `der` are as Lean derives them
+(`derOK`).
 -/
 
 {SEC}
@@ -491,39 +501,45 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
 
 /-- The certificate's chosen numbers. -/
 def par : ClosedData where
-{par}
+{record(par_f)}
 /-- The estimate's band: `λV/D ∈ [ℓlo, ℓhi]`, μ = {T['mu']}, β = {beta}, δ = {T['delta']}. -/
 def Tq : TBandQ where
 {record(tq_fields(T))}
-theorem mainOK : F.mainChk F.S.weakest par.κ par.lp par.lpi dat = true := by decide +kernel
+/-- The derived numbers. -/
+def der : ClosedDerived where
+{record(der_f)}
+theorem derOK : F.closedDerive F.S.weakest dat Tq par = der := by decide +kernel
 
-theorem closedOK : FamCfg.closedChk F F.S.weakest dat Tq par = true := by decide +kernel
+theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by decide +kernel
+
+theorem closedOK : FamCfg.closedChk F F.S.weakest dat Tq par der = true := by decide +kernel
 
 /-- **Finality in closed form.** f = 1/30, Δ = {D} slots, any depth `k ≥ {k0}` and any horizon `N`.
 Under the execution model (`Model`), if the genesis estimate is the genesis stake, the adversary
 holds at most {float(beta)} of the participating stake, the canonical chain counts at least
 {float(1 - T['mu'])} of each window's honestly won slots, stake drifts by at most a factor
 {float(T['rho'])} per epoch and honest online stake is at least {T['hmin']}, a finality violation has
-probability at most `par.epsC N k`. -/
+probability at most `par.epsC der N k`. -/
 theorem finality_closed {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measure Ω}}
     [MeasureTheory.IsProbabilityMeasure μ] {{O : Ω → Oracle}} {hyps} :
-    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal (par.epsC N k) :=
-  FamCfg.finality_closed_gen F par mainOK famOK dOK rfl idxOK rfl Tq closedOK
-    (fun k hk => by simp only [par, F] at hk ⊢; omega) (fun k hk => by simp only [par] at hk ⊢; omega)
+    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal (par.epsC der N k) :=
+  FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
+    (fun k hk => by simp only [par, der, F] at hk ⊢; omega) (fun k hk => by simp only [par] at hk ⊢; omega)
     (fun k hk => by simp only [par, F] at hk ⊢; omega) E hc hk hΔ es hM hN hG
     (fun ω => by simpa [Tq] using hS ω) (fun ω => by simpa [Tq] using hQ ω) (fun ω => by simpa [par] using hD ω)
     (fun ω => by simpa [par] using hH ω)
 
-/-- **Finality in closed form, short**: with `t = k / {cd['m']}` and `Ne = N / (300 k) + 2` epochs, a
+/-- **Finality in closed form, short**: with `t = k / {m_}` and `Ne = N / (300 k) + 2` epochs, a
 finality violation has probability at most
-`(N + {g} t + {G + 2}) · ({float(C['A1']):.2g} + {float(sh['As']):.4g} · {float(sh['qs']):.6f}ᵗ) + Ne · {float(sh['Ab']):.4g} · {float(sh['qb']):.6f}ᵗ`:
-settlement at rate {float(sh['qs']):.4f} per {cd['m']} blocks of depth, the estimate's band at rate {float(sh['qb']):.4f}. -/
+`(N + {g} t + {G + 2}) · ({float(C['A1']):.2g} + {float(q_['As']):.4g} · {float(q_['qs']):.6f}ᵗ) + Ne · {float(q_['Ab']):.4g} · {float(q_['qb']):.6f}ᵗ`:
+settlement at rate {float(q_['qs']):.4f} per {m_} blocks of depth, the estimate's band at rate {float(q_['qb']):.4f}. -/
 theorem finality_closed_short {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measure Ω}}
     [MeasureTheory.IsProbabilityMeasure μ] {{O : Ω → Oracle}} {hyps} :
-    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal (par.epsShort N k) :=
+    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal (par.epsShort der N k) :=
   (finality_closed E hc hk hΔ es hM hN hG hS hQ hD hH).trans
-    (ENNReal.ofReal_le_ofReal (FamCfg.epsC_le_short par closedOK N hk))
+    (ENNReal.ofReal_le_ofReal (FamCfg.epsC_le_short par der closedOK N hk))
 
 end {ns}
 """)
     open(f"{out_dir}/{name}.lean", "w").write(txt)
+    return q_

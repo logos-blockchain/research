@@ -472,4 +472,37 @@ end Certs
 
 end FamCfg
 
+
+/-! ## The contractions from the expectations -/
+
+/-- The candidates for the least contraction meeting the class conditions (`classOKQ`) with crossing
+bound `pat`, as the generator computes them (`cert2.lp_exact`). -/
+def lpCands (c z s κ d pat : ℚ) (e : Fin 19 → ℚ) : List ℚ :=
+  let two := fun (ia ib : Fin 19) (r : ℕ) => (s * c ^ r * e ia + κ * d ^ r * e ib) / (s * c ^ r + κ * d ^ r)
+  let three := fun (ia ib iab : Fin 19) =>
+    let wa := s * c ^ 3
+    let wb := κ * d ^ 3
+    let lo := max (e ia) ((wa * e ia + κ * e iab) / wa)
+    if e ib ≤ lo then lo else max ((wa * e ia + wb * e ib + κ * e iab) / (wa + wb)) (e ia)
+  [e 0, e 1 - (1 - (s + κ) / z) * pat, two 3 7 0, two 4 8 1, two 4 9 2, two 5 11 0, two 6 12 1, two 6 13 2,
+    three 4 10 15, three 6 14 16]
+
+/-- **The least contraction** meeting the class conditions, rounded up to 13 digits. -/
+def lpExactQ (c z s κ d pat : ℚ) (e : Fin 19 → ℚ) : ℚ :=
+  match lpCands c z s κ d pat e with
+  | [] => 0
+  | x :: xs => rupQ 13 (xs.foldl max x)
+
+namespace FamCfg
+
+/-- The potential's contraction, from the tables' bounds. -/
+def lpOf (F : FamCfg) (Bq : BandR) (κ : ℚ) (dat : Fin 19 → IdxData) : ℚ :=
+  lpExactQ F.c F.z F.s κ F.d (Bq.slo * Bq.elo ^ F.Δ) (eOf dat)
+
+/-- The in-epoch contraction: the largest of the members' least contractions. -/
+def lpiOf (F : FamCfg) (κ : ℚ) (dat : Fin 19 → IdxData) : ℚ :=
+  ((List.finRange F.S.K).map fun k => lpExactQ F.c F.z F.s κ F.d (F.S.patQ F.Δ k) (F.eiQ dat k)).foldl max 0
+
+end FamCfg
+
 end Cryptarchia.Prob
