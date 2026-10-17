@@ -148,7 +148,7 @@ structure SpecData where
   ρ : ℚ
   Hmin : ℚ
 
-/-- **A certificate's derived numbers** (`FamCfg.specDerive`). -/
+/-- **A certificate's derived numbers** (`SpecData.derive`). -/
 structure SpecDerived where
   /-- the slots the analysis covers, and the epochs they span -/
   M : ℕ
@@ -171,7 +171,8 @@ def nbSpec (Δ G T : ℕ) : ℕ :=
 /-- **The derived numbers**: the slots and epochs the analysis covers, the contractions from the tables'
 bounds (`lpOf`, `lpiOf`), the settlement and band bounds rounded up to 2 and 4 digits, and their sum
 over the epochs rounded up to 2 digits. -/
-def specDerive (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) (p : SpecData) : SpecDerived :=
+def _root_.Cryptarchia.Prob.SpecData.derive (p : SpecData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
+    (T : TBandQ) : SpecDerived :=
   let M := p.N + p.G + p.G' + F.Δ + 2
   let Ne := M / Config.spec.epochLength + 1
   let lp := F.lpOf Bq p.κ dat

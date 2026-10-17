@@ -73,7 +73,7 @@ structure ClosedData where
   ρ : ℚ
   Hmin : ℚ
 
-/-- **A closed-form certificate's derived numbers** (`FamCfg.closedDerive`). -/
+/-- **A closed-form certificate's derived numbers** (`ClosedData.derive`). -/
 structure ClosedDerived where
   /-- the potential's contractions -/
   lp : ℚ
@@ -142,7 +142,8 @@ namespace FamCfg
 (`lpOf`, `lpiOf`), the growth blocks, each settlement term's constant and rate, the band's terms and
 the short form's rates, every power bounded outward to 14 digits, as the generator computes them
 (`emitC.closed_consts`). -/
-def closedDerive (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) (p : ClosedData) : ClosedDerived :=
+def _root_.Cryptarchia.Prob.ClosedData.derive (p : ClosedData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
+    (T : TBandQ) : ClosedDerived :=
   let lp := F.lpOf Bq p.κ dat
   let lpi := F.lpiOf p.κ dat
   let stat := 1 + (bOf dat - 1) / (1 - lrOf dat)
