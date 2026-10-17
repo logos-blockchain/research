@@ -93,7 +93,7 @@ theorem slotBand_pickM (hc : LotConsts E.c T.η) (hT : T.OK) (hnd : E.nodes.Nodu
   have hspec : (mem k).ylo ≤ yE E (i / E.c.epochLength) s ∧ yE E (i / E.c.epochLength) s ≤ (mem k).yhi := by
     rw [hk]; unfold pickM; rw [dite_eq_left_of_eq_true (eq_true hex)]; exact Classical.choose_spec hex
   rw [← hyE] at hspec
-  refine slotBand_of_member hc hT.η0 hnd hst.nodup hT.ζ0 hst.smallH hst.smallA (hok k) hspec.1 hspec.2 ?_
+  refine slotBand_of_member hc hT.η0 hnd hT.ζ0 hst.smallH hst.smallA (hok k) hspec.1 hspec.2 ?_
   -- the adversary's exponent, from the stake fraction
   have hD : (0 : ℝ) < s.D := by have := hst.smallH.D_pos; exact_mod_cast (by omega : 0 < s.D)
   have hl0 := lam0_nonneg E.c

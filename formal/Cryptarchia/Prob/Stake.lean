@@ -650,7 +650,7 @@ theorem pOne_eq (hnd : E.nodes.Nodup) (i : ℕ) (s : EpochState) :
 /-- **The band condition for a member.** If the state's honest exponent is in the
 member's range and the adversary's below its bound, slot `i` is within its band. -/
 theorem slotBand_of_member (hc : LotConsts E.c η) (hη : 0 ≤ η) (hnd : E.nodes.Nodup) {i : ℕ}
-    {s : EpochState} (hs : (s.lead.map Note.id).Nodup) {ζ : ℝ} (hζ : 0 ≤ ζ)
+    {s : EpochState} {ζ : ℝ} (hζ : 0 ≤ ζ)
     (hsH : Small E.c s (honNotes E i s E.nodes) ζ) (hsA : Small E.c s (advNotes s) ζ)
     {m : Member} (hm : m.OK η ζ)
     (hH1 : m.ylo ≤ expo E.c s (honNotes E i s E.nodes)) (hH2 : expo E.c s (honNotes E i s E.nodes) ≤ m.yhi)
@@ -720,7 +720,7 @@ theorem slotBand_of_member (hc : LotConsts E.c η) (hη : 0 ≤ η) (hnd : E.nod
     have h3 : Elo m.ahi * (1 - errLo η ζ m.ahi) ≤ exp (-yA) * (1 - errLo η ζ yA) :=
       mul_le_mul h2 (by linarith [errLo_mono (ζ := ζ) hη hyA0 hA]) (by linarith [hm.eLoA]) (Real.exp_pos _).le
     linarith [hm.amax]
-  refine ⟨hs, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, hqa⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, hqa⟩
   · intro h
     have := mul_nonneg hP0pos.le hfac
     fin_cases h <;> simp [qhRO] <;> linarith

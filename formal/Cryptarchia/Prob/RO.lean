@@ -602,11 +602,10 @@ what is known before it, including the epoch state the slot's lottery runs under
 def Fresh (μ : Measure Ω) (O : Ω → Oracle) (σ : Ω → ℕ → EpochState) : Prop :=
   ∀ i, Indep (hist O σ i) (MeasurableSpace.comap (tk O i) inferInstance) μ
 
-/-- **The band condition on an epoch state** for slot `i`: the lead notes have
-distinct identifiers, the honest part of the slot's law is in the band's honest
-polytope, and the adversary wins with probability at most `amax`. -/
+/-- **The band condition on an epoch state** for slot `i`: the honest part of the
+slot's law is in the band's honest polytope, and the adversary wins with probability
+at most `amax`. -/
 structure SlotBand (B : Band) (E : Env) (i : ℕ) (s : EpochState) : Prop where
-  nodup : (s.lead.map Note.id).Nodup
   hon : qhRO E i s ∈ HB B
   adv : qaRO E.c s ≤ B.amax
 
