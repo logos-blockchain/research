@@ -237,13 +237,7 @@ def closedChk (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) 
     decide (q.Q1 ≤ powDnQ 14 (1 + (180 * p.m : ℕ) * (T.ylo * T.clo * T.δ ^ 2 / 2) / 4096) 4096) &&
     decide (0 < q.Q2) &&
     decide (q.Q2 ≤ powDnQ 14 (1 + (180 * p.m : ℕ) * (T.ylo * T.clo * T.δ ^ 2 * (1 / 2 - 2 / 9 * T.δ)) / 4096) 4096) &&
-    T.okQ &&
-    decide (F.S.η = T.η) &&
-    decide (F.S.ζ = T.ζ) &&
-    decide (F.S.β = T.β) &&
-    decide (T.η = 1 / 10 ^ 70) &&
-    decide (F.S.ys.getD 0 0 ≤ T.ylo) &&
-    decide (T.Yh ≤ F.S.ys.getD F.S.K 0) &&
+    famChkQ F T &&
     decide (1 ≤ p.k0) &&
     decide (0 < p.ρ) &&
     decide (0 < p.Hmin) &&
@@ -321,13 +315,7 @@ structure ClosedFacts (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : 
   Q1 : q.Q1 ≤ powDnQ 14 (1 + (180 * p.m : ℕ) * (T.ylo * T.clo * T.δ ^ 2 / 2) / 4096) 4096
   Q20 : 0 < q.Q2
   Q2 : q.Q2 ≤ powDnQ 14 (1 + (180 * p.m : ℕ) * (T.ylo * T.clo * T.δ ^ 2 * (1 / 2 - 2 / 9 * T.δ)) / 4096) 4096
-  ok : T.okQ = true
-  hη : F.S.η = T.η
-  hζ : F.S.ζ = T.ζ
-  hβ : F.S.β = T.β
-  hηlot : T.η = 1 / 10 ^ 70
-  cov0 : F.S.ys.getD 0 0 ≤ T.ylo
-  cov1 : T.Yh ≤ F.S.ys.getD F.S.K 0
+  fam : famChkQ F T = true
   k01 : 1 ≤ p.k0
   ρ0 : 0 < p.ρ
   Hm0 : 0 < p.Hmin
@@ -355,8 +343,8 @@ structure ClosedFacts (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : 
 theorem closedChk.facts {F : FamCfg} {Bq : BandR} {dat : Fin 19 → IdxData} {T : TBandQ} {p : ClosedData}
     {q : ClosedDerived} (h : closedChk F Bq dat T p q = true) : ClosedFacts F Bq dat T p q := by
   simp only [closedChk, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c1a, c1⟩, c2a⟩, c2⟩, c3a⟩, e17⟩, tau0⟩, tauw⟩, c3⟩, rat0⟩, e20⟩, F0⟩, c4a⟩, lpi0⟩, c4⟩, c5a⟩, w50⟩, x1⟩, xm⟩, c5⟩, c6a⟩, c0⟩, cr⟩, c6⟩, bs0⟩, yy0⟩, yy1⟩, c7a⟩, yym⟩, c7⟩, hhi0⟩, hhi1⟩, hlo0⟩, hlo1⟩, helo1⟩, m0⟩, T1⟩, a10⟩, a20⟩, δ1⟩, C1⟩, C10⟩, C2⟩, C20⟩, Q10⟩, Q1⟩, Q20⟩, Q2⟩, ok⟩, hη⟩, hζ⟩, hβ⟩, hηlot⟩, cov0⟩, cov1⟩, k01⟩, ρ0⟩, Hm0⟩, up⟩, upC⟩, dn⟩, g1⟩, g2⟩, G1⟩, GEL⟩, OG⟩, qs0⟩, qb0⟩, sh⟩, shq⟩, shA⟩, shb⟩, shbq⟩, t0⟩, yc0⟩ := h
-  exact ⟨c1a, c1, c2a, c2, c3a, e17, tau0, tauw, c3, rat0, e20, F0, c4a, lpi0, c4, c5a, w50, x1, xm, c5, c6a, c0, cr, c6, bs0, yy0, yy1, c7a, yym, c7, hhi0, hhi1, hlo0, hlo1, helo1, m0, T1, a10, a20, δ1, C1, C10, C2, C20, Q10, Q1, Q20, Q2, ok, hη, hζ, hβ, hηlot, cov0, cov1, k01, ρ0, Hm0, up, upC, dn, g1, g2, G1, GEL, OG, qs0, qb0, sh, shq, shA, shb, shbq, t0, yc0⟩
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c1a, c1⟩, c2a⟩, c2⟩, c3a⟩, e17⟩, tau0⟩, tauw⟩, c3⟩, rat0⟩, e20⟩, F0⟩, c4a⟩, lpi0⟩, c4⟩, c5a⟩, w50⟩, x1⟩, xm⟩, c5⟩, c6a⟩, c0⟩, cr⟩, c6⟩, bs0⟩, yy0⟩, yy1⟩, c7a⟩, yym⟩, c7⟩, hhi0⟩, hhi1⟩, hlo0⟩, hlo1⟩, helo1⟩, m0⟩, T1⟩, a10⟩, a20⟩, δ1⟩, C1⟩, C10⟩, C2⟩, C20⟩, Q10⟩, Q1⟩, Q20⟩, Q2⟩, fam⟩, k01⟩, ρ0⟩, Hm0⟩, up⟩, upC⟩, dn⟩, g1⟩, g2⟩, G1⟩, GEL⟩, OG⟩, qs0⟩, qb0⟩, sh⟩, shq⟩, shA⟩, shb⟩, shbq⟩, t0⟩, yc0⟩ := h
+  exact ⟨c1a, c1, c2a, c2, c3a, e17, tau0, tauw, c3, rat0, e20, F0, c4a, lpi0, c4, c5a, w50, x1, xm, c5, c6a, c0, cr, c6, bs0, yy0, yy1, c7a, yym, c7, hhi0, hhi1, hlo0, hlo1, helo1, m0, T1, a10, a20, δ1, C1, C10, C2, C20, Q10, Q1, Q20, Q2, fam, k01, ρ0, Hm0, up, upC, dn, g1, g2, G1, GEL, OG, qs0, qb0, sh, shq, shA, shb, shbq, t0, yc0⟩
 
 theorem pt_cast (yy hhi hlo : ℚ) (T : ℕ) : PT 1 (yy : ℝ) (hlo : ℝ) (hhi : ℝ) T =
     ((if 1 ≤ yy then 1 - (1 - hhi) ^ T else 1 - (1 - hlo) ^ T : ℚ) : ℝ) := by
@@ -543,39 +531,17 @@ theorem finality_closed_gen {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} 
   have h2 := ENNReal.ofReal_le_ofReal (band_closed_gen F p q hf k)
   have hS0 := epsS_nonneg p q f.shA N (k / p.m)
   have hB0 := bandC_nonneg q f.C10 f.C20 f.Q10 f.Q20 (k / p.m)
-  obtain ⟨⟨Δ, c, z, s, d', τ⟩, ⟨η, ζ, β, d, dy, K, ys⟩, famZL, Dz⟩ := F
-  simp only at hK
-  subst hK
-  have hβ1 : β < 1 := by
-    have h := (TBandQ.ok_of f.ok).β1
-    simp only [TBandQ.toTBand] at h
-    have hb := f.hβ
-    simp only at hb
-    rw [hb]; exact_mod_cast h
   have hρ : (0 : ℝ) < p.ρ := by exact_mod_cast f.ρ0
-  have hb := Prob.finality (M := N + q.G + q.g * (k / p.m) + Δ + 2) (Ne := N / (300 * k) + 2) (Tb := T.toTBand)
-    es hMod hN hΔ
-    (cert3E hM hS hD hBq hidx E.c.epochLength q.G f.G1 (by rw [hEL]; have := f.GEL; omega)) (FamSpec.prod hS)
-    (G' := q.g * (k / p.m)) (J := q.j * (k / p.m)) (Lw := q.w * (k / p.m)) (r := q.ρr * (k / p.m)) (T := q.T)
-    (x := q.x) (yy := q.yy)
-    (by exact_mod_cast f.x1) (by exact_mod_cast f.yy0) (by exact_mod_cast f.yy1) f.T1 le_rfl
-    (by simp only [BandR.toBand_hhi]; exact_mod_cast f.hhi1) (by simp only [BandR.toBand_hlo]; exact_mod_cast f.hlo0)
-    (by simp only [BandR.toBand_hlo]; exact_mod_cast f.hlo1) (by simp only [BandR.toBand_elo]; exact_mod_cast f.helo1)
+  have hb := finality_fam F hM hS hD hBq hidx hK T f.fam es hMod hN hΔ f.G1 (by rw [hEL]; have := f.GEL; omega)
+    (M := N + q.G + q.g * (k / p.m) + F.Δ + 2) (G' := q.g * (k / p.m)) (J := q.j * (k / p.m)) (Lw := q.w * (k / p.m))
+    (r := q.ρr * (k / p.m)) f.x1 f.yy0 f.yy1 f.T1 le_rfl f.hhi1 f.hlo0 f.hlo1 f.helo1
     (by rw [hEL]; exact hLw k hk) (by rw [hEL, hc, Config.specK_nonceOffset]; have := f.OG; omega)
-    (by rw [hc]; simp only [TBandQ.toTBand, f.hηlot]; exact lotConsts_specK (by convert lot_spec using 2; norm_num) k)
-    (TBandQ.ok_of f.ok) (by rw [hc]; rfl) (by rw [hc]; simp only [Config.specK, Config.spec]; norm_num)
+    (by rw [hc]; exact lotConsts_specK lot_spec k) (by rw [hc]; rfl)
+    (by rw [hc]; simp only [Config.specK, Config.spec]; norm_num)
     (by rw [hP, hc]; simp only [Config.specK, Config.spec]; positivity) (by rw [hP]; omega) (by rw [hP, hEL]; omega)
-    (by rw [hEL, show N + q.G + q.g * (k / p.m) + Δ + 2 = N + (q.G + q.g * (k / p.m) + Δ + 2) by ring]
+    (by rw [hEL, show N + q.G + q.g * (k / p.m) + F.Δ + 2 = N + (q.G + q.g * (k / p.m) + F.Δ + 2) by ring]
         exact div_lt_add_two (hNe k hk))
-    (mem := FamSpec.mem ⟨η, ζ, β, d, dy, n + 1, ys⟩) (fun _ => rfl)
-    (fun k => by have := FamSpec.ok hS k; simp only [TBandQ.toTBand, ← f.hη, ← f.hζ]; exact this)
-    (cover_of_chain (by simpa using FamSpec.chained ⟨η, ζ, β, d, dy, n + 1, ys⟩ rfl)
-      (by rw [← TBandQ.ylo_cast]; simp only [FamSpec.mem, FamSpec.mQ, MemberQ.toMember_ylo, memberOfQ_ylo,
-        Fin.val_zero]; exact_mod_cast f.cov0)
-      (by rw [← TBandQ.Yh_cast]; simp only [FamSpec.mem, FamSpec.mQ, MemberQ.toMember_yhi, memberOfQ_yhi,
-        Fin.val_last]; exact_mod_cast f.cov1))
-    (fun k => memberOfQ_adv hβ1 (by have hb := f.hβ; simp only at hb; simp only [TBandQ.toTBand, hb]))
-    (ρ := p.ρ) (Hmin := p.Hmin) hρ (by exact_mod_cast f.Hm0)
+    hρ (by exact_mod_cast f.Hm0)
     (by
       rw [hc, lam0_specK]
       have e : ∀ K' P' : ℝ, T.toTBand.ℓhi * K' * (1 - T.toTBand.μ) * (1 - T.toTBand.δ) * T.toTBand.clo * (P' - 1) / p.ρ =

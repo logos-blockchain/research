@@ -239,6 +239,62 @@ def _root_.Cryptarchia.Prob.SpecData.derive (p : SpecData) (F : FamCfg) (Bq : Ba
   let bx := rupQ 4 (bandEpsQ 14 4096 T Config.spec.period)
   ⟨Lw, J, xOf Lw, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, rupQ 2 (tgt + Ne * bx)⟩
 
+/-- **The estimate's band and the family agree**: the band's conditions, the family's constants
+the band's, the threshold's error the specification's, and the members covering the band. -/
+def famChkQ (F : FamCfg) (T : TBandQ) : Bool :=
+  T.okQ && decide (F.S.η = T.η) && decide (F.S.ζ = T.ζ) && decide (F.S.β = T.β) && decide (T.η = 1 / 10 ^ 70) &&
+    decide (F.S.ys.getD 0 0 ≤ T.ylo) && decide (T.Yh ≤ F.S.ys.getD F.S.K 0)
+
+/-- **Finality from a certificate's data** (`Prob.finality` for a family given as data): the family's
+checks and `famChkQ` give the members, their bands and the band's conditions; the configuration's
+and the settlement's conditions stay hypotheses. -/
+theorem finality_fam {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
+    {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} {κ lp lpi : ℚ}
+    (hM : F.mainChk Bq κ lp lpi dat = true) (hS : F.S.chk F.famZ F.D = true) (hD : 0 < F.D)
+    (hBq : Bq = F.S.weakest) (hidx : ∀ i : Fin 19, F.idxChk i (dat i) = true) {n : ℕ} (hK : F.S.K = n + 1)
+    (T : TBandQ) (hT : famChkQ F T = true) (es : Ω → List Event) (hMod : Model μ O E es) {N : ℕ}
+    (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) (hΔ : E.Δ = F.Δ) {G : ℕ} (hG1 : F.Δ + 1 ≤ G)
+    (hGEL : G + 1 < E.c.epochLength) {M G' J Lw r Tg : ℕ} {x yy : ℚ} (hx : 1 ≤ x) (hyy0 : 0 < yy) (hyy1 : yy ≤ 1)
+    (hT1 : 1 ≤ Tg) (hNM : N + G + G' + F.Δ + 2 ≤ M) (hhi1 : Bq.hhi ≤ 1) (hlo0 : 0 ≤ Bq.hlo) (hlo1 : Bq.hlo ≤ 1)
+    (helo1 : Bq.elo ≤ 1) (hLw : Lw + G < E.c.epochLength) (hOG : E.c.nonceOffset + G + 2 ≤ E.c.epochLength)
+    (hc : LotConsts E.c (1 / 10 ^ 70)) (hb : E.c.betaP = E.c.precision) (hprec : 0 < E.c.precision)
+    (hPf : 0 < E.c.period * E.c.fP) (hP1 : 1 ≤ E.c.period) (hPEL : E.c.period ≤ E.c.epochLength) {Ne : ℕ}
+    (hNe : M / E.c.epochLength < Ne) {ρ Hmin : ℝ} (hρ : 0 < ρ) (hHm : 0 < Hmin)
+    (hup : (1 - T.toTBand.μ) + 2 * T.toTBand.ℓhi / (lam0 E.c * Hmin) ≤
+      T.toTBand.ℓhi * Kc E.c * (1 - T.toTBand.μ) * (1 - T.toTBand.δ) * T.toTBand.clo * ((E.c.period : ℝ) - 1) / ρ)
+    (hdn : T.toTBand.ℓlo * Kc E.c * (1 + T.toTBand.δ) * T.toTBand.chi * E.c.period * ρ + Kc E.c * ρ +
+      3 * T.toTBand.ℓlo / (lam0 E.c * Hmin) ≤ 1)
+    (hg1 : T.toTBand.ℓlo ≤ lam0 E.c) (hg2 : (1 - T.toTBand.μ) * lam0 E.c ≤ T.toTBand.ℓhi)
+    (hG : GenesisOK E) (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β T.ζ)
+    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ Ne) (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) ρ Ne)
+    (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) Hmin) :
+    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps3E E Bq.toBand (cert2 hM) lpi G N G G' J Lw r Tg x yy) +
+      Ne * ENNReal.ofReal (bandEps T.toTBand E.c.period) := by
+  simp only [famChkQ, Bool.and_eq_true, decide_eq_true_eq] at hT
+  obtain ⟨⟨⟨⟨⟨⟨ok, hη⟩, hζ⟩, hβ⟩, hηlot⟩, cov0⟩, cov1⟩ := hT
+  obtain ⟨⟨Δ, c, z, s, d', τ⟩, ⟨η, ζ, β, d, dy, K, ys⟩, famZL, Dz⟩ := F
+  simp only at hK hη hζ hβ cov0 cov1
+  subst hK
+  have hβ1 : β < 1 := by
+    have h := (TBandQ.ok_of ok).β1
+    simp only [TBandQ.toTBand] at h
+    rw [hβ]; exact_mod_cast h
+  exact Prob.finality (M := M) (Ne := Ne) (Tb := T.toTBand) es hMod hN hΔ
+    (cert3E hM hS hD hBq hidx E.c.epochLength G hG1 hGEL) (FamSpec.prod hS)
+    (G' := G') (J := J) (Lw := Lw) (r := r) (T := Tg) (x := x) (yy := yy)
+    (by exact_mod_cast hx) (by exact_mod_cast hyy0) (by exact_mod_cast hyy1) hT1 hNM
+    (by simp only [BandR.toBand_hhi]; exact_mod_cast hhi1) (by simp only [BandR.toBand_hlo]; exact_mod_cast hlo0)
+    (by simp only [BandR.toBand_hlo]; exact_mod_cast hlo1) (by simp only [BandR.toBand_elo]; exact_mod_cast helo1)
+    hLw hOG (by simp only [TBandQ.toTBand, hηlot]; convert hc using 2; norm_num) (TBandQ.ok_of ok)
+    hb hprec hPf hP1 hPEL hNe (mem := FamSpec.mem ⟨η, ζ, β, d, dy, n + 1, ys⟩) (fun _ => rfl)
+    (fun k => by have := FamSpec.ok hS k; simp only [TBandQ.toTBand, ← hη, ← hζ]; exact this)
+    (cover_of_chain (by simpa using FamSpec.chained ⟨η, ζ, β, d, dy, n + 1, ys⟩ rfl)
+      (by rw [← TBandQ.ylo_cast]; simp only [FamSpec.mem, FamSpec.mQ, MemberQ.toMember_ylo, memberOfQ_ylo,
+        Fin.val_zero]; exact_mod_cast cov0)
+      (by rw [← TBandQ.Yh_cast]; simp only [FamSpec.mem, FamSpec.mQ, MemberQ.toMember_yhi, memberOfQ_yhi,
+        Fin.val_last]; exact_mod_cast cov1))
+    (fun _ => memberOfQ_adv hβ1 (by simp only [TBandQ.toTBand, hβ])) hρ hHm hup hdn hg1 hg2 hG hSt hQ hDr hH
+
 /-- **Every numeric condition of the finality theorem at the specification**: the settlement bound
 below `tgt`, the band's below `bx`, `tgt + Ne · bx ≤ fin`, and the conditions of `Prob.finality`. -/
 def finChkSpec (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) (p : SpecData) (q : SpecDerived) :
@@ -253,9 +309,7 @@ def finChkSpec (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ)
     decide (1 ≤ x) && decide (0 < yy) && decide (yy ≤ 1) && decide (1 ≤ Tg) && decide (N + G + G' + F.Δ + 2 ≤ M) &&
     decide (Bq.hhi ≤ 1) && decide (0 ≤ Bq.hlo) && decide (Bq.hlo ≤ 1) && decide (Bq.elo ≤ 1) &&
     decide (Lw + G < Config.spec.epochLength) && decide (Config.spec.nonceOffset + G + 2 ≤ Config.spec.epochLength) && decide (M / Config.spec.epochLength < Ne) &&
-    decide (F.Δ + 1 ≤ G) && decide (G + 1 < Config.spec.epochLength) && T.okQ && driftChkQ Config.spec T ρ Hmin &&
-    decide (F.S.η = T.η) && decide (F.S.ζ = T.ζ) && decide (F.S.β = T.β) && decide (T.η = 1 / 10 ^ 70) &&
-    decide (F.S.ys.getD 0 0 ≤ T.ylo) && decide (T.Yh ≤ F.S.ys.getD F.S.K 0)
+    decide (F.Δ + 1 ≤ G) && decide (G + 1 < Config.spec.epochLength) && famChkQ F T && driftChkQ Config.spec T ρ Hmin
 
 /-- The conditions `finChkSpec` checks, by name. -/
 structure SpecFacts (F : FamCfg) (Bq : BandR) (lp lpi : ℚ) (dat : Fin 19 → IdxData) (T : TBandQ)
@@ -282,22 +336,16 @@ structure SpecFacts (F : FamCfg) (Bq : BandR) (lp lpi : ℚ) (dat : Fin 19 → I
   hNe : M / Config.spec.epochLength < Ne
   hG1 : F.Δ + 1 ≤ G
   hGEL : G + 1 < Config.spec.epochLength
-  ok : T.okQ = true
+  fam : famChkQ F T = true
   drift : driftChkQ Config.spec T ρ Hmin = true
-  hη : F.S.η = T.η
-  hζ : F.S.ζ = T.ζ
-  hβ : F.S.β = T.β
-  hηlot : T.η = 1 / 10 ^ 70
-  cov0 : F.S.ys.getD 0 0 ≤ T.ylo
-  cov1 : T.Yh ≤ F.S.ys.getD F.S.K 0
 
 theorem finChkSpec.facts {F : FamCfg} {Bq : BandR} {κ lp lpi : ℚ} {dat : Fin 19 → IdxData} {T : TBandQ}
     {N M Ne G G' J Lw r Tg : ℕ} {x yy ρ Hmin tgt bx fin : ℚ}
     {ε : ℚ} (h : finChkSpec F Bq dat T ⟨κ, N, ε, ρ, Hmin⟩ ⟨Lw, J, x, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, fin⟩ = true) :
     SpecFacts F Bq lp lpi dat T N M Ne G G' J Lw r Tg x yy ρ Hmin tgt bx fin := by
   simp only [finChkSpec, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨eps, epsle⟩, band⟩, bandle⟩, fin⟩, tgt0⟩, bx0⟩, hx⟩, hyy0⟩, hyy1⟩, hT⟩, hNM⟩, hhi1⟩, hlo0⟩, hlo1⟩, helo1⟩, hLw⟩, hOG⟩, hNe⟩, hG1⟩, hGEL⟩, ok⟩, drift⟩, hη⟩, hζ⟩, hβ⟩, hηlot⟩, cov0⟩, cov1⟩ := h
-  exact ⟨eps, epsle, band, bandle, fin, tgt0, bx0, hx, hyy0, hyy1, hT, hNM, hhi1, hlo0, hlo1, helo1, hLw, hOG, hNe, hG1, hGEL, ok, drift, hη, hζ, hβ, hηlot, cov0, cov1⟩
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨eps, epsle⟩, band⟩, bandle⟩, fin⟩, tgt0⟩, bx0⟩, hx⟩, hyy0⟩, hyy1⟩, hT⟩, hNM⟩, hhi1⟩, hlo0⟩, hlo1⟩, helo1⟩, hLw⟩, hOG⟩, hNe⟩, hG1⟩, hGEL⟩, fam⟩, drift⟩ := h
+  exact ⟨eps, epsle, band, bandle, fin, tgt0, bx0, hx, hyy0, hyy1, hT, hNM, hhi1, hlo0, hlo1, helo1, hLw, hOG, hNe, hG1, hGEL, fam, drift⟩
 
 /-- **Finality at the specification, from a certificate's data.** The index checks (`idxChk`), the
 family's (`FamSpec.chk`), the main file's (`mainChk`) and the numeric conditions (`finChkSpec`)
@@ -315,39 +363,15 @@ theorem finality_spec {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
   obtain ⟨κ, N, ε, ρ, Hmin⟩ := p
   obtain ⟨Lw, J, x, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, fin⟩ := q
   have f := finChkSpec.facts hfin
-  obtain ⟨⟨Δ, c, z, s, d', τ⟩, ⟨η, ζ, β, d, dy, K, ys⟩, famZL, Dz⟩ := F
-  simp only at hK
-  subst hK
   have hEL : E.c.epochLength = Config.spec.epochLength := by rw [hc]
   have hP : E.c.period = Config.spec.period := by rw [hc]
   have hδ := f.drift
   simp only [driftChkQ, Bool.and_eq_true, decide_eq_true_eq] at hδ
   obtain ⟨⟨⟨⟨⟨hup, hdn⟩, hg1⟩, hg2⟩, hρ⟩, hHm⟩ := hδ
-  have hβ1 : β < 1 := by
-    have h := (TBandQ.ok_of f.ok).β1
-    simp only [TBandQ.toTBand] at h
-    have hb := f.hβ
-    simp only at hb
-    rw [hb]; exact_mod_cast h
-  have hb := Prob.finality (M := M) (Ne := Ne) (Tb := T.toTBand) es hMod hN hΔ
-    (cert3E hM hS hD hBq hidx E.c.epochLength G f.hG1 (by rw [hEL]; exact f.hGEL)) (FamSpec.prod hS)
-    (G' := G') (J := J) (Lw := Lw) (r := r) (T := Tg) (x := x) (yy := yy)
-    (by exact_mod_cast f.hx) (by exact_mod_cast f.hyy0) (by exact_mod_cast f.hyy1) f.hT f.hNM
-    (by simp only [BandR.toBand_hhi]; exact_mod_cast f.hhi1) (by simp only [BandR.toBand_hlo]; exact_mod_cast f.hlo0)
-    (by simp only [BandR.toBand_hlo]; exact_mod_cast f.hlo1) (by simp only [BandR.toBand_elo]; exact_mod_cast f.helo1)
-    (by rw [hEL]; exact f.hLw)
-    (by rw [hc]; exact f.hOG)
-    (by rw [hc]; simp only [TBandQ.toTBand, f.hηlot]; convert lot_spec using 2; norm_num)
-    (TBandQ.ok_of f.ok) (by rw [hc]; rfl) (by rw [hc]; decide) (by rw [hc]; decide)
-    (by rw [hP]; decide) (by rw [hP, hEL]; decide) (by rw [hEL]; exact f.hNe)
-    (mem := FamSpec.mem ⟨η, ζ, β, d, dy, n + 1, ys⟩) (fun k => rfl)
-    (fun k => by have := FamSpec.ok hS k; simp only [TBandQ.toTBand, ← f.hη, ← f.hζ]; exact this)
-    (cover_of_chain (by simpa using FamSpec.chained ⟨η, ζ, β, d, dy, n + 1, ys⟩ rfl)
-      (by rw [← TBandQ.ylo_cast]; simp only [FamSpec.mem, FamSpec.mQ, MemberQ.toMember_ylo, memberOfQ_ylo,
-        Fin.val_zero]; exact_mod_cast f.cov0)
-      (by rw [← TBandQ.Yh_cast]; simp only [FamSpec.mem, FamSpec.mQ, MemberQ.toMember_yhi, memberOfQ_yhi,
-        Fin.val_last]; exact_mod_cast f.cov1))
-    (fun k => memberOfQ_adv hβ1 (by have hb := f.hβ; simp only at hb; simp only [TBandQ.toTBand, hb]))
+  have hb := finality_fam F hM hS hD hBq hidx hK T f.fam es hMod hN hΔ f.hG1 (by rw [hEL]; exact f.hGEL)
+    (M := M) (G' := G') (J := J) (Lw := Lw) (r := r) f.hx f.hyy0 f.hyy1 f.hT f.hNM f.hhi1 f.hlo0 f.hlo1 f.helo1
+    (by rw [hEL]; exact f.hLw) (by rw [hc]; exact f.hOG) (by rw [hc]; exact lot_spec) (by rw [hc]; rfl)
+    (by rw [hc]; decide) (by rw [hc]; decide) (by rw [hP]; decide) (by rw [hP, hEL]; decide) (by rw [hEL]; exact f.hNe)
     (ρ := ρ) (Hmin := Hmin) (by exact_mod_cast hρ) (by exact_mod_cast hHm)
     (by rw [hc, ← lam0Q_cast, ← KcQ_cast, ← TBandQ.clo_cast]; simp only [TBandQ.toTBand]; exact_mod_cast hup)
     (by rw [hc, ← lam0Q_cast, ← KcQ_cast, ← TBandQ.chi_cast]; simp only [TBandQ.toTBand]; exact_mod_cast hdn)
@@ -357,7 +381,7 @@ theorem finality_spec {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
   rw [hP] at hb
   have hk : E.c.k = Config.spec.k := by rw [hc]
   have hne : nEp E N = (N + 2) / Config.spec.epochLength := by unfold nEp; rw [hEL]
-  have hnb : nbD E Δ G Tg = nbSpec Δ G Tg := by
+  have hnb : nbD E F.Δ G Tg = nbSpec F.Δ G Tg := by
     unfold nbD growLen nbSpec; rw [hc]
   have h1 := (settleEps3E_le_Q (d := 14) (lpi := lpi) (x := x) (yy := yy) (Ccap := G) (N := N) (G := G) (G' := G')
     (J := J) (Lw := Lw) (r := r) (T := Tg) (cert2 hM) Bq rfl rfl rfl rfl rfl rfl rfl rfl hk hne hnb f.eps).trans
