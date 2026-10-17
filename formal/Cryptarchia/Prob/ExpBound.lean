@@ -2,11 +2,6 @@ module
 
 public import Mathlib.Analysis.Complex.Exponential
 meta import Lean.Meta.Tactic.NormCast
-import Mathlib.Algebra.Order.BigOperators.Expect
-import Mathlib.Algebra.Order.Field.Power
-import Mathlib.Analysis.Complex.Order
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Data.EReal.Inv
 
 /-!
 # A rational upper bound on `exp (-a)`

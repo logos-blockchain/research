@@ -2,6 +2,7 @@ module
 
 public import Cryptarchia.Prob.Burst
 import Cryptarchia.Settle.Mono
+import Std.Tactic.BVDecide.Normalize.Prop
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -35,7 +36,6 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
-import Std.Tactic.BVDecide.Normalize.Prop
 import Mathlib.Algebra.Order.Star.Real
 import Mathlib.Tactic.ENatToNat
 import Mathlib.Tactic.Polynomial.Basic

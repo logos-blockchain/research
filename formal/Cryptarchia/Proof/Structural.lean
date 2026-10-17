@@ -3,6 +3,7 @@ module
 public import Cryptarchia.Proof.Lca
 public import Cryptarchia.Spec.Node
 import Cryptarchia.Proof.Maintenance
+import Std.Tactic.BVDecide.Normalize.BitVec
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -35,7 +36,6 @@ import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Topology.Sheaves.Init
-import Std.Tactic.BVDecide.Normalize.BitVec
 
 /-!
 # Structural invariants of executions

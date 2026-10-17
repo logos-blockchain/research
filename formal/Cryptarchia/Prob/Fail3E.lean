@@ -2,6 +2,8 @@ module
 
 public import Cryptarchia.Prob.Cold2
 import Cryptarchia.Settle.Mono
+import Std.Tactic.BVDecide.Normalize.BitVec
+import Std.Tactic.BVDecide.Normalize.Prop
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -36,9 +38,7 @@ import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.Polynomial.Basic
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
-import Std.Tactic.BVDecide.Normalize.BitVec
 import Mathlib.Tactic.ENatToNat
-import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
 # A failed check is rare

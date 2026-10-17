@@ -3,6 +3,7 @@ module
 public import Cryptarchia.Prob.Potential
 public import Cryptarchia.Prob.Kernel
 public import Cryptarchia.Prob.Phases
+import Std.Tactic.BVDecide.Normalize.Prop
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Algebra.Order.Star.Real
@@ -39,7 +40,6 @@ import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.Polynomial.Basic
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
-import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
 # Expectations over one phase

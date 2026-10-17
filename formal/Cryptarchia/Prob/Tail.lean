@@ -6,6 +6,7 @@ import Cryptarchia.Prob.Potential
 public import Cryptarchia.Proof.FinalE
 public import Cryptarchia.Prob.Next
 import Cryptarchia.Settle.Mono
+import Std.Tactic.BVDecide.Normalize.Prop
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Algebra.Order.Ring.Star
@@ -45,7 +46,6 @@ import Mathlib.Tactic.Polynomial.Basic
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
 import Mathlib.Tactic.ENatToNat
-import Std.Tactic.BVDecide.Normalize.Prop
 import Mathlib.Topology.Sheaves.Init
 
 /-!

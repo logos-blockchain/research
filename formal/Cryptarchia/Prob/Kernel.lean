@@ -7,6 +7,7 @@ public import Mathlib.Basic.Real.Basic
 public import Mathlib.CategoryTheory.Category.Basic
 public import Mathlib.Data.Fintype.Sigma
 public import Mathlib.Tactic.DeriveFintype
+import Std.Tactic.BVDecide.Normalize.Prop
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -42,7 +43,6 @@ import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Presheaf
-import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
 # Slot kernels

@@ -184,46 +184,9 @@ def spec_rules(cfg, B, e, lr, b, lpi, eps):
 
 # ---- the files
 
-def imports(lines, ext=False): return "module\n\n" + "".join(lines) + (emitZ_ext() if ext else "")
+def imports(lines): return "module\n\n" + "".join(lines)
 
 
-# Imports, as `lake shake` computes them: the modules whose `norm_num` and `simp` extensions the
-# main file's proofs use. After changing the emitted proofs, rerun `lake shake CryptarchiaCerts`.
-EXT = """import Mathlib.Algebra.Order.Floor.Extended
-import Mathlib.Algebra.Order.Interval.Basic
-import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
-import Mathlib.Analysis.SpecialFunctions.Bernstein
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
-import Mathlib.Combinatorics.Enumerative.DyckWord
-import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
-import Mathlib.Data.NNRat.Floor
-import Mathlib.Data.Nat.Choose.Multinomial
-import Mathlib.Geometry.Euclidean.Altitude
-import Mathlib.NumberTheory.Chebyshev
-import Mathlib.NumberTheory.Height.NumberField
-import Mathlib.NumberTheory.Height.Projectivization
-import Mathlib.NumberTheory.LucasLehmer
-import Mathlib.NumberTheory.SelbergSieve
-import Mathlib.RingTheory.Radical.NatInt
-import Mathlib.Tactic.Echelon.Zsqrtd
-import Mathlib.Tactic.NormNum.Irrational
-import Mathlib.Tactic.NormNum.IsCoprime
-import Mathlib.Tactic.NormNum.IsSquare
-import Mathlib.Tactic.NormNum.LegendreSymbol
-import Mathlib.Tactic.NormNum.ModEq
-import Mathlib.Tactic.NormNum.NatFib
-import Mathlib.Tactic.NormNum.NatLog
-import Mathlib.Tactic.NormNum.NatSqrt
-import Mathlib.Tactic.NormNum.Ordinal
-import Mathlib.Tactic.NormNum.Parity
-import Mathlib.Tactic.NormNum.Prime
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Topology.Sheaves.Init
-"""
-
-
-def emitZ_ext(): return EXT
 
 
 def write_params(cfg, fam, T, par_type, par_fields, sub, ns, name, closed=False):
@@ -390,7 +353,7 @@ def emit(cfg, T, fam, B, P, name, out_dir, target=None):
         ("Hmin", qQ(T['hmin']), "the least honest online stake (`MinStake`)")]
     write_params(cfg, fam, T, "SpecData", spec_fields, sub, ns, name)
     write_data(sub, ns, name)
-    txt = (imports([f"public import {ns}.Data\n", f"meta import {ns}.Data\n"], ext=True) + f"""
+    txt = (imports([f"public import {ns}.Data\n", f"meta import {ns}.Data\n"]) + f"""
 /-!
 # Multi-epoch finality certificate: β = {beta}, Δ = {D}, k = {k}, {K} members
 
@@ -571,8 +534,7 @@ def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
     (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) {q(T['mu'])} (N / (300 * k) + 2))
     (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) {q(T['rho'])} (N / (300 * k) + 2))
     (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) {q(T['hmin'])})"""
-    txt = (imports([f"public import {ns}.Data\n", f"meta import {ns}.Data\n", "public import Cryptarchia.Prob.CertClosed\n"],
-                   ext=True) + f"""
+    txt = (imports([f"public import {ns}.Data\n", f"meta import {ns}.Data\n", "public import Cryptarchia.Prob.CertClosed\n"]) + f"""
 /-!
 # Closed-form finality certificate: β = {beta}, Δ = {D}, every k ≥ {k0}, {K} members
 
