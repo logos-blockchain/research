@@ -277,8 +277,6 @@ open Finset Settle
 
 variable {B : Band} {Δ : ℕ}
 
-/-! ## The bound process from the anchor -/
-
 variable (Δ) (M N W : ℕ)
 
 /-- The reach bound at phase `k0`. -/

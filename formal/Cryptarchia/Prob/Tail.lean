@@ -1,21 +1,18 @@
 module
 
+public import Cryptarchia.Proof.FinalE
+public import Cryptarchia.Prob.Next
 public import Cryptarchia.Prob.Blocks
 public import Cryptarchia.Prob.Depth
-public import Cryptarchia.Prob.Next
 import Cryptarchia.Settle.Mono
-public import Cryptarchia.Proof.FinalE
-import Cryptarchia.Prob.Good
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
-import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
 import Mathlib.Analysis.SpecialFunctions.Bernstein
 import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 import Mathlib.Combinatorics.Enumerative.DyckWord
 import Mathlib.Combinatorics.SimpleGraph.Triangle.Removal
-import Mathlib.Data.Int.Star
 import Mathlib.Data.NNRat.Floor
 import Mathlib.Data.Nat.Choose.Multinomial
 import Mathlib.Geometry.Euclidean.Altitude
@@ -25,8 +22,6 @@ import Mathlib.NumberTheory.Height.Projectivization
 import Mathlib.NumberTheory.LucasLehmer
 import Mathlib.NumberTheory.SelbergSieve
 import Mathlib.RingTheory.Radical.NatInt
-import Mathlib.RingTheory.WittVector.IsPoly
-import Mathlib.Tactic.ENatToNat
 import Mathlib.Tactic.Echelon.Zsqrtd
 import Mathlib.Tactic.NormNum.Irrational
 import Mathlib.Tactic.NormNum.IsCoprime
@@ -40,28 +35,45 @@ import Mathlib.Tactic.NormNum.Ordinal
 import Mathlib.Tactic.NormNum.Parity
 import Mathlib.Tactic.NormNum.Prime
 import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Data.Int.Star
+import Mathlib.RingTheory.WittVector.IsPoly
+import Mathlib.Tactic.ENatToNat
+import Mathlib.Tactic.ReduceModChar
 import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
-# The probability that the good event fails
+# The bad events as block products
 
-`settle_bound`: under any kernel within the band, the probability that the good
-event `GoodLS` or the growth condition `GrowthS` fails on the sampled string (with
-the greedy phase ends) is at most
-
-  `εLong + εCold + εWin + εReach + εDepth`
-
-(`settleEps`). Each term bounds one bad event of `good_of`; the bad indicator is at
-most a sum of nonnegative block products, failure counts, and reach moments
-(`bad_le`), whose expectations are bounded by `blocks_le`, `cold_anchor` and
-`reach_tail`.
+On a full sampled history, bad events of the settlement bound as products over blocks of
+slots, whose expectations `blocks_le` bounds: long phases (`longF`; a phase that starts by
+`N` is short when every `G` slots hold a quiet slot, `phase_short`), crowded windows
+(`winF`) and slow growth (`depthF`, over the growth blocks `nbD`).
 -/
 
 @[expose] public section
 
 namespace Cryptarchia.Prob
+
+section
+
+open Finset Settle
+
+variable {Δ M N W : ℕ}
+
+/-- A phase that starts by `N` ends within `G` slots. -/
+theorem phase_short {w : CStr} {G : ℕ} (hNG : N + G < M)
+    (hq : ∀ y ≤ N, ∃ m, y < m ∧ m ≤ y + G ∧ Quiet Δ w m) {j : ℕ} (hj : gend Δ M w j ≤ N) :
+    gend Δ M w (j + 1) ≤ gend Δ M w j + G := by
+  obtain ⟨m, h1, h2, h3⟩ := hq _ hj
+  rw [gend_succ]
+  exact le_trans (nextE_le_of_quiet h1 (by omega) h3) h2
+
+theorem gend_pidx_M {w : CStr} : gend Δ M w (pidx Δ M w M) = M :=
+  gend_pidx_of_end (Or.inr (Or.inl rfl))
+
+end
 
 open Finset Settle
 

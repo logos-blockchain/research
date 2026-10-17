@@ -2,7 +2,7 @@ module
 
 public import Cryptarchia.Prob.Fail3E
 public import Cryptarchia.Prob.Tail2
-import Cryptarchia.Prob.Good
+import Cryptarchia.Prob.Tail
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -40,9 +40,12 @@ import Mathlib.Topology.Sheaves.Init
 /-!
 # The settlement bound with an in-epoch contraction
 
-As `Tail2E.lean`, with failed checks bounded through `fail_checkE3`: the failed-checks
-term is `lpi^J · (lp/lpi)^Ccap · e₂ · stat` instead of `lp^J · e₂ · stat`. A failed check
-counts only within `Lw` slots of its anchor; the span term already pays for longer spans.
+`settle_bound3E`: under a kernel within the band, with the phase bounds (`PhaseBounds`)
+and an in-epoch contraction (`InEpoch`), the good event `GoodLS` or the growth condition
+`GrowthS` fails with probability at most `settleEps3E`: long phases, long empty runs, long
+spans of `J + 1` phases, failed checks (`fail_checkE3`: `lpi^J · (lp/lpi)^Ccap · e₂ · stat`),
+crowded windows, large reach and slow growth. The bad indicator is at most a sum of these
+terms' indicators (`bad_le3E`), each bounded in expectation.
 -/
 
 @[expose] public section

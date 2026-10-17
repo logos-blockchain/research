@@ -1,8 +1,9 @@
 module
 
-public import Cryptarchia.Prob.Fail2E
-public import Cryptarchia.Prob.Reach2
+public import Cryptarchia.Prob.Cold2
+public import Cryptarchia.Prob.Fail2
 import Cryptarchia.Settle.Mono
+public import Cryptarchia.Prob.Reach2
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -21,7 +22,6 @@ import Mathlib.NumberTheory.LucasLehmer
 import Mathlib.NumberTheory.SelbergSieve
 import Mathlib.RingTheory.Radical.NatInt
 import Mathlib.RingTheory.WittVector.IsPoly
-import Mathlib.Tactic.ENatToNat
 import Mathlib.Tactic.Echelon.Zsqrtd
 import Mathlib.Tactic.NormNum.Irrational
 import Mathlib.Tactic.NormNum.IsCoprime
@@ -39,25 +39,79 @@ import Mathlib.Tactic.Polynomial.Basic
 import Mathlib.Tactic.ReduceModChar
 import Mathlib.Topology.Sheaves.Init
 import Std.Tactic.BVDecide.Normalize.BitVec
+import Mathlib.Tactic.ENatToNat
 import Std.Tactic.BVDecide.Normalize.Prop
 
 /-!
-# Failed checks with an in-epoch contraction
+# A failed check is rare
 
-`Fail2E.lean` contracts the potential by one `lp` per phase, the worst over phases
-that may cross an epoch boundary. A phase that starts more than `G` slots before the
-next boundary stays in one member, so a smaller in-epoch contraction `lpi` applies
-(`phase_autoIn` for the phase bounds, `ex_cross_truncIn` for the crossing pattern).
-Phases that start within `G` slots of a boundary (`Sw`) pay the ratio `lp / lpi`.
-Within a check's window of `L` slots there are at most `Ccap` such slots, so the
-potential carries a weight `(lp / lpi)^c`, with `c` the switching slots left in the
-window (`swCnt`); a failed check counts only if the check is within `L` slots of its
-anchor (the span term pays for the rest).
+A failed check at phase `k`, anchored at phase `k0` (`failC`, `Fail2.lean`), under a kernel
+with one band member per epoch. Phase expectations are bounded only for phases cut at `G`
+slots, so a check counts only if every phase from the anchor on has at most `G` slots
+(`NoLong`); the long-phase term of the settlement bound pays for the rest. The reach part
+before the anchor and the checked phase use bounds valid for any phase, the contraction
+between anchor and check the truncated ones (`PhaseBounds`).
+
+A phase that starts more than `G` slots before the next boundary stays in one member, so a
+smaller in-epoch contraction `lpi` applies (`InEpoch`; `ex_cross_truncIn` for the crossing
+pattern). Phases that start within `G` slots of a boundary (`Sw`) pay the ratio `lp / lpi`.
+Within a check's window of `L` slots there are at most `Ccap` such slots, so the potential
+`ΦfE3` carries a weight `(lp / lpi)^c`, with `c` the switching slots left in the window
+(`swCnt`); a failed check counts only if the check is within `L` slots of its anchor (the
+span term pays for the rest). Before the anchor the potential is the reach potential `Φr2`
+(`phiR2_pre`). `fail_checkE3` bounds the expected count.
 -/
 
 @[expose] public section
 
 namespace Cryptarchia.Prob
+
+section
+
+open Finset Settle
+
+variable {B : Band} {Δ M : ℕ} {κ : Kern}
+
+variable (Δ M) in
+/-- Every phase from `k0` to `j` has at most `G` slots. -/
+def NoLong (G k0 j : ℕ) (w : CStr) : Prop := ∀ i, k0 ≤ i → i < j → gend Δ M w (i + 1) ≤ gend Δ M w i + G
+
+theorem noLong_self (G k0 : ℕ) (w : CStr) : NoLong Δ M G k0 k0 w := fun i h1 h2 => absurd h2 (by omega)
+
+section NextL
+
+variable {h h' : List Out} (hpe : PE Δ M h) (hlM : h.length < M) (hf : FirstPE Δ M h h')
+include hpe hlM hf
+
+theorem noLong_stable {G k0 j : ℕ} (hj : j ≤ pidx Δ M (strOf h) h.length) :
+    NoLong Δ M G k0 j (strOf h') ↔ NoLong Δ M G k0 j (strOf h) := by
+  unfold NoLong
+  constructor
+  · intro H i h1 h2
+    have := H i h1 h2
+    rwa [next_gend hpe hlM hf (by omega : i + 1 ≤ _), next_gend hpe hlM hf (by omega : i ≤ _)] at this
+  · intro H i h1 h2
+    rw [next_gend hpe hlM hf (by omega : i + 1 ≤ _), next_gend hpe hlM hf (by omega : i ≤ _)]
+    exact H i h1 h2
+
+theorem noLong_next {G k0 : ℕ} (hk0 : k0 ≤ pidx Δ M (strOf h) h.length) :
+    NoLong Δ M G k0 (pidx Δ M (strOf h) h.length + 1) (strOf h') ↔
+      NoLong Δ M G k0 (pidx Δ M (strOf h) h.length) (strOf h) ∧ h'.length ≤ h.length + G := by
+  constructor
+  · intro H
+    refine ⟨(noLong_stable hpe hlM hf le_rfl).1 fun i h1 h2 => H i h1 (by omega), ?_⟩
+    have := H (pidx Δ M (strOf h) h.length) hk0 (by omega)
+    rwa [next_gend_last hpe hlM hf, next_gend hpe hlM hf le_rfl, gend_pidx_pe hpe] at this
+  · rintro ⟨H, hl⟩ i h1 h2
+    rcases Nat.lt_or_ge i (pidx Δ M (strOf h) h.length) with hi | hi
+    · exact (noLong_stable hpe hlM hf le_rfl).2 H i h1 hi
+    · have hie : i = pidx Δ M (strOf h) h.length := by omega
+      rw [hie, next_gend_last hpe hlM hf, next_gend hpe hlM hf le_rfl, gend_pidx_pe hpe]
+      exact hl
+
+end NextL
+
+end
 
 open Finset Settle
 

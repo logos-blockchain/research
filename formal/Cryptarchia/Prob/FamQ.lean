@@ -1,6 +1,6 @@
 module
 
-public import Cryptarchia.Prob.AutoFill
+public import Cryptarchia.Prob.AutoZ
 public import Cryptarchia.Prob.Pick
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
