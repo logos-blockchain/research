@@ -62,8 +62,6 @@ public import Cryptarchia.Prob.TSIRO
 public import Cryptarchia.Prob.FinalTSI
 public import Cryptarchia.Prob.Tail3E
 public import Cryptarchia.Prob.AutoZ
-public import Cryptarchia.Prob.FamQ
-public import Cryptarchia.Prob.PowQ
 public import Cryptarchia.Prob.CertGen
 public import Cryptarchia.Prob.CertSpec
 public import Cryptarchia.Prob.CertClosed
