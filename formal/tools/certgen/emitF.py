@@ -112,6 +112,40 @@ def derived(dats):
     return e, max(dats[0]['eS'], dats[0]['eE']), max(dats[1]['eS'], dats[1]['eE'], Fr(1))
 
 
+# ---- the lesser settlement parameters, by rule (`SpecData.derive`)
+
+EPS = Fr(1, 100)     # each lesser term at most this share of the main terms
+
+
+def least(P, lo, hi):
+    """`leastTrue`: the least n in [lo, hi] with P n, by binary search"""
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if P(mid): hi = mid
+        else: lo = mid + 1
+    return lo
+
+
+def spec_rules(cfg, B, e, lr, b, lpi, eps):
+    """`J` where the span term reaches the failed-checks term, and `G'`, `G`, `r` each the least making
+    its term at most `eps` times the main terms"""
+    D, k, N, Lw, x = cfg['Delta'], cfg['k'], cfg['N'], cfg['Lw'], Fr(cfg['x'])
+    tau, c = Fr(cfg['tau']), Fr(cfg['c'])
+    up = lambda base, n: powq.pow_up(14, base, n)
+    dn = lambda base, n: powq.pow_dn(14, base, n)
+    stat = 1 + (b - 1) / (1 - lr)
+    span = lambda J: (N + 1) * up(e[17], J + 1) / dn(tau, Lw + 1)
+    fail = lambda J: (N + 1) * up(lpi, J) * e[2] * stat
+    win = (N + 1) * up(1 + (x - 1) * (1 - B['elo']), Lw) / dn(x, k + 1)
+    J = least(lambda j: fail(j) <= span(j), 1, 2 ** 15)
+    m0 = span(J) + fail(J) + win
+    Gp = least(lambda n: (N + 1) * up(1 - B['hlo'], n) <= eps * m0, 1, 2 ** 14)
+    mG = least(lambda n: (N + 1) * up(1 - (1 - B['hhi']) ** D, n) <= eps * m0, 1, 2 ** 10)
+    G = max(2 * D, D * mG + D)
+    r = least(lambda n: (N + G + 1) * stat / dn(c, n + 1) <= eps * m0, 0, 2 ** 12)
+    return J, G, Gp, r
+
+
 # ---- the files
 
 def imports(lines, ext=False): return "module\n\n" + "".join(lines) + (emitZ_ext() if ext else "")
@@ -285,7 +319,7 @@ def emit(cfg, T, fam, B, P, name, out_dir, target=None):
     """write a certificate at the specification: `Params.lean`, `Data.lean`, `NAME.lean`; its bounds are derived
     (`SpecData.derive`), and `target` is only compared with them"""
     D = cfg['Delta']; K = len(fam); N = cfg['N']; k = cfg['k']
-    G, Gp, J, Lw, r, Tg = cfg['G'], cfg['Gp'], cfg['J'], cfg['Lw'], cfg['r'], cfg['T']
+    Lw, Tg = cfg['Lw'], cfg['T']
     x, yy = Fr(cfg['x']), Fr(cfg['yy'])
     c, z, s, kap, d, tau = (Fr(cfg[v]) for v in ['c', 'z', 's', 'kap', 'd', 'tau'])
     ns = f"Cryptarchia.Prob.Certs.{name}"
@@ -294,6 +328,8 @@ def emit(cfg, T, fam, B, P, name, out_dir, target=None):
     for old in os.listdir(sub):
         if old.endswith('.lean'): os.remove(f"{sub}/{old}")
     dats, e, lr, b, lp, lpi = check_all(cfg, T, fam, B, P)
+    J, G, Gp, r = spec_rules(cfg, B, e, lr, b, lpi, EPS)
+    assert D + 1 <= G
     # the derived numbers (`SpecData.derive`)
     M = N + G + Gp + D + 2
     Ne = M // EL + 1
@@ -309,14 +345,11 @@ def emit(cfg, T, fam, B, P, name, out_dir, target=None):
     beta = T['beta']
     spec_fields = [("κ", qQ(kap), POT[0][1]),
         ("N", N, "the horizon: executions up to slot N"),
-        ("G", G, "the phase cut: longer phases count as failures"),
-        ("G'", Gp, "the longest empty run"),
-        ("J", J, "the phases of a span"),
         ("Lw", Lw, "the slots of a span, and of a crowded window"),
-        ("r", r, "the reach bound"),
         ("T", Tg, "the growth block, in slots"),
         ("x", qQ(x), "the crowded-window tilt"),
         ("yy", qQ(yy), "the slow-growth tilt"),
+        ("ε", qQ(EPS), "each lesser term (long phases, long empty runs, large reach) at most this share of the main ones"),
         ("ρ", qQ(T['rho']), "the stake drift per epoch (`StakeDrift`)"),
         ("Hmin", qQ(T['hmin']), "the least honest online stake (`MinStake`)")]
     write_params(cfg, fam, T, "SpecData", spec_fields, sub, ns, name)
@@ -350,8 +383,9 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
   intro i; fin_cases i
   exacts [{", ".join(f"chk{i}" for i in range(19))}]
 
-/-- The derived numbers: the slots and epochs covered, the contractions from the tables' bounds, and the
-bounds on settlement ({float(tgt):.2e}), on leaving the band in one epoch ({float(bx):.3e}) and on a
+/-- The derived numbers: the phases of a span (J = {J}), the phase cut (G = {G}), the longest empty run
+(G' = {Gp}) and the reach bound (r = {r}) by their rules, the slots and epochs covered, the contractions
+from the tables' bounds, and the bounds on settlement ({float(tgt):.2e}), on leaving the band in one epoch ({float(bx):.3e}) and on a
 finality violation ({float(fin):.2e}). -/
 def der : SpecDerived := par.derive F F.S.weakest dat Tq
 

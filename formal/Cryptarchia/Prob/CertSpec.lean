@@ -133,23 +133,27 @@ structure SpecData where
   κ : ℚ
   /-- the horizon: executions up to slot `N` -/
   N : ℕ
-  /-- the phase cut `G`, the empty-run length `G'`, the span `J` phases and `Lw` slots, the reach `r`,
-  the growth block `T` -/
-  G : ℕ
-  G' : ℕ
-  J : ℕ
+  /-- the slots of a span and of a crowded window, and the growth block -/
   Lw : ℕ
-  r : ℕ
   T : ℕ
   /-- the crowded-window and slow-growth tilts -/
   x : ℚ
   yy : ℚ
+  /-- the share of the main terms each lesser term may take (`SpecData.derive`) -/
+  ε : ℚ
   /-- the stake drift per epoch and the minimum honest stake -/
   ρ : ℚ
   Hmin : ℚ
 
 /-- **A certificate's derived numbers** (`SpecData.derive`). -/
 structure SpecDerived where
+  /-- the phases of a span, where the span term reaches the failed-checks term -/
+  J : ℕ
+  /-- the phase cut, the longest empty run and the reach bound: each the least making its term at most
+  `ε` times the main terms -/
+  G : ℕ
+  G' : ℕ
+  r : ℕ
   /-- the slots the analysis covers, and the epochs they span -/
   M : ℕ
   Ne : ℕ
@@ -164,6 +168,15 @@ deriving DecidableEq
 
 namespace FamCfg
 
+/-- The least `n` in `[lo, hi]` with `P n`, by binary search with fuel `f` (for `P` monotone); `hi` if
+there is none. -/
+def leastTrue (P : ℕ → Bool) : ℕ → ℕ → ℕ → ℕ
+  | 0, lo, _ => lo
+  | f + 1, lo, hi =>
+    if lo < hi then
+      if P ((lo + hi) / 2) then leastTrue P f lo ((lo + hi) / 2) else leastTrue P f ((lo + hi) / 2 + 1) hi
+    else lo
+
 /-- The growth window's depth blocks at the specification (`nbD`). -/
 def nbSpec (Δ G T : ℕ) : ℕ :=
   (Config.spec.epochLength - Config.spec.nonceOffset - Δ - 3 - G + Δ) / (T + Δ)
@@ -173,21 +186,33 @@ bounds (`lpOf`, `lpiOf`), the settlement and band bounds rounded up to 2 and 4 d
 over the epochs rounded up to 2 digits. -/
 def _root_.Cryptarchia.Prob.SpecData.derive (p : SpecData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
     (T : TBandQ) : SpecDerived :=
-  let M := p.N + p.G + p.G' + F.Δ + 2
-  let Ne := M / Config.spec.epochLength + 1
   let lp := F.lpOf Bq p.κ dat
   let lpi := F.lpiOf p.κ dat
+  let stat := 1 + (bOf dat - 1) / (1 - lrOf dat)
+  -- the main terms: spans, failed checks (without the phase cut's factor) and crowded windows
+  let span := fun J : ℕ => (p.N + 1 : ℚ) * powUpQ 14 (eOf dat 17) (J + 1) / powDnQ 14 F.τ (p.Lw + 1)
+  let fail := fun J : ℕ => (p.N + 1 : ℚ) * powUpQ 14 lpi J * eOf dat 2 * stat
+  let win := (p.N + 1 : ℚ) * powUpQ 14 (1 + (p.x - 1) * (1 - Bq.elo)) p.Lw / powDnQ 14 p.x (Config.spec.k + 1)
+  let J := leastTrue (fun j => decide (fail j ≤ span j)) 64 1 (2 ^ 15)
+  let m0 := span J + fail J + win
+  -- the lesser terms, each at most `ε · m0`
+  let G' := leastTrue (fun n => decide ((p.N + 1 : ℚ) * powUpQ 14 (1 - Bq.hlo) n ≤ p.ε * m0)) 64 1 (2 ^ 14)
+  let mG := leastTrue (fun n => decide ((p.N + 1 : ℚ) * powUpQ 14 (1 - (1 - Bq.hhi) ^ F.Δ) n ≤ p.ε * m0)) 64 1 (2 ^ 10)
+  let G := max (2 * F.Δ) (F.Δ * mG + F.Δ)
+  let r := leastTrue (fun n => decide ((p.N + G + 1 : ℚ) * stat / powDnQ 14 F.c (n + 1) ≤ p.ε * m0)) 64 0 (2 ^ 12)
+  let M := p.N + G + G' + F.Δ + 2
+  let Ne := M / Config.spec.epochLength + 1
   let tgt := rupQ 2 (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi p.x p.yy
-    Config.spec.k ((p.N + 2) / Config.spec.epochLength) (nbSpec F.Δ p.G p.T) p.G p.N p.G p.G' p.J p.Lw p.r p.T)
+    Config.spec.k ((p.N + 2) / Config.spec.epochLength) (nbSpec F.Δ G p.T) G p.N G G' J p.Lw r p.T)
   let bx := rupQ 4 (bandEpsQ 14 4096 T Config.spec.period)
-  ⟨M, Ne, lp, lpi, tgt, bx, rupQ 2 (tgt + Ne * bx)⟩
+  ⟨J, G, G', r, M, Ne, lp, lpi, tgt, bx, rupQ 2 (tgt + Ne * bx)⟩
 
 /-- **Every numeric condition of the finality theorem at the specification**: the settlement bound
 below `tgt`, the band's below `bx`, `tgt + Ne · bx ≤ fin`, and the conditions of `Prob.finality`. -/
 def finChkSpec (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) (p : SpecData) (q : SpecDerived) :
     Bool :=
-  let ⟨_, N, G, G', J, Lw, r, Tg, x, yy, ρ, Hmin⟩ := p
-  let ⟨M, Ne, lp, lpi, tgt, bx, fin⟩ := q
+  let ⟨_, N, Lw, Tg, x, yy, _, ρ, Hmin⟩ := p
+  let ⟨J, G, G', r, M, Ne, lp, lpi, tgt, bx, fin⟩ := q
   settleChkQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy Config.spec.k G Lw r Tg &&
     decide (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy Config.spec.k
       ((N + 2) / Config.spec.epochLength) (nbSpec F.Δ G Tg) G N G G' J Lw r Tg ≤ tgt) &&
@@ -236,7 +261,7 @@ structure SpecFacts (F : FamCfg) (Bq : BandR) (lp lpi : ℚ) (dat : Fin 19 → I
 
 theorem finChkSpec.facts {F : FamCfg} {Bq : BandR} {κ lp lpi : ℚ} {dat : Fin 19 → IdxData} {T : TBandQ}
     {N M Ne G G' J Lw r Tg : ℕ} {x yy ρ Hmin tgt bx fin : ℚ}
-    (h : finChkSpec F Bq dat T ⟨κ, N, G, G', J, Lw, r, Tg, x, yy, ρ, Hmin⟩ ⟨M, Ne, lp, lpi, tgt, bx, fin⟩ = true) :
+    {ε : ℚ} (h : finChkSpec F Bq dat T ⟨κ, N, Lw, Tg, x, yy, ε, ρ, Hmin⟩ ⟨J, G, G', r, M, Ne, lp, lpi, tgt, bx, fin⟩ = true) :
     SpecFacts F Bq lp lpi dat T N M Ne G G' J Lw r Tg x yy ρ Hmin tgt bx fin := by
   simp only [finChkSpec, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨eps, epsle⟩, band⟩, bandle⟩, fin⟩, tgt0⟩, bx0⟩, hx⟩, hyy0⟩, hyy1⟩, hT⟩, hNM⟩, hhi1⟩, hlo0⟩, hlo1⟩, helo1⟩, hLw⟩, hOG⟩, hNe⟩, hG1⟩, hGEL⟩, ok⟩, drift⟩, hη⟩, hζ⟩, hβ⟩, hηlot⟩, cov0⟩, cov1⟩ := h
@@ -255,8 +280,8 @@ theorem finality_spec {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
     (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β T.ζ) (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ q.Ne)
     (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) p.ρ q.Ne) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) p.Hmin) :
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal q.fin := by
-  obtain ⟨κ, N, G, G', J, Lw, r, Tg, x, yy, ρ, Hmin⟩ := p
-  obtain ⟨M, Ne, lp, lpi, tgt, bx, fin⟩ := q
+  obtain ⟨κ, N, Lw, Tg, x, yy, ε, ρ, Hmin⟩ := p
+  obtain ⟨J, G, G', r, M, Ne, lp, lpi, tgt, bx, fin⟩ := q
   have f := finChkSpec.facts hfin
   obtain ⟨⟨Δ, c, z, s, d', τ⟩, ⟨η, ζ, β, d, dy, K, ys⟩, famZL, Dz⟩ := F
   simp only at hK

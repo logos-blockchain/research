@@ -39,14 +39,11 @@ def pot : PotCfg where
 def par : SpecData where
   κ := (1161 / 10000 : ℚ)  -- the weight of the cold potential's second term
   N := 31536000            -- the horizon: executions up to slot N
-  G := 737                 -- the phase cut: longer phases count as failures
-  G' := 2246               -- the longest empty run
-  J := 18473               -- the phases of a span
   Lw := 33871              -- the slots of a span, and of a crowded window
-  r := 462                 -- the reach bound
   T := 22                  -- the growth block, in slots
   x := (3091 / 2500 : ℚ)   -- the crowded-window tilt
   yy := (947 / 1250 : ℚ)   -- the slow-growth tilt
+  ε := (1 / 100 : ℚ)       -- each lesser term (long phases, long empty runs, large reach) at most this share of the main ones
   ρ := (101 / 100 : ℚ)     -- the stake drift per epoch (`StakeDrift`)
   Hmin := (1000000 : ℚ)    -- the least honest online stake (`MinStake`)
 

@@ -17,8 +17,8 @@ checks it; the proofs are generic (`Cryptarchia/Prob/CertGen.lean`, `CertSpec.le
 Each bounds a finality violation from the plain assumptions of `Cryptarchia.Prob.finality`,
 with β = 0.2, Δ = 11 slots, μ = 0.13, ρ = 1.01, `Hmin` = 10⁶:
 
-* `E20D11.finality` — every epoch for a year (slot 31536000) at k = 2160: `8.8e-11`.
-* `E20D11M2.finality` — the same over two months (slot 5184000): `1.6e-11`.
+* `E20D11.finality` — every epoch for a year (slot 31536000) at k = 2160: `8.3e-11`.
+* `E20D11M2.finality` — the same over two months (slot 5184000): `1.5e-11`.
 * `E20D11C.finality_closed` — every depth `k ≥ 1000` and every horizon `N`, at the
   specification with depth `k` (`Config.specK k`): `par.epsC der N k`, a sum of terms `(N + c) · A · qᵗ` and
   `Ne · C · qᵗ` in `t = k / 20`, `Ne = N / (300 k) + 2` epochs. At k = 2160 it gives `5.0e-11`

@@ -64,14 +64,15 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
   intro i; fin_cases i
   exacts [chk0, chk1, chk2, chk3, chk4, chk5, chk6, chk7, chk8, chk9, chk10, chk11, chk12, chk13, chk14, chk15, chk16, chk17, chk18]
 
-/-- The derived numbers: the slots and epochs covered, the contractions from the tables' bounds, and the
-bounds on settlement (1.50e-11), on leaving the band in one epoch (2.343e-14) and on a
-finality violation (1.60e-11). -/
+/-- The derived numbers: the phases of a span (J = 18520), the phase cut (G = 528), the longest empty run
+(G' = 1892) and the reach bound (r = 294) by their rules, the slots and epochs covered, the contractions
+from the tables' bounds, and the bounds on settlement (1.40e-11), on leaving the band in one epoch (2.343e-14) and on a
+finality violation (1.50e-11). -/
 def der : SpecDerived := par.derive F F.S.weakest dat Tq
 
 theorem derNe : der.Ne = 9 := by decide +kernel
 
-theorem derFin : der.fin = (1 / 62500000000 : ℚ) := by decide +kernel
+theorem derFin : der.fin = (3 / 200000000000 : ℚ) := by decide +kernel
 
 theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by decide +kernel
 
@@ -82,7 +83,7 @@ execution model (`Model`), if the genesis estimate is the genesis stake, the adv
 0.2 of the participating stake, the canonical chain counts at least 0.87 of
 each window's honestly won slots, stake drifts by at most a factor 1.01 per epoch and
 honest online stake is at least 1000000, a finality violation has probability at most
-1.60e-11. -/
+1.50e-11. -/
 theorem finality {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
     [MeasureTheory.IsProbabilityMeasure μ] {O : Ω → Oracle} (E : Env) (hc : E.c = Config.spec) (hΔ : E.Δ = 11)
     (es : Ω → List Event) (hM : Model μ O E es) (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ 5184000)
@@ -91,7 +92,7 @@ theorem finality {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure �
     (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) (13 / 100 : ℝ) 9)
     (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) (101 / 100 : ℝ) 9)
     (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) (1000000 : ℝ)) :
-    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (1 / 62500000000 : ℝ) := by
+    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (3 / 200000000000 : ℝ) := by
   have h := FamCfg.finality_spec F par der mainOK famOK dOK rfl idxOK rfl Tq finOK hc hΔ es hM hN hG
     (fun ω => by simpa [Tq] using hS ω) (fun ω => by simpa [Tq, derNe] using hQ ω)
     (fun ω => by simpa [par, derNe] using hD ω) (fun ω => by simpa [par] using hH ω)
