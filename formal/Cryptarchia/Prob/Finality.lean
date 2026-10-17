@@ -3,7 +3,7 @@ module
 import Cryptarchia.Prob.EpochInd
 import Cryptarchia.Prob.Trunc
 import Cryptarchia.Prob.Occupied
-import Cryptarchia.Prob.FinalTSI
+import Cryptarchia.Proof.Recur
 import Cryptarchia.Prob.ROStop
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
@@ -59,8 +59,9 @@ with the assumptions as named, readable conditions on the model and the executio
 The remaining hypotheses are numeric facts about a certificate's constants, which a
 generated certificate checks.
 
-The member assignment is constructed (`slotBand_pickM`), the estimate's update is
-proven from the canonical chain (`recur_of`, `occupied_le_wcnt`), and the canonical
+The member assignment is constructed (`slotBand_pickM`), genesis is in band for every
+execution (`inB0_of_genesis`), the estimate's update is proven from the canonical chain
+(`recur_of`, `occupied_le_wcnt`), and the canonical
 prefixes' consistency is proven: each epoch's split, cut at its horizon, is a robust
 failure of the lottery's good event (`split_up`) that decides the finality failure
 (`lift_bad`). The splits need the band only up to their own horizons, and one kernel
@@ -123,6 +124,35 @@ def StakeDrift (E : Env) (o : Oracle) (es : List Event) (ρ : ℝ) (Ne : ℕ) : 
 def MinStake (E : Env) (o : Oracle) (es : List Event) (Hmin : ℝ) : Prop := Prob.MinStake E (σE (E.withO o) es) Hmin
 
 end Exec
+
+/-- **`Recur` from the canonical chain.** If the canonical prefixes are consistent and
+the canonical chain's occupied-slot count in epoch `e`'s window lies between `(1 - μ)`
+times the honest occupied slots and all occupied slots plus genesis, the estimate's
+update satisfies `Recur` (part 1, `cs_succ_D`). -/
+theorem recur_of {E : Env} {es : List Event} {O : Oracle} (hA : Assm E) {Tb : TBand} (X : ℕ → Out) {e : ℕ}
+    (hcons : 1 ≤ e → prefixBelow (CP (E.withO O) es (e + 1)) (E.c.cut e) = CP (E.withO O) es e)
+    (hlo : (1 - Tb.μ) * hcnt E X e ≤ (occupied E.c (CP (E.withO O) es (e + 1)) e : ℝ))
+    (hhi : (occupied E.c (CP (E.withO O) es (e + 1)) e : ℝ) ≤ wcnt E X e + 1) :
+    Recur E Tb (σE (E.withO O) es) X e := by
+  refine ⟨occupied E.c (CP (E.withO O) es (e + 1)) e, ?_, hlo, hhi⟩
+  have hEL : 0 < E.c.epochLength := hA.sane.epochLength_pos
+  have h1 : σE (E.withO O) es ((e + 1) * E.c.epochLength) = CS (E.withO O) es (e + 1) := by
+    show CS (E.withO O) es ((e + 1) * E.c.epochLength / E.c.epochLength) = _
+    rw [Nat.mul_div_cancel _ hEL]
+  have h0 : σE (E.withO O) es (e * E.c.epochLength) = CS (E.withO O) es e := by
+    show CS (E.withO O) es (e * E.c.epochLength / E.c.epochLength) = _
+    rw [Nat.mul_div_cancel _ hEL]
+  rw [h1, h0]
+  exact cs_succ_D (hA.withO O) hcons
+
+/-- **Genesis in band, for every execution**: the first epoch runs under the genesis
+state, whatever the oracle and the execution. -/
+theorem inB0_of_genesis {E : Env} {Tb : TBand} {o : Oracle} {es : List Event}
+    (h0 : InB E Tb (fun _ => es0 E) 0) : InB E Tb (σE (E.withO o) es) 0 := by
+  intro i h1 h2
+  rw [zero_add, one_mul] at h2
+  rw [σE_epoch0 (E.withO o) es (by exact h2), es0_withO]
+  exact h0 i h1 (by rw [zero_add, one_mul]; exact h2)
 
 /-- **Genesis in band**, from the genesis estimate being the genesis stake. -/
 theorem inB0_of_genesisOK {E : Env} {T : TBand} (hon : OnlineEpoch E) (hg : GenesisOK E)

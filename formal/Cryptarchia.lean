@@ -69,7 +69,6 @@ public import Cryptarchia.Prob.Cold2E
 public import Cryptarchia.Prob.Fail2E
 public import Cryptarchia.Prob.Final2E
 public import Cryptarchia.Prob.TSIRO
-public import Cryptarchia.Prob.FinalTSI
 public import Cryptarchia.Prob.Fail3E
 public import Cryptarchia.Prob.Tail3E
 public import Cryptarchia.Prob.Final3E
