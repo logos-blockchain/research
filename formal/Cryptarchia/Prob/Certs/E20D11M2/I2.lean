@@ -1,6 +1,7 @@
 module
 
 public import Cryptarchia.Prob.Certs.E20D11M2.Fam
+meta import Cryptarchia.Prob.Certs.E20D11M2.Fam
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -49,28 +50,24 @@ theorem xgQ2 : xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5
   xg_ofQ (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num) 2
 
 /-- Phase expectation 2 over the integers. -/
-def X2 : PhZ := ⟨4191, 2500, 1, 1,
-  fun a b u => [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1].getD (4 * a.val + (if b then 2 else 0) + if u then 1 else 0) 0,
-  1⟩
+def X2 : PhZ := PhZ.ofQ (xgNQ (2927 / 2500 : ℚ) (4191 / 2500 : ℚ) (1363 / 1250 : ℚ) (5973 / 10000 : ℚ) (51 / 50 : ℚ) 2)
 
 theorem X2R : X2.Rep (xgNQ (2927 / 2500 : ℚ) (4191 / 2500 : ℚ) (1363 / 1250 : ℚ) (5973 / 10000 : ℚ) (51 / 50 : ℚ) 2).1 (xgNQ (2927 / 2500 : ℚ) (4191 / 2500 : ℚ) (1363 / 1250 : ℚ) (5973 / 10000 : ℚ) (51 / 50 : ℚ) 2).2.1 (xgNQ (2927 / 2500 : ℚ) (4191 / 2500 : ℚ) (1363 / 1250 : ℚ) (5973 / 10000 : ℚ) (51 / 50 : ℚ) 2).2.2 := by decide +kernel
 
-/-- The switching table, from its entries at `(0, a, true)`. -/
-def vs2Z : ℕ → Fin 3 → Bool → ℤ :=
-  fillAllZ ((List.finRange 32).map famZ) DZ 11 X2 SZ (fun _ _ _ => 0) ![20473928932748731592, 20473928932748731592, 20473928932748731592]
+/-- The switching table's seeds, by Newton's method at elaboration time. -/
+def vsTop2 : Fin 3 → ℤ :=
+  seedL (eval% solveSeedsZ ((List.finRange 32).map famZ) DZ 11 X2 SZ (gFloorZ X2 SZ) (2 ^ 32) (2 ^ 8) 3 200 [gFloorZ X2 SZ 0 0 true, gFloorZ X2 SZ 0 1 true, gFloorZ X2 SZ 0 2 true])
 
-theorem chkS2 : ∀ k, (autoSolZ (famZ k) DZ 11 X2 SZ vs2Z &&
-    decide ((autoBoundZ (famZ k) DZ X2 SZ vs2Z : ℚ) ≤ (1602799891219 / 25000000000000 : ℚ) * (X2.M DZ * SZ : ℤ))) = true := by
+theorem chkS2 : (List.finRange 32).all (chkSwF famZ DZ 11 X2 SZ vsTop2 fun _ => (1602799891219 / 25000000000000 : ℚ)) = true := by
   decide +kernel
 
-noncomputable def vs2 : ℕ → Fin 3 → Bool → ℝ := castT (castZ SZ vs2Z)
+noncomputable def vs2 : ℕ → Fin 3 → Bool → ℝ := castT (castZ SZ (fillAllZ ((List.finRange 32).map famZ) DZ 11 X2 SZ (gFloorZ X2 SZ) vsTop2))
 
 theorem solS2 : ∀ k, AutoSol (fam k) 11 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 2).1 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 2).2.1 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 2).2.2 vs2 := by
-  rw [xgQ2]; exact (switchZ_sound (eS := fun _ => (1602799891219 / 25000000000000 : ℚ)) famR famA DZ_pos X2R SZ_pos chkS2).1
+  rw [xgQ2]; exact (switchF_sound famR famA DZ_pos X2R SZ_pos chkS2).1
 
 theorem heS2 : ∀ k, autoBound (fam k) (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 2).1 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 2).2.1 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 2).2.2 vs2 ≤ (1602799891219 / 25000000000000 : ℝ) := by
   rw [xgQ2]
-  exact fun k => ((switchZ_sound (eS := fun _ => (1602799891219 / 25000000000000 : ℚ)) famR famA DZ_pos X2R SZ_pos chkS2).2 k).trans_eq
-    (by push_cast; ring)
+  exact fun k => ((switchF_sound famR famA DZ_pos X2R SZ_pos chkS2).2 k).trans_eq (by push_cast; ring)
 
 end Cryptarchia.Prob.Certs.E20D11M2

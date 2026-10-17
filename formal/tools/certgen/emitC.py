@@ -12,7 +12,7 @@ Usage: python3 emitC.py BETA DELTA DELTA_TSI K NAME OUTDIR K0 [MU] [RHO]
 """
 import sys, os, math, pickle, json
 from fractions import Fraction as Fr
-from gen import lean_q as q, chain
+from gen import lean_q as q, chain_q as chain
 from certnum import rup, rdn
 import certE, planE, emitE
 
@@ -282,7 +282,7 @@ theorem finality_closed {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory
   have hP : E.c.period = 180 * k := by rw [hc, Config.specK_period]
   have hb := Prob.finality (M := N + {G} + {g} * {t_} + {D} + 2) (Ne := N / (300 * k) + 2) es hM hN hΔ
     (D3 E.c.epochLength (by rw [hEL]; omega))
-    (fun kk => by fin_cases kk; exacts [{", ".join(f"prod{kk}" for kk in range(K))}])
+    prod
     (G' := {g} * {t_}) (J := {j} * {t_}) (Lw := {w} * {t_}) (r := {rho} * {t_}) (T := {Tg}) (x := {q(x)}) (yy := {q(yy)})
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) le_rfl
     (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B])
@@ -292,7 +292,7 @@ theorem finality_closed {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory
     (by rw [hEL, show N + {G} + {g} * {t_} + {D} + 2 = N + ({G} + {g} * {t_} + {D} + 2) by ring]
         exact div_lt_add_two (by omega))
     (mem := mem) (fun kk => by fin_cases kk <;> rfl)
-    (fun kk => by fin_cases kk; exacts [{", ".join(f"ok{kk}" for kk in range(K))}]) covM advM
+    ok covM advM
     (ρ := {q(RHO)}) (Hmin := {q(HMIN)}) (by norm_num) (by norm_num)
     (by
       rw [hc, lam0_specK]

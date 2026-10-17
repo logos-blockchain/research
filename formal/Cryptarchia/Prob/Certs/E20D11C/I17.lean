@@ -1,6 +1,7 @@
 module
 
 public import Cryptarchia.Prob.Certs.E20D11C.Fam
+meta import Cryptarchia.Prob.Certs.E20D11C.Fam
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -49,28 +50,24 @@ theorem xgQ17 : xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ)
   xg_ofQ (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num) 17
 
 /-- Phase expectation 17 over the integers. -/
-def X17 : PhZ := ⟨1, 1, 51, 50,
-  fun a b u => [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1].getD (4 * a.val + (if b then 2 else 0) + if u then 1 else 0) 0,
-  1⟩
+def X17 : PhZ := PhZ.ofQ (xgNQ (11619 / 10000 : ℚ) (16361 / 10000 : ℚ) (669 / 625 : ℚ) (1091 / 2000 : ℚ) (51 / 50 : ℚ) 17)
 
 theorem X17R : X17.Rep (xgNQ (11619 / 10000 : ℚ) (16361 / 10000 : ℚ) (669 / 625 : ℚ) (1091 / 2000 : ℚ) (51 / 50 : ℚ) 17).1 (xgNQ (11619 / 10000 : ℚ) (16361 / 10000 : ℚ) (669 / 625 : ℚ) (1091 / 2000 : ℚ) (51 / 50 : ℚ) 17).2.1 (xgNQ (11619 / 10000 : ℚ) (16361 / 10000 : ℚ) (669 / 625 : ℚ) (1091 / 2000 : ℚ) (51 / 50 : ℚ) 17).2.2 := by decide +kernel
 
-/-- The switching table, from its entries at `(0, a, true)`. -/
-def vs17Z : ℕ → Fin 3 → Bool → ℤ :=
-  fillAllZ ((List.finRange 32).map famZ) DZ 11 X17 SZ (fun _ _ _ => 0) ![24707963122088427572, 24707963122088427572, 24707963122088427572]
+/-- The switching table's seeds, by Newton's method at elaboration time. -/
+def vsTop17 : Fin 3 → ℤ :=
+  seedL (eval% solveSeedsZ ((List.finRange 32).map famZ) DZ 11 X17 SZ (gFloorZ X17 SZ) (2 ^ 32) (2 ^ 8) 3 200 [gFloorZ X17 SZ 0 0 true, gFloorZ X17 SZ 0 1 true, gFloorZ X17 SZ 0 2 true])
 
-theorem chkS17 : ∀ k, (autoSolZ (famZ k) DZ 11 X17 SZ vs17Z &&
-    decide ((autoBoundZ (famZ k) DZ X17 SZ vs17Z : ℚ) ≤ (1034545073821 / 1000000000000 : ℚ) * (X17.M DZ * SZ : ℤ))) = true := by
+theorem chkS17 : (List.finRange 32).all (chkSwF famZ DZ 11 X17 SZ vsTop17 fun _ => (1034545073821 / 1000000000000 : ℚ)) = true := by
   decide +kernel
 
-noncomputable def vs17 : ℕ → Fin 3 → Bool → ℝ := castT (castZ SZ vs17Z)
+noncomputable def vs17 : ℕ → Fin 3 → Bool → ℝ := castT (castZ SZ (fillAllZ ((List.finRange 32).map famZ) DZ 11 X17 SZ (gFloorZ X17 SZ) vsTop17))
 
 theorem solS17 : ∀ k, AutoSol (fam k) 11 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 17).1 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 17).2.1 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 17).2.2 vs17 := by
-  rw [xgQ17]; exact (switchZ_sound (eS := fun _ => (1034545073821 / 1000000000000 : ℚ)) famR famA DZ_pos X17R SZ_pos chkS17).1
+  rw [xgQ17]; exact (switchF_sound famR famA DZ_pos X17R SZ_pos chkS17).1
 
 theorem heS17 : ∀ k, autoBound (fam k) (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 17).1 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 17).2.1 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 17).2.2 vs17 ≤ (1034545073821 / 1000000000000 : ℝ) := by
   rw [xgQ17]
-  exact fun k => ((switchZ_sound (eS := fun _ => (1034545073821 / 1000000000000 : ℚ)) famR famA DZ_pos X17R SZ_pos chkS17).2 k).trans_eq
-    (by push_cast; ring)
+  exact fun k => ((switchF_sound famR famA DZ_pos X17R SZ_pos chkS17).2 k).trans_eq (by push_cast; ring)
 
 end Cryptarchia.Prob.Certs.E20D11C

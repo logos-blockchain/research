@@ -20,6 +20,7 @@ public import Cryptarchia.Prob.Certs.E20D11C.I16
 public import Cryptarchia.Prob.Certs.E20D11C.I17
 public import Cryptarchia.Prob.Certs.E20D11C.I18
 import Cryptarchia.Prob.Cert
+public import Cryptarchia.Prob.PowQ
 import Cryptarchia.Prob.ExpBound
 public import Cryptarchia.Prob.Finality
 public import Cryptarchia.Prob.Closed
@@ -250,7 +251,7 @@ noncomputable def P : Cert2 B 11 where
 /-- **The multi-epoch certificate.** -/
 noncomputable def C (EL : ℕ) (hEL : 705 < EL) : Cert2E B 11 fam EL 704 where
   P := P
-  weakF := fun k => by fin_cases k; exacts [weak0, weak1, weak2, weak3, weak4, weak5, weak6, weak7, weak8, weak9, weak10, weak11, weak12, weak13, weak14, weak15, weak16, weak17, weak18, weak19, weak20, weak21, weak22, weak23, weak24, weak25, weak26, weak27, weak28, weak29, weak30, weak31]
+  weakF := weak
   hG := by norm_num
   hGEL := hEL
   vs := vsF
@@ -328,7 +329,7 @@ noncomputable def D3 (EL : ℕ) (hEL : 705 < EL) : Cert3E B 11 fam EL 704 where
   hlpi0 := by norm_num
   hlpi := by show (9979331723103 / 10000000000000 : ℝ) ≤ (9991766645103 / 10000000000000 : ℝ); norm_num
   hpat := patm
-  helo := fun k => by fin_cases k; exacts [elo0, elo1, elo2, elo3, elo4, elo5, elo6, elo7, elo8, elo9, elo10, elo11, elo12, elo13, elo14, elo15, elo16, elo17, elo18, elo19, elo20, elo21, elo22, elo23, elo24, elo25, elo26, elo27, elo28, elo29, elo30, elo31]
+  helo := elo
   heIn := by
     intro i h2 h17
     fin_cases i
@@ -374,6 +375,11 @@ theorem TbOK : Tb.OK where
   clo0 := by norm_num [Tb, TBand.Yh, TBand.Ya, TBand.ylo, TBand.clo, TBand.chi, errHi, errLo]
 
 /-- **The estimate leaves its band in one epoch with probability at most `6.603e-07`.** -/
+def TbQ : TBandQ := ⟨(30108409 / 1000000000 : ℚ), (2333537 / 62500000 : ℚ), (13 / 100 : ℚ), (1 / 5 : ℚ), (17 / 200 : ℚ), 1 / 10 ^ 70, 1 / 10 ^ 16⟩
+
+theorem Tb_eq : Tb = TbQ.toTBand := by
+  simp only [Tb, TbQ, TBandQ.toTBand]; norm_num
+
 theorem lot : LotConsts Config.spec (1 / 10 ^ 70) where
   p_pos := by norm_num [Config.spec]
   t0_pos := by norm_num [Config.spec]
@@ -382,16 +388,15 @@ theorem lot : LotConsts Config.spec (1 / 10 ^ 70) where
   a1_near := by unfold lam0; rw [abs_le]; constructor <;> norm_num [Config.spec]
 
 theorem chainM : Chained (mem 0) (List.ofFn fun k : Fin 31 => mem k.succ) := by
-  show Chained m0 [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15, m16, m17, m18, m19, m20, m21, m22, m23, m24, m25, m26, m27, m28, m29, m30, m31]
-  exact ⟨by norm_num [m0, m1], ⟨by norm_num [m1, m2], ⟨by norm_num [m2, m3], ⟨by norm_num [m3, m4], ⟨by norm_num [m4, m5], ⟨by norm_num [m5, m6], ⟨by norm_num [m6, m7], ⟨by norm_num [m7, m8], ⟨by norm_num [m8, m9], ⟨by norm_num [m9, m10], ⟨by norm_num [m10, m11], ⟨by norm_num [m11, m12], ⟨by norm_num [m12, m13], ⟨by norm_num [m13, m14], ⟨by norm_num [m14, m15], ⟨by norm_num [m15, m16], ⟨by norm_num [m16, m17], ⟨by norm_num [m17, m18], ⟨by norm_num [m18, m19], ⟨by norm_num [m19, m20], ⟨by norm_num [m20, m21], ⟨by norm_num [m21, m22], ⟨by norm_num [m22, m23], ⟨by norm_num [m23, m24], ⟨by norm_num [m24, m25], ⟨by norm_num [m25, m26], ⟨by norm_num [m26, m27], ⟨by norm_num [m27, m28], ⟨by norm_num [m28, m29], ⟨by norm_num [m29, m30], ⟨by norm_num [m30, m31], trivial⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+  simpa only [mem, famM, Fin.val_zero, Fin.val_succ, Nat.zero_add] using chained_memberOfQ (1 / 10 ^ 70) (1 / 10 ^ 16) (1 / 5 : ℚ) 13 12 ysF 31 0
 
 theorem covM : ∀ y, Tb.ylo ≤ y → y ≤ Tb.Yh → ∃ k, (mem k).ylo ≤ y ∧ y ≤ (mem k).yhi :=
-  cover_of_chain chainM (by show m0.ylo ≤ Tb.ylo; norm_num [m0, Tb, TBand.ylo])
-    (by show Tb.Yh ≤ m31.yhi; norm_num [m31, Tb, TBand.Yh])
+  cover_of_chain chainM
+    (by simp only [mem, famM, MemberQ.toMember_ylo, memberOfQ_ylo, ysF]; norm_num [Tb, TBand.ylo])
+    (by simp only [mem, famM, MemberQ.toMember_yhi, memberOfQ_yhi, ysF]; norm_num [Tb, TBand.Yh])
 
-theorem advM : ∀ k, Tb.β * (mem k).yhi ≤ (1 - Tb.β) * (mem k).ahi := fun k => by
-  fin_cases k
-  exacts [by show Tb.β * m0.yhi ≤ (1 - Tb.β) * m0.ahi; norm_num [m0, Tb], by show Tb.β * m1.yhi ≤ (1 - Tb.β) * m1.ahi; norm_num [m1, Tb], by show Tb.β * m2.yhi ≤ (1 - Tb.β) * m2.ahi; norm_num [m2, Tb], by show Tb.β * m3.yhi ≤ (1 - Tb.β) * m3.ahi; norm_num [m3, Tb], by show Tb.β * m4.yhi ≤ (1 - Tb.β) * m4.ahi; norm_num [m4, Tb], by show Tb.β * m5.yhi ≤ (1 - Tb.β) * m5.ahi; norm_num [m5, Tb], by show Tb.β * m6.yhi ≤ (1 - Tb.β) * m6.ahi; norm_num [m6, Tb], by show Tb.β * m7.yhi ≤ (1 - Tb.β) * m7.ahi; norm_num [m7, Tb], by show Tb.β * m8.yhi ≤ (1 - Tb.β) * m8.ahi; norm_num [m8, Tb], by show Tb.β * m9.yhi ≤ (1 - Tb.β) * m9.ahi; norm_num [m9, Tb], by show Tb.β * m10.yhi ≤ (1 - Tb.β) * m10.ahi; norm_num [m10, Tb], by show Tb.β * m11.yhi ≤ (1 - Tb.β) * m11.ahi; norm_num [m11, Tb], by show Tb.β * m12.yhi ≤ (1 - Tb.β) * m12.ahi; norm_num [m12, Tb], by show Tb.β * m13.yhi ≤ (1 - Tb.β) * m13.ahi; norm_num [m13, Tb], by show Tb.β * m14.yhi ≤ (1 - Tb.β) * m14.ahi; norm_num [m14, Tb], by show Tb.β * m15.yhi ≤ (1 - Tb.β) * m15.ahi; norm_num [m15, Tb], by show Tb.β * m16.yhi ≤ (1 - Tb.β) * m16.ahi; norm_num [m16, Tb], by show Tb.β * m17.yhi ≤ (1 - Tb.β) * m17.ahi; norm_num [m17, Tb], by show Tb.β * m18.yhi ≤ (1 - Tb.β) * m18.ahi; norm_num [m18, Tb], by show Tb.β * m19.yhi ≤ (1 - Tb.β) * m19.ahi; norm_num [m19, Tb], by show Tb.β * m20.yhi ≤ (1 - Tb.β) * m20.ahi; norm_num [m20, Tb], by show Tb.β * m21.yhi ≤ (1 - Tb.β) * m21.ahi; norm_num [m21, Tb], by show Tb.β * m22.yhi ≤ (1 - Tb.β) * m22.ahi; norm_num [m22, Tb], by show Tb.β * m23.yhi ≤ (1 - Tb.β) * m23.ahi; norm_num [m23, Tb], by show Tb.β * m24.yhi ≤ (1 - Tb.β) * m24.ahi; norm_num [m24, Tb], by show Tb.β * m25.yhi ≤ (1 - Tb.β) * m25.ahi; norm_num [m25, Tb], by show Tb.β * m26.yhi ≤ (1 - Tb.β) * m26.ahi; norm_num [m26, Tb], by show Tb.β * m27.yhi ≤ (1 - Tb.β) * m27.ahi; norm_num [m27, Tb], by show Tb.β * m28.yhi ≤ (1 - Tb.β) * m28.ahi; norm_num [m28, Tb], by show Tb.β * m29.yhi ≤ (1 - Tb.β) * m29.ahi; norm_num [m29, Tb], by show Tb.β * m30.yhi ≤ (1 - Tb.β) * m30.ahi; norm_num [m30, Tb], by show Tb.β * m31.yhi ≤ (1 - Tb.β) * m31.ahi; norm_num [m31, Tb]]
+theorem advM : ∀ k, Tb.β * (mem k).yhi ≤ (1 - Tb.β) * (mem k).ahi := fun k =>
+  memberOfQ_adv (by norm_num) (by norm_num [Tb])
 
 
 /-! ## The closed form -/
@@ -420,204 +425,60 @@ theorem eps_closed (E : Env) {k : ℕ} (hc : E.c = Config.specK k) (hk : 1000 �
   have bhhi : B.hhi = (4201231205781 / 100000000000000 : ℝ) := rfl
   have bhlo : B.hlo = (2378384118427 / 100000000000000 : ℝ) := rfl
   have belo : B.elo = (9477644021201 / 10000000000000 : ℝ) := rfl
-  have cl0 : (18816187713181 / 50000000000000 : ℝ) ^ 1 ≤ (18816187713181 / 50000000000000 : ℝ) := pow_one_le (by norm_num)
-  have cl1 : (18816187713181 / 50000000000000 : ℝ) ^ 2 ≤ (14161956802307 / 100000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cl0 0 (P' := (14161956802307 / 100000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 1 + 0 = 2 from rfl] at h
-  have cl2 : (18816187713181 / 50000000000000 : ℝ) ^ 4 ≤ (20056102047041 / 1000000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cl1 0 (P' := (20056102047041 / 1000000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 2 + 0 = 4 from rfl] at h
-  have cl3 : (18816187713181 / 50000000000000 : ℝ) ^ 8 ≤ (40224722932133 / 100000000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cl2 0 (P' := (40224722932133 / 100000000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 4 + 0 = 8 from rfl] at h
-  have cl4 : (18816187713181 / 50000000000000 : ℝ) ^ 16 ≤ (16180283349669 / 100000000000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cl3 0 (P' := (16180283349669 / 100000000000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 8 + 0 = 16 from rfl] at h
-  have cl5 : (18816187713181 / 50000000000000 : ℝ) ^ 32 ≤ (13090078463779 / 500000000000000000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cl4 0 (P' := (13090078463779 / 500000000000000000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 16 + 0 = 32 from rfl] at h
-  have cl6 : (18816187713181 / 50000000000000 : ℝ) ^ 64 ≤ (68540061675157 / 100000000000000000000000000000000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cl5 0 (P' := (68540061675157 / 100000000000000000000000000000000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 32 + 0 = 64 from rfl] at h
+  have cl6 : (18816187713181 / 50000000000000 : ℝ) ^ 64 ≤ (68540061675157 / 100000000000000000000000000000000000000000 : ℝ) :=
+    pow_le_of_powUpQ (bq := (18816187713181 / 50000000000000 : ℚ)) (q := (68540061675157 / 100000000000000000000000000000000000000000 : ℚ)) 14 64 (by norm_num) (by norm_num) (by norm_num)
+      (by decide +kernel)
   have h1 : (1 - (1 - B.hhi) ^ 11) ^ (704 / 11) ≤ (68540061675157 / 100000000000000000000000000000000000000000 : ℝ) := by
     rw [bhhi]
     have hb : (0 : ℝ) ≤ 1 - (1 - (4201231205781 / 100000000000000 : ℝ)) ^ 11 := by norm_num
     have hb' : 1 - (1 - (4201231205781 / 100000000000000 : ℝ)) ^ 11 ≤ (18816187713181 / 50000000000000 : ℝ) := by norm_num
     rw [show (704 / 11 : ℕ) = 64 by norm_num]
     exact (pow_le_pow_left₀ hb hb' _).trans cl6
-  have ce0 : (97621615881573 / 100000000000000 : ℝ) ^ 1 ≤ (97621615881573 / 100000000000000 : ℝ) := pow_one_le (by norm_num)
-  have ce1 : (97621615881573 / 100000000000000 : ℝ) ^ 2 ≤ (47649899436647 / 50000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) ce0 0 (P' := (47649899436647 / 50000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 1 + 0 = 2 from rfl] at h
-  have ce2 : (97621615881573 / 100000000000000 : ℝ) ^ 4 ≤ (90820516652903 / 100000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) ce1 0 (P' := (90820516652903 / 100000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 2 + 0 = 4 from rfl] at h
-  have ce3 : (97621615881573 / 100000000000000 : ℝ) ^ 9 ≤ (80521884122971 / 100000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) ce2 1 (P' := (80521884122971 / 100000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 4 + 1 = 9 from rfl] at h
-  have ce4 : (97621615881573 / 100000000000000 : ℝ) ^ 19 ≤ (63295647758391 / 100000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) ce3 1 (P' := (63295647758391 / 100000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 9 + 1 = 19 from rfl] at h
+  have ce4 : (97621615881573 / 100000000000000 : ℝ) ^ 19 ≤ (63295647758391 / 100000000000000 : ℝ) :=
+    pow_le_of_powUpQ (bq := (97621615881573 / 100000000000000 : ℚ)) (q := (63295647758391 / 100000000000000 : ℚ)) 14 19 (by norm_num) (by norm_num) (by norm_num)
+      (by decide +kernel)
   have h2 : (1 - B.hlo) ^ 19 ≤ (63295647758391 / 100000000000000 : ℝ) := by
     rw [bhlo]
     have hb : (0 : ℝ) ≤ 1 - (2378384118427 / 100000000000000 : ℝ) := by norm_num
     have hb' : 1 - (2378384118427 / 100000000000000 : ℝ) ≤ (97621615881573 / 100000000000000 : ℝ) := by norm_num
     exact (pow_le_pow_left₀ hb hb' _).trans ce4
   have h3a : P.e 17 / P.τ ≤ (10142598762951 / 10000000000000 : ℝ) := by rw [p17, pτ]; norm_num
-  have csa0 : (1034545073821 / 1000000000000 : ℝ) ^ 1 ≤ (1034545073821 / 1000000000000 : ℝ) := pow_one_le (by norm_num)
-  have csa1 : (1034545073821 / 1000000000000 : ℝ) ^ 2 ≤ (10702835097673 / 10000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) csa0 0 (P' := (10702835097673 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 1 + 0 = 2 from rfl] at h
-  have csa2 : (1034545073821 / 1000000000000 : ℝ) ^ 5 ≤ (11850784079471 / 10000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) csa1 1 (P' := (11850784079471 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 2 + 1 = 5 from rfl] at h
-  have csa3 : (1034545073821 / 1000000000000 : ℝ) ^ 10 ≤ (561764333193 / 400000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) csa2 0 (P' := (561764333193 / 400000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 5 + 0 = 10 from rfl] at h
-  have csa4 : (1034545073821 / 1000000000000 : ℝ) ^ 21 ≤ (4081010895441 / 2000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) csa3 1 (P' := (4081010895441 / 2000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 10 + 1 = 21 from rfl] at h
-  have csa5 : (1034545073821 / 1000000000000 : ℝ) ^ 43 ≤ (5384370637487 / 1250000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) csa4 1 (P' := (5384370637487 / 1250000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 21 + 1 = 43 from rfl] at h
-  have csa6 : (1034545073821 / 1000000000000 : ℝ) ^ 86 ≤ (18554526183573 / 1000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) csa5 0 (P' := (18554526183573 / 1000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 43 + 0 = 86 from rfl] at h
-  have csa7 : (1034545073821 / 1000000000000 : ℝ) ^ 172 ≤ (3442704418969 / 10000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) csa6 0 (P' := (3442704418969 / 10000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 86 + 0 = 172 from rfl] at h
-  have csb0 : (51 / 50 : ℝ) ≤ (51 / 50 : ℝ) ^ 1 := pow_one_ge (by norm_num)
-  have csb1 : (2601 / 2500 : ℝ) ≤ (51 / 50 : ℝ) ^ 2 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) csb0 0 (P' := (2601 / 2500 : ℝ)) (by norm_num)
-    rwa [show 2 * 1 + 0 = 2 from rfl] at h
-  have csb2 : (6765201 / 6250000 : ℝ) ≤ (51 / 50 : ℝ) ^ 4 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) csb1 0 (P' := (6765201 / 6250000 : ℝ)) (by norm_num)
-    rwa [show 2 * 2 + 0 = 4 from rfl] at h
-  have csb3 : (11950925686223 / 10000000000000 : ℝ) ≤ (51 / 50 : ℝ) ^ 9 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) csb2 1 (P' := (11950925686223 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 4 + 1 = 9 from rfl] at h
-  have csb4 : (14568111725277 / 10000000000000 : ℝ) ≤ (51 / 50 : ℝ) ^ 19 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) csb3 1 (P' := (14568111725277 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 9 + 1 = 19 from rfl] at h
-  have csb5 : (4329489536499 / 2000000000000 : ℝ) ≤ (51 / 50 : ℝ) ^ 39 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) csb4 1 (P' := (4329489536499 / 2000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 19 + 1 = 39 from rfl] at h
-  have csb6 : (9372239823327 / 2000000000000 : ℝ) ≤ (51 / 50 : ℝ) ^ 78 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) csb5 0 (P' := (9372239823327 / 2000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 39 + 0 = 78 from rfl] at h
-  have csb7 : (11199457111509 / 500000000000 : ℝ) ≤ (51 / 50 : ℝ) ^ 157 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) csb6 1 (P' := (11199457111509 / 500000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 78 + 1 = 157 from rfl] at h
-  have csb8 : (6396819819219 / 12500000000 : ℝ) ≤ (51 / 50 : ℝ) ^ 315 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) csb7 1 (P' := (6396819819219 / 12500000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 157 + 1 = 315 from rfl] at h
+  have csa7 : (1034545073821 / 1000000000000 : ℝ) ^ 172 ≤ (3442704418969 / 10000000000 : ℝ) :=
+    pow_le_of_powUpQ (bq := (1034545073821 / 1000000000000 : ℚ)) (q := (3442704418969 / 10000000000 : ℚ)) 14 172 (by norm_num) (by norm_num) (by norm_num)
+      (by decide +kernel)
+  have csb8 : (6396819819219 / 12500000000 : ℝ) ≤ (51 / 50 : ℝ) ^ 315 :=
+    le_pow_of_powDnQ (bq := (51 / 50 : ℚ)) (q := (6396819819219 / 12500000000 : ℚ)) 14 315 (by norm_num) (by norm_num) (by norm_num)
+      (by decide +kernel)
   have h3 : P.e 17 ^ 172 / P.τ ^ 315 ≤ (3363687461371 / 5000000000000 : ℝ) := by
     rw [p17, pτ]
     exact (div_le_div₀ (by norm_num) csa7 (by norm_num) csb8).trans (by norm_num)
-  have cfr0 : (3330588881701 / 3326443907701 : ℝ) ^ 1 ≤ (10012460676071 / 10000000000000 : ℝ) := pow_one_le (by norm_num)
-  have cfr1 : (3330588881701 / 3326443907701 : ℝ) ^ 2 ≤ (10024936878987 / 10000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cfr0 0 (P' := (10024936878987 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 1 + 0 = 2 from rfl] at h
-  have cfr2 : (3330588881701 / 3326443907701 : ℝ) ^ 5 ≤ (10062458842399 / 10000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cfr1 1 (P' := (10062458842399 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 2 + 1 = 5 from rfl] at h
-  have cfr3 : (3330588881701 / 3326443907701 : ℝ) ^ 11 ≤ (10137924613553 / 10000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cfr2 1 (P' := (10137924613553 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 5 + 1 = 11 from rfl] at h
-  have cfr4 : (3330588881701 / 3326443907701 : ℝ) ^ 22 ≤ (10277751547009 / 10000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cfr3 0 (P' := (10277751547009 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 11 + 0 = 22 from rfl] at h
-  have cfr5 : (3330588881701 / 3326443907701 : ℝ) ^ 44 ≤ (2112643537241 / 2000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cfr4 0 (P' := (2112643537241 / 2000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 22 + 0 = 44 from rfl] at h
-  have cfr6 : (3330588881701 / 3326443907701 : ℝ) ^ 88 ≤ (1394769598577 / 1250000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cfr5 0 (P' := (1394769598577 / 1250000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 44 + 0 = 88 from rfl] at h
-  have cfr7 : (3330588881701 / 3326443907701 : ℝ) ^ 176 ≤ (6225223145967 / 5000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cfr6 0 (P' := (6225223145967 / 5000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 88 + 0 = 176 from rfl] at h
-  have cfr8 : (3330588881701 / 3326443907701 : ℝ) ^ 352 ≤ (7750680643417 / 5000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cfr7 0 (P' := (7750680643417 / 5000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 176 + 0 = 352 from rfl] at h
-  have cfr9 : (3330588881701 / 3326443907701 : ℝ) ^ 704 ≤ (750913130453 / 312500000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cfr8 0 (P' := (750913130453 / 312500000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 352 + 0 = 704 from rfl] at h
+  have cfr9 : (3330588881701 / 3326443907701 : ℝ) ^ 704 ≤ (750913130453 / 312500000000 : ℝ) :=
+    pow_le_of_powUpQ (bq := (3330588881701 / 3326443907701 : ℚ)) (q := (750913130453 / 312500000000 : ℚ)) 14 704 (by norm_num) (by norm_num) (by norm_num)
+      (by decide +kernel)
   have h4a : (P.lp / (9979331723103 / 10000000000000 : ℝ)) ^ 704 * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) ≤ (7730462945107 / 20000000000000 : ℝ) := by
     rw [plp, p2, pb, plr, show ((9991766645103 / 10000000000000 : ℝ) / (9979331723103 / 10000000000000 : ℝ) : ℝ) = (3330588881701 / 3326443907701 : ℝ) by norm_num]
     calc (3330588881701 / 3326443907701 : ℝ) ^ 704 * (792348764039 / 12500000000000 : ℝ) * (1 + ((125348315253 / 125000000000 : ℝ) - 1) / (1 - (9981877891589 / 10000000000000 : ℝ))) ≤ (750913130453 / 312500000000 : ℝ) * (792348764039 / 12500000000000 : ℝ) * (1 + ((125348315253 / 125000000000 : ℝ) - 1) / (1 - (9981877891589 / 10000000000000 : ℝ))) := by
           apply mul_le_mul_of_nonneg_right _ (by norm_num)
           exact mul_le_mul_of_nonneg_right cfr9 (by norm_num)
       _ ≤ (7730462945107 / 20000000000000 : ℝ) := by norm_num
-  have cf0 : (9979331723103 / 10000000000000 : ℝ) ^ 1 ≤ (9979331723103 / 10000000000000 : ℝ) := pow_one_le (by norm_num)
-  have cf1 : (9979331723103 / 10000000000000 : ℝ) ^ 2 ≤ (9958706163973 / 10000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cf0 0 (P' := (9958706163973 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 1 + 0 = 2 from rfl] at h
-  have cf2 : (9979331723103 / 10000000000000 : ℝ) ^ 5 ≤ (12371356138993 / 12500000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cf1 1 (P' := (12371356138993 / 12500000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 2 + 1 = 5 from rfl] at h
-  have cf3 : (9979331723103 / 10000000000000 : ℝ) ^ 10 ≤ (765252263589 / 781250000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cf2 0 (P' := (765252263589 / 781250000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 5 + 0 = 10 from rfl] at h
-  have cf4 : (9979331723103 / 10000000000000 : ℝ) ^ 21 ≤ (95748205746953 / 100000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cf3 1 (P' := (95748205746953 / 100000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 10 + 1 = 21 from rfl] at h
-  have cf5 : (9979331723103 / 10000000000000 : ℝ) ^ 43 ≤ (11435963510599 / 12500000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cf4 1 (P' := (11435963510599 / 12500000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 21 + 1 = 43 from rfl] at h
-  have cf6 : (9979331723103 / 10000000000000 : ℝ) ^ 86 ≤ (41850003653041 / 50000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cf5 0 (P' := (41850003653041 / 50000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 43 + 0 = 86 from rfl] at h
-  have cf7 : (9979331723103 / 10000000000000 : ℝ) ^ 172 ≤ (35028456115191 / 50000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cf6 0 (P' := (35028456115191 / 50000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 86 + 0 = 172 from rfl] at h
+  have cf7 : (9979331723103 / 10000000000000 : ℝ) ^ 172 ≤ (35028456115191 / 50000000000000 : ℝ) :=
+    pow_le_of_powUpQ (bq := (9979331723103 / 10000000000000 : ℚ)) (q := (35028456115191 / 50000000000000 : ℚ)) 14 172 (by norm_num) (by norm_num) (by norm_num)
+      (by decide +kernel)
   have h4 : ((9979331723103 / 10000000000000 : ℝ) : ℝ) ^ 172 ≤ (35028456115191 / 50000000000000 : ℝ) := cf7
   have h5a : 1 / ((12307 / 10000 : ℝ) : ℝ) ≤ (16250914113919 / 20000000000000 : ℝ) := by norm_num
-  have cwa0 : (101205075243089293 / 100000000000000000 : ℝ) ^ 1 ≤ (10120507524309 / 10000000000000 : ℝ) := pow_one_le (by norm_num)
-  have cwa1 : (101205075243089293 / 100000000000000000 : ℝ) ^ 2 ≤ (128030840687 / 125000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cwa0 0 (P' := (128030840687 / 125000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 1 + 0 = 2 from rfl] at h
-  have cwa2 : (101205075243089293 / 100000000000000000 : ℝ) ^ 4 ≤ (10490813546893 / 10000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cwa1 0 (P' := (10490813546893 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 2 + 0 = 4 from rfl] at h
-  have cwa3 : (101205075243089293 / 100000000000000000 : ℝ) ^ 9 ≤ (696146503569 / 625000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cwa2 1 (P' := (696146503569 / 625000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 4 + 1 = 9 from rfl] at h
-  have cwa4 : (101205075243089293 / 100000000000000000 : ℝ) ^ 19 ≤ (12555775731847 / 10000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cwa3 1 (P' := (12555775731847 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 9 + 1 = 19 from rfl] at h
-  have cwa5 : (101205075243089293 / 100000000000000000 : ℝ) ^ 39 ≤ (638189101093 / 400000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cwa4 1 (P' := (638189101093 / 400000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 19 + 1 = 39 from rfl] at h
-  have cwa6 : (101205075243089293 / 100000000000000000 : ℝ) ^ 78 ≤ (25455333047119 / 10000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cwa5 0 (P' := (25455333047119 / 10000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 39 + 0 = 78 from rfl] at h
-  have cwa7 : (101205075243089293 / 100000000000000000 : ℝ) ^ 157 ≤ (6557825545609 / 1000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cwa6 1 (P' := (6557825545609 / 1000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 78 + 1 = 157 from rfl] at h
-  have cwa8 : (101205075243089293 / 100000000000000000 : ℝ) ^ 315 ≤ (2720207463089 / 62500000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cwa7 1 (P' := (2720207463089 / 62500000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 157 + 1 = 315 from rfl] at h
-  have cwb0 : (12307 / 10000 : ℝ) ≤ (12307 / 10000 : ℝ) ^ 1 := pow_one_ge (by norm_num)
-  have cwb1 : (151462249 / 100000000 : ℝ) ≤ (12307 / 10000 : ℝ) ^ 2 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) cwb0 0 (P' := (151462249 / 100000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 1 + 0 = 2 from rfl] at h
-  have cwb2 : (1411662920087 / 500000000000 : ℝ) ≤ (12307 / 10000 : ℝ) ^ 5 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) cwb1 1 (P' := (1411662920087 / 500000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 2 + 1 = 5 from rfl] at h
-  have cwb3 : (39855843998971 / 5000000000000 : ℝ) ≤ (12307 / 10000 : ℝ) ^ 10 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) cwb2 0 (P' := (39855843998971 / 5000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 5 + 0 = 10 from rfl] at h
-  have cwb4 : (15884883008703 / 250000000000 : ℝ) ≤ (12307 / 10000 : ℝ) ^ 20 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) cwb3 0 (P' := (15884883008703 / 250000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 10 + 0 = 20 from rfl] at h
+  have cwa8 : (101205075243089293 / 100000000000000000 : ℝ) ^ 315 ≤ (2720207463089 / 62500000000 : ℝ) :=
+    pow_le_of_powUpQ (bq := (101205075243089293 / 100000000000000000 : ℚ)) (q := (2720207463089 / 62500000000 : ℚ)) 14 315 (by norm_num) (by norm_num) (by norm_num)
+      (by decide +kernel)
+  have cwb4 : (15884883008703 / 250000000000 : ℝ) ≤ (12307 / 10000 : ℝ) ^ 20 :=
+    le_pow_of_powDnQ (bq := (12307 / 10000 : ℚ)) (q := (15884883008703 / 250000000000 : ℚ)) 14 20 (by norm_num) (by norm_num) (by norm_num)
+      (by decide +kernel)
   have h5 : (1 + ((12307 / 10000 : ℝ) - 1) * (1 - B.elo)) ^ 315 / ((12307 / 10000 : ℝ) : ℝ) ^ 20 ≤ (17124504232097 / 25000000000000 : ℝ) := by
     rw [belo, show (1 + ((12307 / 10000 : ℝ) - 1) * (1 - (9477644021201 / 10000000000000 : ℝ)) : ℝ) = (101205075243089293 / 100000000000000000 : ℝ) by norm_num]
     exact (div_le_div₀ (by norm_num) cwa8 (by norm_num) cwb4).trans (by norm_num)
   have h6a : (1 + (P.b - 1) / (1 - P.lr)) / P.c ≤ (21840405971703 / 10000000000000 : ℝ) := by rw [pb, plr, pc]; norm_num
-  have cr0 : (11619 / 10000 : ℝ) ≤ (11619 / 10000 : ℝ) ^ 1 := pow_one_ge (by norm_num)
-  have cr1 : (1568578489659 / 1000000000000 : ℝ) ≤ (11619 / 10000 : ℝ) ^ 3 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) cr0 1 (P' := (1568578489659 / 1000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 1 + 1 = 3 from rfl] at h
+  have cr1 : (1568578489659 / 1000000000000 : ℝ) ≤ (11619 / 10000 : ℝ) ^ 3 :=
+    le_pow_of_powDnQ (bq := (11619 / 10000 : ℚ)) (q := (1568578489659 / 1000000000000 : ℚ)) 14 3 (by norm_num) (by norm_num) (by norm_num)
+      (by decide +kernel)
   have h6 : 1 / P.c ^ 3 ≤ (63751989880813 / 100000000000000 : ℝ) := by
     rw [pc]
     exact (div_le_div_of_nonneg_left (by norm_num) (by norm_num) cr1).trans (by norm_num)
@@ -634,38 +495,12 @@ theorem eps_closed (E : Env) {k : ℕ} (hc : E.c = Config.specK k) (hk : 1000 �
           refine mul_le_mul_of_nonneg_right (pow_le_pow_left₀ (by positivity) ?_ _) (by positivity)
           exact one_div_le_one_div_of_le (by norm_num) hbs.1
       _ ≤ (441101827619 / 800000000 : ℝ) := by norm_num
-  have cga0 : (23552388120221 / 25000000000000 : ℝ) ^ 1 ≤ (23552388120221 / 25000000000000 : ℝ) := pow_one_le (by norm_num)
-  have cga1 : (23552388120221 / 25000000000000 : ℝ) ^ 3 ≤ (83615120961751 / 100000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cga0 1 (P' := (83615120961751 / 100000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 1 + 1 = 3 from rfl] at h
-  have cga2 : (23552388120221 / 25000000000000 : ℝ) ^ 6 ≤ (69914884534483 / 100000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cga1 0 (P' := (69914884534483 / 100000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 3 + 0 = 6 from rfl] at h
-  have cga3 : (23552388120221 / 25000000000000 : ℝ) ^ 12 ≤ (48880910794701 / 100000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cga2 0 (P' := (48880910794701 / 100000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 6 + 0 = 12 from rfl] at h
-  have cga4 : (23552388120221 / 25000000000000 : ℝ) ^ 24 ≤ (5973358600299 / 25000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cga3 0 (P' := (5973358600299 / 25000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 12 + 0 = 24 from rfl] at h
-  have cga5 : (23552388120221 / 25000000000000 : ℝ) ^ 48 ≤ (28544810374213 / 500000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cga4 0 (P' := (28544810374213 / 500000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 24 + 0 = 48 from rfl] at h
-  have cga6 : (23552388120221 / 25000000000000 : ℝ) ^ 96 ≤ (4074030996499 / 1250000000000000 : ℝ) := by
-    have h := pow_bit_le (by norm_num) cga5 0 (P' := (4074030996499 / 1250000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 48 + 0 = 96 from rfl] at h
-  have cgb0 : (997 / 1250 : ℝ) ≤ (997 / 1250 : ℝ) ^ 1 := pow_one_ge (by norm_num)
-  have cgb1 : (994009 / 1562500 : ℝ) ≤ (997 / 1250 : ℝ) ^ 2 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) cgb0 0 (P' := (994009 / 1562500 : ℝ)) (by norm_num)
-    rwa [show 2 * 1 + 0 = 2 from rfl] at h
-  have cgb2 : (32279420285903 / 100000000000000 : ℝ) ≤ (997 / 1250 : ℝ) ^ 5 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) cgb1 1 (P' := (32279420285903 / 100000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 2 + 1 = 5 from rfl] at h
-  have cgb3 : (41553403642879 / 500000000000000 : ℝ) ≤ (997 / 1250 : ℝ) ^ 11 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) cgb2 1 (P' := (41553403642879 / 500000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 5 + 1 = 11 from rfl] at h
-  have cgb4 : (55088169543843 / 10000000000000000 : ℝ) ≤ (997 / 1250 : ℝ) ^ 23 := by
-    have h := pow_bit_ge (by norm_num) (by norm_num) cgb3 1 (P' := (55088169543843 / 10000000000000000 : ℝ)) (by norm_num)
-    rwa [show 2 * 11 + 1 = 23 from rfl] at h
+  have cga6 : (23552388120221 / 25000000000000 : ℝ) ^ 96 ≤ (4074030996499 / 1250000000000000 : ℝ) :=
+    pow_le_of_powUpQ (bq := (23552388120221 / 25000000000000 : ℚ)) (q := (4074030996499 / 1250000000000000 : ℚ)) 14 96 (by norm_num) (by norm_num) (by norm_num)
+      (by decide +kernel)
+  have cgb4 : (55088169543843 / 10000000000000000 : ℝ) ≤ (997 / 1250 : ℝ) ^ 23 :=
+    le_pow_of_powDnQ (bq := (997 / 1250 : ℚ)) (q := (55088169543843 / 10000000000000000 : ℚ)) 14 23 (by norm_num) (by norm_num) (by norm_num)
+      (by decide +kernel)
   have h7 : (1 + ((997 / 1250 : ℝ) - 1) * PT 1 (997 / 1250 : ℝ) B.hlo B.hhi 14) ^ 96 / ((997 / 1250 : ℝ) : ℝ) ^ (20 + 3) ≤ (14790947058993 / 25000000000000 : ℝ) := by
     rw [show (20 + 3 : ℕ) = 23 by norm_num]
     exact (div_le_div₀ (by norm_num) ((pow_le_pow_left₀ hb0.le hbs.2 _).trans cga6) (by norm_num) cgb4).trans
@@ -699,43 +534,9 @@ theorem band_closed {k : ℕ} (hk : 1000 ≤ k) :
       have h3 : (Real.exp (-a))⁻¹ ≤ (1 - a)⁻¹ := inv_anti₀ hpos (by linarith)
       have h4 : (1 - a)⁻¹ ≤ (10000849 / 10000000 : ℝ) := by rw [inv_le_iff_one_le_mul₀ hpos]; linarith
       linarith
-    have bq00 : (5000373062219 / 5000000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 1 := pow_one_ge (by norm_num)
-    have bq01 : (5000746152273 / 5000000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 2 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq00 0 (P' := (5000746152273 / 5000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 1 + 0 = 2 from rfl] at h
-    have bq02 : (10002984831789 / 10000000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 4 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq01 0 (P' := (10002984831789 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 2 + 0 = 4 from rfl] at h
-    have bq03 : (20011941109 / 20000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 8 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq02 0 (P' := (20011941109 / 20000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 4 + 0 = 8 from rfl] at h
-    have bq04 : (1251493084219 / 1250000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 16 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq03 0 (P' := (1251493084219 / 1250000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 8 + 0 = 16 from rfl] at h
-    have bq05 : (10023903615027 / 10000000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 32 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq04 0 (P' := (10023903615027 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 16 + 0 = 32 from rfl] at h
-    have bq06 : (2009572873667 / 2000000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 64 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq05 0 (P' := (2009572873667 / 2000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 32 + 0 = 64 from rfl] at h
-    have bq07 : (2019191567289 / 2000000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 128 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq06 0 (P' := (2019191567289 / 2000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 64 + 0 = 128 from rfl] at h
-    have bq08 : (10192836463527 / 10000000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 256 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq07 0 (P' := (10192836463527 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 128 + 0 = 256 from rfl] at h
-    have bq09 : (519469575861 / 500000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 512 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq08 0 (P' := (519469575861 / 500000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 256 + 0 = 512 from rfl] at h
-    have bq010 : (674621600613 / 625000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 1024 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq09 0 (P' := (674621600613 / 625000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 512 + 0 = 1024 from rfl] at h
-    have bq011 : (11650926182749 / 10000000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 2048 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq010 0 (P' := (11650926182749 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 1024 + 0 = 2048 from rfl] at h
-    have bq012 : (6787204045793 / 5000000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 4096 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq011 0 (P' := (6787204045793 / 5000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 2048 + 0 = 4096 from rfl] at h
+    have bq012 : (6787204045793 / 5000000000000 : ℝ) ≤ (409630561257 / 409600000000 : ℝ) ^ 4096 :=
+      le_pow_of_powDnQ (bq := (409630561257 / 409600000000 : ℚ)) (q := (6787204045793 / 5000000000000 : ℚ)) 14 4096 (by norm_num) (by norm_num) (by norm_num)
+        (by decide +kernel)
     have hq : Real.exp (-(((3600 : ℕ) : ℝ) * (Tb.ylo * Tb.clo * Tb.δ ^ 2 / 2))) ≤ 1 / (6787204045793 / 5000000000000 : ℝ) :=
       exp_neg_le_of (a0 := (30561257 / 100000000 : ℝ)) 4096 (by norm_num) (by norm_num) (by norm_num [Tb, TBand.Yh, TBand.Ya, TBand.ylo, TBand.clo, TBand.chi, errHi, errLo]) (by norm_num)
         (by rw [show (1 + (30561257 / 100000000 : ℝ) / ((4096 : ℕ) : ℝ)) = (409630561257 / 409600000000 : ℝ) by norm_num]; exact bq012)
@@ -749,43 +550,9 @@ theorem band_closed {k : ℕ} (hk : 1000 ≤ k) :
       have h3 : (Real.exp (-a))⁻¹ ≤ (1 - a)⁻¹ := inv_anti₀ hpos (by linarith)
       have h4 : (1 - a)⁻¹ ≤ (1000081693 / 1000000000 : ℝ) := by rw [inv_le_iff_one_le_mul₀ hpos]; linarith
       linarith
-    have bq10 : (160011487 / 160000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 1 := pow_one_ge (by norm_num)
-    have bq11 : (10001435926543 / 10000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 2 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq10 0 (P' := (10001435926543 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 1 + 0 = 2 from rfl] at h
-    have bq12 : (5001436029637 / 5000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 4 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq11 0 (P' := (5001436029637 / 5000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 2 + 0 = 4 from rfl] at h
-    have bq13 : (500287247171 / 500000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 8 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq12 0 (P' := (500287247171 / 500000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 4 + 0 = 8 from rfl] at h
-    have bq14 : (10011493187277 / 10000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 16 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq13 0 (P' := (10011493187277 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 8 + 0 = 16 from rfl] at h
-    have bq15 : (10022999583889 / 10000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 32 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq14 0 (P' := (10022999583889 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 16 + 0 = 32 from rfl] at h
-    have bq16 : (10046052065863 / 10000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 64 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq15 0 (P' := (10046052065863 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 32 + 0 = 64 from rfl] at h
-    have bq17 : (10092316211003 / 10000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 128 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq16 0 (P' := (10092316211003 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 64 + 0 = 128 from rfl] at h
-    have bq18 : (10185484650287 / 10000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 256 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq17 0 (P' := (10185484650287 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 128 + 0 = 256 from rfl] at h
-    have bq19 : (10374409756123 / 10000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 512 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq18 0 (P' := (10374409756123 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 256 + 0 = 512 from rfl] at h
-    have bq110 : (5381418889397 / 5000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 1024 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq19 0 (P' := (5381418889397 / 5000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 512 + 0 = 1024 from rfl] at h
-    have bq111 : (11583867705263 / 10000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 2048 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq110 0 (P' := (11583867705263 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 1024 + 0 = 2048 from rfl] at h
-    have bq112 : (13418599101303 / 10000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 4096 := by
-      have h := pow_bit_ge (by norm_num) (by norm_num) bq111 0 (P' := (13418599101303 / 10000000000000 : ℝ)) (by norm_num)
-      rwa [show 2 * 2048 + 0 = 4096 from rfl] at h
+    have bq112 : (13418599101303 / 10000000000000 : ℝ) ≤ (160011487 / 160000000 : ℝ) ^ 4096 :=
+      le_pow_of_powDnQ (bq := (160011487 / 160000000 : ℚ)) (q := (13418599101303 / 10000000000000 : ℚ)) 14 4096 (by norm_num) (by norm_num) (by norm_num)
+        (by decide +kernel)
     have hq : Real.exp (-(((3600 : ℕ) : ℝ) * (Tb.ylo * Tb.clo * Tb.δ ^ 2 * (1 / 2 - 2 / 9 * Tb.δ)))) ≤ 1 / (13418599101303 / 10000000000000 : ℝ) :=
       exp_neg_le_of (a0 := (22974 / 78125 : ℝ)) 4096 (by norm_num) (by norm_num) (by norm_num [Tb, TBand.Yh, TBand.Ya, TBand.ylo, TBand.clo, TBand.chi, errHi, errLo]) (by norm_num)
         (by rw [show (1 + (22974 / 78125 : ℝ) / ((4096 : ℕ) : ℝ)) = (160011487 / 160000000 : ℝ) by norm_num]; exact bq112)
@@ -816,7 +583,7 @@ theorem finality_closed {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Me
   have hP : E.c.period = 180 * k := by rw [hc, Config.specK_period]
   have hb := Prob.finality (M := N + 704 + 19 * (k / 20) + 11 + 2) (Ne := N / (300 * k) + 2) es hM hN hΔ
     (D3 E.c.epochLength (by rw [hEL]; omega))
-    (fun kk => by fin_cases kk; exacts [prod0, prod1, prod2, prod3, prod4, prod5, prod6, prod7, prod8, prod9, prod10, prod11, prod12, prod13, prod14, prod15, prod16, prod17, prod18, prod19, prod20, prod21, prod22, prod23, prod24, prod25, prod26, prod27, prod28, prod29, prod30, prod31])
+    prod
     (G' := 19 * (k / 20)) (J := 172 * (k / 20)) (Lw := 315 * (k / 20)) (r := 3 * (k / 20)) (T := 14) (x := (12307 / 10000 : ℝ)) (yy := (997 / 1250 : ℝ))
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) le_rfl
     (by norm_num [B]) (by norm_num [B]) (by norm_num [B]) (by norm_num [B])
@@ -826,7 +593,7 @@ theorem finality_closed {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Me
     (by rw [hEL, show N + 704 + 19 * (k / 20) + 11 + 2 = N + (704 + 19 * (k / 20) + 11 + 2) by ring]
         exact div_lt_add_two (by omega))
     (mem := mem) (fun kk => by fin_cases kk <;> rfl)
-    (fun kk => by fin_cases kk; exacts [ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9, ok10, ok11, ok12, ok13, ok14, ok15, ok16, ok17, ok18, ok19, ok20, ok21, ok22, ok23, ok24, ok25, ok26, ok27, ok28, ok29, ok30, ok31]) covM advM
+    ok covM advM
     (ρ := (101 / 100 : ℝ)) (Hmin := (1000000 : ℝ)) (by norm_num) (by norm_num)
     (by
       rw [hc, lam0_specK]
@@ -856,19 +623,9 @@ theorem finality_closed {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Me
 finality violation has probability at most
 `(N + 19 t + 706) · (6.9e-28 + 0.9276 · 0.700570ᵗ) + Ne · 1.562 · 0.745235ᵗ`:
 settlement at rate 0.7006 per 20 blocks of depth, the estimate's band at rate 0.7452. -/
-theorem finality_closed_short
-    {Ω : Type*}
-    [MeasurableSpace Ω]
-    {μ : MeasureTheory.Measure Ω}
-    [MeasureTheory.IsProbabilityMeasure μ]
-    {O : Ω → Oracle}
-    (E : Env)
-    {k : ℕ}
-    (hc : E.c = Config.specK k)
-    (hk : 1000 ≤ k)
-    (hΔ : E.Δ = 11)
-    (es : Ω → List Event)
-    (hM : Model μ O E es) {N : ℕ}
+theorem finality_closed_short {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
+    [MeasureTheory.IsProbabilityMeasure μ] {O : Ω → Oracle} (E : Env) {k : ℕ} (hc : E.c = Config.specK k)
+    (hk : 1000 ≤ k) (hΔ : E.Δ = 11) (es : Ω → List Event) (hM : Model μ O E es) {N : ℕ}
     (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N)
     (hG : GenesisOK E)
     (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) (1 / 5 : ℝ) (1 / 10 ^ 16))

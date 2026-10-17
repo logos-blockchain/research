@@ -1,6 +1,7 @@
 module
 
 public import Cryptarchia.Prob.Certs.E20D11M2.Fam
+meta import Cryptarchia.Prob.Certs.E20D11M2.Fam
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -49,181 +50,41 @@ theorem xgQ10 : xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (
   xg_ofQ (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num) 10
 
 /-- Phase expectation 10 over the integers. -/
-def X10 : PhZ := ⟨25032843, 25000000, 1, 1,
-  fun a b u => [25032843, 0, 25000000, 0, 0, 0, 0, 0, 0, 0, 0, 0].getD (4 * a.val + (if b then 2 else 0) + if u then 1 else 0) 0,
-  25032843⟩
+def X10 : PhZ := PhZ.ofQ (xgNQ (2927 / 2500 : ℚ) (4191 / 2500 : ℚ) (1363 / 1250 : ℚ) (5973 / 10000 : ℚ) (51 / 50 : ℚ) 10)
 
 theorem X10R : X10.Rep (xgNQ (2927 / 2500 : ℚ) (4191 / 2500 : ℚ) (1363 / 1250 : ℚ) (5973 / 10000 : ℚ) (51 / 50 : ℚ) 10).1 (xgNQ (2927 / 2500 : ℚ) (4191 / 2500 : ℚ) (1363 / 1250 : ℚ) (5973 / 10000 : ℚ) (51 / 50 : ℚ) 10).2.1 (xgNQ (2927 / 2500 : ℚ) (4191 / 2500 : ℚ) (1363 / 1250 : ℚ) (5973 / 10000 : ℚ) (51 / 50 : ℚ) 10).2.2 := by decide +kernel
 
-/-- The largest post-switch table, listed by `(q, a, u)`. -/
-def vmax10Z : ℕ → Fin 3 → Bool → ℤ := tabZ
-  [18422542011856229862, 0, 0, 0, 0, 0, 18422542011854385188, 0, 0, 0, 0, 0, 18422542011852540513, 0, 0, 0, 0, 0, 18422542011850695839, 0, 0, 0, 0, 0, 18422542011848851164, 0, 0, 0, 0, 0, 18422542011847006490, 0, 0, 0, 0, 0, 18422542011847006490, 0, 0, 0, 0, 0, 18422542011845161816, 0, 0, 0, 0, 0, 18422542011843317141, 0, 0, 0, 0, 0, 18422542011841472467, 0, 0, 0, 0, 0, 18422542011839627792, 0, 0, 0, 0, 0]
+/-- Each member's post-switch seeds, by Newton's method from the previous member's, at
+elaboration time. -/
+def sd10 : List (List ℤ) :=
+  eval% seedsZ DZ 11 X10 SZ (gFloorZ X10 SZ) (2 ^ 32) (2 ^ 8) 3 2 200 ((List.finRange 32).map famZ) [gFloorZ X10 SZ 0 0 true, gFloorZ X10 SZ 0 1 true, gFloorZ X10 SZ 0 2 true]
 
-/-- Each member's post-switch table at `(0, a, true)`. -/
-def postTop10 : Fin 32 → Fin 3 → ℤ := fun k =>
-  match k.val with
-  | 0 => ![0, 0, 0]
-  | 1 => ![0, 0, 0]
-  | 2 => ![0, 0, 0]
-  | 3 => ![0, 0, 0]
-  | 4 => ![0, 0, 0]
-  | 5 => ![0, 0, 0]
-  | 6 => ![0, 0, 0]
-  | 7 => ![0, 0, 0]
-  | 8 => ![0, 0, 0]
-  | 9 => ![0, 0, 0]
-  | 10 => ![0, 0, 0]
-  | 11 => ![0, 0, 0]
-  | 12 => ![0, 0, 0]
-  | 13 => ![0, 0, 0]
-  | 14 => ![0, 0, 0]
-  | 15 => ![0, 0, 0]
-  | 16 => ![0, 0, 0]
-  | 17 => ![0, 0, 0]
-  | 18 => ![0, 0, 0]
-  | 19 => ![0, 0, 0]
-  | 20 => ![0, 0, 0]
-  | 21 => ![0, 0, 0]
-  | 22 => ![0, 0, 0]
-  | 23 => ![0, 0, 0]
-  | 24 => ![0, 0, 0]
-  | 25 => ![0, 0, 0]
-  | 26 => ![0, 0, 0]
-  | 27 => ![0, 0, 0]
-  | 28 => ![0, 0, 0]
-  | 29 => ![0, 0, 0]
-  | 30 => ![0, 0, 0]
-  | _ => ![0, 0, 0]
+/-- Each member's pre-switch seeds, from `vmax`'s, at elaboration time. -/
+def psd10 : List (List ℤ) := eval% preSeedsZ ((List.finRange 32).map famZ) DZ 11 X10 SZ (2 ^ 32) (2 ^ 8) 0 200 sd10
 
-/-- Each member's pre-switch table at `(0, a, true)`. -/
-def preTop10 : Fin 32 → Fin 3 → ℤ := fun k =>
-  match k.val with
-  | 0 => ![0, 0, 0]
-  | 1 => ![0, 0, 0]
-  | 2 => ![0, 0, 0]
-  | 3 => ![0, 0, 0]
-  | 4 => ![0, 0, 0]
-  | 5 => ![0, 0, 0]
-  | 6 => ![0, 0, 0]
-  | 7 => ![0, 0, 0]
-  | 8 => ![0, 0, 0]
-  | 9 => ![0, 0, 0]
-  | 10 => ![0, 0, 0]
-  | 11 => ![0, 0, 0]
-  | 12 => ![0, 0, 0]
-  | 13 => ![0, 0, 0]
-  | 14 => ![0, 0, 0]
-  | 15 => ![0, 0, 0]
-  | 16 => ![0, 0, 0]
-  | 17 => ![0, 0, 0]
-  | 18 => ![0, 0, 0]
-  | 19 => ![0, 0, 0]
-  | 20 => ![0, 0, 0]
-  | 21 => ![0, 0, 0]
-  | 22 => ![0, 0, 0]
-  | 23 => ![0, 0, 0]
-  | 24 => ![0, 0, 0]
-  | 25 => ![0, 0, 0]
-  | 26 => ![0, 0, 0]
-  | 27 => ![0, 0, 0]
-  | 28 => ![0, 0, 0]
-  | 29 => ![0, 0, 0]
-  | 30 => ![0, 0, 0]
-  | _ => ![0, 0, 0]
+def postTop10 (k : Fin 32) : Fin 3 → ℤ := seedL (sd10.getD k.val [])
+def preTop10 (k : Fin 32) : Fin 3 → ℤ := seedL (psd10.getD k.val [])
 
-/-- Each member's in-epoch phase bound. -/
-def eIn10 : Fin 32 → ℚ := fun k =>
-  match k.val with
-  | 0 => (4969279194771 / 5000000000000 : ℚ)
-  | 1 => (4968721556037 / 5000000000000 : ℚ)
-  | 2 => (9936307656581 / 10000000000000 : ℚ)
-  | 3 => (2483787915107 / 2500000000000 : ℚ)
-  | 4 => (4966987377277 / 5000000000000 : ℚ)
-  | 5 => (9932776563359 / 10000000000000 : ℚ)
-  | 6 => (9931556704589 / 10000000000000 : ℚ)
-  | 7 => (9930314789231 / 10000000000000 : ℚ)
-  | 8 => (4964525210693 / 5000000000000 : ℚ)
-  | 9 => (4963881599079 / 5000000000000 : ℚ)
-  | 10 => (9926452709533 / 10000000000000 : ℚ)
-  | 11 => (4962559269127 / 5000000000000 : ℚ)
-  | 12 => (9923760259703 / 10000000000000 : ℚ)
-  | 13 => (9922377441771 / 10000000000000 : ℚ)
-  | 14 => (2480242411183 / 2500000000000 : ℚ)
-  | 15 => (1239942052639 / 1250000000000 : ℚ)
-  | 16 => (9918077315561 / 10000000000000 : ℚ)
-  | 17 => (9916591864717 / 10000000000000 : ℚ)
-  | 18 => (2478769899267 / 2500000000000 : ℚ)
-  | 19 => (9913540032819 / 10000000000000 : ℚ)
-  | 20 => (2477993170937 / 2500000000000 : ℚ)
-  | 21 => (2477594263267 / 2500000000000 : ℚ)
-  | 22 => (4954376317639 / 5000000000000 : ℚ)
-  | 23 => (495354945801 / 500000000000 : ℚ)
-  | 24 => (9905415371927 / 10000000000000 : ℚ)
-  | 25 => (9903701470479 / 10000000000000 : ℚ)
-  | 26 => (123774458373 / 125000000000 : ℚ)
-  | 27 => (9900180418711 / 10000000000000 : ℚ)
-  | 28 => (4949186078083 / 5000000000000 : ℚ)
-  | 29 => (4948265655749 / 5000000000000 : ℚ)
-  | 30 => (618416081503 / 625000000000 : ℚ)
-  | _ => (1236593692881 / 1250000000000 : ℚ)
+/-- Each member's in-epoch phase bound: its post-switch table's bound, rounded up, at
+elaboration time. -/
+def eInL10 : List ℚ := eval% eInListQ ((List.finRange 32).map famZ) DZ 11 X10 SZ 13 sd10
 
-def post10Z (k : Fin 32) : ℕ → Fin 3 → Bool → ℤ := fillZ (famZ k) DZ 11 X10 SZ (gFloorZ X10 SZ) (postTop10 k)
-def pre10Z (k : Fin 32) : ℕ → Fin 3 → Bool → ℤ := fillZ (famZ k) DZ 11 X10 SZ vmax10Z (preTop10 k)
+def eIn10 (k : Fin 32) : ℚ := eInL10.getD k.val 0
 
-/-- Every check of member `k`, as one Boolean. -/
-def chkE10Q (k : Fin 32) : Bool :=
-  autoSolZ (famZ k) DZ 11 X10 SZ (post10Z k) && leTabZ 11 (post10Z k) vmax10Z &&
-    preSolZ (famZ k) DZ 11 X10 SZ vmax10Z (pre10Z k) &&
-    decide ((autoBoundZ (famZ k) DZ X10 SZ (post10Z k) : ℚ) ≤ eIn10 k * (X10.M DZ * SZ : ℤ)) &&
-    decide ((autoBoundZ (famZ k) DZ X10 SZ (pre10Z k) : ℚ) ≤ (4969279194771 / 5000000000000 : ℚ) * (X10.M DZ * SZ : ℤ))
+theorem chkE10 : (List.finRange 32).all (chkOneF famZ DZ 11 X10 SZ postTop10 preTop10 eIn10 (4969279194771 / 5000000000000 : ℚ)) = true := by
+  decide +kernel
 
-theorem chkE10_0 : chkE10Q 0 = true := by decide +kernel
-theorem chkE10_1 : chkE10Q 1 = true := by decide +kernel
-theorem chkE10_2 : chkE10Q 2 = true := by decide +kernel
-theorem chkE10_3 : chkE10Q 3 = true := by decide +kernel
-theorem chkE10_4 : chkE10Q 4 = true := by decide +kernel
-theorem chkE10_5 : chkE10Q 5 = true := by decide +kernel
-theorem chkE10_6 : chkE10Q 6 = true := by decide +kernel
-theorem chkE10_7 : chkE10Q 7 = true := by decide +kernel
-theorem chkE10_8 : chkE10Q 8 = true := by decide +kernel
-theorem chkE10_9 : chkE10Q 9 = true := by decide +kernel
-theorem chkE10_10 : chkE10Q 10 = true := by decide +kernel
-theorem chkE10_11 : chkE10Q 11 = true := by decide +kernel
-theorem chkE10_12 : chkE10Q 12 = true := by decide +kernel
-theorem chkE10_13 : chkE10Q 13 = true := by decide +kernel
-theorem chkE10_14 : chkE10Q 14 = true := by decide +kernel
-theorem chkE10_15 : chkE10Q 15 = true := by decide +kernel
-theorem chkE10_16 : chkE10Q 16 = true := by decide +kernel
-theorem chkE10_17 : chkE10Q 17 = true := by decide +kernel
-theorem chkE10_18 : chkE10Q 18 = true := by decide +kernel
-theorem chkE10_19 : chkE10Q 19 = true := by decide +kernel
-theorem chkE10_20 : chkE10Q 20 = true := by decide +kernel
-theorem chkE10_21 : chkE10Q 21 = true := by decide +kernel
-theorem chkE10_22 : chkE10Q 22 = true := by decide +kernel
-theorem chkE10_23 : chkE10Q 23 = true := by decide +kernel
-theorem chkE10_24 : chkE10Q 24 = true := by decide +kernel
-theorem chkE10_25 : chkE10Q 25 = true := by decide +kernel
-theorem chkE10_26 : chkE10Q 26 = true := by decide +kernel
-theorem chkE10_27 : chkE10Q 27 = true := by decide +kernel
-theorem chkE10_28 : chkE10Q 28 = true := by decide +kernel
-theorem chkE10_29 : chkE10Q 29 = true := by decide +kernel
-theorem chkE10_30 : chkE10Q 30 = true := by decide +kernel
-theorem chkE10_31 : chkE10Q 31 = true := by decide +kernel
-
-theorem chkE10 : ∀ k, chkE10Q k = true := fun k => by
-  fin_cases k; exacts [chkE10_0, chkE10_1, chkE10_2, chkE10_3, chkE10_4, chkE10_5, chkE10_6, chkE10_7, chkE10_8, chkE10_9, chkE10_10, chkE10_11, chkE10_12, chkE10_13, chkE10_14, chkE10_15, chkE10_16, chkE10_17, chkE10_18, chkE10_19, chkE10_20, chkE10_21, chkE10_22, chkE10_23, chkE10_24, chkE10_25, chkE10_26, chkE10_27, chkE10_28, chkE10_29, chkE10_30, chkE10_31]
-
-noncomputable def vmax10 : ℕ → Fin 3 → Bool → ℝ := castT (castZ SZ vmax10Z)
-noncomputable def vpreI10 : Fin 32 → ℕ → Fin 3 → Bool → ℝ := fun k => castT (castZ SZ (pre10Z k))
-noncomputable def vpostI10 : Fin 32 → ℕ → Fin 3 → Bool → ℝ := fun k => castT (castZ SZ (post10Z k))
+noncomputable def vmax10 : ℕ → Fin 3 → Bool → ℝ := castT (castZ SZ (vmaxF famZ DZ 11 X10 SZ postTop10))
+noncomputable def vpreI10 : Fin 32 → ℕ → Fin 3 → Bool → ℝ := fun k => castT (castZ SZ (preF famZ DZ 11 X10 SZ postTop10 preTop10 k))
+noncomputable def vpostI10 : Fin 32 → ℕ → Fin 3 → Bool → ℝ := fun k => castT (castZ SZ (postF famZ DZ 11 X10 SZ postTop10 k))
 
 theorem solE10 : AutoSolE fam 11 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 10).1 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 10).2.1 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 10).2.2 vpreI10 vpostI10 vmax10 := by
-  rw [xgQ10]; exact (oneSwitchZ_sound famR famA DZ_pos X10R SZ_pos chkE10).1
+  rw [xgQ10]; exact (oneSwitchF_sound famR famA DZ_pos X10R SZ_pos chkE10).1
 
 theorem heEall10 : ∀ k, autoBound (fam k) (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 10).1 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 10).2.1 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 10).2.2 (vpreI10 k) ≤ (4969279194771 / 5000000000000 : ℝ) := by
-  rw [xgQ10]; exact fun k => ((oneSwitchZ_sound famR famA DZ_pos X10R SZ_pos chkE10).2.2 k).trans_eq (by push_cast; ring)
+  rw [xgQ10]; exact fun k => ((oneSwitchF_sound famR famA DZ_pos X10R SZ_pos chkE10).2.2 k).trans_eq (by push_cast; ring)
 
 theorem heIn10 : ∀ k, autoBound (fam k) (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 10).1 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 10).2.1 (xg (2927 / 2500 : ℝ) (4191 / 2500 : ℝ) (1363 / 1250 : ℝ) (5973 / 10000 : ℝ) (51 / 50 : ℝ) 10).2.2 (vpostI10 k) ≤ (eIn10 k : ℝ) := by
-  rw [xgQ10]; exact (oneSwitchZ_sound famR famA DZ_pos X10R SZ_pos chkE10).2.1
+  rw [xgQ10]; exact (oneSwitchF_sound famR famA DZ_pos X10R SZ_pos chkE10).2.1
 
 end Cryptarchia.Prob.Certs.E20D11M2

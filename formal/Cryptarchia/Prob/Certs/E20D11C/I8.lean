@@ -1,6 +1,7 @@
 module
 
 public import Cryptarchia.Prob.Certs.E20D11C.Fam
+meta import Cryptarchia.Prob.Certs.E20D11C.Fam
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
@@ -49,181 +50,41 @@ theorem xgQ8 : xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) 
   xg_ofQ (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num) 8
 
 /-- Phase expectation 8 over the integers. -/
-def X8 : PhZ := ⟨17849851, 20000000, 1, 1,
-  fun a b u => [17849851, 17849851, 20000000, 20000000, 0, 0, 0, 0, 0, 0, 0, 0].getD (4 * a.val + (if b then 2 else 0) + if u then 1 else 0) 0,
-  17849851⟩
+def X8 : PhZ := PhZ.ofQ (xgNQ (11619 / 10000 : ℚ) (16361 / 10000 : ℚ) (669 / 625 : ℚ) (1091 / 2000 : ℚ) (51 / 50 : ℚ) 8)
 
 theorem X8R : X8.Rep (xgNQ (11619 / 10000 : ℚ) (16361 / 10000 : ℚ) (669 / 625 : ℚ) (1091 / 2000 : ℚ) (51 / 50 : ℚ) 8).1 (xgNQ (11619 / 10000 : ℚ) (16361 / 10000 : ℚ) (669 / 625 : ℚ) (1091 / 2000 : ℚ) (51 / 50 : ℚ) 8).2.1 (xgNQ (11619 / 10000 : ℚ) (16361 / 10000 : ℚ) (669 / 625 : ℚ) (1091 / 2000 : ℚ) (51 / 50 : ℚ) 8).2.2 := by decide +kernel
 
-/-- The largest post-switch table, listed by `(q, a, u)`. -/
-def vmax8Z : ℕ → Fin 3 → Bool → ℤ := tabZ
-  [20668793340348712369, 20668793340348712369, 0, 0, 0, 0, 20668793340348712369, 20668793340348712369, 0, 0, 0, 0, 20668793340348712369, 20668793340348712369, 0, 0, 0, 0, 20668793340348712369, 20668793340348712369, 0, 0, 0, 0, 20668793340348712369, 20668793340348712369, 0, 0, 0, 0, 20668793340348712369, 20668793340348712369, 0, 0, 0, 0, 20668793340348712369, 20668793340348712369, 0, 0, 0, 0, 20668793340348712369, 20668793340348712369, 0, 0, 0, 0, 20668793340330265625, 20668793340330265625, 0, 0, 0, 0, 20668793340330265625, 20668793340330265625, 0, 0, 0, 0, 20668793340330265625, 20668793340330265625, 0, 0, 0, 0]
+/-- Each member's post-switch seeds, by Newton's method from the previous member's, at
+elaboration time. -/
+def sd8 : List (List ℤ) :=
+  eval% seedsZ DZ 11 X8 SZ (gFloorZ X8 SZ) (2 ^ 32) (2 ^ 8) 3 2 200 ((List.finRange 32).map famZ) [gFloorZ X8 SZ 0 0 true, gFloorZ X8 SZ 0 1 true, gFloorZ X8 SZ 0 2 true]
 
-/-- Each member's post-switch table at `(0, a, true)`. -/
-def postTop8 : Fin 32 → Fin 3 → ℤ := fun k =>
-  match k.val with
-  | 0 => ![20668793340348712369, 0, 0]
-  | 1 => ![20668793340348712369, 0, 0]
-  | 2 => ![20668793340348712369, 0, 0]
-  | 3 => ![20668793340348712369, 0, 0]
-  | 4 => ![20668793340348712369, 0, 0]
-  | 5 => ![20668793340348712369, 0, 0]
-  | 6 => ![20668793340348712369, 0, 0]
-  | 7 => ![20668793340348712369, 0, 0]
-  | 8 => ![20668793340348712369, 0, 0]
-  | 9 => ![20668793340348712369, 0, 0]
-  | 10 => ![20668793340348712369, 0, 0]
-  | 11 => ![20668793340348712369, 0, 0]
-  | 12 => ![20668793340348712369, 0, 0]
-  | 13 => ![20668793340348712369, 0, 0]
-  | 14 => ![20668793340348712369, 0, 0]
-  | 15 => ![20668793340348712369, 0, 0]
-  | 16 => ![20668793340348712369, 0, 0]
-  | 17 => ![20668793340348712369, 0, 0]
-  | 18 => ![20668793340348712369, 0, 0]
-  | 19 => ![20668793340348712369, 0, 0]
-  | 20 => ![20668793340348712369, 0, 0]
-  | 21 => ![20668793340348712369, 0, 0]
-  | 22 => ![20668793340348712369, 0, 0]
-  | 23 => ![20668793340348712369, 0, 0]
-  | 24 => ![20668793340348712369, 0, 0]
-  | 25 => ![20668793340348712369, 0, 0]
-  | 26 => ![20668793340348712369, 0, 0]
-  | 27 => ![20668793340348712369, 0, 0]
-  | 28 => ![20668793340348712369, 0, 0]
-  | 29 => ![20668793340348712369, 0, 0]
-  | 30 => ![20668793340348712369, 0, 0]
-  | _ => ![20668793340348712369, 0, 0]
+/-- Each member's pre-switch seeds, from `vmax`'s, at elaboration time. -/
+def psd8 : List (List ℤ) := eval% preSeedsZ ((List.finRange 32).map famZ) DZ 11 X8 SZ (2 ^ 32) (2 ^ 8) 0 200 sd8
 
-/-- Each member's pre-switch table at `(0, a, true)`. -/
-def preTop8 : Fin 32 → Fin 3 → ℤ := fun k =>
-  match k.val with
-  | 0 => ![20668793340404052602, 0, 0]
-  | 1 => ![20668793340404052602, 0, 0]
-  | 2 => ![20668793340404052602, 0, 0]
-  | 3 => ![20668793340404052602, 0, 0]
-  | 4 => ![20668793340404052602, 0, 0]
-  | 5 => ![20668793340404052602, 0, 0]
-  | 6 => ![20668793340404052602, 0, 0]
-  | 7 => ![20668793340404052602, 0, 0]
-  | 8 => ![20668793340404052602, 0, 0]
-  | 9 => ![20668793340404052602, 0, 0]
-  | 10 => ![20668793340404052602, 0, 0]
-  | 11 => ![20668793340404052602, 0, 0]
-  | 12 => ![20668793340404052602, 0, 0]
-  | 13 => ![20668793340404052602, 0, 0]
-  | 14 => ![20668793340404052602, 0, 0]
-  | 15 => ![20668793340404052602, 0, 0]
-  | 16 => ![20668793340404052602, 0, 0]
-  | 17 => ![20668793340404052602, 0, 0]
-  | 18 => ![20668793340404052602, 0, 0]
-  | 19 => ![20668793340404052602, 0, 0]
-  | 20 => ![20668793340404052602, 0, 0]
-  | 21 => ![20668793340404052602, 0, 0]
-  | 22 => ![20668793340404052602, 0, 0]
-  | 23 => ![20668793340404052602, 0, 0]
-  | 24 => ![20668793340404052602, 0, 0]
-  | 25 => ![20668793340404052602, 0, 0]
-  | 26 => ![20668793340404052602, 0, 0]
-  | 27 => ![20668793340404052602, 0, 0]
-  | 28 => ![20668793340404052602, 0, 0]
-  | 29 => ![20668793340404052602, 0, 0]
-  | 30 => ![20668793340404052602, 0, 0]
-  | _ => ![20668793340404052602, 0, 0]
+def postTop8 (k : Fin 32) : Fin 3 → ℤ := seedL (sd8.getD k.val [])
+def preTop8 (k : Fin 32) : Fin 3 → ℤ := seedL (psd8.getD k.val [])
 
-/-- Each member's in-epoch phase bound. -/
-def eIn8 : Fin 32 → ℚ := fun k =>
-  match k.val with
-  | 0 => (4983941586069 / 5000000000000 : ℚ)
-  | 1 => (996729192799 / 1000000000000 : ℚ)
-  | 2 => (9966689688487 / 10000000000000 : ℚ)
-  | 3 => (9966076245279 / 10000000000000 : ℚ)
-  | 4 => (9965451385941 / 10000000000000 : ℚ)
-  | 5 => (4982407446943 / 5000000000000 : ℚ)
-  | 6 => (4982083274139 / 5000000000000 : ℚ)
-  | 7 => (2490876530987 / 2500000000000 : ℚ)
-  | 8 => (9962833391303 / 10000000000000 : ℚ)
-  | 9 => (4981074058117 / 5000000000000 : ℚ)
-  | 10 => (9961450060023 / 10000000000000 : ℚ)
-  | 11 => (4980369489623 / 5000000000000 : ℚ)
-  | 12 => (124500182821 / 125000000000 : ℚ)
-  | 13 => (2489819186549 / 2500000000000 : ℚ)
-  | 14 => (1991705016533 / 2000000000000 : ℚ)
-  | 15 => (1244719921481 / 1250000000000 : ℚ)
-  | 16 => (9956979345291 / 10000000000000 : ℚ)
-  | 17 => (4978092364609 / 5000000000000 : ℚ)
-  | 18 => (4977687622209 / 5000000000000 : ℚ)
-  | 19 => (9954550606133 / 10000000000000 : ℚ)
-  | 20 => (4976855261969 / 5000000000000 : ℚ)
-  | 21 => (4976427350813 / 5000000000000 : ℚ)
-  | 22 => (9951982837087 / 10000000000000 : ℚ)
-  | 23 => (9951094622181 / 10000000000000 : ℚ)
-  | 24 => (2487547435653 / 2500000000000 : ℚ)
-  | 25 => (49746339389 / 50000000000 : ℚ)
-  | 26 => (2487082175187 / 2500000000000 : ℚ)
-  | 27 => (9947371877907 / 10000000000000 : ℚ)
-  | 28 => (9946397069033 / 10000000000000 : ℚ)
-  | 29 => (4972701963527 / 5000000000000 : ℚ)
-  | 30 => (15538112653 / 15625000000 : ℚ)
-  | _ => (9943361220453 / 10000000000000 : ℚ)
+/-- Each member's in-epoch phase bound: its post-switch table's bound, rounded up, at
+elaboration time. -/
+def eInL8 : List ℚ := eval% eInListQ ((List.finRange 32).map famZ) DZ 11 X8 SZ 13 sd8
 
-def post8Z (k : Fin 32) : ℕ → Fin 3 → Bool → ℤ := fillZ (famZ k) DZ 11 X8 SZ (gFloorZ X8 SZ) (postTop8 k)
-def pre8Z (k : Fin 32) : ℕ → Fin 3 → Bool → ℤ := fillZ (famZ k) DZ 11 X8 SZ vmax8Z (preTop8 k)
+def eIn8 (k : Fin 32) : ℚ := eInL8.getD k.val 0
 
-/-- Every check of member `k`, as one Boolean. -/
-def chkE8Q (k : Fin 32) : Bool :=
-  autoSolZ (famZ k) DZ 11 X8 SZ (post8Z k) && leTabZ 11 (post8Z k) vmax8Z &&
-    preSolZ (famZ k) DZ 11 X8 SZ vmax8Z (pre8Z k) &&
-    decide ((autoBoundZ (famZ k) DZ X8 SZ (post8Z k) : ℚ) ≤ eIn8 k * (X8.M DZ * SZ : ℤ)) &&
-    decide ((autoBoundZ (famZ k) DZ X8 SZ (pre8Z k) : ℚ) ≤ (4983941586069 / 5000000000000 : ℚ) * (X8.M DZ * SZ : ℤ))
+theorem chkE8 : (List.finRange 32).all (chkOneF famZ DZ 11 X8 SZ postTop8 preTop8 eIn8 (4983941586069 / 5000000000000 : ℚ)) = true := by
+  decide +kernel
 
-theorem chkE8_0 : chkE8Q 0 = true := by decide +kernel
-theorem chkE8_1 : chkE8Q 1 = true := by decide +kernel
-theorem chkE8_2 : chkE8Q 2 = true := by decide +kernel
-theorem chkE8_3 : chkE8Q 3 = true := by decide +kernel
-theorem chkE8_4 : chkE8Q 4 = true := by decide +kernel
-theorem chkE8_5 : chkE8Q 5 = true := by decide +kernel
-theorem chkE8_6 : chkE8Q 6 = true := by decide +kernel
-theorem chkE8_7 : chkE8Q 7 = true := by decide +kernel
-theorem chkE8_8 : chkE8Q 8 = true := by decide +kernel
-theorem chkE8_9 : chkE8Q 9 = true := by decide +kernel
-theorem chkE8_10 : chkE8Q 10 = true := by decide +kernel
-theorem chkE8_11 : chkE8Q 11 = true := by decide +kernel
-theorem chkE8_12 : chkE8Q 12 = true := by decide +kernel
-theorem chkE8_13 : chkE8Q 13 = true := by decide +kernel
-theorem chkE8_14 : chkE8Q 14 = true := by decide +kernel
-theorem chkE8_15 : chkE8Q 15 = true := by decide +kernel
-theorem chkE8_16 : chkE8Q 16 = true := by decide +kernel
-theorem chkE8_17 : chkE8Q 17 = true := by decide +kernel
-theorem chkE8_18 : chkE8Q 18 = true := by decide +kernel
-theorem chkE8_19 : chkE8Q 19 = true := by decide +kernel
-theorem chkE8_20 : chkE8Q 20 = true := by decide +kernel
-theorem chkE8_21 : chkE8Q 21 = true := by decide +kernel
-theorem chkE8_22 : chkE8Q 22 = true := by decide +kernel
-theorem chkE8_23 : chkE8Q 23 = true := by decide +kernel
-theorem chkE8_24 : chkE8Q 24 = true := by decide +kernel
-theorem chkE8_25 : chkE8Q 25 = true := by decide +kernel
-theorem chkE8_26 : chkE8Q 26 = true := by decide +kernel
-theorem chkE8_27 : chkE8Q 27 = true := by decide +kernel
-theorem chkE8_28 : chkE8Q 28 = true := by decide +kernel
-theorem chkE8_29 : chkE8Q 29 = true := by decide +kernel
-theorem chkE8_30 : chkE8Q 30 = true := by decide +kernel
-theorem chkE8_31 : chkE8Q 31 = true := by decide +kernel
-
-theorem chkE8 : ∀ k, chkE8Q k = true := fun k => by
-  fin_cases k; exacts [chkE8_0, chkE8_1, chkE8_2, chkE8_3, chkE8_4, chkE8_5, chkE8_6, chkE8_7, chkE8_8, chkE8_9, chkE8_10, chkE8_11, chkE8_12, chkE8_13, chkE8_14, chkE8_15, chkE8_16, chkE8_17, chkE8_18, chkE8_19, chkE8_20, chkE8_21, chkE8_22, chkE8_23, chkE8_24, chkE8_25, chkE8_26, chkE8_27, chkE8_28, chkE8_29, chkE8_30, chkE8_31]
-
-noncomputable def vmax8 : ℕ → Fin 3 → Bool → ℝ := castT (castZ SZ vmax8Z)
-noncomputable def vpreI8 : Fin 32 → ℕ → Fin 3 → Bool → ℝ := fun k => castT (castZ SZ (pre8Z k))
-noncomputable def vpostI8 : Fin 32 → ℕ → Fin 3 → Bool → ℝ := fun k => castT (castZ SZ (post8Z k))
+noncomputable def vmax8 : ℕ → Fin 3 → Bool → ℝ := castT (castZ SZ (vmaxF famZ DZ 11 X8 SZ postTop8))
+noncomputable def vpreI8 : Fin 32 → ℕ → Fin 3 → Bool → ℝ := fun k => castT (castZ SZ (preF famZ DZ 11 X8 SZ postTop8 preTop8 k))
+noncomputable def vpostI8 : Fin 32 → ℕ → Fin 3 → Bool → ℝ := fun k => castT (castZ SZ (postF famZ DZ 11 X8 SZ postTop8 k))
 
 theorem solE8 : AutoSolE fam 11 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 8).1 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 8).2.1 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 8).2.2 vpreI8 vpostI8 vmax8 := by
-  rw [xgQ8]; exact (oneSwitchZ_sound famR famA DZ_pos X8R SZ_pos chkE8).1
+  rw [xgQ8]; exact (oneSwitchF_sound famR famA DZ_pos X8R SZ_pos chkE8).1
 
 theorem heEall8 : ∀ k, autoBound (fam k) (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 8).1 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 8).2.1 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 8).2.2 (vpreI8 k) ≤ (4983941586069 / 5000000000000 : ℝ) := by
-  rw [xgQ8]; exact fun k => ((oneSwitchZ_sound famR famA DZ_pos X8R SZ_pos chkE8).2.2 k).trans_eq (by push_cast; ring)
+  rw [xgQ8]; exact fun k => ((oneSwitchF_sound famR famA DZ_pos X8R SZ_pos chkE8).2.2 k).trans_eq (by push_cast; ring)
 
 theorem heIn8 : ∀ k, autoBound (fam k) (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 8).1 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 8).2.1 (xg (11619 / 10000 : ℝ) (16361 / 10000 : ℝ) (669 / 625 : ℝ) (1091 / 2000 : ℝ) (51 / 50 : ℝ) 8).2.2 (vpostI8 k) ≤ (eIn8 k : ℝ) := by
-  rw [xgQ8]; exact (oneSwitchZ_sound famR famA DZ_pos X8R SZ_pos chkE8).2.1
+  rw [xgQ8]; exact (oneSwitchF_sound famR famA DZ_pos X8R SZ_pos chkE8).2.1
 
 end Cryptarchia.Prob.Certs.E20D11C

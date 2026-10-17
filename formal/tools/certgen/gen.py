@@ -107,3 +107,22 @@ if __name__ == "__main__":
     from certnum import flog10
     print('terms log10 (floor):', [flog10(t) if t > 0 else None for t in g['T']], 'total', flog10(g['total']))
     print('lp', float(g['lp']), 'lr', float(g['lr']), 'b', float(g['b']), 'mz', float(g['mz']))
+
+
+def chain_q(beta, n, upper, d=14, name='ch', hbeta='hβ'):
+    """As `chain`, the same bound and hypothesis name, proved in one step by the kernel
+    (`pow_le_of_powUpQ`, `le_pow_of_powDnQ`, `PowQ.lean`); returns (lines, P, name)."""
+    import powq
+    beta = F(beta)
+    _, P, hyp = chain(beta, n, upper, d=d, name=name, hbeta=hbeta)
+    assert P == (powq.pow_up(d, beta, n) if upper else powq.pow_dn(d, beta, n))
+    qQ = lambda x: f"({x.numerator} / {x.denominator} : ℚ)" if x.denominator != 1 else f"({x.numerator} : ℚ)"
+    if upper:
+        line = (f"  have {hyp} : {lean_q(beta)} ^ {n} ≤ {lean_q(P)} :=\n"
+                f"    pow_le_of_powUpQ (bq := {qQ(beta)}) (q := {qQ(P)}) {d} {n} (by norm_num) (by norm_num) (by norm_num)\n"
+                f"      (by decide +kernel)")
+    else:
+        line = (f"  have {hyp} : {lean_q(P)} ≤ {lean_q(beta)} ^ {n} :=\n"
+                f"    le_pow_of_powDnQ (bq := {qQ(beta)}) (q := {qQ(P)}) {d} {n} (by norm_num) (by norm_num) (by norm_num)\n"
+                f"      (by decide +kernel)")
+    return [line], P, hyp
