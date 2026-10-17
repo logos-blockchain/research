@@ -39,8 +39,7 @@ public import Cryptarchia.Prob.TSIRO
 
 `recur_of`: the stake estimate's update (`Recur`) from statements about the canonical
 chain. `inB0_of_genesis`: genesis in band for every execution, from the genesis state.
-The multi-epoch theorem is `finality_tight` (`Prob/FinalTight`), restated from plain
-assumptions as `finality` (`Prob/Finality`).
+The multi-epoch theorem is `finality` (`Prob/Finality`).
 -/
 
 @[expose] public section

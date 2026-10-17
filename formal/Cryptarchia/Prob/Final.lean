@@ -59,6 +59,10 @@ def slots (w : CStr) (M : ℕ) : List Out := (List.range M).map fun i => enc (w 
 
 theorem slots_length (w : CStr) (M : ℕ) : (slots w M).length = M := by simp [slots]
 
+theorem slots_take (w : CStr) {m n : ℕ} (h : m ≤ n) : (slots w n).take m = slots w m := by
+  unfold slots
+  rw [← List.map_take, List.take_range, min_eq_left h]
+
 theorem slots_get (w : CStr) (M k : ℕ) (hk : k < (slots w M).length) :
     (slots w M)[k] = enc (w (k + 1)) := by
   simp [slots]

@@ -39,7 +39,6 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.Prob.lottery_law_epoch_dec
 #print axioms Cryptarchia.Prob.prob_out_of_band_cover
 #print axioms Cryptarchia.Prob.lift_bad
-#print axioms Cryptarchia.Prob.finality_tight
 #print axioms Cryptarchia.Prob.finality
 #print axioms Cryptarchia.Prob.settleEps3E_closed
 #print axioms Cryptarchia.Prob.bandEps_closed
