@@ -1,12 +1,8 @@
 # Cryptarchia certificate generator
 
-Generates `formal/Cryptarchia/Prob/Certs/*.lean`: numeric certificates for `final_bimm_prob2`.
+Generates `formal/Cryptarchia/Prob/Certs/*.lean`: the finality certificates, instances of `Prob.finality` (`emitE.py`, at the specification) and of its closed form (`emitC.py`, every depth).
 
-- `plan.py BETA DELTA` picks parameters and prints a JSON plan. It runs a float search that minimises `lp`, then splits the error between spans, failed checks and crowded windows.
-- `mkcfg.py BETA DELTA NAME OUTDIR` rounds the plan. It builds the exact certificate (`cert2.py`: automaton solutions in rationals, mirroring `Auto.lean` / `Cold2.lean`) and writes the Lean file (`emit2.py`) at the best power-of-ten bound.
-- `auto.py`, `eps5.py` are the float models; `certnum.py`, `gen.py` hold the rounding and the repeated-squaring power chains; `powq.py` mirrors the computed powers of `Prob/CertGen.lean` (`powUpQ`).
-
-Example: `python3 plan.py 0.3 11 > plan_0.3_11.json && python3 mkcfg.py 0.3 11 B30D11 ../../Cryptarchia/Prob/Certs`
+- `plan.py` picks the potential's parameters by a float search that minimises the contraction `lp` (`auto.py`, `eps5.py` are its float models); `cert2.py` holds the exact automaton solutions in rationals; `certnum.py` the rounding, `gen.py` the repeated-squaring power chains; `emit_gen.py` a member's band (`memberOfQ`); `powq.py` mirrors the computed powers of `Prob/CertGen.lean` (`powUpQ`).
 
 ## Multi-epoch certificates (`Cert3E`)
 
