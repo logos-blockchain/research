@@ -108,6 +108,35 @@ theorem swCnt_succ_pos (Sw : ℕ → Prop) {t T : ℕ} (hs : Sw t) (ht : t < T) 
   rw [← Finset.insert_Ico_add_one_left_eq_Ico ht, Finset.filter_insert, if_pos hs,
     Finset.card_insert_of_notMem (by simp)]
 
+/-! ## The phase bounds -/
+
+/-- **Phase bounds** under `κ` up to the horizon `M`: those of the reach recursion (`lr`,
+`b`), of a check (`e 2`) and of a span (`e 17`) for any phase, and the others for phases
+cut at `G` slots. -/
+structure PhaseBounds (κ : Kern) (M G : ℕ) (P : Cert2 B Δ) : Prop where
+  r0 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 0 h.length) h ≤ P.lr
+  r1 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 1 h.length) h ≤ P.b
+  c2 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 2 h.length) h ≤ P.e 2
+  s17 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 17 h.length) h ≤ P.e 17
+  cut : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ h, PE Δ M h → h.length < M →
+    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ P.e i
+
+theorem PhaseBounds.e2_nonneg {G : ℕ} {P : Cert2 B Δ} (hb : PhaseBounds κ M G P) (hM : 0 < M) : 0 ≤ P.e 2 :=
+  le_trans (ExPh_nonneg _ _ (fun y => WP_nonneg P 2 0 y (by decide)) _) (hb.c2 [] (pe_nil hM) (by simpa using hM))
+
+/-- **An in-epoch contraction** `lpi ≤ lp`: a phase that starts at a slot outside `Sw`
+meets the class conditions with `lpi`, through phase bounds `e` and a crossing bound
+`pat` of its own; any `L` slots hold at most `Ccap` slots of `Sw`. -/
+structure InEpoch (κ : Kern) (M G : ℕ) (P : Cert2 B Δ) (lpi : ℝ) (Sw : ℕ → Prop) (L Ccap : ℕ) : Prop where
+  pos : 0 < lpi
+  le_lp : lpi ≤ P.lp
+  cap : ∀ t, swCnt Sw t (t + L) ≤ Ccap
+  cls : ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ Sw h.length → ∃ (e : Fin 19 → ℝ) (pat : ℝ),
+    ClassOK P.c P.z P.s P.κ P.d lpi e pat ∧
+    pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h ∧
+    ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
+      ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ e i
+
 variable (Δ M) in
 open Classical in
 /-- A failed check at phase `k`, anchored at `k0`, counted only without long phases and
@@ -132,18 +161,7 @@ noncomputable def ΦfE3 (P : Cert2 B Δ) (lpi : ℝ) (Sw : ℕ → Prop) (Ccap G
 
 /-- **The potential is a supermartingale over phases.** -/
 theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 ≤ G)
-    (hR0 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 0 h.length) h ≤ P.lr)
-    (hR1 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 1 h.length) h ≤ P.b)
-    (hC2 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 2 h.length) h ≤ P.e 2)
-    (hE : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ h, PE Δ M h → h.length < M →
-      ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ P.e i)
-    {lpi : ℝ} (hlpi0 : 0 < lpi) (hlpi : lpi ≤ P.lp)
-    (Sw : ℕ → Prop) {Ccap L : ℕ} (hcap : ∀ t, swCnt Sw t (t + L) ≤ Ccap)
-    (hIn : ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ Sw h.length → ∃ (e : Fin 19 → ℝ) (pat : ℝ),
-      ClassOK P.c P.z P.s P.κ P.d lpi e pat ∧
-      pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h ∧
-      ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
-        ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ e i)
+    (hb : PhaseBounds κ M G P) {lpi : ℝ} {Sw : ℕ → Prop} {Ccap L : ℕ} (hI : InEpoch κ M G P lpi Sw L Ccap)
     {Hc : ℕ} (hHc : Hc + Δ + 1 ≤ M) {k0 k : ℕ}
     (hk0 : k0 ≤ k) {h : List Out} (hpe : PE Δ M h) (hlM : h.length < M) :
     ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k) h ≤ ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h := by
@@ -151,8 +169,9 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
   have hM : 0 < M := by omega
   have hc0 : 0 < P.c := by linarith [P.hc]
   have hz0 : 0 < P.z := by linarith [P.hz]
-  have he2 : 0 ≤ P.e 2 := le_trans (ExPh_nonneg _ _ (fun y => WP_nonneg P 2 0 y (by decide)) _)
-    (hC2 [] (pe_nil hM) (by simpa using hM))
+  have he2 := hb.e2_nonneg hM
+  obtain ⟨hR0, hR1, hC2, -, hE⟩ := hb
+  obtain ⟨hlpi0, hlpi, hcap, hIn⟩ := hI
   have hlp := P.hlp0
   have hRg1 : 1 ≤ P.lp / lpi := by rw [le_div_iff₀ hlpi0]; linarith
   have hRg0 : 0 ≤ P.lp / lpi := by linarith
@@ -410,34 +429,23 @@ theorem failHE3_le_phi (P : Cert2 B Δ) (he2 : 0 ≤ P.e 2) {lpi : ℝ} (hlpi0 :
 
 /-- **A failed check is rare**, with an in-epoch contraction. -/
 theorem fail_checkE3 (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 ≤ G)
-    (hR0 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 0 h.length) h ≤ P.lr)
-    (hR1 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 1 h.length) h ≤ P.b)
-    (hC2 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 2 h.length) h ≤ P.e 2)
-    (hE : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ h, PE Δ M h → h.length < M →
-      ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ P.e i)
-    {lpi : ℝ} (hlpi0 : 0 < lpi) (hlpi : lpi ≤ P.lp)
-    (Sw : ℕ → Prop) {Ccap L : ℕ} (hcap : ∀ t, swCnt Sw t (t + L) ≤ Ccap)
-    (hIn : ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ Sw h.length → ∃ (e : Fin 19 → ℝ) (pat : ℝ),
-      ClassOK P.c P.z P.s P.κ P.d lpi e pat ∧
-      pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h ∧
-      ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
-        ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ e i)
+    (hb : PhaseBounds κ M G P) {lpi : ℝ} {Sw : ℕ → Prop} {Ccap L : ℕ} (hI : InEpoch κ M G P lpi Sw L Ccap)
     {Hc : ℕ} (hHc : Hc + Δ + 1 ≤ M) {k0 k : ℕ} (hk0 : k0 ≤ k) :
     Ex κ M (failHE3 Δ M G L Hc k0 k) [] ≤
       lpi ^ (k - k0) * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
   classical
   have hM : 0 < M := by omega
   have hc0 : 0 < P.c := by linarith [P.hc]
-  have he2 : 0 ≤ P.e 2 := le_trans (ExPh_nonneg _ _ (fun y => WP_nonneg P 2 0 y (by decide)) _)
-    (hC2 [] (pe_nil hM) (by simpa using hM))
+  have he2 := hb.e2_nonneg hM
   have hlp := P.hlp0
-  have hRg1 : 1 ≤ P.lp / lpi := by rw [le_div_iff₀ hlpi0]; linarith
+  have hlpi0 := hI.pos
+  have hRg1 : 1 ≤ P.lp / lpi := by rw [le_div_iff₀ hlpi0]; linarith [hI.le_lp]
   have hF : 0 ≤ lpi ^ (k - k0) * (P.lp / lpi) ^ Ccap * P.e 2 := by positivity
   calc Ex κ M (failHE3 Δ M G L Hc k0 k) [] ≤ Ex κ M (ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k) [] :=
         Ex_mono M (failHE3_le_phi P he2 hlpi0 Sw hk0) []
     _ ≤ ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k [] := by
         have := Ex_phase (κ := κ) (PE Δ M) (Φ := ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k) (M := M)
-          (fun h hpe hlM => phiFE3_step P hW hG hR0 hR1 hC2 hE hlpi0 hlpi Sw hcap hIn hHc hk0 hpe hlM)
+          (fun h hpe hlM => phiFE3_step P hW hG hb hI hHc hk0 hpe hlM)
           (pe_nil hM) (by simp)
         simpa using this
     _ ≤ _ := by
@@ -458,7 +466,7 @@ theorem fail_checkE3 (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 
           unfold rf rho0
           simp only [runFrom, Nat.sub_zero, Nat.sub_self]
           rw [hb0, V2_warm (show (0 : ℤ) ≤ ((0 : ℤ), (0 : ℤ)).2 from le_rfl), zpow_zero, mul_one]
-          have hcnt : swCnt Sw ([] : List Out).length (0 + L) ≤ Ccap := by simpa using hcap 0
+          have hcnt : swCnt Sw ([] : List Out).length (0 + L) ≤ Ccap := by simpa using hI.cap 0
           have : 0 ≤ (P.b - 1) / (1 - P.lr) := div_nonneg (by linarith [P.hb1]) (by linarith [P.hlr1])
           calc lpi ^ (k - 0) * (P.lp / lpi) ^ swCnt Sw ([] : List Out).length (0 + L) * P.e 2
               ≤ lpi ^ (k - 0) * (P.lp / lpi) ^ Ccap * P.e 2 :=

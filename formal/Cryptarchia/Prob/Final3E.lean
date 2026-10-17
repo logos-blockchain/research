@@ -107,14 +107,17 @@ section Derive
 variable {K EL G : ℕ} {fam : Fin K → Band} (D : Cert3E B Δ fam EL G) (hκ : κ.EpochFam EL fam)
 include D hκ
 
-/-- **A phase inside an epoch**: the starting member's class conditions, crossing bound
-and own-table phase bounds. -/
-theorem Cert3E.inEpoch : ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ ¬ NoSw EL G h.length →
-    ∃ (e : Fin 19 → ℝ) (pat : ℝ), ClassOK D.C.P.c D.C.P.z D.C.P.s D.C.P.κ D.C.P.d D.lpi e pat ∧
-      pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h ∧
-      ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
-        ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP D.C.P i h.length)) h ≤ e i := by
-  intro h hpe hlM hnb
+/-- **The phase bounds** of the certificate. -/
+theorem Cert3E.bounds : PhaseBounds κ M G D.C.P :=
+  ⟨D.C.anyPhase hκ 0 (by decide) D.C.heS0, D.C.anyPhase hκ 1 (by decide) D.C.heS1,
+    D.C.anyPhase hκ 2 (by decide) D.C.heS2, D.C.anyPhase hκ 17 (by decide) D.C.heS17, D.C.truncPhase hκ⟩
+
+/-- **The in-epoch contraction**: a phase that starts more than `G` slots before an epoch
+boundary meets the starting member's class conditions, through its crossing bound and
+own-table phase bounds. -/
+theorem Cert3E.inEpoch {Lw : ℕ} (hLw : Lw + G < EL) :
+    InEpoch κ M G D.C.P D.lpi (fun t => ¬ NoSw EL G t) Lw G := by
+  refine ⟨D.hlpi0, D.hlpi, swCnt_noSw_le (by omega) hLw, fun h hpe hlM hnb => ?_⟩
   obtain ⟨mem, hband, hmem⟩ := hκ
   have hG1 : 1 ≤ G := by have := D.C.hG; have := D.C.P.hΔ; omega
   refine ⟨D.ei (mem h), D.pat0 (mem h), D.hcl (mem h),

@@ -244,19 +244,7 @@ noncomputable def settleEps3E (E : Env) (B : Band) (P : Cert2 B Δ) (lpi : ℝ) 
 
 theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ) (hB : κ.Within B)
     {G G' J Lw r T : ℕ} (hG : Δ + 1 ≤ G)
-    (hR0 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 0 h.length) h ≤ P.lr)
-    (hR1 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 1 h.length) h ≤ P.b)
-    (hC2 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 2 h.length) h ≤ P.e 2)
-    (h17 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 17 h.length) h ≤ P.e 17)
-    (hE : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ h, PE Δ M h → h.length < M →
-      ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ P.e i)
-    {lpi : ℝ} (hlpi0 : 0 < lpi) (hlpi : lpi ≤ P.lp)
-    (Sw : ℕ → Prop) {Ccap : ℕ} (hcap : ∀ t, swCnt Sw t (t + Lw) ≤ Ccap)
-    (hIn : ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ Sw h.length → ∃ (e : Fin 19 → ℝ) (pat : ℝ),
-      ClassOK P.c P.z P.s P.κ P.d lpi e pat ∧
-      pat ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h ∧
-      ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
-        ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ e i)
+    (hb : PhaseBounds κ M G P) {lpi : ℝ} {Sw : ℕ → Prop} {Ccap : ℕ} (hI : InEpoch κ M G P lpi Sw Lw Ccap)
     {x yy : ℝ} (hx : 1 ≤ x) (hyy0 : 0 < yy) (hyy1 : yy ≤ 1) (hT : 1 ≤ T)
     (hNM : N + G + G' + Δ + 2 ≤ M)
     (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (hlo1 : B.hlo ≤ 1) (helo1 : B.elo ≤ 1) :
@@ -305,13 +293,13 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
   have e3 : ∀ k ∈ Finset.range (N + G' + 1), Ex κ M (spanH Δ M P.τ (k - J) (k + 1)) [] ≤ P.e 17 ^ (J + 1) := by
     intro k hk
     have h1 : k - J ≤ k + 1 := Nat.le_succ_of_le (Nat.sub_le k J)
-    refine (span_bound' P h17 hM h1).trans (pow_le_pow_right₀ P.he17 ?_)
+    refine (span_bound' P hb.s17 hM h1).trans (pow_le_pow_right₀ P.he17 ?_)
     omega
   have e4 : ∀ k ∈ Finset.Icc J (N + G'), Ex κ M (failHE3 Δ M G Lw (N + G') (k - J) k) [] ≤
       lpi ^ J * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
     intro k hk
     rw [Finset.mem_Icc] at hk
-    have := fail_checkE3 (M := M) P hB hG hR0 hR1 hC2 hE hlpi0 hlpi Sw hcap hIn (Hc := N + G') (by omega)
+    have := fail_checkE3 (M := M) P hB hG hb hI (Hc := N + G') (by omega)
       (k0 := k - J) (k := k) (by omega)
     rwa [show k - (k - J) = J by omega] at this
   have e5 : ∀ t ∈ Finset.range (N + 1), Ex κ M (winF Lw x t) [] ≤ (1 + (x - 1) * (1 - B.elo)) ^ Lw := by
@@ -328,7 +316,7 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
     have := mul_nonneg (by linarith : (0 : ℝ) ≤ x - 1) (by linarith : (0 : ℝ) ≤ 1 - B.elo)
     linarith
   have e6 : ∀ j0 ∈ Finset.range (N + G + 1), Ex κ M (reachH2 Δ M P.c j0) [] ≤ 1 + (P.b - 1) / (1 - P.lr) :=
-    fun j0 _ => reach_tail2' P hR0 hR1 hM j0
+    fun j0 _ => reach_tail2' P hb.r0 hb.r1 hM j0
   have e7 : ∀ ep ∈ Finset.Icc 1 (nEp E N), Ex κ M (depthF yy (E.c.cut ep + G) (T + Δ) T (nbD E Δ G T)) [] ≤
       (1 + (yy - 1) * PT 1 yy B.hlo B.hhi T) ^ nbD E Δ G T := by
     intro ep hep
@@ -374,10 +362,9 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
     rw [Nat.card_Icc]; push_cast; have : (↑(N + G' + 1 - J) : ℝ) ≤ ↑(N + G' + 1) := by exact_mod_cast Nat.sub_le _ _
     push_cast at this; linarith
   have hfail0 : 0 ≤ lpi ^ J * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
-    have h1 : 0 ≤ P.e 2 := le_trans (ExPh_nonneg _ _ (fun y => WP_nonneg P 2 0 y (by decide)) _)
-      (hC2 [] (pe_nil hM) (by simpa using hM))
+    have h1 := hb.e2_nonneg hM
     have h2 : 0 ≤ (P.b - 1) / (1 - P.lr) := div_nonneg (by linarith [P.hb1]) (by linarith [P.hlr1])
-    exact mul_nonneg (mul_nonneg (mul_nonneg (pow_nonneg hlpi0.le _) (pow_nonneg (div_nonneg P.hlp0 hlpi0.le) _)) h1)
+    exact mul_nonneg (mul_nonneg (mul_nonneg (pow_nonneg hI.pos.le _) (pow_nonneg (div_nonneg P.hlp0 hI.pos.le) _)) h1)
       (by linarith)
   simp only [Finset.sum_const, Finset.card_range, Nat.card_Icc, nsmul_eq_mul] at s1 s2 s3 s4 s5 s6 s7
   have s4' : ((N + G' + 1 - J : ℕ) : ℝ) * (lpi ^ J * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr))) ≤
