@@ -210,14 +210,7 @@ theorem cons_par (hA : Assm E) {b : ℕ} (hb : Rooted (wF E es).st b) (hK : Cons
   have hw := wAt_ok (es := es) hA.ord es.length
   have hS := hw.store
   intro e he hs
-  have hpb : parentOf (wF E es).st b ∈ chainIds (wF E es).st b := by
-    rcases eq_or_ne b genesisId with h0 | h0
-    · subst h0; obtain ⟨g, hg, -, hgp⟩ := hS.gen; rw [parentOf_eq hg, hgp]
-      exact self_mem_chainIds hS hb
-    · obtain ⟨blk, hbk, hpr, hsl⟩ := hb.inv h0
-      rw [parentOf_eq hbk]
-      unfold chainIds; rw [chain_step hbk h0 hpr hsl]; simp
-      right; simpa [chainIds] using self_mem_chainIds hS hpr
+  have hpb := parent_mem_chainIds hS hb
   have hsb := slot_anc_le hS hb hpb
   have hcut : E.c.cut e ≤ slotOf (wF E es).st (parentOf (wF E es).st b) + 1 := by
     have := cut_le_start hA.sane he; omega

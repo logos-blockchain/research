@@ -191,22 +191,6 @@ theorem onBlock_keep (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O G
     · exact hx
     · by_contra hn; exact hacc ⟨hn, hv⟩
 
-/-- Slots do not increase towards genesis. -/
-theorem slot_anc_le (hS : StoreOK st) {a b : ℕ} (hb : Rooted st b) (ha : a ∈ chainIds st b) :
-    slotOf st a ≤ slotOf st b := by
-  obtain ⟨j, -, rfl⟩ := (mem_chainIds hS hb).1 ha
-  clear ha
-  induction j generalizing b with
-  | zero => simp
-  | succ j ih =>
-    rw [Function.iterate_succ_apply]
-    have hp := hb.parent_rooted hS.genSelf
-    refine le_trans (ih hp) ?_
-    rcases eq_or_ne b genesisId with h0 | h0
-    · subst h0; obtain ⟨g, hg, -, hgp⟩ := hS.gen; rw [parentOf_eq hg, hgp]
-    · obtain ⟨blk, hbk, -, hs⟩ := hb.inv h0
-      rw [parentOf_eq hbk, slotOf_eq hbk]; exact hs.le
-
 theorem Near.mono {now H0 H1 h z : ℕ} (hn : Near c L O G st now H0 h z) (hle : H0 ≤ H1) :
     Near c L O G st now H1 h z := fun cl hg hh hz => hn cl hg (le_trans hle hh) hz
 
@@ -270,9 +254,8 @@ theorem fold_chain : ∀ a, Rooted st a → a ∈ chainIds st h → ∀ s, FoldI
     intro hah s hs
     have hid := hS.idOK _ _ hA
     have har : Rooted st a := Rooted.step a A hA hne hpar hslot
-    have hpc : A.hdr.parent ∈ chainIds st a := by
-      unfold chainIds; rw [chain_step hA hne hpar hslot]; simp [(hS.idOK _ _ hA)]
-      right; exact self_mem_chainIds hS hpar |> fun h => by simpa [chainIds] using h
+    have hpc := parent_mem_chainIds hS har
+    rw [parentOf_eq hA] at hpc
     have hph : A.hdr.parent ∈ chainIds st h := chainIds_trans hS hhr hah hpc
     obtain ⟨hi1, hi2, hi3⟩ := ih hph s hs
     rw [chainUp_step hA hne hpar hslot, List.foldl_append]
@@ -281,8 +264,7 @@ theorem fold_chain : ∀ a, Rooted st a → a ∈ chainIds st h → ∀ s, FoldI
     have hA' : st A.hdr.id = some A := by rw [hid]; exact hA
     have hinv := onBlock_inv hS hi1 fastPath ord hord A hA'
     have hbm' := bimm_on hS hinv hhr hnear
-    have hchainA : chainIds st a = a :: chainIds st A.hdr.parent := by
-      unfold chainIds; rw [chain_step hA hne hpar hslot]; simp [hid]
+    have hchainA := chainIds_step hS hA hne hpar hslot
     refine ⟨hinv, ?_, ?_⟩
     · -- every block of `a`'s chain is kept or added
       have hkeep : ∀ x ∈ chainIds st a, x ∈ sp.tree ∨ x = a →
@@ -374,9 +356,8 @@ theorem claimB {b : ℕ} (hbr : Rooted st b) (hhb : h ∈ chainIds st b) {s : No
   have hsplit : sh = onBlock c st L O G fastPath ord now
       ((chainUp st H.hdr.parent).foldl (onBlock c st L O G fastPath ord now) s) H := by
     simp only [sh, chainUp_step hH h0 hpar hslot, List.foldl_append, List.foldl_cons, List.foldl_nil]
-  have hpc : H.hdr.parent ∈ chainIds st h := by
-    unfold chainIds; rw [chain_step hH h0 hpar hslot]; simp
-    right; simpa [chainIds] using self_mem_chainIds hS hpar
+  have hpc := parent_mem_chainIds hS hhr
+  rw [parentOf_eq hH] at hpc
   obtain ⟨hp1, hp2, hp3⟩ := fold_chain hS hhr hvalh hslh hnear fastPath ord hord H.hdr.parent hpar hpc s hs
   set sp := (chainUp st H.hdr.parent).foldl (onBlock c st L O G fastPath ord now) s
   have hnotp : h ∉ sp.tree := by

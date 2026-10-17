@@ -161,26 +161,9 @@ include hS
 
 theorem GoodAt.parent {N b : ℕ} (h : GoodAt c L O G st N b) : GoodAt c L O G st N (parentOf st b) := by
   obtain ⟨hr, hsl, hv⟩ := h
-  have hpr := hr.parent_rooted hS.genSelf
-  have hpc : parentOf st b ∈ chainIds st b := by
-    rw [mem_chainIds hS hr]
-    rcases eq_or_ne b genesisId with h0 | h0
-    · subst h0; exact ⟨0, Nat.zero_le _, by
-        obtain ⟨g, hg, -, hgp⟩ := hS.gen; simp [parentOf_eq hg, hgp]⟩
-    · refine ⟨1, ?_, rfl⟩
-      obtain ⟨blk, hbk, hp, hs⟩ := hr.inv h0
-      rw [height_step hbk h0 hp hs]; omega
-  refine ⟨hpr, ?_, fun x hx => hv x (chainIds_trans hS hr hpc hx)⟩
-  have := (anc_height hS hr hpc)
-  -- the parent's slot is at most the block's
-  rcases eq_or_ne b genesisId with h0 | h0
-  · subst h0
-    obtain ⟨g, hg, -, hgp⟩ := hS.gen
-    rw [parentOf_eq hg, hgp]; exact hsl
-  · obtain ⟨blk, hbk, hp, hs⟩ := hr.inv h0
-    rw [parentOf_eq hbk]
-    rw [slotOf_eq hbk] at hsl
-    omega
+  have hpc := parent_mem_chainIds hS hr
+  exact ⟨(anc_height hS hr hpc).1, le_trans (slot_anc_le hS hr hpc) hsl,
+    fun x hx => hv x (chainIds_trans hS hr hpc hx)⟩
 
 theorem good_genesis (N : ℕ) : GoodAt c L O G st N genesisId := by
   refine ⟨hS.rooted_gen, by rw [slotOf_genesis hS]; omega, ?_⟩

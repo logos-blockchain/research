@@ -104,6 +104,28 @@ theorem parent_mem_chainIds (hS : StoreOK st) {b : ℕ} (hb : Rooted st b) :
     obtain ⟨blk, hbk, hp, hs⟩ := hb.inv h0
     rw [height_step hbk h0 hp hs]; omega
 
+theorem chainIds_step (hS : StoreOK st) {b : ℕ} {blk : Block} (hb : st b = some blk)
+    (hne : b ≠ genesisId) (hpar : Rooted st blk.hdr.parent)
+    (hslot : slotOf st blk.hdr.parent < blk.hdr.slot) :
+    chainIds st b = b :: chainIds st blk.hdr.parent := by
+  unfold chainIds; rw [chain_step hb hne hpar hslot]; simp [hS.idOK _ _ hb]
+
+/-- Slots do not increase towards genesis. -/
+theorem slot_anc_le (hS : StoreOK st) {a b : ℕ} (hb : Rooted st b) (ha : a ∈ chainIds st b) :
+    slotOf st a ≤ slotOf st b := by
+  obtain ⟨j, -, rfl⟩ := (mem_chainIds hS hb).1 ha
+  clear ha
+  induction j generalizing b with
+  | zero => simp
+  | succ j ih =>
+    rw [Function.iterate_succ_apply]
+    have hp := hb.parent_rooted hS.genSelf
+    refine le_trans (ih hp) ?_
+    rcases eq_or_ne b genesisId with h0 | h0
+    · subst h0; obtain ⟨g, hg, -, hgp⟩ := hS.gen; rw [parentOf_eq hg, hgp]
+    · obtain ⟨blk, hbk, -, hs⟩ := hb.inv h0
+      rw [parentOf_eq hbk, slotOf_eq hbk]; exact hs.le
+
 /-! ## Trees, tips and pruning -/
 
 /-- The fork-choice result is the running choice or one of the forks. -/
@@ -187,9 +209,7 @@ theorem exists_tip (hS : StoreOK st) {T : List ℕ} (hT : ∀ x ∈ T, Rooted st
   have hh := height_step hbk hc0 hpr hsl
   rw [hpar] at hh
   have hyc : y ∈ chainIds st c := by
-    have : chainIds st c = c :: chainIds st t := by
-      unfold chainIds; rw [chain_step hbk hc0 hpr hsl, hpar]; simp [hS.idOK _ _ hbk]
-    rw [this]; exact List.mem_cons_of_mem _ (by simpa using hyt)
+    rw [chainIds_step hS hbk hc0 hpr hsl, hpar]; exact List.mem_cons_of_mem _ (by simpa using hyt)
   have := htmax c (List.mem_toFinset.2 (List.mem_filter.2 ⟨hc, by simpa using hyc⟩))
   omega
 
@@ -218,8 +238,7 @@ theorem prune_closed (hS : StoreOK st) {T : List ℕ} {B : ℕ} (hT : ∀ y ∈ 
     exact hxB (genesis_mem_chainIds hS hB)
   obtain ⟨blk, hbk, hpr, hsl⟩ := hyr.inv hy0
   have hchain : chainIds st y = y :: chainIds st (parentOf st y) := by
-    unfold chainIds; rw [chain_step hbk hy0 hpr hsl, parentOf_eq hbk]
-    simp [hS.idOK _ _ hbk]
+    rw [chainIds_step hS hbk hy0 hpr hsl, parentOf_eq hbk]
   -- `y` is removed by any tip above it
   obtain ⟨t, htip, hyt⟩ := exists_tip hS hT hy
   have ht := hT t (List.mem_of_mem_filter htip)
