@@ -114,9 +114,6 @@ def slotOut (E : Env) (i : ℕ) (s : EpochState) (T : Tab) : Out :=
 /-- Slot `i`'s ticket table. -/
 def tk {Ω : Type*} (O : Ω → Oracle) (i : ℕ) (ω : Ω) : Tab := fun η id => (O ω).ticket η i id
 
-/-- The environment with oracle `O`. -/
-def _root_.Cryptarchia.Env.withO (E : Env) (O : Oracle) : Env := { E with O := O }
-
 /-- Under Δ-delivery, the lottery string is the slot outcomes. -/
 theorem enc_lotStr {E : Env} {O : Oracle} {es : List Event} (hD : DeltaDelivery (E.withO O) es) (i : ℕ) :
     enc (lotStr (E.withO O) es i) = slotOut E i (σE (E.withO O) es i) (fun η id => O.ticket η i id) := by
@@ -565,28 +562,18 @@ theorem slot_law (hO : RandomOracle μ O E.c.p) (hnd : E.nodes.Nodup) (i : ℕ) 
   rw [hset]
   fin_cases h <;> cases b <;> simp [prodLaw, qhRO, qaRO, a0, a1, a2, b0, b1, b2]
 
-/-- The assumptions do not involve the oracle. -/
-theorem _root_.Cryptarchia.Assm.withO {E : Env} (h : Assm E) (O : Oracle) : Assm (E.withO O) :=
-  ⟨h.ord, h.crash, h.exec, h.nodup, h.sane, h.stake⟩
-
-/-- The good event does not involve the oracle. -/
-theorem goodLS_withO {E : Env} {O : Oracle} {w : CStr} {N Lw : ℕ} {e : ℕ → ℕ} (h : GoodLS E w N Lw e) :
-    GoodLS (E.withO O) w N Lw e :=
-  ⟨h.e0, h.mono, h.quiet, h.unb, h.cold, h.window⟩
-
 /-! ## From an unsafe execution to an event closed under adversarial slots -/
 
-/-- **Unsafe executions are bad for every dominating outcome list.** If an execution
-is unsafe, then every outcome list with the lottery string's honest leaders and at
-least its adversarial slots fails the good event. -/
-theorem unsafe_up (E : Env) (hA : Assm E) {es : List Event} {N M Lw r G : ℕ} (hNF : (wF E es).now ≤ N)
-    (hNM : N + G < M) (hU : Unsafe E es) {l' : List Out}
-    (hl : List.Forall₂ OutLe (slots (lotStr E es) M) l') : ¬ GoodCap E N M Lw r G (strOf l') := by
-  intro hg
-  obtain ⟨w, hdom, hgw⟩ :=
-    good_dom E (by omega) (fun ep hep _ => by have := (hA.sane.fix_ok ep hep).1; omega) hl hg
+/-- **An unsafe execution's lottery string fails the good event robustly**: every
+outcome list with its honest leaders and at least its adversarial slots fails it. -/
+theorem unsafe_up (E : Env) (hA : Assm E) {O : Oracle} {es : List Event} {N M Lw r G : ℕ}
+    (hNF : (wF (E.withO O) es).now ≤ N) (hNM : N + G < M) (hU : Unsafe (E.withO O) es) :
+    slots (lotStr (E.withO O) es) M ∈ RBad E N M Lw r G := by
+  intro l' hl hg
+  obtain ⟨w, hdom, hgw⟩ := good_dom (E.withO O) (by omega)
+    (fun ep hep _ => by have := ((hA.withO O).sane.fix_ok ep hep).1; omega) hl hg.withO
   obtain ⟨n, n', i, j, hnn, hn', hi, hj, hio, hjo, hb⟩ := hU
-  exact hb (final_bimm_dom hA hNF hdom hgw.1 hgw.2 hnn hn' hi hj hio hjo)
+  exact hb (final_bimm_dom (hA.withO O) hNF hdom hgw.1 hgw.2 hnn hn' hi hj hio hjo)
 
 /-! ## Probabilistic finality from the random oracle -/
 

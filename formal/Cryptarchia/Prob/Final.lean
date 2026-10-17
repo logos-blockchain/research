@@ -117,6 +117,18 @@ def Unsafe (E : Env) (es : List Event) : Prop :=
     E.online i (wAt E es n').now = true ∧ E.online j (wAt E es n').now = true ∧
     ((wAt E es n).node i).bimm ∉ chainIds (wAt E es n').st ((wAt E es n').node j).cloc
 
+/-- The environment with oracle `O`. -/
+def _root_.Cryptarchia.Env.withO (E : Env) (O : Oracle) : Env := { E with O := O }
+
+/-- The assumptions do not involve the oracle. -/
+theorem _root_.Cryptarchia.Assm.withO {E : Env} (h : Assm E) (O : Oracle) : Assm (E.withO O) :=
+  ⟨h.ord, h.crash, h.exec, h.nodup, h.sane, h.stake⟩
+
+/-- The good event does not involve the oracle. -/
+theorem goodLS_withO {E : Env} {O : Oracle} {w : CStr} {N Lw : ℕ} {e : ℕ → ℕ} (h : GoodLS E w N Lw e) :
+    GoodLS (E.withO O) w N Lw e :=
+  ⟨h.e0, h.mono, h.quiet, h.unb, h.cold, h.window⟩
+
 section
 
 variable {w : CStr}
@@ -288,6 +300,10 @@ theorem good_horizon_mono {w : CStr} {N N' M Lw r G : ℕ} (hN : N' ≤ N) (hg :
 def RBad (N M Lw r G : ℕ) : Set (List Out) :=
   {l | ∀ l', List.Forall₂ OutLe l l' → ¬ GoodCap E N M Lw r G (strOf l')}
 
+theorem GoodCap.withO {O : Oracle} {N M Lw r G : ℕ} (h : GoodCap E N M Lw r G w) :
+    GoodCap (E.withO O) N M Lw r G w :=
+  ⟨goodLS_withO h.1, h.2⟩
+
 theorem RBad.upClosed {N M Lw r G : ℕ} : UpClosed (RBad E N M Lw r G) :=
   fun _ _ h hl l' h' => hl l' (forall₂_trans h h')
 
@@ -311,19 +327,19 @@ theorem lift_bad {N Ne Ms M Lw r G : ℕ} (hNe : Ne ≤ N) (hNs : Ne < Ms) (hMs 
 
 end
 
-/-- **A split is a failure of the truncated good event.** If epoch `ep + 1`'s canonical
-prefix does not extend epoch `ep`'s, every string dominating the lottery string's first
-`Ms` slots fails the good event up to `min (fix (ep + 1)) N`, cut at `Ms`. -/
-theorem split_up (E : Env) (hA : Assm E) (hlive : ∀ t, ∃ j ∈ E.nodes, E.online j t = true) {es : List Event}
-    {N Ms Lw r G ep : ℕ} (hNF : (wF E es).now ≤ N) (hep : 1 ≤ ep)
+/-- **A split is a robust failure of the truncated good event.** If epoch `ep + 1`'s
+canonical prefix does not extend epoch `ep`'s, every outcome list dominating the
+lottery string's first `Ms` slots fails the good event up to `min (fix (ep + 1)) N`, cut
+at `Ms`. -/
+theorem split_up (E : Env) (hA : Assm E) (hlive : ∀ t, ∃ j ∈ E.nodes, E.online j t = true) {O : Oracle}
+    {es : List Event} {N Ms Lw r G ep : ℕ} (hNF : (wF (E.withO O) es).now ≤ N) (hep : 1 ≤ ep)
     (hMs : min (E.c.fix (ep + 1)) N < Ms)
     (hgr : ∀ ep', 1 ≤ ep' → E.c.fix ep' ≤ min (E.c.fix (ep + 1)) N → E.c.cut ep' + G < Ms)
-    (hsplit : prefixBelow (CP E es (ep + 1)) (E.c.cut ep) ≠ CP E es ep) {l' : List Out}
-    (hl : List.Forall₂ OutLe (slots (lotStr E es) Ms) l') :
-    ¬ GoodCap E (min (E.c.fix (ep + 1)) N) Ms Lw r G (strOf l') := by
-  intro hg
-  obtain ⟨w, hdom, hgw⟩ := good_dom E hMs hgr hl hg
-  exact hsplit (cons_of_lot hA hlive hep (min_le_min le_rfl hNF) hdom hgw.1 (growthS_on E hgw.2))
+    (hsplit : prefixBelow (CP (E.withO O) es (ep + 1)) (E.c.cut ep) ≠ CP (E.withO O) es ep) :
+    slots (lotStr (E.withO O) es) Ms ∈ RBad E (min (E.c.fix (ep + 1)) N) Ms Lw r G := by
+  intro l' hl hg
+  obtain ⟨w, hdom, hgw⟩ := good_dom (E.withO O) hMs hgr hl hg.withO
+  exact hsplit (cons_of_lot (hA.withO O) hlive hep (min_le_min le_rfl hNF) hdom hgw.1 (growthS_on _ hgw.2))
 
 /-- Growth witnesses of epochs fixed by a horizon lie before it. -/
 theorem cut_add_lt {c : Config} (hc : c.Sane) {G : ℕ} (hOG : c.nonceOffset + G + 2 ≤ c.epochLength)

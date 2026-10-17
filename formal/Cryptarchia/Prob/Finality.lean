@@ -302,10 +302,7 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
   have h1 : {ω | Unsafe (E.withO (O ω)) (es ω)} ⊆ Tset ∪ {ω | ∃ e < Ne, ¬ InB E Tb (σE (E.withO (O ω)) (es ω)) e} := by
     intro ω hU
     by_cases hb : ∀ n < M, band ω n
-    · refine Or.inl ⟨?_, hb⟩
-      intro l' hl' hg
-      exact unsafe_up (E.withO (O ω)) (hA.withO (O ω)) (Lw := Lw) (r := r) (G := G) (hN ω) (by omega) hU hl'
-        ⟨goodLS_withO hg.1, hg.2⟩
+    · exact Or.inl ⟨unsafe_up E hA (hN ω) (by omega) hU, hb⟩
     · refine Or.inr ?_
       push Not at hb
       obtain ⟨n, hn, hnb⟩ := hb
@@ -324,9 +321,7 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
       · exact ⟨hS, fun n hn => Or.inl (hb n hn)⟩
       · simp only [Set.mem_iUnion, Finset.mem_range] at hω
         obtain ⟨e, -, ⟨h1e, hsp⟩, hin⟩ := hω
-        have hsplit : slots (lotStr (E.withO (O ω)) (es ω)) (Nh e + 1) ∈ RBad E (Nh e) (Nh e + 1) Lw r G := fun l' hl' hg =>
-          split_up (E.withO (O ω)) (hA.withO (O ω)) hlive (hN ω) h1e (Nat.lt_succ_self _) (hgr e) hsp hl'
-            ⟨goodLS_withO hg.1, hg.2⟩
+        have hsplit := split_up E hA hlive (Lw := Lw) (r := r) (hN ω) h1e (Nat.lt_succ_self _) (hgr e) hsp
         refine ⟨(hdec e _ hsplit M (hNM' e)).mem (slots_length _ _), fun n hn => ?_⟩
         by_cases hns : n < Nh e + 1
         · left
