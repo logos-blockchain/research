@@ -217,8 +217,8 @@ theorem onBlock_inv (hS : StoreOK st) {now H0 z : ℕ} {s : NodeState}
 /-- Under `Near`, the node's immutable block is on `h`'s chain. -/
 theorem bimm_on (hS : StoreOK st) {now H0 h z : ℕ} {s : NodeState} (hs : FoldInv c L O G st now H0 z s)
     (hhr : Rooted st h) (hnear : Near c L O G st now H0 h z) : s.bimm ∈ chainIds st h := by
-  have hcr := hs.1.rooted _ hs.1.cloc
-  have hbm : s.bimm ∈ chainIds st s.cloc := by rw [hs.1.bimm]; exact blockAtDepth_mem hS hcr _
+  have hcr := hs.1.cloc_rooted
+  have hbm := (hs.1.bimm_on_cloc hS).2
   obtain ⟨x, hxc, hxh, hk⟩ := hnear s.cloc (tree_good hS hs.1 hs.2.1 hs.1.cloc) hs.2.2.1
     (chainIds_trans hS hcr hbm hs.2.2.2)
   rw [hs.1.bimm]
@@ -247,6 +247,20 @@ theorem onBlock_keep (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O G
     · exact hx
     · by_contra hn; exact hacc ⟨hn, hv⟩
 
+/-- Under `Near`, `on_block` keeps every block of `h`'s chain that the node holds or
+accepts. -/
+theorem onBlock_keep_on (hS : StoreOK st) {now H0 h z : ℕ} {s : NodeState}
+    (hs : FoldInv c L O G st now H0 z s) (hhr : Rooted st h) (hnear : Near c L O G st now H0 h z)
+    (fastPath : Bool) (ord : List ℕ → List ℕ) (hord : ∀ l, (ord l).Perm l) (B : Block)
+    (hB : st B.hdr.id = some B) {x : ℕ} (hxh : x ∈ chainIds st h)
+    (hx : x ∈ s.tree ∨ (x = B.hdr.id ∧ validHeader c st L O G s.tree s.bimm now B = true)) :
+    x ∈ (onBlock c st L O G fastPath ord now s B).tree := by
+  have hbm := bimm_on hS (onBlock_inv hS hs fastPath ord hord B hB) hhr hnear
+  refine onBlock_keep hS hs.1 fastPath ord hord now B hB hx ?_
+  rcases le_total (height st x) (height st (onBlock c st L O G fastPath ord now s B).bimm) with hle | hle
+  · exact Or.inr (chainIds_total hS hhr hbm hxh hle)
+  · exact Or.inl (chainIds_total hS hhr hxh hbm hle)
+
 theorem Near.mono {now H0 H1 h z : ℕ} (hn : Near c L O G st now H0 h z) (hle : H0 ≤ H1) :
     Near c L O G st now H1 h z := fun cl hg hh hz => hn cl hg (le_trans hle hh) hz
 
@@ -265,7 +279,7 @@ theorem accept_on_chain (hS : StoreOK st) {now H0 h a z : ℕ} {s : NodeState}
   by_contra hle
   push Not at hle
   have hbm := bimm_on hS hs hhr hnear
-  have hcr := hs.1.rooted _ hs.1.cloc
+  have hcr := hs.1.cloc_rooted
   have har := (anc_height hS hhr hah).1
   have hunfold : a ≠ genesisId := by
     intro h0; subst h0; exact hnew hs.1.gen
@@ -273,7 +287,7 @@ theorem accept_on_chain (hS : StoreOK st) {now H0 h a z : ℕ} {s : NodeState}
   rw [hA] at hbk; cases hbk
   have hha : height st a = height st A.hdr.parent + 1 := height_step hA hunfold hp hsl
   have hab : a ∈ chainIds st s.bimm := chainIds_total hS hhr hbm hah (by omega)
-  have hbc : s.bimm ∈ chainIds st s.cloc := by rw [hs.1.bimm]; exact blockAtDepth_mem hS hcr c.k
+  have hbc := (hs.1.bimm_on_cloc hS).2
   exact hnew (chainIds_closed hS hs.1.rooted hs.1.closed hs.1.cloc a (chainIds_trans hS hcr hbc hab))
 
 section Fold
@@ -298,10 +312,7 @@ theorem fold_chain : ∀ a, Rooted st a → a ∈ chainIds st h → ∀ s, FoldI
     have hid := hS.idOK _ _ hg
     rw [hc]
     simp only [List.foldl_cons, List.foldl_nil]
-    have hsame : onBlock c st L O G fastPath ord now s g = s := by
-      unfold onBlock
-      rw [if_pos (by simp [hid, hs.1.gen])]
-    rw [hsame]
+    rw [onBlock_ign (fun h => h.1 (hid ▸ hs.1.gen))]
     refine ⟨hs, ?_, fun x hx => Or.inl hx⟩
     intro x hx
     unfold chainIds at hx; rw [chain_genesis hg hs0] at hx
@@ -319,33 +330,24 @@ theorem fold_chain : ∀ a, Rooted st a → a ∈ chainIds st h → ∀ s, FoldI
     set sp := (chainUp st A.hdr.parent).foldl (onBlock c st L O G fastPath ord now) s
     have hA' : st A.hdr.id = some A := by rw [hid]; exact hA
     have hinv := onBlock_inv hS hi1 fastPath ord hord A hA'
-    have hbm' := bimm_on hS hinv hhr hnear
     have hchainA := chainIds_step hS hA hne hpar hslot
     refine ⟨hinv, ?_, ?_⟩
     · -- every block of `a`'s chain is kept or added
       have hkeep : ∀ x ∈ chainIds st a, x ∈ sp.tree ∨ x = a →
           x ∈ (onBlock c st L O G fastPath ord now sp A).tree := by
         intro x hxa hx
-        have hxh : x ∈ chainIds st h := chainIds_trans hS hhr hah hxa
-        have hcmp : (onBlock c st L O G fastPath ord now sp A).bimm ∈ chainIds st x ∨
-            x ∈ chainIds st (onBlock c st L O G fastPath ord now sp A).bimm := by
-          rcases le_total (height st x) (height st (onBlock c st L O G fastPath ord now sp A).bimm)
-            with hle | hle
-          · right; exact chainIds_total hS hhr hbm' hxh hle
-          · left; exact chainIds_total hS hhr hxh hbm' hle
-        rcases hx with hx | hxa
-        · exact onBlock_keep hS hi1.1 fastPath ord hord now A hA' (Or.inl hx) hcmp
-        · -- `a` itself: kept if present, otherwise accepted
-          subst hxa
-          by_cases hin : x ∈ sp.tree
-          · exact onBlock_keep hS hi1.1 fastPath ord hord now A hA' (Or.inl hin) hcmp
-          · have hvalA : validCore c st L O G A = true := by
-              rcases hvalh x hah with h0 | ⟨A', hA'', hv⟩
-              · exact absurd h0 hne
-              · rw [hA] at hA''; cases hA''; exact hv
-            have hacc := accept_on_chain hS hi1 hhr hnear hah hslh hA hvalA hin
-              (hi2 _ (self_mem_chainIds hS hpar))
-            exact onBlock_keep hS hi1.1 fastPath ord hord now A hA' (Or.inr ⟨hid.symm, hacc⟩) hcmp
+        refine onBlock_keep_on hS hi1 hhr hnear fastPath ord hord A hA' (chainIds_trans hS hhr hah hxa) ?_
+        rcases hx with hx | rfl
+        · exact Or.inl hx
+        -- `a` itself: kept if present, otherwise accepted
+        by_cases hin : x ∈ sp.tree
+        · exact Or.inl hin
+        · have hvalA : validCore c st L O G A = true := by
+            rcases hvalh x hah with h0 | ⟨A', hA'', hv⟩
+            · exact absurd h0 hne
+            · rw [hA] at hA''; cases hA''; exact hv
+          exact Or.inr ⟨hid.symm, accept_on_chain hS hi1 hhr hnear hah hslh hA hvalA hin
+            (hi2 _ (self_mem_chainIds hS hpar))⟩
       intro x hx
       rw [hchainA, List.mem_cons] at hx
       rcases hx with rfl | hx
@@ -377,29 +379,11 @@ theorem claimB {b : ℕ} (hbr : Rooted st b) (hhb : h ∈ chainIds st b) {s : No
     have : x ∈ chainUp st b := by rw [hR]; exact List.mem_append_right _ hx
     exact mem_chainUp hS this
   -- the rest keeps `h`'s chain and never lowers the local chain
-  have hrest : ∀ (l : List Block), (∀ x ∈ l, st x.hdr.id = some x) → ∀ s₀,
-      FoldInv c L O G st now H0 z s₀ → (∀ x ∈ chainIds st h, x ∈ s₀.tree) →
-      (∀ x ∈ chainIds st h, x ∈ (l.foldl (onBlock c st L O G fastPath ord now) s₀).tree) ∧
-        height st s₀.cloc ≤ height st (l.foldl (onBlock c st L O G fastPath ord now) s₀).cloc := by
-    intro l
-    induction l with
-    | nil => intro _ s₀ _ h; exact ⟨h, le_rfl⟩
-    | cons B bs ih =>
-      intro hst s₀ hs₀ hin
-      simp only [List.foldl_cons]
-      have hB := hst B List.mem_cons_self
-      have hinv := onBlock_inv hS hs₀ fastPath ord hord B hB
-      have hbm := bimm_on hS hinv hhr hnear
-      have hkept : ∀ x ∈ chainIds st h, x ∈ (onBlock c st L O G fastPath ord now s₀ B).tree := by
-        intro x hx
-        apply onBlock_keep hS hs₀.1 fastPath ord hord now B hB (Or.inl (hin x hx))
-        rcases le_total (height st x) (height st (onBlock c st L O G fastPath ord now s₀ B).bimm)
-          with hle | hle
-        · right; exact chainIds_total hS hhr hbm hx hle
-        · left; exact chainIds_total hS hhr hx hbm hle
-      obtain ⟨h1, h2⟩ := ih (fun x hx => hst x (List.mem_cons_of_mem _ hx)) _ hinv hkept
-      exact ⟨h1, le_trans (onBlock_ok hS hs₀.1 fastPath ord hord now B hB).2 h2⟩
-  obtain ⟨hr1, hr2⟩ := hrest R hRst sh hf1 hf2
+  obtain ⟨-, hr1, hr2⟩ := foldl_inv (l := R) (P := fun s₀ => FoldInv c L O G st now H0 z s₀ ∧
+      (∀ x ∈ chainIds st h, x ∈ s₀.tree) ∧ height st sh.cloc ≤ height st s₀.cloc)
+    (fun s₀ ⟨hs₀, hin, hle⟩ B hB => ⟨onBlock_inv hS hs₀ fastPath ord hord B (hRst B hB),
+      fun x hx => onBlock_keep_on hS hs₀ hhr hnear fastPath ord hord B (hRst B hB) hx (Or.inl (hin x hx)),
+      hle.trans (onBlock_ok hS hs₀.1 fastPath ord hord now B (hRst B hB)).2⟩) sh ⟨hf1, hf2, le_rfl⟩
   rw [hs']
   refine ⟨hr1, ?_⟩
   intro hnew
@@ -442,9 +426,7 @@ theorem onBlock_added_valid {s : NodeState} (fastPath : Bool) (ord : List ℕ �
     (hin : B.hdr.id ∈ (onBlock c st L O G fastPath ord now s B).tree) :
     validHeader c st L O G s.tree s.bimm now B = true := by
   by_contra hv
-  have : onBlock c st L O G fastPath ord now s B = s := by
-    unfold onBlock; rw [if_pos (by simp [hv])]
-  rw [this] at hin; exact hnew hin
+  rw [onBlock_ign (fun h => hv h.2)] at hin; exact hnew hin
 
 /-- **Whatever list of blocks a node processes**, if `h` enters its tree, the
 node ends with a local chain at least as high as `h`. -/
