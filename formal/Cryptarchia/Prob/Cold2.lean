@@ -1,7 +1,7 @@
 module
 
 public import Cryptarchia.Prob.Potential2
-public import Cryptarchia.Prob.Cold
+public import Cryptarchia.Prob.Next
 import Mathlib.Algebra.Order.Floor.Extended
 import Mathlib.Algebra.Order.Interval.Basic
 import Mathlib.Algebra.Order.Ring.Star

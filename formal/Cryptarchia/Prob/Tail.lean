@@ -2,7 +2,7 @@ module
 
 public import Cryptarchia.Prob.Blocks
 public import Cryptarchia.Prob.Depth
-public import Cryptarchia.Prob.Cold
+public import Cryptarchia.Prob.Next
 import Cryptarchia.Settle.Mono
 public import Cryptarchia.Proof.FinalE
 import Cryptarchia.Prob.Good

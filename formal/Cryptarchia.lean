@@ -46,7 +46,6 @@ public import Cryptarchia.Prob.Phases
 public import Cryptarchia.Prob.Potential
 public import Cryptarchia.Prob.Burst
 public import Cryptarchia.Prob.Next
-public import Cryptarchia.Prob.Cold
 public import Cryptarchia.Prob.Blocks
 public import Cryptarchia.Prob.Depth
 public import Cryptarchia.Prob.Good
