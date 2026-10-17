@@ -172,7 +172,7 @@ open Classical in
 with slots up to `t`, at least as high as the honest depth at the start of the
 phase, meet within `k` blocks below the first. -/
 theorem nearAt (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ → ℕ} {H : ℕ} (hG : GoodCondW E es K W e H) {t : ℕ}
-    (htN : t ≤ (wF E es).now) (htH : t ≤ H) (hA2 : A2Upto E es K t) {k : ℕ}
+    (htH : t ≤ H) (hA2 : A2Upto E es K t) {k : ℕ}
     (hk : e k + 1 ≤ t ∧ t ≤ e (k + 1)) {u v : ℕ} (hu : u ∈ (FT E es K).V) (hv : v ∈ (FT E es K).V)
     (hsu : slotOf (wF E es).st u ≤ t) (hsv : slotOf (wF E es).st v ≤ t)
     (hdu : (FT E es K).hd (e k - E.Δ) ≤ height (wF E es).st u)
@@ -331,7 +331,7 @@ theorem near_now (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ �
   have e2 : height (wF E es).st h = height st h := height_ext hext hhr
   have hdcl : (FT E es K).hd (e k - E.Δ) ≤ height (wF E es).st cl := by
     rw [e1]; exact le_trans (FT_hd_mono (by omega)) (le_trans hH0 hcl)
-  obtain ⟨x, hx1, hx2, hx3⟩ := nearAt hA hK hG htN htH hA2 ⟨hk1, hk2⟩ hclF hhF
+  obtain ⟨x, hx1, hx2, hx3⟩ := nearAt hA hK hG htH hA2 ⟨hk1, hk2⟩ hclF hhF
     (by rw [slotOf_ext hext hclr.exists_blk]; exact hg.2.1)
     (by rw [slotOf_ext hext hhr.exists_blk]; exact hsh) hdcl (by rw [e2]; exact hdh k hk1)
   rw [chainIds_ext hext hclr] at hx1

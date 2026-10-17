@@ -102,7 +102,7 @@ theorem agree_of (hA : Assm E) (hK : KBase E es K) {W : ℕ → ℕ} {e : ℕ �
   have hhd : ∀ l ∈ E.nodes, E.online l (wAt E es n).now = true →
       (FT E es K).hd (e k - E.Δ) ≤ height (wF E es).st ((wAt E es n).node l).cloc :=
     fun l hl hlo => le_trans (FT_hd_mono (by omega)) (hI.1 l hl hlo)
-  obtain ⟨x, hx1, hx2, hx3⟩ := nearAt hA hK hG hNF hnH (A2_of_Hon hA hn hI.2) ⟨hk1, hk2⟩ hgi hgj
+  obtain ⟨x, hx1, hx2, hx3⟩ := nearAt hA hK hG hnH (A2_of_Hon hA hn hI.2) ⟨hk1, hk2⟩ hgi hgj
     (by rw [slotOf_ext hext hci.exists_blk]; exact hw.slots i _ (hw.nodes i).cloc)
     (by rw [slotOf_ext hext hcj.exists_blk]; exact hw.slots j _ (hw.nodes j).cloc)
     (hhd i hi hio) (hhd j hj hjo)
