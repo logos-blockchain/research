@@ -31,6 +31,9 @@ meta unsafe def evalLitImpl (e ty : Expr) : MetaM Expr := do
     return toExpr (← evalExpr (List Int) ty e)
   if ← isDefEq ty (mkApp (mkConst ``List [0]) (mkApp (mkConst ``List [0]) (mkConst ``Int))) then
     return toExpr (← evalExpr (List (List Int)) ty e)
+  if ← isDefEq ty (Lean.mkConst ``Rat) then
+    let q ← evalExpr Rat ty e
+    return mkApp2 (Lean.mkConst ``Rat.divInt) (toExpr q.num) (toExpr (q.den : Int))
   if ← isDefEq ty (mkApp (mkConst ``List [0]) (mkConst ``Rat)) then
     let qs ← evalExpr (List Rat) ty e
     let rat := Lean.mkConst ``Rat

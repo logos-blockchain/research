@@ -20,7 +20,7 @@ The Logos blockchain's consensus protocol, modelled rule by rule from its specif
 | `Settle/` | **Settlement combinatorics** on proof-of-stake trees, after Gaži, Ren and Russell (*Practical Settlement Bounds for Longest-Chain Consensus*, CRYPTO 2023): reach and margin recurrences, upper bounds only. | `bnd_sound`, `settled` |
 | `Proof/` | **Deterministic safety.** Every execution builds a valid PoS tree, and finality holds on a good event of the lottery string alone, over any number of epochs. | `agree_now`, `bimm_final`, `final_bimm`, `final_bimm_epochs`, `time_final_epochs` |
 | `Prob/` | **The probability layer.** It covers the lottery as a random oracle and worst-case kernels over a band of slot laws. It proves the settlement bound, the band from stake fractions, and that the stake estimate stays in band. | `final_bimm_ro`, `lottery_law_epoch`, `slotBand_of_stake`, `prob_out_of_band`, `final_bimm_ro_tsi4` |
-| `Prob/Certs/` | **A certified number** at the specification's parameters (library `CryptarchiaCerts`). | `E20D11.certified_tsi` |
+| `Prob/Certs/` | **Certified numbers** at the specification's parameters (library `CryptarchiaCerts`): each certificate is its data, checked by the generic constructions of `Prob/CertGen.lean`, `CertSpec.lean` and `CertClosed.lean`. | `E20D11.finality`, `E20D11C.finality_closed` |
 
 ## The deterministic layer
 
@@ -69,7 +69,7 @@ Three certificates, as Lean theorems with standard axioms only, under the assump
 
 Each bound is `settleEps3E + Ne · bandEps`: the settlement bound (1.6e-11 and 8.7e-11), which covers canonical-prefix consistency in every epoch as well as finality, plus the estimate's band (2.1e-14 per epoch). The band of slot rates is derived from the stake estimate (TSI band δ = 8.5 %, 32 band members), with room for the stake drift ρ.
 
-The third is in closed form (`finality_closed` in `Prob/Certs/E20D11C.lean`): for **every depth k ≥ 1000 and every horizon N**, at the specification with depth `k` (`Config.specK k`: epochs of `300 k` slots), P(finality violation) ≤ `epsC N k`, a sum of nine terms `(N + c) · A · qᵗ` and `Ne · C · qᵗ` in `t = ⌊k/20⌋`, `Ne = ⌊N / (300 k)⌋ + 2`. The automaton certificates do not depend on `k`, and the settlement lengths grow linearly in `t` (`Prob/Closed.lean`). `finality_closed_short` folds it into two rates:
+The third is in closed form (`finality_closed` in `Prob/Certs/E20D11C.lean`): for **every depth k ≥ 1000 and every horizon N**, at the specification with depth `k` (`Config.specK k`: epochs of `300 k` slots), P(finality violation) ≤ `par.epsC N k`, a sum of nine terms `(N + c) · A · qᵗ` and `Ne · C · qᵗ` in `t = ⌊k/20⌋`, `Ne = ⌊N / (300 k)⌋ + 2`. The automaton certificates do not depend on `k`, and the settlement lengths grow linearly in `t` (`Prob/Closed.lean`). `finality_closed_short` folds it into two rates:
 
 > P(finality violation) ≤ (N + 19 t + 706) · (6.9e-28 + 0.9276 · 0.700570ᵗ) + Ne · 1.562 · 0.745235ᵗ.
 

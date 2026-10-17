@@ -67,7 +67,7 @@ cd formal
 nix-shell                         # elan and Python; ELAN_HOME defaults to ~/.elan
 lake exe cache get                # Mathlib's prebuilt .olean files (about 5 GB)
 lake build                        # every default target (all libraries except CryptarchiaCerts)
-lake build CryptarchiaCerts       # the certificates: about 1.7 min for all three, up to 4 GB of memory per file
+lake build CryptarchiaCerts       # the certificates: about 1.6 min for all three, up to 4 GB of memory per file
 lake env lean CryptarchiaTest/Axioms.lean    # axioms of every headline theorem
 lake env lean StochasticRecurrenceTest/Axioms.lean
 lake env lean MiningOnboardingTest/Axioms.lean
