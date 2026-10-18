@@ -117,7 +117,7 @@ noncomputable def σE (E : Env) (es : List Event) (t : ℕ) : EpochState := CS E
 an honest node's chain at a later point where both are online. -/
 def Prob.Unsafe (E : Env) (es : List Event) : Prop :=
   ∃ n n' i j, n ≤ n' ∧ n' ≤ es.length ∧ i ∈ E.nodes ∧ j ∈ E.nodes ∧
-    E.online i (wAt E es n').now = true ∧ E.online j (wAt E es n').now = true ∧
+    E.online i (wAt E es n').now ∧ E.online j (wAt E es n').now ∧
     ((wAt E es n).node i).bimm ∉ chainIds (wAt E es n').st ((wAt E es n').node j).cloc
 
 end Cryptarchia

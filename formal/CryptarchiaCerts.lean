@@ -51,8 +51,16 @@ theorem two_months :
 /-- **A year at k = 2160**: executions up to slot 31 536 000, failure probability at most
 7.2 · 10⁻¹¹. -/
 theorem one_year :
-    Claim.Finality (k := 2160) (Δ := 11) (N := 31536000) (β := 1 / 5) (Smax := 10 ^ 30) (μ := 13 / 100)
-      (ρ := 101 / 100) (Hmin := 1000000) (ε := 7.2e-11) :=
+    Claim.Finality
+      (k := 2160)
+      (Δ := 11)
+      (N := 31536000)
+      (β := 1 / 5)
+      (Smax := 10 ^ 30)
+      (μ := 13 / 100)
+      (ρ := 101 / 100)
+      (Hmin := 1000000)
+      (ε := 7.2e-11) :=
   Prob.Certs.E20D11.finality.mono (by norm_num)
 
 /-- **Every depth `k ≥ 1000` and every horizon `N`**: with `t = k / 20` and `N / (300 k) + 2`
@@ -61,8 +69,15 @@ epochs, failure probability at most
 Each 20 blocks of depth multiply the settlement term by 0.702 and the stake estimate's term by
 0.745. At k = 2160 it is about 4.7 · 10⁻¹⁰ for a year. -/
 theorem closed (k N : ℕ) (hk : 1000 ≤ k) :
-    Claim.Finality (k := k) (Δ := 11) (N := N) (β := 1 / 5) (Smax := 10 ^ 30) (μ := 13 / 100)
-      (ρ := 101 / 100) (Hmin := 1000000)
+    Claim.Finality
+      (k := k)
+      (Δ := 11)
+      (N := N)
+      (β := 1 / 5)
+      (Smax := 10 ^ 30)
+      (μ := 13 / 100)
+      (ρ := 101 / 100)
+      (Hmin := 1000000)
       (ε := ((N : ℝ) + 18 * ((k / 20 : ℕ) : ℝ) + 640) * (2.5e-25 + 0.5816 * 0.702021 ^ (k / 20)) +
         ((N / (300 * k) + 2 : ℕ) : ℝ) * (1.562 * 0.745235 ^ (k / 20))) :=
   Prob.Certs.E20D11C.finality_closed_short k N hk
