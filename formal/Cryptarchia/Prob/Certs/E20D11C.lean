@@ -22,6 +22,8 @@ namespace Cryptarchia.Prob.Certs.E20D11C
 
 open Cryptarchia Cryptarchia.Prob
 
+universe u
+
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
 
@@ -47,40 +49,47 @@ theorem closedOK : FamCfg.closedChk F F.S.weakest dat Tq par der = true := by de
 
 theorem hTq : Tq.β = (1 / 5 : ℚ) ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = (13 / 100 : ℚ) := by decide +kernel
 
-/-- **Finality in closed form.** f = 1/30, Δ = 11 slots, any depth `k ≥ 1000` and any horizon `N`.
-Under the execution model (`Model`), if the genesis estimate is the genesis stake, the adversary
-holds at most 0.2 of the participating stake, the canonical chain counts at least
-0.87 of each window's honestly won slots, stake drifts by at most a factor
-1.01 per epoch and honest online stake is at least 1000000, a finality violation has
-probability at most `par.epsC der N k`. -/
-theorem finality_closed {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
-    [MeasureTheory.IsProbabilityMeasure μ] {O : Ω → Oracle} (E : Env) {k : ℕ} (hc : E.c = Config.specK k) (hk : 1000 ≤ k) (hΔ : E.Δ = 11) (es : Ω → List Event)
-    (hM : Model μ O E es) {N : ℕ} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) (hG : GenesisOK E)
-    (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) (1 / 5 : ℝ) (1 / 10 ^ 16))
-    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) (13 / 100 : ℝ) (N / (300 * k) + 2))
-    (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) (101 / 100 : ℝ) (N / (300 * k) + 2))
-    (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) (1000000 : ℝ)) :
-    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (par.epsC der N k) :=
-  FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
+/-- **Finality in closed form** (`Claim.Finality`): f = 1/30, Δ = 11 slots, any depth `k ≥ 1000` and
+any horizon `N`; the adversary holds at most 0.2 of the participating stake, stakes are at
+most 10³⁰, the canonical chain counts at least 0.87 of each window's honestly won
+slots, stake drifts by at most a factor 1.01 per epoch and honest online stake is at
+least 1000000; a finality violation has probability at most `par.epsC der N k`. -/
+theorem finality_closed (k N : ℕ) (hk : 1000 ≤ k) :
+    Claim.Finality.{u} k 11 N (1 / 5 : ℝ) (10 ^ 30) (13 / 100 : ℝ) (101 / 100 : ℝ) (1000000 : ℝ) (par.epsC der N k) := by
+  intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
+  exact FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
     (fun k hk => by obtain ⟨h1, h2, h3, -, -, h6⟩ := derLen; simp only [par, h1, h2, h3, h6, F, pot] at hk ⊢; omega)
     (fun k hk => by obtain ⟨-, -, h3, -, h5, -⟩ := derLen; simp only [par, h3, h5] at hk ⊢; omega)
-    (fun k hk => by obtain ⟨-, -, h3, h4, -, -⟩ := derLen; simp only [par, h3, h4, F, pot] at hk ⊢; omega) E hc hk hΔ es hM hN hG
-    (fun ω => by rw [hTq.1, hTq.2.1]; simpa using hS ω) (fun ω => by rw [hTq.2.2]; simpa using hQ ω)
+    (fun k hk => by obtain ⟨-, -, h3, h4, -, -⟩ := derLen; simp only [par, h3, h4, F, pot] at hk ⊢; omega) E hc hk hΔ es hM hN
+    (Smax := 10 ^ 30) (by rw [hTq.2.1]; decide +kernel) hG
+    (fun ω => by rw [hTq.1]; simpa using hS ω) (fun ω => by rw [hTq.2.2]; simpa using hQ ω)
     (fun ω => by simpa [par] using hD ω) (fun ω => by simpa [par] using hH ω)
 
-/-- **Finality in closed form, short**: with `t = k / 20` and `Ne = N / (300 k) + 2` epochs, a
-finality violation has probability at most
-`(N + 18 t + 640) · (2.4e-25 + 0.5816 · 0.702021ᵗ) + Ne · 1.562 · 0.745235ᵗ`:
-settlement at rate 0.7020 per 20 blocks of depth, the estimate's band at rate 0.7452. -/
-theorem finality_closed_short {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
-    [MeasureTheory.IsProbabilityMeasure μ] {O : Ω → Oracle} (E : Env) {k : ℕ} (hc : E.c = Config.specK k) (hk : 1000 ≤ k) (hΔ : E.Δ = 11) (es : Ω → List Event)
-    (hM : Model μ O E es) {N : ℕ} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) (hG : GenesisOK E)
-    (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) (1 / 5 : ℝ) (1 / 10 ^ 16))
-    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) (13 / 100 : ℝ) (N / (300 * k) + 2))
-    (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) (101 / 100 : ℝ) (N / (300 * k) + 2))
-    (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) (1000000 : ℝ)) :
-    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (par.epsShort der N k) :=
-  (finality_closed E hc hk hΔ es hM hN hG hS hQ hD hH).trans
-    (ENNReal.ofReal_le_ofReal (FamCfg.epsC_le_short par der closedOK N hk))
+/-- **Finality in closed form, short** (`Claim.Finality`): with `t = k / 20` and `Ne = N / (300 k) + 2`
+epochs, a finality violation has probability at most
+`(N + 18 t + 640) · (2.5e-25 + 0.5816 · 0.702021ᵗ) + Ne · 1.562 · 0.745235ᵗ`: settlement at rate 0.702021 per 20
+blocks of depth, the estimate's band at rate 0.745235. -/
+theorem finality_closed_short (k N : ℕ) (hk : 1000 ≤ k) :
+    Claim.Finality.{u} k 11 N (1 / 5 : ℝ) (10 ^ 30) (13 / 100 : ℝ) (101 / 100 : ℝ) (1000000 : ℝ)
+      (((N : ℝ) + 18 * ((k / 20 : ℕ) : ℝ) + 640) * (2.5e-25 + 0.5816 * 0.702021 ^ (k / 20)) +
+        ((N / (300 * k) + 2 : ℕ) : ℝ) * (1.562 * 0.745235 ^ (k / 20))) := by
+  refine (finality_closed k N hk).mono ((FamCfg.epsC_le_short par der closedOK N hk).trans ?_)
+  obtain ⟨-, -, hG, hg, -, -⟩ := derLen
+  have hv : der.A1 ≤ (1 / 4000000000000000000000000 : ℚ) ∧ der.As ≤ (727 / 1250 : ℚ) ∧ der.qs ≤ (702021 / 1000000 : ℚ) ∧ der.Ab ≤ (781 / 500 : ℚ) ∧
+      der.qb ≤ (149047 / 200000 : ℚ) ∧ 0 ≤ der.As ∧ 0 ≤ der.qs ∧ 0 ≤ der.Ab ∧ 0 ≤ der.qb := by decide +kernel
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := hv
+  have c : ∀ {x y : ℚ}, x ≤ y → (x : ℝ) ≤ y := fun h => by exact_mod_cast h
+  have c0 : ∀ {x : ℚ}, 0 ≤ x → (0 : ℝ) ≤ x := fun h => by exact_mod_cast h
+  set t := k / 20
+  have hA : (der.A1 : ℝ) + der.As * (der.qs : ℝ) ^ t ≤ 2.5e-25 + 0.5816 * 0.702021 ^ t := by
+    have := c h1; have := c h2; have := c h3; norm_num at *
+    gcongr
+  have hB : (der.Ab : ℝ) * (der.qb : ℝ) ^ t ≤ 1.562 * 0.745235 ^ t := by
+    have := c h4; have := c h5; norm_num at *
+    gcongr
+  unfold ClosedData.epsShort
+  simp only [par, hG, hg] at *
+  push_cast
+  gcongr
 
 end Cryptarchia.Prob.Certs.E20D11C

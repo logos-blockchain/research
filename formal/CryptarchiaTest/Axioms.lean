@@ -49,3 +49,6 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.Prob.oneSwitchF_sound
 #print axioms Cryptarchia.Prob.switchF_sound
 #print axioms Cryptarchia.Prob.ClassOK.ofQ
+#print axioms Cryptarchia.Certified.two_months
+#print axioms Cryptarchia.Certified.one_year
+#print axioms Cryptarchia.Certified.closed

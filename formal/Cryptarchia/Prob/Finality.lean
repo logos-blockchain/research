@@ -6,23 +6,16 @@ import Cryptarchia.Prob.WorstE
 import Cryptarchia.Prob.ROEpoch
 public import Cryptarchia.Prob.Final3E
 public import Cryptarchia.Prob.Pick
+public import Cryptarchia.Claim.Finality
 
 /-!
 # Finality over many epochs, from plain assumptions
 
 `finality`: a finality violation has probability at most `settleEps3E + Ne · bandEps`,
-with the assumptions as named, readable conditions on the model and the executions:
-
-* `Model`: tickets are a random oracle, each slot's lottery is fresh, honest blocks are
-  delivered within `Δ`, nodes only crash, go offline only at epoch boundaries, and some
-  honest node is always online;
-* `GenesisOK`: the genesis stake estimate is the genesis stake, all of it online;
-* `Exec.StakeOK β ζ`: the adversary holds at most a fraction `β` of the participating
-  stake, notes are small (`ζ`), note identifiers are distinct;
-* `Exec.ChainQuality μ`: at least a fraction `1 - μ` of each epoch window's honestly won
-  slots end up on the canonical chain, as blocks or uncles;
-* `Exec.StakeDrift ρ`, `Exec.MinStake Hmin`: stake moves by at most a factor `ρ` per
-  epoch, and honest online stake is at least `Hmin`.
+with the assumptions of the claim (`Claim/Finality.lean`: `Model`, `GenesisOK`, `Exec.StakeOK`,
+`Exec.ChainQuality`, `Exec.StakeDrift`, `Exec.MinStake`). Stakes at most `Smax` are small against
+the field (`Exec.StakeOK.stateOK`), and the horizon `N` covers the windows of the epochs the proof
+looks at (`hNw`).
 
 The remaining hypotheses are numeric facts about a certificate's constants, which a
 generated certificate checks.
@@ -91,53 +84,44 @@ theorem lottery_law_epoch_dec (es : Ω → List Event) {M : ℕ} (hM : 0 < M)
 
 end
 
-variable {Ω : Type*} [MeasurableSpace Ω]
-
-/-- **The execution model.** Each `ω` fixes the oracle `O ω` and the execution `es ω`. -/
-structure Model (μ : Measure Ω) (O : Ω → Oracle) (E : Env) (es : Ω → List Event) : Prop where
-  /-- honest nodes follow the protocol, only crash, have distinct ids; the configuration is sane -/
-  assm : Assm E
-  /-- honest blocks reach every honest node online throughout the next `Δ` slots -/
-  delivery : ∀ ω, DeltaDelivery (E.withO (O ω)) (es ω)
-  /-- lottery tickets are a random oracle -/
-  oracle : RandomOracle μ O E.c.p
-  /-- each slot's epoch state is a measurable function of the randomness -/
-  measurable : ∀ i, Measurable fun ω => σE (E.withO (O ω)) (es ω) i
-  /-- each slot's tickets are independent of everything before it (no grinding) -/
-  fresh : Fresh μ O fun ω => σE (E.withO (O ω)) (es ω)
-  /-- honest nodes go online or offline only at epoch boundaries -/
-  onlineEpoch : OnlineEpoch E
-  /-- some honest node is online at every slot -/
-  live : ∀ t, ∃ j ∈ E.nodes, E.online j t = true
-
-/-- **The genesis estimate is the genesis stake**, all of it online at the first slot. -/
-def GenesisOK (E : Env) : Prop :=
-  stakeOf (honNotes E 0 (es0 E) E.nodes) + stakeOf (advNotes (es0 E)) = (es0 E).D
-
 namespace Exec
 
-/-- **Honest majority of stake** in every slot's epoch state: the adversary holds at
-most a fraction `β` of the participating stake, honest and adversarial notes are small
-(`ζ`), and lead note identifiers are distinct. -/
-def StakeOK (E : Env) (o : Oracle) (es : List Event) (β ζ : ℝ) : Prop :=
-  ∀ i, StateOK E β ζ i (σE (E.withO o) es i)
+variable {E : Env} {o : Oracle} {es : List Event}
 
-/-- **Chain quality for the stake estimate**: in each of the first `Ne - 1` epochs, the
-canonical chain counts (as block or uncle slots) at least a fraction `1 - μ` of the
-window's slots that an online honest node won. -/
-def ChainQuality (E : Env) (o : Oracle) (es : List Event) (μ : ℝ) (Ne : ℕ) : Prop :=
-  ∀ e, e + 1 < Ne → (1 - μ) *
-    hcnt E (fun k => slotOut E (k + 1) (σE (E.withO o) es (k + 1)) (fun η id => o.ticket η (k + 1) id)) e ≤
-      (occupied E.c (CP (E.withO o) es (e + 1)) e : ℝ)
+/-- **Every slot's stake estimate is positive**: the genesis estimate is the genesis stake,
+at least `Hmin > 0`, and every later one is the update's, which is at least one. -/
+theorem D_pos {Hmin : ℝ} (hG : GenesisOK E) (hH : Exec.MinStake E o es Hmin) (hHm : 0 < Hmin) (i : ℕ) :
+    1 ≤ (σE (E.withO o) es i).D := by
+  by_cases h0 : E.c.epochOf i = 0
+  · have hs : ∀ j, E.c.epochOf j = 0 → σE (E.withO o) es j = es0 E := fun j hj => by
+      show CS (E.withO o) es (E.c.epochOf j) = es0 E
+      rw [hj]; rfl
+    have h1 := hH 0
+    rw [hs 0 (by simp [Config.epochOf])] at h1
+    have h2 : (0 : ℝ) < stakeOf (honNotes E 0 (es0 E) E.nodes) := lt_of_lt_of_le hHm h1
+    have h3 : 0 < stakeOf (honNotes E 0 (es0 E) E.nodes) := by exact_mod_cast h2
+    rw [hs i h0, ← hG]
+    omega
+  · obtain ⟨e, he⟩ := Nat.exists_eq_succ_of_ne_zero h0
+    show 1 ≤ (CS (E.withO o) es (E.c.epochOf i)).D
+    rw [he]
+    exact infer_pos _ _ _
 
-/-- **Stake drifts by at most a factor `ρ` per epoch**, over the first `Ne` epochs. -/
-def StakeDrift (E : Env) (o : Oracle) (es : List Event) (ρ : ℝ) (Ne : ℕ) : Prop :=
-  ∀ e, e + 1 < Ne → Prob.StakeDrift E (σE (E.withO o) es) ρ e
-
-/-- **Honest online stake is at least `Hmin`** at every slot. -/
-def MinStake (E : Env) (o : Oracle) (es : List Event) (Hmin : ℝ) : Prop := Prob.MinStake E (σE (E.withO o) es) Hmin
-
+/-- **Honest majority of stake, in the form the proof uses** (`StateOK`): stakes at most
+`Smax` are small against the field (`ζ`), and the estimate is positive (`D_pos`). -/
+theorem StakeOK.stateOK {β Smax ζ Hmin : ℝ} (h : Exec.StakeOK E o es β Smax) (hG : GenesisOK E)
+    (hH : Exec.MinStake E o es Hmin) (hHm : 0 < Hmin) (hp : 0 < E.c.p)
+    (hζ : Smax / E.c.p + Smax ^ 2 / E.c.p ≤ ζ) (i : ℕ) : StateOK E β ζ i (σE (E.withO o) es i) := by
+  have hs := h i
+  have hp' : (0 : ℝ) < E.c.p := by exact_mod_cast hp
+  have sm : ∀ L : List Note, (stakeOf L : ℝ) ≤ Smax → Small E.c (σE (E.withO o) es i) L ζ := fun L hL => by
+    have h0 : (0 : ℝ) ≤ stakeOf L := Nat.cast_nonneg _
+    refine ⟨D_pos hG hH hHm i, hs.D_le, le_trans ?_ hζ⟩
+    gcongr
+  exact ⟨hs.nodup, sm (honNotes E i _ E.nodes) hs.hon_le, sm (advNotes _) hs.adv_le, hs.frac⟩
 end Exec
+
+variable {Ω : Type*} [MeasurableSpace Ω]
 
 /-- **`Recur` from the canonical chain.** If the canonical prefixes are consistent and
 the canonical chain's occupied-slot count in epoch `e`'s window lies between `(1 - μ)`
@@ -216,14 +200,19 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
       Tb.ℓhi * Kc E.c * (1 - Tb.μ) * (1 - Tb.δ) * Tb.clo * ((E.c.period : ℝ) - 1) / ρ)
     (hdn : Tb.ℓlo * Kc E.c * (1 + Tb.δ) * Tb.chi * E.c.period * ρ + Kc E.c * ρ + 3 * Tb.ℓlo / (lam0 E.c * Hmin) ≤ 1)
     (hg1 : Tb.ℓlo ≤ lam0 E.c) (hg2 : (1 - Tb.μ) * lam0 E.c ≤ Tb.ℓhi)
+    {Smax : ℝ} (hSm : Smax / E.c.p + Smax ^ 2 / E.c.p ≤ Tb.ζ)
+    (hNw : ∀ e, e + 1 < Ne → e * E.c.epochLength + E.c.period ≤ N)
     -- the assumptions on the executions
-    (hG : GenesisOK E) (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) Tb.β Tb.ζ)
-    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) Tb.μ Ne)
-    (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) ρ Ne) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) Hmin) :
+    (hG : GenesisOK E) (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) Tb.β Smax)
+    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) Tb.μ N)
+    (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) ρ N) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) Hmin) :
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps3E E B D.C.P D.lpi G N G G' J Lw r T x yy) +
       Ne * ENNReal.ofReal (bandEps Tb E.c.period) := by
   classical
   obtain ⟨hA, hdel, hO, hσm, hfresh, hon, hlive⟩ := hM
+  replace hS := fun ω => (hS ω).stateOK hG (hH ω) hHm hO.pos hSm
+  replace hQ := fun ω (e : ℕ) (he : e + 1 < Ne) => hQ ω e (hNw e he)
+  replace hD := fun ω (e : ℕ) (he : e + 1 < Ne) => hD ω e (hNw e he)
   have hAd := SlotLaws.ofRO hA.nodup hO hσm hfresh fun ω i => (hS ω i).nodup
   have hEL : 0 < E.c.epochLength := hA.sane.epochLength_pos
   have hl : 0 < lam0 E.c := by unfold lam0; have := hc.p_pos; have := hc.t0_pos; positivity
@@ -321,3 +310,15 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
       exact hnone ω (hbandOf ω 0 (by rw [Nat.div_eq_of_lt (by omega)]; exact hin 0 (Nat.zero_le _)))
 
 end Cryptarchia.Prob
+
+namespace Cryptarchia.Claim
+
+universe u
+
+/-- A finality bound gives every larger one. -/
+theorem Finality.mono {k Δ N : ℕ} {β Smax μ ρ Hmin ε ε' : ℝ} (h : Finality.{u} k Δ N β Smax μ ρ Hmin ε)
+    (hε : ε ≤ ε') : Finality.{u} k Δ N β Smax μ ρ Hmin ε' := by
+  intro Ω _ P _ O E es hM hc hΔ hN hG hS hQ hD hH
+  exact (h Ω P O E es hM hc hΔ hN hG hS hQ hD hH).trans (ENNReal.ofReal_le_ofReal hε)
+
+end Cryptarchia.Claim

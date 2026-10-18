@@ -51,9 +51,6 @@ section Chernoff
 
 variable {Ω : Type*} [mΩ : MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
 
-/-- The indicator of a set of outcomes, as a real. -/
-def indA (A : Out → Prop) [DecidablePred A] (o : Out) : ℝ := if A o then 1 else 0
-
 /-- The probability of `A` under a law. -/
 noncomputable def rateA (A : Out → Prop) [DecidablePred A] (law : Out → ℝ) : ℝ := ∑ o, law o * indA A o
 
@@ -261,13 +258,9 @@ theorem lawS_nonneg (hp : 0 < E.c.p) (hnd : E.nodes.Nodup) (i : ℕ) (s : EpochS
 theorem lawS_sum (i : ℕ) (s : EpochState) : ∑ o, lawS E i s o = 1 :=
   sum_prodLaw_one (by simp [qhRO]) _
 
-/-- Some honest leader. -/
-def honA (o : Out) : Prop := o.hon ≠ 0
-
 /-- The slot is occupied: some honest or adversarial leader. -/
 def occA (o : Out) : Prop := o.hon ≠ 0 ∨ o.adv = true
 
-instance : DecidablePred honA := fun o => inferInstanceAs (Decidable (o.hon ≠ 0))
 instance : DecidablePred occA := fun o => inferInstanceAs (Decidable (o.hon ≠ 0 ∨ o.adv = true))
 
 theorem rate_hon (i : ℕ) (s : EpochState) : rateA honA (lawS E i s) = 1 - pZero E i s := by
@@ -341,12 +334,6 @@ end TBand
 section Band
 
 variable {E : Env} {T : TBand}
-
-/-- The honest stake online at slot `i` under `s`. -/
-noncomputable def hstake (E : Env) (i : ℕ) (s : EpochState) : ℝ := (stakeOf (honNotes E i s E.nodes) : ℝ)
-
-/-- The adversary's stake under `s`. -/
-noncomputable def astake (s : EpochState) : ℝ := (stakeOf (advNotes s) : ℝ)
 
 /-- **Slot `i` is in band under `s`**: `λ (1-μ) H ≤ ℓhi D` and `ℓlo D ≤ λ (H + A)`.
 This is the estimate condition of `StakeTSI` when the adversary withholds
@@ -521,17 +508,9 @@ section Step
 
 variable (E : Env) (T : TBand) (σ : ℕ → EpochState) (X : ℕ → Out)
 
-/-- The observation window of epoch `e`, as the indices `k` of slots `k + 1`
-(slot `0` is genesis). -/
-def win (e : ℕ) : Finset ℕ :=
-  Ico (e * E.c.epochLength - 1) (e * E.c.epochLength + E.c.period - 1)
-
 /-- **Epoch `e` is in band**: every slot of it. -/
 def InB (e : ℕ) : Prop :=
   ∀ i, e * E.c.epochLength ≤ i → i < (e + 1) * E.c.epochLength → SlotIn E T i (σ i)
-
-/-- Honest occupied slots in epoch `e`'s window. -/
-noncomputable def hcnt (e : ℕ) : ℝ := ∑ k ∈ win E e, indA honA (X k)
 
 /-- Occupied slots in epoch `e`'s window. -/
 noncomputable def wcnt (e : ℕ) : ℝ := ∑ k ∈ win E e, indA occA (X k)

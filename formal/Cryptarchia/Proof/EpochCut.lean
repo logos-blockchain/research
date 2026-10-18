@@ -2,6 +2,7 @@ module
 
 public import Cryptarchia.Proof.Lca
 public import Cryptarchia.Spec.EpochState
+public import Cryptarchia.Claim.Exec
 import Cryptarchia.Proof.NodeStep
 import Std.Tactic.BVDecide.Normalize.BitVec
 import Std.Tactic.BVDecide.Normalize.Prop
@@ -28,28 +29,9 @@ hypothesis wherever a block is validated on another chain than its own (uncles).
 
 namespace Cryptarchia
 
-/-- The parameters are laid out as the specification does: the stake-inference
-window ends by the nonce cut, the nonce cut is inside the previous epoch, the
-uncle window is shorter than the time between the cut and the epoch start, and
-that time is at least two slots (so an epoch's state can be fixed before the
-epoch starts, `Config.fix`). -/
-structure Config.Sane (c : Config) : Prop where
-  period_le : c.period ≤ c.nonceOffset
-  offset_le : c.nonceOffset ≤ c.epochLength
-  uncle_le : c.uncleWindow + c.nonceOffset ≤ c.epochLength
-  offset_pos : 1 ≤ c.nonceOffset
-  fix_le : c.nonceOffset + 2 ≤ c.epochLength
-
 /-- Epochs have positive length: `1 ≤ nonceOffset ≤ epochLength`. -/
 theorem Config.Sane.epochLength_pos {c : Config} (h : c.Sane) : 0 < c.epochLength :=
   lt_of_lt_of_le h.offset_pos h.offset_le
-
-/-- The cut of epoch `e`. -/
-def Config.cut (c : Config) (e : ℕ) : ℕ := c.epochStart (e - 1) + c.nonceOffset
-
-/-- **The fixing time of epoch `e`**: two slots before it starts. The analysis
-reads each epoch's canonical state here; the protocol has no such moment. -/
-def Config.fix (c : Config) (e : ℕ) : ℕ := c.epochStart e - 2
 
 /-- The fixing time is after the cut and two slots before the epoch starts. -/
 theorem Config.Sane.fix_ok {c : Config} (h : c.Sane) (e : ℕ) (he : 1 ≤ e) :

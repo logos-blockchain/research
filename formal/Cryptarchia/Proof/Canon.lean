@@ -37,22 +37,6 @@ open Settle
 
 variable (E : Env) (es : List Event)
 
-open Classical in
-/-- The index at which epoch `e`'s canonical state is fixed: the first point at
-which the clock has reached the fixing time `E.c.fix e` (the end of the trace if
-never). -/
-noncomputable def idxE (e : ℕ) : ℕ :=
-  Nat.find (⟨es.length, Or.inl rfl⟩ : ∃ n, n = es.length ∨ E.c.fix e ≤ (wAt E es n).now)
-
-open Classical in
-/-- The reference node for epoch `e`: a node online at the fixing point, if any. -/
-noncomputable def i0 (e : ℕ) : ℕ :=
-  if h : ∃ j ∈ E.nodes, E.online j (wAt E es (idxE E es e)).now = true then Classical.choose h else 0
-
-/-- **The canonical prefix of epoch `e`.** -/
-noncomputable def CP (e : ℕ) : List Block :=
-  prefixBelow (chainUp (wF E es).st ((wAt E es (idxE E es e)).node (i0 E es e)).bimm) (E.c.cut e)
-
 /-- **Consistency** with the canonical epoch states. -/
 def Cons (b : ℕ) : Prop :=
   ∀ e, 1 ≤ e → E.c.epochStart e ≤ slotOf (wF E es).st b →

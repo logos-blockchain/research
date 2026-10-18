@@ -184,6 +184,26 @@ def spec_rules(cfg, B, e, lr, b, lpi, eps):
 
 # ---- the files
 
+def dec_up(x, sig):
+    """`x > 0` rounded up to `sig` significant digits, and as a Lean literal (scientific below 10⁻³)."""
+    x = Fr(x)
+    e = math.floor(math.log10(x)) - sig + 1
+    up = lambda e: -((-x) // (Fr(10) ** e))
+    while up(e) >= 10 ** sig: e += 1
+    while up(e - 1) < 10 ** sig: e -= 1
+    n = up(e)
+    d = str(n).rstrip('0')
+    e10 = e + len(str(n)) - 1
+    if e10 < -3:
+        lit = d[0] + ('.' + d[1:] if d[1:] else '') + f"e{e10}"
+    else:
+        v = Fr(n) * Fr(10) ** e
+        k = max(0, -e)
+        lit = f"{v.numerator * 10 ** k // v.denominator:0{k + 1}d}"
+        lit = (lit[:-k] + '.' + lit[-k:]).rstrip('0').rstrip('.') if k else lit
+    return Fr(n) * Fr(10) ** e, lit
+
+
 def imports(lines): return "module\n\n" + "".join(lines)
 
 
@@ -374,6 +394,8 @@ namespace {ns}
 
 open Cryptarchia Cryptarchia.Prob
 
+universe u
+
 {HEAD}
 /-- The phase indices' data. -/
 def dat : Fin 19 → IdxData := ![{", ".join(f"dat{i}" for i in range(19))}]
@@ -397,25 +419,19 @@ theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by de
 
 theorem finOK : FamCfg.finChkSpec F F.S.weakest dat Tq par der = true := by decide +kernel
 
-/-- **Finality, certified.** f = 1/30, k = {k}, Δ = {D} slots, executions up to slot {N}. Under the
-execution model (`Model`), if the genesis estimate is the genesis stake, the adversary holds at most
-{float(beta)} of the participating stake, the canonical chain counts at least {float(1 - T['mu'])} of
-each window's honestly won slots, stake drifts by at most a factor {float(T['rho'])} per epoch and
-honest online stake is at least {T['hmin']}, a finality violation has probability at most
-{float(fin):.2e}. -/
-theorem finality {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measure Ω}}
-    [MeasureTheory.IsProbabilityMeasure μ] {{O : Ω → Oracle}} (E : Env) (hc : E.c = Config.spec) (hΔ : E.Δ = {D})
-    (es : Ω → List Event) (hM : Model μ O E es) (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ {N})
-    (hG : GenesisOK E)
-    (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) {q(beta)} (1 / 10 ^ 16))
-    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) {q(T['mu'])} {Ne})
-    (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) {q(T['rho'])} {Ne})
-    (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) {q(T['hmin'])}) :
-    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal {q(fin)} := by
+/-- **Finality, certified** (`Claim.Finality`): f = 1/30, k = {k}, Δ = {D} slots, executions up to
+slot {N}; the adversary holds at most {float(beta)} of the participating stake, stakes are at most
+10³⁰, the canonical chain counts at least {float(1 - T['mu'])} of each window's honestly won slots,
+stake drifts by at most a factor {float(T['rho'])} per epoch and honest online stake is at least
+{T['hmin']}; a finality violation has probability at most {float(fin):.2e}. -/
+theorem finality : Claim.Finality.{{u}} {k} {D} {N} {q(beta)} (10 ^ 30) {q(T['mu'])} {q(T['rho'])} {q(T['hmin'])}
+    {q(fin)} := by
+  intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   have hT : Tq.β = {qQ(beta)} ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = {qQ(T['mu'])} := by decide +kernel
-  have h := FamCfg.finality_spec F par der mainOK famOK dOK rfl idxOK rfl Tq finOK hc hΔ es hM hN hG
-    (fun ω => by rw [hT.1, hT.2.1]; simpa using hS ω) (fun ω => by rw [hT.2.2, derNe]; simpa using hQ ω)
-    (fun ω => by simpa [par, derNe] using hD ω) (fun ω => by simpa [par] using hH ω)
+  have h := FamCfg.finality_spec F par der mainOK famOK dOK rfl idxOK rfl Tq finOK (by rw [hc]; rfl) hΔ es hM hN
+    (Smax := 10 ^ 30) (by rw [hT.2.1]; decide +kernel) (by rw [derNe]; decide +kernel) hG
+    (fun ω => by rw [hT.1]; simpa using hS ω) (fun ω => by rw [hT.2.2]; simpa [par] using hQ ω)
+    (fun ω => by simpa [par] using hD ω) (fun ω => by simpa [par] using hH ω)
   rw [derFin] at h
   simpa using h
 
@@ -528,12 +544,12 @@ def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
     write_params(cfg, fam, T, "ClosedData", par_f, sub, ns, name, closed=True)
     write_data(sub, ns, name)
     k0, g, G = cl['k0'], cl['g'], cl['G']
-    hyps = f"""(E : Env) {{k : ℕ}} (hc : E.c = Config.specK k) (hk : {k0} ≤ k) (hΔ : E.Δ = {D}) (es : Ω → List Event)
-    (hM : Model μ O E es) {{N : ℕ}} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) (hG : GenesisOK E)
-    (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) {q(beta)} (1 / 10 ^ 16))
-    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) {q(T['mu'])} (N / (300 * k) + 2))
-    (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) {q(T['rho'])} (N / (300 * k) + 2))
-    (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) {q(T['hmin'])})"""
+    A1u, A1s = dec_up(C['A1'], 2)
+    Asu, Ass = dec_up(q_['As'], 4)
+    qsu, qss = dec_up(q_['qs'], 6)
+    Abu, Abs = dec_up(q_['Ab'], 4)
+    qbu, qbs = dec_up(q_['qb'], 6)
+    claim = f"{q(beta)} (10 ^ 30) {q(T['mu'])} {q(T['rho'])} {q(T['hmin'])}"
     txt = (imports([f"public import {ns}.Data\n", f"meta import {ns}.Data\n", "public import Cryptarchia.Prob.CertClosed\n"]) + f"""
 /-!
 # Closed-form finality certificate: β = {beta}, Δ = {D}, every k ≥ {k0}, {K} members
@@ -551,6 +567,8 @@ ones (`ClosedData.derive`).
 namespace {ns}
 
 open Cryptarchia Cryptarchia.Prob
+
+universe u
 
 {HEAD}
 /-- The phase indices' data. -/
@@ -575,31 +593,48 @@ theorem closedOK : FamCfg.closedChk F F.S.weakest dat Tq par der = true := by de
 
 theorem hTq : Tq.β = {qQ(beta)} ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = {qQ(T['mu'])} := by decide +kernel
 
-/-- **Finality in closed form.** f = 1/30, Δ = {D} slots, any depth `k ≥ {k0}` and any horizon `N`.
-Under the execution model (`Model`), if the genesis estimate is the genesis stake, the adversary
-holds at most {float(beta)} of the participating stake, the canonical chain counts at least
-{float(1 - T['mu'])} of each window's honestly won slots, stake drifts by at most a factor
-{float(T['rho'])} per epoch and honest online stake is at least {T['hmin']}, a finality violation has
-probability at most `par.epsC der N k`. -/
-theorem finality_closed {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measure Ω}}
-    [MeasureTheory.IsProbabilityMeasure μ] {{O : Ω → Oracle}} {hyps} :
-    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal (par.epsC der N k) :=
-  FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
+/-- **Finality in closed form** (`Claim.Finality`): f = 1/30, Δ = {D} slots, any depth `k ≥ {k0}` and
+any horizon `N`; the adversary holds at most {float(beta)} of the participating stake, stakes are at
+most 10³⁰, the canonical chain counts at least {float(1 - T['mu'])} of each window's honestly won
+slots, stake drifts by at most a factor {float(T['rho'])} per epoch and honest online stake is at
+least {T['hmin']}; a finality violation has probability at most `par.epsC der N k`. -/
+theorem finality_closed (k N : ℕ) (hk : {k0} ≤ k) :
+    Claim.Finality.{{u}} k {D} N {claim} (par.epsC der N k) := by
+  intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
+  exact FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
     (fun k hk => by obtain ⟨h1, h2, h3, -, -, h6⟩ := derLen; simp only [par, h1, h2, h3, h6, F, pot] at hk ⊢; omega)
     (fun k hk => by obtain ⟨-, -, h3, -, h5, -⟩ := derLen; simp only [par, h3, h5] at hk ⊢; omega)
-    (fun k hk => by obtain ⟨-, -, h3, h4, -, -⟩ := derLen; simp only [par, h3, h4, F, pot] at hk ⊢; omega) E hc hk hΔ es hM hN hG
-    (fun ω => by rw [hTq.1, hTq.2.1]; simpa using hS ω) (fun ω => by rw [hTq.2.2]; simpa using hQ ω)
+    (fun k hk => by obtain ⟨-, -, h3, h4, -, -⟩ := derLen; simp only [par, h3, h4, F, pot] at hk ⊢; omega) E hc hk hΔ es hM hN
+    (Smax := 10 ^ 30) (by rw [hTq.2.1]; decide +kernel) hG
+    (fun ω => by rw [hTq.1]; simpa using hS ω) (fun ω => by rw [hTq.2.2]; simpa using hQ ω)
     (fun ω => by simpa [par] using hD ω) (fun ω => by simpa [par] using hH ω)
 
-/-- **Finality in closed form, short**: with `t = k / {m_}` and `Ne = N / (300 k) + 2` epochs, a
-finality violation has probability at most
-`(N + {g} t + {G + 2}) · ({float(C['A1']):.2g} + {float(q_['As']):.4g} · {float(q_['qs']):.6f}ᵗ) + Ne · {float(q_['Ab']):.4g} · {float(q_['qb']):.6f}ᵗ`:
-settlement at rate {float(q_['qs']):.4f} per {m_} blocks of depth, the estimate's band at rate {float(q_['qb']):.4f}. -/
-theorem finality_closed_short {{Ω : Type*}} [MeasurableSpace Ω] {{μ : MeasureTheory.Measure Ω}}
-    [MeasureTheory.IsProbabilityMeasure μ] {{O : Ω → Oracle}} {hyps} :
-    μ {{ω | Unsafe (E.withO (O ω)) (es ω)}} ≤ ENNReal.ofReal (par.epsShort der N k) :=
-  (finality_closed E hc hk hΔ es hM hN hG hS hQ hD hH).trans
-    (ENNReal.ofReal_le_ofReal (FamCfg.epsC_le_short par der closedOK N hk))
+/-- **Finality in closed form, short** (`Claim.Finality`): with `t = k / {m_}` and `Ne = N / (300 k) + 2`
+epochs, a finality violation has probability at most
+`(N + {g} t + {G + 2}) · ({A1s} + {Ass} · {qss}ᵗ) + Ne · {Abs} · {qbs}ᵗ`: settlement at rate {qss} per {m_}
+blocks of depth, the estimate's band at rate {qbs}. -/
+theorem finality_closed_short (k N : ℕ) (hk : {k0} ≤ k) :
+    Claim.Finality.{{u}} k {D} N {claim}
+      (((N : ℝ) + {g} * ((k / {m_} : ℕ) : ℝ) + {G + 2}) * ({A1s} + {Ass} * {qss} ^ (k / {m_})) +
+        ((N / (300 * k) + 2 : ℕ) : ℝ) * ({Abs} * {qbs} ^ (k / {m_}))) := by
+  refine (finality_closed k N hk).mono ((FamCfg.epsC_le_short par der closedOK N hk).trans ?_)
+  obtain ⟨-, -, hG, hg, -, -⟩ := derLen
+  have hv : der.A1 ≤ {qQ(A1u)} ∧ der.As ≤ {qQ(Asu)} ∧ der.qs ≤ {qQ(qsu)} ∧ der.Ab ≤ {qQ(Abu)} ∧
+      der.qb ≤ {qQ(qbu)} ∧ 0 ≤ der.As ∧ 0 ≤ der.qs ∧ 0 ≤ der.Ab ∧ 0 ≤ der.qb := by decide +kernel
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := hv
+  have c : ∀ {{x y : ℚ}}, x ≤ y → (x : ℝ) ≤ y := fun h => by exact_mod_cast h
+  have c0 : ∀ {{x : ℚ}}, 0 ≤ x → (0 : ℝ) ≤ x := fun h => by exact_mod_cast h
+  set t := k / {m_}
+  have hA : (der.A1 : ℝ) + der.As * (der.qs : ℝ) ^ t ≤ {A1s} + {Ass} * {qss} ^ t := by
+    have := c h1; have := c h2; have := c h3; norm_num at *
+    gcongr
+  have hB : (der.Ab : ℝ) * (der.qb : ℝ) ^ t ≤ {Abs} * {qbs} ^ t := by
+    have := c h4; have := c h5; norm_num at *
+    gcongr
+  unfold ClosedData.epsShort
+  simp only [par, hG, hg] at *
+  push_cast
+  gcongr
 
 end {ns}
 """)

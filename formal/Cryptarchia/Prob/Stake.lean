@@ -300,9 +300,6 @@ noncomputable def errLo (η ζ Y : ℝ) : ℝ := 2 * (η * Y ^ 2 + ζ)
 /-- The upper error of a list with exponent `Y`. -/
 noncomputable def errHi (η ζ Y : ℝ) : ℝ := 2 * (2 / 9 * Y ^ 3 + η * Y ^ 2 + ζ)
 
-/-- The stake of a list of notes. -/
-def stakeOf (L : List Note) : ℕ := (L.map Note.value).sum
-
 theorem lsum_cast (L : List Note) : (L.map fun n => (n.value : ℝ)).sum = (stakeOf L : ℝ) := by
   unfold stakeOf; rw [Nat.cast_list_sum, List.map_map]; rfl
 

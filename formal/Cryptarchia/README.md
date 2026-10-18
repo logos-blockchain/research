@@ -12,15 +12,25 @@ The Logos blockchain's consensus protocol, modelled rule by rule from its specif
   - `bedrock-genesis-block.md`.
 - Implementation used to settle ambiguities: `logos-blockchain` at `c4c86be18`.
 
+## What is proved, and what to read
+
+The certified theorems are in `CryptarchiaCerts.lean` (`Certified.two_months`, `Certified.one_year`, `Certified.closed`). Each is an instance of `Claim.Finality k Δ N β Smax μ ρ Hmin ε`: at the specification's parameters with security parameter `k`, delay `Δ` and executions up to slot `N`, under the execution model and the assumptions below, a finality violation has probability at most `ε`. To check what is proved, read `CryptarchiaCerts.lean`, `Claim/` (three short files of definitions) and `Spec/`. Nothing in `Settle/`, `Proof/` or `Prob/` can change what those statements mean:
+
+- the statements are written out by hand in `CryptarchiaCerts.lean`, and Lean checks that each certificate proves exactly that statement;
+- `CryptarchiaTest/Claim.lean` follows every definition the statements depend on and fails if one is defined outside `Spec/` and `Claim/` (228 definitions, all there);
+- `CryptarchiaTest/Axioms.lean` checks that the proofs use only Lean's standard axioms;
+- a certificate's numbers enter only its proof: a wrong number makes a kernel check fail.
+
 ## Layout
 
 | Folder | Role | Main results |
 |---|---|---|
+| `Claim/` | **What the certified theorems state**, on top of `Spec/` and importing no proof: the assumptions on the environment, the canonical epoch states, the random-oracle model, stake, a finality violation, and `Claim.Finality`. | `Claim.Finality` |
 | `Spec/` | **The protocol as specified**, as computable definitions: parameters, the lottery threshold, total stake inference, chains, fork choice, epoch states, honest nodes, executions (time, delivery, adversary). | `Config.spec` and its derived constants, checked by `decide`. |
 | `Settle/` | **Settlement combinatorics** on proof-of-stake trees, after Gaži, Ren and Russell (*Practical Settlement Bounds for Longest-Chain Consensus*, CRYPTO 2023): reach and margin recurrences, upper bounds only. | `bnd_sound`, `settled` |
 | `Proof/` | **Deterministic safety.** Every execution builds a valid PoS tree, and finality holds on a good event of the lottery string alone, over any number of epochs. | `main`, `agree_now`, `bimm_final`, `final_bimm_dom`, `stage`, `cons_of_lot` |
 | `Prob/` | **The probability layer.** It covers the lottery as a random oracle and worst-case kernels over a band of slot laws. It proves the settlement bound, the band from stake fractions, and that the stake estimate stays in band. | `settle_bound3E`, `law_le_epoch_dec`, `slotBand_pickM`, `prob_out_of_band_cover`, `finality` |
-| `Prob/Certs/` | **Certified numbers** at the specification's parameters (library `CryptarchiaCerts`): each certificate is its data, checked by the generic constructions of `Prob/CertGen.lean`, `CertSpec.lean` and `CertClosed.lean`. | `E20D11.finality`, `E20D11C.finality_closed` |
+| `Prob/Certs/` | **Certified numbers** at the specification's parameters (library `CryptarchiaCerts`): each certificate is its data, checked by the generic constructions of `Prob/CertGen.lean`, `CertSpec.lean` and `CertClosed.lean`. | `E20D11.finality`, `E20D11C.finality_closed_short`, restated in `CryptarchiaCerts.lean` |
 
 ## The deterministic layer
 
@@ -44,22 +54,22 @@ The assumptions on the environment are the fields of `Assm E`:
 | `prob_out_of_band_cover` (`Prob/TSIRO`) | **Total stake inference.** The probability that the stake estimate leaves its band in some epoch is at most `Ne · bandEps`. The proof uses Chernoff bounds with predictable rates and a deterministic band step through the specification's fixed-point update (`infer_close`). The adversary may withhold all its blocks. |
 | `finality` (`Prob/Finality`) | **Finality over many epochs, with the stake estimate, from plain assumptions** (below), with the band's conditions as numeric facts about a certificate's constants. P(violation) ≤ `settleEps3E + Ne · bandEps`. The member assignment is constructed (`slotBand_pickM`); the estimate's update is proven from the canonical chain (`recur_of`, `occupied_le_wcnt`); canonical-prefix consistency is proven by induction on the epochs: epoch `e`'s prefixes are consistent on the lottery's good event up to `min (fix (e + 1)) N`, cut there (`cons_of_lot`, `good_trunc`, `split_up`), which needs epochs up to `e` only in band. Each such failure decides the good event's failure up to `N` (`lift_bad`), so one kernel bound covers them all together with the finality failure: the band is needed at a slot only while the event is still undecided (`law_le_epoch_dec`, `lottery_law_epoch_dec`). The certificates instantiate this one. |
 
-`finality` assumes, beyond the certificate's numeric facts:
+`finality` assumes, beyond the certificate's numeric facts, the assumptions of the claim (`Claim/Finality.lean`):
 
 | Assumption | Meaning |
 |---|---|
 | `Model` | tickets are a random oracle; each slot's lottery is fresh (no grinding); honest blocks are delivered within Δ; honest nodes follow the protocol and only crash; they go online or offline only at epoch boundaries; some honest node is online at every slot; each slot's epoch state is measurable |
 | `GenesisOK` | the genesis stake estimate is the genesis stake, all of it online |
-| `Exec.StakeOK β ζ` | the adversary holds at most a fraction β of the participating stake; notes are small (ζ); lead note identifiers are distinct |
-| `Exec.ChainQuality μ` | in every epoch, the canonical chain counts (as block or uncle slots) at least a fraction `1 − μ` of the window's slots an online honest node won. **Assumed** at μ = 0.13. An adversary that cannot predict honest leaders, with first-seen tie-breaking, can force about 0.122 at the band's fastest rates (a two-branch attack, solved as an MDP and replayed on an explicit block tree with the specification's uncle selection); one that can predict them, which `Model` does not exclude, about 0.22. Chain growth alone proves μ ≈ 0.25 |
-| `Exec.StakeDrift ρ` | from each epoch to the next, honest online stake grows by at most a factor ρ and participating stake shrinks by at most a factor ρ, slot for slot against the previous epoch's window |
+| `Exec.StakeOK β Smax` | at every slot, the adversary holds at most a fraction β of the participating stake; honest online stake and the adversary's stake are each at most `Smax` (10³⁰ in the certificates: small against the field, `Exec.StakeOK.stateOK`); lead note identifiers are distinct; the estimate is at most `t0Const / 2` (about 3.7 · 10⁷⁴) |
+| `Exec.ChainQuality μ N` | in every epoch whose stake-inference window closes by slot `N`, the canonical chain counts (as block or uncle slots) at least a fraction `1 − μ` of the window's slots an online honest node won. **Assumed** at μ = 0.13. An adversary that cannot predict honest leaders, with first-seen tie-breaking, can force about 0.122 at the band's fastest rates (a two-branch attack, solved as an MDP and replayed on an explicit block tree with the specification's uncle selection); one that can predict them, which `Model` does not exclude, about 0.22. Chain growth alone proves μ ≈ 0.25 |
+| `Exec.StakeDrift ρ N` | from each epoch whose window closes by slot `N` to the next, honest online stake grows by at most a factor ρ and participating stake shrinks by at most a factor ρ, slot for slot against the previous epoch's window |
 | `Exec.MinStake Hmin` | honest online stake is at least `Hmin` at every slot (it absorbs the estimate's fixed-point rounding) |
 
 Two of these replace conditions of the earlier statements that a reader could not check. `StakeDrift` and `MinStake` imply the band step's `StakePath` (`stakePath_of_drift`); the band (`tools/certgen`, `tband`) leaves room for the drift. `OnlineEpoch`, part of `Model`, is what lets one band member serve a whole epoch: a slot's honest exponent counts only online honest stake.
 
 ## Certified numbers
 
-Three certificates, as Lean theorems with standard axioms only, under the assumptions of `finality` above with β = 0.2, μ = 0.13, ρ = 1.01 and `Hmin` = 10⁶. Two are numeric, at the specification's depth (`finality` in `Prob/Certs/E20D11M2.lean` and `Prob/Certs/E20D11.lean`):
+Three certificates, as Lean theorems with standard axioms only, under the assumptions above with β = 0.2, `Smax` = 10³⁰, μ = 0.13, ρ = 1.01 and `Hmin` = 10⁶, stated in `CryptarchiaCerts.lean`. Two are numeric, at the specification's depth (`Certified.two_months`, `Certified.one_year`; `finality` in `Prob/Certs/E20D11M2.lean` and `Prob/Certs/E20D11.lean`):
 
 > f = 1/30, k = 2160, Δ = 11 slots, with the specification's stake inference and the adversary free to withhold all its blocks:
 > * executions up to slot 5,184,000 (two months, 9 epochs): **P(finality violation) ≤ 1.3e-11**;
@@ -67,9 +77,11 @@ Three certificates, as Lean theorems with standard axioms only, under the assump
 
 Each bound is `settleEps3E + Ne · bandEps`: the settlement bound (1.2e-11 and 7.0e-11), which covers canonical-prefix consistency in every epoch as well as finality, plus the estimate's band (2.3e-14 per epoch). The band of slot rates is derived from the stake estimate (TSI band δ = 8.5 %, 32 band members), with room for the stake drift ρ.
 
-The third is in closed form (`finality_closed` in `Prob/Certs/E20D11C.lean`): for **every depth k ≥ 1000 and every horizon N**, at the specification with depth `k` (`Config.specK k`: epochs of `300 k` slots), P(finality violation) ≤ `par.epsC der N k`, a sum of nine terms `(N + c) · A · qᵗ` and `Ne · C · qᵗ` in `t = ⌊k/20⌋`, `Ne = ⌊N / (300 k)⌋ + 2`. The automaton certificates do not depend on `k`, and the settlement lengths grow linearly in `t` (`Prob/Closed.lean`). `finality_closed_short` folds it into two rates:
+The third is in closed form (`Certified.closed`): for **every depth k ≥ 1000 and every horizon N**, at the specification with depth `k` (`Config.specK k`: epochs of `300 k` slots), with `t = ⌊k/20⌋` and `Ne = ⌊N / (300 k)⌋ + 2`:
 
-> P(finality violation) ≤ (N + 18 t + 640) · (2.4e-25 + 0.5816 · 0.702021ᵗ) + Ne · 1.562 · 0.745235ᵗ.
+> P(finality violation) ≤ (N + 18 t + 640) · (2.5e-25 + 0.5816 · 0.702021ᵗ) + Ne · 1.562 · 0.745235ᵗ.
+
+The certificate proves a sharper bound first (`finality_closed` in `Prob/Certs/E20D11C.lean`: `par.epsC der N k`, a sum of nine terms `(N + c) · A · qᵗ` and `Ne · C · qᵗ` computed from the certificate) and folds it into the two rates above, rounded up to the digits shown (`finality_closed_short`). The automaton certificates do not depend on `k`, and the settlement lengths grow linearly in `t` (`Prob/Closed.lean`).
 
 | k | two months | one year |
 |---|---|---|
@@ -77,7 +89,7 @@ The third is in closed form (`finality_closed` in `Prob/Certs/E20D11C.lean`): fo
 | 2160 | 5.0e-11 | 3.0e-10 |
 | 3000 | 1.9e-17 | |
 
-(`epsC`; the short form is within a factor 2 at k = 2160.) Each 20 blocks of depth multiply the settlement part by about 0.70 and the band part by about 0.75. The constant 2.4e-25 bounds a phase lasting longer than a fixed 638 slots (`settleEps3E`'s first term); it does not decay in `k`. At k = 1000 the bound is 6e-2.
+(`epsC`; the short form is within a factor 2 at k = 2160.) Each 20 blocks of depth multiply the settlement part by about 0.70 and the band part by about 0.75. The constant 2.5e-25 bounds a phase lasting longer than a fixed 638 slots (`settleEps3E`'s first term); it does not decay in `k`. At k = 1000 the bound is 6e-2.
 
 Other configurations are generated by `tools/certgen` (one-epoch, genesis and multi-epoch variants; see its README). Indicative values from the same method include:
 - β = 0.1 over a year: about 1e-40;

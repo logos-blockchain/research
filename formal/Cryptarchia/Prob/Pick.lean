@@ -32,11 +32,6 @@ open Classical
 
 variable {E : Env} {T : TBand}
 
-/-- **The online schedule changes only at epoch boundaries**: each node's online
-status at a slot is its status at the epoch's first slot. -/
-def OnlineEpoch (E : Env) : Prop :=
-  ∀ j ∈ E.nodes, ∀ i, E.online j i = E.online j (i / E.c.epochLength * E.c.epochLength)
-
 /-- The honest exponent at epoch `e`'s first slot under state `s`. -/
 noncomputable def yE (E : Env) (e : ℕ) (s : EpochState) : ℝ :=
   expo E.c s (honNotes E (e * E.c.epochLength) s E.nodes)
@@ -107,24 +102,6 @@ section
 open Finset
 
 variable {σ : ℕ → EpochState}
-
-/-- All stake under `s` that slot `i`'s lottery counts: online honest and adversarial. -/
-noncomputable def tstake (E : Env) (i : ℕ) (s : EpochState) : ℝ := hstake E i s + astake s
-
-/-- **Stake drifts by at most a factor `ρ` from epoch `e` to `e + 1`.** At every slot of
-epoch `e + 1`, honest online stake is at most `ρ` times that at any slot of epoch `e`'s
-window, and all participating stake is at least `1/ρ` times that at any slot of the
-window and at the epoch's first slot. -/
-structure StakeDrift (E : Env) (σ : ℕ → EpochState) (ρ : ℝ) (e : ℕ) : Prop where
-  hon : ∀ j, (e + 1) * E.c.epochLength ≤ j → j < (e + 2) * E.c.epochLength → ∀ k ∈ win E e,
-    hstake E j (σ j) ≤ ρ * hstake E (k + 1) (σ (k + 1))
-  tot : ∀ j, (e + 1) * E.c.epochLength ≤ j → j < (e + 2) * E.c.epochLength → ∀ k ∈ win E e,
-    tstake E (k + 1) (σ (k + 1)) ≤ ρ * tstake E j (σ j)
-  tot0 : ∀ j, (e + 1) * E.c.epochLength ≤ j → j < (e + 2) * E.c.epochLength →
-    tstake E (e * E.c.epochLength) (σ (e * E.c.epochLength)) ≤ ρ * tstake E j (σ j)
-
-/-- **Honest online stake is at least `Hmin`** at every slot. -/
-def MinStake (E : Env) (σ : ℕ → EpochState) (Hmin : ℝ) : Prop := ∀ j, Hmin ≤ hstake E j (σ j)
 
 theorem card_win_le (e : ℕ) : (win E e).card ≤ E.c.period := by
   simp only [win, Nat.card_Ico]; omega

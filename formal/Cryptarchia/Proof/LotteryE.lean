@@ -25,9 +25,6 @@ namespace Cryptarchia
 
 open Settle
 
-/-- The genesis epoch state. -/
-def es0 (E : Env) : EpochState := epochState E.c E.L E.O E.G [genesisBlock] 0
-
 /-- Every chain of an execution derives the genesis epoch state for the first epoch. -/
 theorem epochState_es0 {E : Env} {st : Store} (hS : StoreOK st)
     (hg : st genesisId = some genesisBlock) {b : ℕ} (hb : Rooted st b) :
@@ -38,13 +35,6 @@ theorem epochState_es0 {E : Env} {st : Store} (hS : StoreOK st)
   unfold chainUp; rw [chain_genesis hg rfl]; rfl
 
 variable (E : Env) (es : List Event)
-
-/-- **The canonical epoch state of epoch `e`.** -/
-noncomputable def CS (e : ℕ) : EpochState :=
-  if e = 0 then es0 E else epochState E.c E.L E.O E.G (CP E es e) e
-
-/-- The state each slot's lottery runs under. -/
-noncomputable def σE (t : ℕ) : EpochState := CS E es (E.c.epochOf t)
 
 variable {E es}
 

@@ -24,6 +24,8 @@ namespace Cryptarchia.Prob.Certs.E20D11M2
 
 open Cryptarchia Cryptarchia.Prob
 
+universe u
+
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
 
@@ -49,25 +51,19 @@ theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by de
 
 theorem finOK : FamCfg.finChkSpec F F.S.weakest dat Tq par der = true := by decide +kernel
 
-/-- **Finality, certified.** f = 1/30, k = 2160, Δ = 11 slots, executions up to slot 5184000. Under the
-execution model (`Model`), if the genesis estimate is the genesis stake, the adversary holds at most
-0.2 of the participating stake, the canonical chain counts at least 0.87 of
-each window's honestly won slots, stake drifts by at most a factor 1.01 per epoch and
-honest online stake is at least 1000000, a finality violation has probability at most
-1.30e-11. -/
-theorem finality {Ω : Type*} [MeasurableSpace Ω] {μ : MeasureTheory.Measure Ω}
-    [MeasureTheory.IsProbabilityMeasure μ] {O : Ω → Oracle} (E : Env) (hc : E.c = Config.spec) (hΔ : E.Δ = 11)
-    (es : Ω → List Event) (hM : Model μ O E es) (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ 5184000)
-    (hG : GenesisOK E)
-    (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) (1 / 5 : ℝ) (1 / 10 ^ 16))
-    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) (13 / 100 : ℝ) 9)
-    (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) (101 / 100 : ℝ) 9)
-    (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) (1000000 : ℝ)) :
-    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (13 / 1000000000000 : ℝ) := by
+/-- **Finality, certified** (`Claim.Finality`): f = 1/30, k = 2160, Δ = 11 slots, executions up to
+slot 5184000; the adversary holds at most 0.2 of the participating stake, stakes are at most
+10³⁰, the canonical chain counts at least 0.87 of each window's honestly won slots,
+stake drifts by at most a factor 1.01 per epoch and honest online stake is at least
+1000000; a finality violation has probability at most 1.30e-11. -/
+theorem finality : Claim.Finality.{u} 2160 11 5184000 (1 / 5 : ℝ) (10 ^ 30) (13 / 100 : ℝ) (101 / 100 : ℝ) (1000000 : ℝ)
+    (13 / 1000000000000 : ℝ) := by
+  intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   have hT : Tq.β = (1 / 5 : ℚ) ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = (13 / 100 : ℚ) := by decide +kernel
-  have h := FamCfg.finality_spec F par der mainOK famOK dOK rfl idxOK rfl Tq finOK hc hΔ es hM hN hG
-    (fun ω => by rw [hT.1, hT.2.1]; simpa using hS ω) (fun ω => by rw [hT.2.2, derNe]; simpa using hQ ω)
-    (fun ω => by simpa [par, derNe] using hD ω) (fun ω => by simpa [par] using hH ω)
+  have h := FamCfg.finality_spec F par der mainOK famOK dOK rfl idxOK rfl Tq finOK (by rw [hc]; rfl) hΔ es hM hN
+    (Smax := 10 ^ 30) (by rw [hT.2.1]; decide +kernel) (by rw [derNe]; decide +kernel) hG
+    (fun ω => by rw [hT.1]; simpa using hS ω) (fun ω => by rw [hT.2.2]; simpa [par] using hQ ω)
+    (fun ω => by simpa [par] using hD ω) (fun ω => by simpa [par] using hH ω)
   rw [derFin] at h
   simpa using h
 

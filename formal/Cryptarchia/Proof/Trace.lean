@@ -407,9 +407,6 @@ theorem tick_tree (hA : Assm E) {w : World} (hw : WorldOK E w) :
 
 variable (E) (es : List Event)
 
-/-- The world after the first `n` events. -/
-def wAt (n : ℕ) : World := run E World.init (es.take n)
-
 theorem wAt_zero : wAt E es 0 = World.init := by simp [wAt, run]
 
 theorem wAt_succ {n : ℕ} (hn : n < es.length) : wAt E es (n + 1) = (wAt E es n).step E es[n] := by

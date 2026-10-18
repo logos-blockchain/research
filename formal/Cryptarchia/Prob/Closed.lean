@@ -18,9 +18,6 @@ configuration with depth `k`.
 
 namespace Cryptarchia
 
-/-- **The specification's configuration with depth `k`.** -/
-def Config.specK (k : ℕ) : Config := { Config.spec with k := k }
-
 namespace Config
 
 theorem specK_kf (k : ℕ) : (specK k).kf = 30 * k := by

@@ -265,8 +265,10 @@ theorem finality_fam {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProb
     (hdn : T.toTBand.ℓlo * Kc E.c * (1 + T.toTBand.δ) * T.toTBand.chi * E.c.period * ρ + Kc E.c * ρ +
       3 * T.toTBand.ℓlo / (lam0 E.c * Hmin) ≤ 1)
     (hg1 : T.toTBand.ℓlo ≤ lam0 E.c) (hg2 : (1 - T.toTBand.μ) * lam0 E.c ≤ T.toTBand.ℓhi)
-    (hG : GenesisOK E) (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β T.ζ)
-    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ Ne) (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) ρ Ne)
+    {Smax : ℝ} (hSm : Smax / E.c.p + Smax ^ 2 / E.c.p ≤ T.ζ)
+    (hNw : ∀ e, e + 1 < Ne → e * E.c.epochLength + E.c.period ≤ N)
+    (hG : GenesisOK E) (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β Smax)
+    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ N) (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) ρ N)
     (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) Hmin) :
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps3E E Bq.toBand (cert2 hM) lpi G N G G' J Lw r Tg x yy) +
       Ne * ENNReal.ofReal (bandEps T.toTBand E.c.period) := by
@@ -293,7 +295,7 @@ theorem finality_fam {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProb
         Fin.val_zero]; exact_mod_cast cov0)
       (by rw [← TBandQ.Yh_cast]; simp only [FamSpec.mem, FamSpec.mQ, MemberQ.toMember_yhi, memberOfQ_yhi,
         Fin.val_last]; exact_mod_cast cov1))
-    (fun _ => memberOfQ_adv hβ1 (by simp only [TBandQ.toTBand, hβ])) hρ hHm hup hdn hg1 hg2 hG hSt hQ hDr hH
+    (fun _ => memberOfQ_adv hβ1 (by simp only [TBandQ.toTBand, hβ])) hρ hHm hup hdn hg1 hg2 hSm hNw hG hSt hQ hDr hH
 
 /-- **Every numeric condition of the finality theorem at the specification**: the settlement bound
 below `tgt`, the band's below `bx`, `tgt + Ne · bx ≤ fin`, and the conditions of `Prob.finality`. -/
@@ -356,9 +358,11 @@ theorem finality_spec {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
     (hBq : Bq = F.S.weakest) (hidx : ∀ i : Fin 19, F.idxChk i (dat i) = true) {n : ℕ} (hK : F.S.K = n + 1)
     (T : TBandQ) (hfin : finChkSpec F Bq dat T p q = true)
     (hc : E.c = Config.spec) (hΔ : E.Δ = F.Δ) (es : Ω → List Event) (hMod : Model μ O E es)
-    (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ p.N) (hG : GenesisOK E)
-    (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β T.ζ) (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ q.Ne)
-    (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) p.ρ q.Ne) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) p.Hmin) :
+    (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ p.N) {Smax : ℚ}
+    (hSm : Smax / Config.spec.p + Smax ^ 2 / Config.spec.p ≤ T.ζ)
+    (hNw : (q.Ne - 2) * Config.spec.epochLength + Config.spec.period ≤ p.N) (hG : GenesisOK E)
+    (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β Smax) (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ p.N)
+    (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) p.ρ p.N) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) p.Hmin) :
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal q.fin := by
   obtain ⟨κ, N, ε, ρ, Hmin⟩ := p
   obtain ⟨Lw, J, x, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, fin⟩ := q
@@ -377,6 +381,11 @@ theorem finality_spec {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
     (by rw [hc, ← lam0Q_cast, ← KcQ_cast, ← TBandQ.chi_cast]; simp only [TBandQ.toTBand]; exact_mod_cast hdn)
     (by rw [hc, ← lam0Q_cast]; simp only [TBandQ.toTBand]; exact_mod_cast hg1)
     (by rw [hc, ← lam0Q_cast]; simp only [TBandQ.toTBand]; exact_mod_cast hg2)
+    (Smax := Smax) (by rw [hc]; exact_mod_cast hSm)
+    (fun e he => by
+      have h2 : e ≤ Ne - 2 := by omega
+      rw [hEL, hP]
+      exact le_trans (Nat.add_le_add_right (Nat.mul_le_mul_right _ h2) _) hNw)
     hG hSt hQ hDr hH
   rw [hP] at hb
   have hk : E.c.k = Config.spec.k := by rw [hc]

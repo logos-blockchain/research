@@ -22,16 +22,6 @@ namespace Cryptarchia
 
 variable {c : Config} {L : Ledger} {O : Oracle} {G : Genesis} {st : Store}
 
-/-- The ledger executes honest blocks' payloads. -/
-def HonestExec (L : Ledger) : Prop :=
-  ∀ C (B : Block) i, B.hdr.signer = .honest i → L.execOK (C ++ [B]) = true
-
-/-- Honest stakers never spend their notes: an honest note in the ledger after
-the part of a chain below some slot is still in the ledger after the whole chain. -/
-def HonestStake (L : Ledger) : Prop :=
-  ∀ (C : List Block) (s : ℕ) (n : Note), (∃ j, n.owner = .honest j) →
-    n ∈ L.notes (prefixBelow C s) → n ∈ L.notes C
-
 theorem selectUncles_length (T : List ℕ) (cloc sl : ℕ) :
     (selectUncles c st T cloc sl).length ≤ c.maxUncles := by
   unfold selectUncles
@@ -89,17 +79,6 @@ theorem mem_selectUncles {T : List ℕ} {cloc sl : ℕ} {U : Header}
   rw [List.mem_filterMap] at hblk
   obtain ⟨x, hx, hxb⟩ := hblk
   exact ⟨x, hx, blk, hxb, rfl, h1, h2, h3, h4⟩
-
-/-- The assumptions on the environment. (There is no delivery assumption: an
-honest block the network fails to deliver within `Δ` is `Late` and counts as
-adversarial in the settlement tree.) -/
-structure Assm (E : Env) : Prop where
-  ord : E.OrderOK
-  crash : ∀ i t t', t ≤ t' → E.online i t' = true → E.online i t = true
-  exec : HonestExec E.L
-  nodup : E.nodes.Nodup
-  sane : E.c.Sane
-  stake : HonestStake E.L
 
 /-- **An honest proposal is valid.** -/
 theorem propose_valid (hS : StoreOK st) {s : NodeState} (hs : NodeOK c.k st L O G c s)

@@ -10,7 +10,7 @@ Machine-checked definitions and proofs for the Logos blockchain, in Lean 4 with 
 | Library | Contents |
 |---|---|
 | [`Cryptarchia`](Cryptarchia/README.md) | The consensus protocol: its specification, settlement combinatorics, deterministic safety over executions, and the probability layer, including total stake inference (TSI). |
-| `CryptarchiaCerts` | Generated certificates for Cryptarchia's finality theorem at β = 0.2, Δ = 11: numeric at the specification's k = 2160 (`E20D11`: one year, `7.2e-11`; `E20D11M2`: two months, `1.3e-11`), and in closed form for every depth `k ≥ 1000` and horizon `N` (`E20D11C`). Each takes about 2.3 min to build; not a default target. |
+| `CryptarchiaCerts` | Generated certificates for Cryptarchia's finality theorem at β = 0.2, Δ = 11: numeric at the specification's k = 2160 (`E20D11`: one year, `7.2e-11`; `E20D11M2`: two months, `1.3e-11`), and in closed form for every depth `k ≥ 1000` and horizon `N` (`E20D11C`). The theorems are stated in `CryptarchiaCerts.lean` as instances of `Claim.Finality`: to check what is proved, read that file, `Cryptarchia/Claim` and `Cryptarchia/Spec`. Each takes about 2.3 min to build; not a default target. |
 | `CryptarchiaTest` | Axiom checks, and differential tests of the specification's definitions against an independent transliteration of the pseudocode. |
 
 Libraries formalizing individual reports:
@@ -30,12 +30,13 @@ formal/
   Cryptarchia.lean        library root: imports every module
   Cryptarchia/
     Spec/                 the protocol as specified: definitions only
+    Claim/                what the certified theorems state, on top of Spec/: definitions only
     Settle/               settlement combinatorics (PoS trees)
     Proof/                deterministic safety over executions
     Prob/                 probability layer: random oracle, kernels, bounds, TSI
     Prob/Certs/           generated certificate (library CryptarchiaCerts)
-  CryptarchiaCerts.lean   certificate library root
-  CryptarchiaTest/        axiom checks, differential tests
+  CryptarchiaCerts.lean   the certified theorems, stated in terms of Claim/ and Spec/ only
+  CryptarchiaTest/        axiom checks, the claim's closure check, differential tests
   StochasticRecurrence/   report formalization (+ StochasticRecurrenceTest/)
   MiningOnboarding/       report formalization (+ MiningOnboardingTest/)
   tools/

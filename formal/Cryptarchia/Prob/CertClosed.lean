@@ -512,15 +512,18 @@ theorem finality_closed_gen {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} 
     (T : TBandQ) (hf : closedChk F Bq dat T p q = true)
     (hnb : ∀ k, p.k0 ≤ k → q.nb * (k / p.m) ≤ (300 * k - 180 * k - F.Δ - 3 - q.G + F.Δ) / (q.T + F.Δ) + q.nb0)
     (hLw : ∀ k, p.k0 ≤ k → q.w * (k / p.m) + q.G < 300 * k)
-    (hNe : ∀ k, p.k0 ≤ k → q.G + q.g * (k / p.m) + F.Δ + 2 < 300 * k)
+    (hNe : ∀ k, p.k0 ≤ k → q.G + q.g * (k / p.m) + F.Δ + 2 + 180 * k ≤ 300 * k)
     (E : Env) {k : ℕ} (hc : E.c = Config.specK k) (hk : p.k0 ≤ k) (hΔ : E.Δ = F.Δ) (es : Ω → List Event)
-    (hMod : Model μ O E es) {N : ℕ} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) (hG : GenesisOK E)
-    (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β T.ζ)
-    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ (N / (300 * k) + 2))
-    (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) p.ρ (N / (300 * k) + 2))
+    (hMod : Model μ O E es) {N : ℕ} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) {Smax : ℚ}
+    (hSm : Smax / Config.spec.p + Smax ^ 2 / Config.spec.p ≤ T.ζ) (hG : GenesisOK E)
+    (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β Smax)
+    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ N)
+    (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) p.ρ N)
     (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) p.Hmin) :
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (p.epsC q N k) := by
   have f := closedChk.facts hf
+  set X := q.G + q.g * (k / p.m) + F.Δ + 2 with hX
+  have hX1 := hNe k hk
   have hEL : E.c.epochLength = 300 * k := by rw [hc, Config.specK_epochLength]
   have hP : E.c.period = 180 * k := by rw [hc, Config.specK_period]
   have hck : E.c.k = k := by rw [hc]; rfl
@@ -533,14 +536,13 @@ theorem finality_closed_gen {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} 
   have hB0 := bandC_nonneg q f.C10 f.C20 f.Q10 f.Q20 (k / p.m)
   have hρ : (0 : ℝ) < p.ρ := by exact_mod_cast f.ρ0
   have hb := finality_fam F hM hS hD hBq hidx hK T f.fam es hMod hN hΔ f.G1 (by rw [hEL]; have := f.GEL; omega)
-    (M := N + q.G + q.g * (k / p.m) + F.Δ + 2) (G' := q.g * (k / p.m)) (J := q.j * (k / p.m)) (Lw := q.w * (k / p.m))
+    (M := N + q.G + q.g * (k / p.m) + F.Δ + 2) (Ne := (N + X) / (300 * k) + 1) (G' := q.g * (k / p.m)) (J := q.j * (k / p.m)) (Lw := q.w * (k / p.m))
     (r := q.ρr * (k / p.m)) f.x1 f.yy0 f.yy1 f.T1 le_rfl f.hhi1 f.hlo0 f.hlo1 f.helo1
     (by rw [hEL]; exact hLw k hk) (by rw [hEL, hc, Config.specK_nonceOffset]; have := f.OG; omega)
     (by rw [hc]; exact lotConsts_specK lot_spec k) (by rw [hc]; rfl)
     (by rw [hc]; simp only [Config.specK, Config.spec]; norm_num)
     (by rw [hP, hc]; simp only [Config.specK, Config.spec]; positivity) (by rw [hP]; omega) (by rw [hP, hEL]; omega)
-    (by rw [hEL, show N + q.G + q.g * (k / p.m) + F.Δ + 2 = N + (q.G + q.g * (k / p.m) + F.Δ + 2) by ring]
-        exact div_lt_add_two (hNe k hk))
+    (by rw [hEL, show N + q.G + q.g * (k / p.m) + F.Δ + 2 = N + X by rw [hX]; ring]; omega)
     hρ (by exact_mod_cast f.Hm0)
     (by
       rw [hc, lam0_specK]
@@ -566,9 +568,21 @@ theorem finality_closed_gen {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} 
       linarith)
     (by rw [hc, lam0_specK, ← lam0Q_cast]; simp only [TBandQ.toTBand]; exact_mod_cast f.g1)
     (by rw [hc, lam0_specK, ← lam0Q_cast]; simp only [TBandQ.toTBand]; exact_mod_cast f.g2)
+    (Smax := Smax) (by rw [hc]; simp only [Config.specK]; exact_mod_cast hSm)
+    (fun e he => by
+      have h1 : (e + 1) * (300 * k) ≤ N + X :=
+        (Nat.le_div_iff_mul_le (by omega : 0 < 300 * k)).1 (by omega : e + 1 ≤ (N + X) / (300 * k))
+      rw [Nat.succ_mul] at h1
+      rw [hEL, hP]
+      have h2 : X + 180 * k ≤ 300 * k := hX1
+      generalize e * (300 * k) = a at h1 ⊢
+      omega)
     hG hSt hQ hDr hH
   rw [hP] at hb
-  refine hb.trans ((add_le_add h1 (mul_le_mul_right h2 _)).trans ?_)
+  have hNe2 : (N + X) / (300 * k) + 1 ≤ N / (300 * k) + 2 := by
+    have := div_lt_add_two (a := N) (b := X) (c := 300 * k) (by omega)
+    omega
+  refine hb.trans ((add_le_add h1 (mul_le_mul' (Nat.cast_le.2 hNe2) h2)).trans ?_)
   unfold ClosedData.epsC
   rw [← ENNReal.ofReal_natCast, ← ENNReal.ofReal_mul (by positivity), ← ENNReal.ofReal_add hS0 (by positivity)]
 

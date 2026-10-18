@@ -37,9 +37,6 @@ namespace Cryptarchia.Prob
 
 open Finset Settle MeasureTheory
 
-/-- A slot of a characteristic string as an outcome, capping honest leaders at two. -/
-def enc (p : ℕ × Bool) : Out := ⟨if p.1 = 0 then 0 else if p.1 = 1 then 1 else 2, p.2⟩
-
 /-- **The first `M` slots of a characteristic string.** -/
 def slots (w : CStr) (M : ℕ) : List Out := (List.range M).map fun i => enc (w (i + 1))
 
@@ -78,16 +75,6 @@ theorem gend_congr_all {w w' : CStr} (h : SimOn w w' 0 M) : ∀ k, gend Δ M w k
 
 /-- The lottery string of an execution. -/
 noncomputable abbrev lotStr (E : Env) (es : List Event) : CStr := lotStrS E (σE E es) (lateAt E es)
-
-/-- **A finality violation**: a block an honest node had as `B_imm` is missing from
-an honest node's chain at a later point where both are online. -/
-def Unsafe (E : Env) (es : List Event) : Prop :=
-  ∃ n n' i j, n ≤ n' ∧ n' ≤ es.length ∧ i ∈ E.nodes ∧ j ∈ E.nodes ∧
-    E.online i (wAt E es n').now = true ∧ E.online j (wAt E es n').now = true ∧
-    ((wAt E es n).node i).bimm ∉ chainIds (wAt E es n').st ((wAt E es n').node j).cloc
-
-/-- The environment with oracle `O`. -/
-def _root_.Cryptarchia.Env.withO (E : Env) (O : Oracle) : Env := { E with O := O }
 
 /-- The assumptions do not involve the oracle. -/
 theorem _root_.Cryptarchia.Assm.withO {E : Env} (h : Assm E) (O : Oracle) : Assm (E.withO O) :=

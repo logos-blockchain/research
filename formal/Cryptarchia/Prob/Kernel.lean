@@ -1,6 +1,7 @@
 module
 
 public import Cryptarchia.Settle.Tree
+public import Cryptarchia.Claim.Lottery
 public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
 public import Mathlib.Algebra.Group.End
 public import Mathlib.Basic.Real.Basic
@@ -32,13 +33,6 @@ over time, and a total-stake estimate that reacts to past outcomes.
 namespace Cryptarchia.Prob
 
 open Finset Settle
-
-/-- The outcome of one slot: the number of honest leaders (`0`, `1`, or `2` for two
-or more) and whether the adversary wins. -/
-structure Out where
-  hon : Fin 3
-  adv : Bool
-  deriving DecidableEq, Fintype
 
 /-- An empty slot. -/
 def Out.empty : Out := ⟨0, false⟩

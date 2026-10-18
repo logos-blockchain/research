@@ -44,9 +44,6 @@ open Settle
 
 variable (E : Env) (es : List Event) (K : ℕ → Prop)
 
-/-- The final world. -/
-abbrev wF : World := wAt E es es.length
-
 open Classical in
 /-- The settlement tree of the execution, over the blocks satisfying `K` (all
 blocks for `K = True`; consistent chains for the multi-epoch analysis). -/

@@ -9,6 +9,10 @@ public import Cryptarchia.Spec.ForkChoice
 public import Cryptarchia.Spec.EpochState
 public import Cryptarchia.Spec.Node
 public import Cryptarchia.Spec.Execution
+-- The claim: the vocabulary of the certified statements, on top of the specification
+public import Cryptarchia.Claim.Exec
+public import Cryptarchia.Claim.Lottery
+public import Cryptarchia.Claim.Finality
 -- Settlement combinatorics
 public import Cryptarchia.Settle.Tree
 public import Cryptarchia.Settle.TreeBasic
@@ -76,6 +80,9 @@ The consensus protocol of the Logos blockchain, formalized from its specificatio
 
 * `Cryptarchia.Spec` — the protocol as specified: parameters, the lottery, total stake
   inference, chains and fork choice, epoch states, honest nodes, executions.
+* `Cryptarchia.Claim` — what the certified theorems state (`Claim.Finality`), in terms of the
+  specification only: the assumptions, the canonical epoch states, the random-oracle model, a
+  finality violation.
 * `Cryptarchia.Settle` — settlement combinatorics on PoS trees (reach and margin bounds).
 * `Cryptarchia.Proof` — deterministic safety: k-deep finality over every execution on a
   good event of the lottery string.

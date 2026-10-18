@@ -39,45 +39,7 @@ namespace Cryptarchia.Prob
 open MeasureTheory ProbabilityTheory Finset Settle
 open scoped ENNReal
 
-instance : Countable Signer := by
-  refine Function.Injective.countable (f := fun s : Signer => match s with | .honest i => some i | .adv => none) ?_
-  intro a b h; cases a <;> cases b <;> simp_all
-
-instance : Countable Note :=
-  Function.Injective.countable (f := fun n : Note => (n.id, n.value, n.owner))
-    (fun a b h => by cases a; cases b; simp_all)
-
-instance : Countable EpochState :=
-  Function.Injective.countable (f := fun s : EpochState => (s.lead, s.eta, s.D))
-    (fun a b h => by cases a; cases b; simp_all)
-
-instance : MeasurableSpace EpochState := ⊤
-
-instance : MeasurableSingletonClass EpochState := ⟨fun _ => trivial⟩
-
 /-! ## The slot outcome as a function of the state and the tickets -/
-
-/-- A ticket table: `T η id`. -/
-abbrev Tab := ℕ → ℕ → ℕ
-
-/-- Honest node `j` holds a winning note under `s` with tickets `T`. -/
-def honW (c : Config) (s : EpochState) (T : Tab) (j : ℕ) : Bool :=
-  s.lead.any (fun n => decide (n.owner = .honest j) && wins c s.D n.value (T s.eta n.id))
-
-/-- The adversary holds a winning note under `s` with tickets `T`. -/
-def advW (c : Config) (s : EpochState) (T : Tab) : Bool :=
-  s.lead.any (fun n => decide (n.owner = .adv) && wins c s.D n.value (T s.eta n.id))
-
-/-- The number of online honest nodes that win slot `i`. -/
-def honCount (E : Env) (i : ℕ) (s : EpochState) (T : Tab) : ℕ :=
-  (E.nodes.filter (fun j => E.online j i && honW E.c s T j)).length
-
-/-- **Slot `i`'s outcome** under state `s` with tickets `T`. -/
-def slotOut (E : Env) (i : ℕ) (s : EpochState) (T : Tab) : Out :=
-  enc (honCount E i s T, advW E.c s T)
-
-/-- Slot `i`'s ticket table. -/
-def tk {Ω : Type*} (O : Ω → Oracle) (i : ℕ) (ω : Ω) : Tab := fun η id => (O ω).ticket η i id
 
 /-- Under Δ-delivery, the lottery string is the slot outcomes. -/
 theorem enc_lotStr {E : Env} {O : Oracle} {es : List Event} (hD : DeltaDelivery (E.withO O) es) (i : ℕ) :
@@ -174,26 +136,11 @@ theorem freeze {Ω α β : Type*} {m : MeasurableSpace Ω} [mΩ : MeasurableSpac
 
 /-! ## The random oracle -/
 
-/-- **A random oracle** for the tickets: within one slot's table and one nonce, the
-tickets of distinct notes are independent and uniform on `[0, p)`. -/
-structure RandomOracle {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) (O : Ω → Oracle) (p : ℕ) : Prop where
-  pos : 0 < p
-  meas : ∀ i, Measurable (tk O i)
-  indep : ∀ i η, iIndepFun (fun id ω => tk O i ω η id) μ
-  unif : ∀ i η id t, t ≤ p → μ {ω | tk O i ω η id < t} = ENNReal.ofReal ((t : ℝ) / p)
-
 /-- The win probability of a note under a state. -/
 noncomputable def wn (c : Config) (s : EpochState) (n : Note) : ℝ := (threshold c s.D n.value : ℝ) / c.p
 
 /-- The probability that every note of a list loses. -/
 noncomputable def loss (c : Config) (s : EpochState) (L : List Note) : ℝ := (L.map fun n => 1 - wn c s n).prod
-
-/-- The notes of the online honest nodes in `K`. -/
-def honNotes (E : Env) (i : ℕ) (s : EpochState) (K : List ℕ) : List Note :=
-  s.lead.filter fun n => K.any fun j => E.online j i && decide (n.owner = .honest j)
-
-/-- The adversary's notes. -/
-def advNotes (s : EpochState) : List Note := s.lead.filter fun n => decide (n.owner = .adv)
 
 /-- The probability that no online honest node wins. -/
 noncomputable def pZero (E : Env) (i : ℕ) (s : EpochState) : ℝ := loss E.c s (honNotes E i s E.nodes)
@@ -541,18 +488,6 @@ theorem unsafe_up (E : Env) (hA : Assm E) {O : Oracle} {es : List Event} {N M Lw
   exact hb (final_bimm_dom (hA.withO O) hNF hdom hgw.1 hgw.2 hnn hn' hi hj hio hjo)
 
 /-! ## Probabilistic finality from the random oracle -/
-
-/-- What is known before slot `i`'s tickets are drawn: the earlier slots' ticket
-tables and the epoch states of the slots up to `i`. -/
-@[instance_reducible]
-def hist (O : Ω → Oracle) (σ : Ω → ℕ → EpochState) (i : ℕ) : MeasurableSpace Ω :=
-  (⨆ j ∈ Finset.range i, MeasurableSpace.comap (tk O j) inferInstance) ⊔
-    (⨆ j ∈ Finset.range (i + 1), MeasurableSpace.comap (fun ω => σ ω j) inferInstance)
-
-/-- **Fresh lotteries** (no grinding): each slot's ticket table is independent of
-what is known before it, including the epoch state the slot's lottery runs under. -/
-def Fresh (μ : Measure Ω) (O : Ω → Oracle) (σ : Ω → ℕ → EpochState) : Prop :=
-  ∀ i, Indep (hist O σ i) (MeasurableSpace.comap (tk O i) inferInstance) μ
 
 /-- **The band condition on an epoch state** for slot `i`: the honest part of the
 slot's law is in the band's honest polytope, and the adversary wins with probability
