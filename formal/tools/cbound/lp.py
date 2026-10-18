@@ -140,17 +140,33 @@ class Program:
         A = sp.csr_matrix((vals, (rows, cols)), shape=(r[0], nvar))
         return A, nvar
 
-    def feasible(self, bands, lam):
+    def feasible(self, bands, lam, cr=None):
+        """a table passing every band's check at `λ`, with `V ≥ 1` on warm states. With `cr`, also the
+        least start factor `C`: `V(ρ, ρ) ≤ C · cr^ρ` on the box (past it the warm tail grows by
+        `cw ≤ cr`), returned as the third value"""
         A, nvar = self.build(bands, lam)
-        n, nc = self.n, self.box.nc
-        b = np.zeros(A.shape[0])
-        # V ≥ 1 on warm states; everything nonnegative; minimize V on warm states over ce^ρ
+        n, nc, R = self.n, self.box.nc, self.box.R
         lo = np.zeros(nvar)
         lo[nc:n] = 1.0
         cost = np.zeros(nvar)
-        cost[nc:n] = 1.0 / (1.9 ** np.arange(self.box.R + 1))
-        res = linprog(cost, A_ub=A, b_ub=b, bounds=list(zip(lo, [None] * nvar)), method='highs')
-        return res.status == 0, (res.x[:n] if res.status == 0 else None)
+        if cr is None:
+            cost[nc:n] = 1.0 / (1.9 ** np.arange(R + 1))
+        else:
+            assert self.box.cw <= cr
+            # one more column, C, and the rows V(ρ, ρ) - C cr^ρ ≤ 0
+            extra = sp.csr_matrix((np.concatenate([np.ones(R + 1), -cr ** np.arange(R + 1.0)]),
+                                   (np.concatenate([np.arange(R + 1)] * 2),
+                                    np.concatenate([nc + np.arange(R + 1), np.full(R + 1, nvar)]))),
+                                  shape=(R + 1, nvar + 1))
+            A = sp.vstack([sp.hstack([A, sp.csr_matrix((A.shape[0], 1))]), extra]).tocsr()
+            lo = np.append(lo, 0.0)
+            cost = np.zeros(nvar + 1)
+            cost[nvar] = 1.0
+        b = np.zeros(A.shape[0])
+        res = linprog(cost, A_ub=A, b_ub=b, bounds=list(zip(lo, [None] * len(lo))), method='highs')
+        if cr is None:
+            return res.status == 0, (res.x[:n] if res.status == 0 else None)
+        return res.status == 0, (res.x[:n] if res.status == 0 else None), (res.x[nvar] if res.status == 0 else None)
 
 
 def best_lambda(prog, bands, lo=0.990, hi=0.9985, tol=2e-6):
