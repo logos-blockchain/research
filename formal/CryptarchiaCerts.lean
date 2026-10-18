@@ -33,11 +33,11 @@ drifting by at most a factor ρ = 101/100 per epoch, and honest online stake at 
 
 namespace Cryptarchia.Certified
 
-/-- **Two months at k = 2160**: executions up to slot 5 184 000, failure probability at most
-1.3 · 10⁻¹¹. -/
+/-- **Two months at k = 1000**: executions up to slot 5 184 000 (17 epochs of 300 000 slots),
+failure probability at most 1.5 · 10⁻². -/
 theorem two_months :
     Claim.Finality
-      (k := 2160)
+      (k := 1000)
       (Δ := 11)
       (N := 5184000)
       (β := 1 / 5)
@@ -45,7 +45,7 @@ theorem two_months :
       (μ := 13 / 100)
       (ρ := 101 / 100)
       (Hmin := 1000000)
-      (ε := 1.3e-11) :=
+      (ε := 1.5e-2) :=
   Prob.Certs.E20D11M2.finality.mono (by norm_num)
 
 /-- **A year at k = 2160**: executions up to slot 31 536 000, failure probability at most

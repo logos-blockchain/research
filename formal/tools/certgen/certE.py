@@ -20,10 +20,17 @@ from cert2 import step_val, auto_bound, check_sol, solve_exact, xg_exact, lp_exa
 from emit_gen import member_band, LAM, ETA, ZETA, errLo, errHi
 
 FP = Fr(33, 1000)            # f_p = fP / PRECISION in Config.spec
-PERIOD = 388800              # 6 * kf
+PERIOD = 388800              # 6 * kf, at the specification's k = 2160 (`set_depth`)
 EL = 648000                  # 10 * kf
 SIDX = [0, 1, 2, 17]
 EIDX = [i for i in range(19) if i not in (2, 17)]
+
+
+def set_depth(k):
+    """the epoch geometry at depth `k` (`Config.specK k`, ⌊k/f⌋ = 30 k): PERIOD = 6⌊k/f⌋, epochs of
+    10⌊k/f⌋ slots"""
+    global PERIOD, EL
+    PERIOD, EL = 180 * k, 300 * k
 
 
 RHO = Fr(101, 100)           # stake drift per epoch the band allows (`Exec.StakeDrift`)
@@ -62,7 +69,8 @@ def tband_derived(T):
     return dict(Yh=Yh, ylo=ylo, Ya=Ya, clo=clo, chi=chi)
 
 
-def band_eps_float(T, P=PERIOD):
+def band_eps_float(T, P=None):
+    P = PERIOD if P is None else P
     dv = tband_derived(T); d = float(T['delta'])
     m = (P - 1) * float(dv['ylo'] * dv['clo'])
     return math.exp(-m * d * d / 2) + math.exp(-m * d * d * (0.5 - 2 / 9 * d))

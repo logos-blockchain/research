@@ -28,6 +28,7 @@ def pot : PotCfg where
 
 /-- The certificate's other chosen numbers. -/
 def par : SpecData where
+  k := 2160                -- the security parameter: the configuration is `Config.specK k`
   κ := (1161 / 10000 : ℚ)  -- the weight of the cold potential's second term
   N := 31536000            -- the horizon: executions up to slot N
   ε := (1 / 100 : ℚ)       -- each lesser term (long phases, long empty runs, large reach) at most this share of the main ones
@@ -37,7 +38,7 @@ def par : SpecData where
 /-- The estimate's band `λV/D ∈ [ℓlo, ℓhi]`: the least that the stake drift allows
 (`TBandQ.ofDrift`). -/
 def Tq : TBandQ :=
-  eval% TBandQ.ofDrift Config.spec
+  eval% TBandQ.ofDrift (Config.specK par.k)
     (13 / 100 : ℚ)  -- μ: the canonical chain's loss of honestly won slots (`ChainQuality`)
     (1 / 5 : ℚ)     -- β: the adversary's share of the participating stake
     (17 / 200 : ℚ)  -- δ: the estimate's relative band per epoch

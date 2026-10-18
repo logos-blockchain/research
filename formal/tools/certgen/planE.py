@@ -2,7 +2,8 @@
 import sys, json, math, time
 from fractions import Fraction as Fr
 import plan
-from certE import tband, tband_derived, epoch_members, weakest, build_E, band_eps_float, EL, lp_in_exact, check_class
+import certE
+from certE import tband, tband_derived, epoch_members, weakest, build_E, band_eps_float, lp_in_exact, check_class
 from cert2 import lp_exact, check_cert
 from certnum import rup, rdn, flog10
 from gen import chain
@@ -68,7 +69,7 @@ def stage2(Bw, D, N, tau, lp_eff, e17, e2, stat, Gfix=None, k=2160, fden=30, tar
             if grow_best is None or v < grow_best[0]: grow_best = (v, T, yy)
     return dict(Lw=Lw, J=J, x=x, Gp=Gp, G=G, T=grow_best[1], yy=grow_best[2], tot=tot, goal=goal)
 
-def make(beta, D, delta, K, N, refined=True, mu=0):
+def make(beta, D, delta, K, N, refined=True, mu=0, k=2160):
     t0 = time.time()
     T = tband(beta, delta, mu=Fr(mu).limit_denominator(1000))
     fam = epoch_members(T, K)
@@ -76,13 +77,13 @@ def make(beta, D, delta, K, N, refined=True, mu=0):
     B = weakest(bands)
     Bf = {k: float(v) for k, v in (bands[-1] if refined else B).items()}
     plan.band = lambda f, b: Bf
-    p = plan.plan(beta, D, N=N)
+    p = plan.plan(beta, D, k=k, N=N)
     c, z, s, kap, d = p['par']
     c, z, s, d = rnd(c, 4), rnd(z, 4), max(Fr(1), rnd(s, 4)), min(Fr(1), rnd(d, 4))
     kap = min(rnd(kap, 4), z - s)
     tau = Fr(p['tau']).limit_denominator(1000)
     G = max(p['G'], D + 1)
-    cfg = dict(beta=beta, Delta=D, delta=delta, K=K, k=2160, N=N, G=G, Gp=p['Gp'], J=p['J'], Lw=p['Lw'], r=p['r'],
+    cfg = dict(beta=beta, Delta=D, delta=delta, K=K, k=k, N=N, G=G, Gp=p['Gp'], J=p['J'], Lw=p['Lw'], r=p['r'],
                T=p['T'], x=str(rnd(p['x'], 3)), yy=str(rnd(p['yy'], 2)), c=str(c), z=str(z), s=str(s), kap=str(kap),
                d=str(d), tau=str(tau), llo=str(T['llo']), lhi=str(T['lhi']))
     print('plan', {k: v for k, v in p.items() if k not in ('par',)}, f'{time.time()-t0:.0f}s', flush=True)
@@ -104,7 +105,7 @@ def make(beta, D, delta, K, N, refined=True, mu=0):
         Bwf = {kk: float(v) for kk, v in B.items()}
         stat = float(1 + (P['b'] - 1) / (1 - P['lr']))
         s2 = stage2(Bwf, D, N, float(tau), float(lpi), float(P['e'][17]), float(P['e'][2]) * float(lp / lpi) ** G,
-                    stat, Gfix=G)
+                    stat, Gfix=G, k=k)
         r = math.ceil((math.log10(N + 3000) + math.log10(stat) - s2['goal']) / math.log10(float(c)))
         cfg.update(Lw=s2['Lw'], J=s2['J'], x=str(rnd(s2['x'], 3)), Gp=s2['Gp'], T=s2['T'], yy=str(rnd(s2['yy'], 2)), r=r)
         print('lpi', float(lpi), 'ratio^G', float(lp / lpi) ** G, 'stage2', s2, flush=True)
@@ -113,7 +114,7 @@ def make(beta, D, delta, K, N, refined=True, mu=0):
     if not ok: print([i for i, o in enumerate(oks) if not o]); return None
     _, Ts, aux = terms(cfg, B, P)
     tot = sum(Ts)
-    Ne = (N + G + cfg['Gp'] + D + 2) // EL + 1
+    Ne = (N + G + cfg['Gp'] + D + 2) // certE.EL + 1
     be = band_eps_float(T)
     print('terms', [f"{float(t):.2e}" for t in Ts], 'settle', f"{float(tot):.2e}", f'Ne {Ne} bandEps {be:.2e} -> {Ne*be:.2e}')
     return cfg, T, fam, B, P, Ts

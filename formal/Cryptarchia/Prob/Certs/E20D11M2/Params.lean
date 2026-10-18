@@ -19,28 +19,29 @@ open Cryptarchia Cryptarchia.Prob
 
 /-- The potential's parameters. -/
 def pot : PotCfg where
-  Δ := 11                  -- the network delay, in slots
-  c := (2927 / 2500 : ℚ)   -- the potential's base for the reach
-  z := (4191 / 2500 : ℚ)   -- the potential's base for the margin, when cold
-  s := (1363 / 1250 : ℚ)   -- the weight of the cold potential's first term
-  d := (5973 / 10000 : ℚ)  -- the base of the cold potential's second term
-  τ := (51 / 50 : ℚ)       -- the span term's base per slot
+  Δ := 11                   -- the network delay, in slots
+  c := (2357 / 2000 : ℚ)    -- the potential's base for the reach
+  z := (17543 / 10000 : ℚ)  -- the potential's base for the margin, when cold
+  s := (2831 / 2500 : ℚ)    -- the weight of the cold potential's first term
+  d := (791 / 5000 : ℚ)     -- the base of the cold potential's second term
+  τ := (101 / 100 : ℚ)      -- the span term's base per slot
 
 /-- The certificate's other chosen numbers. -/
 def par : SpecData where
-  κ := (1161 / 10000 : ℚ)  -- the weight of the cold potential's second term
-  N := 5184000             -- the horizon: executions up to slot N
-  ε := (1 / 100 : ℚ)       -- each lesser term (long phases, long empty runs, large reach) at most this share of the main ones
-  ρ := (101 / 100 : ℚ)     -- the stake drift per epoch (`StakeDrift`)
-  Hmin := (1000000 : ℚ)    -- the least honest online stake (`MinStake`)
+  k := 1000               -- the security parameter: the configuration is `Config.specK k`
+  κ := (907 / 10000 : ℚ)  -- the weight of the cold potential's second term
+  N := 5184000            -- the horizon: executions up to slot N
+  ε := (1 / 100 : ℚ)      -- each lesser term (long phases, long empty runs, large reach) at most this share of the main ones
+  ρ := (101 / 100 : ℚ)    -- the stake drift per epoch (`StakeDrift`)
+  Hmin := (1000000 : ℚ)   -- the least honest online stake (`MinStake`)
 
 /-- The estimate's band `λV/D ∈ [ℓlo, ℓhi]`: the least that the stake drift allows
 (`TBandQ.ofDrift`). -/
 def Tq : TBandQ :=
-  eval% TBandQ.ofDrift Config.spec
+  eval% TBandQ.ofDrift (Config.specK par.k)
     (13 / 100 : ℚ)  -- μ: the canonical chain's loss of honestly won slots (`ChainQuality`)
     (1 / 5 : ℚ)     -- β: the adversary's share of the participating stake
-    (17 / 200 : ℚ)  -- δ: the estimate's relative band per epoch
+    (7 / 100 : ℚ)   -- δ: the estimate's relative band per epoch
     (1 / 10 ^ 70)   -- η: the lottery threshold's approximation error
     (1 / 10 ^ 16)   -- ζ: the largest note's share of the stake
     par.ρ par.Hmin  -- the stake drift and the least honest stake

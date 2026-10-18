@@ -69,13 +69,13 @@ Two of these replace conditions of the earlier statements that a reader could no
 
 ## Certified numbers
 
-Three certificates, as Lean theorems with standard axioms only, under the assumptions above with β = 0.2, `Smax` = 10³⁰, μ = 0.13, ρ = 1.01 and `Hmin` = 10⁶, stated in `CryptarchiaCerts.lean`. Two are numeric, at the specification's depth (`Certified.two_months`, `Certified.one_year`; `finality` in `Prob/Certs/E20D11M2.lean` and `Prob/Certs/E20D11.lean`):
+Three certificates, as Lean theorems with standard axioms only, under the assumptions above with β = 0.2, `Smax` = 10³⁰, μ = 0.13, ρ = 1.01 and `Hmin` = 10⁶, stated in `CryptarchiaCerts.lean`. Two are numeric (`Certified.two_months`, `Certified.one_year`; `finality` in `Prob/Certs/E20D11M2.lean` and `Prob/Certs/E20D11.lean`):
 
-> f = 1/30, k = 2160, Δ = 11 slots, with the specification's stake inference and the adversary free to withhold all its blocks:
-> * executions up to slot 5,184,000 (two months, 9 epochs): **P(finality violation) ≤ 1.3e-11**;
-> * executions up to slot 31,536,000 (one year, 49 epochs): **P(finality violation) ≤ 7.2e-11**.
+> f = 1/30, Δ = 11 slots, with the specification's stake inference and the adversary free to withhold all its blocks:
+> * k = 1000, executions up to slot 5,184,000 (two months, 18 epochs of 300,000 slots): **P(finality violation) ≤ 1.5e-2**;
+> * k = 2160 (the specification's), executions up to slot 31,536,000 (one year, 49 epochs): **P(finality violation) ≤ 7.2e-11**.
 
-Each bound is `settleEps3E + Ne · bandEps`: the settlement bound (1.2e-11 and 7.0e-11), which covers canonical-prefix consistency in every epoch as well as finality, plus the estimate's band (2.3e-14 per epoch). The band of slot rates is derived from the stake estimate (TSI band δ = 8.5 %, 32 band members), with room for the stake drift ρ.
+Each bound is `settleEps3E + Ne · bandEps`: the settlement bound (1.3e-2 and 7.0e-11), which covers canonical-prefix consistency in every epoch as well as finality, plus the estimate's band (6.6e-5 and 2.3e-14 per epoch). The band of slot rates is derived from the stake estimate (TSI band δ = 7 % and 8.5 %, 32 band members), with room for the stake drift ρ. At k = 1000 the observation period is shorter (180,000 slots), so the band costs more and the best δ is smaller (a sweep over δ ∈ {0.055, …, 0.085}).
 
 The third is in closed form (`Certified.closed`): for **every depth k ≥ 1000 and every horizon N**, at the specification with depth `k` (`Config.specK k`: epochs of `300 k` slots), with `t = ⌊k/20⌋` and `Ne = ⌊N / (300 k)⌋ + 2`:
 
