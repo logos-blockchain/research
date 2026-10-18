@@ -69,6 +69,9 @@ public import Cryptarchia.Prob.CertClosed
 public import Cryptarchia.Prob.TableQ
 public import Cryptarchia.Prob.TableCert
 public import Cryptarchia.Prob.TableSpec
+public import Cryptarchia.Prob.TableG
+public import Cryptarchia.Prob.TableGCert
+public import Cryptarchia.Prob.TableGSpec
 public import Cryptarchia.Prob.Pick
 public import Cryptarchia.Prob.Occupied
 public import Cryptarchia.Proof.Consist

@@ -94,7 +94,8 @@ theorem finality_famT {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
     (hG : GenesisOK E) (hSt : ∀ ω, Exec.StakeOK E (O ω) (es ω) T.β Smax)
     (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ N) (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) ρ N)
     (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) Hmin) :
-    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps3G E Bq.toBand (cert2T hP) lp lpi G N G G' J Lw r Tg x yy) +
+    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤
+      ENNReal.ofReal (settleEps3G E Bq.toBand (cert2T hP) lp lpi ((cert2T hP).e 2 * 1) G N G G' J Lw r Tg x yy) +
       Ne * ENNReal.ofReal (bandEps T.toTBand E.c.period) := by
   simp only [famChkQ, Bool.and_eq_true, decide_eq_true_eq] at hT
   obtain ⟨⟨⟨⟨⟨⟨ok, hη⟩, hζ⟩, hβ⟩, hηlot⟩, cov0⟩, cov1⟩ := hT
@@ -108,7 +109,7 @@ theorem finality_famT {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
   exact finalityG (M := M) (Ne := Ne) (Tb := T.toTBand) es hMod hN hΔ
     (cert2BT hP hS hD hBq hsw E.c.epochLength G hG1 hGEL)
     (fun κ hκ => tabFailPot htab htabA hS hD hBq (cert2T hP) (TabQ.ties_of hties _ rfl rfl) hG1 hGEL hκ)
-    (fun _ _ => rfl) (fun _ _ => rfl) (FamSpec.prod hS)
+    (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl) (FamSpec.prod hS)
     (G' := G') (J := J) (Lw := Lw) (r := r) (T := Tg) (x := x) (yy := yy)
     (by exact_mod_cast hx) (by exact_mod_cast hyy0) (by exact_mod_cast hyy1) hT1 hNM
     (by simp only [BandR.toBand_hhi]; exact_mod_cast hhi1) (by simp only [BandR.toBand_hlo]; exact_mod_cast hlo0)
@@ -171,7 +172,9 @@ theorem finality_specT {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
   have hnb : nbD E F.Δ G Tg = nbSpec (Config.specK k) F.Δ G Tg := by
     unfold nbD growLen nbSpec; rw [hc]
   have h1 := (settleEps3G_le_Q (d := 14) (lpi := lpi) (x := x) (yy := yy) (Ccap := G) (N := N) (G := G) (G' := G')
-    (J := J) (Lw := Lw) (r := r) (T := Tg) (cert2T hC2) Bq rfl rfl rfl rfl rfl rfl rfl rfl hk hne hnb f.eps).trans
+    (J := J) (Lw := Lw) (r := r) (T := Tg) (e2R := (cert2T hC2).e 2 * 1) (cert2T hC2) Bq rfl rfl rfl rfl
+    (by rw [mul_one]; rfl) rfl rfl rfl hk hne hnb
+    f.eps).trans
     (Rat.cast_le.2 f.epsle)
   have h2 := (bandEps_le_Q f.band).trans (Rat.cast_le.2 f.bandle)
   refine hb.trans ((add_le_add (ENNReal.ofReal_le_ofReal h1) (mul_le_mul_right (ENNReal.ofReal_le_ofReal h2) _)).trans ?_)

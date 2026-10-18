@@ -392,11 +392,11 @@ theorem settleEps3E_le_Q {Δ : ℕ} {E : Env} {B : Band} (P : Cert2 B Δ) (Bq : 
 
 /-- **The settlement bound with a failed-check potential's contractions, bounded by computation.** -/
 theorem settleEps3G_le_Q {Δ : ℕ} {E : Env} {B : Band} (P : Cert2 B Δ) (Bq : BandR) (hB : B = Bq.toBand)
-    {d : ℕ} {e17 τ lp e2 b lr c lpi x yy : ℚ} {lpR : ℝ} (h17 : P.e 17 = e17) (hτ : P.τ = τ) (hlp : lpR = lp)
-    (h2 : P.e 2 = e2) (hb : P.b = b) (hlr : P.lr = lr) (hc : P.c = c) {k ne nb Ccap N G G' J Lw r T : ℕ}
+    {d : ℕ} {e17 τ lp e2 b lr c lpi x yy : ℚ} {lpR e2R : ℝ} (h17 : P.e 17 = e17) (hτ : P.τ = τ) (hlp : lpR = lp)
+    (h2 : e2R = e2) (hb : P.b = b) (hlr : P.lr = lr) (hc : P.c = c) {k ne nb Ccap N G G' J Lw r T : ℕ}
     (hk : E.c.k = k) (hne : nEp E N = ne) (hnb : nbD E Δ G T = nb)
     (hchk : settleChkQ d Δ Bq e17 τ lp e2 b lr c lpi x yy k Ccap Lw r T = true) :
-    settleEps3G E B P lpR lpi Ccap N G G' J Lw r T x yy ≤
+    settleEps3G E B P lpR lpi e2R Ccap N G G' J Lw r T x yy ≤
       (settleEps3EQ d Δ Bq e17 τ lp e2 b lr c lpi x yy k ne nb Ccap N G G' J Lw r T : ℝ) := by
   simp only [settleChkQ, Bool.and_eq_true, decide_eq_true_eq] at hchk
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨c1, c2⟩, c3⟩, c4⟩, c5⟩, c6⟩, c7⟩, c8⟩, c9⟩, c10⟩, c11⟩, c12⟩, c13⟩, c14⟩, c15⟩, c16⟩, c17⟩ := hchk

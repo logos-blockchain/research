@@ -827,6 +827,27 @@ theorem one_le_Cv (hS : T.Shape) {P : Cert2 B Δ} (hT : T.Ties P) (ρ j : ℕ) :
 
 variable {κ : Kern} {M G : ℕ}
 
+/-- **A check starts below the reach potential.** -/
+theorem V_warm_le (hS : T.Shape) {P : Cert2 B Δ} (hT : T.Ties P) (ρ : ℤ) (hρ : 0 ≤ ρ) : T.V (ρ, ρ) ≤ P.c ^ ρ := by
+  rw [V_warm (show (0 : ℤ) ≤ (ρ, ρ).2 from hρ)]
+  simp only
+  have := Wv_le_c hS hT ρ.toNat
+  rwa [← zpow_natCast, Int.toNat_of_nonneg hρ] at this
+
+/-- **A failed check costs at least `z^-A`.** -/
+theorem one_le_V_z (hS : T.Shape) {P : Cert2 B Δ} (hT : T.Ties P) (st : ℤ × ℤ) (A : ℕ) (hA : -(A : ℤ) ≤ st.2) :
+    1 ≤ T.V st * P.z ^ A := by
+  have hz0 : 0 < P.z := by linarith [P.hz]
+  by_cases hw : 0 ≤ st.2
+  · rw [V_warm hw]
+    have h1 : 1 ≤ T.Wv st.1.toNat := le_trans (by unfold Wv; simpa using hT.w0) (Wv_mono hS (Nat.zero_le _))
+    calc (1 : ℝ) = 1 * 1 := by ring
+      _ ≤ T.Wv st.1.toNat * P.z ^ A := mul_le_mul h1 (one_le_pow₀ P.hz) zero_le_one (by linarith)
+  · rw [V_cold (by omega)]
+    have hj : dep st.2 + 1 ≤ A := by unfold dep; omega
+    refine (one_le_Cv hS hT st.1.toNat (dep st.2)).trans ?_
+    exact mul_le_mul_of_nonneg_left (pow_le_pow_right₀ P.hz hj) (V_pos hS st |>.le.trans_eq (V_cold (by omega)))
+
 /-- **The table as a failed-check potential**, from the contraction checks at the representatives:
 `lp` for any phase, `lpi` for one that starts outside `Sw`. -/
 noncomputable def toFailPot (hS : T.Shape) (P : Cert2 B Δ) (hT : T.Ties P) {Sw : ℕ → Prop} {lp lpi : ℝ}
@@ -836,19 +857,21 @@ noncomputable def toFailPot (hS : T.Shape) (P : Cert2 B Δ) (hT : T.Ties P) {Sw 
     (hexIn : ∀ s, T.IsRep s → ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ Sw h.length →
       ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (T.post0 s h.length)) h ≤ lpi * T.V s) :
     FailPot κ M G P Sw where
-  V := T.V
+  V := fun _ => T.V
   post := T.post
   lp := lp
   lpi := lpi
+  cs := 1
   hlpi := hlpi
   hle := hle
-  nonneg st := (V_pos hS st).le
-  warm ρ hρ := by
-    rw [V_warm (show (0 : ℤ) ≤ (ρ, ρ).2 from hρ)]
+  hcs := zero_le_one
+  nonneg _ st := (V_pos hS st).le
+  warm _ ρ hρ := by
+    rw [one_mul, V_warm (show (0 : ℤ) ≤ (ρ, ρ).2 from hρ)]
     simp only
     have := Wv_le_c hS hT ρ.toNat
     rwa [← zpow_natCast, Int.toNat_of_nonneg hρ] at this
-  fail st hst A hA := by
+  fail _ st hst A hA := by
     have hz0 : 0 < P.z := by linarith [P.hz]
     by_cases hw : 0 ≤ st.2
     · rw [V_warm hw]

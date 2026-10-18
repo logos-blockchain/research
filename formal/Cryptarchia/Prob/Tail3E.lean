@@ -212,7 +212,7 @@ noncomputable def settleEps3E (E : Env) (B : Band) (P : Cert2 B Δ) (lpi : ℝ) 
 
 /-- **The failure probability of the good event**, with a failed-check potential's contractions `lp`
 (any phase) and `lpi` (in an epoch). -/
-noncomputable def settleEps3G (E : Env) (B : Band) (P : Cert2 B Δ) (lp lpi : ℝ) (Ccap N G G' J Lw r T : ℕ)
+noncomputable def settleEps3G (E : Env) (B : Band) (P : Cert2 B Δ) (lp lpi e2 : ℝ) (Ccap N G G' J Lw r T : ℕ)
     (x yy : ℝ) : ℝ :=
   -- long phases
   (N + G' + 1) * (1 - (1 - B.hhi) ^ Δ) ^ (G / Δ) +
@@ -221,13 +221,33 @@ noncomputable def settleEps3G (E : Env) (B : Band) (P : Cert2 B Δ) (lp lpi : �
   -- long spans of `J + 1` phases
   (N + G' + 1) * (P.e 17 ^ (J + 1) / P.τ ^ (Lw + 1)) +
   -- failed checks
-  (N + G' + 1) * (lpi ^ J * (lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr))) +
+  (N + G' + 1) * (lpi ^ J * (lp / lpi) ^ Ccap * e2 * (1 + (P.b - 1) / (1 - P.lr))) +
   -- crowded windows
   (N + 1) * ((1 + (x - 1) * (1 - B.elo)) ^ Lw / x ^ (E.c.k + 1)) +
   -- large reach
   (N + G + 1) * ((1 + (P.b - 1) / (1 - P.lr)) / P.c ^ (r + 1)) +
   -- slow growth
   nEp E N * ((1 + (yy - 1) * PT 1 yy B.hlo B.hhi T) ^ nbD E Δ G T / yy ^ (E.c.k + r))
+
+theorem settleEps3E_eq (E : Env) (B : Band) (P : Cert2 B Δ) (lpi : ℝ) (Ccap N G G' J Lw r T : ℕ) (x yy : ℝ) :
+    settleEps3E E B P lpi Ccap N G G' J Lw r T x yy = settleEps3G E B P P.lp lpi (P.e 2) Ccap N G G' J Lw r T x yy :=
+  rfl
+
+/-- `settleEps3G` is monotone in the checked phase's bound. -/
+theorem settleEps3G_mono_e2 (E : Env) (B : Band) (P : Cert2 B Δ) {lp lpi e2 e2' : ℝ} (hlpi : 0 < lpi) (hle : lpi ≤ lp)
+    (he : e2 ≤ e2') (Ccap N G G' J Lw r T : ℕ) (x yy : ℝ) :
+    settleEps3G E B P lp lpi e2 Ccap N G G' J Lw r T x yy ≤ settleEps3G E B P lp lpi e2' Ccap N G G' J Lw r T x yy := by
+  unfold settleEps3G
+  have hF : 0 ≤ 1 + (P.b - 1) / (1 - P.lr) := by
+    have h1 : (0 : ℝ) ≤ P.b - 1 := by linarith [P.hb1]
+    have h2 : (0 : ℝ) ≤ 1 - P.lr := by linarith [P.hlr1]
+    have := div_nonneg h1 h2; linarith
+  have hR : 0 ≤ lp / lpi := div_nonneg (by linarith) hlpi.le
+  have h4 : lpi ^ J * (lp / lpi) ^ Ccap * e2 * (1 + (P.b - 1) / (1 - P.lr)) ≤
+      lpi ^ J * (lp / lpi) ^ Ccap * e2' * (1 + (P.b - 1) / (1 - P.lr)) :=
+    mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left he (mul_nonneg (pow_nonneg hlpi.le _) (pow_nonneg hR _))) hF
+  have := mul_le_mul_of_nonneg_left h4 (by positivity : (0 : ℝ) ≤ (N : ℝ) + G' + 1)
+  linarith
 
 /-- **The settlement bound**, for any failed-check potential (`FailPot`). -/
 theorem settle_bound3G (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ) (hB : κ.Within B)
@@ -239,7 +259,7 @@ theorem settle_bound3G (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
     (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (hlo1 : B.hlo ≤ 1) (helo1 : B.elo ≤ 1) :
     Ex κ M (fun h => by classical exact if (GoodLS E (strOf h) N Lw (gend Δ M (strOf h)) ∧
         GrowthS E (strOf h) (gend Δ M (strOf h)) N r G) then (0 : ℝ) else 1) [] ≤
-      settleEps3G E B P F.lp F.lpi Ccap N G G' J Lw r T x yy := by
+      settleEps3G E B P F.lp F.lpi (P.e 2 * F.cs) Ccap N G G' J Lw r T x yy := by
   classical
   have hc := P.hc
   have hc0 : 0 < P.c := by linarith
@@ -285,7 +305,7 @@ theorem settle_bound3G (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
     refine (span_bound' P hb.s17 hM h1).trans (pow_le_pow_right₀ P.he17 ?_)
     omega
   have e4 : ∀ k ∈ Finset.Icc J (N + G'), Ex κ M (failHE3 Δ M G Lw (N + G') (k - J) k) [] ≤
-      F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
+      F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * (P.e 2 * F.cs) * (1 + (P.b - 1) / (1 - P.lr)) := by
     intro k hk
     rw [Finset.mem_Icc] at hk
     have := fail_checkF (M := M) P hb F hcap (Hc := N + G') (by omega)
@@ -343,15 +363,15 @@ theorem settle_bound3G (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
   have hcard : ((Finset.Icc J (N + G')).card : ℝ) ≤ N + G' + 1 := by
     rw [Nat.card_Icc]; push_cast; have : (↑(N + G' + 1 - J) : ℝ) ≤ ↑(N + G' + 1) := by exact_mod_cast Nat.sub_le _ _
     push_cast at this; linarith
-  have hfail0 : 0 ≤ F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
-    have h1 := hb.e2_nonneg hM
+  have hfail0 : 0 ≤ F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * (P.e 2 * F.cs) * (1 + (P.b - 1) / (1 - P.lr)) := by
+    have h1 := mul_nonneg (hb.e2_nonneg hM) F.hcs
     have h2 : 0 ≤ (P.b - 1) / (1 - P.lr) := div_nonneg (by linarith [P.hb1]) (by linarith [P.hlr1])
     have hl0 : 0 ≤ F.lp := by linarith [F.hle, F.hlpi]
     exact mul_nonneg (mul_nonneg (mul_nonneg (pow_nonneg F.hlpi.le _) (pow_nonneg (div_nonneg hl0 F.hlpi.le) _)) h1)
       (by linarith)
   simp only [Finset.sum_const, Finset.card_range, Nat.card_Icc, nsmul_eq_mul] at s1 s2 s3 s4 s5 s6 s7
-  have s4' : ((N + G' + 1 - J : ℕ) : ℝ) * (F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr))) ≤
-      ((N : ℝ) + G' + 1) * (F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr))) := by
+  have s4' : ((N + G' + 1 - J : ℕ) : ℝ) * (F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * (P.e 2 * F.cs) * (1 + (P.b - 1) / (1 - P.lr))) ≤
+      ((N : ℝ) + G' + 1) * (F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * (P.e 2 * F.cs) * (1 + (P.b - 1) / (1 - P.lr))) := by
     apply mul_le_mul_of_nonneg_right _ hfail0
     have : ((N + G' + 1 - J : ℕ) : ℝ) ≤ ((N + G' + 1 : ℕ) : ℝ) := by exact_mod_cast Nat.sub_le _ _
     push_cast at this; linarith
@@ -367,8 +387,10 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
     (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (hlo1 : B.hlo ≤ 1) (helo1 : B.elo ≤ 1) :
     Ex κ M (fun h => by classical exact if (GoodLS E (strOf h) N Lw (gend Δ M (strOf h)) ∧
         GrowthS E (strOf h) (gend Δ M (strOf h)) N r G) then (0 : ℝ) else 1) [] ≤
-      settleEps3E E B P lpi Ccap N G G' J Lw r T x yy :=
-  settle_bound3G E hΔ hsane P hB hG hb.toPhaseBounds0 (FailPot.ofV2 P hB hG hb hI) hI.cap hx hyy0 hyy1 hT hNM hhi1 hlo0
-    hlo1 helo1
+      settleEps3E E B P lpi Ccap N G G' J Lw r T x yy := by
+  have := settle_bound3G (J := J) (r := r) E hΔ hsane P hB hG hb.toPhaseBounds0 (FailPot.ofV2 P hB hG hb hI) hI.cap hx
+    hyy0 hyy1 hT hNM hhi1 hlo0 hlo1 helo1
+  rw [settleEps3E_eq]
+  simpa only [FailPot.ofV2, mul_one] using this
 
 end Cryptarchia.Prob

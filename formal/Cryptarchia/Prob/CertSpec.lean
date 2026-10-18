@@ -204,14 +204,14 @@ the phase cut `G`, the longest empty run `G'` and the reach bound `r`, each the 
 at most `ε` times these three; the growth block `T` minimizing the slow-growth term at its best tilt
 `yy`. Last the slots and epochs covered, the settlement and band bounds rounded up to 2 and 4 digits,
 and their sum over the epochs rounded up to 2 digits. -/
-def _root_.Cryptarchia.Prob.SpecData.deriveL (p : SpecData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
-    (T : TBandQ) (lp lpi : ℚ) : SpecDerived :=
+def _root_.Cryptarchia.Prob.SpecData.deriveLE (p : SpecData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
+    (e2 : ℚ) (T : TBandQ) (lp lpi : ℚ) : SpecDerived :=
   let k := p.k
   let c := Config.specK p.k
   let stat := 1 + (bOf dat - 1) / (1 - lrOf dat)
   -- the main terms: spans, failed checks (without the phase cut's factor) and crowded windows
   let span := fun (Lw J : ℕ) => (p.N + 1 : ℚ) * powUpQ 14 (eOf dat 17) (J + 1) / powDnQ 14 F.τ (Lw + 1)
-  let fail := fun J : ℕ => (p.N + 1 : ℚ) * powUpQ 14 lpi J * eOf dat 2 * stat
+  let fail := fun J : ℕ => (p.N + 1 : ℚ) * powUpQ 14 lpi J * e2 * stat
   let xOf := fun Lw : ℕ => max 1 (tilt 5 Lw k (1 - Bq.elo))
   let win := fun Lw : ℕ =>
     (p.N + 1 : ℚ) * powUpQ 14 (1 + (xOf Lw - 1) * (1 - Bq.elo)) Lw / powDnQ 14 (xOf Lw) (k + 1)
@@ -235,10 +235,15 @@ def _root_.Cryptarchia.Prob.SpecData.deriveL (p : SpecData) (F : FamCfg) (Bq : B
   let yy := yyOf Tg
   let M := p.N + G + G' + F.Δ + 2
   let Ne := M / c.epochLength + 1
-  let tgt := rupQ 2 (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi (xOf Lw) yy
+  let tgt := rupQ 2 (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp e2 (bOf dat) (lrOf dat) F.c lpi (xOf Lw) yy
     k ((p.N + 2) / c.epochLength) (nbSpec c F.Δ G Tg) G p.N G G' J Lw r Tg)
   let bx := rupQ 4 (bandEpsQ 14 4096 T c.period)
   ⟨Lw, J, xOf Lw, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, rupQ 2 (tgt + Ne * bx)⟩
+
+/-- `deriveLE` with the checked phase's bound from the tables. -/
+def _root_.Cryptarchia.Prob.SpecData.deriveL (p : SpecData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
+    (T : TBandQ) (lp lpi : ℚ) : SpecDerived :=
+  p.deriveLE F Bq dat (eOf dat 2) T lp lpi
 
 /-- **The derived numbers** with the contractions of the certificate's potential `V2` (`lpOf`, `lpiOf`). -/
 def _root_.Cryptarchia.Prob.SpecData.derive (p : SpecData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
@@ -305,13 +310,13 @@ theorem finality_fam {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProb
 
 /-- **Every numeric condition of the finality theorem at the specification**: the settlement bound
 below `tgt`, the band's below `bx`, `tgt + Ne · bx ≤ fin`, and the conditions of `Prob.finality`. -/
-def finChkSpec (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) (p : SpecData) (q : SpecDerived) :
+def finChkSpecE (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (e2 : ℚ) (T : TBandQ) (p : SpecData) (q : SpecDerived) :
     Bool :=
   let ⟨k, _, N, _, ρ, Hmin⟩ := p
   let c := Config.specK k
   let ⟨Lw, J, x, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, fin⟩ := q
-  settleChkQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy k G Lw r Tg &&
-    decide (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy k
+  settleChkQ 14 F.Δ Bq (eOf dat 17) F.τ lp e2 (bOf dat) (lrOf dat) F.c lpi x yy k G Lw r Tg &&
+    decide (settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp e2 (bOf dat) (lrOf dat) F.c lpi x yy k
       ((N + 2) / c.epochLength) (nbSpec c F.Δ G Tg) G N G G' J Lw r Tg ≤ tgt) &&
     bandChkQ 14 4096 T c.period && decide (bandEpsQ 14 4096 T c.period ≤ bx) && decide (tgt + Ne * bx ≤ fin) &&
     decide (0 ≤ tgt) && decide (0 ≤ bx) &&
@@ -321,11 +326,16 @@ def finChkSpec (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ)
     decide (F.Δ + 1 ≤ G) && decide (G + 1 < c.epochLength) && famChkQ F T && driftChkQ c T ρ Hmin &&
     decide (0 < c.period * c.fP) && decide (1 ≤ c.period) && decide (c.period ≤ c.epochLength)
 
-/-- The conditions `finChkSpec` checks, by name. -/
-structure SpecFacts (F : FamCfg) (Bq : BandR) (lp lpi : ℚ) (dat : Fin 19 → IdxData) (T : TBandQ) (k : ℕ)
+/-- **Every numeric condition**, with the checked phase's bound from the tables. -/
+def finChkSpec (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData) (T : TBandQ) (p : SpecData) (q : SpecDerived) :
+    Bool :=
+  finChkSpecE F Bq dat (eOf dat 2) T p q
+
+/-- The conditions `finChkSpecE` checks, by name. -/
+structure SpecFacts (F : FamCfg) (Bq : BandR) (lp lpi : ℚ) (dat : Fin 19 → IdxData) (e2 : ℚ) (T : TBandQ) (k : ℕ)
     (N M Ne G G' J Lw r Tg : ℕ) (x yy ρ Hmin tgt bx fin : ℚ) : Prop where
-  eps : settleChkQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy k G Lw r Tg = true
-  epsle : settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp (eOf dat 2) (bOf dat) (lrOf dat) F.c lpi x yy k
+  eps : settleChkQ 14 F.Δ Bq (eOf dat 17) F.τ lp e2 (bOf dat) (lrOf dat) F.c lpi x yy k G Lw r Tg = true
+  epsle : settleEps3EQ 14 F.Δ Bq (eOf dat 17) F.τ lp e2 (bOf dat) (lrOf dat) F.c lpi x yy k
       ((N + 2) / (Config.specK k).epochLength) (nbSpec (Config.specK k) F.Δ G Tg) G N G G' J Lw r Tg ≤ tgt
   band : bandChkQ 14 4096 T (Config.specK k).period = true
   bandle : bandEpsQ 14 4096 T (Config.specK k).period ≤ bx
@@ -352,16 +362,23 @@ structure SpecFacts (F : FamCfg) (Bq : BandR) (lp lpi : ℚ) (dat : Fin 19 → I
   hP1 : 1 ≤ (Config.specK k).period
   hPEL : (Config.specK k).period ≤ (Config.specK k).epochLength
 
-theorem finChkSpec.facts {F : FamCfg} {Bq : BandR} {κ lp lpi : ℚ} {dat : Fin 19 → IdxData} {T : TBandQ}
+theorem finChkSpecE.facts {F : FamCfg} {Bq : BandR} {κ lp lpi : ℚ} {dat : Fin 19 → IdxData} {e2 : ℚ} {T : TBandQ}
     {N M Ne G G' J Lw r Tg : ℕ} {x yy ρ Hmin tgt bx fin : ℚ}
     {k : ℕ} {ε : ℚ}
-    (h : finChkSpec F Bq dat T ⟨k, κ, N, ε, ρ, Hmin⟩ ⟨Lw, J, x, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, fin⟩ = true) :
-    SpecFacts F Bq lp lpi dat T k N M Ne G G' J Lw r Tg x yy ρ Hmin tgt bx fin := by
-  simp only [finChkSpec, Bool.and_eq_true, decide_eq_true_eq] at h
+    (h : finChkSpecE F Bq dat e2 T ⟨k, κ, N, ε, ρ, Hmin⟩ ⟨Lw, J, x, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, fin⟩ = true) :
+    SpecFacts F Bq lp lpi dat e2 T k N M Ne G G' J Lw r Tg x yy ρ Hmin tgt bx fin := by
+  simp only [finChkSpecE, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨eps, epsle⟩, band⟩, bandle⟩, fin⟩, tgt0⟩, bx0⟩, hx⟩, hyy0⟩, hyy1⟩, hT⟩, hNM⟩, hhi1⟩, hlo0⟩,
     hlo1⟩, helo1⟩, hLw⟩, hOG⟩, hNe⟩, hG1⟩, hGEL⟩, fam⟩, drift⟩, hPf⟩, hP1⟩, hPEL⟩ := h
   exact ⟨eps, epsle, band, bandle, fin, tgt0, bx0, hx, hyy0, hyy1, hT, hNM, hhi1, hlo0, hlo1, helo1, hLw, hOG, hNe, hG1,
     hGEL, fam, drift, hPf, hP1, hPEL⟩
+
+theorem finChkSpec.facts {F : FamCfg} {Bq : BandR} {κ lp lpi : ℚ} {dat : Fin 19 → IdxData} {T : TBandQ}
+    {N M Ne G G' J Lw r Tg : ℕ} {x yy ρ Hmin tgt bx fin : ℚ}
+    {k : ℕ} {ε : ℚ}
+    (h : finChkSpec F Bq dat T ⟨k, κ, N, ε, ρ, Hmin⟩ ⟨Lw, J, x, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, fin⟩ = true) :
+    SpecFacts F Bq lp lpi dat (eOf dat 2) T k N M Ne G G' J Lw r Tg x yy ρ Hmin tgt bx fin :=
+  finChkSpecE.facts h
 
 /-- **Finality at the specification, from a certificate's data.** The index checks (`idxChk`), the
 family's (`FamSpec.chk`), the main file's (`mainChk`) and the numeric conditions (`finChkSpec`)
