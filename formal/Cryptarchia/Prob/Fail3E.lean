@@ -493,15 +493,18 @@ theorem swCnt_succ_pos (Sw : ℕ → Prop) {t T : ℕ} (hs : Sw t) (ht : t < T) 
 /-- **Phase bounds** under `κ` up to the horizon `M`: those of the reach recursion (`lr`,
 `b`), of a check (`e 2`) and of a span (`e 17`) for any phase, and the others for phases
 cut at `G` slots. -/
-structure PhaseBounds (κ : Kern) (M G : ℕ) (P : Cert2 B Δ) : Prop where
+structure PhaseBounds0 (κ : Kern) (M G : ℕ) (P : Cert2 B Δ) : Prop where
   r0 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 0 h.length) h ≤ P.lr
   r1 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 1 h.length) h ≤ P.b
   c2 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 2 h.length) h ≤ P.e 2
   s17 : ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 17 h.length) h ≤ P.e 17
+
+/-- The phase bounds with, for the certificate's potential `V2`, the others for phases cut at `G` slots. -/
+structure PhaseBounds (κ : Kern) (M G : ℕ) (P : Cert2 B Δ) : Prop extends PhaseBounds0 κ M G P where
   cut : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ h, PE Δ M h → h.length < M →
     ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ P.e i
 
-theorem PhaseBounds.e2_nonneg {G : ℕ} {P : Cert2 B Δ} (hb : PhaseBounds κ M G P) (hM : 0 < M) : 0 ≤ P.e 2 :=
+theorem PhaseBounds0.e2_nonneg {G : ℕ} {P : Cert2 B Δ} (hb : PhaseBounds0 κ M G P) (hM : 0 < M) : 0 ≤ P.e 2 :=
   le_trans (ExPh_nonneg _ _ (fun y => WP_nonneg P 2 0 y (by decide)) _) (hb.c2 [] (pe_nil hM) (by simpa using hM))
 
 /-- **An in-epoch contraction** `lpi ≤ lp`: a phase that starts at a slot outside `Sw`
@@ -586,7 +589,7 @@ noncomputable def ΦfF (P : Cert2 B Δ) {G : ℕ} {Sw : ℕ → Prop} (F : FailP
   else failHE3 Δ M G L Hc k0 k h
 
 /-- **The potential is a supermartingale over phases.** -/
-theorem phiF_step (P : Cert2 B Δ) {G : ℕ} (hb : PhaseBounds κ M G P) {Sw : ℕ → Prop}
+theorem phiF_step (P : Cert2 B Δ) {G : ℕ} (hb : PhaseBounds0 κ M G P) {Sw : ℕ → Prop}
     (F : FailPot κ M G P Sw) {Ccap L : ℕ} (hcap : ∀ t, swCnt Sw t (t + L) ≤ Ccap)
     {Hc : ℕ} (hHc : Hc + Δ + 1 ≤ M) {k0 k : ℕ}
     (hk0 : k0 ≤ k) {h : List Out} (hpe : PE Δ M h) (hlM : h.length < M) :
@@ -596,7 +599,7 @@ theorem phiF_step (P : Cert2 B Δ) {G : ℕ} (hb : PhaseBounds κ M G P) {Sw : �
   have hc0 : 0 < P.c := by linarith [P.hc]
   have hz0 : 0 < P.z := by linarith [P.hz]
   have he2 := hb.e2_nonneg hM
-  obtain ⟨hR0, hR1, hC2, -, -⟩ := hb
+  obtain ⟨hR0, hR1, hC2, -⟩ := hb
   have hlpi0 := F.hlpi
   have hRg1 : 1 ≤ F.lp / F.lpi := by rw [le_div_iff₀ hlpi0]; linarith [F.hle]
   have hRg0 : 0 ≤ F.lp / F.lpi := by linarith
@@ -848,7 +851,7 @@ theorem failHE3_le_phi (P : Cert2 B Δ) (he2 : 0 ≤ P.e 2) {G : ℕ} {Sw : ℕ 
     · unfold ΦfF; rw [if_neg h1, if_neg h2]
 
 /-- **A failed check is rare**, for any failed-check potential. -/
-theorem fail_checkF (P : Cert2 B Δ) {G : ℕ} (hb : PhaseBounds κ M G P) {Sw : ℕ → Prop}
+theorem fail_checkF (P : Cert2 B Δ) {G : ℕ} (hb : PhaseBounds0 κ M G P) {Sw : ℕ → Prop}
     (F : FailPot κ M G P Sw) {Ccap L : ℕ} (hcap : ∀ t, swCnt Sw t (t + L) ≤ Ccap)
     {Hc : ℕ} (hHc : Hc + Δ + 1 ≤ M) {k0 k : ℕ} (hk0 : k0 ≤ k) :
     Ex κ M (failHE3 Δ M G L Hc k0 k) [] ≤
@@ -900,6 +903,6 @@ theorem fail_checkE3 (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 
     {Hc : ℕ} (hHc : Hc + Δ + 1 ≤ M) {k0 k : ℕ} (hk0 : k0 ≤ k) :
     Ex κ M (failHE3 Δ M G L Hc k0 k) [] ≤
       lpi ^ (k - k0) * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) :=
-  fail_checkF P hb (FailPot.ofV2 P hW hG hb hI) hI.cap hHc hk0
+  fail_checkF P hb.toPhaseBounds0 (FailPot.ofV2 P hW hG hb hI) hI.cap hHc hk0
 
 end Cryptarchia.Prob

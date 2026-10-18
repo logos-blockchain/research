@@ -210,15 +210,36 @@ noncomputable def settleEps3E (E : Env) (B : Band) (P : Cert2 B Δ) (lpi : ℝ) 
   -- slow growth
   nEp E N * ((1 + (yy - 1) * PT 1 yy B.hlo B.hhi T) ^ nbD E Δ G T / yy ^ (E.c.k + r))
 
-theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ) (hB : κ.Within B)
+/-- **The failure probability of the good event**, with a failed-check potential's contractions `lp`
+(any phase) and `lpi` (in an epoch). -/
+noncomputable def settleEps3G (E : Env) (B : Band) (P : Cert2 B Δ) (lp lpi : ℝ) (Ccap N G G' J Lw r T : ℕ)
+    (x yy : ℝ) : ℝ :=
+  -- long phases
+  (N + G' + 1) * (1 - (1 - B.hhi) ^ Δ) ^ (G / Δ) +
+  -- long empty runs
+  (N + 1) * (1 - B.hlo) ^ G' +
+  -- long spans of `J + 1` phases
+  (N + G' + 1) * (P.e 17 ^ (J + 1) / P.τ ^ (Lw + 1)) +
+  -- failed checks
+  (N + G' + 1) * (lpi ^ J * (lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr))) +
+  -- crowded windows
+  (N + 1) * ((1 + (x - 1) * (1 - B.elo)) ^ Lw / x ^ (E.c.k + 1)) +
+  -- large reach
+  (N + G + 1) * ((1 + (P.b - 1) / (1 - P.lr)) / P.c ^ (r + 1)) +
+  -- slow growth
+  nEp E N * ((1 + (yy - 1) * PT 1 yy B.hlo B.hhi T) ^ nbD E Δ G T / yy ^ (E.c.k + r))
+
+/-- **The settlement bound**, for any failed-check potential (`FailPot`). -/
+theorem settle_bound3G (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ) (hB : κ.Within B)
     {G G' J Lw r T : ℕ} (hG : Δ + 1 ≤ G)
-    (hb : PhaseBounds κ M G P) {lpi : ℝ} {Sw : ℕ → Prop} {Ccap : ℕ} (hI : InEpoch κ M G P lpi Sw Lw Ccap)
+    (hb : PhaseBounds0 κ M G P) {Sw : ℕ → Prop} (F : FailPot κ M G P Sw) {Ccap : ℕ}
+    (hcap : ∀ t, swCnt Sw t (t + Lw) ≤ Ccap)
     {x yy : ℝ} (hx : 1 ≤ x) (hyy0 : 0 < yy) (hyy1 : yy ≤ 1) (hT : 1 ≤ T)
     (hNM : N + G + G' + Δ + 2 ≤ M)
     (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (hlo1 : B.hlo ≤ 1) (helo1 : B.elo ≤ 1) :
     Ex κ M (fun h => by classical exact if (GoodLS E (strOf h) N Lw (gend Δ M (strOf h)) ∧
         GrowthS E (strOf h) (gend Δ M (strOf h)) N r G) then (0 : ℝ) else 1) [] ≤
-      settleEps3E E B P lpi Ccap N G G' J Lw r T x yy := by
+      settleEps3G E B P F.lp F.lpi Ccap N G G' J Lw r T x yy := by
   classical
   have hc := P.hc
   have hc0 : 0 < P.c := by linarith
@@ -238,7 +259,7 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
       simp only [List.nil_append]
       exact bad_le3E E hΔ hsane P hx hyy0 hyy1 hT (by omega) (by omega) (by omega) ht)).trans ?_
   simp only [Ex_add, Ex_sum, Ex_div]
-  unfold settleEps3E
+  unfold settleEps3G
   have e1 : ∀ y ∈ Finset.range (N + G' + 1), Ex κ M (longF Δ G y) [] ≤ (1 - (1 - B.hhi) ^ Δ) ^ (G / Δ) := by
     intro y hy
     rw [Finset.mem_range] at hy
@@ -264,10 +285,10 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
     refine (span_bound' P hb.s17 hM h1).trans (pow_le_pow_right₀ P.he17 ?_)
     omega
   have e4 : ∀ k ∈ Finset.Icc J (N + G'), Ex κ M (failHE3 Δ M G Lw (N + G') (k - J) k) [] ≤
-      lpi ^ J * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
+      F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
     intro k hk
     rw [Finset.mem_Icc] at hk
-    have := fail_checkE3 (M := M) P hB hG hb hI (Hc := N + G') (by omega)
+    have := fail_checkF (M := M) P hb F hcap (Hc := N + G') (by omega)
       (k0 := k - J) (k := k) (by omega)
     rwa [show k - (k - J) = J by omega] at this
   have e5 : ∀ t ∈ Finset.range (N + 1), Ex κ M (winF Lw x t) [] ≤ (1 + (x - 1) * (1 - B.elo)) ^ Lw := by
@@ -322,18 +343,32 @@ theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2
   have hcard : ((Finset.Icc J (N + G')).card : ℝ) ≤ N + G' + 1 := by
     rw [Nat.card_Icc]; push_cast; have : (↑(N + G' + 1 - J) : ℝ) ≤ ↑(N + G' + 1) := by exact_mod_cast Nat.sub_le _ _
     push_cast at this; linarith
-  have hfail0 : 0 ≤ lpi ^ J * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
+  have hfail0 : 0 ≤ F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
     have h1 := hb.e2_nonneg hM
     have h2 : 0 ≤ (P.b - 1) / (1 - P.lr) := div_nonneg (by linarith [P.hb1]) (by linarith [P.hlr1])
-    exact mul_nonneg (mul_nonneg (mul_nonneg (pow_nonneg hI.pos.le _) (pow_nonneg (div_nonneg P.hlp0 hI.pos.le) _)) h1)
+    have hl0 : 0 ≤ F.lp := by linarith [F.hle, F.hlpi]
+    exact mul_nonneg (mul_nonneg (mul_nonneg (pow_nonneg F.hlpi.le _) (pow_nonneg (div_nonneg hl0 F.hlpi.le) _)) h1)
       (by linarith)
   simp only [Finset.sum_const, Finset.card_range, Nat.card_Icc, nsmul_eq_mul] at s1 s2 s3 s4 s5 s6 s7
-  have s4' : ((N + G' + 1 - J : ℕ) : ℝ) * (lpi ^ J * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr))) ≤
-      ((N : ℝ) + G' + 1) * (lpi ^ J * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr))) := by
+  have s4' : ((N + G' + 1 - J : ℕ) : ℝ) * (F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr))) ≤
+      ((N : ℝ) + G' + 1) * (F.lpi ^ J * (F.lp / F.lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr))) := by
     apply mul_le_mul_of_nonneg_right _ hfail0
     have : ((N + G' + 1 - J : ℕ) : ℝ) ≤ ((N + G' + 1 : ℕ) : ℝ) := by exact_mod_cast Nat.sub_le _ _
     push_cast at this; linarith
   push_cast at s1 s2 s3 s4 s5 s6 s7 s4' ⊢
   linarith
+
+/-- The settlement bound with the certificate's potential `V2` and an in-epoch contraction. -/
+theorem settle_bound3E (E : Env) (hΔ : E.Δ = Δ) (hsane : E.c.Sane) (P : Cert2 B Δ) (hB : κ.Within B)
+    {G G' J Lw r T : ℕ} (hG : Δ + 1 ≤ G)
+    (hb : PhaseBounds κ M G P) {lpi : ℝ} {Sw : ℕ → Prop} {Ccap : ℕ} (hI : InEpoch κ M G P lpi Sw Lw Ccap)
+    {x yy : ℝ} (hx : 1 ≤ x) (hyy0 : 0 < yy) (hyy1 : yy ≤ 1) (hT : 1 ≤ T)
+    (hNM : N + G + G' + Δ + 2 ≤ M)
+    (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (hlo1 : B.hlo ≤ 1) (helo1 : B.elo ≤ 1) :
+    Ex κ M (fun h => by classical exact if (GoodLS E (strOf h) N Lw (gend Δ M (strOf h)) ∧
+        GrowthS E (strOf h) (gend Δ M (strOf h)) N r G) then (0 : ℝ) else 1) [] ≤
+      settleEps3E E B P lpi Ccap N G G' J Lw r T x yy :=
+  settle_bound3G E hΔ hsane P hB hG hb.toPhaseBounds0 (FailPot.ofV2 P hB hG hb hI) hI.cap hx hyy0 hyy1 hT hNM hhi1 hlo0
+    hlo1 helo1
 
 end Cryptarchia.Prob

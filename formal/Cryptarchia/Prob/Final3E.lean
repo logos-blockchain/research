@@ -35,8 +35,10 @@ section
 
 open Finset Settle MeasureTheory
 
-/-- **A certificate for a family of bands with one member per epoch.** -/
-structure Cert2E (B : Band) (Δ : ℕ) {K : ℕ} (fam : Fin K → Band) (EL G : ℕ) where
+/-- **The base of a certificate for a family of bands**: the potential certificate, the family below
+its band, and the switching tables for the reach, the checked phase and spans (what every settlement
+bound needs, `Cert2B.bounds0`). -/
+structure Cert2B (B : Band) (Δ : ℕ) {K : ℕ} (fam : Fin K → Band) (EL G : ℕ) where
   P : Cert2 B Δ
   weakF : ∀ k, B.Weaker (fam k)
   hG : Δ + 1 ≤ G
@@ -53,6 +55,10 @@ structure Cert2E (B : Band) (Δ : ℕ) {K : ℕ} (fam : Fin K → Band) (EL G : 
     (xg P.c P.z P.s P.d P.τ 2).2.2 (vs 2) ≤ P.e 2
   heS17 : ∀ k, autoBound (fam k) (xg P.c P.z P.s P.d P.τ 17).1 (xg P.c P.z P.s P.d P.τ 17).2.1
     (xg P.c P.z P.s P.d P.τ 17).2.2 (vs 17) ≤ P.e 17
+
+/-- **A certificate for a family of bands with one member per epoch**: the base, and one-switch tables
+for the potential `V2`'s phase bounds. -/
+structure Cert2E (B : Band) (Δ : ℕ) {K : ℕ} (fam : Fin K → Band) (EL G : ℕ) extends Cert2B B Δ fam EL G where
   /-- one-switch tables for phases cut at `G` slots -/
   vpre : Fin 19 → Fin K → ℕ → Fin 3 → Bool → ℝ
   vpost : Fin 19 → Fin K → ℕ → Fin 3 → Bool → ℝ
@@ -72,17 +78,17 @@ theorem xg_g_nonneg (P : Cert2 B Δ) (i : Fin 19) (a : Fin 3) (b u : Bool) :
   have hd0 : 0 < P.d := P.hd0
   fin_cases i <;> simp only [xg, xgN, gtab] <;> first | positivity | (split_ifs <;> positivity)
 
-section Derive
+section DeriveB
 
-variable {K EL G : ℕ} {fam : Fin K → Band} (C : Cert2E B Δ fam EL G) (hκ : κ.EpochFam EL fam)
+variable {K EL G : ℕ} {fam : Fin K → Band} (C : Cert2B B Δ fam EL G) (hκ : κ.EpochFam EL fam)
 include C hκ
 
-theorem Cert2E.within : κ.Within B :=
+theorem Cert2B.within : κ.Within B :=
   hκ.fam.within fun B' hB' => by
     obtain ⟨k, rfl⟩ := List.mem_ofFn.1 hB'
     exact C.weakF k
 
-theorem Cert2E.anyPhase (i : Fin 19) (hi : i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 17) {e : ℝ}
+theorem Cert2B.anyPhase (i : Fin 19) (hi : i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 17) {e : ℝ}
     (he : ∀ k, autoBound (fam k) (xg C.P.c C.P.z C.P.s C.P.d C.P.τ i).1 (xg C.P.c C.P.z C.P.s C.P.d C.P.τ i).2.1
       (xg C.P.c C.P.z C.P.s C.P.d C.P.τ i).2.2 (C.vs i) ≤ e) :
     ∀ h, PE Δ M h → h.length < M → ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP C.P i h.length) h ≤ e := by
@@ -96,6 +102,18 @@ theorem Cert2E.anyPhase (i : Fin 19) (hi : i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 17)
       (fun h => (C.solS i hi (mem h)).term) hx.1 hx.2 (by omega) C.P.hΔ (start_of_pe hpe hlM) rfl hlM).trans
       (he (mem h)))
   unfold truncG WP; rw [if_pos (by simp; omega)]
+
+/-- **The phase bounds every settlement bound needs**: the reach, the checked phase and spans. -/
+theorem Cert2B.bounds0 : PhaseBounds0 κ M G C.P :=
+  ⟨C.anyPhase hκ 0 (by decide) C.heS0, C.anyPhase hκ 1 (by decide) C.heS1,
+    C.anyPhase hκ 2 (by decide) C.heS2, C.anyPhase hκ 17 (by decide) C.heS17⟩
+
+end DeriveB
+
+section Derive
+
+variable {K EL G : ℕ} {fam : Fin K → Band} (C : Cert2E B Δ fam EL G) (hκ : κ.EpochFam EL fam)
+include C hκ
 
 theorem Cert2E.truncPhase : ∀ i : Fin 19, i ≠ 2 → i ≠ 17 → ∀ h, PE Δ M h → h.length < M →
     ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP C.P i h.length)) h ≤ C.P.e i := by
@@ -169,8 +187,7 @@ include D hκ
 
 /-- **The phase bounds** of the certificate. -/
 theorem Cert3E.bounds : PhaseBounds κ M G D.C.P :=
-  ⟨D.C.anyPhase hκ 0 (by decide) D.C.heS0, D.C.anyPhase hκ 1 (by decide) D.C.heS1,
-    D.C.anyPhase hκ 2 (by decide) D.C.heS2, D.C.anyPhase hκ 17 (by decide) D.C.heS17, D.C.truncPhase hκ⟩
+  ⟨D.C.toCert2B.bounds0 hκ, D.C.truncPhase hκ⟩
 
 /-- **The in-epoch contraction**: a phase that starts more than `G` slots before an epoch
 boundary meets the starting member's class conditions, through its crossing bound and

@@ -175,15 +175,15 @@ theorem inB0_of_genesisOK {E : Env} {T : TBand} (hon : OnlineEpoch E) (hg : Gene
   · rw [hH, hD]
     exact mul_le_mul_of_nonneg_right h1 hD0
 
-/-- **Probabilistic finality over many epochs, from plain assumptions.** Under the
-execution model, executions up to slot `N`, the genesis condition, honest majority of
-stake `β`, chain quality `μ`, stake drift `ρ` and minimum honest stake `Hmin`, a finality
-violation has probability at most `settleEps3E + Ne · bandEps`, for any
-certificate (`D`, the band `Tb`, the members `mem`) whose numeric conditions hold. -/
-theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle} {E : Env}
+/-- **Probabilistic finality over many epochs, for any failed-check potential.** As `finality`, with
+the certificate's base `C` and a failed-check potential `FP` (for every kernel with one member per
+epoch) contracting by `lp` and `lpi`. -/
+theorem finalityG {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle} {E : Env}
     (es : Ω → List Event) (hM : Model μ O E es) {N : ℕ} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N)
     -- the certificate
-    {M : ℕ} {B : Band} {Δ K G : ℕ} {fam : Fin (K + 1) → Band} (hΔ : E.Δ = Δ) (D : Cert3E B Δ fam E.c.epochLength G)
+    {M : ℕ} {B : Band} {Δ K G : ℕ} {fam : Fin (K + 1) → Band} (hΔ : E.Δ = Δ) (C : Cert2B B Δ fam E.c.epochLength G)
+    {lp lpi : ℝ} (FP : ∀ κ : Kern, κ.EpochFam E.c.epochLength fam → FailPot κ M G C.P (fun t => ¬ NoSw E.c.epochLength G t))
+    (hFlp : ∀ κ hκ, (FP κ hκ).lp = lp) (hFlpi : ∀ κ hκ, (FP κ hκ).lpi = lpi)
     (hP : ∀ k, (fam k).Prod)
     {G' J Lw r T : ℕ} {x yy : ℝ} (hx : 1 ≤ x) (hyy0 : 0 < yy)
     (hyy1 : yy ≤ 1) (hT : 1 ≤ T) (hNM : N + G + G' + Δ + 2 ≤ M)
@@ -206,7 +206,7 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     (hG : GenesisOK E) (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) Tb.β Smax)
     (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) Tb.μ N)
     (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) ρ N) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) Hmin) :
-    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps3E E B D.C.P D.lpi G N G G' J Lw r T x yy) +
+    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps3G E B C.P lp lpi G N G G' J Lw r T x yy) +
       Ne * ENNReal.ofReal (bandEps Tb E.c.period) := by
   classical
   obtain ⟨hA, hdel, hO, hσm, hfresh, hon, hlive⟩ := hM
@@ -291,8 +291,10 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
             omega
           exact hbandOf ω n (hin _ hm)
         · exact Or.inr (hdec e _ hsplit n (by omega))
-    refine le_trans ?_ (settle_bound3E E rfl hA.sane D.C.P (D.C.within hκ) D.C.hG (D.bounds hκ) (D.inEpoch hκ hLw)
-      hx hyy0 hyy1 hT hNM hhi1 hlo0 hlo1 helo1)
+    have hset := settle_bound3G E rfl hA.sane C.P (C.within hκ) C.hG (C.bounds0 hκ) (FP κ hκ)
+      (swCnt_noSw_le (by omega) hLw) hx hyy0 hyy1 hT hNM hhi1 hlo0 hlo1 helo1 (N := N) (G' := G') (J := J) (r := r)
+    rw [hFlp, hFlpi] at hset
+    refine le_trans ?_ hset
     apply Ex_mono_len
     intro t _
     simp only [List.nil_append]
@@ -308,6 +310,44 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     · simp only [Set.mem_iUnion, Finset.mem_range] at hω
       obtain ⟨e, -, -, hin⟩ := hω
       exact hnone ω (hbandOf ω 0 (by rw [Nat.div_eq_of_lt (by omega)]; exact hin 0 (Nat.zero_le _)))
+
+
+/-- **Probabilistic finality over many epochs, from plain assumptions.** Under the
+execution model, executions up to slot `N`, the genesis condition, honest majority of
+stake `β`, chain quality `μ`, stake drift `ρ` and minimum honest stake `Hmin`, a finality
+violation has probability at most `settleEps3E + Ne · bandEps`, for any
+certificate (`D`, the band `Tb`, the members `mem`) whose numeric conditions hold. -/
+theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle} {E : Env}
+    (es : Ω → List Event) (hM : Model μ O E es) {N : ℕ} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N)
+    -- the certificate
+    {M : ℕ} {B : Band} {Δ K G : ℕ} {fam : Fin (K + 1) → Band} (hΔ : E.Δ = Δ) (D : Cert3E B Δ fam E.c.epochLength G)
+    (hP : ∀ k, (fam k).Prod)
+    {G' J Lw r T : ℕ} {x yy : ℝ} (hx : 1 ≤ x) (hyy0 : 0 < yy)
+    (hyy1 : yy ≤ 1) (hT : 1 ≤ T) (hNM : N + G + G' + Δ + 2 ≤ M)
+    (hhi1 : B.hhi ≤ 1) (hlo0 : 0 ≤ B.hlo) (hlo1 : B.hlo ≤ 1) (helo1 : B.elo ≤ 1)
+    (hLw : Lw + G < E.c.epochLength) (hOG : E.c.nonceOffset + G + 2 ≤ E.c.epochLength)
+    {Tb : TBand} (hc : LotConsts E.c Tb.η) (hTb : Tb.OK) (hb : E.c.betaP = E.c.precision)
+    (hprec : 0 < E.c.precision) (hPf : 0 < E.c.period * E.c.fP) (hP1 : 1 ≤ E.c.period)
+    (hPEL : E.c.period ≤ E.c.epochLength) {Ne : ℕ} (hNe : M / E.c.epochLength < Ne)
+    {mem : Fin (K + 1) → Member} (hfam : ∀ k, (mem k).B = fam k) (hok : ∀ k, (mem k).OK Tb.η Tb.ζ)
+    (hcov : ∀ y, Tb.ylo ≤ y → y ≤ Tb.Yh → ∃ k, (mem k).ylo ≤ y ∧ y ≤ (mem k).yhi)
+    (hadv : ∀ k, Tb.β * (mem k).yhi ≤ (1 - Tb.β) * (mem k).ahi)
+    {ρ Hmin : ℝ} (hρ : 0 < ρ) (hHm : 0 < Hmin)
+    (hup : (1 - Tb.μ) + 2 * Tb.ℓhi / (lam0 E.c * Hmin) ≤
+      Tb.ℓhi * Kc E.c * (1 - Tb.μ) * (1 - Tb.δ) * Tb.clo * ((E.c.period : ℝ) - 1) / ρ)
+    (hdn : Tb.ℓlo * Kc E.c * (1 + Tb.δ) * Tb.chi * E.c.period * ρ + Kc E.c * ρ + 3 * Tb.ℓlo / (lam0 E.c * Hmin) ≤ 1)
+    (hg1 : Tb.ℓlo ≤ lam0 E.c) (hg2 : (1 - Tb.μ) * lam0 E.c ≤ Tb.ℓhi)
+    {Smax : ℝ} (hSm : Smax / E.c.p + Smax ^ 2 / E.c.p ≤ Tb.ζ)
+    (hNw : ∀ e, e + 1 < Ne → e * E.c.epochLength + E.c.period ≤ N)
+    -- the assumptions on the executions
+    (hG : GenesisOK E) (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) Tb.β Smax)
+    (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) Tb.μ N)
+    (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) ρ N) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) Hmin) :
+    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps3E E B D.C.P D.lpi G N G G' J Lw r T x yy) +
+      Ne * ENNReal.ofReal (bandEps Tb E.c.period) :=
+  finalityG es hM hN hΔ D.C.toCert2B (fun κ hκ => FailPot.ofV2 D.C.P (D.C.within hκ) D.C.hG (D.bounds hκ) (D.inEpoch hκ hLw))
+    (fun _ _ => rfl) (fun _ _ => rfl) hP hx hyy0 hyy1 hT hNM hhi1 hlo0 hlo1 helo1 hLw hOG hc hTb hb hprec hPf hP1 hPEL hNe
+    hfam hok hcov hadv hρ hHm hup hdn hg1 hg2 hSm hNw hG hS hQ hD hH
 
 end Cryptarchia.Prob
 
