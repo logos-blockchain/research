@@ -114,8 +114,6 @@ namespace Cryptarchia.Claim
 
 open MeasureTheory Prob
 
-universe u
-
 /-- **Finality with failure probability at most `ε`.** At the specification's parameters with
 security parameter `k` (`Config.specK k`), network delay `Δ` slots and executions up to slot `N`:
 for every probability space, oracle and executions satisfying the execution model, if the
@@ -125,7 +123,7 @@ fraction `1 - μ` of each window's honestly won slots, stake drifts by at most a
 epoch and honest online stake is at least `Hmin`, then the probability that some honest node's
 immutable block is later missing from some honest node's chain is at most `ε`. -/
 def Finality (k Δ N : ℕ) (β Smax μ ρ Hmin ε : ℝ) : Prop :=
-  ∀ (Ω : Type u) [MeasurableSpace Ω] (P : Measure Ω) [IsProbabilityMeasure P] (O : Ω → Oracle) (E : Env)
+  ∀ (Ω : Type) [MeasurableSpace Ω] (P : Measure Ω) [IsProbabilityMeasure P] (O : Ω → Oracle) (E : Env)
     (es : Ω → List Event),
     Model P O E es → E.c = Config.specK k → E.Δ = Δ → (∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) →
     GenesisOK E → (∀ ω, Exec.StakeOK E (O ω) (es ω) β Smax) → (∀ ω, Exec.ChainQuality E (O ω) (es ω) μ N) →

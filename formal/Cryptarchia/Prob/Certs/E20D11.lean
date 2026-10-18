@@ -24,8 +24,6 @@ namespace Cryptarchia.Prob.Certs.E20D11
 
 open Cryptarchia Cryptarchia.Prob
 
-universe u
-
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
 
@@ -57,7 +55,7 @@ slot 31536000; the adversary holds at most 0.2 of the participating stake, stake
 stake drifts by at most a factor 1.01 per epoch and honest online stake is at least
 1000000; a finality violation has probability at most 7.20e-11. -/
 theorem finality :
-    Claim.Finality.{u} (k := 2160) (Δ := 11) (N := 31536000) (β := (1 / 5 : ℝ)) (Smax := 10 ^ 30) (μ := (13 / 100 : ℝ))
+    Claim.Finality (k := 2160) (Δ := 11) (N := 31536000) (β := (1 / 5 : ℝ)) (Smax := 10 ^ 30) (μ := (13 / 100 : ℝ))
       (ρ := (101 / 100 : ℝ)) (Hmin := (1000000 : ℝ)) (ε := (9 / 125000000000 : ℝ)) := by
   intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   have hT : Tq.β = (1 / 5 : ℚ) ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = (13 / 100 : ℚ) := by decide +kernel

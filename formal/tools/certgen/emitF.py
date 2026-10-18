@@ -394,8 +394,6 @@ namespace {ns}
 
 open Cryptarchia Cryptarchia.Prob
 
-universe u
-
 {HEAD}
 /-- The phase indices' data. -/
 def dat : Fin 19 → IdxData := ![{", ".join(f"dat{i}" for i in range(19))}]
@@ -425,7 +423,7 @@ slot {N}; the adversary holds at most {float(beta)} of the participating stake, 
 stake drifts by at most a factor {float(T['rho'])} per epoch and honest online stake is at least
 {T['hmin']}; a finality violation has probability at most {float(fin):.2e}. -/
 theorem finality :
-    Claim.Finality.{{u}} (k := {k}) (Δ := {D}) (N := {N}) (β := {q(beta)}) (Smax := 10 ^ 30) (μ := {q(T['mu'])})
+    Claim.Finality (k := {k}) (Δ := {D}) (N := {N}) (β := {q(beta)}) (Smax := 10 ^ 30) (μ := {q(T['mu'])})
       (ρ := {q(T['rho'])}) (Hmin := {q(T['hmin'])}) (ε := {q(fin)}) := by
   intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   have hT : Tq.β = {qQ(beta)} ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = {qQ(T['mu'])} := by decide +kernel
@@ -570,8 +568,6 @@ namespace {ns}
 
 open Cryptarchia Cryptarchia.Prob
 
-universe u
-
 {HEAD}
 /-- The phase indices' data. -/
 def dat : Fin 19 → IdxData := ![{", ".join(f"dat{i}" for i in range(19))}]
@@ -601,7 +597,7 @@ most 10³⁰, the canonical chain counts at least {float(1 - T['mu'])} of each w
 slots, stake drifts by at most a factor {float(T['rho'])} per epoch and honest online stake is at
 least {T['hmin']}; a finality violation has probability at most `par.epsC der N k`. -/
 theorem finality_closed (k N : ℕ) (hk : {k0} ≤ k) :
-    Claim.Finality.{{u}} (k := k) (Δ := {D}) (N := N) {claim} (ε := par.epsC der N k) := by
+    Claim.Finality (k := k) (Δ := {D}) (N := N) {claim} (ε := par.epsC der N k) := by
   intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   exact FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
     (fun k hk => by obtain ⟨h1, h2, h3, -, -, h6⟩ := derLen; simp only [par, h1, h2, h3, h6, F, pot] at hk ⊢; omega)
@@ -616,7 +612,7 @@ epochs, a finality violation has probability at most
 `(N + {g} t + {G + 2}) · ({A1s} + {Ass} · {qss}ᵗ) + Ne · {Abs} · {qbs}ᵗ`: settlement at rate {qss} per {m_}
 blocks of depth, the estimate's band at rate {qbs}. -/
 theorem finality_closed_short (k N : ℕ) (hk : {k0} ≤ k) :
-    Claim.Finality.{{u}} (k := k) (Δ := {D}) (N := N) {claim}
+    Claim.Finality (k := k) (Δ := {D}) (N := N) {claim}
       (ε := ((N : ℝ) + {g} * ((k / {m_} : ℕ) : ℝ) + {G + 2}) * ({A1s} + {Ass} * {qss} ^ (k / {m_})) +
         ((N / (300 * k) + 2 : ℕ) : ℝ) * ({Abs} * {qbs} ^ (k / {m_}))) := by
   refine (finality_closed k N hk).mono ((FamCfg.epsC_le_short par der closedOK N hk).trans ?_)

@@ -313,11 +313,9 @@ end Cryptarchia.Prob
 
 namespace Cryptarchia.Claim
 
-universe u
-
 /-- A finality bound gives every larger one. -/
-theorem Finality.mono {k Δ N : ℕ} {β Smax μ ρ Hmin ε ε' : ℝ} (h : Finality.{u} k Δ N β Smax μ ρ Hmin ε)
-    (hε : ε ≤ ε') : Finality.{u} k Δ N β Smax μ ρ Hmin ε' := by
+theorem Finality.mono {k Δ N : ℕ} {β Smax μ ρ Hmin ε ε' : ℝ} (h : Finality k Δ N β Smax μ ρ Hmin ε)
+    (hε : ε ≤ ε') : Finality k Δ N β Smax μ ρ Hmin ε' := by
   intro Ω _ P _ O E es hM hc hΔ hN hG hS hQ hD hH
   exact (h Ω P O E es hM hc hΔ hN hG hS hQ hD hH).trans (ENNReal.ofReal_le_ofReal hε)
 
