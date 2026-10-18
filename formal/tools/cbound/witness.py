@@ -17,7 +17,9 @@ The extension makes the infinitely many states outside the box follow from finit
   for every deeper margin;
 * more than `R + M + 1` adversarial slots in a phase always end warm past the box, where one more
   slot multiplies `V` by `cw ≤ x`, so the terminal table's `min(A, 2) = 2` entry is the largest of
-  `V(next) / x^A` over `2 ≤ A ≤ R + M + 1`.
+  `V(next) / x^A` over `2 ≤ A ≤ R + M + 1`; a deeper state that catches up with more slots than its
+  representative is covered by that entry when `x ≥ cw · zc` and warm values grow by at most `cw`
+  per unit of reach.
 
 The program also asks for `V` nondecreasing in reach and margin (so honest depth 1 in a burst only
 raises `V`), the crossing's credit nonnegative, and `V ≥ 1` on warm states. Members of the band
@@ -82,8 +84,9 @@ def slot4(B, F00, F01, F10, F11):
 
 
 class Witness:
-    def __init__(self, tab, D, x):
-        assert tab.cw <= x
+    def __init__(self, tab, D, x, zk=2.0):
+        assert tab.cw * tab.zc <= x and tab.zc <= zk
+        self.zk = zk
         self.t, self.D, self.x = tab, D, x
         rho, mu = tab.chk[:, 0], tab.chk[:, 1]
         self.m = len(tab.chk)
@@ -125,16 +128,24 @@ class Witness:
 
     # ---- the linear program
 
-    def solve(self, members, weakest, lam, lamb, objective="warm"):
-        """a table passing every member's check at `lam` and the weakest band's at `lamb`"""
+    def solve(self, members, weakest, lam, lamb, objective="warm", switch=False):
+        """a table passing every member's check at `lam`, and the boundary phases' at `lamb`: against the
+        weakest band, or (`switch`) through the one-switch automaton over the members, as `AutoSolE`
+        (each member's own table `vpost`, a table `vmax` above them, each member's `vpre` above `vmax`)"""
         t, D, x, m, n, AX = self.t, self.D, self.x, self.m, self.t.n, self.t.AX
-        bands = list(members) + [weakest]
-        lams = [lam] * len(members) + [lamb]
+        nm = len(members)
+        bands = list(members) if switch else list(members) + [weakest]
+        lams = [lam] * nm + ([] if switch else [lamb])
         nb = len(bands)
+        tab = (CAP + 1) * D * m
         base_v = n
-        base_g2 = n + nb * (CAP + 1) * D * m
+        base_max = n + nb * tab
+        base_pre = base_max + (tab if switch else 0)
+        base_g2 = base_pre + (nm * tab if switch else 0)
         nvar = base_g2 + 2 * m
         iv = lambda k, s, q, a: base_v + ((k * m + s) * D + q) * (CAP + 1) + a
+        imx = lambda s, q, a: base_max + (s * D + q) * (CAP + 1) + a
+        ipr = lambda k, s, q, a: base_pre + ((k * m + s) * D + q) * (CAP + 1) + a
         ig2 = lambda s, b: base_g2 + 2 * s + b
         R, C, Vv = [], [], []
         row = [0]
@@ -158,9 +169,13 @@ class Witness:
             for b in (0, 1):
                 for A in range(CAP, AX + 1):
                     add([(c, v / x ** A) for c, v in lin((A, b, False), s)] + [(ig2(s, b), -1.0)])
-        # shape conditions on the box: monotone; margin growth at least zc; warm ≥ zc · (margin -1)
+        # shape conditions on the box: monotone; margin growth at least zc; warm ≥ zc · (margin -1);
+        # warm growth at most cw per unit of reach; cold values at least zk^(margin) (a check whose margin
+        # catches up costs at most V · zk^A, `FailPot.fail`)
         Rb, Mb, nc = t.R, t.M, t.nc
         ci = lambda r, mm: r * Mb + (mm + Mb)
+        for r in range(Rb):
+            add([(nc + r + 1, 1.0), (nc + r, -t.cw)])
         for r in range(Rb + 1):
             for mm in range(-Mb, 0):
                 if r < Rb:
@@ -173,39 +188,67 @@ class Witness:
         # the crossing's credit is nonnegative
         for s in range(m):
             add(lin((0, 1, True), s) + [(c, -v) for c, v in lin((0, 1, False), s)])
-        # each band's automaton and phase bound
+
+        def recursion(B, tv, s, q, a):
+            """rows: table `tv` ≥ one step of band `B`'s recursion at (s, q, a)"""
+            a1 = min(a + 1, CAP)
+            F00 = g(s, a, 1) if q + 1 == D else [(tv(s, q + 1, a), 1.0)]
+            F01 = [(c, x * v) for c, v in (g(s, a1, 1) if q + 1 == D else [(tv(s, q + 1, a1), 1.0)])]
+            F10, F11 = [(tv(s, 0, a), 1.0)], [(tv(s, 0, a1), x)]
+            for w in combos(B):
+                add([(c, w[0] * v) for c, v in F00] + [(c, w[1] * v) for c, v in F01] +
+                    [(c, w[2] * v) for c, v in F10] + [(c, w[3] * v) for c, v in F11] + [(tv(s, q, a), -1.0)])
+
+        def phase(B, tv, s, lk, pat):
+            """rows: band `B`'s phase bound with table `tv`, less the crossing's credit, at most `lk · V(s)`"""
+            F00 = g(s, 0, 0)
+            F01 = [(c, x * v) for c, v in g(s, 1, 0)]
+            F10, F11 = [(tv(s, 0, 0), 1.0)], [(tv(s, 0, 1), x)]
+            cr = [(c, -pat * v) for c, v in lin((0, 1, False), s)] + [(c, pat * v) for c, v in lin((0, 1, True), s)]
+            si, sf = int(self.self_[0][s]), float(self.self_[1][s])
+            for w in combos(B):
+                add([(c, w[0] * v) for c, v in F00] + [(c, w[1] * v) for c, v in F01] +
+                    [(c, w[2] * v) for c, v in F10] + [(c, w[3] * v) for c, v in F11] + cr + [(si, -lk * sf)])
+
+        # each band's own table, its recursion, and its phase bound
         for k, (B, lk) in enumerate(zip(bands, lams)):
-            cm = combos(B)
-            pat = B['slo'] * B['elo'] ** D
+            tv = lambda s, q, a, k=k: iv(k, s, q, a)
             for s in range(m):
                 for q in range(D):
                     for a in range(CAP + 1):
-                        a1 = min(a + 1, CAP)
-                        add(g(s, a, 1) + [(iv(k, s, q, a), -1.0)])
-                        F00 = g(s, a, 1) if q + 1 == D else [(iv(k, s, q + 1, a), 1.0)]
-                        F01 = [(c, x * v) for c, v in (g(s, a1, 1) if q + 1 == D else [(iv(k, s, q + 1, a1), 1.0)])]
-                        F10, F11 = [(iv(k, s, 0, a), 1.0)], [(iv(k, s, 0, a1), x)]
-                        for w in cm:
-                            add([(c, w[0] * v) for c, v in F00] + [(c, w[1] * v) for c, v in F01] +
-                                [(c, w[2] * v) for c, v in F10] + [(c, w[3] * v) for c, v in F11] +
-                                [(iv(k, s, q, a), -1.0)])
-                F00 = g(s, 0, 0)
-                F01 = [(c, x * v) for c, v in g(s, 1, 0)]
-                F10, F11 = [(iv(k, s, 0, 0), 1.0)], [(iv(k, s, 0, 1), x)]
-                cr = [(c, -pat * v) for c, v in lin((0, 1, False), s)] + [(c, pat * v) for c, v in lin((0, 1, True), s)]
-                si, sf = int(self.self_[0][s]), float(self.self_[1][s])
-                for w in cm:
-                    add([(c, w[0] * v) for c, v in F00] + [(c, w[1] * v) for c, v in F01] +
-                        [(c, w[2] * v) for c, v in F10] + [(c, w[3] * v) for c, v in F11] + cr + [(si, -lk * sf)])
+                        add(g(s, a, 1) + [(tv(s, q, a), -1.0)])
+                        recursion(B, tv, s, q, a)
+                phase(B, tv, s, lk, B['slo'] * B['elo'] ** D)
+        if switch:
+            # the one-switch automaton: vmax above every member's own table, each member's vpre above
+            # vmax and its own recursion; the boundary phase's bound with vpre, against the family's
+            # crossing bound
+            pat_w = min(B['slo'] * B['elo'] ** D for B in members)
+            for s in range(m):
+                for q in range(D):
+                    for a in range(CAP + 1):
+                        for k in range(nm):
+                            add([(iv(k, s, q, a), 1.0), (imx(s, q, a), -1.0)])
+                            add([(imx(s, q, a), 1.0), (ipr(k, s, q, a), -1.0)])
+            for k, B in enumerate(members):
+                tv = lambda s, q, a, k=k: ipr(k, s, q, a)
+                for s in range(m):
+                    for q in range(D):
+                        for a in range(CAP + 1):
+                            recursion(B, tv, s, q, a)
+                    phase(B, tv, s, lamb, pat_w)
         A = sp.csr_matrix((Vv, (R, C)), shape=(row[0], nvar))
         lo = np.zeros(nvar)
         lo[nc:n] = 1.0
+        for r in range(Rb + 1):
+            for mm in range(-Mb, 0):
+                lo[ci(r, mm)] = self.zk ** mm
         cost = np.zeros(nvar)
         cost[nc:n] = 1.0 / (t.cw ** np.arange(Rb + 1))
         res = linprog(cost, A_ub=A, b_ub=np.zeros(row[0]), bounds=list(zip(lo, [None] * nvar)), method='highs')
         return (res.x[:n] if res.status == 0 else None)
 
-    def best(self, fam_bands, weakest, lamb, lo=0.9960, hi=0.9985, tol=1e-5, start=(0,), log=print):
+    def best(self, fam_bands, weakest, lamb, lo=0.9960, hi=0.9985, tol=1e-5, start=(0,), log=print, switch=False):
         """the least in-epoch `λ` by bisection, with constraint generation over the members"""
         active = list(start)
         V = None
@@ -215,7 +258,7 @@ class Witness:
             while h - l > tol:
                 mid = (l + h) / 2
                 t0 = time.time()
-                Vm = self.solve([fam_bands[i] for i in active], weakest, mid, lamb)
+                Vm = self.solve([fam_bands[i] for i in active], weakest, mid, lamb, switch=switch)
                 log(f"  members {active}, λ = {mid:.6f}: {'feasible' if Vm is not None else 'infeasible'} ({time.time() - t0:.0f}s)")
                 if Vm is not None:
                     h, Vb = mid, Vm
@@ -225,7 +268,8 @@ class Witness:
                 return None, None, active
             rat = np.array([np.max(self.apply(Vb, B)) for B in fam_bands])
             worst = int(np.argmax(rat))
-            log(f"members {active}: λ = {h:.6f}; all members max {rat[worst]:.6f} at {worst}; weakest {np.max(self.apply(Vb, weakest)):.6f}")
+            wk = f"; weakest {np.max(self.apply(Vb, weakest)):.6f}" if weakest is not None else ""
+            log(f"members {active}: λ = {h:.6f}; all members max {rat[worst]:.6f} at {worst}{wk}")
             if rat[worst] <= h + 2 * tol or worst in active:
                 return h, Vb, active
             active.append(worst)

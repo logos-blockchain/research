@@ -51,6 +51,7 @@ public import Cryptarchia.Prob.Final
 public import Cryptarchia.Prob.Auto
 public import Cryptarchia.Prob.Cold2
 public import Cryptarchia.Prob.Fail3E
+public import Cryptarchia.Prob.Table
 public import Cryptarchia.Prob.Tail2
 public import Cryptarchia.Prob.Worst
 public import Cryptarchia.Prob.RO
