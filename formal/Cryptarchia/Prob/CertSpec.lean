@@ -197,19 +197,17 @@ def nbSpec (c : Config) (Δ G T : ℕ) : ℕ :=
 on `n` trials of chance `p` reaching `m + 1`, rounded down to `d` digits. -/
 def tilt (d n m : ℕ) (p : ℚ) : ℚ := rdnQ d ((m + 1) * (1 - p) / (((n : ℚ) - m - 1) * p))
 
-/-- **The derived numbers.** The contractions from the tables' bounds (`lpOf`, `lpiOf`). Then the
+/-- **The derived numbers**, for a failed-check potential's contractions `lp`, `lpi`: the
 settlement parameters by rule: the window `Lw` and the span's phases `J` minimizing the main terms
 (spans, failed checks and crowded windows, the window at its best tilt `x`);
 the phase cut `G`, the longest empty run `G'` and the reach bound `r`, each the least making its term
 at most `ε` times these three; the growth block `T` minimizing the slow-growth term at its best tilt
 `yy`. Last the slots and epochs covered, the settlement and band bounds rounded up to 2 and 4 digits,
 and their sum over the epochs rounded up to 2 digits. -/
-def _root_.Cryptarchia.Prob.SpecData.derive (p : SpecData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
-    (T : TBandQ) : SpecDerived :=
+def _root_.Cryptarchia.Prob.SpecData.deriveL (p : SpecData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
+    (T : TBandQ) (lp lpi : ℚ) : SpecDerived :=
   let k := p.k
   let c := Config.specK p.k
-  let lp := F.lpOf Bq p.κ dat
-  let lpi := F.lpiOf p.κ dat
   let stat := 1 + (bOf dat - 1) / (1 - lrOf dat)
   -- the main terms: spans, failed checks (without the phase cut's factor) and crowded windows
   let span := fun (Lw J : ℕ) => (p.N + 1 : ℚ) * powUpQ 14 (eOf dat 17) (J + 1) / powDnQ 14 F.τ (Lw + 1)
@@ -241,6 +239,11 @@ def _root_.Cryptarchia.Prob.SpecData.derive (p : SpecData) (F : FamCfg) (Bq : Ba
     k ((p.N + 2) / c.epochLength) (nbSpec c F.Δ G Tg) G p.N G G' J Lw r Tg)
   let bx := rupQ 4 (bandEpsQ 14 4096 T c.period)
   ⟨Lw, J, xOf Lw, G, G', r, Tg, yy, M, Ne, lp, lpi, tgt, bx, rupQ 2 (tgt + Ne * bx)⟩
+
+/-- **The derived numbers** with the contractions of the certificate's potential `V2` (`lpOf`, `lpiOf`). -/
+def _root_.Cryptarchia.Prob.SpecData.derive (p : SpecData) (F : FamCfg) (Bq : BandR) (dat : Fin 19 → IdxData)
+    (T : TBandQ) : SpecDerived :=
+  p.deriveL F Bq dat T (F.lpOf Bq p.κ dat) (F.lpiOf p.κ dat)
 
 /-- **The estimate's band and the family agree**: the band's conditions, the family's constants
 the band's, the threshold's error the specification's, and the members covering the band. -/
