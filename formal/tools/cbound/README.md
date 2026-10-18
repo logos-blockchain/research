@@ -40,3 +40,27 @@ Input is a JSON list of `[f, beta, Delta, cap_hours, N, fine, p_late?, rule?, ws
 - **Early exits** (`CB_NOSTOP=1` disables them). Once converged or hopeless, the remaining units are filled with failure probability 1, which is always a valid value.
 - **Profile** (`CB_DEBUG=1`), at 40 % and 72 h on an M3 Pro: about 1.2 ms per burst step (16M multiply-adds) plus 0.9 ms per gap step. This is close to memory bandwidth, so further speed comes from running fewer configs.
 - **Lateness.** An optional 7th config field is `p_late`, the probability that an honest proposal is late. Late proposals count as adversarial, as in the Lean `lotStrS`.
+
+## A sound table witness, and the Lean side (status)
+
+`witness.py` asks the table for everything a proof uses: the extension's representatives (the row
+`ρ = R + 1` and the column `μ = -(M + 1)`), the shape conditions (monotone, margin decay at least `zc`,
+warm growth at most `cw`, `x ≥ cw · zc`, cold values at least `z^μ`), and boundary phases through the
+one-switch automaton over the members (as `AutoSolE`). All 32 members of the k = 1000 family with one
+shared table (`cw = 1.35`, `zc = 1.3`, `x = 2.6`, a 10 × 20 box): in-epoch 0.99736 at boundary 0.998, or
+0.99716 at 0.9985 (the certificates' potential: 0.99774, 0.99899). With the reach potential at
+`c_r = 1.35` (`stat` 2.89), the check base `z = 2` (`e2` 0.0687) and the span tilt re-chosen (1.025),
+the generator's rules give a settlement bound of 1.2e-4 at β = 0.2, against 1.2e-2 certified now.
+
+Lean, done: `Prob/Fail3E.lean` (`FailPot`, `fail_checkF`: the failed-check bound for any potential with
+those properties; `FailPot.ofV2`), `Prob/Table.lean` (`TabPot`, its shape conditions, `V_mono`, `V_rep`,
+`post_le`: the pointwise bound after a phase at every state, through the representatives; `toFailPot`,
+given the contraction checks at the finitely many representatives). To do:
+
+1. a rational table (`ℚ` data, decidable shape and tie checks, cast lemmas for `V`, `gT`, `crT`);
+2. the table certificate: per representative, one-switch tables for its terminal table `gT` (seeds by
+   `eval%`, `chkOneF` / `oneSwitchF_sound` as for the 19 indices), the crossing bounds, and the
+   contraction checks, giving `toFailPot`'s hypotheses;
+3. the settlement bound and `Prob.finality` with a `FailPot` (`lp`, `lpi` from it);
+4. the certificate checks and rules (`CertSpec`), and the generator (solve, rationalize, emit);
+5. the k = 1000 certificate with the table.
