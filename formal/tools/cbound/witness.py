@@ -15,9 +15,9 @@ The extension makes the infinitely many states outside the box follow from finit
   at least `zc` per unit when `V` grows by at least `zc` per unit of margin (`V(ρ, ν) ≥ zc V(ρ, ν - 1)`,
   and the warm value at least `zc` times the margin `-1` value), so the column `μ = -M - 1` stands
   for every deeper margin;
-* more than `R + M + 1` adversarial slots in a phase always end warm past the box, where one more
+* more than `R + M + 2` adversarial slots in a phase always end warm past the box, where one more
   slot multiplies `V` by `cw ≤ x`, so the terminal table's `min(A, 2) = 2` entry is the largest of
-  `V(next) / x^A` over `2 ≤ A ≤ R + M + 1`; a deeper state that catches up with more slots than its
+  `V(next) / x^A` over `2 ≤ A ≤ R + M + 2`; a deeper state that catches up with more slots than its
   representative is covered by that entry when `x ≥ cw · zc` and warm values grow by at most `cw`
   per unit of reach.
 
@@ -52,7 +52,7 @@ class Table:
         chk += [(R + 1, m) for m in range(-M, 0)] + [(R + 1, R + 1)]          # the row past the box
         chk += [(r, -M - 1) for r in range(R + 2)]                              # the column below it
         self.chk = np.array(chk)
-        self.AX = R + M + 1
+        self.AX = R + M + 2   # as `TabQ.AX`
 
     def lookup(self, rho, mu):
         """`V(ρ, μ)` as (variable index, factor) for arrays of states with `μ ≤ ρ`"""
@@ -129,6 +129,32 @@ class Witness:
     # ---- the linear program
 
     def solve(self, members, weakest, lam, lamb, objective="warm", switch=False):
+        A, lo, hi, cost, n = self.system(members, weakest, lam, lamb, switch)
+        res = linprog(cost, A_ub=A, b_ub=np.zeros(A.shape[0]), bounds=list(zip(lo, hi)), method='highs')
+        return (res.x[:n] if res.status == 0 else None)
+
+    def solve_joint(self, groups, lam, lamb, gam):
+        """one table per group of members, in one program, each passing its members' checks at `lam` and
+        the boundary at `lamb`, with values within a factor `gam` of each other at every box entry"""
+        blocks = [self.system(g, None, lam, lamb, True) for g in groups]
+        n = blocks[0][4]
+        offs = np.cumsum([0] + [b[0].shape[1] for b in blocks])
+        A = sp.block_diag([b[0] for b in blocks], format='csr')
+        rows, cols, vals = [], [], []
+        r = 0
+        for i in range(len(groups)):
+            for j in range(len(groups)):
+                if i != j:
+                    for v in range(n):
+                        rows += [r, r]; cols += [offs[i] + v, offs[j] + v]; vals += [1.0, -gam]; r += 1
+        A = sp.vstack([A, sp.csr_matrix((vals, (rows, cols)), shape=(r, A.shape[1]))], format='csr')
+        lo = np.concatenate([b[1] for b in blocks])
+        hi = sum((list(b[2]) for b in blocks), [])
+        cost = np.concatenate([b[3] for b in blocks])
+        res = linprog(cost, A_ub=A, b_ub=np.zeros(A.shape[0]), bounds=list(zip(lo, hi)), method='highs')
+        return ([res.x[o:o + n] for o in offs[:-1]] if res.status == 0 else None)
+
+    def system(self, members, weakest, lam, lamb, switch=False):
         """a table passing every member's check at `lam`, and the boundary phases' at `lamb`: against the
         weakest band, or (`switch`) through the one-switch automaton over the members, as `AutoSolE`
         (each member's own table `vpost`, a table `vmax` above them, each member's `vpre` above `vmax`)"""
@@ -240,13 +266,14 @@ class Witness:
         A = sp.csr_matrix((Vv, (R, C)), shape=(row[0], nvar))
         lo = np.zeros(nvar)
         lo[nc:n] = 1.0
+        hi = [None] * nvar
+        hi[nc] = 1.0   # V(0, 0) = 1, so warm values stay below c_r^ρ
         for r in range(Rb + 1):
             for mm in range(-Mb, 0):
                 lo[ci(r, mm)] = self.zk ** mm
         cost = np.zeros(nvar)
         cost[nc:n] = 1.0 / (t.cw ** np.arange(Rb + 1))
-        res = linprog(cost, A_ub=A, b_ub=np.zeros(row[0]), bounds=list(zip(lo, [None] * nvar)), method='highs')
-        return (res.x[:n] if res.status == 0 else None)
+        return A, lo, hi, cost, n
 
     def best(self, fam_bands, weakest, lamb, lo=0.9960, hi=0.9985, tol=1e-5, start=(0,), log=print, switch=False):
         """the least in-epoch `λ` by bisection, with constraint generation over the members"""

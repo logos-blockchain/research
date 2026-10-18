@@ -27,10 +27,33 @@ Examples (the committed certificates, with μ = 0.13 and the default stake drift
 
 ```sh
 python3 emitE.py 0.2 11 0.085 32 31536000 E20D11 ../../Cryptarchia/Prob/Certs all 0.13
-python3 emitE.py 0.2 11 0.07 32 5184000 E20D11M2 ../../Cryptarchia/Prob/Certs all 0.13 1000
 ```
 
 The arguments are β, Δ, the TSI band δ, the number of band members, the horizon, the name, the output directory, `all` or `emit`, μ, and the depth k (2160 by default; the configuration is `Config.specK k`, with the epoch geometry set by `certE.set_depth`). More members narrow each member's exponent range and so tighten the automaton bounds; δ trades the band term `Ne · bandEps` (smaller for larger δ) against the members' spread (wider for larger δ). At β = 0.2 and k = 2160 the best total was at K = 32 and δ = 0.085 (sweeps over K ∈ {6, 10, 16, 24, 32}, δ ∈ {0.075, …, 0.09}); at k = 1000, where the observation period is shorter, at δ = 0.07 (δ ∈ {0.055, …, 0.085}).
+
+## Table certificates
+
+`emitT.py` writes a certificate whose failed checks are bounded by a table potential (`Prob/Table.lean`,
+`TableCert.lean`, `TableSpec.lean`) instead of the two-term exponential one: the two-month certificate at
+k = 1000 (`E20D11T`), 1.5e-3 against 1.5e-2 with the exponential potential (in-epoch contraction 0.997217
+against 0.99774). The table comes from the linear program of `tools/cbound/witness.py` (saved with
+`WITNESS_OUT`, or by a script calling `Witness.solve`), rounded to rationals that keep its shape
+(`emitT.round_table`). Lean computes each representative state's terminal table and one-switch tables
+(`FamCfg.repData`), the contractions by rule (`tabLp`, `tabLpi`) and the derived numbers; the other
+indices need only their switching tables (0, 1, 2, 17). The representatives are checked in chunks of 11
+(`R<j>.lean`), one kernel check per representative (about 7 s and 2 GB each; one check per chunk would keep the kernel's cache for the whole chunk), built four at a time (each chunk imports the one four before it).
+Two passes: `emit` writes all but the main file; after building those, `main` reads the derived numbers
+from Lean and writes the main file.
+
+```sh
+python3 emitT.py 1/5 7/100 32 5184000 1000 V.npy 10 20 27/20 13/10 13/5 27/20 2 41/40 E20D11T ../../Cryptarchia/Prob/Certs emit
+lake build $(for j in $(seq 0 23); do printf 'Cryptarchia.Prob.Certs.E20D11T.R%d ' $j; done)
+python3 emitT.py 1/5 7/100 32 5184000 1000 V.npy 10 20 27/20 13/10 13/5 27/20 2 41/40 E20D11T ../../Cryptarchia/Prob/Certs main
+```
+
+The arguments are β, δ, the members, the horizon, the depth, the LP's table, the box (`R`, `M`), the
+extension factors `cw`, `zc`, the automaton's factor `x`, the reach and check bases `c`, `z`, the span tilt
+`τ`, the name and the output directory.
 
 ## Closed-form certificates
 

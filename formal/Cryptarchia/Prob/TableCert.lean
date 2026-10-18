@@ -7,8 +7,8 @@ public import Cryptarchia.Prob.Final3E
 # A table certificate for failed checks
 
 A rational table (`TabQ`) is a failed-check potential (`FailPot`) once each representative state
-(`TabPot.IsRep`) passes its contraction check. A certificate gives, for each representative in the
-order of `repList`, its data (`RepData`): a terminal table `g` above the table's own (`TabPot.gT`), and
+(`TabPot.IsRep`) passes its contraction check. A certificate gives the representatives in chunks, each
+with its data (`RepData`): a terminal table `g` above the table's own (`TabPot.gT`), and
 the seeds and bounds of its one-switch tables for that terminal table. The checks (`repChk`) are the
 domination, the one-switch tables' checks over the integers (`chkOneF`, as for the certificates' phase
 indices), and the contraction: each member's in-epoch bound less the crossing's credit at most `lpi`
@@ -126,34 +126,41 @@ def repPost (d : RepData) (k : Fin F.S.K) : Fin 3 → ℤ := seedL (d.post.getD 
 def repPre (d : RepData) (k : Fin F.S.K) : Fin 3 → ℤ := seedL (d.pre.getD k.val [])
 def repEIn (d : RepData) (k : Fin F.S.K) : ℚ := d.eIn.getD k.val 0
 
-/-- **A representative's checks**: its terminal table above the table's own; its one-switch tables over
-the integers; the crossing's credit nonnegative; each member's in-epoch bound less the credit at most
-`lpi` times the table's value; the one-switch bound less the credit (with the weakest band's crossing
-bound) at most `lp` times it. -/
-def repChk (Q : TabQ) (Bq : BandR) (lp lpi : ℚ) (s : ℤ × ℤ) (d : RepData) : Bool :=
+/-- **A representative's tables**: its terminal table above the table's own; its one-switch tables over
+the integers; the crossing's credit nonnegative. -/
+def repChkA (Q : TabQ) (s : ℤ × ℤ) (d : RepData) : Bool :=
   Q.domQ s d && decide ((d.X Q.x).Rep Q.x 1 d.gq) &&
     (List.finRange F.S.K).all (chkOneF F.famZ F.D F.Δ (d.X Q.x) SZ (F.repPost d) (F.repPre d) (F.repEIn d) d.eE) &&
-    decide (0 ≤ Q.crQ s) &&
-    (List.finRange F.S.K).all (fun k => decide (F.repEIn d k - Q.crQ s * F.S.patQ F.Δ k ≤ lpi * Q.VQ s)) &&
+    decide (0 ≤ Q.crQ s)
+
+/-- **A representative's contraction**: each member's in-epoch bound less the crossing's credit at most
+`lpi` times the table's value; the one-switch bound less the credit (with the weakest band's crossing
+bound) at most `lp` times it. -/
+def repChkC (Q : TabQ) (Bq : BandR) (lp lpi : ℚ) (s : ℤ × ℤ) (d : RepData) : Bool :=
+  (List.finRange F.S.K).all (fun k => decide (F.repEIn d k - Q.crQ s * F.S.patQ F.Δ k ≤ lpi * Q.VQ s)) &&
     decide (d.eE - Q.crQ s * (Bq.slo * Bq.elo ^ F.Δ) ≤ lp * Q.VQ s)
 
-/-- **The table certificate's checks**: the shape, every representative's checks (`repList` order),
-and `0 < lpi ≤ lp`. -/
-def tabChk (Q : TabQ) (Bq : BandR) (lp lpi : ℚ) (data : List RepData) : Bool :=
-  Q.shapeQ && decide (data.length = Q.repList.length) && (Q.repList.zip data).all (fun p => F.repChk Q Bq lp lpi p.1 p.2) &&
+/-- **A representative's checks.** -/
+def repChk (Q : TabQ) (Bq : BandR) (lp lpi : ℚ) (s : ℤ × ℤ) (d : RepData) : Bool :=
+  F.repChkA Q s d && F.repChkC Q Bq lp lpi s d
+
+/-- **The representatives' tables, in chunks** (the heavy checks, one chunk at a time). -/
+def tabChkA {n : ℕ} (Q : TabQ) (D : Fin n → List ((ℤ × ℤ) × RepData)) : Prop :=
+  ∀ j, (D j).all (fun p => F.repChkA Q p.1 p.2) = true
+
+/-- **The table certificate's checks**: the shape, every representative covered by a chunk, every
+chunk's contractions, and `0 < lpi ≤ lp`. -/
+def tabChk {n : ℕ} (Q : TabQ) (Bq : BandR) (lp lpi : ℚ) (D : Fin n → List ((ℤ × ℤ) × RepData)) : Bool :=
+  Q.shapeQ && Q.repList.all (fun s => (List.finRange n).any fun j => (D j).any fun p => p.1 == s) &&
+    (List.finRange n).all (fun j => (D j).all fun p => F.repChkC Q Bq lp lpi p.1 p.2) &&
     decide (0 < lpi) && decide (lpi ≤ lp)
 
 end FamCfg
 
-theorem exists_zip {α β : Type*} {l : List α} {l' : List β} {a : α} (ha : a ∈ l) (hl : l'.length = l.length) :
-    ∃ b, (a, b) ∈ l.zip l' := by
-  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.1 ha
-  exact ⟨l'[i]'(by omega), List.mem_iff_getElem.2 ⟨i, by simp; omega, by simp⟩⟩
-
 section Sound
 
-variable {F : FamCfg} {Q : TabQ} {Bq : BandR} {lp lpi : ℚ} {data : List RepData}
-  (h : F.tabChk Q Bq lp lpi data = true)
+variable {F : FamCfg} {Q : TabQ} {Bq : BandR} {lp lpi : ℚ} {n : ℕ} {D : Fin n → List ((ℤ × ℤ) × RepData)}
+  (h : F.tabChk Q Bq lp lpi D = true)
 include h
 
 theorem tabChk_shape : Q.toPot.Shape := by
@@ -163,12 +170,14 @@ theorem tabChk_lpi : (0 : ℝ) < lpi ∧ (lpi : ℝ) ≤ lp := by
   simp only [FamCfg.tabChk, Bool.and_eq_true, decide_eq_true_eq] at h
   exact ⟨by exact_mod_cast h.1.2, by exact_mod_cast h.2⟩
 
-theorem tabChk_rep {s : ℤ × ℤ} (hs : Q.toPot.IsRep s) : ∃ d, F.repChk Q Bq lp lpi s d = true := by
-  simp only [FamCfg.tabChk, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at h
-  obtain ⟨⟨⟨⟨-, hlen⟩, hall⟩, -⟩, -⟩ := h
-  obtain ⟨d, hd⟩ := exists_zip (TabQ.mem_repList Q hs) hlen
-  have h1 := hall (s, d) hd
-  exact ⟨d, by simpa only using h1⟩
+theorem tabChk_rep (hA : F.tabChkA Q D) {s : ℤ × ℤ} (hs : Q.toPot.IsRep s) : ∃ d, F.repChk Q Bq lp lpi s d = true := by
+  simp only [FamCfg.tabChk, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.any_eq_true,
+    beq_iff_eq] at h
+  obtain ⟨⟨⟨⟨-, hcov⟩, hall⟩, -⟩, -⟩ := h
+  obtain ⟨j, -, p, hp, rfl⟩ := hcov s (TabQ.mem_repList Q hs)
+  exact ⟨p.2, by
+    simp only [FamCfg.repChk, Bool.and_eq_true]
+    exact ⟨List.all_eq_true.1 (hA j) p hp, hall j (List.mem_finRange j) p hp⟩⟩
 
 theorem gq_nonneg {s : ℤ × ℤ} {d : RepData} (hS : Q.toPot.Shape) (hdom : Q.domQ s d = true) (a : Fin 3) (b u : Bool) :
     0 ≤ castG d.gq a b u := by
@@ -184,8 +193,8 @@ theorem gq_nonneg {s : ℤ × ℤ} {d : RepData} (hS : Q.toPot.Shape) (hdom : Q.
 end Sound
 
 /-- **The table certificate as a failed-check potential.** -/
-noncomputable def FamCfg.tabFailPot {F : FamCfg} {Q : TabQ} {Bq : BandR} {lp lpi : ℚ} {data : List RepData}
-    (h : F.tabChk Q Bq lp lpi data = true) (hS : F.S.chk F.famZ F.D = true) (hD : 0 < F.D) (hBq : Bq = F.S.weakest)
+noncomputable def FamCfg.tabFailPot {F : FamCfg} {Q : TabQ} {Bq : BandR} {lp lpi : ℚ} {n : ℕ}
+    {D : Fin n → List ((ℤ × ℤ) × RepData)} (h : F.tabChk Q Bq lp lpi D = true) (hA : F.tabChkA Q D) (hS : F.S.chk F.famZ F.D = true) (hD : 0 < F.D) (hBq : Bq = F.S.weakest)
     (P : Cert2 Bq.toBand F.Δ) (hT : Q.toPot.Ties P) {EL G : ℕ} (hG : F.Δ + 1 ≤ G) (hGEL : G + 1 < EL)
     {κ : Kern} {M : ℕ} (hκ : κ.EpochFam EL F.S.fam) :
     FailPot κ M G P (fun t => ¬ NoSw EL G t) := by
@@ -207,9 +216,10 @@ noncomputable def FamCfg.tabFailPot {F : FamCfg} {Q : TabQ} {Bq : BandR} {lp lpi
       0 ≤ Q.crQ s ∧ (∀ k, F.repEIn d k - Q.crQ s * F.S.patQ F.Δ k ≤ lpi * Q.VQ s) ∧
       d.eE - Q.crQ s * (Bq.slo * Bq.elo ^ F.Δ) ≤ lp * Q.VQ s := by
     intro s hs
-    obtain ⟨d, hd⟩ := tabChk_rep h hs
-    simp only [FamCfg.repChk, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at hd
-    obtain ⟨⟨⟨⟨⟨hdom, hX⟩, hone⟩, hcr⟩, hin⟩, hE⟩ := hd
+    obtain ⟨d, hd⟩ := tabChk_rep h hA hs
+    simp only [FamCfg.repChk, FamCfg.repChkA, FamCfg.repChkC, Bool.and_eq_true, decide_eq_true_eq,
+      List.all_eq_true] at hd
+    obtain ⟨⟨⟨⟨hdom, hX⟩, hone⟩, hcr⟩, hin, hE⟩ := hd
     have hsound := oneSwitchF_sound (F.S.rep hS) F.S.agrees hD hX SZ_pos (List.all_eq_true.2 hone)
     simp only [Rat.cast_one] at hsound
     exact ⟨d, hdom, hsound.1, hsound.2.1, hsound.2.2, hcr, fun k => hin k (List.mem_finRange k), hE⟩

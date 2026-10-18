@@ -71,10 +71,11 @@ noncomputable def cert2BT (hP : cert2ChkQ Bq F.Δ F.c F.z F.s 0 F.d F.τ lpd (lr
 /-- **Finality from a table certificate's data** (`finality_fam` with the table as the failed-check
 potential): the switching tables for the reach, the checked phase and spans, and the table certificate. -/
 theorem finality_famT {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
-    {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} {lpd lp lpi : ℚ} {Q : TabQ} {data : List RepData}
+    {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} {lpd lp lpi : ℚ} {Q : TabQ} {m : ℕ}
+    {D : Fin m → List ((ℤ × ℤ) × RepData)}
     (hP : cert2ChkQ Bq F.Δ F.c F.z F.s 0 F.d F.τ lpd (lrOf dat) (bOf dat) (eOf dat) = true) (hS : F.S.chk F.famZ F.D = true)
     (hD : 0 < F.D) (hBq : Bq = F.S.weakest) (hsw : ∀ i : Fin 19, isSw i = true → F.idxChkSw i (dat i) = true)
-    (htab : F.tabChk Q Bq lp lpi data = true) (hties : Q.tiesQ F.c F.z = true) {n : ℕ} (hK : F.S.K = n + 1)
+    (htab : F.tabChk Q Bq lp lpi D = true) (htabA : F.tabChkA Q D) (hties : Q.tiesQ F.c F.z = true) {n : ℕ} (hK : F.S.K = n + 1)
     (T : TBandQ) (hT : famChkQ F T = true) (es : Ω → List Event) (hMod : Model μ O E es) {N : ℕ}
     (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) (hΔ : E.Δ = F.Δ) {G : ℕ} (hG1 : F.Δ + 1 ≤ G)
     (hGEL : G + 1 < E.c.epochLength) {M G' J Lw r Tg : ℕ} {x yy : ℚ} (hx : 1 ≤ x) (hyy0 : 0 < yy) (hyy1 : yy ≤ 1)
@@ -106,7 +107,7 @@ theorem finality_famT {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
     rw [hβ]; exact_mod_cast h
   exact finalityG (M := M) (Ne := Ne) (Tb := T.toTBand) es hMod hN hΔ
     (cert2BT hP hS hD hBq hsw E.c.epochLength G hG1 hGEL)
-    (fun κ hκ => tabFailPot htab hS hD hBq (cert2T hP) (TabQ.ties_of hties _ rfl rfl) hG1 hGEL hκ)
+    (fun κ hκ => tabFailPot htab htabA hS hD hBq (cert2T hP) (TabQ.ties_of hties _ rfl rfl) hG1 hGEL hκ)
     (fun _ _ => rfl) (fun _ _ => rfl) (FamSpec.prod hS)
     (G' := G') (J := J) (Lw := Lw) (r := r) (T := Tg) (x := x) (yy := yy)
     (by exact_mod_cast hx) (by exact_mod_cast hyy0) (by exact_mod_cast hyy1) hT1 hNM
@@ -127,10 +128,10 @@ theorem finality_famT {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
 family's, the table certificate's and the numeric conditions (`finChkSpec`) give the finality bound `fin`. -/
 theorem finality_specT {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} (p : SpecData) (q : SpecDerived) {lpd : ℚ}
-    {Q : TabQ} {data : List RepData}
+    {Q : TabQ} {m : ℕ} {D : Fin m → List ((ℤ × ℤ) × RepData)}
     (hC2 : cert2ChkQ Bq F.Δ F.c F.z F.s 0 F.d F.τ lpd (lrOf dat) (bOf dat) (eOf dat) = true) (hS : F.S.chk F.famZ F.D = true)
     (hD : 0 < F.D) (hBq : Bq = F.S.weakest) (hsw : ∀ i : Fin 19, isSw i = true → F.idxChkSw i (dat i) = true)
-    (htab : F.tabChk Q Bq q.lp q.lpi data = true) (hties : Q.tiesQ F.c F.z = true) {n : ℕ} (hK : F.S.K = n + 1)
+    (htab : F.tabChk Q Bq q.lp q.lpi D = true) (htabA : F.tabChkA Q D) (hties : Q.tiesQ F.c F.z = true) {n : ℕ} (hK : F.S.K = n + 1)
     (T : TBandQ) (hfin : finChkSpec F Bq dat T p q = true)
     (hc : E.c = Config.specK p.k) (hΔ : E.Δ = F.Δ) (es : Ω → List Event) (hMod : Model μ O E es)
     (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ p.N) {Smax : ℚ}
@@ -147,7 +148,7 @@ theorem finality_specT {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
   have hδ := f.drift
   simp only [driftChkQ, Bool.and_eq_true, decide_eq_true_eq] at hδ
   obtain ⟨⟨⟨⟨⟨hup, hdn⟩, hg1⟩, hg2⟩, hρ⟩, hHm⟩ := hδ
-  have hb := finality_famT F hC2 hS hD hBq hsw htab hties hK T f.fam es hMod hN hΔ f.hG1 (by rw [hEL]; exact f.hGEL)
+  have hb := finality_famT F hC2 hS hD hBq hsw htab htabA hties hK T f.fam es hMod hN hΔ f.hG1 (by rw [hEL]; exact f.hGEL)
     (M := M) (G' := G') (J := J) (Lw := Lw) (r := r) f.hx f.hyy0 f.hyy1 f.hT f.hNM f.hhi1 f.hlo0 f.hlo1 f.helo1
     (by rw [hEL]; exact f.hLw) (by rw [hc]; exact f.hOG)
     (by rw [hc]; exact ⟨lot_spec.p_pos, lot_spec.t0_pos, lot_spec.t1_le, lot_spec.a1_le, lot_spec.a1_near⟩)
@@ -178,6 +179,69 @@ theorem finality_specT {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
   have hx : (0 : ℝ) ≤ bx := by exact_mod_cast f.bx0
   rw [← ENNReal.ofReal_natCast, ← ENNReal.ofReal_mul (by positivity), ← ENNReal.ofReal_add ht (by positivity)]
   exact ENNReal.ofReal_le_ofReal (by exact_mod_cast f.fin)
+
+end FamCfg
+
+/-! ## A table certificate's data, computed -/
+
+deriving instance Lean.ToExpr for RepData
+
+namespace TabQ
+
+variable (Q : TabQ)
+
+/-- The largest `V(next) / x^A` over `2 ≤ A ≤ AX`. -/
+def gmaxQ (s : ℤ × ℤ) (b : Bool) : ℚ :=
+  ((List.range (Q.AX - 1)).map fun i => Q.VQ (stepO s ((i + 2 : ℕ) : ℤ) (TabPot.bI b) false) / Q.x ^ (i + 2)).foldl max 0
+
+/-- **A representative's terminal table**, from the table's own values, rounded up to 13 digits. -/
+def gList (s : ℤ × ℤ) : List ℚ :=
+  [Q.VQ (stepO s 0 0 false), Q.VQ (stepO s 0 1 false), Q.VQ (stepO s 1 0 false) / Q.x, Q.VQ (stepO s 1 1 false) / Q.x,
+    Q.gmaxQ s false, Q.gmaxQ s true].map (rupQ 13)
+
+end TabQ
+
+namespace FamCfg
+
+variable (F : FamCfg)
+
+/-- The terminal table's entries at `(0, a, true)`, for a phase expectation `X`. -/
+def floorX (X : PhZ) : List ℤ := [gFloorZ X SZ 0 0 true, gFloorZ X SZ 0 1 true, gFloorZ X SZ 0 2 true]
+
+/-- The solvers of the phase indices (`postSeeds`, `preSeeds`, `eInList`, `eEOf`) for any phase expectation. -/
+def postSeedsX (X : PhZ) : List (List ℤ) :=
+  seedsZ F.D F.Δ X SZ (gFloorZ X SZ) (2 ^ 32) (2 ^ 8) 3 2 200 F.famL (floorX X)
+
+def preSeedsX (X : PhZ) (post : List (List ℤ)) : List (List ℤ) :=
+  preSeedsZ F.famL F.D F.Δ X SZ (2 ^ 32) (2 ^ 8) 0 200 post
+
+def eInListX (X : PhZ) (post : List (List ℤ)) : List ℚ := eInListQ F.famL F.D F.Δ X SZ 13 post
+
+def eEOfX (X : PhZ) (post pre : List (List ℤ)) : ℚ :=
+  let vm := vmaxListZ F.famL F.D F.Δ X SZ post
+  (List.zipWith (fun B t => rupQ 13 ((autoBoundZ B F.D X SZ (tabZ (fillRowsZ [B] F.D F.Δ X SZ (tabZ vm) (seedL t) 0 F.Δ)) : ℚ) /
+    (X.M F.D * SZ : ℤ))) F.famL pre).foldl max 0
+
+/-- **A representative's data**, computed: its terminal table and its one-switch tables' seeds and bounds. -/
+def repData (Q : TabQ) (s : ℤ × ℤ) : RepData :=
+  let g := Q.gList s
+  let X := PhZ.ofQ (Q.x, 1, fun a b _ => g.getD (2 * a.val + if b then 1 else 0) 0)
+  let post := F.postSeedsX X
+  let pre := F.preSeedsX X post
+  ⟨g, post, pre, F.eInListX X post, F.eEOfX X post pre⟩
+
+/-- All the chunks' representatives with their data. -/
+def allReps {n : ℕ} (D : Fin n → List ((ℤ × ℤ) × RepData)) : List ((ℤ × ℤ) × RepData) := (List.finRange n).flatMap D
+
+/-- **The table's contractions by rule**: the largest, over the representatives, of each member's in-epoch
+bound less the crossing's credit (`lpi`), and of the one-switch bound less it (`lp`), over the table's
+value, rounded up to 13 digits. -/
+def tabLpi {n : ℕ} (Q : TabQ) (D : Fin n → List ((ℤ × ℤ) × RepData)) : ℚ :=
+  rupQ 13 (((allReps D).map fun p =>
+    ((List.finRange F.S.K).map fun k => (F.repEIn p.2 k - Q.crQ p.1 * F.S.patQ F.Δ k) / Q.VQ p.1).foldl max 0).foldl max 0)
+
+def tabLp {n : ℕ} (Q : TabQ) (Bq : BandR) (D : Fin n → List ((ℤ × ℤ) × RepData)) : ℚ :=
+  rupQ 13 (((allReps D).map fun p => (p.2.eE - Q.crQ p.1 * (Bq.slo * Bq.elo ^ F.Δ)) / Q.VQ p.1).foldl max 0)
 
 end FamCfg
 
