@@ -20,10 +20,12 @@ A phase that starts more than `G` slots before the next boundary stays in one me
 smaller in-epoch contraction `lpi` applies (`InEpoch`; `ex_cross_truncIn` for the crossing
 pattern). Phases that start within `G` slots of a boundary (`Sw`) pay the ratio `lp / lpi`.
 Within a check's window of `L` slots there are at most `Ccap` such slots, so the potential
-`ΦfE3` carries a weight `(lp / lpi)^c`, with `c` the switching slots left in the window
+`ΦfF` carries a weight `(lp / lpi)^c`, with `c` the switching slots left in the window
 (`swCnt`); a failed check counts only if the check is within `L` slots of its anchor (the
 span term pays for the rest). Before the anchor the potential is the reach potential `Φr2`
-(`phiR2_pre`). `fail_checkE3` bounds the expected count.
+(`phiR2_pre`). `fail_checkF` bounds the expected count for any failed-check potential (`FailPot`:
+nonnegative, at most the reach potential on warm states, paying for a check, contracting by `lp` and
+`lpi`); `FailPot.ofV2` is the certificate's two-term potential, and `fail_checkE3` the bound with it.
 -/
 
 @[expose] public section
@@ -515,6 +517,51 @@ structure InEpoch (κ : Kern) (M G : ℕ) (P : Cert2 B Δ) (lpi : ℝ) (Sw : ℕ
     ∀ i : Fin 19, i ≠ 2 → i ≠ 17 →
       ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (WP P i h.length)) h ≤ e i
 
+/-- **A potential for failed checks.** A function `V` of the reach and margin bounds: nonnegative,
+at most the reach potential `c^ρ` on warm states (where a check starts), paying for a check whose
+margin catches up with `z^A`, with a pointwise bound `post` after a phase whose expectation contracts
+by `lp` over any phase cut at `G` slots and by `lpi` over one that starts outside `Sw`. -/
+structure FailPot (κ : Kern) (M G : ℕ) (P : Cert2 B Δ) (Sw : ℕ → Prop) where
+  V : ℤ × ℤ → ℝ
+  post : ℤ × ℤ → ℕ → List Out → ℝ
+  lp : ℝ
+  lpi : ℝ
+  hlpi : 0 < lpi
+  hle : lpi ≤ lp
+  nonneg : ∀ st, 0 ≤ V st
+  warm : ∀ ρ : ℤ, 0 ≤ ρ → V (ρ, ρ) ≤ P.c ^ ρ
+  fail : ∀ st, Inv st → ∀ A : ℕ, -(A : ℤ) ≤ st.2 → 1 ≤ V st * P.z ^ A
+  post_le : ∀ st, Inv st → ∀ (m : ℕ) (h : List Out), m ≤ h.length →
+    V (step Δ (strOf h) 0 m h.length st) ≤ post st m h
+  ex : ∀ st, Inv st → ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M →
+    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (post st h.length)) h ≤ lp * V st
+  exIn : ∀ st, Inv st → ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → ¬ Sw h.length →
+    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (post st h.length)) h ≤ lpi * V st
+
+/-- **The certificate's potential `V2` as a failed-check potential**, contracting by `lp` over any
+phase (the class conditions `P.cls`) and by `lpi` in an epoch (`InEpoch`). -/
+noncomputable def FailPot.ofV2 (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 ≤ G)
+    (hb : PhaseBounds κ M G P) {lpi : ℝ} {Sw : ℕ → Prop} {L Ccap : ℕ} (hI : InEpoch κ M G P lpi Sw L Ccap) :
+    FailPot κ M G P Sw where
+  V := V2 P.c P.z P.s P.κ P.d
+  post := postB2 P
+  lp := P.lp
+  lpi := lpi
+  hlpi := hI.pos
+  hle := hI.le_lp
+  nonneg st := (V2_pos (by linarith [P.hc]) (by linarith [P.hz]) (by linarith [P.hs]) P.hκ P.hd0 st).le
+  warm ρ hρ := by rw [V2_warm (show (0 : ℤ) ≤ (ρ, ρ).2 from hρ)]
+  fail st hst A hA := by
+    have h := fail_le2 P.hc P.hz P.hs P.hκ P.hd0 hst A
+    rw [if_pos hA, zpow_natCast] at h
+    exact h
+  post_le st hst m h hm := post2_le P hst m h hm
+  ex st hst h hpe hlM := ex_post2G_at (κ := κ) P hW hG hst hpe hlM
+    (fun i h2 h17 => hb.cut i h2 h17 h hpe (by omega))
+  exIn st hst h hpe hlM hsw := by
+    obtain ⟨ei, pat0, hcl, hX, hEi⟩ := hI.cls h hpe hlM hsw
+    exact ex_post2G_gen (κ := κ) P hcl hst hlM hX hEi
+
 variable (Δ M) in
 open Classical in
 /-- A failed check at phase `k`, anchored at `k0`, counted only without long phases and
@@ -527,40 +574,40 @@ variable (Δ M) in
 open Classical in
 /-- **The potential.** Before the anchor the reach potential `Φr2`, times `lpi` per phase
 and the full weight `(lp/lpi)^Ccap`; from the anchor on, `lpi` per remaining phase and the weight of
-the switching slots left in the check's window. -/
-noncomputable def ΦfE3 (P : Cert2 B Δ) (lpi : ℝ) (Sw : ℕ → Prop) (Ccap G L Hc k0 k : ℕ) (h : List Out) : ℝ :=
-  if pidx Δ M (strOf h) h.length < k0 then lpi ^ (k - k0) * (P.lp / lpi) ^ Ccap * P.e 2 * Φr2 Δ M P k0 h
+the switching slots left in the check's window, times the failed-check potential `F.V`. -/
+noncomputable def ΦfF (P : Cert2 B Δ) {G : ℕ} {Sw : ℕ → Prop} (F : FailPot κ M G P Sw) (Ccap L Hc k0 k : ℕ)
+    (h : List Out) : ℝ :=
+  if pidx Δ M (strOf h) h.length < k0 then F.lpi ^ (k - k0) * (F.lp / F.lpi) ^ Ccap * P.e 2 * Φr2 Δ M P k0 h
   else if pidx Δ M (strOf h) h.length ≤ k then
     (if h.length ≤ Hc ∧ NoLong Δ M G k0 (pidx Δ M (strOf h) h.length) (strOf h) ∧
         h.length ≤ gend Δ M (strOf h) k0 + L then
-      lpi ^ (k - pidx Δ M (strOf h) h.length) * (P.lp / lpi) ^ swCnt Sw h.length (gend Δ M (strOf h) k0 + L) *
-      P.e 2 * V2 P.c P.z P.s P.κ P.d (rf Δ M (strOf h) k0 (pidx Δ M (strOf h) h.length - k0)) else 0)
+      F.lpi ^ (k - pidx Δ M (strOf h) h.length) * (F.lp / F.lpi) ^ swCnt Sw h.length (gend Δ M (strOf h) k0 + L) *
+      P.e 2 * F.V (rf Δ M (strOf h) k0 (pidx Δ M (strOf h) h.length - k0)) else 0)
   else failHE3 Δ M G L Hc k0 k h
 
 /-- **The potential is a supermartingale over phases.** -/
-theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 ≤ G)
-    (hb : PhaseBounds κ M G P) {lpi : ℝ} {Sw : ℕ → Prop} {Ccap L : ℕ} (hI : InEpoch κ M G P lpi Sw L Ccap)
+theorem phiF_step (P : Cert2 B Δ) {G : ℕ} (hb : PhaseBounds κ M G P) {Sw : ℕ → Prop}
+    (F : FailPot κ M G P Sw) {Ccap L : ℕ} (hcap : ∀ t, swCnt Sw t (t + L) ≤ Ccap)
     {Hc : ℕ} (hHc : Hc + Δ + 1 ≤ M) {k0 k : ℕ}
     (hk0 : k0 ≤ k) {h : List Out} (hpe : PE Δ M h) (hlM : h.length < M) :
-    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k) h ≤ ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h := by
+    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (ΦfF Δ M P F Ccap L Hc k0 k) h ≤ ΦfF Δ M P F Ccap L Hc k0 k h := by
   classical
   have hM : 0 < M := by omega
   have hc0 : 0 < P.c := by linarith [P.hc]
   have hz0 : 0 < P.z := by linarith [P.hz]
   have he2 := hb.e2_nonneg hM
-  obtain ⟨hR0, hR1, hC2, -, hE⟩ := hb
-  obtain ⟨hlpi0, hlpi, hcap, hIn⟩ := hI
-  have hlp := P.hlp0
-  have hRg1 : 1 ≤ P.lp / lpi := by rw [le_div_iff₀ hlpi0]; linarith
-  have hRg0 : 0 ≤ P.lp / lpi := by linarith
+  obtain ⟨hR0, hR1, hC2, -, -⟩ := hb
+  have hlpi0 := F.hlpi
+  have hRg1 : 1 ≤ F.lp / F.lpi := by rw [le_div_iff₀ hlpi0]; linarith [F.hle]
+  have hRg0 : 0 ≤ F.lp / F.lpi := by linarith
   obtain ⟨j, hj⟩ : ∃ j, pidx Δ M (strOf h) h.length = j := ⟨_, rfl⟩
-  have hF : 0 ≤ lpi ^ (k - k0) * (P.lp / lpi) ^ Ccap * P.e 2 := by positivity
+  have hF : 0 ≤ F.lpi ^ (k - k0) * (F.lp / F.lpi) ^ Ccap * P.e 2 := by positivity
   by_cases hjk : j < k0
   · -- before the anchor
     refine (phiR2_pre P hR0 hR1 k0 hpe hlM hF fun h' hf => ?_).trans (le_of_eq ?_)
     · have hp' := next_pidx hpe hlM hf
       rw [hj] at hp'
-      unfold ΦfE3
+      unfold ΦfF
       rw [hp']
       by_cases hjk' : j + 1 < k0
       · rw [if_pos hjk']
@@ -577,14 +624,15 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
         split_ifs
         · refine le_trans (mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right
             (mul_le_mul_of_nonneg_left (pow_le_pow_right₀ hRg1 hcnt) (pow_nonneg hlpi0.le _)) he2)
-            (V2_pos hc0 hz0 (by linarith [P.hs]) P.hκ P.hd0 _).le) ?_
+            (F.nonneg _)) ?_
           rw [show k - (j + 1) = k - k0 by omega, show j + 1 - k0 = 0 by omega]
           apply mul_le_mul_of_nonneg_left _ hF
           unfold rf rho0
           simp only [runFrom]
-          rw [hk0', hρ', V2_warm (show (0 : ℤ) ≤ (ρ', ρ').2 from hρ'0)]
+          rw [hk0', hρ']
+          exact F.warm ρ' hρ'0
         · exact mul_nonneg hF (zpow_nonneg hc0.le _)
-    · unfold ΦfE3; rw [hj, if_pos hjk]
+    · unfold ΦfF; rw [hj, if_pos hjk]
   · push Not at hjk
     have hgj : gend Δ M (strOf h) j = h.length := by rw [← hj]; exact gend_pidx_pe hpe
     obtain ⟨T0, hT0⟩ : ∃ T0, gend Δ M (strOf h) k0 + L = T0 := ⟨_, rfl⟩
@@ -592,16 +640,16 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
     · by_cases hHl : h.length ≤ Hc ∧ NoLong Δ M G k0 j (strOf h) ∧ h.length ≤ T0
       · obtain ⟨st, hst⟩ : ∃ st, rf Δ M (strOf h) k0 (j - k0) = st := ⟨_, rfl⟩
         have hinv : Inv st := by rw [← hst]; exact rf_inv _ k0 _
-        have hval : ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h =
-            lpi ^ (k - j) * (P.lp / lpi) ^ swCnt Sw h.length T0 * P.e 2 * V2 P.c P.z P.s P.κ P.d st := by
-          unfold ΦfE3; rw [hj, if_neg (by omega), if_pos hjk2, hT0, if_pos hHl, hst]
-        have hVs : 0 ≤ V2 P.c P.z P.s P.κ P.d st :=
-          (V2_pos hc0 hz0 (by linarith [P.hs]) P.hκ P.hd0 st).le
+        have hval : ΦfF Δ M P F Ccap L Hc k0 k h =
+            F.lpi ^ (k - j) * (F.lp / F.lpi) ^ swCnt Sw h.length T0 * P.e 2 * F.V st := by
+          unfold ΦfF; rw [hj, if_neg (by omega), if_pos hjk2, hT0, if_pos hHl, hst]
+        have hVs : 0 ≤ F.V st :=
+          F.nonneg st
         by_cases hjeq : j = k
         · -- the check
           subst hjeq
-          have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 j) h ≤
-              ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun h' => V2 P.c P.z P.s P.κ P.d st * WP P 2 h.length h') h := by
+          have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (ΦfF Δ M P F Ccap L Hc k0 j) h ≤
+              ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun h' => F.V st * WP P 2 h.length h') h := by
             refine ExPh_mono_first hlM fun h' hf => ?_
             have hp' := next_pidx hpe hlM hf
             rw [hj] at hp'
@@ -613,7 +661,7 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
               rw [next_gend hpe hlM hf (show j ≤ _ by rw [hj]), next_gend hpe hlM hf (show k0 ≤ _ by rw [hj]; exact hjk),
                 hgj, hT0]
               exact hHl.2.2
-            unfold ΦfE3 failHE3 failH
+            unfold ΦfF failHE3 failH
             rw [hp', if_neg (by omega), if_neg (by omega), if_pos ⟨hnl', hns'⟩, if_pos (by omega), hfn]
             obtain ⟨A, hA⟩ : ∃ A, advCnt (strOf h') h.length h'.length = A := ⟨_, rfl⟩
             obtain ⟨nh, hnh⟩ : ∃ nh, honCnt (strOf h') h.length h'.length = nh := ⟨_, rfl⟩
@@ -633,44 +681,42 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
                   · simp [ha0, h1]
                   · simp only [ha0, ↓reduceIte]; split_ifs <;> rfl
               rw [hg1, mul_one]
-              have hfl := fail_le2 P.hc P.hz P.hs P.hκ P.hd0 hinv A
-              rw [if_pos hcond.2.1, zpow_natCast] at hfl
-              exact hfl
+              exact F.fail st hinv A hcond.2.1
             · rw [if_neg hcond]
               exact mul_nonneg hVs (mul_nonneg (pow_nonneg hz0.le _) hg)
           refine hle.trans ?_
           rw [ExPh_mul_const, hval, Nat.sub_self, pow_zero, one_mul]
-          have hRc : 1 ≤ (P.lp / lpi) ^ swCnt Sw h.length T0 := one_le_pow₀ hRg1
-          calc V2 P.c P.z P.s P.κ P.d st * ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 2 h.length) h
-              ≤ V2 P.c P.z P.s P.κ P.d st * P.e 2 := mul_le_mul_of_nonneg_left (hC2 h hpe hlM) hVs
-            _ = 1 * (P.e 2 * V2 P.c P.z P.s P.κ P.d st) := by ring
-            _ ≤ (P.lp / lpi) ^ swCnt Sw h.length T0 * (P.e 2 * V2 P.c P.z P.s P.κ P.d st) :=
+          have hRc : 1 ≤ (F.lp / F.lpi) ^ swCnt Sw h.length T0 := one_le_pow₀ hRg1
+          calc F.V st * ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (WP P 2 h.length) h
+              ≤ F.V st * P.e 2 := mul_le_mul_of_nonneg_left (hC2 h hpe hlM) hVs
+            _ = 1 * (P.e 2 * F.V st) := by ring
+            _ ≤ (F.lp / F.lpi) ^ swCnt Sw h.length T0 * (P.e 2 * F.V st) :=
                 mul_le_mul_of_nonneg_right hRc (mul_nonneg he2 hVs)
             _ = _ := by ring
         · -- between the anchor and the check
           have hjk3 : j < k := by omega
           by_cases hT : h.length < T0
-          · have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k) h ≤
+          · have hle : ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (ΦfF Δ M P F Ccap L Hc k0 k) h ≤
                 ExPh (κ := κ) (PE Δ M) (M - h.length - 1)
-                  (fun h' => lpi ^ (k - (j + 1)) * (P.lp / lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 *
-                    truncG h.length G (postB2 P st h.length) h') h := by
+                  (fun h' => F.lpi ^ (k - (j + 1)) * (F.lp / F.lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 *
+                    truncG h.length G (F.post st h.length) h') h := by
               refine ExPh_mono_first hlM fun h' hf => ?_
               have hp' := next_pidx hpe hlM hf
               have hrs := next_rf_succ hpe hlM hf (k0 := k0) (by rw [hj]; exact hjk)
               rw [hj] at hp' hrs
               rw [hst] at hrs
-              have hpost := post2_le (Δ := Δ) P hinv h.length h' hf.lt.le
-              have hpb : 0 ≤ postB2 P st h.length h' :=
-                le_trans (V2_pos hc0 hz0 (by linarith [P.hs]) P.hκ P.hd0 _).le hpost
+              have hpost := F.post_le st hinv h.length h' hf.lt.le
+              have hpb : 0 ≤ F.post st h.length h' :=
+                le_trans (F.nonneg _) hpost
               have hnn := (noLong_next (G := G) hpe hlM hf (k0 := k0) (by rw [hj]; exact hjk))
               rw [hj] at hnn
               have hg0 : gend Δ M (strOf h') k0 = gend Δ M (strOf h) k0 :=
                 next_gend hpe hlM hf (by rw [hj]; exact hjk)
               have hcnt : swCnt Sw h'.length T0 ≤ swCnt Sw (h.length + 1) T0 :=
                 swCnt_anti Sw (by have := hf.lt; omega)
-              have hW0 : 0 ≤ lpi ^ (k - (j + 1)) * (P.lp / lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 := by
+              have hW0 : 0 ≤ F.lpi ^ (k - (j + 1)) * (F.lp / F.lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 := by
                 positivity
-              unfold ΦfE3
+              unfold ΦfF
               rw [hp', if_neg (by omega), if_pos (by omega), hg0, hT0]
               split_ifs with hc
               · have hl : h'.length ≤ h.length + G := (hnn.1 hc.2.1).2
@@ -678,38 +724,36 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
                 unfold truncG; rw [if_pos hl]
                 exact mul_le_mul (mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left
                   (pow_le_pow_right₀ hRg1 hcnt) (pow_nonneg hlpi0.le _)) he2) hpost
-                  (V2_pos hc0 hz0 (by linarith [P.hs]) P.hκ P.hd0 _).le hW0
+                  (F.nonneg _) hW0
               · refine mul_nonneg hW0 ?_
                 unfold truncG; split_ifs
                 · exact hpb
                 · exact le_rfl
             refine hle.trans ?_
             rw [ExPh_mul_const, hval]
-            have hw : 0 ≤ lpi ^ (k - (j + 1)) * (P.lp / lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 := by
+            have hw : 0 ≤ F.lpi ^ (k - (j + 1)) * (F.lp / F.lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 := by
               positivity
             have hkj : k - j = k - (j + 1) + 1 := by omega
             by_cases hsw : Sw h.length
-            · have hpost2 := ex_post2G_at (κ := κ) P hW hG hinv hpe (by omega : h.length + Δ + 1 ≤ M)
-                (fun i h2 h17 => hE i h2 h17 h hpe hlM)
+            · have hpost2 := F.ex st hinv h hpe (by omega : h.length + Δ + 1 ≤ M)
               have hc1 : swCnt Sw h.length T0 = swCnt Sw (h.length + 1) T0 + 1 := swCnt_succ_pos Sw hsw hT
               rw [hc1]
-              calc lpi ^ (k - (j + 1)) * (P.lp / lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 *
-                    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (postB2 P st h.length)) h
-                  ≤ lpi ^ (k - (j + 1)) * (P.lp / lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 *
-                    (P.lp * V2 P.c P.z P.s P.κ P.d st) := mul_le_mul_of_nonneg_left hpost2 hw
+              calc F.lpi ^ (k - (j + 1)) * (F.lp / F.lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 *
+                    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (F.post st h.length)) h
+                  ≤ F.lpi ^ (k - (j + 1)) * (F.lp / F.lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 *
+                    (F.lp * F.V st) := mul_le_mul_of_nonneg_left hpost2 hw
                 _ = _ := by
-                  obtain ⟨R, hR⟩ : ∃ R, P.lp / lpi = R := ⟨_, rfl⟩
-                  have hlR : P.lp = lpi * R := by rw [← hR]; field_simp
+                  obtain ⟨R, hR⟩ : ∃ R, F.lp / F.lpi = R := ⟨_, rfl⟩
+                  have hlR : F.lp = F.lpi * R := by rw [← hR]; field_simp
                   rw [hR, hlR, hkj, pow_succ, pow_succ]; ring
-            · obtain ⟨ei, pat0, hcl, hX, hEi⟩ := hIn h hpe (by omega) hsw
-              have hpost2 := ex_post2G_gen (κ := κ) P hcl hinv (by omega : h.length + Δ + 1 ≤ M) hX hEi
+            · have hpost2 := F.exIn st hinv h hpe (by omega : h.length + Δ + 1 ≤ M) hsw
               have hc1 : swCnt Sw (h.length + 1) T0 ≤ swCnt Sw h.length T0 := swCnt_anti Sw (by omega)
-              calc lpi ^ (k - (j + 1)) * (P.lp / lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 *
-                    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (postB2 P st h.length)) h
-                  ≤ lpi ^ (k - (j + 1)) * (P.lp / lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 *
-                    (lpi * V2 P.c P.z P.s P.κ P.d st) := mul_le_mul_of_nonneg_left hpost2 hw
-                _ ≤ lpi ^ (k - (j + 1)) * (P.lp / lpi) ^ swCnt Sw h.length T0 * P.e 2 *
-                    (lpi * V2 P.c P.z P.s P.κ P.d st) :=
+              calc F.lpi ^ (k - (j + 1)) * (F.lp / F.lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 *
+                    ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (F.post st h.length)) h
+                  ≤ F.lpi ^ (k - (j + 1)) * (F.lp / F.lpi) ^ swCnt Sw (h.length + 1) T0 * P.e 2 *
+                    (F.lpi * F.V st) := mul_le_mul_of_nonneg_left hpost2 hw
+                _ ≤ F.lpi ^ (k - (j + 1)) * (F.lp / F.lpi) ^ swCnt Sw h.length T0 * P.e 2 *
+                    (F.lpi * F.V st) :=
                     mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left
                       (pow_le_pow_right₀ hRg1 hc1) (pow_nonneg hlpi0.le _)) he2) (mul_nonneg hlpi0.le hVs)
                 _ = _ := by rw [hkj, pow_succ]; ring
@@ -719,19 +763,19 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
             rw [hj] at hp'
             have hg0 : gend Δ M (strOf h') k0 = gend Δ M (strOf h) k0 :=
               next_gend hpe hlM hf (by rw [hj]; exact hjk)
-            unfold ΦfE3
+            unfold ΦfF
             rw [hp', if_neg (by omega), if_pos (by omega), hg0, hT0,
               if_neg (fun hc => by have := hf.lt; have := hc.2.2; omega)]
       · -- past the horizon: nothing more
-        have hval : ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h = 0 := by
-          unfold ΦfE3; rw [hj, if_neg (by omega), if_pos hjk2, hT0, if_neg hHl]
+        have hval : ΦfF Δ M P F Ccap L Hc k0 k h = 0 := by
+          unfold ΦfF; rw [hj, if_neg (by omega), if_pos hjk2, hT0, if_neg hHl]
         rw [hval]
         refine ExPh_le_first hlM fun h' hf => ?_
         have hp' := next_pidx hpe hlM hf
         rw [hj] at hp'
         have hg0 : gend Δ M (strOf h') k0 = gend Δ M (strOf h) k0 :=
           next_gend hpe hlM hf (by rw [hj]; exact hjk)
-        unfold ΦfE3
+        unfold ΦfF
         rw [hp', if_neg (by omega)]
         by_cases hj' : j + 1 ≤ k
         · rw [if_pos hj']
@@ -767,63 +811,60 @@ theorem phiFE3_step (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 �
       have hC : (NoLong Δ M G k0 k (strOf h') ∧ gend Δ M (strOf h') k ≤ gend Δ M (strOf h') k0 + L) ↔
           (NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L) := by
         rw [hgk, hgk0]; exact and_congr_left fun _ => hst'
-      have e1 : ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h' =
+      have e1 : ΦfF Δ M P F Ccap L Hc k0 k h' =
           (if NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L then
             failC Δ M Hc k0 k (strOf h') else 0) := by
-        unfold ΦfE3 failHE3 failH; rw [hp', if_neg (by omega), if_neg (by omega)]
+        unfold ΦfF failHE3 failH; rw [hp', if_neg (by omega), if_neg (by omega)]
         by_cases hn : NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L
         · rw [if_pos (hC.2 hn), if_pos hn, if_pos (by omega)]
         · rw [if_neg (fun h'' => hn (hC.1 h'')), if_neg hn]
-      have e2 : ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h =
+      have e2 : ΦfF Δ M P F Ccap L Hc k0 k h =
           (if NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L then
             failC Δ M Hc k0 k (strOf h) else 0) := by
-        unfold ΦfE3 failHE3 failH; rw [hj, if_neg (by omega), if_neg (by omega)]
+        unfold ΦfF failHE3 failH; rw [hj, if_neg (by omega), if_neg (by omega)]
         by_cases hn : NoLong Δ M G k0 k (strOf h) ∧ gend Δ M (strOf h) k ≤ gend Δ M (strOf h) k0 + L
         · rw [if_pos hn, if_pos hn, if_pos (by omega)]
         · rw [if_neg hn, if_neg hn]
       rw [e1, e2, next_failC_old hpe hlM hf (by rw [hj]; exact hjk2) (by omega)]
 
-theorem failHE3_le_phi (P : Cert2 B Δ) (he2 : 0 ≤ P.e 2) {lpi : ℝ} (hlpi0 : 0 < lpi) (Sw : ℕ → Prop)
-    {Ccap G L Hc k0 k : ℕ} (hk0 : k0 ≤ k) (h : List Out) :
-    failHE3 Δ M G L Hc k0 k h ≤ ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k h := by
+theorem failHE3_le_phi (P : Cert2 B Δ) (he2 : 0 ≤ P.e 2) {G : ℕ} {Sw : ℕ → Prop} (F : FailPot κ M G P Sw)
+    {Ccap L Hc k0 k : ℕ} (hk0 : k0 ≤ k) (h : List Out) :
+    failHE3 Δ M G L Hc k0 k h ≤ ΦfF Δ M P F Ccap L Hc k0 k h := by
   classical
-  have hc0 : 0 < P.c := by linarith [P.hc]
-  have hz0 : 0 < P.z := by linarith [P.hz]
-  have hlp := P.hlp0
-  have hRg0 : 0 ≤ P.lp / lpi := div_nonneg hlp hlpi0.le
+  have hRg0 : 0 ≤ F.lp / F.lpi := div_nonneg (by linarith [F.hle, F.hlpi]) F.hlpi.le
+  have hlpi0 := F.hlpi
   by_cases h1 : pidx Δ M (strOf h) h.length < k0
   · have hf : failHE3 Δ M G L Hc k0 k h = 0 := by
       unfold failHE3 failH; split_ifs <;> first | rfl | omega
-    rw [hf]; unfold ΦfE3; rw [if_pos h1]
+    rw [hf]; unfold ΦfF; rw [if_pos h1]
     exact mul_nonneg (by positivity) (Φr2_nonneg P k0 h)
   · by_cases h2 : pidx Δ M (strOf h) h.length ≤ k
     · have hf : failHE3 Δ M G L Hc k0 k h = 0 := by
         unfold failHE3 failH; split_ifs <;> first | rfl | omega
-      rw [hf]; unfold ΦfE3; rw [if_neg h1, if_pos h2]
+      rw [hf]; unfold ΦfF; rw [if_neg h1, if_pos h2]
       split_ifs
-      · exact mul_nonneg (by positivity) (V2_pos hc0 hz0 (by linarith [P.hs]) P.hκ P.hd0 _).le
+      · exact mul_nonneg (by positivity) (F.nonneg _)
       · exact le_rfl
-    · unfold ΦfE3; rw [if_neg h1, if_neg h2]
+    · unfold ΦfF; rw [if_neg h1, if_neg h2]
 
-/-- **A failed check is rare**, with an in-epoch contraction. -/
-theorem fail_checkE3 (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 ≤ G)
-    (hb : PhaseBounds κ M G P) {lpi : ℝ} {Sw : ℕ → Prop} {Ccap L : ℕ} (hI : InEpoch κ M G P lpi Sw L Ccap)
+/-- **A failed check is rare**, for any failed-check potential. -/
+theorem fail_checkF (P : Cert2 B Δ) {G : ℕ} (hb : PhaseBounds κ M G P) {Sw : ℕ → Prop}
+    (F : FailPot κ M G P Sw) {Ccap L : ℕ} (hcap : ∀ t, swCnt Sw t (t + L) ≤ Ccap)
     {Hc : ℕ} (hHc : Hc + Δ + 1 ≤ M) {k0 k : ℕ} (hk0 : k0 ≤ k) :
     Ex κ M (failHE3 Δ M G L Hc k0 k) [] ≤
-      lpi ^ (k - k0) * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
+      F.lpi ^ (k - k0) * (F.lp / F.lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) := by
   classical
   have hM : 0 < M := by omega
   have hc0 : 0 < P.c := by linarith [P.hc]
   have he2 := hb.e2_nonneg hM
-  have hlp := P.hlp0
-  have hlpi0 := hI.pos
-  have hRg1 : 1 ≤ P.lp / lpi := by rw [le_div_iff₀ hlpi0]; linarith [hI.le_lp]
-  have hF : 0 ≤ lpi ^ (k - k0) * (P.lp / lpi) ^ Ccap * P.e 2 := by positivity
-  calc Ex κ M (failHE3 Δ M G L Hc k0 k) [] ≤ Ex κ M (ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k) [] :=
-        Ex_mono M (failHE3_le_phi P he2 hlpi0 Sw hk0) []
-    _ ≤ ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k [] := by
-        have := Ex_phase (κ := κ) (PE Δ M) (Φ := ΦfE3 Δ M P lpi Sw Ccap G L Hc k0 k) (M := M)
-          (fun h hpe hlM => phiFE3_step P hW hG hb hI hHc hk0 hpe hlM)
+  have hlpi0 := F.hlpi
+  have hRg1 : 1 ≤ F.lp / F.lpi := by rw [le_div_iff₀ hlpi0]; linarith [F.hle]
+  have hF : 0 ≤ F.lpi ^ (k - k0) * (F.lp / F.lpi) ^ Ccap * P.e 2 := by positivity
+  calc Ex κ M (failHE3 Δ M G L Hc k0 k) [] ≤ Ex κ M (ΦfF Δ M P F Ccap L Hc k0 k) [] :=
+        Ex_mono M (failHE3_le_phi P he2 F hk0) []
+    _ ≤ ΦfF Δ M P F Ccap L Hc k0 k [] := by
+        have := Ex_phase (κ := κ) (PE Δ M) (Φ := ΦfF Δ M P F Ccap L Hc k0 k) (M := M)
+          (fun h hpe hlM => phiF_step P hb F hcap hHc hk0 hpe hlM)
           (pe_nil hM) (by simp)
         simpa using this
     _ ≤ _ := by
@@ -831,7 +872,7 @@ theorem fail_checkE3 (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 
           apply Nat.eq_zero_of_le_zero
           exact pidx_le_of (by simp [gend_zero])
         have hb0 : (bnd Δ (strOf []) 0 (gend Δ M (strOf [])) 0).1 = 0 := rfl
-        unfold ΦfE3
+        unfold ΦfF
         rw [hp0]
         by_cases hk : 0 < k0
         · rw [if_pos hk]
@@ -843,14 +884,22 @@ theorem fail_checkE3 (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 
             if_pos ⟨by simp, noLong_self G 0 _, by simp⟩]
           unfold rf rho0
           simp only [runFrom, Nat.sub_zero, Nat.sub_self]
-          rw [hb0, V2_warm (show (0 : ℤ) ≤ ((0 : ℤ), (0 : ℤ)).2 from le_rfl), zpow_zero, mul_one]
-          have hcnt : swCnt Sw ([] : List Out).length (0 + L) ≤ Ccap := by simpa using hI.cap 0
+          rw [hb0]
+          have hV0 : F.V (0, 0) ≤ 1 := by simpa using F.warm 0 le_rfl
+          have hcnt : swCnt Sw ([] : List Out).length (0 + L) ≤ Ccap := by simpa using hcap 0
           have : 0 ≤ (P.b - 1) / (1 - P.lr) := div_nonneg (by linarith [P.hb1]) (by linarith [P.hlr1])
-          calc lpi ^ (k - 0) * (P.lp / lpi) ^ swCnt Sw ([] : List Out).length (0 + L) * P.e 2
-              ≤ lpi ^ (k - 0) * (P.lp / lpi) ^ Ccap * P.e 2 :=
-                mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left (pow_le_pow_right₀ hRg1 hcnt)
-                  (pow_nonneg hlpi0.le _)) he2
-            _ = lpi ^ (k - 0) * (P.lp / lpi) ^ Ccap * P.e 2 * 1 := by ring
+          calc F.lpi ^ (k - 0) * (F.lp / F.lpi) ^ swCnt Sw ([] : List Out).length (0 + L) * P.e 2 * F.V (0, 0)
+              ≤ F.lpi ^ (k - 0) * (F.lp / F.lpi) ^ Ccap * P.e 2 * 1 :=
+                mul_le_mul (mul_le_mul_of_nonneg_right (mul_le_mul_of_nonneg_left (pow_le_pow_right₀ hRg1 hcnt)
+                  (pow_nonneg hlpi0.le _)) he2) hV0 (F.nonneg _) hF
             _ ≤ _ := mul_le_mul_of_nonneg_left (by linarith) hF
+
+/-- **A failed check is rare**, with an in-epoch contraction (`V2` and `InEpoch`). -/
+theorem fail_checkE3 (P : Cert2 B Δ) (hW : κ.Within B) {G : ℕ} (hG : Δ + 1 ≤ G)
+    (hb : PhaseBounds κ M G P) {lpi : ℝ} {Sw : ℕ → Prop} {Ccap L : ℕ} (hI : InEpoch κ M G P lpi Sw L Ccap)
+    {Hc : ℕ} (hHc : Hc + Δ + 1 ≤ M) {k0 k : ℕ} (hk0 : k0 ≤ k) :
+    Ex κ M (failHE3 Δ M G L Hc k0 k) [] ≤
+      lpi ^ (k - k0) * (P.lp / lpi) ^ Ccap * P.e 2 * (1 + (P.b - 1) / (1 - P.lr)) :=
+  fail_checkF P hb (FailPot.ofV2 P hW hG hb hI) hI.cap hHc hk0
 
 end Cryptarchia.Prob
