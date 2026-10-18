@@ -20,6 +20,8 @@ At the k = 1000 certificate's band (β = 0.2, δ = 0.07), on a 16 × 32 box:
 
 The per-slot adversary and `slot4`'s marginal bounds cost nothing measurable; the automaton's factor `x` matters (`x = 1.9`: 0.99722). With 0.99676 the generator's rules give a settlement bound of 4.2e-5 against 1.2e-2.
 
+A failed check's window can cross one epoch boundary, where the member changes. `shared.py` finds one table for a set of members by constraint generation (solve for a few members, check all with the operator, add the worst). One table for all 32 members reaches only 0.99709 (members 0 and 31 want different shapes); four tables, one per group of eight consecutive members, reach 0.99680 (group 0 binding), with ratios at most 1.89 between the tables, a factor paid once per check. With that factor and the tables' size at warm states (up to 7.5 times the reach potential `c^ρ` the check starts from), the generator's rules give about 3.6e-4 (5.1e-5 without the two factors).
+
 ```
 cargo build --release
 echo '[[0.0333333333, 0.33, 11, 30, 648000, 1]]' | ./target/release/cbound > out.json

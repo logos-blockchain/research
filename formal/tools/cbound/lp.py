@@ -45,13 +45,13 @@ class Program:
         n = box.n
         self.n = n
         # variables: V[0:n], v[n + (s * D + q) * 3 + a], g2[n + 3 D n + 2 s + b]
-        self.nv = n + (CAP + 1) * D * n + 2 * n
+        self.nb = 1  # members stacked in the current program (set by `build`)
 
     def iv(self, s, q, a):
         return self.n + (s * self.D + q) * (CAP + 1) + a
 
     def ig2(self, s, b):
-        return self.n + (CAP + 1) * self.D * self.n + 2 * s + b
+        return self.n + self.nb * (CAP + 1) * self.D * self.n + 2 * s + b
 
     def lin_V(self, key):
         """the linear form V(next state for `key`) at every box state: (column, coefficient)"""
@@ -69,6 +69,7 @@ class Program:
     def build(self, bands, lam):
         """inequality rows `A_ub · z ≤ 0` (and the normalization) for every band in `bands`"""
         box, D, x, n = self.box, self.D, self.x, self.n
+        self.nb = len(bands)
         rows, cols, vals = [], [], []
         r = [0]
 
@@ -134,10 +135,8 @@ class Program:
                     t = [(c, w[0] * v) for c, v in F00] + [(c, w[1] * v) for c, v in F01] + \
                         [(c, w[2] * v) for c, v in F10] + [(c, w[3] * v) for c, v in F11]
                     add(t + cr + [(s, -lam)])
+        # columns: V, then each band's automaton tables, then the shared terminal entries g2
         nvar = n + len(bands) * (CAP + 1) * D * n + 2 * n
-        # g2 columns sit after all bands' automaton tables
-        shift = (len(bands) - 1) * (CAP + 1) * D * n
-        cols = [c + shift if c >= n + (CAP + 1) * D * n else c for c in cols]
         A = sp.csr_matrix((vals, (rows, cols)), shape=(r[0], nvar))
         return A, nvar
 
