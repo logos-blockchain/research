@@ -56,8 +56,9 @@ slot 5184000; the adversary holds at most 0.2 of the participating stake, stakes
 10³⁰, the canonical chain counts at least 0.87 of each window's honestly won slots,
 stake drifts by at most a factor 1.01 per epoch and honest online stake is at least
 1000000; a finality violation has probability at most 1.30e-11. -/
-theorem finality : Claim.Finality.{u} 2160 11 5184000 (1 / 5 : ℝ) (10 ^ 30) (13 / 100 : ℝ) (101 / 100 : ℝ) (1000000 : ℝ)
-    (13 / 1000000000000 : ℝ) := by
+theorem finality :
+    Claim.Finality.{u} (k := 2160) (Δ := 11) (N := 5184000) (β := (1 / 5 : ℝ)) (Smax := 10 ^ 30) (μ := (13 / 100 : ℝ))
+      (ρ := (101 / 100 : ℝ)) (Hmin := (1000000 : ℝ)) (ε := (13 / 1000000000000 : ℝ)) := by
   intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   have hT : Tq.β = (1 / 5 : ℚ) ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = (13 / 100 : ℚ) := by decide +kernel
   have h := FamCfg.finality_spec F par der mainOK famOK dOK rfl idxOK rfl Tq finOK (by rw [hc]; rfl) hΔ es hM hN

@@ -424,8 +424,9 @@ slot {N}; the adversary holds at most {float(beta)} of the participating stake, 
 10³⁰, the canonical chain counts at least {float(1 - T['mu'])} of each window's honestly won slots,
 stake drifts by at most a factor {float(T['rho'])} per epoch and honest online stake is at least
 {T['hmin']}; a finality violation has probability at most {float(fin):.2e}. -/
-theorem finality : Claim.Finality.{{u}} {k} {D} {N} {q(beta)} (10 ^ 30) {q(T['mu'])} {q(T['rho'])} {q(T['hmin'])}
-    {q(fin)} := by
+theorem finality :
+    Claim.Finality.{{u}} (k := {k}) (Δ := {D}) (N := {N}) (β := {q(beta)}) (Smax := 10 ^ 30) (μ := {q(T['mu'])})
+      (ρ := {q(T['rho'])}) (Hmin := {q(T['hmin'])}) (ε := {q(fin)}) := by
   intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   have hT : Tq.β = {qQ(beta)} ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = {qQ(T['mu'])} := by decide +kernel
   have h := FamCfg.finality_spec F par der mainOK famOK dOK rfl idxOK rfl Tq finOK (by rw [hc]; rfl) hΔ es hM hN
@@ -549,7 +550,8 @@ def emit_closed(cfg, T, fam, B, P, name, out_dir, cl):
     qsu, qss = dec_up(q_['qs'], 6)
     Abu, Abs = dec_up(q_['Ab'], 4)
     qbu, qbs = dec_up(q_['qb'], 6)
-    claim = f"{q(beta)} (10 ^ 30) {q(T['mu'])} {q(T['rho'])} {q(T['hmin'])}"
+    claim = (f"(β := {q(beta)}) (Smax := 10 ^ 30) (μ := {q(T['mu'])})\n      (ρ := {q(T['rho'])}) "
+             f"(Hmin := {q(T['hmin'])})")
     txt = (imports([f"public import {ns}.Data\n", f"meta import {ns}.Data\n", "public import Cryptarchia.Prob.CertClosed\n"]) + f"""
 /-!
 # Closed-form finality certificate: β = {beta}, Δ = {D}, every k ≥ {k0}, {K} members
@@ -599,7 +601,7 @@ most 10³⁰, the canonical chain counts at least {float(1 - T['mu'])} of each w
 slots, stake drifts by at most a factor {float(T['rho'])} per epoch and honest online stake is at
 least {T['hmin']}; a finality violation has probability at most `par.epsC der N k`. -/
 theorem finality_closed (k N : ℕ) (hk : {k0} ≤ k) :
-    Claim.Finality.{{u}} k {D} N {claim} (par.epsC der N k) := by
+    Claim.Finality.{{u}} (k := k) (Δ := {D}) (N := N) {claim} (ε := par.epsC der N k) := by
   intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   exact FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
     (fun k hk => by obtain ⟨h1, h2, h3, -, -, h6⟩ := derLen; simp only [par, h1, h2, h3, h6, F, pot] at hk ⊢; omega)
@@ -614,8 +616,8 @@ epochs, a finality violation has probability at most
 `(N + {g} t + {G + 2}) · ({A1s} + {Ass} · {qss}ᵗ) + Ne · {Abs} · {qbs}ᵗ`: settlement at rate {qss} per {m_}
 blocks of depth, the estimate's band at rate {qbs}. -/
 theorem finality_closed_short (k N : ℕ) (hk : {k0} ≤ k) :
-    Claim.Finality.{{u}} k {D} N {claim}
-      (((N : ℝ) + {g} * ((k / {m_} : ℕ) : ℝ) + {G + 2}) * ({A1s} + {Ass} * {qss} ^ (k / {m_})) +
+    Claim.Finality.{{u}} (k := k) (Δ := {D}) (N := N) {claim}
+      (ε := ((N : ℝ) + {g} * ((k / {m_} : ℕ) : ℝ) + {G + 2}) * ({A1s} + {Ass} * {qss} ^ (k / {m_})) +
         ((N / (300 * k) + 2 : ℕ) : ℝ) * ({Abs} * {qbs} ^ (k / {m_}))) := by
   refine (finality_closed k N hk).mono ((FamCfg.epsC_le_short par der closedOK N hk).trans ?_)
   obtain ⟨-, -, hG, hg, -, -⟩ := derLen

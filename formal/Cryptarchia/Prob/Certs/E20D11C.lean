@@ -55,7 +55,8 @@ most 10³⁰, the canonical chain counts at least 0.87 of each window's honestly
 slots, stake drifts by at most a factor 1.01 per epoch and honest online stake is at
 least 1000000; a finality violation has probability at most `par.epsC der N k`. -/
 theorem finality_closed (k N : ℕ) (hk : 1000 ≤ k) :
-    Claim.Finality.{u} k 11 N (1 / 5 : ℝ) (10 ^ 30) (13 / 100 : ℝ) (101 / 100 : ℝ) (1000000 : ℝ) (par.epsC der N k) := by
+    Claim.Finality.{u} (k := k) (Δ := 11) (N := N) (β := (1 / 5 : ℝ)) (Smax := 10 ^ 30) (μ := (13 / 100 : ℝ))
+      (ρ := (101 / 100 : ℝ)) (Hmin := (1000000 : ℝ)) (ε := par.epsC der N k) := by
   intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   exact FamCfg.finality_closed_gen F par der mainOK famOK dOK rfl idxOK rfl Tq closedOK
     (fun k hk => by obtain ⟨h1, h2, h3, -, -, h6⟩ := derLen; simp only [par, h1, h2, h3, h6, F, pot] at hk ⊢; omega)
@@ -70,8 +71,9 @@ epochs, a finality violation has probability at most
 `(N + 18 t + 640) · (2.5e-25 + 0.5816 · 0.702021ᵗ) + Ne · 1.562 · 0.745235ᵗ`: settlement at rate 0.702021 per 20
 blocks of depth, the estimate's band at rate 0.745235. -/
 theorem finality_closed_short (k N : ℕ) (hk : 1000 ≤ k) :
-    Claim.Finality.{u} k 11 N (1 / 5 : ℝ) (10 ^ 30) (13 / 100 : ℝ) (101 / 100 : ℝ) (1000000 : ℝ)
-      (((N : ℝ) + 18 * ((k / 20 : ℕ) : ℝ) + 640) * (2.5e-25 + 0.5816 * 0.702021 ^ (k / 20)) +
+    Claim.Finality.{u} (k := k) (Δ := 11) (N := N) (β := (1 / 5 : ℝ)) (Smax := 10 ^ 30) (μ := (13 / 100 : ℝ))
+      (ρ := (101 / 100 : ℝ)) (Hmin := (1000000 : ℝ))
+      (ε := ((N : ℝ) + 18 * ((k / 20 : ℕ) : ℝ) + 640) * (2.5e-25 + 0.5816 * 0.702021 ^ (k / 20)) +
         ((N / (300 * k) + 2 : ℕ) : ℝ) * (1.562 * 0.745235 ^ (k / 20))) := by
   refine (finality_closed k N hk).mono ((FamCfg.epsC_le_short par der closedOK N hk).trans ?_)
   obtain ⟨-, -, hG, hg, -, -⟩ := derLen
