@@ -238,3 +238,15 @@ def _perturb(v):
     if isinstance(v, str) and v in flips:
         return flips[v]
     return v
+
+
+def test_every_sweep_axis_is_recorded_and_grouped():
+    # equilibrium() groups trajectories by CONFIG_COLS. A swept axis that is not recorded on the
+    # result rows, or recorded but not grouped, is silently averaged into one cell: the two arms
+    # of an anchor or order comparison would come back as their mean.
+    from tsi_sim.config import _SWEEP_AXES
+    from tsi_sim.metrics import _CONFIG_FIELDS
+    from tsi_sim.plotting.figures_pernode import CONFIG_COLS
+
+    assert [a for a in _SWEEP_AXES if a not in _CONFIG_FIELDS] == []
+    assert [a for a in _SWEEP_AXES if a not in CONFIG_COLS] == []
