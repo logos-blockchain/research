@@ -7,7 +7,8 @@ Uncle Selection): candidates are orphan blocks in the producer's view within the
 window ``w_u = window_absorption / f`` whose **parent lies on the producer's chain** (only
 the first block of a fork is countable), excluding candidates whose slot is already
 occupied on that chain (by a canonical block or an already-referenced uncle), and picking
-at most one uncle per slot, oldest-first (or the ``random`` sensitivity knob).
+at most one uncle per slot, oldest-first (or the ``random`` sensitivity knob). "Oldest" is by
+the uncle's slot, or by its parent's slot under ``uncle_order="parent"`` (the spec 1.2.5 order).
 
 **old** (pre-redesign; kept verbatim for ``--old`` reproduction) — candidates are ANY
 orphan blocks in view with ``0 < slot_B - slot_U <= uncle_window``, regardless of fork
@@ -179,5 +180,11 @@ def select_uncles_at_production(
             return ()
     if cands.size == 0:
         return ()
-    # cands already oldest-first (slot, id); one uncle per slot per the spec's selection.
+    if config.uncle_order == "parent":
+        # Spec order (Uncle Selection, select_uncles_oldest): oldest parent first, then the
+        # uncle's own slot, then id.
+        cands = np.array(sorted(cands.tolist(),
+                                key=lambda b: (int(slot[int(parent[b])]), int(slot[b]), b)),
+                         dtype=np.int64)
+    # cands are oldest-first in the configured order; one uncle per slot per the spec's selection.
     return tuple(_select(cands, set(), config, rng, slot=slot, one_per_slot=True))

@@ -170,6 +170,19 @@ def test_key_covers_every_field():
     assert a.seed_key() == a_chain.seed_key()
 
 
+def test_uncle_order_key_is_tagged_and_paired():
+    # The order marker must not collide with the anchor marker: both append after the base key,
+    # so an untagged "parent" would give (anchor uncle, order parent) and (anchor parent,
+    # order uncle) the same stream.
+    a = SimConfig(uncle_window_anchor="parent")
+    b = SimConfig(uncle_order="parent")
+    assert a.key() != b.key()
+    assert SimConfig().key() == dataclasses.replace(SimConfig(), uncle_order="uncle").key()
+    # Under paired_streams the two orders draw the same root, so an order comparison is paired.
+    p = SimConfig(uncle_window_anchor="parent", paired_streams=True)
+    assert p.seed_key() == dataclasses.replace(p, uncle_order="parent").seed_key()
+
+
 def test_old_model_key_is_historical():
     # --old must bit-reproduce historical runs: its key is exactly the pre-uncle_model
     # tuple (no uncle_model / window_absorption entries), and the countable key extends it.

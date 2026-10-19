@@ -64,6 +64,13 @@ UncleWindowAnchor = Literal["uncle", "parent"]
 # occupied slots to a closed window. "chain" is the pre-2026-08-17 wording, which gated on the
 # uncle's own slot alone and let a block up to w_u slots past the window reach back into it.
 RefScope = Literal["window", "chain"]
+# Order in which the proposer walks its candidates when filling entries:
+#  "uncle" — by the uncle's own slot, (sl_U, id). The order every historical run used, and
+#     oldest-to-expire first under the uncle anchor.
+#  "parent" — by the parent's slot, (sl_parent(U), sl_U, id): the spec rule
+#     (cryptarchia-v1-protocol.md 1.2.5, Uncle Selection). Under the parent anchor a candidate
+#     expires when its PARENT leaves the window, so this is oldest-to-expire first there.
+UncleOrder = Literal["uncle", "parent"]
 
 
 @dataclass(frozen=True)
@@ -156,6 +163,10 @@ class SimConfig:
     # this default is what keeps an --old run's key byte-identical to the pre-redesign key and
     # lets it bit-reproduce every historical run (§9).
     uncle_window_anchor: UncleWindowAnchor = "uncle"
+    # DEFAULT is the historical order, for the anchor's reason: key() appends the order only when
+    # it is not "uncle", so every committed run keeps a byte-identical key. The spec 1.2.5 rule
+    # is the arm uncle_window_anchor="parent", window_absorption=12, uncle_order="parent".
+    uncle_order: UncleOrder = "uncle"
     # DEFAULT is the spec rule (see RefScope). Deliberately NOT in key(): the reference scope is a
     # MEASUREMENT rule that consumes no RNG, so both arms of a comparison run on a bit-identical
     # block tree and their difference carries no sampling noise at all — the same reasoning that
@@ -335,6 +346,8 @@ class SimConfig:
         if self.uncle_window_anchor not in ("uncle", "parent"):
             raise ValueError(f"uncle_window_anchor must be uncle|parent, got "
                              f"{self.uncle_window_anchor!r}")
+        if self.uncle_order not in ("uncle", "parent"):
+            raise ValueError(f"uncle_order must be uncle|parent, got {self.uncle_order!r}")
         if self.ref_scope not in ("window", "chain"):
             raise ValueError(f"ref_scope must be window|chain, got {self.ref_scope!r}")
         if self.adversary_selection not in ("random", "whale"):
@@ -469,7 +482,13 @@ class SimConfig:
         # imply an unchanged number — see report §9 on which selfish runs were re-measured.
         if self.selfish_lead_cap != 0:
             base = base + (self.selfish_lead_cap,)
-        return base if self.uncle_window_anchor == "uncle" else base + (self.uncle_window_anchor,)
+        if self.uncle_window_anchor != "uncle":
+            base = base + (self.uncle_window_anchor,)
+        # Same discipline. Tagged, because a bare "parent" would collide with the anchor's marker:
+        # (anchor uncle, order parent) and (anchor parent, order uncle) must not share a stream.
+        if self.uncle_order != "uncle":
+            base = base + (("uncle_order", self.uncle_order),)
+        return base
 
     def seed_key(self) -> tuple:
         """The identity the RNG root is actually derived from (see ``rng.seedseq_for``).
@@ -486,6 +505,7 @@ class SimConfig:
 _SWEEP_AXES = (
     "n_nodes", "stake_dist", "latency", "max_uncles", "uncle_strategy", "uncle_window",
     "uncle_window_anchor",
+    "uncle_order",
     "ref_scope",
     "window_absorption",
     "topology", "degree", "link_latency_mean", "link_latency_dist",
@@ -504,6 +524,7 @@ class SweepConfig:
     uncle_strategy: list[UncleStrategy] = field(default_factory=lambda: ["oldest"])
     uncle_window: list[int] = field(default_factory=lambda: [constants.W_DEFAULT])
     uncle_window_anchor: list[UncleWindowAnchor] = field(default_factory=lambda: ["uncle"])
+    uncle_order: list[UncleOrder] = field(default_factory=lambda: ["uncle"])
     ref_scope: list[RefScope] = field(default_factory=lambda: ["window"])
     window_absorption: list[float] = field(default_factory=lambda: [constants.W_ABS_DEFAULT])
     topology: list[Topology] = field(default_factory=lambda: ["regular"])

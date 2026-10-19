@@ -265,3 +265,55 @@ def test_production_excludes_slots_occupied_by_chain_and_prior_uncles():
         slot, parent, uncles, arrival, nb=7, parent_id=5, t=5, config=cfg,
         rng=np.random.default_rng(0))
     assert sel == (6,)          # 3 already referenced; 4 shares slot 2 with it; 6 is free
+
+
+def test_parent_anchor_rejects_a_stale_tip_fork():
+    """A fork block whose own slot is recent but whose parent is old (built on a stale tip).
+
+    chain 1(s0) -> 2(s10) -> 4(s20); orphan 3(s15) hangs off block 1. At t=21 with w=8 the
+    window is [13, 21): the uncle anchor admits 3 (its slot is inside), the parent anchor
+    rejects it (its parent's slot 0 is not), as cryptarchia-v1-protocol.md 1.2.5 requires.
+    """
+    from tsi_sim.uncles import select_uncles_at_production
+
+    #        id: 0   1   2   3   4
+    slot = np.array([-1, 0, 10, 15, 20], np.int64)
+    parent = np.array([-1, 0, 1, 1, 2], np.int64)
+    uncles: list = [() for _ in range(5)]
+    arrival = np.zeros(5)
+    kw = dict(max_uncles=4, f=0.25, window_absorption=2.0)
+    by_uncle = SimConfig(**kw)
+    by_parent = SimConfig(**kw, uncle_window_anchor="parent")
+    assert by_uncle.effective_uncle_window == 8
+    args = (slot, parent, uncles, arrival)
+    sel_u = select_uncles_at_production(*args, nb=5, parent_id=4, t=21, config=by_uncle,
+                                        rng=np.random.default_rng(0))
+    sel_p = select_uncles_at_production(*args, nb=5, parent_id=4, t=21, config=by_parent,
+                                        rng=np.random.default_rng(0))
+    assert sel_u == (3,)
+    assert sel_p == ()
+
+
+def test_parent_order_takes_the_oldest_parent_first():
+    """Two candidates whose slot order and parent order disagree.
+
+    chain 1(s0) -> 2(s2) -> 3(s4) -> 6(s9); orphan 4(s5) hangs off 3(s4) and orphan 5(s6)
+    off 1(s0). By the uncle's slot 4 is older; by the parent's slot 5 is (the spec order).
+    """
+    from tsi_sim.uncles import select_uncles_at_production
+
+    #        id: 0   1   2   3   4   5   6
+    slot = np.array([-1, 0, 2, 4, 5, 6, 9], np.int64)
+    parent = np.array([-1, 0, 1, 2, 3, 1, 3], np.int64)
+    uncles: list = [() for _ in range(7)]
+    arrival = np.zeros(7)
+
+    def sel(cap, order):
+        cfg = SimConfig(max_uncles=cap, uncle_window_anchor="parent", uncle_order=order)
+        return select_uncles_at_production(slot, parent, uncles, arrival, nb=7, parent_id=6,
+                                           t=10, config=cfg, rng=np.random.default_rng(0))
+
+    assert sel(1, "uncle") == (4,)
+    assert sel(1, "parent") == (5,)
+    assert sel(2, "uncle") == (4, 5)
+    assert sel(2, "parent") == (5, 4)
