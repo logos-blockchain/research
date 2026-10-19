@@ -9,11 +9,11 @@ Mantle Transaction Encoding 2.1.0 (RFC-480 §7, RFC-481 §5), production by prod
 codecs (`Codec.lean`) over the types of the ledger model (`Ledger.lean`): a `FieldElement`,
 `Hash32` or `Ed25519PublicKey` is a 32-byte little-endian integer, an `Ed25519Signature` or a
 `G2Point` 64 bytes, a `Groth16Proof` 128 bytes; counts and lengths are `Byte`, `UINT16` or
-`UINT32` prefixes with the bounds of the specification, and a `FieldElement` (or a `ZkPublicKey`)
-is rejected unless it is less than `p` (`MAX_OPERATION_DATA_SIZE` for
+`UINT32` prefixes with the bounds of the specification (`MAX_OPERATION_DATA_SIZE` for
 inscriptions and deposit metadata, 329 bytes per locator and 8 locators, 8 outputs for a
 program spend, the bit mask of `ProgramOutputs` with no bit set from `OutputCount` up, the
-activity metadata type `0x01`). The proofs are decoded from the Operations parsed before them:
+activity metadata type `0x01`); a `FieldElement` (or a `ZkPublicKey`) is rejected unless it is
+less than `p`. The proofs are decoded from the Operations parsed before them:
 one `StepProof` per step, one payment proof per payment, one opening per bit of
 `ProgramOutputs`.
 

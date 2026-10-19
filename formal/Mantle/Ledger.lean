@@ -256,6 +256,8 @@ structure Prims where
   ed25519Verify : Fr → Fr → Fr → Prop
   /-- `mantle_txhash(tx)`: the 32-byte digest. -/
   txHash : MantleTx → Fr
+  /-- `derive_op_id(op)`, already reduced modulo `p`: every use the specification makes of it,
+  the note nonces and the binding of a program step, takes `FiniteField(op_id, modulus = p)`. -/
   opId : Op → Fr
   declarationId : DeclarationMessage → DeclarationId
   inscribeHash : Inscribe → Fr

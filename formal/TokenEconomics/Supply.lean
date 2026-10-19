@@ -27,9 +27,9 @@ diverted to it, of the reserve, of the rewards pool and of the pending Blend sha
 so the total of any chain of blocks never exceeds that of Genesis, the maximum supply
 `S_cap` fixed at Genesis. **`executeChain_tokenValue`**: from a Genesis of at most `10¹⁹` units
 of `10⁻⁹` LGO, every unspent note and every stock stays at most `10¹⁹ < 2^64`, so every token
-value fits a `TokenValue` (Mantle, *Arithmetic*). The leader reward, the Blend reward and the release of the reserve
-move tokens between these stocks; the only way the total decreases is notes that can never be
-spent, such as two leader rewards of the same value under the same `reward_key` (one
+value fits a `TokenValue` (Mantle, *Arithmetic*). The leader reward, the Blend reward and the
+release of the reserve move tokens between these stocks; the only way the total decreases is
+notes that can never be spent, such as two leader rewards of the same value under the same `reward_key` (one
 commitment, so one spendable note).
 
 Hypotheses: the share diverted to the proof of work pool is at most the fees
@@ -405,8 +405,8 @@ theorem cmValue_le_total (H : Hash) (b : BlockState) {i : ℕ} {c : Fr}
   omega
 
 /-- **Every token value fits a `TokenValue`**: along any chain of blocks from a state holding at
-most the maximum supply, every unspent note, the proof of work pool, the reserve, the rewards
-pool and the pending Blend share are at most `10¹⁹`, below `2^64`. -/
+most the maximum supply, every unspent note, the proof of work pool and the fees diverted to it,
+the reserve, the rewards pool and the pending Blend share are at most `10¹⁹`, below `2^64`. -/
 theorem executeChain_tokenValue {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSound]
     {pow : PowShare} {blocks : List BlockInputs} {b b' : BlockState} (I : Inv P.H b.ledger)
     (IP : PoolInv b.rewards) (hg : total P.H b ≤ MAX_SUPPLY)
@@ -414,7 +414,8 @@ theorem executeChain_tokenValue {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpen
     total P.H b' ≤ MAX_SUPPLY ∧
       (∀ i < b'.ledger.numSets, ∀ c ∈ (b'.ledger.sets i).cms,
         Unspent P.H (b'.ledger.sets i).nullifiers c → cmValue P.H c ≤ MAX_SUPPLY) ∧
-      b'.ledger.powRewardPool ≤ MAX_SUPPLY ∧ b'.rewards.reserve ≤ MAX_SUPPLY ∧
+      b'.ledger.powRewardPool ≤ MAX_SUPPLY ∧ b'.powPending ≤ MAX_SUPPLY ∧
+      b'.rewards.reserve ≤ MAX_SUPPLY ∧
       b'.rewards.pool ≤ MAX_SUPPLY ∧ b'.rewards.pending ≤ MAX_SUPPLY := by
   have ht := (executeChain_total blocks b b' I IP h hcap).2.2.trans hg
   refine ⟨ht, fun i hi c hc hu => (cmValue_le_total P.H b' hi hc hu).trans ht, ?_⟩
