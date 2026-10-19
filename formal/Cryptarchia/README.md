@@ -72,7 +72,7 @@ Two of these replace conditions of the earlier statements that a reader could no
 Three certificates, as Lean theorems with standard axioms only, under the assumptions above with β = 0.2, `Smax` = 10³⁰, μ = 0.13, ρ = 1.01 and `Hmin` = 10⁶, stated in `CryptarchiaCerts.lean`. Two are numeric (`Certified.two_months`, `Certified.one_year`; `finality` in `Prob/Certs/E20D11M2.lean` and `Prob/Certs/E20D11.lean`):
 
 > f = 1/30, Δ = 11 slots, with the specification's stake inference and the adversary free to withhold all its blocks:
-> * k = 1000, executions up to slot 5,184,000 (two months, 18 epochs of 300,000 slots): **P(finality violation) ≤ 3.8e-5** (with grouped table potentials for failed checks, `Prob/TableG.lean`);
+> * k = 1000, executions up to slot 5,184,000 (two months, 18 epochs of 300,000 slots): **P(finality violation) ≤ 4.3e-5** (with grouped table potentials for failed checks, `Prob/TableG.lean`);
 > * k = 2160 (the specification's), executions up to slot 31,536,000 (one year, 49 epochs): **P(finality violation) ≤ 7.2e-11**.
 
 Each bound is `settleEps3E + Ne · bandEps`: the settlement bound (1.3e-2 and 7.0e-11), which covers canonical-prefix consistency in every epoch as well as finality, plus the estimate's band (6.6e-5 and 2.3e-14 per epoch). The band of slot rates is derived from the stake estimate (TSI band δ = 7 % and 8.5 %, 32 band members), with room for the stake drift ρ. At k = 1000 the observation period is shorter (180,000 slots), so the band costs more and the best δ is smaller (a sweep over δ ∈ {0.055, …, 0.085}).

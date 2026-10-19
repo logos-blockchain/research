@@ -57,46 +57,6 @@ public import Cryptarchia.Prob.Certs.E20D11G.R52
 public import Cryptarchia.Prob.Certs.E20D11G.R53
 public import Cryptarchia.Prob.Certs.E20D11G.R54
 public import Cryptarchia.Prob.Certs.E20D11G.R55
-public import Cryptarchia.Prob.Certs.E20D11G.R56
-public import Cryptarchia.Prob.Certs.E20D11G.R57
-public import Cryptarchia.Prob.Certs.E20D11G.R58
-public import Cryptarchia.Prob.Certs.E20D11G.R59
-public import Cryptarchia.Prob.Certs.E20D11G.R60
-public import Cryptarchia.Prob.Certs.E20D11G.R61
-public import Cryptarchia.Prob.Certs.E20D11G.R62
-public import Cryptarchia.Prob.Certs.E20D11G.R63
-public import Cryptarchia.Prob.Certs.E20D11G.R64
-public import Cryptarchia.Prob.Certs.E20D11G.R65
-public import Cryptarchia.Prob.Certs.E20D11G.R66
-public import Cryptarchia.Prob.Certs.E20D11G.R67
-public import Cryptarchia.Prob.Certs.E20D11G.R68
-public import Cryptarchia.Prob.Certs.E20D11G.R69
-public import Cryptarchia.Prob.Certs.E20D11G.R70
-public import Cryptarchia.Prob.Certs.E20D11G.R71
-public import Cryptarchia.Prob.Certs.E20D11G.R72
-public import Cryptarchia.Prob.Certs.E20D11G.R73
-public import Cryptarchia.Prob.Certs.E20D11G.R74
-public import Cryptarchia.Prob.Certs.E20D11G.R75
-public import Cryptarchia.Prob.Certs.E20D11G.R76
-public import Cryptarchia.Prob.Certs.E20D11G.R77
-public import Cryptarchia.Prob.Certs.E20D11G.R78
-public import Cryptarchia.Prob.Certs.E20D11G.R79
-public import Cryptarchia.Prob.Certs.E20D11G.R80
-public import Cryptarchia.Prob.Certs.E20D11G.R81
-public import Cryptarchia.Prob.Certs.E20D11G.R82
-public import Cryptarchia.Prob.Certs.E20D11G.R83
-public import Cryptarchia.Prob.Certs.E20D11G.R84
-public import Cryptarchia.Prob.Certs.E20D11G.R85
-public import Cryptarchia.Prob.Certs.E20D11G.R86
-public import Cryptarchia.Prob.Certs.E20D11G.R87
-public import Cryptarchia.Prob.Certs.E20D11G.R88
-public import Cryptarchia.Prob.Certs.E20D11G.R89
-public import Cryptarchia.Prob.Certs.E20D11G.R90
-public import Cryptarchia.Prob.Certs.E20D11G.R91
-public import Cryptarchia.Prob.Certs.E20D11G.R92
-public import Cryptarchia.Prob.Certs.E20D11G.R93
-public import Cryptarchia.Prob.Certs.E20D11G.R94
-public import Cryptarchia.Prob.Certs.E20D11G.R95
 meta import Cryptarchia.Prob.Certs.E20D11G.Sw
 meta import Cryptarchia.Prob.Certs.E20D11G.R0
 meta import Cryptarchia.Prob.Certs.E20D11G.R1
@@ -154,46 +114,6 @@ meta import Cryptarchia.Prob.Certs.E20D11G.R52
 meta import Cryptarchia.Prob.Certs.E20D11G.R53
 meta import Cryptarchia.Prob.Certs.E20D11G.R54
 meta import Cryptarchia.Prob.Certs.E20D11G.R55
-meta import Cryptarchia.Prob.Certs.E20D11G.R56
-meta import Cryptarchia.Prob.Certs.E20D11G.R57
-meta import Cryptarchia.Prob.Certs.E20D11G.R58
-meta import Cryptarchia.Prob.Certs.E20D11G.R59
-meta import Cryptarchia.Prob.Certs.E20D11G.R60
-meta import Cryptarchia.Prob.Certs.E20D11G.R61
-meta import Cryptarchia.Prob.Certs.E20D11G.R62
-meta import Cryptarchia.Prob.Certs.E20D11G.R63
-meta import Cryptarchia.Prob.Certs.E20D11G.R64
-meta import Cryptarchia.Prob.Certs.E20D11G.R65
-meta import Cryptarchia.Prob.Certs.E20D11G.R66
-meta import Cryptarchia.Prob.Certs.E20D11G.R67
-meta import Cryptarchia.Prob.Certs.E20D11G.R68
-meta import Cryptarchia.Prob.Certs.E20D11G.R69
-meta import Cryptarchia.Prob.Certs.E20D11G.R70
-meta import Cryptarchia.Prob.Certs.E20D11G.R71
-meta import Cryptarchia.Prob.Certs.E20D11G.R72
-meta import Cryptarchia.Prob.Certs.E20D11G.R73
-meta import Cryptarchia.Prob.Certs.E20D11G.R74
-meta import Cryptarchia.Prob.Certs.E20D11G.R75
-meta import Cryptarchia.Prob.Certs.E20D11G.R76
-meta import Cryptarchia.Prob.Certs.E20D11G.R77
-meta import Cryptarchia.Prob.Certs.E20D11G.R78
-meta import Cryptarchia.Prob.Certs.E20D11G.R79
-meta import Cryptarchia.Prob.Certs.E20D11G.R80
-meta import Cryptarchia.Prob.Certs.E20D11G.R81
-meta import Cryptarchia.Prob.Certs.E20D11G.R82
-meta import Cryptarchia.Prob.Certs.E20D11G.R83
-meta import Cryptarchia.Prob.Certs.E20D11G.R84
-meta import Cryptarchia.Prob.Certs.E20D11G.R85
-meta import Cryptarchia.Prob.Certs.E20D11G.R86
-meta import Cryptarchia.Prob.Certs.E20D11G.R87
-meta import Cryptarchia.Prob.Certs.E20D11G.R88
-meta import Cryptarchia.Prob.Certs.E20D11G.R89
-meta import Cryptarchia.Prob.Certs.E20D11G.R90
-meta import Cryptarchia.Prob.Certs.E20D11G.R91
-meta import Cryptarchia.Prob.Certs.E20D11G.R92
-meta import Cryptarchia.Prob.Certs.E20D11G.R93
-meta import Cryptarchia.Prob.Certs.E20D11G.R94
-meta import Cryptarchia.Prob.Certs.E20D11G.R95
 
 /-!
 # Finality certificate with grouped table potentials: β = 1/5, Δ = 11, k = 1000
@@ -235,21 +155,21 @@ theorem swOK : ∀ i : Fin 19, FamCfg.isSw i = true → F.idxChkSw i (dat i) = t
 
 /-- The (group, representative) entries, in chunks, by list lookup (Lean's interpreter takes time exponential in the
 index to evaluate `![…]`). -/
-def D (j : Fin 96) : List (ℕ × (ℤ × ℤ) × RepData) := [D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12, D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25, D26, D27, D28, D29, D30, D31, D32, D33, D34, D35, D36, D37, D38, D39, D40, D41, D42, D43, D44, D45, D46, D47, D48, D49, D50, D51, D52, D53, D54, D55, D56, D57, D58, D59, D60, D61, D62, D63, D64, D65, D66, D67, D68, D69, D70, D71, D72, D73, D74, D75, D76, D77, D78, D79, D80, D81, D82, D83, D84, D85, D86, D87, D88, D89, D90, D91, D92, D93, D94, D95].getD j.val []
+def D (j : Fin 56) : List (ℕ × (ℤ × ℤ) × RepData) := [D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12, D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25, D26, D27, D28, D29, D30, D31, D32, D33, D34, D35, D36, D37, D38, D39, D40, D41, D42, D43, D44, D45, D46, D47, D48, D49, D50, D51, D52, D53, D54, D55].getD j.val []
 
 theorem tabA : F.tabChkAG Q γ nG Rd cst D := by
   intro j; fin_cases j
-  exacts [chkA0, chkA1, chkA2, chkA3, chkA4, chkA5, chkA6, chkA7, chkA8, chkA9, chkA10, chkA11, chkA12, chkA13, chkA14, chkA15, chkA16, chkA17, chkA18, chkA19, chkA20, chkA21, chkA22, chkA23, chkA24, chkA25, chkA26, chkA27, chkA28, chkA29, chkA30, chkA31, chkA32, chkA33, chkA34, chkA35, chkA36, chkA37, chkA38, chkA39, chkA40, chkA41, chkA42, chkA43, chkA44, chkA45, chkA46, chkA47, chkA48, chkA49, chkA50, chkA51, chkA52, chkA53, chkA54, chkA55, chkA56, chkA57, chkA58, chkA59, chkA60, chkA61, chkA62, chkA63, chkA64, chkA65, chkA66, chkA67, chkA68, chkA69, chkA70, chkA71, chkA72, chkA73, chkA74, chkA75, chkA76, chkA77, chkA78, chkA79, chkA80, chkA81, chkA82, chkA83, chkA84, chkA85, chkA86, chkA87, chkA88, chkA89, chkA90, chkA91, chkA92, chkA93, chkA94, chkA95]
+  exacts [chkA0, chkA1, chkA2, chkA3, chkA4, chkA5, chkA6, chkA7, chkA8, chkA9, chkA10, chkA11, chkA12, chkA13, chkA14, chkA15, chkA16, chkA17, chkA18, chkA19, chkA20, chkA21, chkA22, chkA23, chkA24, chkA25, chkA26, chkA27, chkA28, chkA29, chkA30, chkA31, chkA32, chkA33, chkA34, chkA35, chkA36, chkA37, chkA38, chkA39, chkA40, chkA41, chkA42, chkA43, chkA44, chkA45, chkA46, chkA47, chkA48, chkA49, chkA50, chkA51, chkA52, chkA53, chkA54, chkA55]
 
 /-- The derived numbers: the settlement parameters `Lw J x G G' r T yy`, the slots and epochs covered
 `M Ne`, the contractions `lp lpi`, and the bounds `tgt bx fin`. -/
 def der : SpecDerived :=
-  ⟨15044, 7930, (12933 / 10000 : ℚ), 363, 1289, 106, 34, (703 / 1250 : ℚ), 5185665, 18,
-    (501935563 / 500000000 : ℚ), (1246046537 / 1250000000 : ℚ), (13 / 500000 : ℚ), (6603 / 10000000000 : ℚ), (19 / 500000 : ℚ)⟩
+  ⟨15055, 7940, (12923 / 10000 : ℚ), 363, 1282, 106, 34, (703 / 1250 : ℚ), 5185658, 18,
+    (250960461 / 250000000 : ℚ), (2492155357 / 2500000000 : ℚ), (31 / 1000000 : ℚ), (6603 / 10000000000 : ℚ), (43 / 1000000 : ℚ)⟩
 
 theorem derNe : der.Ne = 18 := rfl
 
-theorem derFin : der.fin = (19 / 500000 : ℚ) := rfl
+theorem derFin : der.fin = (43 / 1000000 : ℚ) := rfl
 
 theorem c2OK : cert2ChkQ F.S.weakest F.Δ F.c F.z F.s 0 F.d F.τ 0 (FamCfg.lrOf dat) (FamCfg.bOf dat) (FamCfg.eOf dat) =
     true := by
@@ -267,10 +187,10 @@ theorem finOK : FamCfg.finChkSpecE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) (fu
 slot 5184000; the adversary holds at most 0.2 of the participating stake, stakes are at most
 10³⁰, the canonical chain counts at least 0.87 of each window's honestly won slots,
 stake drifts by at most a factor 1.01 per epoch and honest online stake is at least
-1000000; a finality violation has probability at most 3.80e-05. -/
+1000000; a finality violation has probability at most 4.30e-05. -/
 theorem finality :
     Claim.Finality (k := 1000) (Δ := 11) (N := 5184000) (β := (1 / 5 : ℝ)) (Smax := 10 ^ 30) (μ := (13 / 100 : ℝ))
-      (ρ := (101 / 100 : ℝ)) (Hmin := (1000000 : ℝ)) (ε := (19 / 500000 : ℝ)) := by
+      (ρ := (101 / 100 : ℝ)) (Hmin := (1000000 : ℝ)) (ε := (43 / 1000000 : ℝ)) := by
   intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   have hT : Tq.β = (1 / 5 : ℚ) ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = (13 / 100 : ℚ) := by decide +kernel
   have h := FamCfg.finality_specTG F par der c2OK famOK dOK rfl swOK tabOK tabA rfl stOK Tq finOK (by rw [hc]; rfl)
