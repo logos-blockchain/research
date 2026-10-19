@@ -107,7 +107,7 @@ theorem finality_famT {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPro
     simp only [TBandQ.toTBand] at h
     rw [hβ]; exact_mod_cast h
   exact finalityG (M := M) (Ne := Ne) (Tb := T.toTBand) es hMod hN hΔ
-    (cert2BT hP hS hD hBq hsw E.c.epochLength G hG1 hGEL)
+    (cert2BT hP hS hD hBq hsw E.c.epochLength G hG1 hGEL) le_rfl
     (fun κ hκ => tabFailPot htab htabA hS hD hBq (cert2T hP) (TabQ.ties_of hties _ rfl rfl) hG1 hGEL hκ)
     (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl) (FamSpec.prod hS)
     (G' := G') (J := J) (Lw := Lw) (r := r) (T := Tg) (x := x) (yy := yy)
@@ -231,7 +231,7 @@ def repData (Q : TabQ) (s : ℤ × ℤ) : RepData :=
   let X := PhZ.ofQ (Q.x, 1, fun a b _ => g.getD (2 * a.val + if b then 1 else 0) 0)
   let post := F.postSeedsX X
   let pre := F.preSeedsX X post
-  ⟨g, post, pre, F.eInListX X post, F.eEOfX X post pre⟩
+  ⟨g, post, pre, F.eInListX X post, F.eEOfX X post pre, [], [], [], []⟩
 
 /-- All the chunks' representatives with their data. -/
 def allReps {n : ℕ} (D : Fin n → List ((ℤ × ℤ) × RepData)) : List ((ℤ × ℤ) × RepData) := (List.finRange n).flatMap D

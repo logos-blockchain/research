@@ -236,39 +236,39 @@ theorem swOK : ∀ i : Fin 19, FamCfg.isSw i = true → F.idxChkSw i (dat i) = t
 index to evaluate `![…]`). -/
 def D (j : Fin 96) : List (ℕ × (ℤ × ℤ) × RepData) := [D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12, D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25, D26, D27, D28, D29, D30, D31, D32, D33, D34, D35, D36, D37, D38, D39, D40, D41, D42, D43, D44, D45, D46, D47, D48, D49, D50, D51, D52, D53, D54, D55, D56, D57, D58, D59, D60, D61, D62, D63, D64, D65, D66, D67, D68, D69, D70, D71, D72, D73, D74, D75, D76, D77, D78, D79, D80, D81, D82, D83, D84, D85, D86, D87, D88, D89, D90, D91, D92, D93, D94, D95].getD j.val []
 
-theorem tabA : F.tabChkAG Q γ D := by
+theorem tabA : F.tabChkAG Q γ nG Rd D := by
   intro j; fin_cases j
   exacts [chkA0, chkA1, chkA2, chkA3, chkA4, chkA5, chkA6, chkA7, chkA8, chkA9, chkA10, chkA11, chkA12, chkA13, chkA14, chkA15, chkA16, chkA17, chkA18, chkA19, chkA20, chkA21, chkA22, chkA23, chkA24, chkA25, chkA26, chkA27, chkA28, chkA29, chkA30, chkA31, chkA32, chkA33, chkA34, chkA35, chkA36, chkA37, chkA38, chkA39, chkA40, chkA41, chkA42, chkA43, chkA44, chkA45, chkA46, chkA47, chkA48, chkA49, chkA50, chkA51, chkA52, chkA53, chkA54, chkA55, chkA56, chkA57, chkA58, chkA59, chkA60, chkA61, chkA62, chkA63, chkA64, chkA65, chkA66, chkA67, chkA68, chkA69, chkA70, chkA71, chkA72, chkA73, chkA74, chkA75, chkA76, chkA77, chkA78, chkA79, chkA80, chkA81, chkA82, chkA83, chkA84, chkA85, chkA86, chkA87, chkA88, chkA89, chkA90, chkA91, chkA92, chkA93, chkA94, chkA95]
 
 /-- The derived numbers (`SpecData.deriveLE`), with the tables' contractions by rule and the checked
 phase's bound times `eUp`, above the potential's start factor. -/
 def der : SpecDerived :=
-  eval% par.deriveLE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) Tq (FamCfg.tabLpG Q D) (F.tabLpiG Q 4 D)
+  eval% par.deriveLE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) (fun _ => Rd) Tq (FamCfg.tabLpG Q D) (F.tabLpiG Q nG D)
 
 theorem derNe : der.Ne = 18 := by decide +kernel
 
-theorem derFin : der.fin = (1 / 3125 : ℚ) := by decide +kernel
+theorem derFin : der.fin = (19 / 500000 : ℚ) := by decide +kernel
 
-/-- Derived by Lean (`der`): Ne = 18, fin = 1 / 3125, lp = 12564467319 / 12500000000, lpi = 9968325763543 / 10000000000000,
-tgt = 3 / 10000, bx = 6603 / 10000000000, Lw = 15043, J = 7929, G = 363, G' = 1290, r = 107, T = 34. -/
+/-- Derived by Lean (`der`): { Lw := 15044, J := 7930, x := 12933 / 10000, G := 363, G' := 1289, r := 106, T := 34, yy := 703 / 1250, M := 5185665, Ne := 18, lp := 200774225067 / 200000000000, lpi := 4984186147813 / 5000000000000, tgt := 13 / 500000, bx := 6603 / 10000000000, fin := 19 / 500000 } -/
 theorem c2OK : cert2ChkQ F.S.weakest F.Δ F.c F.z F.s 0 F.d F.τ 0 (FamCfg.lrOf dat) (FamCfg.bOf dat) (FamCfg.eOf dat) =
     true := by
   decide +kernel
 
-theorem tabOK : F.tabChkG Q 4 γ Γ (Config.specK par.k).epochLength der.G der.lp der.lpi D = true := by decide +kernel
+theorem tabOK : F.tabChkG Q nG γ Γ (Config.specK par.k).epochLength der.G Rd der.lp der.lpi D = true := by decide +kernel
 
 theorem stOK : startChk ((Config.specK par.k).epochLength - 1) 10 γ sU = true := by decide +kernel
 
-theorem finOK : FamCfg.finChkSpecE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) Tq par der = true := by decide +kernel
+theorem finOK : FamCfg.finChkSpecE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) (fun _ => Rd) Tq par der = true := by
+  decide +kernel
 
 /-- **Finality, certified** (`Claim.Finality`): f = 1/30, k = 1000, Δ = 11 slots, executions up to
 slot 5184000; the adversary holds at most 0.2 of the participating stake, stakes are at most
 10³⁰, the canonical chain counts at least 0.87 of each window's honestly won slots,
 stake drifts by at most a factor 1.01 per epoch and honest online stake is at least
-1000000; a finality violation has probability at most 3.20e-04. -/
+1000000; a finality violation has probability at most 3.80e-05. -/
 theorem finality :
     Claim.Finality (k := 1000) (Δ := 11) (N := 5184000) (β := (1 / 5 : ℝ)) (Smax := 10 ^ 30) (μ := (13 / 100 : ℝ))
-      (ρ := (101 / 100 : ℝ)) (Hmin := (1000000 : ℝ)) (ε := (1 / 3125 : ℝ)) := by
+      (ρ := (101 / 100 : ℝ)) (Hmin := (1000000 : ℝ)) (ε := (19 / 500000 : ℝ)) := by
   intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   have hT : Tq.β = (1 / 5 : ℚ) ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = (13 / 100 : ℚ) := by decide +kernel
   have h := FamCfg.finality_specTG F par der c2OK famOK dOK rfl swOK tabOK tabA rfl stOK Tq finOK (by rw [hc]; rfl)

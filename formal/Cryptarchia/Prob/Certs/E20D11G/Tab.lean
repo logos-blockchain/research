@@ -89,4 +89,10 @@ def Γ : ℚ := (219 / 200 : ℚ)
 /-- The start factor's bound: `γ ^ (EL - 1) ≤ e ^ (1 / 10) ≤ sU`. -/
 def sU : ℚ := (1105170919 / 1000000000 : ℚ)
 
+/-- The groups of members. -/
+def nG : ℕ := 4
+
+/-- The delayed tables' steps: the contraction `lp` is paid within `Rd` slots of a boundary. -/
+def Rd : ℕ := 60
+
 end Cryptarchia.Prob.Certs.E20D11G

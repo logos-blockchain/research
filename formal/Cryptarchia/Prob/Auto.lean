@@ -168,6 +168,132 @@ noncomputable def autoBound (B : Band) (x θ : ℝ) (g : Fin 3 → Bool → Bool
 
 end
 
+/-! ## The step is subadditive
+
+Each of `slot4`'s terms takes the band's upper field when its coefficient is nonnegative and the lower
+one otherwise: with the lower fields below the upper ones, it is the larger of the two, so `slot4` is a
+sum of maxima of linear forms, hence subadditive and positively homogeneous (`slot4_add_le`). The
+recursion step and the phase bound split the same way, the terminal table going with the first part
+(`stepR_add_le`, `autoBound_add_le`). -/
+
+theorem sel_eq_max {c p q hi lo : ℝ} (hc : c = q - p) (h : lo ≤ hi) :
+    c * (if p ≤ q then hi else lo) = max (c * hi) (c * lo) := by
+  split_ifs with h'
+  · rw [max_eq_left (mul_le_mul_of_nonneg_left h (by rw [hc]; linarith))]
+  · rw [max_eq_right (mul_le_mul_of_nonpos_left h (by rw [hc]; linarith))]
+
+theorem max_lin_le {c1 c2 t hi lo : ℝ} (ht : 0 ≤ t) :
+    max ((c1 + t * c2) * hi) ((c1 + t * c2) * lo) ≤ max (c1 * hi) (c1 * lo) + t * max (c2 * hi) (c2 * lo) := by
+  have a1 := le_max_left (c1 * hi) (c1 * lo); have a2 := le_max_right (c1 * hi) (c1 * lo)
+  have b1 := mul_le_mul_of_nonneg_left (le_max_left (c2 * hi) (c2 * lo)) ht
+  have b2 := mul_le_mul_of_nonneg_left (le_max_right (c2 * hi) (c2 * lo)) ht
+  refine max_le ?_ ?_ <;> nlinarith
+
+/-- **`slot4` is subadditive**, for a band whose lower fields are below its upper ones. -/
+theorem slot4_add_le (B : Band) (h1 : B.alo ≤ B.amax) (h2 : B.hlo ≤ B.hhi) (h3 : B.halo ≤ B.hahi)
+    (F1 F2 : Bool → Bool → ℝ) {t : ℝ} (ht : 0 ≤ t) :
+    slot4 B (fun (hh aa : Bool) => F1 hh aa + t * F2 hh aa) ≤ slot4 B F1 + t * slot4 B F2 := by
+  have e : ∀ F : Bool → Bool → ℝ, slot4 B F = F false false +
+      max ((F false true - F false false) * B.amax) ((F false true - F false false) * B.alo) +
+      max ((F true false - F false false) * B.hhi) ((F true false - F false false) * B.hlo) +
+      max ((F true true - F true false - F false true + F false false) * B.hahi)
+        ((F true true - F true false - F false true + F false false) * B.halo) := by
+    intro F
+    unfold slot4
+    rw [sel_eq_max rfl h1, sel_eq_max rfl h2, sel_eq_max (by ring) h3]
+  rw [e, e, e]
+  have k1 := max_lin_le (c1 := F1 false true - F1 false false) (c2 := F2 false true - F2 false false)
+    (hi := B.amax) (lo := B.alo) ht
+  have k2 := max_lin_le (c1 := F1 true false - F1 false false) (c2 := F2 true false - F2 false false)
+    (hi := B.hhi) (lo := B.hlo) ht
+  have k3 := max_lin_le (c1 := F1 true true - F1 true false - F1 false true + F1 false false)
+    (c2 := F2 true true - F2 true false - F2 false true + F2 false false) (hi := B.hahi) (lo := B.halo) ht
+  rw [show F1 false true + t * F2 false true - (F1 false false + t * F2 false false) =
+      (F1 false true - F1 false false) + t * (F2 false true - F2 false false) by ring,
+    show F1 true false + t * F2 true false - (F1 false false + t * F2 false false) =
+      (F1 true false - F1 false false) + t * (F2 true false - F2 false false) by ring,
+    show F1 true true + t * F2 true true - (F1 true false + t * F2 true false) - (F1 false true + t * F2 false true) +
+      (F1 false false + t * F2 false false) = (F1 true true - F1 true false - F1 false true + F1 false false) +
+      t * (F2 true true - F2 true false - F2 false true + F2 false false) by ring]
+  nlinarith [k1, k2, k3]
+
+/-- **The recursion step splits**: at `P + t Z`, at most `P`'s step plus `t` times `Z`'s with the
+terminal table at `0`. -/
+theorem stepR_add_le {B : Band} (h1 : B.alo ≤ B.amax) (h2 : B.hlo ≤ B.hhi) (h3 : B.halo ≤ B.hahi) {Δ : ℕ}
+    {x θ t : ℝ} (hx : 0 ≤ x) (hθ : 0 ≤ θ) (ht : 0 ≤ t) (g : Fin 3 → Bool → Bool → ℝ) (P Z : ℕ → Fin 3 → Bool → ℝ)
+    (q : ℕ) (a : Fin 3) (u : Bool) :
+    stepR B Δ x θ g (fun q a u => P q a u + t * Z q a u) q a u ≤
+      stepR B Δ x θ g P q a u + t * stepR B Δ x θ (fun _ _ _ => 0) Z q a u := by
+  unfold stepR
+  have hs := slot4_add_le B h1 h2 h3
+    (fun (hh aa : Bool) => (if aa then x else 1) * (if hh then P 0 (acap (a.val + if aa then 1 else 0)) true
+      else if q + 1 = Δ then g (acap (a.val + if aa then 1 else 0)) true u else P (q + 1) (acap (a.val + if aa then 1 else 0)) u))
+    (fun (hh aa : Bool) => (if aa then x else 1) * (if hh then Z 0 (acap (a.val + if aa then 1 else 0)) true
+      else if q + 1 = Δ then 0 else Z (q + 1) (acap (a.val + if aa then 1 else 0)) u)) ht
+  have hF : (fun (hh aa : Bool) => (if aa then x else 1) * (if hh then P 0 (acap (a.val + if aa then 1 else 0)) true +
+        t * Z 0 (acap (a.val + if aa then 1 else 0)) true
+      else if q + 1 = Δ then g (acap (a.val + if aa then 1 else 0)) true u else
+        P (q + 1) (acap (a.val + if aa then 1 else 0)) u + t * Z (q + 1) (acap (a.val + if aa then 1 else 0)) u)) =
+      (fun (hh aa : Bool) => (if aa then x else 1) * (if hh then P 0 (acap (a.val + if aa then 1 else 0)) true
+        else if q + 1 = Δ then g (acap (a.val + if aa then 1 else 0)) true u else P (q + 1) (acap (a.val + if aa then 1 else 0)) u) +
+        t * ((if aa then x else 1) * (if hh then Z 0 (acap (a.val + if aa then 1 else 0)) true
+        else if q + 1 = Δ then 0 else Z (q + 1) (acap (a.val + if aa then 1 else 0)) u))) := by
+    funext hh aa; split_ifs <;> ring
+  rw [hF]
+  nlinarith [mul_le_mul_of_nonneg_left hs hθ]
+
+/-- **The phase bound splits** the same way. -/
+theorem autoBound_add_le {B : Band} (h1 : B.alo ≤ B.amax) (h2 : B.hlo ≤ B.hhi) (h3 : B.halo ≤ B.hahi)
+    {x θ t : ℝ} (hθ : 0 ≤ θ) (ht : 0 ≤ t) (g : Fin 3 → Bool → Bool → ℝ) (P Z : ℕ → Fin 3 → Bool → ℝ) :
+    autoBound B x θ g (fun q a u => P q a u + t * Z q a u) ≤
+      autoBound B x θ g P + t * autoBound B x θ (fun _ _ _ => 0) Z := by
+  unfold autoBound
+  have hs := slot4_add_le B h1 h2 h3
+    (fun (hh aa : Bool) => (if aa then x else 1) * (if hh then P 0 (acap (if aa then 1 else 0)) false
+      else g (acap (if aa then 1 else 0)) false false))
+    (fun (hh aa : Bool) => (if aa then x else 1) * (if hh then Z 0 (acap (if aa then 1 else 0)) false else 0)) ht
+  have hF : (fun (hh aa : Bool) => (if aa then x else 1) * (if hh then P 0 (acap (if aa then 1 else 0)) false +
+        t * Z 0 (acap (if aa then 1 else 0)) false else g (acap (if aa then 1 else 0)) false false)) =
+      (fun (hh aa : Bool) => (if aa then x else 1) * (if hh then P 0 (acap (if aa then 1 else 0)) false
+        else g (acap (if aa then 1 else 0)) false false) +
+        t * ((if aa then x else 1) * (if hh then Z 0 (acap (if aa then 1 else 0)) false else 0))) := by
+    funext hh aa; split_ifs <;> ring
+  rw [hF]
+  nlinarith [mul_le_mul_of_nonneg_left hs hθ]
+
+/-- `B'` is worse than `B` in every field `slot4` reads: upper fields above, lower ones below. -/
+structure Band.Worse (B B' : Band) : Prop where
+  hhi : B.hhi ≤ B'.hhi
+  hlo : B'.hlo ≤ B.hlo
+  amax : B.amax ≤ B'.amax
+  alo : B'.alo ≤ B.alo
+  hahi : B.hahi ≤ B'.hahi
+  halo : B'.halo ≤ B.halo
+
+theorem sel_mono {c p q hi lo hi' lo' : ℝ} (hc : c = q - p) (h1 : hi ≤ hi') (h2 : lo' ≤ lo) :
+    c * (if p ≤ q then hi else lo) ≤ c * (if p ≤ q then hi' else lo') := by
+  split_ifs with h
+  · exact mul_le_mul_of_nonneg_left h1 (by rw [hc]; linarith)
+  · exact mul_le_mul_of_nonpos_left h2 (by rw [hc]; linarith)
+
+/-- **`slot4` is monotone in the band.** -/
+theorem slot4_mono {B B' : Band} (h : B.Worse B') (F : Bool → Bool → ℝ) : slot4 B F ≤ slot4 B' F := by
+  unfold slot4
+  have := sel_mono (c := F false true - F false false) rfl h.amax h.alo
+  have := sel_mono (c := F true false - F false false) rfl h.hhi h.hlo
+  have := sel_mono (c := F true true - F true false - F false true + F false false)
+    (p := F true false + F false true) (q := F true true + F false false) (by ring) h.hahi h.halo
+  linarith
+
+theorem stepR_mono {B B' : Band} (h : B.Worse B') {Δ : ℕ} {x θ : ℝ} (hθ : 0 ≤ θ) (g : Fin 3 → Bool → Bool → ℝ)
+    (w : ℕ → Fin 3 → Bool → ℝ) (q : ℕ) (a : Fin 3) (u : Bool) : stepR B Δ x θ g w q a u ≤ stepR B' Δ x θ g w q a u :=
+  mul_le_mul_of_nonneg_left (slot4_mono h _) hθ
+
+/-- A solution for a worse band is one for the band. -/
+theorem AutoSol.of_worse {B B' : Band} (h : B.Worse B') {Δ : ℕ} {x θ : ℝ} (hθ : 0 ≤ θ) {g : Fin 3 → Bool → Bool → ℝ}
+    {v : ℕ → Fin 3 → Bool → ℝ} (hv : AutoSol B' Δ x θ g v) : AutoSol B Δ x θ g v :=
+  ⟨hv.term, fun q hq a u => (stepR_mono h hθ g v q a u).trans (hv.step q hq a u)⟩
+
 /-!
 ## Phases cut at `G` slots, with one band per epoch
 
@@ -256,15 +382,16 @@ theorem ExU_zero_beyond {S : List Out → Prop} [DecidablePred S] {F : List Out 
 
 section AutoT
 
-variable {x θ : ℝ} {g : Fin 3 → Bool → Bool → ℝ} (T : List Out → ℕ → Fin 3 → Bool → ℝ)
+variable {x θ : ℝ} {g : Fin 3 → Bool → Bool → ℝ} (T N : List Out → ℕ → Fin 3 → Bool → ℝ)
   (bandOf : List Out → Band) (hTb : ∀ h, κ.BandAt (bandOf h) h) (hg0 : ∀ a b u, 0 ≤ g a b u) {m G : ℕ}
-  (hTnext : ∀ h, m ≤ h.length → h.length + 1 ≤ m + G → ∀ o, ∀ q < Δ, ∀ a u, T (h ++ [o]) q a u ≤ T h q a u)
-  (hTstep : ∀ h, m ≤ h.length → h.length < m + G → ∀ q < Δ, ∀ a u, stepR (bandOf h) Δ x θ g (T h) q a u ≤ T h q a u)
+  (hTnext : ∀ h, m ≤ h.length → h.length + 1 ≤ m + G → ∀ o, ∀ q < Δ, ∀ a u, T (h ++ [o]) q a u ≤ N h q a u)
+  (hTstep : ∀ h, m ≤ h.length → h.length < m + G → ∀ q < Δ, ∀ a u, stepR (bandOf h) Δ x θ g (N h) q a u ≤ T h q a u)
   (hTterm : ∀ h, ∀ q < Δ, ∀ a u, g a true u ≤ T h q a u)
+  (hNterm : ∀ h, ∀ q < Δ, ∀ a u, g a true u ≤ N h q a u)
 
-include hTb hg0 hTnext hTstep hTterm in
+include hTb hg0 hTnext hTstep hTterm hNterm in
 /-- **Inside a burst, with abstract tables**, truncated at `G` slots. -/
-theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
+theorem auto_leN (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
     ∀ (n : ℕ) (h : List Out) (q : ℕ), InBurst m h q → q < Δ → h.length + n = M → h.length ≤ m + G →
       ExU (κ := κ) (PE Δ M) n (truncG m G (Wt2 x θ g m)) h ≤
         θ ^ (h.length - m) * x ^ advCnt (strOf h) m h.length *
@@ -296,7 +423,7 @@ theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
     rw [ExU_go _ _ _ hnPE]
     have hBh := hTb h
     have hnext : ∀ o, ∀ q' < Δ, ∀ a' u', T (h ++ [o]) q' a' u' ≤
-        T h q' a' u' := fun o q' hq' a' u' =>
+        N h q' a' u' := fun o q' hq' a' u' =>
       hTnext h hm (show h.length + 1 ≤ m + G by omega) o q' hq' a' u'
     set W0 := θ ^ (h.length - m) * x ^ advCnt (strOf h) m h.length with hW0
     have hW0n : 0 ≤ W0 := by positivity
@@ -305,7 +432,7 @@ theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
     have hnh1 : 1 ≤ nh := by
       obtain ⟨i, h1, h2, h3⟩ := hb.honIn
       simp only [hnh]; unfold honCnt; exact Finset.card_pos.2 ⟨i, by simp; exact ⟨⟨h1, h2⟩, h3⟩⟩
-    set v := T h with hvdef
+    set v := N h with hvdef
     set F : Bool → Bool → ℝ := fun hh aa => (if aa then x else 1) *
       (if hh then v 0 (acap (a.val + if aa then 1 else 0)) true
         else if q + 1 = Δ then g (acap (a.val + if aa then 1 else 0)) true (decide (2 ≤ nh))
@@ -342,13 +469,13 @@ theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
         by_cases hM : (h ++ [o]).length = M
         · rw [ExU_stop _ _ _ (Or.inl hM)]
           unfold truncG; rw [if_pos (by simp; omega), hWo, d1, d2]
-          have := hTterm h 0 (by have := hb.p_gt; omega) a' true
+          have := hNterm h 0 (by have := hb.p_gt; omega) a' true
           calc W0 * (θ * (if o.adv then x else 1)) * g a' true true
               ≤ W0 * (θ * (if o.adv then x else 1)) * v 0 a' true :=
                 mul_le_mul_of_nonneg_left this (by positivity)
             _ = _ := by ring
         · have hΔ0 : 0 < Δ := by omega
-          have := auto_leT hx hθ n (h ++ [o]) 0 hb' hΔ0 hlen (by simp; omega)
+          have := auto_leN hx hθ n (h ++ [o]) 0 hb' hΔ0 hlen (by simp; omega)
           rw [hpowo, hAo, hHo, d2] at this
           calc _ ≤ W0 * (θ * (if o.adv then x else 1)) * T (h ++ [o]) 0 a' true := this
             _ ≤ W0 * (θ * (if o.adv then x else 1)) * v 0 a' true :=
@@ -368,12 +495,12 @@ theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
           by_cases hM : (h ++ [o]).length = M
           · rw [ExU_stop _ _ _ (Or.inl hM)]
             unfold truncG; rw [if_pos (by simp; omega), hWo, d1]
-            have := hTterm h (q + 1) hq1 a' (decide (2 ≤ nh))
+            have := hNterm h (q + 1) hq1 a' (decide (2 ≤ nh))
             calc W0 * (θ * (if o.adv then x else 1)) * g a' true (decide (2 ≤ nh))
                 ≤ W0 * (θ * (if o.adv then x else 1)) * v (q + 1) a' (decide (2 ≤ nh)) :=
                   mul_le_mul_of_nonneg_left this (by positivity)
               _ = _ := by ring
-          · have := auto_leT hx hθ n (h ++ [o]) (q + 1) hb' hq1 hlen (by simp; omega)
+          · have := auto_leN hx hθ n (h ++ [o]) (q + 1) hb' hq1 hlen (by simp; omega)
             rw [hpowo, hAo, hHo] at this
             calc _ ≤ W0 * (θ * (if o.adv then x else 1)) *
                   T (h ++ [o]) (q + 1) a' (decide (2 ≤ nh)) := this
@@ -395,19 +522,19 @@ theorem auto_leT (hx : 0 ≤ x) (hθ : 0 ≤ θ) :
           rw [Finset.mul_sum]; exact Finset.sum_congr rfl fun o _ => by ring
       _ ≤ W0 * θ * slot4 (bandOf h) F := mul_le_mul_of_nonneg_left (slot_sum4 hBh F) (by positivity)
       _ = W0 * (θ * slot4 (bandOf h) F) := by ring
-      _ ≤ W0 * v q a (decide (2 ≤ nh)) := mul_le_mul_of_nonneg_left (hTstep h hm hGl q hq a _) hW0n
+      _ ≤ W0 * T h q a (decide (2 ≤ nh)) := mul_le_mul_of_nonneg_left (hTstep h hm hGl q hq a _) hW0n
 
-include hTb hg0 hTnext hTstep hTterm in
+include hTb hg0 hTnext hTstep hTterm hNterm in
 /-- **One phase, with abstract tables**, truncated at `G` slots: at most the automaton
-bound of the start's band with the start's table. -/
-theorem phase_autoT (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hG1 : 1 ≤ G) (hΔ : 0 < Δ) {l : List Out} (hl : Start Δ l)
+bound of the start's band with the start's step table. -/
+theorem phase_autoN (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hG1 : 1 ≤ G) (hΔ : 0 < Δ) {l : List Out} (hl : Start Δ l)
     (hlm : l.length = m) (hlM : l.length < M) :
-    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (truncG l.length G (Wt2 x θ g l.length)) l ≤ autoBound (bandOf l) x θ g (T l) := by
+    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (truncG l.length G (Wt2 x θ g l.length)) l ≤ autoBound (bandOf l) x θ g (N l) := by
   classical
   subst hlm
   have hBl := hTb l
-  set v := T l with hvdef
-  have hvl : T l = v := rfl
+  set v := N l with hvdef
+  have hvl : N l = v := rfl
   have hnext : ∀ o, ∀ q' < Δ, ∀ a' u', T (l ++ [o]) q' a' u' ≤ v q' a' u' :=
     fun o q' hq' a' u' => hTnext l le_rfl (by omega) o q' hq' a' u'
   set m := l.length with hm
@@ -448,12 +575,12 @@ theorem phase_autoT (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hG1 : 1 ≤ G) (hΔ : 0 < �
         unfold truncG; rw [if_pos (by simp; omega), hWo]
         simp only [ho, ne_eq, not_false_eq_true, ↓reduceIte, zero_add, le_refl, decide_true,
           Nat.one_lt_ofNat, Nat.not_ofNat_le_one, decide_false]
-        have := hTterm l 0 hΔ (acap (if o.adv then 1 else 0)) false
+        have := hNterm l 0 hΔ (acap (if o.adv then 1 else 0)) false
         calc θ * (if o.adv then x else 1) * g (acap (if o.adv then 1 else 0)) true false
             ≤ θ * (if o.adv then x else 1) * v 0 (acap (if o.adv then 1 else 0)) false :=
               mul_le_mul_of_nonneg_left this (by positivity)
           _ = _ := by ring
-      · have := auto_leT T bandOf hTb hg0 hTnext hTstep hTterm hx hθ _ (l ++ [o]) 0 hb hΔ hlen (by simp; omega)
+      · have := auto_leN T N bandOf hTb hg0 hTnext hTstep hTterm hNterm hx hθ _ (l ++ [o]) 0 hb hΔ hlen (by simp; omega)
         rw [hpow, hAo, hHo] at this
         simp only [Nat.not_ofNat_le_one, decide_false] at this
         calc _ ≤ θ * (if o.adv then x else 1) *
@@ -481,6 +608,17 @@ theorem phase_autoT (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hG1 : 1 ≤ G) (hΔ : 0 < �
     _ ≤ θ * slot4 (bandOf l) F := mul_le_mul_of_nonneg_left (slot_sum4 hBl F) hθ
 
 end AutoT
+
+/-- **One phase, with abstract tables**, truncated at `G` slots: each history's table satisfying its
+band's recursion and not increasing along the phase (`phase_autoN` with the step tables the tables). -/
+theorem phase_autoT {x θ : ℝ} {g : Fin 3 → Bool → Bool → ℝ} (T : List Out → ℕ → Fin 3 → Bool → ℝ)
+    (bandOf : List Out → Band) (hTb : ∀ h, κ.BandAt (bandOf h) h) (hg0 : ∀ a b u, 0 ≤ g a b u) {m G : ℕ}
+    (hTnext : ∀ h, m ≤ h.length → h.length + 1 ≤ m + G → ∀ o, ∀ q < Δ, ∀ a u, T (h ++ [o]) q a u ≤ T h q a u)
+    (hTstep : ∀ h, m ≤ h.length → h.length < m + G → ∀ q < Δ, ∀ a u, stepR (bandOf h) Δ x θ g (T h) q a u ≤ T h q a u)
+    (hTterm : ∀ h, ∀ q < Δ, ∀ a u, g a true u ≤ T h q a u) (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hG1 : 1 ≤ G) (hΔ : 0 < Δ)
+    {l : List Out} (hl : Start Δ l) (hlm : l.length = m) (hlM : l.length < M) :
+    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (truncG l.length G (Wt2 x θ g l.length)) l ≤ autoBound (bandOf l) x θ g (T l) :=
+  phase_autoN T T bandOf hTb hg0 hTnext hTstep hTterm hTterm hx hθ hG1 hΔ hl hlm hlM
 
 section Auto
 
@@ -533,9 +671,9 @@ theorem vtab_term {m : ℕ} (h : List Out) : ∀ q < Δ, ∀ a u, g a true u ≤
     exact le_trans ((hv.post (mem h)).term q hq a u) (le_trans (hv.maxp (mem h) q hq a u) ((hv.pre (mem h)).dom q hq a u))
 
 include hv hg0 hband hmem in
-/-- **One phase, one member per epoch, truncated at `G` slots.** -/
-theorem phase_autoE (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hEL : 0 < EL) {G : ℕ} (hG : G + 1 < EL) (hG1 : 1 ≤ G)
-    {e : ℝ} (he : ∀ k, autoBound (fam k) x θ g (vpre k) ≤ e) (hΔ : 0 < Δ) {l : List Out} (hl : Start Δ l)
+/-- **One phase, one member per epoch, truncated at `G` slots**, with the start member's pre-switch bound. -/
+theorem phase_autoE1 (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hEL : 0 < EL) {G : ℕ} (hG : G + 1 < EL) (hG1 : 1 ≤ G)
+    {e : ℝ} (hΔ : 0 < Δ) {l : List Out} (he : autoBound (fam (mem l)) x θ g (vpre (mem l)) ≤ e) (hl : Start Δ l)
     (hlM : l.length < M) :
     ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (truncG l.length G (Wt2 x θ g l.length)) l ≤ e := by
   classical
@@ -544,7 +682,157 @@ theorem phase_autoE (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hEL : 0 < EL) {G : ℕ} (hG
   refine le_trans (phase_autoT (m := l.length) (G := G) (vtab vpre vpost EL l.length mem) (fun h => fam (mem h)) hband hg0
     (fun h hm hlen o q hq a u => vtab_next hv mem hmem hEL hG hm hlen o hq a u)
     (fun h _ _ => vtab_step hv mem h) (fun h => vtab_term hv mem h) hx hθ hG1 hΔ hl rfl hlM) ?_
-  rw [hvl]; exact he (mem l)
+  rw [hvl]; exact he
+
+include hv hg0 hband hmem in
+/-- **One phase, one member per epoch, truncated at `G` slots.** -/
+theorem phase_autoE (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hEL : 0 < EL) {G : ℕ} (hG : G + 1 < EL) (hG1 : 1 ≤ G)
+    {e : ℝ} (he : ∀ k, autoBound (fam k) x θ g (vpre k) ≤ e) (hΔ : 0 < Δ) {l : List Out} (hl : Start Δ l)
+    (hlM : l.length < M) :
+    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (truncG l.length G (Wt2 x θ g l.length)) l ≤ e :=
+  phase_autoE1 hv hg0 mem hband hmem hx hθ hEL hG hG1 hΔ (he (mem l)) hl hlM
+
+/-- The tables of a phase whose start is more than `R` slots before the boundary `b`: past `b`, each
+member's post-switch table; before it, member `k`'s delayed tables `Dt r` with `r` the slots left before
+the boundary (capped at `R`), and any other member's pre-switch table. -/
+noncomputable def vtabD (vpre vpost : Fin K → ℕ → Fin 3 → Bool → ℝ) (Dt : ℕ → ℕ → Fin 3 → Bool → ℝ) (k : Fin K)
+    (R b : ℕ) (mem : List Out → Fin K) (h : List Out) : ℕ → Fin 3 → Bool → ℝ := by
+  classical exact
+    if b ≤ h.length then vpost (mem h) else if mem h = k then Dt (min (b - h.length) R) else vpre (mem h)
+
+/-- The step tables: as `vtabD`, one slot on. -/
+noncomputable def ntabD (vpre vpost : Fin K → ℕ → Fin 3 → Bool → ℝ) (Dt : ℕ → ℕ → Fin 3 → Bool → ℝ) (k : Fin K)
+    (R b : ℕ) (mem : List Out → Fin K) (h : List Out) : ℕ → Fin 3 → Bool → ℝ := by
+  classical exact
+    if b ≤ h.length then vpost (mem h) else if mem h = k then Dt (min (b - h.length - 1) R) else vpre (mem h)
+
+include hv hg0 hband hmem in
+/-- **One phase whose start is more than `R` slots before the next boundary**, truncated at `G` slots:
+at most the automaton bound with the start member's delayed table `Dt R`. The delayed tables start above
+`vmax` (`Dt 0`, where the next slot switches), and each is above the member's recursion step of the one
+before (`Dt (r + 1)`, the slots left before a switch), `Dt R` above its own. -/
+theorem phase_autoD (hEL : 0 < EL) {G : ℕ} (hG : G + 1 < EL) (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hG1 : 1 ≤ G)
+    {R : ℕ} (Dt : ℕ → ℕ → Fin 3 → Bool → ℝ) {k : Fin K}
+    (hD0 : ∀ q < Δ, ∀ a u, vmax q a u ≤ Dt 0 q a u)
+    (hDs : ∀ r < R, ∀ q < Δ, ∀ a u, stepR (fam k) Δ x θ g (Dt r) q a u ≤ Dt (r + 1) q a u)
+    (hDR : ∀ q < Δ, ∀ a u, stepR (fam k) Δ x θ g (Dt R) q a u ≤ Dt R q a u)
+    (hDt : ∀ r ≤ R, ∀ q < Δ, ∀ a u, g a true u ≤ Dt r q a u)
+    (hΔ : 0 < Δ) {l : List Out} (hl : Start Δ l) (hlM : l.length < M) (hk : mem l = k)
+    {b : ℕ} (hb : (b + 1) % EL = 0) (hbl : l.length + R + 1 ≤ b)
+    (hnb : ∀ j, l.length < j → j < b → (j + 1) % EL ≠ 0) :
+    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (truncG l.length G (Wt2 x θ g l.length)) l ≤
+      autoBound (fam k) x θ g (Dt R) := by
+  classical
+  set m := l.length with hm
+  -- past the boundary, no second one within the truncation
+  have hsep : ∀ j, b < j → (j + 1) % EL = 0 → b + EL ≤ j := by
+    intro j hj hj0
+    have hmod : b + 1 ≡ j + 1 [MOD EL] := by unfold Nat.ModEq; rw [hb, hj0]
+    have hd := (Nat.modEq_iff_dvd' (by omega)).1 hmod
+    have := Nat.le_of_dvd (by omega) hd
+    omega
+  have hpre_term : ∀ k' : Fin K, ∀ q < Δ, ∀ a u, g a true u ≤ vpre k' q a u := fun k' q hq a u =>
+    le_trans ((hv.post k').term q hq a u) (le_trans (hv.maxp k' q hq a u) ((hv.pre k').dom q hq a u))
+  have hmin : ∀ n, min n R ≤ R := fun n => min_le_right _ _
+  have hnext : ∀ h, m ≤ h.length → h.length + 1 ≤ m + G → ∀ o, ∀ q < Δ, ∀ a u,
+      vtabD vpre vpost Dt k R b mem (h ++ [o]) q a u ≤ ntabD vpre vpost Dt k R b mem h q a u := by
+    intro h hmh hlen o q hq a u
+    unfold vtabD ntabD
+    simp only [List.length_append, List.length_singleton]
+    by_cases hs : b ≤ h.length
+    · have hnb' : (h.length + 2) % EL ≠ 0 := fun h2 => by
+        have := hsep (h.length + 1) (by omega) h2; omega
+      rw [if_pos (by omega), if_pos hs, hmem h o hnb']
+    · rw [if_neg hs]
+      by_cases hb1 : h.length + 1 = b
+      · rw [if_pos (by omega)]
+        have hle : vpost (mem (h ++ [o])) q a u ≤ vmax q a u := hv.maxp _ q hq a u
+        split_ifs with hkh
+        · rw [show b - h.length - 1 = 0 by omega, Nat.zero_min]; exact le_trans hle (hD0 q hq a u)
+        · exact le_trans hle ((hv.pre _).dom q hq a u)
+      · have hnb' : (h.length + 2) % EL ≠ 0 := hnb (h.length + 1) (by omega) (by omega)
+        rw [if_neg (by omega), hmem h o hnb']
+        split_ifs with hkh
+        · rw [show b - (h.length + 1) = b - h.length - 1 by omega]
+        · exact le_rfl
+  have hstep : ∀ h, m ≤ h.length → h.length < m + G → ∀ q < Δ, ∀ a u,
+      stepR (fam (mem h)) Δ x θ g (ntabD vpre vpost Dt k R b mem h) q a u ≤ vtabD vpre vpost Dt k R b mem h q a u := by
+    intro h _ _ q hq a u
+    unfold vtabD ntabD
+    by_cases hs : b ≤ h.length
+    · simp only [if_pos hs]; exact (hv.post _).step q hq a u
+    · simp only [if_neg hs]
+      by_cases hkh : mem h = k
+      · simp only [if_pos hkh]; rw [hkh]
+        by_cases hr : b - h.length - 1 < R
+        · rw [min_eq_left hr.le, min_eq_left (show b - h.length ≤ R by omega),
+            show b - h.length = (b - h.length - 1) + 1 by omega]
+          exact hDs _ hr q hq a u
+        · rw [min_eq_right (by omega), min_eq_right (by omega)]; exact hDR q hq a u
+      · simp only [if_neg hkh]; exact (hv.pre _).step q hq a u
+  have hterm : ∀ h, ∀ q < Δ, ∀ a u, g a true u ≤ vtabD vpre vpost Dt k R b mem h q a u := by
+    intro h q hq a u
+    unfold vtabD
+    split_ifs
+    · exact (hv.post _).term q hq a u
+    · exact hDt _ (hmin _) q hq a u
+    · exact hpre_term _ q hq a u
+  have hnterm : ∀ h, ∀ q < Δ, ∀ a u, g a true u ≤ ntabD vpre vpost Dt k R b mem h q a u := by
+    intro h q hq a u
+    unfold ntabD
+    split_ifs
+    · exact (hv.post _).term q hq a u
+    · exact hDt _ (hmin _) q hq a u
+    · exact hpre_term _ q hq a u
+  have h := phase_autoN (m := m) (G := G) (vtabD vpre vpost Dt k R b mem) (ntabD vpre vpost Dt k R b mem)
+    (fun h => fam (mem h)) hband hg0 hnext hstep hterm hnterm hx hθ hG1 hΔ hl rfl hlM
+  have hN : ntabD vpre vpost Dt k R b mem l = Dt R := by
+    unfold ntabD
+    rw [if_neg (by omega), if_pos hk, min_eq_right (by omega)]
+  rw [hN, hk] at h
+  exact h
+
+include hv hg0 hband hmem in
+/-- **One phase whose start is more than `R` slots before the next boundary, by a geometric envelope**:
+with the member's post-switch table `P` and a table `Z ≥ 0` above `vmax - P` whose recursion step without
+the terminal table is at most `λ Z`, the delayed tables `P + λ^r Z` qualify (`phase_autoD`, the step being
+subadditive), and the phase's bound is at most `P`'s plus `λ^R` times `Z`'s without the terminal table. -/
+theorem phase_autoEnv (hEL : 0 < EL) {G : ℕ} (hG : G + 1 < EL) (hx : 0 ≤ x) (hθ : 0 ≤ θ) (hG1 : 1 ≤ G)
+    {R : ℕ} {k : Fin K} {P Z : ℕ → Fin 3 → Bool → ℝ} {lam : ℝ} (hP : AutoSol (fam k) Δ x θ g P)
+    (hZ0 : ∀ q < Δ, ∀ a u, 0 ≤ Z q a u) (hl0 : 0 ≤ lam) (hl1 : lam ≤ 1)
+    (hZ : ∀ q < Δ, ∀ a u, stepR (fam k) Δ x θ (fun _ _ _ => 0) Z q a u ≤ lam * Z q a u)
+    (hD0 : ∀ q < Δ, ∀ a u, vmax q a u ≤ P q a u + Z q a u)
+    (hΔ : 0 < Δ) {l : List Out} (hl : Start Δ l) (hlM : l.length < M) (hk : mem l = k)
+    {b : ℕ} (hb : (b + 1) % EL = 0) (hbl : l.length + R + 1 ≤ b)
+    (hnb : ∀ j, l.length < j → j < b → (j + 1) % EL ≠ 0) :
+    ExPh (κ := κ) (PE Δ M) (M - l.length - 1) (truncG l.length G (Wt2 x θ g l.length)) l ≤
+      autoBound (fam k) x θ g P + lam ^ R * autoBound (fam k) x θ (fun _ _ _ => 0) Z := by
+  -- the start's band orders its fields
+  have hB := hband l
+  rw [hk] at hB
+  have o1 : (fam k).alo ≤ (fam k).amax := hB.alo.trans hB.amax
+  have o2 : (fam k).hlo ≤ (fam k).hhi := hB.hlo.trans hB.hhi
+  have o3 : (fam k).halo ≤ (fam k).hahi := hB.halo.trans hB.hahi
+  set Dt : ℕ → ℕ → Fin 3 → Bool → ℝ := fun r q a u => P q a u + lam ^ r * Z q a u with hDt
+  have hstep : ∀ r, ∀ q < Δ, ∀ a u, stepR (fam k) Δ x θ g (Dt r) q a u ≤ Dt (r + 1) q a u := by
+    intro r q hq a u
+    refine (stepR_add_le o1 o2 o3 hx hθ (pow_nonneg hl0 r) g P Z q a u).trans ?_
+    have h1 := hP.step q hq a u
+    have h2 := mul_le_mul_of_nonneg_left (hZ q hq a u) (pow_nonneg hl0 r)
+    simp only [hDt, pow_succ]
+    nlinarith
+  have h := phase_autoD hv hg0 mem hband hmem hEL hG hx hθ hG1 (R := R) Dt (k := k)
+    (fun q hq a u => by simp only [hDt, pow_zero, one_mul]; exact hD0 q hq a u)
+    (fun r _ q hq a u => hstep r q hq a u)
+    (fun q hq a u => (hstep R q hq a u).trans (by
+      simp only [hDt, pow_succ]
+      have := hZ0 q hq a u
+      have : lam ^ R * lam ≤ lam ^ R := mul_le_of_le_one_right (pow_nonneg hl0 R) hl1
+      nlinarith))
+    (fun r _ q hq a u => le_trans (hP.term q hq a u) (by
+      simp only [hDt]; have := mul_nonneg (pow_nonneg hl0 r) (hZ0 q hq a u); linarith))
+    hΔ hl hlM hk hb hbl hnb
+  exact h.trans (autoBound_add_le o1 o2 o3 hθ (pow_nonneg hl0 R) g P Z)
 
 /-- **One phase inside an epoch.** If no epoch boundary falls within the `G` slots
 after the start, the member stays fixed and each member's own table bounds the

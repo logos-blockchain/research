@@ -470,6 +470,56 @@ theorem ex_cross_truncIn {EL K : ℕ} {fam : Fin K → Band} (mem : List Out →
   have := (hband (h ++ pat ⟨1, false⟩ i)).elo
   rwa [mem_pat hmem hnb ⟨1, false⟩ i (by omega)] at this
 
+/-- `ex_cross_truncIn` with the crossing's pattern needing only `G1 ≥ Δ + 1` slots without a boundary. -/
+theorem ex_cross_truncIn1 {EL K : ℕ} {fam : Fin K → Band} (mem : List Out → Fin K)
+    (hband : ∀ h, κ.BandAt (fam (mem h)) h) (hmem : ∀ h o, (h.length + 2) % EL ≠ 0 → mem (h ++ [o]) = mem h)
+    {pat0 : ℝ} {h : List Out} (hpat : pat0 ≤ (fam (mem h)).slo * (fam (mem h)).elo ^ Δ) (helo : ∀ k, 0 ≤ (fam k).elo)
+    (hΔ : 0 < Δ) (hlM : h.length + Δ + 1 ≤ M) {G G1 : ℕ} (hG : Δ + 1 ≤ G) (hG1 : Δ + 1 ≤ G1)
+    (hnb : NoSw EL G1 h.length) :
+    pat0 ≤ ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (crossG 1 h.length)) h := by
+  refine le_trans hpat (ex_cross_trunc (helo (mem h)) hΔ hlM hG (hband h).slo fun i hi => ?_)
+  have := (hband (h ++ pat ⟨1, false⟩ i)).elo
+  rwa [mem_pat hmem hnb ⟨1, false⟩ i (by omega)] at this
+
+/-- **A crossing phase is short**: a phase from a start that has not ended before `x ++ [o] ++ t` and
+lasts more than `Δ + 1` slots is not a crossing (one honest success and no adversarial slot end it
+after `Δ + 1` slots). -/
+theorem crossG_long {θ : ℝ} {x : List Out} (hx : Start Δ x) {o : Out} {t : List Out}
+    (hM : (x ++ [o] ++ t).length ≤ M) (hpre : ∀ k < t.length, ¬ PE Δ M (x ++ [o] ++ t.take k))
+    (hlong : x.length + Δ + 1 < (x ++ [o] ++ t).length) :
+    crossG θ x.length (x ++ [o] ++ t) = 0 := by
+  classical
+  unfold crossG
+  rw [if_neg, mul_zero]
+  rintro ⟨-, s, hs1, hs2, -, hs, honly⟩
+  simp only [List.length_append, List.length_singleton] at hM hlong hs2 honly
+  -- the prefix `x ++ [o] ++ t.take k` agrees with the whole up to its length
+  have hlen : ∀ k, k ≤ t.length → (x ++ [o] ++ t.take k).length = x.length + 1 + k := by
+    intro k hk; simp [List.length_take, min_eq_left hk]; omega
+  have hagree : ∀ k j, j ≤ x.length + 1 + k → k ≤ t.length →
+      strOf (x ++ [o] ++ t.take k) j = strOf (x ++ [o] ++ t) j := by
+    intro k j hj hk
+    have hy : x ++ [o] ++ t = (x ++ [o] ++ t.take k) ++ t.drop k := by simp
+    rw [hy]
+    exact (strOf_append_of_le (l := x ++ [o] ++ t.take k) (m := t.drop k) (by rw [hlen k hk]; exact hj)).symm
+  by_cases hs0 : s = x.length + 1
+  · -- the success at the first slot: quiet `Δ` slots later
+    apply hpre Δ (by omega)
+    refine Or.inr ⟨by rw [hlen Δ (by omega)]; omega, fun j h1 h2 h3 => ?_⟩
+    rw [hlen Δ (by omega)] at h1 h2
+    rw [hagree Δ j h2 (by omega)]
+    exact honly j (by omega) (by omega) (by omega)
+  · -- the first slot empty: the phase ends there
+    have ho : o.hon = 0 := by
+      have := honly (x.length + 1) (by omega) (by omega) (fun h => hs0 h.symm)
+      rw [← hagree 0 (x.length + 1) (by omega) (Nat.zero_le _)] at this
+      simp only [List.take_zero, List.append_nil] at this
+      rw [strOf_last] at this
+      exact Fin.ext this
+    apply hpre 0 (by omega)
+    simp only [List.take_zero, List.append_nil]
+    exact Or.inr ⟨by simp; omega, by simpa using start_snoc_empty hx o ho⟩
+
 /-! ## The potential with an in-epoch contraction -/
 
 open Classical in

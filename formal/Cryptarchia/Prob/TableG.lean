@@ -247,6 +247,26 @@ theorem postg_in {st : ℤ × ℤ} {h : List Out} (hnb : NoSw EL G h.length) (o 
     simp only [T]; ring
   · ring
 
+omit hS hγ in
+/-- `postg_in` at one history: no boundary within its slots after the start. -/
+theorem postg_in_at {st : ℤ × ℤ} {h : List Out} (o : Out) (t : List Out) (hnb : NoSw EL ([o] ++ t).length h.length) :
+    truncG h.length G (postg F EL mem grp γ st h.length) (h ++ [o] ++ t) =
+      γ ^ ageE EL h * ((F.T (grp (mem h))).fac st * truncG h.length G (fun y =>
+        Wt2 F.x γ ((F.T (grp (mem h))).gT ((F.T (grp (mem h))).rep st)) h.length y -
+        (F.T (grp (mem h))).crT ((F.T (grp (mem h))).rep st) * crossG γ h.length y) (h ++ [o] ++ t)) := by
+  unfold truncG
+  split_ifs with hl
+  · have hy : h ++ [o] ++ t = h ++ ([o] ++ t) := List.append_assoc _ _ _
+    have hm : mem (h ++ [o] ++ t) = mem h := by rw [hy]; exact mem_ext hmem _ hnb
+    have ha : ageE EL (h ++ [o] ++ t) = ageE EL h + ([o] ++ t).length := by
+      rw [hy]; exact age_ext (by omega) _ hnb
+    have hlen : (h ++ [o] ++ t).length - h.length = ([o] ++ t).length := by simp
+    unfold postg TabPot.post TabPot.post0
+    beta_reduce
+    rw [hm, ha, pow_add, ← Wt2_theta F.x γ, ← crossG_theta γ, hlen]
+    simp only [T]; ring
+  · ring
+
 /-- **Across a boundary**: the grouped potential after any phase is at most the start's table, grown by
 `γ` per slot, without the crossing's credit. -/
 theorem postg_le {st : ℤ × ℤ} (hst : Inv st) {h : List Out} (hΓ0 : 0 ≤ Γ) (hγΓ : Γ ≤ γ ^ (EL - 2 * G))
@@ -320,22 +340,25 @@ theorem postg_le {st : ℤ × ℤ} (hst : Inv st) {h : List Out} (hΓ0 : 0 ≤ �
 end Pot
 
 /-- **The grouped potential as a failed-check potential**, given the representatives' checks: each
-group's in-epoch bound (the automaton with `γ` per slot, less the crossing's credit) at most `lpi` times
-its value, and its bound over any phase (without the credit) at most `lp` times it; the tables within a
-factor `Γ` of each other, which the growth over an epoch covers (`Γ ≤ γ ^ (EL - 2G)`). The potential
-starts at most `γ ^ (EL - 1)` above the reach potential. -/
+group's bound (the automaton with `γ` per slot, less the crossing's credit) over a phase with no boundary
+within `G1` slots at most `lpi` times its value, and its bound over any phase (without the credit) at
+most `lp` times it; the tables within a factor `Γ` of each other, which the growth over an epoch covers
+(`Γ ≤ γ ^ (EL - 2G)`). A phase reaching a boundary more than `G1 ≥ Δ + 2` slots on is no crossing
+(`crossG_long`), so past the boundary the credit is not needed. The potential starts at most
+`γ ^ (EL - 1)` above the reach potential. -/
 noncomputable def toFailPotG (hS : ∀ g, (F.T g).Shape) (P : Cert2 B Δ) (hT : ∀ g, (F.T g).Ties P) {EL K : ℕ}
     {mem : List Out → Fin K} (hmem : ∀ l o, (l.length + 2) % EL ≠ 0 → mem (l ++ [o]) = mem l) (grp : Fin K → Fin n)
     {γ Γ : ℝ} (hγ : 1 ≤ γ) (hGEL : 2 * G + 1 < EL) (hΓ0 : 0 ≤ Γ) (hγΓ : Γ ≤ γ ^ (EL - 2 * G))
     (hratio : ∀ g g' s, (F.T g).IsRep s → (F.T g').V s ≤ Γ * (F.T g).V s)
     (hcr : ∀ g s, (F.T g).IsRep s → 0 ≤ (F.T g).crT s) {lp lpi : ℝ} (hlpi : 0 < lpi) (hle : lpi ≤ lp)
+    {G1 : ℕ} (hG1 : Δ + 2 ≤ G1)
     (hex : ∀ g s, (F.T g).IsRep s → ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → grp (mem h) = g →
       ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (Wt2 F.x γ ((F.T g).gT s) h.length)) h ≤
         lp * (F.T g).V s)
-    (hexIn : ∀ g s, (F.T g).IsRep s → ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → NoSw EL G h.length → grp (mem h) = g →
+    (hexIn : ∀ g s, (F.T g).IsRep s → ∀ h, PE Δ M h → h.length + Δ + 1 ≤ M → NoSw EL G1 h.length → grp (mem h) = g →
       ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (truncG h.length G (fun y =>
         Wt2 F.x γ ((F.T g).gT s) h.length y - (F.T g).crT s * crossG γ h.length y)) h ≤ lpi * (F.T g).V s) :
-    FailPot κ M G P (fun t => ¬ NoSw EL G t) where
+    FailPot κ M G P (fun t => ¬ NoSw EL G1 t) where
   V := Vg F EL mem grp γ
   post := postg F EL mem grp γ
   lp := lp
@@ -375,7 +398,7 @@ noncomputable def toFailPotG (hS : ∀ g, (F.T g).Shape) (P : Cert2 B Δ) (hT : 
           gcongr; exact hex g _ hrep h hpe hlM rfl
       _ = _ := by ring
   exIn st hst h hpe hlM hsw := by
-    have hnb : NoSw EL G h.length := not_not.1 hsw
+    have hnb : NoSw EL G1 h.length := not_not.1 hsw
     set g := grp (mem h)
     have hfac := (F.T g).fac_nonneg (hS g) st
     have hrep := (F.T g).isRep_rep hst
@@ -383,7 +406,19 @@ noncomputable def toFailPotG (hS : ∀ g, (F.T g).Shape) (P : Cert2 B Δ) (hT : 
         ExPh (κ := κ) (PE Δ M) (M - h.length - 1) (fun y => γ ^ ageE EL h * ((F.T g).fac st *
           truncG h.length G (fun y => Wt2 F.x γ ((F.T g).gT ((F.T g).rep st)) h.length y -
             (F.T g).crT ((F.T g).rep st) * crossG γ h.length y) y)) h :=
-      ExPh_mono_on _ _ _ fun o t _ _ _ => le_of_eq (postg_in hmem grp hGEL hnb o t)
+      ExPh_mono_on _ _ _ fun o t ht hpre _ => by
+        by_cases hb : NoSw EL ([o] ++ t).length h.length
+        · exact le_of_eq (postg_in_at hmem grp hGEL o t hb)
+        · -- past a boundary the phase has more than `G1` slots: no crossing, no credit needed
+          have hlong : G1 < ([o] ++ t).length := by
+            by_contra hc; push Not at hc; exact hb (hnb.mono hc)
+          have hc0 : crossG γ h.length (h ++ [o] ++ t) = 0 :=
+            crossG_long (start_of_pe hpe (by omega)) (by simp; omega) hpre (by simp at hlong ⊢; omega)
+          refine (postg_le hS hmem grp hγ hGEL hst hΓ0 hγΓ hratio hcr o t).trans (le_of_eq ?_)
+          unfold truncG
+          split_ifs
+          · beta_reduce; rw [hc0, mul_zero, sub_zero]
+          · rfl
     refine heq.trans ?_
     rw [ExPh_mul_const, ExPh_mul_const, Vg, (F.T g).V_rep (hS g) hst.1 hst.2.2]
     calc γ ^ ageE EL h * ((F.T g).fac st * ExPh (κ := κ) (PE Δ M) (M - h.length - 1)

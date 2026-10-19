@@ -142,7 +142,7 @@ end {ns}
 # chunks build in this many chains (each chunk imports the one `CHAINS` before it), so that Lake runs at
 # most this many at once; each representative is its own kernel check (one check of a whole chunk keeps
 # the kernel's cache for all of it, about 2 GB per representative)
-CHAINS = 4
+CHAINS = 8
 
 
 def write_rep(sub, ns, name, j, n):

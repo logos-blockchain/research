@@ -59,19 +59,38 @@ extension factors `cw`, `zc`, the automaton's factor `x`, the reach and check ba
 per group of consecutive band members (`FamCfg.grpOf`), solved jointly by `Witness.solve_joint` with the
 tables within a factor `Γ` of each other. The potential grows by `γ = 1 + 1/(k₀ (EL − 1))` per slot of the
 epoch's age, which covers `Γ` when an epoch ends and costs a start factor `γ^(EL−1) ≤ e^(1/k₀) ≤ sU`
-(`startChk`). This is the two-month certificate (`E20D11G`, 3.2e-4): four groups at δ = 0.085, where the band
-term is 18 × 6.6e-7, with in-epoch contraction 0.996833. Its one-switch contraction is 1.0052, since near a
-boundary the automaton runs any member against the current group's table; the settlement bound pays
-`(lp/lpi)^G` for it. Each (group, representative) is checked as in `emitT` (96 chunks, about 37 min).
+(`startChk`). This is the two-month certificate (`E20D11G`, 3.8e-5): four groups at δ = 0.085, where the band
+term is 18 × 6.6e-7, with in-epoch contraction 0.996837.
+
+Each (group, representative) is checked from seeds (`repChkAG`, about 5 s and 2 GB in the kernel):
+
+- the one-switch tables come from the family's worst band (`chkOneW`): one post-switch table `W`, which bounds
+  every member's because `slot4` is monotone in the band, and one pre-switch table above it. Each of the
+  group's members also has its own post-switch table, for its in-epoch bound;
+- a phase starting more than `RDLY` slots before a boundary is bounded by the member's geometric envelope
+  `P + λ^r Z` (`chkEnvW`, `phase_autoEnv`): `P` its own post-switch table, `Z ≥ W − P` with one step of the
+  recursion's linear part at most `λ Z`, which suffices since the step is subadditive. So the one-switch
+  contraction (1.0039) is paid only for the `RDLY = 60` slots before a boundary (`Ccap`).
+
+The 96 chunks build eight at a time in about 27 min.
 
 ```sh
-python3 emitTG.py 1/5 85/1000 32 5184000 1000 VJ.npy 4 10 20 27/20 13/10 13/5 27/20 2 41/40 219/200 10 E20D11G ../../Cryptarchia/Prob/Certs emit
+python3 emitTG.py 1/5 85/1000 32 5184000 1000 VJ.npy 4 10 20 27/20 13/10 13/5 27/20 2 41/40 219/200 10 60 E20D11G ../../Cryptarchia/Prob/Certs emit
 lake build $(for j in $(seq 0 95); do printf 'Cryptarchia.Prob.Certs.E20D11G.R%d ' $j; done)
-python3 emitTG.py 1/5 85/1000 32 5184000 1000 VJ.npy 4 10 20 27/20 13/10 13/5 27/20 2 41/40 219/200 10 E20D11G ../../Cryptarchia/Prob/Certs main
+python3 emitTG.py 1/5 85/1000 32 5184000 1000 VJ.npy 4 10 20 27/20 13/10 13/5 27/20 2 41/40 219/200 10 60 E20D11G ../../Cryptarchia/Prob/Certs main
 ```
 
 The arguments are as `emitT`'s, with the number of groups after the LP's tables (an array of one table per
-group), and `Γ` and `k₀` after `τ`.
+group), and `Γ`, `k₀` and `RDLY` after `τ`.
+
+## Predicting a table certificate
+
+`tabsim.py` mirrors the grouped certificate's computations exactly, with the integer mirrors of `emitZ`: each
+entry's data (`rep_w`, as `FamCfg.repDataG`), the contractions (`tabLpG`, `tabLpiG`) and the derived numbers
+(`SpecData.deriveLE`). Over all 1056 entries it takes about a minute on eleven cores, against half an hour for
+the Lean build, and caches each entry's data in `.tabsim_cache`. Its bound for `E20D11G` agrees with Lean's to
+the digit (lp 1.003871, lpi 0.9968372, settlement 2.6e-5, 3.8e-5). Use it to choose the tables, groups and
+`RDLY` before building.
 
 ## Closed-form certificates
 

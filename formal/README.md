@@ -10,7 +10,7 @@ Machine-checked definitions and proofs for the Logos blockchain, in Lean 4 with 
 | Library | Contents |
 |---|---|
 | [`Cryptarchia`](Cryptarchia/README.md) | The consensus protocol: its specification, settlement combinatorics, deterministic safety over executions, and the probability layer, including total stake inference (TSI). |
-| `CryptarchiaCerts` | Generated certificates for Cryptarchia's finality theorem at β = 0.2, Δ = 11: numeric (`E20D11`: one year at the specification's k = 2160, `7.2e-11`; `E20D11G`: two months at k = 1000 with grouped table potentials for failed checks, `3.2e-4`), and in closed form for every depth `k ≥ 1000` and horizon `N` (`E20D11C`). The theorems are stated in `CryptarchiaCerts.lean` as instances of `Claim.Finality`: to check what is proved, read that file, `Cryptarchia/Claim` and `Cryptarchia/Spec`. The three build in about 40 min, most of it `E20D11G`'s tables; not a default target. |
+| `CryptarchiaCerts` | Generated certificates for Cryptarchia's finality theorem at β = 0.2, Δ = 11: numeric (`E20D11`: one year at the specification's k = 2160, `7.2e-11`; `E20D11G`: two months at k = 1000 with grouped table potentials for failed checks, `3.8e-5`), and in closed form for every depth `k ≥ 1000` and horizon `N` (`E20D11C`). The theorems are stated in `CryptarchiaCerts.lean` as instances of `Claim.Finality`: to check what is proved, read that file, `Cryptarchia/Claim` and `Cryptarchia/Spec`. The three build in about 30 min, most of it `E20D11G`'s tables; not a default target. |
 | `CryptarchiaTest` | Axiom checks, and differential tests of the specification's definitions against an independent transliteration of the pseudocode. |
 
 Libraries formalizing individual reports:

@@ -765,6 +765,403 @@ theorem switchF_sound (hR : ∀ k, (famZ k).Rep D (famQ k)) (hA : ∀ k, (famQ k
   exact ⟨fun k => fill_autoSol (hR k) (hA k) hD hX hS (List.mem_map.2 ⟨k, List.mem_finRange k, rfl⟩) (hk k).1,
     fun k => autoBoundZ_le (hR k) (hA k) hD hX hS (hk k).2⟩
 
+/-! ## Delayed tables
+
+A phase that starts more than `R` slots before the next boundary is bounded by its group's delayed tables
+(`phase_autoD`): from `vmax`, each slot one recursion step of the one before, the largest over the group's
+members (`stepTabGZ`, rounded up), `R` times, the last one checked to satisfy each member's recursion. -/
+
+/-- A table from its rows, each listed by `(a, u)`; `0` beyond. A lookup walks at most the rows and six
+entries. -/
+def tabRZ (rows : List (List ℤ)) : ℕ → Fin 3 → Bool → ℤ := fun q a u =>
+  (rows.getD q []).getD (2 * a.val + if u then 1 else 0) 0
+
+/-- The rows `q, …, q + n - 1` of a table. -/
+def rowsZ (v : ℕ → Fin 3 → Bool → ℤ) : ℕ → ℕ → List (List ℤ)
+  | _, 0 => []
+  | q, n + 1 => [v q 0 false, v q 0 true, v q 1 false, v q 1 true, v q 2 false, v q 2 true] :: rowsZ v (q + 1) n
+
+theorem rowsZ_getD (v : ℕ → Fin 3 → Bool → ℤ) : ∀ (j n q : ℕ) (a : Fin 3) (u : Bool), j < n →
+    tabRZ (rowsZ v q n) j a u = v (q + j) a u
+  | 0, n + 1, q, a, u, _ => by
+    simp only [tabRZ, rowsZ, List.getD_cons_zero, Nat.add_zero]
+    fin_cases a <;> cases u <;> rfl
+  | j + 1, n + 1, q, a, u, hj => by
+    have := rowsZ_getD v j n (q + 1) a u (by omega)
+    simp only [tabRZ, rowsZ, List.getD_cons_succ] at this ⊢
+    rw [this, show q + 1 + j = q + (j + 1) by omega]
+
+/-- A table evaluated once and kept by rows. -/
+def memoRZ (Δ : ℕ) (v : ℕ → Fin 3 → Bool → ℤ) : ℕ → Fin 3 → Bool → ℤ := tabRZ (rowsZ v 0 Δ)
+
+theorem memoRZ_eq {Δ : ℕ} {v : ℕ → Fin 3 → Bool → ℤ} {q : ℕ} (hq : q < Δ) (a : Fin 3) (u : Bool) :
+    memoRZ Δ v q a u = v q a u := by
+  unfold memoRZ; rw [rowsZ_getD v q Δ 0 a u hq, Nat.zero_add]
+
+/-- One recursion step, the largest over the bands `Bs` and at least `0`, rounded up to the scale, as a
+table kept by rows. -/
+def stepTabGZ (Bs : List BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (w : ℕ → Fin 3 → Bool → ℤ) : ℕ → Fin 3 → Bool → ℤ :=
+  memoRZ Δ fun q a u => Bs.foldl (fun m B => max m (cdivZ (stepZ B D Δ X S w q a u) (X.M D))) 0
+
+/-- Every entry `q < Δ` of `w` at least `lo`'s. -/
+def leTabZ (Δ : ℕ) (lo w : ℕ → Fin 3 → Bool → ℤ) : Bool :=
+  (List.range Δ).all fun q => (List.finRange 3).all fun a => decide (lo q a false ≤ w q a false) &&
+    decide (lo q a true ≤ w q a true)
+
+theorem leTabZ_sound {Δ : ℕ} {lo w : ℕ → Fin 3 → Bool → ℤ} (h : leTabZ Δ lo w = true) {q : ℕ} (hq : q < Δ)
+    (a : Fin 3) (u : Bool) : lo q a u ≤ w q a u := by
+  simp only [leTabZ, List.all_eq_true, List.mem_range, List.mem_finRange, Bool.and_eq_true, decide_eq_true_eq,
+    forall_const] at h
+  cases u
+  exacts [(h q hq a).1, (h q hq a).2]
+
+/-- Every entry `q < Δ` of `w` solves band `B`'s recursion. -/
+def solTabZ (B : BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (w : ℕ → Fin 3 → Bool → ℤ) : Bool :=
+  (List.range Δ).all fun q => (List.finRange 3).all fun a =>
+    decide (stepZ B D Δ X S w q a false ≤ w q a false * X.M D) && decide (stepZ B D Δ X S w q a true ≤ w q a true * X.M D)
+
+theorem solTabZ_sound {B : BandZ} {D : ℤ} {Δ : ℕ} {X : PhZ} {S : ℤ} {w : ℕ → Fin 3 → Bool → ℤ}
+    (h : solTabZ B D Δ X S w = true) {q : ℕ} (hq : q < Δ) (a : Fin 3) (u : Bool) :
+    stepZ B D Δ X S w q a u ≤ w q a u * X.M D := by
+  simp only [solTabZ, List.all_eq_true, List.mem_range, List.mem_finRange, Bool.and_eq_true, decide_eq_true_eq,
+    forall_const] at h
+  cases u
+  exacts [(h q hq a).1, (h q hq a).2]
+
+/-- `stepTabGZ` on a table's rows (`tabRZ`), as rows: the delayed tables are passed as data, so that
+evaluation does not recompute them. -/
+def stepLGZ (Bs : List BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (l : List (List ℤ)) : List (List ℤ) :=
+  rowsZ (fun q a u => Bs.foldl (fun m B => max m (cdivZ (stepZ B D Δ X S (tabRZ l) q a u) (X.M D))) 0) 0 Δ
+
+/-- `R` delayed steps from the table listed by `l`, each table checked above `lo`: whether all are, and
+the last table's list. -/
+def dlyGoZ (Bs : List BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (lo : ℕ → Fin 3 → Bool → ℤ) :
+    ℕ → List (List ℤ) → Bool × List (List ℤ)
+  | 0, l => (leTabZ Δ lo (tabRZ l), l)
+  | r + 1, l =>
+    let p := dlyGoZ Bs D Δ X S lo r (stepLGZ Bs D Δ X S l)
+    (leTabZ Δ lo (tabRZ l) && p.1, p.2)
+
+theorem dlyGoZ_spec {Bs : List BandZ} {D : ℤ} {Δ : ℕ} {X : PhZ} {S : ℤ} {lo : ℕ → Fin 3 → Bool → ℤ} :
+    ∀ (n : ℕ) (l : List (List ℤ)), tabRZ (dlyGoZ Bs D Δ X S lo n l).2 = (stepTabGZ Bs D Δ X S)^[n] (tabRZ l) ∧
+      ((dlyGoZ Bs D Δ X S lo n l).1 = true → ∀ r ≤ n, leTabZ Δ lo ((stepTabGZ Bs D Δ X S)^[r] (tabRZ l)) = true)
+  | 0, l => ⟨rfl, fun h r hr => by rw [Nat.le_zero.1 hr]; exact h⟩
+  | n + 1, l => by
+    obtain ⟨h2, h1⟩ := dlyGoZ_spec n (stepLGZ Bs D Δ X S l)
+    have hs : stepTabGZ Bs D Δ X S (tabRZ l) = tabRZ (stepLGZ Bs D Δ X S l) := rfl
+    refine ⟨by rw [Function.iterate_succ_apply, hs]; exact h2, fun h r hr => ?_⟩
+    simp only [dlyGoZ, Bool.and_eq_true] at h
+    rcases r with _ | r
+    · exact h.1
+    · rw [Function.iterate_succ_apply, hs]; exact h1 h.2 r (by omega)
+
+section DlySound
+
+variable {B : BandZ} {D : ℤ} {b : BandQ} {Bb : Band} (hR : B.Rep D b) (hA : b.Agrees Bb) (hD : 0 < D) {X : PhZ}
+  {x θ : ℚ} {g : Fin 3 → Bool → Bool → ℚ} (hX : X.Rep x θ g) {S : ℤ} (hS : 0 < S) {Δ : ℕ}
+include hR hA hD hX hS
+
+/-- A rounded-up step over bands including `B` is above `B`'s recursion step. -/
+theorem stepTabGZ_sound {Bs : List BandZ} (hB : B ∈ Bs) (w : ℕ → Fin 3 → Bool → ℤ) {q : ℕ} (hq : q < Δ) (a : Fin 3)
+    (u : Bool) : stepR Bb Δ x θ (castG g) (castZ S w) q a u ≤ castZ S (stepTabGZ Bs D Δ X S w) q a u := by
+  have hS' : (0 : ℝ) < S := by exact_mod_cast hS
+  have hM : (0 : ℝ) < X.M D := by exact_mod_cast X.M_pos hX hD
+  have h1 : stepZ B D Δ X S w q a u ≤ stepTabGZ Bs D Δ X S w q a u * X.M D := by
+    unfold stepTabGZ; rw [memoRZ_eq hq]
+    refine le_trans (cdivZ_mul_ge (X.M_pos hX hD)) (Int.mul_le_mul_of_nonneg_right ?_ (X.M_pos hX hD).le)
+    exact (foldl_max_ge (fun B' => cdivZ (stepZ B' D Δ X S w q a u) (X.M D)) Bs 0).2 B hB
+  have h2 : (stepZ B D Δ X S w q a u : ℝ) ≤ (stepTabGZ Bs D Δ X S w q a u : ℝ) * X.M D := by exact_mod_cast h1
+  rw [stepZ_cast hR hA hD hX hS] at h2
+  rw [castZ, le_div_iff₀ hS']
+  nlinarith [mul_pos hM hS']
+
+/-- A table above the terminal table's floor is above `g`. -/
+theorem gFloor_term {w : ℕ → Fin 3 → Bool → ℤ} {q : ℕ} (a : Fin 3) (u : Bool) (h : gFloorZ X S q a u ≤ w q a u) :
+    castG g a true u ≤ castZ S w q a u := by
+  have hgd : (0 : ℝ) < X.gd := by exact_mod_cast hX.gd
+  have hS' : (0 : ℝ) < S := by exact_mod_cast hS
+  refine le_trans ?_ (castZ_le hS h)
+  rw [castG, castZ, hX.g]
+  push_cast
+  rw [div_le_div_iff₀ hgd hS']
+  exact_mod_cast gFloorZ_ge hX.gd q a u
+
+end DlySound
+
+/-- **A group's delayed tables, checked**: `R` steps from `vmax` over the members `ks`, each above the
+terminal floor, the last solving each member's recursion with phase bound at most `eD k`. -/
+def chkDlyG {K : ℕ} (famZ : Fin K → BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (postTop : Fin K → Fin 3 → ℤ)
+    (ks : List (Fin K)) (R : ℕ) (eD : Fin K → ℚ) : Bool :=
+  let p := dlyGoZ (ks.map famZ) D Δ X S (gFloorZ X S) R (rowsZ (vmaxF famZ D Δ X S postTop) 0 Δ)
+  p.1 && ks.all fun k => solTabZ (famZ k) D Δ X S (tabRZ p.2) &&
+    decide ((autoBoundZ (famZ k) D X S (tabRZ p.2) : ℚ) ≤ eD k * (X.M D * S : ℤ))
+
+/-- A group's `r`-th delayed table. -/
+def dlyTabGZ {K : ℕ} (famZ : Fin K → BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (postTop : Fin K → Fin 3 → ℤ)
+    (ks : List (Fin K)) (r : ℕ) : ℕ → Fin 3 → Bool → ℤ :=
+  (stepTabGZ (ks.map famZ) D Δ X S)^[r] (tabRZ (rowsZ (vmaxF famZ D Δ X S postTop) 0 Δ))
+
+/-- **A group's delayed tables, from their check**, for each member `k` of the group: the first is `vmax`,
+each is above `k`'s recursion step of the one before, the last above its own, all above `g`, and the
+last's phase bound at most `eD k`. -/
+theorem dlyG_sound (hR : ∀ k, (famZ k).Rep D (famQ k)) (hA : ∀ k, (famQ k).Agrees (fam k)) (hD : 0 < D)
+    (hX : X.Rep x θ g) (hS : 0 < S) {postTop : Fin K → Fin 3 → ℤ} {ks : List (Fin K)} {R : ℕ} {eD : Fin K → ℚ}
+    (h : chkDlyG famZ D Δ X S postTop ks R eD = true) {k : Fin K} (hk : k ∈ ks) :
+    (∀ q < Δ, ∀ a u, castZ S (vmaxF famZ D Δ X S postTop) q a u ≤ castZ S (dlyTabGZ famZ D Δ X S postTop ks 0) q a u) ∧
+    (∀ r < R, ∀ q < Δ, ∀ a u, stepR (fam k) Δ x θ (castG g) (castZ S (dlyTabGZ famZ D Δ X S postTop ks r)) q a u ≤
+      castZ S (dlyTabGZ famZ D Δ X S postTop ks (r + 1)) q a u) ∧
+    (∀ q < Δ, ∀ a u, stepR (fam k) Δ x θ (castG g) (castZ S (dlyTabGZ famZ D Δ X S postTop ks R)) q a u ≤
+      castZ S (dlyTabGZ famZ D Δ X S postTop ks R) q a u) ∧
+    (∀ r ≤ R, ∀ q < Δ, ∀ a u, castG g a true u ≤ castZ S (dlyTabGZ famZ D Δ X S postTop ks r) q a u) ∧
+    autoBound (fam k) x θ (castG g) (castZ S (dlyTabGZ famZ D Δ X S postTop ks R)) ≤ eD k := by
+  simp only [chkDlyG, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at h
+  obtain ⟨h1, h2⟩ := h
+  obtain ⟨he, hle⟩ := dlyGoZ_spec R (rowsZ (vmaxF famZ D Δ X S postTop) 0 Δ)
+    (Bs := ks.map famZ) (D := D) (Δ := Δ) (X := X) (S := S) (lo := gFloorZ X S)
+  obtain ⟨h3, h4⟩ := h2 k hk
+  rw [he] at h3 h4
+  have hB : famZ k ∈ ks.map famZ := List.mem_map_of_mem hk
+  refine ⟨fun q hq a u => ?_, fun r _ q hq a u => ?_, fun q hq a u => ?_, fun r hr q hq a u => ?_, ?_⟩
+  · unfold dlyTabGZ; rw [Function.iterate_zero, id]
+    exact le_of_eq (by unfold castZ; congr 1; exact_mod_cast (memoRZ_eq (v := vmaxF famZ D Δ X S postTop) hq a u).symm)
+  · unfold dlyTabGZ
+    rw [Function.iterate_succ_apply']
+    exact stepTabGZ_sound (hR k) (hA k) hD hX hS hB _ hq a u
+  · exact stepZ_le (hR k) (hA k) hD hX hS (solTabZ_sound h3 hq a u)
+  · exact gFloor_term (hR k) (hA k) hD hX hS a u (leTabZ_sound (hle h1 r hr) hq a u)
+  · exact autoBoundZ_le (hR k) (hA k) hD hX hS h4
+
+/-! ## A geometric envelope of the delayed tables
+
+Instead of `R` explicit steps, a member's delayed tables are bounded by `P + λ^r Z` (`phase_autoEnv`),
+with `P` its post-switch table: one check of `Z` (`chkEnvZ`) covers every `R`. -/
+
+/-- The phase expectation with the terminal table at `0`. -/
+def PhZ.zeroG (X : PhZ) : PhZ := { X with gn := fun _ _ _ => 0 }
+
+theorem PhZ.zeroG_rep {X : PhZ} {x θ : ℚ} {g : Fin 3 → Bool → Bool → ℚ} (h : X.Rep x θ g) :
+    X.zeroG.Rep x θ (fun _ _ _ => 0) :=
+  ⟨h.xd, h.θd, h.gd, h.x, h.θ, fun _ _ _ => by simp [PhZ.zeroG]⟩
+
+@[simp] theorem PhZ.zeroG_M (X : PhZ) (D : ℤ) : X.zeroG.M D = X.M D := rfl
+
+/-- Every entry `q < Δ` passes `p`. -/
+def allTabZ (Δ : ℕ) (p : ℕ → Fin 3 → Bool → Bool) : Bool :=
+  (List.range Δ).all fun q => (List.finRange 3).all fun a => p q a false && p q a true
+
+theorem allTabZ_sound {Δ : ℕ} {p : ℕ → Fin 3 → Bool → Bool} (h : allTabZ Δ p = true) {q : ℕ} (hq : q < Δ)
+    (a : Fin 3) (u : Bool) : p q a u = true := by
+  simp only [allTabZ, List.all_eq_true, List.mem_range, List.mem_finRange, Bool.and_eq_true, forall_const] at h
+  cases u
+  exacts [(h q hq a).1, (h q hq a).2]
+
+/-- **A member's envelope, checked**: `Z` (by rows) nonnegative and above `vmax` less the member's
+post-switch table, its step without the terminal table at most `lam` times it, `0 ≤ lam ≤ 1`, and its
+phase bound without the terminal table at most `aZ`. -/
+def chkEnvZ {K : ℕ} (famZ : Fin K → BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (postTop : Fin K → Fin 3 → ℤ)
+    (k : Fin K) (Z : List (List ℤ)) (lam aZ : ℚ) : Bool :=
+  let vm := vmaxF famZ D Δ X S postTop
+  let P := postF famZ D Δ X S postTop k
+  let z := tabRZ Z
+  allTabZ Δ (fun q a u => decide (0 ≤ z q a u) && decide (vm q a u ≤ P q a u + z q a u) &&
+    decide ((lam.den : ℤ) * stepZ (famZ k) D Δ X.zeroG S z q a u ≤ lam.num * (z q a u * X.M D))) &&
+    decide (0 ≤ lam) && decide (lam ≤ 1) && decide ((autoBoundZ (famZ k) D X.zeroG S z : ℚ) ≤ aZ * (X.M D * S : ℤ))
+
+/-- **A member's envelope, from its check.** -/
+theorem env_sound (hR : ∀ k, (famZ k).Rep D (famQ k)) (hA : ∀ k, (famQ k).Agrees (fam k)) (hD : 0 < D)
+    (hX : X.Rep x θ g) (hS : 0 < S) {postTop : Fin K → Fin 3 → ℤ} {k : Fin K} {Z : List (List ℤ)} {lam aZ : ℚ}
+    (h : chkEnvZ famZ D Δ X S postTop k Z lam aZ = true) :
+    (∀ q < Δ, ∀ a u, 0 ≤ castZ S (tabRZ Z) q a u) ∧
+    (∀ q < Δ, ∀ a u, castZ S (vmaxF famZ D Δ X S postTop) q a u ≤
+      castZ S (postF famZ D Δ X S postTop k) q a u + castZ S (tabRZ Z) q a u) ∧
+    (∀ q < Δ, ∀ a u, stepR (fam k) Δ x θ (fun _ _ _ => 0) (castZ S (tabRZ Z)) q a u ≤ lam * castZ S (tabRZ Z) q a u) ∧
+    (0 : ℝ) ≤ lam ∧ (lam : ℝ) ≤ 1 ∧
+    autoBound (fam k) x θ (fun _ _ _ => 0) (castZ S (tabRZ Z)) ≤ aZ := by
+  simp only [chkEnvZ, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨⟨⟨hall, hl0⟩, hl1⟩, hb⟩ := h
+  have hS' : (0 : ℝ) < S := by exact_mod_cast hS
+  have hM : (0 : ℝ) < X.M D := by exact_mod_cast X.M_pos hX hD
+  have hX0 := PhZ.zeroG_rep hX
+  have hg0 : castG (fun _ _ _ => (0 : ℚ)) = fun _ _ _ => (0 : ℝ) := by funext a b u; simp [castG]
+  have e := fun q (hq : q < Δ) a u => allTabZ_sound hall hq a u
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at e
+  refine ⟨fun q hq a u => ?_, fun q hq a u => ?_, fun q hq a u => ?_, by exact_mod_cast hl0, by exact_mod_cast hl1, ?_⟩
+  · exact div_nonneg (by exact_mod_cast (e q hq a u).1.1) hS'.le
+  · unfold castZ; rw [← add_div]; exact div_le_div_of_nonneg_right (by exact_mod_cast (e q hq a u).1.2) hS'.le
+  · have h3 := (e q hq a u).2
+    have hc := stepZ_cast (hR k) (hA k) hD hX0 hS Δ (tabRZ Z) q a u
+    rw [hg0] at hc
+    have hd : (0 : ℝ) < lam.den := by exact_mod_cast lam.den_pos
+    have h3' : ((lam.den : ℤ) : ℝ) * (stepZ (famZ k) D Δ X.zeroG S (tabRZ Z) q a u : ℝ) ≤
+        (lam.num : ℝ) * ((tabRZ Z q a u : ℝ) * (X.M D : ℝ)) := by exact_mod_cast h3
+    rw [hc, PhZ.zeroG_M] at h3'
+    have hlam : (lam : ℝ) = lam.num / lam.den := by exact_mod_cast (Rat.num_div_den lam).symm
+    rw [hlam, castZ, div_mul_div_comm, le_div_iff₀ (by positivity)]
+    push_cast at h3'
+    set st := stepR (fam k) Δ (x : ℝ) θ (fun _ _ _ => 0) (castZ S (tabRZ Z)) q a u
+    have key : st * ((lam.den : ℝ) * S) * (X.M D : ℝ) ≤ (lam.num : ℝ) * (tabRZ Z q a u : ℝ) * (X.M D : ℝ) := by
+      nlinarith
+    exact le_of_mul_le_mul_right key hM
+  · have := autoBoundZ_le (hR k) (hA k) hD hX0 hS (by rw [PhZ.zeroG_M]; exact hb)
+    rwa [hg0] at this
+
+/-- **A member's envelope, by rule**: from `Y₀ = (vmax - P)⁺ + 1` at a scale `2^32` finer, the iterates
+`Yᵢ₊₁` of the step without the terminal table (rounded up), `Z = Σ_{i<n} Yᵢ / μ^i` by Horner's rule, rounded
+up to the table's scale, and the least `λ` with `L(Z) ≤ λ Z` and `Z`'s phase bound, rounded up to 13
+digits; `λ = 1` when `Z` has a zero entry where its step is not. The `+ 1` keeps `Z` positive where
+`vmax - P` is only rounding. The tables are passed by rows. -/
+def envZ (B : BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (P vm : List (List ℤ)) (mu : ℚ) (n : ℕ) :
+    List (List ℤ) × ℚ × ℚ :=
+  let X0 := X.zeroG
+  let m := X.M D
+  let L : List (List ℤ) → List (List ℤ) := fun Y =>
+    rowsZ (fun q a u => max 0 (cdivZ (stepZ B D Δ X0 S (tabRZ Y) q a u) m)) 0 Δ
+  let T : ℤ := 2 ^ 32
+  let Y0 := rowsZ (fun q a u => (max 0 (tabRZ vm q a u - tabRZ P q a u) + 1) * T) 0 Δ
+  let ys := (List.range n).foldl (fun acc _ => acc ++ [L (acc.getLast?.getD Y0)]) [Y0]
+  let acc := (ys.take n).reverse.foldl (fun acc Y =>
+    rowsZ (fun q a u => tabRZ Y q a u + cdivZ (tabRZ acc q a u * mu.den) mu.num) 0 Δ) (rowsZ (fun _ _ _ => 0) 0 Δ)
+  let hor := rowsZ (fun q a u => cdivZ (tabRZ acc q a u) T) 0 Δ
+  let z := tabRZ hor
+  let ent := (List.range Δ).flatMap fun q => (List.finRange 3).flatMap fun a => [(q, a, false), (q, a, true)]
+  let lam := ent.foldl (fun l e => let zz := z e.1 e.2.1 e.2.2
+    let lz := stepZ B D Δ X0 S z e.1 e.2.1 e.2.2
+    if zz = 0 then (if lz ≤ 0 then l else 1) else max l ((lz : ℚ) / (zz * m))) 0
+  (hor, rupQ 13 lam, rupQ 13 ((autoBoundZ B D X0 S z : ℚ) / (m * S)))
+
+/-! ## The worst band
+
+The members' post-switch tables are all bounded by one table for the family's worst band (larger upper
+fields, smaller lower ones), as `slot4` is monotone in the band (`AutoSol.of_worse`); so is the pre-switch
+table. One table each then serves every member, with each of the start's group's members' own post-switch
+table for its in-epoch bound (`chkOneW`). -/
+
+/-- `B'` is worse than `B`, as a check. -/
+def worseZ (B B' : BandZ) : Bool :=
+  decide (B.hhi ≤ B'.hhi) && decide (B'.hlo ≤ B.hlo) && decide (B.amax ≤ B'.amax) && decide (B'.alo ≤ B.alo) &&
+    decide (B.hahi ≤ B'.hahi) && decide (B'.halo ≤ B.halo)
+
+/-- The family's worst band, field by field. -/
+def worstZ (l : List BandZ) : BandZ :=
+  let b0 := l.headD ⟨0, 0, 0, 0, 0, 0⟩
+  l.foldl (fun w B => ⟨max w.hhi B.hhi, min w.hlo B.hlo, max w.amax B.amax, max w.hahi B.hahi, min w.alo B.alo,
+    min w.halo B.halo⟩) b0
+
+/-- A band over `ℚ` from its integers. -/
+def BandZ.toQ (B : BandZ) (D : ℤ) : BandQ :=
+  ⟨(B.hhi : ℚ) / D, (B.hlo : ℚ) / D, (B.amax : ℚ) / D, (B.hahi : ℚ) / D, (B.alo : ℚ) / D, (B.halo : ℚ) / D⟩
+
+theorem BandZ.rep_toQ (B : BandZ) (D : ℤ) : B.Rep D (B.toQ D) := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+/-- A band with the fields `slot4` reads, the others `0`. -/
+noncomputable def BandQ.toBandR (b : BandQ) : Band :=
+  { hhi := b.hhi, hlo := b.hlo, amax := b.amax, hahi := b.hahi, slo := 0, hnlo := 0, elo := 0, alo := b.alo,
+    halo := b.halo }
+
+theorem BandQ.agrees_toBandR (b : BandQ) : b.Agrees b.toBandR := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+theorem worse_of {B B' : BandZ} {D : ℤ} {b : BandQ} {Bb : Band} (hR : B.Rep D b) (hA : b.Agrees Bb) (hD : 0 < D)
+    (h : worseZ B B' = true) : Bb.Worse (B'.toQ D).toBandR := by
+  simp only [worseZ, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩ := h
+  have hD' : (0 : ℝ) < D := by exact_mod_cast hD
+  have c : ∀ a c : ℤ, a ≤ c → (a : ℝ) / D ≤ (c : ℝ) / D := fun a c h =>
+    div_le_div_of_nonneg_right (by exact_mod_cast h) hD'.le
+  simp only [BandQ.toBandR, BandZ.toQ]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    simp only [hA.hhi, hA.hlo, hA.amax, hA.alo, hA.hahi, hA.halo, hR.hhi, hR.hlo, hR.amax, hR.alo, hR.hahi, hR.halo] <;>
+    push_cast <;> first | exact c _ _ h1 | exact c _ _ h2 | exact c _ _ h3 | exact c _ _ h4 | exact c _ _ h5 | exact c _ _ h6
+
+/-- **The one-switch tables from the worst band**: `W` for `BW` floored at `g` and the pre-switch table
+`PW` floored at `W`, each from its seeds; `BW` worse than every member; and each of the members `ks`'s own
+post-switch table from its seeds, with its in-epoch bound at most `eIn k` and the pre-switch bound at
+most `eE`. -/
+def chkOneW (famZ : Fin K → BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (BW : BandZ) (wTop pwTop : Fin 3 → ℤ)
+    (postTop : Fin K → Fin 3 → ℤ) (ks : List (Fin K)) (eIn : Fin K → ℚ) (eE : ℚ) : Bool :=
+  let W := fillZ BW D Δ X S (gFloorZ X S) wTop
+  let PW := fillZ BW D Δ X S W pwTop
+  decide (0 ≤ X.θn) && (List.finRange K).all (fun k => worseZ (famZ k) BW) &&
+    seedOKZ BW D Δ X S (gFloorZ X S) W && seedOKZ BW D Δ X S W PW &&
+    ks.all fun k => seedOKZ (famZ k) D Δ X S (gFloorZ X S) (postF famZ D Δ X S postTop k) &&
+      decide ((autoBoundZ (famZ k) D X S (postF famZ D Δ X S postTop k) : ℚ) ≤ eIn k * (X.M D * S : ℤ)) &&
+      decide ((autoBoundZ (famZ k) D X S PW : ℚ) ≤ eE * (X.M D * S : ℤ))
+
+theorem oneSwitchW_sound (hR : ∀ k, (famZ k).Rep D (famQ k)) (hA : ∀ k, (famQ k).Agrees (fam k)) (hD : 0 < D)
+    (hX : X.Rep x θ g) (hS : 0 < S) {BW : BandZ} {wTop pwTop : Fin 3 → ℤ} {postTop : Fin K → Fin 3 → ℤ}
+    {ks : List (Fin K)} {eIn : Fin K → ℚ} {eE : ℚ}
+    (h : chkOneW famZ D Δ X S BW wTop pwTop postTop ks eIn eE = true) :
+    AutoSolE fam Δ x θ (castG g) (fun _ => castZ S (fillZ BW D Δ X S (fillZ BW D Δ X S (gFloorZ X S) wTop) pwTop))
+        (fun _ => castZ S (fillZ BW D Δ X S (gFloorZ X S) wTop)) (castZ S (fillZ BW D Δ X S (gFloorZ X S) wTop)) ∧
+      (∀ k ∈ ks, AutoSol (fam k) Δ x θ (castG g) (castZ S (postF famZ D Δ X S postTop k)) ∧
+        autoBound (fam k) x θ (castG g) (castZ S (postF famZ D Δ X S postTop k)) ≤ eIn k ∧
+        autoBound (fam k) x θ (castG g)
+          (castZ S (fillZ BW D Δ X S (fillZ BW D Δ X S (gFloorZ X S) wTop) pwTop)) ≤ eE) := by
+  simp only [chkOneW, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at h
+  obtain ⟨⟨⟨⟨hθn, hw⟩, hW⟩, hPW⟩, hks⟩ := h
+  have hθ : (0 : ℝ) ≤ θ := by
+    have : (θ : ℚ) = X.θn / X.θd := hX.θ
+    have h0 : (0 : ℚ) ≤ X.θn / X.θd := div_nonneg (by exact_mod_cast hθn) (by exact_mod_cast hX.θd.le)
+    exact_mod_cast this ▸ h0
+  have hRW := BandZ.rep_toQ BW D
+  have hAW := (BW.toQ D).agrees_toBandR
+  have hB : BW ∈ [BW] := List.mem_singleton_self _
+  have sW := fill_autoSol hRW hAW hD hX hS hB hW
+  have sPW := fill_preSol hRW hAW hD hX hS hB hPW
+  have hwk : ∀ k, (fam k).Worse (BW.toQ D).toBandR := fun k =>
+    worse_of (hR k) (hA k) hD (hw k (List.mem_finRange k))
+  refine ⟨⟨fun k => AutoSol.of_worse (hwk k) hθ sW, fun k q _ a u => le_rfl,
+    fun k => ⟨sPW.dom, fun q hq a u => (stepR_mono (hwk k) hθ _ _ q a u).trans (sPW.step q hq a u)⟩⟩,
+    fun k hk => ?_⟩
+  obtain ⟨⟨hs, hb⟩, he⟩ := hks k hk
+  have hBk : famZ k ∈ [famZ k] := List.mem_singleton_self _
+  exact ⟨fill_autoSol (hR k) (hA k) hD hX hS hBk hs, autoBoundZ_le (hR k) (hA k) hD hX hS hb,
+    autoBoundZ_le (hR k) (hA k) hD hX hS he⟩
+
+/-- **A member's envelope against `W`, checked**: as `chkEnvZ`, with `W` in place of `vmax`. -/
+def chkEnvW (famZ : Fin K → BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (W : ℕ → Fin 3 → Bool → ℤ)
+    (postTop : Fin K → Fin 3 → ℤ) (k : Fin K) (Z : List (List ℤ)) (lam aZ : ℚ) : Bool :=
+  let P := postF famZ D Δ X S postTop k
+  let z := tabRZ Z
+  allTabZ Δ (fun q a u => decide (0 ≤ z q a u) && decide (W q a u ≤ P q a u + z q a u) &&
+    decide ((lam.den : ℤ) * stepZ (famZ k) D Δ X.zeroG S z q a u ≤ lam.num * (z q a u * X.M D))) &&
+    decide (0 ≤ lam) && decide (lam ≤ 1) && decide ((autoBoundZ (famZ k) D X.zeroG S z : ℚ) ≤ aZ * (X.M D * S : ℤ))
+
+theorem envW_sound (hR : ∀ k, (famZ k).Rep D (famQ k)) (hA : ∀ k, (famQ k).Agrees (fam k)) (hD : 0 < D)
+    (hX : X.Rep x θ g) (hS : 0 < S) {W : ℕ → Fin 3 → Bool → ℤ} {postTop : Fin K → Fin 3 → ℤ} {k : Fin K}
+    {Z : List (List ℤ)} {lam aZ : ℚ} (h : chkEnvW famZ D Δ X S W postTop k Z lam aZ = true) :
+    (∀ q < Δ, ∀ a u, 0 ≤ castZ S (tabRZ Z) q a u) ∧
+    (∀ q < Δ, ∀ a u, castZ S W q a u ≤ castZ S (postF famZ D Δ X S postTop k) q a u + castZ S (tabRZ Z) q a u) ∧
+    (∀ q < Δ, ∀ a u, stepR (fam k) Δ x θ (fun _ _ _ => 0) (castZ S (tabRZ Z)) q a u ≤ lam * castZ S (tabRZ Z) q a u) ∧
+    (0 : ℝ) ≤ lam ∧ (lam : ℝ) ≤ 1 ∧
+    autoBound (fam k) x θ (fun _ _ _ => 0) (castZ S (tabRZ Z)) ≤ aZ := by
+  simp only [chkEnvW, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨⟨⟨hall, hl0⟩, hl1⟩, hb⟩ := h
+  have hS' : (0 : ℝ) < S := by exact_mod_cast hS
+  have hM : (0 : ℝ) < X.M D := by exact_mod_cast X.M_pos hX hD
+  have hX0 := PhZ.zeroG_rep hX
+  have hg0 : castG (fun _ _ _ => (0 : ℚ)) = fun _ _ _ => (0 : ℝ) := by funext a b u; simp [castG]
+  have e := fun q (hq : q < Δ) a u => allTabZ_sound hall hq a u
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at e
+  refine ⟨fun q hq a u => ?_, fun q hq a u => ?_, fun q hq a u => ?_, by exact_mod_cast hl0, by exact_mod_cast hl1, ?_⟩
+  · exact div_nonneg (by exact_mod_cast (e q hq a u).1.1) hS'.le
+  · unfold castZ; rw [← add_div]; exact div_le_div_of_nonneg_right (by exact_mod_cast (e q hq a u).1.2) hS'.le
+  · have h3 := (e q hq a u).2
+    have hc := stepZ_cast (hR k) (hA k) hD hX0 hS Δ (tabRZ Z) q a u
+    rw [hg0] at hc
+    have hd : (0 : ℝ) < lam.den := by exact_mod_cast lam.den_pos
+    have h3' : ((lam.den : ℤ) : ℝ) * (stepZ (famZ k) D Δ X.zeroG S (tabRZ Z) q a u : ℝ) ≤
+        (lam.num : ℝ) * ((tabRZ Z q a u : ℝ) * (X.M D : ℝ)) := by exact_mod_cast h3
+    rw [hc, PhZ.zeroG_M] at h3'
+    have hlam : (lam : ℝ) = lam.num / lam.den := by exact_mod_cast (Rat.num_div_den lam).symm
+    rw [hlam, castZ, div_mul_div_comm, le_div_iff₀ (by positivity)]
+    push_cast at h3'
+    set st := stepR (fam k) Δ (x : ℝ) θ (fun _ _ _ => 0) (castZ S (tabRZ Z)) q a u
+    have key : st * ((lam.den : ℝ) * S) * (X.M D : ℝ) ≤ (lam.num : ℝ) * (tabRZ Z q a u : ℝ) * (X.M D : ℝ) := by
+      nlinarith
+    exact le_of_mul_le_mul_right key hM
+  · have := autoBoundZ_le (hR k) (hA k) hD hX0 hS (by rw [PhZ.zeroG_M]; exact hb)
+    rwa [hg0] at this
+
 end Index
 
 end Cryptarchia.Prob

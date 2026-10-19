@@ -177,12 +177,13 @@ theorem inB0_of_genesisOK {E : Env} {T : TBand} (hon : OnlineEpoch E) (hg : Gene
 
 /-- **Probabilistic finality over many epochs, for any failed-check potential.** As `finality`, with
 the certificate's base `C` and a failed-check potential `FP` (for every kernel with one member per
-epoch) contracting by `lp` and `lpi`. -/
+epoch) contracting by `lp` within `G1` slots of a boundary and by `lpi` otherwise. -/
 theorem finalityG {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle} {E : Env}
     (es : Ω → List Event) (hM : Model μ O E es) {N : ℕ} (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N)
     -- the certificate
     {M : ℕ} {B : Band} {Δ K G : ℕ} {fam : Fin (K + 1) → Band} (hΔ : E.Δ = Δ) (C : Cert2B B Δ fam E.c.epochLength G)
-    {lp lpi cs : ℝ} (FP : ∀ κ : Kern, κ.EpochFam E.c.epochLength fam → FailPot κ M G C.P (fun t => ¬ NoSw E.c.epochLength G t))
+    {lp lpi cs : ℝ} {G1 : ℕ} (hG1G : G1 ≤ G)
+    (FP : ∀ κ : Kern, κ.EpochFam E.c.epochLength fam → FailPot κ M G C.P (fun t => ¬ NoSw E.c.epochLength G1 t))
     (hFlp : ∀ κ hκ, (FP κ hκ).lp = lp) (hFlpi : ∀ κ hκ, (FP κ hκ).lpi = lpi) (hFcs : ∀ κ hκ, (FP κ hκ).cs = cs)
     (hP : ∀ k, (fam k).Prod)
     {G' J Lw r T : ℕ} {x yy : ℝ} (hx : 1 ≤ x) (hyy0 : 0 < yy)
@@ -206,7 +207,7 @@ theorem finalityG {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle
     (hG : GenesisOK E) (hS : ∀ ω, Exec.StakeOK E (O ω) (es ω) Tb.β Smax)
     (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) Tb.μ N)
     (hD : ∀ ω, Exec.StakeDrift E (O ω) (es ω) ρ N) (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) Hmin) :
-    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps3G E B C.P lp lpi (C.P.e 2 * cs) G N G G' J Lw r T x yy) +
+    μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps3G E B C.P lp lpi (C.P.e 2 * cs) G1 N G G' J Lw r T x yy) +
       Ne * ENNReal.ofReal (bandEps Tb E.c.period) := by
   classical
   obtain ⟨hA, hdel, hO, hσm, hfresh, hon, hlive⟩ := hM
@@ -292,7 +293,7 @@ theorem finalityG {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle
           exact hbandOf ω n (hin _ hm)
         · exact Or.inr (hdec e _ hsplit n (by omega))
     have hset := settle_bound3G E rfl hA.sane C.P (C.within hκ) C.hG (C.bounds0 hκ) (FP κ hκ)
-      (swCnt_noSw_le (by omega) hLw) hx hyy0 hyy1 hT hNM hhi1 hlo0 hlo1 helo1 (N := N) (G' := G') (J := J) (r := r)
+      (swCnt_noSw_le (by omega) (lt_of_le_of_lt (Nat.add_le_add_left hG1G Lw) hLw)) hx hyy0 hyy1 hT hNM hhi1 hlo0 hlo1 helo1 (N := N) (G' := G') (J := J) (r := r)
     rw [hFlp, hFlpi, hFcs] at hset
     refine le_trans ?_ hset
     apply Ex_mono_len
@@ -346,7 +347,7 @@ theorem finality {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤ ENNReal.ofReal (settleEps3E E B D.C.P D.lpi G N G G' J Lw r T x yy) +
       Ne * ENNReal.ofReal (bandEps Tb E.c.period) := by
   rw [settleEps3E_eq, ← mul_one (D.C.P.e 2)]
-  exact finalityG es hM hN hΔ D.C.toCert2B (fun κ hκ => FailPot.ofV2 D.C.P (D.C.within hκ) D.C.hG (D.bounds hκ) (D.inEpoch hκ hLw))
+  exact finalityG es hM hN hΔ D.C.toCert2B le_rfl (fun κ hκ => FailPot.ofV2 D.C.P (D.C.within hκ) D.C.hG (D.bounds hκ) (D.inEpoch hκ hLw))
     (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl) hP hx hyy0 hyy1 hT hNM hhi1 hlo0 hlo1 helo1 hLw hOG hc hTb hb hprec hPf hP1 hPEL hNe
     hfam hok hcov hadv hρ hHm hup hdn hg1 hg2 hSm hNw hG hS hQ hD hH
 

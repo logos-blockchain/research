@@ -4,18 +4,23 @@ As `emitT.py`, with one table per group of consecutive band members (`FamCfg.grp
 linear programming with their values within a factor `Γ` of each other (`Witness.solve_joint` in
 `tools/cbound/witness.py`). The potential grows by `γ = 1 + 1/(k (EL - 1))` per slot of the epoch's age,
 which covers the ratio between groups' tables when an epoch ends (`Γ ≤ 1 + (EL - 2G)(γ - 1)`, about
-`1 + 1/k`) and costs a start factor below `e^(1/k) ≤ sU` (`startChk`). Lean computes each (group, representative)'s data (`FamCfg.repDataG`), the
-contractions (`tabLpG`, `tabLpiG`) and the derived numbers (`SpecData.deriveLE`, with the checked phase's
-bound times `sU`); the kernel checks them. The files:
+`1 + 1/k`) and costs a start factor below `e^(1/k) ≤ sU` (`startChk`). The one-switch tables come from the
+family's worst band (`chkOneW`: one post-switch table `W` and one pre-switch table for every member, with
+each of the group's members' own post-switch table for its in-epoch bound). A phase starting more than
+`RDLY` slots before a boundary is bounded by its member's geometric envelope `P + λ^r Z` (`chkEnvW`,
+`phase_autoEnv`), so the one-switch contraction is paid only within `RDLY` slots of a boundary (`Ccap`).
+Lean computes each (group, representative)'s data (`FamCfg.repDataG`), the contractions (`tabLpG`,
+`tabLpiG`) and the derived numbers (`SpecData.deriveLE`, with the checked phase's bound times `sU`); the
+kernel checks them. `tabsim.py` mirrors these computations and predicts the bound in minutes. The files:
 
 - `Params.lean`, `Data.lean`, `Sw.lean`: as `emitT`;
-- `Tab.lean`: the tables (`TabQG`), `γ` and `Γ`;
+- `Tab.lean`: the tables (`TabQG`), `γ`, `Γ`, `sU`, the groups `nG` and the delayed steps `Rd`;
 - `R<j>.lean`: a chunk of (group, representative) entries, one kernel check each;
 - `NAME.lean`: the contractions and derived numbers, the checks, and the finality theorem.
 
 Two passes, as `emitT`: `emit`, then `lake build` of the chunks, then `main`.
 
-Usage: python3 emitTG.py BETA DELTA K N DEPTH VJ.npy NG R M CW ZC X C Z TAU GAMMA_BIG KSTART NAME OUTDIR [emit|main]
+Usage: python3 emitTG.py BETA DELTA K N DEPTH VJ.npy NG R M CW ZC X C Z TAU GAMMA_BIG KSTART RDLY NAME OUTDIR [emit|main]
 """
 import sys, os, subprocess, re
 from fractions import Fraction as Fr
@@ -46,7 +51,7 @@ def reps(R, M):
     return out
 
 
-def write_tab(sub, ns, name, R, M, cw, zc, x, tabs, gam, Gam, ks, sU):
+def write_tab(sub, ns, name, R, M, cw, zc, x, tabs, gam, Gam, ks, sU, ng, rd):
     ws = ",\n    ".join(ql(w) for w, _ in tabs)
     cs = ",\n    ".join("[" + ",\n      ".join(ql(r) for r in cold) + "]" for _, cold in tabs)
     txt = (imports([f"public import {ns}.Data\n", "public import Cryptarchia.Prob.TableGSpec\n",
@@ -86,6 +91,12 @@ def Γ : ℚ := {qQ(Gam)}
 /-- The start factor's bound: `γ ^ (EL - 1) ≤ e ^ (1 / {ks}) ≤ sU`. -/
 def sU : ℚ := {qQ(sU)}
 
+/-- The groups of members. -/
+def nG : ℕ := {ng}
+
+/-- The delayed tables' steps: the contraction `lp` is paid within `Rd` slots of a boundary. -/
+def Rd : ℕ := {rd}
+
 end {ns}
 """)
     open(f"{sub}/Tab.lean", "w").write(txt)
@@ -93,9 +104,9 @@ end {ns}
 
 def write_rep(sub, ns, name, j, entries):
     dep = f"R{j - CHAINS}" if j >= CHAINS else "Tab"
-    defs = "".join(f"def r{j}_{i} : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => ({g}, s, F.repDataG (Q.tab {g}) γ s)) "
+    defs = "".join(f"def r{j}_{i} : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => ({g}, s, F.repDataG (Q.tab {g}) γ nG {g} Rd s)) "
                    f"((Q.tab {g}).repList.getD {k} (0, 0))\n" for i, (g, k) in enumerate(entries))
-    chks = "".join(f"theorem c{j}_{i} : F.repChkAG (Q.tab r{j}_{i}.1) γ r{j}_{i}.2.1 r{j}_{i}.2.2 = true := by decide +kernel\n"
+    chks = "".join(f"theorem c{j}_{i} : F.repChkAG (Q.tab r{j}_{i}.1) γ nG r{j}_{i}.1 Rd r{j}_{i}.2.1 r{j}_{i}.2.2 = true := by decide +kernel\n"
                    for i in range(len(entries)))
     names = ", ".join(f"r{j}_{i}" for i in range(len(entries)))
     cs = ", ".join(f"c{j}_{i}" for i in range(len(entries)))
@@ -114,7 +125,7 @@ open Cryptarchia Cryptarchia.Prob
 {chks}
 def D{j} : List (ℕ × (ℤ × ℤ) × RepData) := [{names}]
 
-theorem chkA{j} : D{j}.all (fun p => F.repChkAG (Q.tab p.1) γ p.2.1 p.2.2) = true := by
+theorem chkA{j} : D{j}.all (fun p => F.repChkAG (Q.tab p.1) γ nG p.1 Rd p.2.1 p.2.2) = true := by
   simp only [D{j}, List.all_cons, List.all_nil, {cs}, Bool.and_self]
 
 end {ns}
@@ -145,14 +156,14 @@ theorem swOK : ∀ i : Fin 19, FamCfg.isSw i = true → F.idxChkSw i (dat i) = t
 index to evaluate `![…]`). -/
 def D (j : Fin {nj}) : List (ℕ × (ℤ × ℤ) × RepData) := [{", ".join(f"D{j}" for j in range(nj))}].getD j.val []
 
-theorem tabA : F.tabChkAG Q γ D := by
+theorem tabA : F.tabChkAG Q γ nG Rd D := by
   intro j; fin_cases j
   exacts [{", ".join(f"chkA{j}" for j in range(nj))}]
 
 /-- The derived numbers (`SpecData.deriveLE`), with the tables' contractions by rule and the checked
 phase's bound times `eUp`, above the potential's start factor. -/
 def der : SpecDerived :=
-  eval% par.deriveLE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) Tq (FamCfg.tabLpG Q D) (F.tabLpiG Q {ng} D)
+  eval% par.deriveLE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) (fun _ => Rd) Tq (FamCfg.tabLpG Q D) (F.tabLpiG Q nG D)
 """
 
 
@@ -210,11 +221,12 @@ theorem c2OK : cert2ChkQ F.S.weakest F.Δ F.c F.z F.s 0 F.d F.τ 0 (FamCfg.lrOf 
     true := by
   decide +kernel
 
-theorem tabOK : F.tabChkG Q {ng} γ Γ (Config.specK par.k).epochLength der.G der.lp der.lpi D = true := by decide +kernel
+theorem tabOK : F.tabChkG Q nG γ Γ (Config.specK par.k).epochLength der.G Rd der.lp der.lpi D = true := by decide +kernel
 
 theorem stOK : startChk ((Config.specK par.k).epochLength - 1) {ks} γ sU = true := by decide +kernel
 
-theorem finOK : FamCfg.finChkSpecE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) Tq par der = true := by decide +kernel
+theorem finOK : FamCfg.finChkSpecE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) (fun _ => Rd) Tq par der = true := by
+  decide +kernel
 
 /-- **Finality, certified** (`Claim.Finality`): f = 1/30, k = {k}, Δ = {D} slots, executions up to
 slot {N}; the adversary holds at most {float(beta)} of the participating stake, stakes are at most
@@ -244,9 +256,9 @@ if __name__ == "__main__":
     Vfile, ng = a[5], int(a[6])
     R, M = int(a[7]), int(a[8])
     cw, zc, x, c, z, tau, Gam = (Fr(v) for v in a[9:16])
-    ks = int(a[16])
-    name, out_dir = a[17], a[18]
-    mode = a[19] if len(a) > 19 else 'emit'
+    ks, rd = int(a[16]), int(a[17])
+    name, out_dir = a[18], a[19]
+    mode = a[20] if len(a) > 20 else 'emit'
     certE.set_depth(depth)
     T = certE.tband(beta, delta, mu=Fr(13, 100))
     fam = certE.epoch_members(T, K)
@@ -285,7 +297,7 @@ if __name__ == "__main__":
         for f in os.listdir(sub):
             if re.fullmatch(r"I\d+\.lean", f): os.remove(f"{sub}/{f}")
         write_sw(sub, ns, name)
-        write_tab(sub, ns, name, R, M, cw, zc, x, tabs, gam, Gam, ks, sU)
+        write_tab(sub, ns, name, R, M, cw, zc, x, tabs, gam, Gam, ks, sU, ng, rd)
         for j in range(nj): write_rep(sub, ns, name, j, entries[j * CHUNK:(j + 1) * CHUNK])
         write_probe(ns, nj, ng, f"{out_dir}/{name}Probe.lean.txt")
         print("wrote", sub, nj, "chunks of", len(entries), "entries")

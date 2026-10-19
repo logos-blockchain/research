@@ -21,13 +21,19 @@ namespace Cryptarchia.Prob
 
 /-- **A representative's data**: its terminal table `g` (by `min(A, 2)` and honest success, listed as
 `[g 0 false, g 0 true, g 1 false, g 1 true, g 2 false, g 2 true]`), each member's post- and
-pre-switch seeds, the members' in-epoch bounds and the largest pre-switch bound. -/
+pre-switch seeds, the members' in-epoch bounds, the largest pre-switch bound, and the members' delayed
+bounds with their envelopes `(Z, λ, aZ)`, and the worst band's post- and pre-switch seeds
+(`TableGCert.lean`; empty for a single table). -/
 structure RepData where
   g : List ℚ
   post : List (List ℤ)
   pre : List (List ℤ)
   eIn : List ℚ
   eE : ℚ
+  eD : List ℚ
+  env : List (List (List ℤ) × ℚ × ℚ)
+  w : List ℤ
+  pw : List ℤ
 
 namespace RepData
 

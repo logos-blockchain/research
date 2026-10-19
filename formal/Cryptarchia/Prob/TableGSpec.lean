@@ -74,12 +74,12 @@ variable {F : FamCfg}
 failed-check potential): the switching tables for the reach, the checked phase and spans, and the grouped
 table certificate; the checked phase's bound is scaled by the potential's start factor `γ ^ (EL - 1)`. -/
 theorem finality_famTG {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
-    {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} {lpd lp lpi : ℚ} {Q : TabQG} {nG m G : ℕ}
+    {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} {lpd lp lpi : ℚ} {Q : TabQG} {nG m G R : ℕ}
     {γ Γ : ℚ} {D : Fin m → List (ℕ × (ℤ × ℤ) × RepData)}
     (hP : cert2ChkQ Bq F.Δ F.c F.z F.s 0 F.d F.τ lpd (lrOf dat) (bOf dat) (eOf dat) = true) (hS : F.S.chk F.famZ F.D = true)
     (hD : 0 < F.D) (hBq : Bq = F.S.weakest) (hsw : ∀ i : Fin 19, isSw i = true → F.idxChkSw i (dat i) = true)
-    (htab : F.tabChkG Q nG γ Γ E.c.epochLength G lp lpi D = true) (htabA : F.tabChkAG Q γ D) {n : ℕ}
-    (hK : F.S.K = n + 1) (T : TBandQ) (hT : famChkQ F T = true) (es : Ω → List Event) (hMod : Model μ O E es) {N : ℕ}
+    (htab : F.tabChkG Q nG γ Γ E.c.epochLength G R lp lpi D = true) (htabA : F.tabChkAG Q γ nG R D)
+    (hRG : R ≤ G) {n : ℕ} (hK : F.S.K = n + 1) (T : TBandQ) (hT : famChkQ F T = true) (es : Ω → List Event) (hMod : Model μ O E es) {N : ℕ}
     (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) (hΔ : E.Δ = F.Δ) (hG1 : F.Δ + 1 ≤ G)
     (hGEL : G + 1 < E.c.epochLength) {M G' J Lw r Tg : ℕ} {x yy : ℚ} (hx : 1 ≤ x) (hyy0 : 0 < yy) (hyy1 : yy ≤ 1)
     (hT1 : 1 ≤ Tg) (hNM : N + G + G' + F.Δ + 2 ≤ M) (hhi1 : Bq.hhi ≤ 1) (hlo0 : 0 ≤ Bq.hlo) (hlo1 : Bq.hlo ≤ 1)
@@ -98,8 +98,8 @@ theorem finality_famTG {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
     (hQ : ∀ ω, Exec.ChainQuality E (O ω) (es ω) T.μ N) (hDr : ∀ ω, Exec.StakeDrift E (O ω) (es ω) ρ N)
     (hH : ∀ ω, Exec.MinStake E (O ω) (es ω) Hmin) :
     μ {ω | Unsafe (E.withO (O ω)) (es ω)} ≤
-      ENNReal.ofReal (settleEps3G E Bq.toBand (cert2T hP) lp lpi ((cert2T hP).e 2 * (γ : ℝ) ^ (E.c.epochLength - 1)) G N G
-        G' J Lw r Tg x yy) +
+      ENNReal.ofReal (settleEps3G E Bq.toBand (cert2T hP) lp lpi ((cert2T hP).e 2 * (γ : ℝ) ^ (E.c.epochLength - 1)) R
+        N G G' J Lw r Tg x yy) +
       Ne * ENNReal.ofReal (bandEps T.toTBand E.c.period) := by
   simp only [famChkQ, Bool.and_eq_true, decide_eq_true_eq] at hT
   obtain ⟨⟨⟨⟨⟨⟨ok, hη⟩, hζ⟩, hβ⟩, hηlot⟩, cov0⟩, cov1⟩ := hT
@@ -111,7 +111,7 @@ theorem finality_famTG {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
     simp only [TBandQ.toTBand] at h
     rw [hβ]; exact_mod_cast h
   exact finalityG (M := M) (Ne := Ne) (Tb := T.toTBand) es hMod hN hΔ
-    (cert2BT hP hS hD hBq hsw E.c.epochLength G hG1 hGEL)
+    (cert2BT hP hS hD hBq hsw E.c.epochLength G hG1 hGEL) hRG
     (fun κ hκ => tabFailPotG htab htabA hS hD hBq (cert2T hP) rfl rfl hG1 hκ)
     (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl) (FamSpec.prod hS)
     (G' := G') (J := J) (Lw := Lw) (r := r) (T := Tg) (x := x) (yy := yy)
@@ -134,12 +134,12 @@ the family's, the grouped table certificate's and the numeric conditions (`finCh
 phase's bound scaled by `sU`, above the start factor, `startChk`) give the finality bound `fin`. -/
 theorem finality_specTG {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} (p : SpecData) (q : SpecDerived) {lpd : ℚ}
-    {Q : TabQG} {nG m : ℕ} {γ Γ : ℚ} {D : Fin m → List (ℕ × (ℤ × ℤ) × RepData)}
+    {Q : TabQG} {nG m R : ℕ} {γ Γ : ℚ} {D : Fin m → List (ℕ × (ℤ × ℤ) × RepData)}
     (hC2 : cert2ChkQ Bq F.Δ F.c F.z F.s 0 F.d F.τ lpd (lrOf dat) (bOf dat) (eOf dat) = true) (hS : F.S.chk F.famZ F.D = true)
     (hD : 0 < F.D) (hBq : Bq = F.S.weakest) (hsw : ∀ i : Fin 19, isSw i = true → F.idxChkSw i (dat i) = true)
-    (htab : F.tabChkG Q nG γ Γ (Config.specK p.k).epochLength q.G q.lp q.lpi D = true) (htabA : F.tabChkAG Q γ D)
+    (htab : F.tabChkG Q nG γ Γ (Config.specK p.k).epochLength q.G R q.lp q.lpi D = true) (htabA : F.tabChkAG Q γ nG R D)
     {n : ℕ} (hK : F.S.K = n + 1) {k : ℕ} {sU : ℚ} (hst : startChk ((Config.specK p.k).epochLength - 1) k γ sU = true)
-    (T : TBandQ) (hfin : finChkSpecE F Bq dat (eOf dat 2 * sU) T p q = true)
+    (T : TBandQ) (hfin : finChkSpecE F Bq dat (eOf dat 2 * sU) (fun _ => R) T p q = true)
     (hc : E.c = Config.specK p.k) (hΔ : E.Δ = F.Δ) (es : Ω → List Event) (hMod : Model μ O E es)
     (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ p.N) {Smax : ℚ}
     (hSm : Smax / Config.spec.p + Smax ^ 2 / Config.spec.p ≤ T.ζ)
@@ -156,7 +156,7 @@ theorem finality_specTG {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsP
   simp only [driftChkQ, Bool.and_eq_true, decide_eq_true_eq] at hδ
   obtain ⟨⟨⟨⟨⟨hup, hdn⟩, hg1⟩, hg2⟩, hρ⟩, hHm⟩ := hδ
   have tf := FamCfg.tabChkG.facts htab
-  have hb := finality_famTG F hC2 hS hD hBq hsw (by rw [hEL]; exact htab) htabA hK T f.fam es hMod hN hΔ f.hG1
+  have hb := finality_famTG F hC2 hS hD hBq hsw (by rw [hEL]; exact htab) htabA f.hcc hK T f.fam es hMod hN hΔ f.hG1
     (by rw [hEL]; exact f.hGEL)
     (M := M) (G' := G') (J := J) (Lw := Lw) (r := r) f.hx f.hyy0 f.hyy1 f.hT f.hNM f.hhi1 f.hlo0 f.hlo1 f.helo1
     (by rw [hEL]; exact f.hLw) (by rw [hc]; exact f.hOG)
@@ -192,8 +192,8 @@ theorem finality_specTG {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsP
     push_cast
     exact mul_le_mul_of_nonneg_left (by rw [hEL]; exact pow_le_start hst) h0
   have h1 := ((settleEps3G_mono_e2 E Bq.toBand (cert2T hC2) (by exact_mod_cast tf.lpi0) (by exact_mod_cast tf.le) he2
-    G N G G' J Lw r Tg x yy).trans
-    (settleEps3G_le_Q (d := 14) (lpi := lpi) (x := x) (yy := yy) (Ccap := G) (N := N) (G := G) (G' := G')
+    R N G G' J Lw r Tg x yy).trans
+    (settleEps3G_le_Q (d := 14) (lpi := lpi) (x := x) (yy := yy) (Ccap := R) (N := N) (G := G) (G' := G')
     (J := J) (Lw := Lw) (r := r) (T := Tg) (e2R := ((eOf dat 2 * sU : ℚ) : ℝ)) (cert2T hC2) Bq rfl rfl rfl rfl
     rfl rfl rfl rfl hk hne hnb f.eps)).trans
     (Rat.cast_le.2 f.epsle)
@@ -212,26 +212,52 @@ namespace FamCfg
 
 variable (F : FamCfg)
 
-/-- **A (group, representative)'s data**, computed: the group's table's terminal table and its
-one-switch tables' seeds and bounds, at `γ` per slot. -/
-def repDataG (Q : TabQ) (γ : ℚ) (s : ℤ × ℤ) : RepData :=
+/-- The envelope's rule: `Z` sums the iterates over `envMu`, `envN` of them (`envZ`). -/
+def envMu : ℚ := 9 / 10
+def envN : ℕ := 40
+
+/-- Each of group `grp`'s members' envelope (`envZ`, from its post-switch table and `W`, listed by `(q, a, u)`);
+`([], 1, 0)` for the other members. -/
+def envListX (X : PhZ) (post : List (List ℤ)) (W : List ℤ) (n grp : ℕ) : List (List (List ℤ) × ℚ × ℚ) :=
+  let vm := rowsZ (tabZ W) 0 F.Δ
+  (List.finRange F.S.K).map fun k => if F.grpOf n k == grp then
+      envZ (F.famZ k) F.D F.Δ X SZ
+        (rowsZ (tabZ (fillRowsZ [F.famZ k] F.D F.Δ X SZ (gFloorZ X SZ) (seedL (post.getD k.val [])) 0 F.Δ)) 0 F.Δ)
+        vm envMu envN
+    else ([], 1, 0)
+
+/-- **A (group, representative)'s data**, computed: the group's table's terminal table; the members'
+post-switch seeds and in-epoch bounds at `γ` per slot; the worst band's post- and pre-switch seeds and the
+group's members' largest pre-switch bound; and its members' envelopes and delayed bounds after `R` steps. -/
+def repDataG (Q : TabQ) (γ : ℚ) (n grp R : ℕ) (s : ℤ × ℤ) : RepData :=
   let g := Q.gList s
   let X := PhZ.ofQ (Q.x, γ, fun a b _ => g.getD (2 * a.val + if b then 1 else 0) 0)
   let post := F.postSeedsX X
-  let pre := F.preSeedsX X post
-  ⟨g, post, pre, F.eInListX X post, F.eEOfX X post pre⟩
+  let eIn := F.eInListX X post
+  let BW := worstZ F.famL
+  let w := solveSeedsZ [BW] F.D F.Δ X SZ (gFloorZ X SZ) (2 ^ 32) (2 ^ 8) 3 200 (floorX X)
+  let W := fillRowsZ [BW] F.D F.Δ X SZ (gFloorZ X SZ) (seedL w) 0 F.Δ
+  let pw := solveSeedsZ [BW] F.D F.Δ X SZ (tabZ W) (2 ^ 32) (2 ^ 8) 0 200 [W.getD 1 0, W.getD 3 0, W.getD 5 0]
+  let PW := fillRowsZ [BW] F.D F.Δ X SZ (tabZ W) (seedL pw) 0 F.Δ
+  let eE := rupQ 13 ((F.grpMem n grp).foldl (fun m k =>
+    max m ((autoBoundZ (F.famZ k) F.D X SZ (tabZ PW) : ℚ) / (X.M F.D * SZ : ℤ))) 0)
+  let env := F.envListX X post W n grp
+  ⟨g, post, [], eIn, eE,
+    (List.range F.S.K).map (fun k => let e := env.getD k ([], 1, 0)
+      if e.1 = [] then 0 else rupQ 13 (eIn.getD k 0 + e.2.1 ^ R * e.2.2)), env, w, pw⟩
 
 /-- All the chunks' entries. -/
 def allRepsG {m : ℕ} (D : Fin m → List (ℕ × (ℤ × ℤ) × RepData)) : List (ℕ × (ℤ × ℤ) × RepData) :=
   (List.finRange m).flatMap D
 
 /-- **The grouped table's contractions by rule**: the largest, over the entries, of each of the group's
-members' in-epoch bound less the crossing's credit (`lpi`), and of the one-switch bound (`lp`), over the
-group's table's value, rounded up to 13 digits. -/
+members' in-epoch or delayed bound less the crossing's credit (`lpi`), and of the one-switch bound
+(`lp`), over the group's table's value, rounded up to 13 digits. -/
 def tabLpiG {m : ℕ} (Q : TabQG) (n : ℕ) (D : Fin m → List (ℕ × (ℤ × ℤ) × RepData)) : ℚ :=
   rupQ 13 (((allRepsG D).map fun p =>
     (((List.finRange F.S.K).filter fun k => F.grpOf n k == p.1).map fun k =>
-      (F.repEIn p.2.2 k - (Q.tab p.1).crQ p.2.1 * F.S.patQ F.Δ k) / (Q.tab p.1).VQ p.2.1).foldl max 0).foldl max 0)
+      (max (F.repEIn p.2.2 k) (F.repED p.2.2 k) - (Q.tab p.1).crQ p.2.1 * F.S.patQ F.Δ k) /
+        (Q.tab p.1).VQ p.2.1).foldl max 0).foldl max 0)
 
 def tabLpG {m : ℕ} (Q : TabQG) (D : Fin m → List (ℕ × (ℤ × ℤ) × RepData)) : ℚ :=
   rupQ 13 (((allRepsG D).map fun p => p.2.2.eE / (Q.tab p.1).VQ p.2.1).foldl max 0)
