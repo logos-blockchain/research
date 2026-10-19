@@ -16,9 +16,10 @@ expansion `ψ(α) = α (c - c² α / 2)`, `c = -ln(1 - f)`, the order-1 one bein
 * **`split_advantage`**: under `ψ`, splitting a note into two of relative stakes `a, b > 0`
   (with `c b ≤ 1`, far beyond any real note) raises the probability that one of them wins, by
   `c³ab(a+b)/2 - c⁴a²b²/4 > 0`: a third-order incentive to split stake, which `φ` does not have;
-* the specification's error table (`error_table_f30`): at `α = 1` and `f = 1/30` the errors
-  are the table's `1.70%` and `-0.0193%` (`error_table_f20`: those of `f = 1/20`, `2.59%` and
-  `-0.0444%`, which the table gave before Mantle 2.0.0 v8);
+* the specification's error table: **`error_table_f30_all`** proves every row of the table for
+  `f = 1/30`, both errors to the digits shown; `error_table_f30` the last row with plain bounds
+  (`error_table_f20`: the `2.59%` and `-0.0444%` of `f = 1/20`, which the table gave before
+  Mantle 2.0.0 v8);
 * the threshold in `𝔽_p` (`threshold`, with the constants `t₀ = t0_constant / S` and
   `t₁ = p - t1_constant / S²`): `threshold_no_wrap` gives the integer value
   `v t₀ - v² ⌊t1_constant/S²⌋` below the zero crossing, `threshold_wrap` the near-`p` value
@@ -220,6 +221,147 @@ theorem parabola_peak_zero :
   · rw [lt_div_iff₀ hc]; nlinarith
   · rw [div_lt_iff₀ hc]; nlinarith
   · simp only [approx2]; field_simp; ring
+
+/-! ## The whole error table
+
+`1 - e^{-x}` is enclosed by its order-6 Taylor polynomial (`Real.exp_bound`), evaluated term by
+term on an enclosure of `x = c α` (`expLo`, `expHi`), with `c` known to ten decimals
+(`rate30_mem`). Each row is then a set of rational inequalities, checked by `norm_num`. -/
+
+/-- A lower bound of `1 - e^{-x}` for `x ∈ [a, b] ⊆ [0, 1]`. -/
+def expLo (a b : ℝ) : ℝ := a - b ^ 2 / 2 + a ^ 3 / 6 - b ^ 4 / 24 + a ^ 5 / 120 - 7 * b ^ 6 / 4320
+/-- An upper bound of `1 - e^{-x}` for `x ∈ [a, b] ⊆ [0, 1]`. -/
+def expHi (a b : ℝ) : ℝ := b - a ^ 2 / 2 + b ^ 3 / 6 - a ^ 4 / 24 + b ^ 5 / 120 + 7 * b ^ 6 / 4320
+
+theorem one_sub_exp_neg_mem {a b x : ℝ} (ha : 0 ≤ a) (hax : a ≤ x) (hxb : x ≤ b) (hb : b ≤ 1) :
+    expLo a b ≤ 1 - exp (-x) ∧ 1 - exp (-x) ≤ expHi a b := by
+  have hx0 : 0 ≤ x := ha.trans hax
+  have hx1 : |-x| ≤ 1 := by rw [abs_neg, abs_of_nonneg hx0]; linarith
+  have h := Real.exp_bound hx1 (n := 6) (by norm_num)
+  rw [abs_neg, abs_of_nonneg hx0, abs_le] at h
+  simp only [Finset.sum_range_succ, Finset.sum_range_zero, Nat.factorial] at h
+  norm_num at h
+  obtain ⟨hl, hu⟩ := h
+  have n3 : (-x) ^ 3 = -x ^ 3 := by ring
+  have n5 : (-x) ^ 5 = -x ^ 5 := by ring
+  rw [n3, n5] at hl hu
+  have p2 := pow_le_pow_left₀ ha hax 2
+  have p3 := pow_le_pow_left₀ ha hax 3
+  have p4 := pow_le_pow_left₀ ha hax 4
+  have p5 := pow_le_pow_left₀ ha hax 5
+  have q2 := pow_le_pow_left₀ hx0 hxb 2
+  have q3 := pow_le_pow_left₀ hx0 hxb 3
+  have q4 := pow_le_pow_left₀ hx0 hxb 4
+  have q5 := pow_le_pow_left₀ hx0 hxb 5
+  have q6 := pow_le_pow_left₀ hx0 hxb 6
+  unfold expLo expHi
+  constructor
+  · linarith
+  · linarith
+
+/-- `c = ln(30/29)` to ten decimals. -/
+theorem rate30_mem : 0.0339015516 ≤ rate (1 / 30) ∧ rate (1 / 30) ≤ 0.0339015518 := by
+  have hb := rate_bounds (x := 1 / 30) (by norm_num) (by norm_num)
+  simp only [Finset.sum_range_succ, Finset.sum_range_zero] at hb
+  rw [abs_le] at hb
+  norm_num at hb
+  obtain ⟨hl, hu⟩ := hb
+  constructor
+  · linarith
+  · linarith
+
+/-- The error of the two expansions at stake `α` for `f = 1/30`, from an enclosure of `c α`. -/
+theorem error_row {α L1 U1 L2 U2 : ℝ} (hα : 0 < α)
+    (hL1 : 0 ≤ L1 + 1) (hL2 : 0 ≤ L2 + 1) (hlo : 0 < expLo (0.0339015516 * α) (0.0339015518 * α))
+    (hb : 0.0339015518 * α ≤ 1)
+    (h1 : (L1 + 1) * expHi (0.0339015516 * α) (0.0339015518 * α) < 0.0339015516 * α)
+    (h2 : 0.0339015518 * α < (U1 + 1) * expLo (0.0339015516 * α) (0.0339015518 * α))
+    (h3 : (L2 + 1) * expHi (0.0339015516 * α) (0.0339015518 * α) <
+      0.0339015516 * α - (0.0339015518 * α) ^ 2 / 2)
+    (h4 : 0.0339015518 * α - (0.0339015516 * α) ^ 2 / 2 <
+      (U2 + 1) * expLo (0.0339015516 * α) (0.0339015518 * α)) :
+    (L1 < approx1 (1 / 30) α / phi (1 / 30) α - 1 ∧ approx1 (1 / 30) α / phi (1 / 30) α - 1 < U1) ∧
+      (L2 < approx2 (1 / 30) α / phi (1 / 30) α - 1 ∧
+        approx2 (1 / 30) α / phi (1 / 30) α - 1 < U2) := by
+  obtain ⟨hcl, hcu⟩ := rate30_mem
+  have hxl : 0.0339015516 * α ≤ rate (1 / 30) * α := mul_le_mul_of_nonneg_right hcl hα.le
+  have hxu : rate (1 / 30) * α ≤ 0.0339015518 * α := mul_le_mul_of_nonneg_right hcu hα.le
+  obtain ⟨φl, φu⟩ := one_sub_exp_neg_mem (by positivity) hxl hxu hb
+  have a2 : approx2 (1 / 30) α = rate (1 / 30) * α - (rate (1 / 30) * α) ^ 2 / 2 := by
+    unfold approx2
+    ring
+  rw [phi_eq (by norm_num), a2, show approx1 (1 / 30) α = rate (1 / 30) * α from rfl]
+  generalize rate (1 / 30) * α = x at *
+  generalize 1 - exp (-x) = φ at *
+  generalize expLo (0.0339015516 * α) (0.0339015518 * α) = lo at *
+  generalize expHi (0.0339015516 * α) (0.0339015518 * α) = hi at *
+  have hφ : 0 < φ := hlo.trans_le φl
+  have s1 := pow_le_pow_left₀ (by positivity) hxl 2
+  have s2 := pow_le_pow_left₀ (le_trans (by positivity) hxl) hxu 2
+  have hU1 : 0 < U1 + 1 := by nlinarith
+  have hU2 : 0 < U2 + 1 := by nlinarith
+  have e1 := mul_le_mul_of_nonneg_left φu hL1
+  have e2 := mul_le_mul_of_nonneg_left φl hU1.le
+  have e3 := mul_le_mul_of_nonneg_left φu hL2
+  have e4 := mul_le_mul_of_nonneg_left φl hU2.le
+  refine ⟨⟨?_, ?_⟩, ?_, ?_⟩
+  · rw [lt_sub_iff_add_lt, lt_div_iff₀ hφ]
+    linarith
+  · rw [sub_lt_iff_lt_add, div_lt_iff₀ hφ]
+    linarith
+  · rw [lt_sub_iff_add_lt, lt_div_iff₀ hφ]
+    linarith
+  · rw [sub_lt_iff_lt_add, div_lt_iff₀ hφ]
+    linarith
+
+/-- A row of the error table of *Lottery Approximation*: at a relative stake `α`, the order-1 and
+order-2 errors, in percent, are `e₁` and `e₂` to within `h₁` and `h₂`, half a unit of the last
+digit shown. -/
+def TableRow (α e₁ h₁ e₂ h₂ : ℝ) : Prop :=
+  |100 * (approx1 (1 / 30) α / phi (1 / 30) α - 1) - e₁| < h₁ ∧
+    |100 * (approx2 (1 / 30) α / phi (1 / 30) α - 1) - e₂| < h₂
+
+theorem tableRow_of {α e₁ h₁ e₂ h₂ : ℝ} (hα : 0 < α)
+    (hL1 : 0 ≤ (e₁ - h₁) / 100 + 1) (hL2 : 0 ≤ (e₂ - h₂) / 100 + 1)
+    (hlo : 0 < expLo (0.0339015516 * α) (0.0339015518 * α)) (hb : 0.0339015518 * α ≤ 1)
+    (h1 : ((e₁ - h₁) / 100 + 1) * expHi (0.0339015516 * α) (0.0339015518 * α) <
+      0.0339015516 * α)
+    (h2 : 0.0339015518 * α <
+      ((e₁ + h₁) / 100 + 1) * expLo (0.0339015516 * α) (0.0339015518 * α))
+    (h3 : ((e₂ - h₂) / 100 + 1) * expHi (0.0339015516 * α) (0.0339015518 * α) <
+      0.0339015516 * α - (0.0339015518 * α) ^ 2 / 2)
+    (h4 : 0.0339015518 * α - (0.0339015516 * α) ^ 2 / 2 <
+      ((e₂ + h₂) / 100 + 1) * expLo (0.0339015516 * α) (0.0339015518 * α)) :
+    TableRow α e₁ h₁ e₂ h₂ := by
+  obtain ⟨⟨a, b⟩, c, d⟩ := error_row hα hL1 hL2 hlo hb h1 h2 h3 h4
+  unfold TableRow
+  rw [abs_sub_lt_iff, abs_sub_lt_iff]
+  refine ⟨⟨?_, ?_⟩, ?_, ?_⟩ <;> linarith
+
+/-- **The error table of *Lottery Approximation*, every row**, for `f = 1/30`. -/
+theorem error_table_f30_all :
+      TableRow 0.05 0.08 0.005 (-0.00005) 0.000005 ∧
+      TableRow 0.10 0.17 0.005 (-0.0002) 0.00005 ∧
+      TableRow 0.15 0.25 0.005 (-0.0004) 0.00005 ∧
+      TableRow 0.20 0.34 0.005 (-0.0008) 0.00005 ∧
+      TableRow 0.25 0.42 0.005 (-0.0012) 0.00005 ∧
+      TableRow 0.30 0.51 0.005 (-0.0017) 0.00005 ∧
+      TableRow 0.35 0.59 0.005 (-0.0024) 0.00005 ∧
+      TableRow 0.40 0.68 0.005 (-0.0031) 0.00005 ∧
+      TableRow 0.45 0.76 0.005 (-0.0039) 0.00005 ∧
+      TableRow 0.50 0.85 0.005 (-0.0048) 0.00005 ∧
+      TableRow 0.55 0.94 0.005 (-0.0058) 0.00005 ∧
+      TableRow 0.60 1.02 0.005 (-0.0069) 0.00005 ∧
+      TableRow 0.65 1.11 0.005 (-0.0081) 0.00005 ∧
+      TableRow 0.70 1.19 0.005 (-0.0094) 0.00005 ∧
+      TableRow 0.75 1.28 0.005 (-0.0108) 0.00005 ∧
+      TableRow 0.80 1.36 0.005 (-0.0123) 0.00005 ∧
+      TableRow 0.85 1.45 0.005 (-0.0139) 0.00005 ∧
+      TableRow 0.90 1.53 0.005 (-0.0156) 0.00005 ∧
+      TableRow 0.95 1.62 0.005 (-0.0174) 0.00005 ∧
+      TableRow 1.00 1.70 0.005 (-0.0193) 0.00005 := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    apply tableRow_of <;> norm_num [expLo, expHi]
 
 end
 

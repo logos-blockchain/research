@@ -404,9 +404,34 @@ theorem cmValue_le_total (H : Hash) (b : BlockState) {i : ℕ} {c : Fr}
   simp only [total, value]
   omega
 
+theorem value_le_total (H : Hash) (b : BlockState) : value H b.ledger ≤ total H b := by
+  simp only [total]
+  omega
+
+/-- The notes a withdrawn declaration will release count at most the tokens of the state. -/
+theorem withdrawOutputs_le_total (H : Hash) (b : BlockState)
+    {e : DeclarationId × DeclarationInfo} (he : e ∈ b.ledger.declarations) :
+    listValue H e.2.withdrawOutputs ≤ total H b := by
+  have h1 : listValue H e.2.withdrawOutputs ≤ inflight H b.ledger :=
+    List.le_sum_of_mem (List.mem_map_of_mem he)
+  have h2 := value_le_total H b
+  simp only [value] at h2
+  omega
+
+/-- **The fees and tips of the transactions of a block are at most the maximum supply**, when
+the state they run on holds at most it: so `tx_balance`, the fee and the tip of every
+transaction fit a `TokenValue`. -/
+theorem applyTxs_fees_le {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSound] {E : Env}
+    {st st' : Mantle.State} {txs : List SignedMantleTx} {fees tips : ℕ} (I : Inv P.H st)
+    (h : applyTxs P E st txs = some (st', fees, tips)) (hcap : Cap st')
+    (hv : value P.H st ≤ MAX_SUPPLY) : fees + tips ≤ MAX_SUPPLY := by
+  have := (applyTxs_spec txs st st' fees tips I h hcap).2.2
+  omega
+
 /-- **Every token value fits a `TokenValue`**: along any chain of blocks from a state holding at
-most the maximum supply, every unspent note, the proof of work pool and the fees diverted to it,
-the reserve, the rewards pool and the pending Blend share are at most `10¹⁹`, below `2^64`. -/
+most the maximum supply, every unspent note, the notes of each withdrawn declaration, the proof
+of work pool and the fees diverted to it, the reserve, the rewards pool and the pending Blend
+share are at most `10¹⁹`, below `2^64`. -/
 theorem executeChain_tokenValue {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSound]
     {pow : PowShare} {blocks : List BlockInputs} {b b' : BlockState} (I : Inv P.H b.ledger)
     (IP : PoolInv b.rewards) (hg : total P.H b ≤ MAX_SUPPLY)
@@ -414,11 +439,13 @@ theorem executeChain_tokenValue {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpen
     total P.H b' ≤ MAX_SUPPLY ∧
       (∀ i < b'.ledger.numSets, ∀ c ∈ (b'.ledger.sets i).cms,
         Unspent P.H (b'.ledger.sets i).nullifiers c → cmValue P.H c ≤ MAX_SUPPLY) ∧
+      (∀ e ∈ b'.ledger.declarations, listValue P.H e.2.withdrawOutputs ≤ MAX_SUPPLY) ∧
       b'.ledger.powRewardPool ≤ MAX_SUPPLY ∧ b'.powPending ≤ MAX_SUPPLY ∧
       b'.rewards.reserve ≤ MAX_SUPPLY ∧
       b'.rewards.pool ≤ MAX_SUPPLY ∧ b'.rewards.pending ≤ MAX_SUPPLY := by
   have ht := (executeChain_total blocks b b' I IP h hcap).2.2.trans hg
-  refine ⟨ht, fun i hi c hc hu => (cmValue_le_total P.H b' hi hc hu).trans ht, ?_⟩
+  refine ⟨ht, fun i hi c hc hu => (cmValue_le_total P.H b' hi hc hu).trans ht,
+    fun e he => (withdrawOutputs_le_total P.H b' he).trans ht, ?_⟩
   simp only [total, value] at ht
   omega
 

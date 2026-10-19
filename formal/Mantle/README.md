@@ -49,11 +49,12 @@ The three proof hypotheses hold together, with verifiers accepting every true st
 | RFC-481: the opening of every program note is published | `validateSteps_program_outputs` | every created program note has its checked opening |
 | RFC-481: a payment pays only its program, for its intent | **`payment_proof_bound`**, `step_proof_not_payment`, `paymentMsg_inj`, `spend_proof_bound` | |
 | Gas tables of RFC-480/481, Execution Gas limit | `transfer_gas_eq`, `program_proof_gas_eq`, `program_register_gas_eq`, **`limit_eq`**, `transfers_per_block` | every constant from its measured cycles; `G_max = 3,192,483`, `G_target = 1,596,241`; 5,157 transfers per block |
-| `round_robin`: "an infinite timeframe never rotates: the tip sequencer keeps its turn" | **`roundRobin_infinite`**, `roundRobin_lt`, `seqOk_defaultChannel`, `seqOk_config`, `seqOk_inscribe` | with `posting_timeframe = 0` and no timeout due, the sequencer and its starting slot are unchanged; the index is an accredited key when the channel's `tip_sequencer` is (`SeqOk`), and each of the three writes of `tip_sequencer` in `Ledger.lean` (new channel, configuration, inscription) produces a channel satisfying `SeqOk`; no theorem carries `SeqOk` through a whole transaction |
+| `round_robin`: "an infinite timeframe never rotates: the tip sequencer keeps its turn" | **`roundRobin_infinite`**, `roundRobin_lt`, **`ChanInv.applyTx`** | with `posting_timeframe = 0` and no timeout due, the sequencer and its starting slot are unchanged; every valid transaction keeps every channel with at least one key, its tip sequencer one of them and a `uint16` threshold (`ChanInv`), so the round robin always names an accredited key |
+| Validation: `tx_execution_gas = checked_uint64(...)` | `applyOps_gas_lt`, **`gas_check_holds`**, `executionGas_le`, `mantleTx_ops_le` | the gas of a valid transaction is below `2^64`; the check never rejects an encodable transaction: at most `255` Operations of at most `MAX_OP_GAS ≈ 1.05·10¹⁰` each (`GasBound.lean`) |
 | Channels | `multiSigOk_nodup`, `createChannel_null`, `validateInscribe_no_set` | |
 | PoL, *Lottery Approximation*: `φ_f(α) = 1-(1-f)^α` approximated by `α(c - c²α/2)` | **`approx2_le_phi`**, **`phi_sub_approx2_le`**, `phi_le_approx1`, `phi_add` | the order-2 threshold never exceeds `φ`, with error at most `c³α³/6`; the order-1 one always exceeds it; splitting a stake leaves `φ` unchanged |
 | PoL constants `t0_constant`, `t1_constant` | **`constants_exact`** | the hexadecimal constants are exactly `⌊-p ln(29/30)⌋` and `⌊p ln²(29/30)/2⌋` (53-term log series, checked by the kernel) |
-| PoL error table, `f = 1/30` | `error_table_f30` | at a stake equal to the inferred total stake the errors are the table's `1.70%` and `-0.0193%`; the other 19 rows match a floating-point recomputation (not in Lean) |
+| PoL error table, `f = 1/30` | **`error_table_f30_all`**, `error_table_f30` | every row of the table, both errors to the digits shown: `1 - e^{-cα}` enclosed by its order-6 Taylor polynomial, `c` to ten decimals |
 | PoL corner case: peak near `29`, zero crossing near `59` | `parabola_peak_zero`, `constants_ratio` | `1/c ∈ (29.4, 29.6)`, `2/c ∈ (58.9, 59.1)` |
 | PoL threshold in `𝔽_p` | **`win_prob_le`**, `threshold_no_wrap`, `threshold_wrap` | with a uniform ticket, a note wins with probability at most `φ_f(v/S) + 2v²/p`; past the zero crossing the threshold wraps near `p` (the corner case) |
 | PoL: "the order 2 expansion slightly rewards splitting stake … by `c³ab(a+b)/2 - c⁴a²b²/4`" | **`split_advantage`** | the identity, and the advantage is positive whenever `c b ≤ 1` |
@@ -69,7 +70,7 @@ Of the 13 differences reported against 9e14358, the revision of 2026-10-19 resol
 1. **A note set holds `2^32 - 1` commitments, not `2^32`.** The *Commitment MMR* now states that a set "holds at most `2^32` commitments" and leaves a full set unspecified. With exactly `2^32`, `mmr_root` ends at height 33, `zkhash(root_32, empty_root(32))` (`mmrRoot_full`), which is not the root of the depth-32 tree the paths are checked against, so appending the `2^32`-th commitment already breaks the set. At the Execution Gas limit a block can append `5,157 × 8 = 41,256` commitments to one set, which fills it in about 104,000 blocks, 36 days of full blocks (`blocks_to_fill_set`).
 2. **Value can be lost, never created.** Any output whose fields equal those of an existing note shares its commitment and nullifier, and only one can be spent. Block Construction states this for two leader rewards under one `reward_key`; it holds for every note, so conservation is an inequality.
 
-Confirmed as stated: the hexadecimal lottery constants and the `f = 1/30` error table, the split advantage and the corner case's `29` and `59`, every test vector of Mantle, the single encoding of a field element, the integrity of the 1024-root window with repeated roots, the soundness of the IMT non-membership proof, the eligible root's set binding, the buffer semantics of `buffered`, the cancellation of withdrawals, the infinite posting timeframe, and the RFC-481 "What enforces what" rows the ledger enforces.
+Confirmed as stated: the hexadecimal lottery constants and the `f = 1/30` error table, the split advantage and the corner case's `29` and `59`, every test vector of Mantle, the single encoding of a field element, the integrity of the 1024-root window with repeated roots, the soundness of the IMT non-membership proof, the eligible root's set binding, the buffer semantics of `buffered`, the cancellation of withdrawals, the infinite posting timeframe, the checked gas sum, and the RFC-481 "What enforces what" rows the ledger enforces.
 
 ## Not formalized
 
@@ -95,7 +96,8 @@ Confirmed as stated: the hexadecimal lottery constants and the `f = 1/30` error 
 | `Block.lean` | the block-level steps of Mantle |
 | `Leadership.lean` | the eligible root and the Proof of Leadership |
 | `Programs.lean` | the program guarantees |
-| `Channels.lean` | steps, mini-blocks, withdrawals, sequencing |
+| `Channels.lean` | steps, mini-blocks, withdrawals, sequencing, the channel invariant |
+| `GasBound.lean` | the gas check against the encoding's bounds |
 | `Lottery.lean` | the leadership lottery: approximation bounds, constants, threshold in `𝔽_p` |
 | `Codec.lean` | verified codecs and their combinators |
 | `Encoding.lean` | Mantle Transaction Encoding |

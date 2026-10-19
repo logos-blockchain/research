@@ -19,6 +19,7 @@ import TokenEconomics
 #print axioms TokenEconomics.executeBlock_total
 #print axioms TokenEconomics.executeChain_total
 #print axioms TokenEconomics.executeChain_tokenValue
+#print axioms TokenEconomics.applyTxs_fees_le
 #print axioms TokenEconomics.net_growth_le
 #print axioms TokenEconomics.steady_quarter
 #print axioms TokenEconomics.clip_symmetric

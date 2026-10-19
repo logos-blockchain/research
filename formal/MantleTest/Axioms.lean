@@ -44,3 +44,7 @@ import Mantle
 #print axioms Mantle.roundRobin_lt
 #print axioms Mantle.roundRobin_infinite
 #print axioms Mantle.seqOk_inscribe
+#print axioms Mantle.ChanInv.applyTx
+#print axioms Mantle.applyOps_gas_lt
+#print axioms Mantle.gas_check_holds
+#print axioms Mantle.Lottery.error_table_f30_all

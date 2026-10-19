@@ -19,8 +19,9 @@ spent and no later step can consume them (`not_spendable_of_mem`). It carries no
 
 **Sequencing and configuration**: `roundRobin_lt` (the sequencer index is a key of the
 channel, given `SeqOk`, which every write of `tip_sequencer` keeps: `seqOk_defaultChannel`,
-`seqOk_config`, `seqOk_inscribe`), **`roundRobin_infinite`** (an infinite posting timeframe
-never rotates), `multiSigOk_nodup` (the signatures of a configuration come from distinct accredited
+`seqOk_config`, `seqOk_inscribe`), **`ChanInv.applyTx`** (a valid transaction keeps every
+channel with at least one key, its tip sequencer one of them and a `uint16` threshold),
+**`roundRobin_infinite`** (an infinite posting timeframe never rotates), `multiSigOk_nodup` (the signatures of a configuration come from distinct accredited
 keys), and the null channel has no note set and so receives no step (`createChannel_null`,
 `validateInscribe_no_set`).
 -/
@@ -249,6 +250,147 @@ theorem validateInscribe_no_set {E : Env} {st : State} {txh opIdFr : Fr} {m : In
   cases hc : st.channels m.channel with
   | some ch => exact (hsome ch hc).2 (hset ch hc)
   | none => exact (hnone hc).2 (hnull hc)
+
+/-! ## Channels stay well formed -/
+
+/-- A channel has at least one key, its tip sequencer is one of them, and its configuration
+threshold is a `uint16`. -/
+def ChanOk (c : ChannelState) : Prop :=
+  c.accreditedKeys ≠ [] ∧ SeqOk c ∧ c.configurationThreshold < 2 ^ 16
+
+/-- Every channel of the state is `ChanOk`. -/
+def ChanInv (st : State) : Prop := ∀ id c, st.channels id = some c → ChanOk c
+
+theorem ChanInv.of_eq {st st' : State} (C : ChanInv st) (h : st'.channels = st.channels) :
+    ChanInv st' := fun id c hc => C id c (h ▸ hc)
+
+theorem ChanInv.update {st : State} (C : ChanInv st) {id : ChannelId} {c : ChannelState}
+    (hc : ChanOk c) : ChanInv (st.withChannels (Function.update st.channels id (some c))) := by
+  intro j d hd
+  simp only [State.withChannels_channels, Function.update_apply] at hd
+  split_ifs at hd
+  · cases hd
+    exact hc
+  · exact C j d hd
+
+theorem chanOk_defaultChannel {keys : List Fr} (hk : keys ≠ []) (slot : Slot) (n : Option ℕ) :
+    ChanOk (defaultChannel slot keys n) :=
+  ⟨hk, List.length_pos_iff.2 hk, by simp [defaultChannel]⟩
+
+theorem ChanInv.createChannel {st : State} (C : ChanInv st) {keys : List Fr} (hk : keys ≠ [])
+    (id : ChannelId) (slot : Slot) : ChanInv (createChannel P st id slot keys) := by
+  unfold Mantle.createChannel
+  split_ifs
+  · exact C.update (chanOk_defaultChannel hk _ _)
+  · exact (C.of_eq (by simp)).update (chanOk_defaultChannel hk _ _)
+
+theorem ChanInv.executeInscribeSteps {E : Env} {st : State} (C : ChanInv st) (m : Inscribe)
+    (v : Option NoteSet) : ChanInv (executeInscribeSteps P E st m v) := by
+  unfold Mantle.executeInscribeSteps
+  split
+  · split
+    · exact C.of_eq (by simp)
+    · exact C
+  · dsimp only
+    split_ifs
+    · exact (C.createChannel (P := P) (List.cons_ne_nil m.signer []) m.channel
+        E.blockSlot).of_eq (by simp)
+    · exact C.createChannel (List.cons_ne_nil _ _) _ _
+
+/-- **Every Operation keeps every channel `ChanOk`.** -/
+theorem ChanInv.applyOp {E : Env} {st st' : State} {txh : Fr} {op : Op} {π : OpProof} {b : ℕ}
+    (C : ChanInv st) (h : applyOp P E st txh op π = some (st', b)) : ChanInv st' := by
+  unfold Mantle.applyOp at h
+  split at h
+  · simp only [applyTransfer, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨-, R, -, -, rfl, rfl⟩ := h
+    exact C.of_eq (by simp)
+  · simp only [applyRegister, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨-, rfl, rfl⟩ := h
+    split_ifs
+    · exact C.of_eq (by simp)
+    · exact C
+  · rename_i _ _ c sigs idx
+    simp only [applyConfig, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      exists_const] at h
+    obtain ⟨-, ⟨hk0, hk1⟩, hth, h⟩ := h
+    have hk : c.keys ≠ [] := List.length_pos_iff.1 hk0
+    have C1 : ChanInv (if (st.channels c.channel).isSome = true then st
+        else Mantle.createChannel P st c.channel E.blockSlot c.keys) := by
+      split_ifs
+      · exact C
+      · exact C.createChannel hk _ _
+    generalize (if (st.channels c.channel).isSome = true then st
+        else Mantle.createChannel P st c.channel E.blockSlot c.keys) = st1 at C1 h
+    split at h <;>
+      simp only [ensure_eq_some, option_bind_eq_some, Option.some.injEq, Prod.mk.injEq,
+        exists_const] at h <;>
+      obtain ⟨-, -, a, -, rfl, rfl⟩ := h <;>
+      exact C1.update ⟨hk, hk0, show c.configurationThreshold < 2 ^ 16 by omega⟩
+  · rename_i _ _ m sig πs
+    simp only [applyInscribe, option_bind_eq_some, option_pure_eq, Option.some.injEq,
+      Prod.mk.injEq] at h
+    obtain ⟨v, -, chan, hchan, rfl, rfl⟩ := h
+    have C1 := C.executeInscribeSteps (P := P) (E := E) m v
+    obtain ⟨hk, hs, ht⟩ := C1 _ _ hchan
+    exact C1.update ⟨hk, seqOk_inscribe chan hk hs _ _, ht⟩
+  · simp only [applyDeposit, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨-, chan, -, j, -, -, R, -, -, rfl, rfl⟩ := h
+    exact C.of_eq (by simp)
+  · simp only [applyChannelWithdraw, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨chan, -, j, -, -, R, -, -, rfl, rfl⟩ := h
+    exact C.of_eq (by simp)
+  · simp only [applyDeclare, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨R, -, -, -, -, -, -, -, rfl, rfl⟩ := h
+    exact C.of_eq (by simp)
+  · simp only [applySdpWithdraw, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨info, -, -, -, -, -, -, rfl, rfl⟩ := h
+    exact C.of_eq (by simp)
+  · simp only [applyActive, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨info, -, -, -, -, rfl, rfl⟩ := h
+    exact C.of_eq (by simp)
+  · simp only [applyClaimPow, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨-, -, slot, -, -, -, -, -, rfl, rfl⟩ := h
+    exact C.of_eq (by simp)
+  · simp at h
+
+theorem ChanInv.applyOps {E : Env} {txh : Fr} (ops : List Op) :
+    ∀ (πs : List OpProof) (st st' : State) (bal gas : ℕ), ChanInv st →
+      applyOps P E st txh ops πs = some (st', bal, gas) → ChanInv st' := by
+  induction ops with
+  | nil =>
+    intro πs st st' bal gas C h
+    cases πs with
+    | nil =>
+      simp only [Mantle.applyOps, Option.some.injEq, Prod.mk.injEq] at h
+      exact h.1 ▸ C
+    | cons _ _ => simp [Mantle.applyOps] at h
+  | cons op ops ih =>
+    intro πs st st' bal gas C h
+    cases πs with
+    | nil => simp [Mantle.applyOps] at h
+    | cons π πs =>
+      simp only [Mantle.applyOps, option_bind_eq_some, ensure_eq_some, option_pure_eq,
+        exists_const, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨⟨st1, fee⟩, h1, ⟨st2, bal', gas'⟩, h2, -, -, rfl, rfl, rfl⟩ := h
+      exact ih πs st1 st2 bal' gas' (C.applyOp h1) h2
+
+/-- **A valid Mantle Transaction keeps every channel `ChanOk`**, so the round robin of every
+later inscription names an accredited key (`roundRobin_lt`). -/
+theorem ChanInv.applyTx {E : Env} {st st' : State} {stx : SignedMantleTx} {fee tip : ℕ}
+    (C : ChanInv st) (h : applyTx P E st stx = some (st', fee, tip)) : ChanInv st' := by
+  simp only [Mantle.applyTx, ensure_eq_some, option_bind_eq_some, option_pure_eq, exists_const,
+    Option.some.injEq, Prod.mk.injEq] at h
+  obtain ⟨-, ⟨st1, bal, gas⟩, hops, f, -, -, rfl, rfl, rfl⟩ := h
+  exact ChanInv.applyOps _ _ _ _ _ _ (C.of_eq rfl : ChanInv st.clearBuffers) hops
 
 end
 
