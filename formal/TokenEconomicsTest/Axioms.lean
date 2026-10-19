@@ -1,26 +1,35 @@
 import TokenEconomics
 
-#print axioms TokenEconomics.aNumerator_eq
-#print axioms TokenEconomics.release_eq
-#print axioms TokenEconomics.payout_eq
-#print axioms TokenEconomics.reward_floor
-#print axioms TokenEconomics.intermediates_lt
-#print axioms TokenEconomics.intermediates_lt_spec
-#print axioms TokenEconomics.annual_release_le
-#print axioms TokenEconomics.reserve_lasts
-#print axioms TokenEconomics.outputs_lt
-#print axioms TokenEconomics.poolInv_rewardStep
-#print axioms TokenEconomics.payout_le_pool
-#print axioms TokenEconomics.rewardStep_conserves
-#print axioms TokenEconomics.blendSchedule_pending
-#print axioms TokenEconomics.updateBaseFee_eq
-#print axioms TokenEconomics.updateBaseFee_pos
-#print axioms TokenEconomics.updateBaseFee_upper
-#print axioms TokenEconomics.executeBlock_total
-#print axioms TokenEconomics.executeChain_total
-#print axioms TokenEconomics.executeChain_tokenValue
-#print axioms TokenEconomics.applyTxs_fees_le
-#print axioms TokenEconomics.net_growth_le
-#print axioms TokenEconomics.steady_quarter
-#print axioms TokenEconomics.clip_symmetric
-#print axioms TokenEconomics.noiseFree_growth
+/-!
+The axiom gate of `TokenEconomics`: every declaration of its modules may use only `propext`,
+`Classical.choice` and `Quot.sound`. A `sorry` or any other axiom fails the build:
+
+  lake build TokenEconomicsTest
+-/
+
+open Lean
+
+/-- The axioms the library is meant to depend on. -/
+def expectedAxioms : List Name := [``propext, ``Classical.choice, ``Quot.sound]
+
+/-- A declaration of one of the modules of `TokenEconomics`. -/
+def isOurs (env : Environment) (n : Name) : Bool :=
+  match env.getModuleIdxFor? n with
+  | none => false
+  | some idx =>
+    match env.header.moduleNames[idx.toNat]? with
+    | some m => (`TokenEconomics).isPrefixOf m
+    | none => false
+
+run_cmd Elab.Command.liftCoreM do
+  let env ← getEnv
+  let mut checked : Nat := 0
+  for (n, _) in env.constants.toList do
+    unless isOurs env n && !n.isInternal && !n.hasMacroScopes do continue
+    checked := checked + 1
+    let axs ← collectAxioms n
+    if axs.contains ``sorryAx then throwError "unproved: {n}"
+    let bad := axs.filter (!expectedAxioms.contains ·)
+    unless bad.isEmpty do throwError "unexpected axioms on {n}: {bad.toList}"
+  if checked < 100 then
+    throwError "only {checked} declarations checked: the module filter is wrong"

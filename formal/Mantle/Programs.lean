@@ -12,12 +12,15 @@ the table names:
 | A user note moves only with the key of its holder | `ZkTransfer.input_note`: the circuit derives the key from the secret key |
 | A payment only pays the program it names, for the intent its holder signed | **`payment_proof_bound`**, `step_proof_not_payment` |
 | A program note is created and consumed only with the proof of its program | `ZkTransfer.not_program_output`, `ZkTransfer.not_program_input`, `pol_not_program_note`, **`validateSteps_program_outputs`**, **`validateSteps_program_inputs`** |
-| A program step serves the intents over LGO as the rule of the program states | the program proof, required by every program step (`validateSteps_program_outputs`) |
+| A program step serves the intents over LGO as the rule of the program states | the program proof, required by every program step (**`validateSteps_program_proven`**) |
 | The opening of every note of a program is available to the next sequencer | `validateSteps_program_outputs`: every created note of a program has its published opening |
 | A program step serves the intents over the assets of the zone | not checked by the ledger (the users of the zone) |
 
-The ZkProgramSpend and the program proof are bound to the `op_id` of the inscription
-(`spend_proof_bound`).
+The ZkProgramSpend and the program proof both take the `op_id` of the inscription as a public
+input. Only the ZkProgramSpend is shown bound to it (`spend_proof_bound`, under `ProofBinding`);
+nothing is assumed about Groth16 program proofs. Every row is proven for one Operation or one
+inscription; no theorem composes them over a chain, through the withdrawals and SDP releases
+that add notes outside a step.
 -/
 
 namespace Mantle
@@ -201,6 +204,44 @@ theorem validateSteps_program_outputs {P : Prims} [P.ZkTransferSound] [P.ZkProgr
           · rcases ih πs _ _ hrest c hc with h' | ⟨ps', hps, h'⟩
             · exact Or.inl h'
             · exact Or.inr ⟨ps', List.mem_cons_of_mem _ hps, h'⟩
+
+/-- **Every program step of a valid inscription carries a program proof** that verified under the
+registered key of its program, over its `spend_notes_hash`, its payments and the `op_id`, whether
+or not it creates or consumes a note of the program. -/
+theorem validateSteps_program_proven {P : Prims} {opIdFr : Fr}
+    {programs : Fr → Option VerificationKey} (steps : List Step) :
+    ∀ (πs : List StepProof) (s : NoteSet) (nfs : Finset Fr) {sv : NoteSet},
+      validateSteps P opIdFr programs s nfs steps πs = some sv →
+      ∀ ps, Step.program ps ∈ steps → ProgramProven P programs opIdFr ps := by
+  induction steps with
+  | nil => intro πs s nfs sv _ ps hps; simp at hps
+  | cons step rest ih =>
+    intro πs s nfs sv h ps hps
+    cases πs with
+    | nil => cases step <;> simp [validateSteps] at h
+    | cons sp πs =>
+      cases step with
+      | user u =>
+        cases sp with
+        | program _ _ _ _ => simp [validateSteps] at h
+        | user π =>
+          simp only [validateSteps, ensure_eq_some, option_bind_eq_some, exists_const] at h
+          obtain ⟨-, -, -, R, -, -, hrest⟩ := h
+          rw [List.mem_cons] at hps
+          rcases hps with hps | hps
+          · cases hps
+          · exact ih πs _ _ hrest ps hps
+      | program ps' =>
+        cases sp with
+        | user _ => simp [validateSteps] at h
+        | program pπs spend gπ openings =>
+          simp only [validateSteps, ensure_eq_some, option_bind_eq_some, exists_const] at h
+          obtain ⟨key, hkey, ⟨s1, nfs1, paid⟩, -, -, -, -, R, -, -, -, hg, hrest⟩ := h
+          rw [List.mem_cons] at hps
+          rcases hps with hps | hps
+          · cases hps
+            exact ⟨key, gπ, hkey, hg⟩
+          · exact ih πs _ _ hrest ps hps
 
 /-- **A note of a program is consumed only by a program step of that program**, whose program
 proof verified under the registered key: every nullifier the steps of a valid inscription

@@ -29,9 +29,10 @@ Results:
   `reserve' + pool' + pending' + leader_share = reserve + pool + pending + pooled_fees`;
 * `leaderShare_le`, `blendShare_ge`: the leader gets 40% rounded down, the Blend service the
   rest, at least 60%;
-* **`blendSchedule_pending`**: paying the Blend reward of epoch `e` at the start of epoch
-  `e + 2`, `blend_rewards_pending` is exactly the Blend shares of the two unpaid epochs, and
-  so always covers the payment.
+* **`runEpochs_pending`**, **`blend_payment_covered`**: along epochs of blocks (`rewardStep`),
+  the Blend reward of epoch `e` being paid at the start of epoch `e + 2` (`payBlend`),
+  `blend_rewards_pending` is exactly the Blend rewards of the two unpaid epochs, and so always
+  covers the payment.
 -/
 
 namespace TokenEconomics
@@ -171,30 +172,93 @@ theorem reserve_step {st : RewardState} (stake pooled : ℕ) :
 /-- The Blend reward of an epoch: the Blend shares of its blocks (`get_blend_reward`). -/
 def blendReward (rewards : List ℕ) : ℕ := (rewards.map blendShare).sum
 
-/-- The pending Blend share along a sequence of epochs, epoch `e` being paid at the start of
-epoch `e + 2`: `epochs n` are the block rewards of epoch `n`. Returns the pending amount at the
-start of epoch `n`, before its payment. -/
-def pendingAt (epochs : ℕ → List ℕ) : ℕ → ℕ
-  | 0 => 0
-  | n + 1 => pendingAt epochs n - (if 2 ≤ n then blendReward (epochs (n - 2)) else 0) +
-      blendReward (epochs n)
+/-- The blocks of an epoch, each given by its stake and its pooled fees: the state after them
+and their block rewards. -/
+def runEpoch : RewardState → List (ℕ × ℕ) → RewardState × List ℕ
+  | st, [] => (st, [])
+  | st, b :: bs =>
+    ((runEpoch (rewardStep st b.1 b.2).1 bs).1, (rewardStep st b.1 b.2).2 :: (runEpoch (rewardStep st b.1 b.2).1 bs).2)
 
-/-- **`blend_rewards_pending` is the Blend shares of the unpaid epochs**: at the start of epoch
-`n`, before paying epoch `n - 2`, it holds the Blend rewards of epochs `n - 2` and `n - 1`, so
-the payment never exceeds it. -/
-theorem blendSchedule_pending (epochs : ℕ → List ℕ) (n : ℕ) :
-    pendingAt epochs (n + 2) = blendReward (epochs n) + blendReward (epochs (n + 1)) ∧
-      blendReward (epochs n) ≤ pendingAt epochs (n + 2) := by
-  have key : ∀ n, pendingAt epochs (n + 2) = blendReward (epochs n) + blendReward (epochs (n + 1)) := by
-    intro n
-    induction n with
-    | zero => simp [pendingAt]
-    | succ n ih =>
-      have h3 : pendingAt epochs (n + 2 + 1) =
-          pendingAt epochs (n + 2) - blendReward (epochs n) + blendReward (epochs (n + 2)) := by
-        rw [pendingAt, ite_eq_left (by omega : 2 ≤ n + 2), show n + 2 - 2 = n by omega]
-      rw [show n + 1 + 2 = n + 2 + 1 by ring, h3, ih, show n + 1 + 1 = n + 2 by ring]
-      omega
-  exact ⟨key n, by rw [key n]; omega⟩
+/-- An epoch adds the Blend share of each of its block rewards to `blend_rewards_pending`. -/
+theorem runEpoch_pending (st : RewardState) (bs : List (ℕ × ℕ)) :
+    (runEpoch st bs).1.pending = st.pending + blendReward (runEpoch st bs).2 := by
+  induction bs generalizing st with
+  | nil => simp [runEpoch, blendReward]
+  | cons b bs ih =>
+    simp only [runEpoch, ih, blendReward, List.map_cons, List.sum_cons, rewardStep]
+    ring
+
+/-- A sequence of epochs from `st`: at the start of epoch `n ≥ 2`, the Blend reward of epoch
+`n - 2` is paid from `blend_rewards_pending` with notes worth `paid n`, at most that reward
+(`payBlend`), then the blocks `epochs n` run. Returns the state at the start of epoch `n`,
+before its payment, and the Blend rewards of epochs `0, …, n - 1`. -/
+def runEpochs (st : RewardState) (epochs : ℕ → List (ℕ × ℕ)) (paid : ℕ → ℕ) :
+    ℕ → RewardState × List ℕ
+  | 0 => (st, [])
+  | n + 1 =>
+    let s := (runEpochs st epochs paid n).1
+    let hist := (runEpochs st epochs paid n).2
+    let B := hist.getD (n - 2) 0
+    let s1 := if 2 ≤ n then payBlend s B (min (paid n) B) else s
+    ((runEpoch s1 (epochs n)).1, hist ++ [blendReward (runEpoch s1 (epochs n)).2])
+
+/-- **`blend_rewards_pending` holds the Blend rewards of the two unpaid epochs**: from a state
+with nothing pending, at the start of epoch `n` it is the Blend reward of epoch `n - 2` plus
+that of epoch `n - 1`. -/
+theorem runEpochs_pending (st : RewardState) (h0 : st.pending = 0)
+    (epochs : ℕ → List (ℕ × ℕ)) (paid : ℕ → ℕ) (n : ℕ) :
+    (runEpochs st epochs paid n).2.length = n ∧
+      (runEpochs st epochs paid n).1.pending =
+        (if 2 ≤ n then (runEpochs st epochs paid n).2.getD (n - 2) 0 else 0) +
+          (if 1 ≤ n then (runEpochs st epochs paid n).2.getD (n - 1) 0 else 0) := by
+  induction n with
+  | zero => simp [runEpochs, h0]
+  | succ n ih =>
+    obtain ⟨hl, hp⟩ := ih
+    simp only [runEpochs]
+    generalize (runEpochs st epochs paid n).1 = s at hp
+    generalize (runEpochs st epochs paid n).2 = hist at hl hp
+    have hp1 : (if 2 ≤ n then payBlend s (hist.getD (n - 2) 0)
+        (min (paid n) (hist.getD (n - 2) 0)) else s).pending =
+        if 1 ≤ n then hist.getD (n - 1) 0 else 0 := by
+      split_ifs with h2 h1 h1
+      · simp only [payBlend, hp, h2, h1, ite_true]
+        omega
+      · omega
+      · simp only [hp, h2, h1, ite_true, ite_false]
+        omega
+      · simp only [hp, h2, h1, ite_false]
+    rw [runEpoch_pending, hp1]
+    generalize blendReward _ = x
+    have ga : ∀ k < hist.length, (hist ++ [x]).getD k 0 = hist.getD k 0 := by
+      intro k hk
+      simp [List.getD_eq_getElem?_getD, List.getElem?_append_left hk]
+    have gb : ∀ k, k = hist.length → (hist ++ [x]).getD k 0 = x := by
+      intro k hk
+      subst hk
+      simp [List.getD_eq_getElem?_getD]
+    refine ⟨by simp [hl], ?_⟩
+    rcases n with _ | _ | n
+    · simp only [show ¬(2 ≤ 0 + 1) by omega, show 1 ≤ 0 + 1 by omega, show ¬(1 ≤ 0) by omega,
+        ite_true, ite_false, show 0 + 1 - 1 = 0 by rfl, gb 0 hl.symm, Nat.zero_add]
+    · simp only [show 2 ≤ 0 + 1 + 1 by omega, show 1 ≤ 0 + 1 + 1 by omega,
+        show 1 ≤ 0 + 1 by omega, ite_true, show 0 + 1 + 1 - 2 = 0 by rfl,
+        show 0 + 1 + 1 - 1 = 1 by rfl, ga 0 (by omega),
+        gb 1 hl.symm]
+    · have e1 := ga (n + 1) (by omega)
+      have e2 := gb (n + 2) hl.symm
+      simp only [show 1 ≤ n + 1 + 1 by omega, show 2 ≤ n + 1 + 1 + 1 by omega,
+        show 1 ≤ n + 1 + 1 + 1 by omega, ite_true, show n + 1 + 1 + 1 - 2 = n + 1 by omega,
+        show n + 1 + 1 + 1 - 1 = n + 2 by omega, show n + 1 + 1 - 1 = n + 1 by omega, e1, e2]
+
+/-- **The Blend reward of an epoch is always covered when paid**: at the start of epoch
+`n ≥ 2`, the Blend reward of epoch `n - 2` is at most `blend_rewards_pending`, so the payment the
+service reward distribution makes never exceeds it. -/
+theorem blend_payment_covered (st : RewardState) (h0 : st.pending = 0)
+    (epochs : ℕ → List (ℕ × ℕ)) (paid : ℕ → ℕ) {n : ℕ} (hn : 2 ≤ n) :
+    (runEpochs st epochs paid n).2.getD (n - 2) 0 ≤ (runEpochs st epochs paid n).1.pending := by
+  rw [(runEpochs_pending st h0 epochs paid n).2]
+  simp only [hn, ite_true]
+  omega
 
 end TokenEconomics

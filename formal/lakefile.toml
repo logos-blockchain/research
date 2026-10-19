@@ -1,5 +1,6 @@
 name = "Formal"
-defaultTargets = ["StochasticRecurrence", "MiningOnboarding", "Mantle", "TokenEconomics"]
+defaultTargets = ["StochasticRecurrence", "MiningOnboarding", "Mantle", "TokenEconomics",
+  "MantleTest", "TokenEconomicsTest"]
 
 [[require]]
 name = "mathlib"
@@ -17,3 +18,11 @@ name = "Mantle"
 
 [[lean_lib]]
 name = "TokenEconomics"
+
+[[lean_lib]]
+name = "MantleTest"
+globs = ["MantleTest.+"]
+
+[[lean_lib]]
+name = "TokenEconomicsTest"
+globs = ["TokenEconomicsTest.+"]

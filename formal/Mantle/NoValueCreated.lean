@@ -274,7 +274,7 @@ theorem applyDeclare_spec {P : Prims} [P.ZkTransferSound] {E : Env} {st st' : St
     Inv P.H st' ∧ Grows st st' ∧ value P.H st' + fee ≤ value P.H st := by
   simp only [applyDeclare, ensure_eq_some, option_bind_eq_some, option_pure_eq,
     Option.some.injEq, Prod.mk.injEq, exists_const] at h
-  obtain ⟨R, hR, hv, -, hlook, -, hsp, -, rfl, rfl⟩ := h
+  obtain ⟨R, hR, hv, -, hlook, -, -, -, -, hsp, -, rfl, rfl⟩ := h
   have hi := ledger_lt I
   have hs := sdp_lt I
   have h01 : LEDGER_SET ≠ SDP_SET := by simp [SDP_SET, LEDGER_SET]
@@ -419,13 +419,13 @@ theorem applyClaimPow_spec {P : Prims} {E : Env} {st st' : State} {c : ClaimPowR
   have I0 : ∀ a b, Inv P.H (st.withPow a b) := fun a b =>
     ⟨I.two_le, I.sets, I.chan, I.declNodup, I.declNote, I.declOutputs, I.pending⟩
   obtain ⟨I1, G1⟩ := (I0 (st.powRewardPool - st.epochPowReward)
-    (insert (P.H.zkhash [c.publicKey, c.nonce, c.blockHash, c.epochNonce]) st.powNullifiers)).setSet
+    (insert (P.H.zkhash [c.publicKey, c.nonce, toFr c.blockHash, c.epochNonce]) st.powNullifiers)).setSet
     (i := LEDGER_SET) hi ((I.sets _ hi).extend_add [noteCm P.H (powNote P st c)]) (by simp)
   refine ⟨I1, G1, ?_⟩
   have key := supply_append_le (H := P.H) (st.sets LEDGER_SET).cms
     [noteCm P.H (powNote P st c)] (st.sets LEDGER_SET).nullifiers
   have v1 := setsValue_setSet (H := P.H) (st := st.withPow (st.powRewardPool - st.epochPowReward)
-    (insert (P.H.zkhash [c.publicKey, c.nonce, c.blockHash, c.epochNonce]) st.powNullifiers)) hi
+    (insert (P.H.zkhash [c.publicKey, c.nonce, toFr c.blockHash, c.epochNonce]) st.powNullifiers)) hi
     (((st.sets LEDGER_SET).extendBuffer [noteCm P.H (powNote P st c)]).executeAdding
       [noteCm P.H (powNote P st c)])
   have hcmv : listValue P.H [noteCm P.H (powNote P st c)] = st.epochPowReward := by
@@ -1145,7 +1145,7 @@ theorem applyOp_grows {P : Prims} {E : Env} {st st' : State} {txh : Fr} {op : Op
     exact Grows.of_sets rfl rfl
   · simp only [applyDeclare, ensure_eq_some, option_bind_eq_some, option_pure_eq,
       Option.some.injEq, Prod.mk.injEq, exists_const] at h
-    obtain ⟨R, -, -, -, -, -, -, -, rfl, rfl⟩ := h
+    obtain ⟨R, -, -, -, -, -, -, -, -, -, -, rfl, rfl⟩ := h
     exact ((Grows.setSet fun _ => by simp).trans (Grows.setSet fun _ => by simp)).trans
       (Grows.of_sets rfl rfl)
   · simp only [applySdpWithdraw, ensure_eq_some, option_bind_eq_some, option_pure_eq,
@@ -1212,6 +1212,20 @@ theorem applyOps_spec {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSound] {E
       dsimp only at V1 V2 ⊢
       omega
 
+/-- **The check on `tx_balance` never rejects a transaction of a state worth less than `2^64`**:
+at an Operation followed by valid Operations, `fee + tx_balance` is at most what the Operations
+consume, so at most the value of the state (`balance_check_holds`); the check binds only where
+conservation already fails. -/
+theorem balance_check_holds {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSound] {E : Env}
+    {txh : Fr} {st st1 st2 : State} {op : Op} {π : OpProof} {ops : List Op} {πs : List OpProof}
+    {fee bal gas : ℕ} (I : Inv P.H st) (hv : value P.H st < TOKEN_BOUND)
+    (h1 : applyOp P E st txh op π = some (st1, fee))
+    (h2 : applyOps P E st1 txh ops πs = some (st2, bal, gas)) (hcap : Cap st2) :
+    fee + bal < TOKEN_BOUND := by
+  obtain ⟨I1, -, V1⟩ := applyOp_spec I h1 (hcap.of_grows (applyOps_grows ops πs st1 st2 bal gas h2))
+  obtain ⟨-, -, V2⟩ := applyOps_spec ops πs st1 st2 bal gas I1 h2 hcap
+  omega
+
 theorem Inv.clearBuffers {st : State} (I : Inv H st) : Inv H st.clearBuffers where
   two_le := I.two_le
   sets i hi := ⟨⟨(I.sets i hi).window.keys, (I.sets i hi).window.length_le,
@@ -1239,6 +1253,163 @@ theorem applyTx_value {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSound] {E
   rw [value_clearBuffers] at V1
   dsimp only at hle ⊢
   omega
+
+/-! ## Transactions keep the recorded roots -/
+
+@[simp] theorem NoteSet.executeAdding_recentRoots (s : NoteSet) (l : List Fr) :
+    (s.executeAdding l).recentRoots = s.recentRoots := rfl
+@[simp] theorem NoteSet.executeSpending_recentRoots (s : NoteSet) (l : List Fr) :
+    (s.executeSpending l).recentRoots = s.recentRoots := rfl
+
+/-- The note sets of `st` keep, in `st'`, the roots recorded for them. -/
+def KeepsRoots (st st' : State) : Prop :=
+  st.numSets ≤ st'.numSets ∧ ∀ i < st.numSets, (st'.sets i).recentRoots = (st.sets i).recentRoots
+
+theorem KeepsRoots.refl (st : State) : KeepsRoots st st := ⟨le_rfl, fun _ _ => rfl⟩
+
+theorem KeepsRoots.trans {a b c : State} (h1 : KeepsRoots a b) (h2 : KeepsRoots b c) :
+    KeepsRoots a c :=
+  ⟨h1.1.trans h2.1, fun i hi => (h2.2 i (lt_of_lt_of_le hi h1.1)).trans (h1.2 i hi)⟩
+
+theorem KeepsRoots.setSet {st : State} {i : ℕ} {s : NoteSet}
+    (h : i < st.numSets → s.recentRoots = (st.sets i).recentRoots) :
+    KeepsRoots st (st.setSet i s) := by
+  refine ⟨le_rfl, fun j hj => ?_⟩
+  by_cases hji : j = i
+  · subst hji; simpa using h hj
+  · rw [setSet_sets_of_ne _ hji]
+
+theorem KeepsRoots.of_sets {st st' : State} (h1 : st'.sets = st.sets)
+    (h2 : st'.numSets = st.numSets) : KeepsRoots st st' := ⟨h2.ge, fun i _ => by rw [h1]⟩
+
+theorem createChannel_keepsRoots (P : Prims) (st : State) (id : ChannelId) (slot : Slot)
+    (keys : List Fr) : KeepsRoots st (createChannel P st id slot keys) := by
+  unfold createChannel
+  split_ifs
+  · exact KeepsRoots.of_sets rfl rfl
+  · refine ⟨by simp, fun i hi => ?_⟩
+    simp only [State.withChannels_sets, State.addSet_sets]
+    rw [Function.update_of_ne hi.ne]
+
+theorem executeInscribeSteps_keepsRoots {P : Prims} {E : Env} {st : State} {txh opIdFr : Fr}
+    {m : Inscribe} {sig : Fr} {πs : List StepProof} {v : Option NoteSet}
+    (h : validateInscribe P E st txh opIdFr m sig πs = some v) :
+    KeepsRoots st (executeInscribeSteps P E st m v) := by
+  obtain ⟨hsome, -⟩ := validateInscribe_spec h
+  unfold executeInscribeSteps
+  cases hc : st.channels m.channel with
+  | some chan =>
+    simp only
+    cases hj : chan.noteSet with
+    | none => exact KeepsRoots.refl _
+    | some j =>
+      obtain ⟨sv, rfl, hsv⟩ := (hsome chan hc).1 j hj
+      apply KeepsRoots.setSet
+      intro _
+      rw [(executeSteps_fields m.steps sv).2.2.2.1, validateSteps_eq m.steps πs _ _ hsv]
+      rfl
+  | none =>
+    simp only
+    split_ifs
+    · refine (createChannel_keepsRoots P st m.channel E.blockSlot [m.signer]).trans
+        (KeepsRoots.setSet ?_)
+      intro _
+      rw [(executeSteps_fields m.steps _).2.2.2.1]
+    · exact createChannel_keepsRoots P st m.channel E.blockSlot [m.signer]
+
+/-- Every Operation keeps the roots recorded for the note sets. -/
+theorem applyOp_keepsRoots {P : Prims} {E : Env} {st st' : State} {txh : Fr} {op : Op}
+    {π : OpProof} {fee : ℕ} (h : applyOp P E st txh op π = some (st', fee)) :
+    KeepsRoots st st' := by
+  cases op <;> cases π <;> simp only [applyOp, reduceCtorEq] at h
+  · simp only [applyTransfer, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨-, R, -, -, rfl, rfl⟩ := h
+    exact KeepsRoots.setSet fun _ => by simp
+  · simp only [applyRegister, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨-, rfl, rfl⟩ := h
+    split_ifs <;> exact KeepsRoots.of_sets rfl rfl
+  · rename_i c sigs idx
+    unfold applyConfig at h
+    simp only [ensure_eq_some, option_bind_eq_some, option_pure_eq, exists_const] at h
+    obtain ⟨-, -, -, h⟩ := h
+    cases hc : st.channels c.channel with
+    | none =>
+      simp only [hc, ensure_eq_some, option_bind_eq_some, exists_const,
+        Option.some.injEq, Prod.mk.injEq, Option.isSome_none, Bool.false_eq_true, ite_false] at h
+      obtain ⟨-, -, chan, -, rfl, rfl⟩ := h
+      exact (createChannel_keepsRoots P st _ _ _).trans (KeepsRoots.of_sets rfl rfl)
+    | some ch =>
+      simp only [hc, ensure_eq_some, option_bind_eq_some, exists_const,
+        Option.some.injEq, Prod.mk.injEq, Option.isSome_some, ite_true] at h
+      obtain ⟨-, -, chan, -, rfl, rfl⟩ := h
+      exact KeepsRoots.of_sets rfl rfl
+  · unfold applyInscribe at h
+    simp only [option_bind_eq_some, option_pure_eq, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨v, hv, chan, -, rfl, rfl⟩ := h
+    exact (executeInscribeSteps_keepsRoots hv).trans (KeepsRoots.of_sets rfl rfl)
+  · simp only [applyDeposit, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨-, chan, -, j, -, -, R, -, -, rfl, rfl⟩ := h
+    refine ((KeepsRoots.setSet fun _ => by simp).trans
+      (KeepsRoots.setSet fun _ => by simp)).trans
+      (KeepsRoots.setSet fun _ => ?_)
+    by_cases hj : j = LEDGER_SET
+    · subst hj; simp
+    · simp [setSet_sets_of_ne _ hj]
+  · simp only [applyChannelWithdraw, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨chan, -, j, -, -, R, -, -, rfl, rfl⟩ := h
+    exact KeepsRoots.of_sets rfl rfl
+  · simp only [applyDeclare, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨R, -, -, -, -, -, -, -, -, -, -, rfl, rfl⟩ := h
+    exact ((KeepsRoots.setSet fun _ => by simp).trans (KeepsRoots.setSet fun _ => by simp)).trans
+      (KeepsRoots.of_sets rfl rfl)
+  · simp only [applySdpWithdraw, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨info, -, -, -, -, -, -, rfl, rfl⟩ := h
+    exact (KeepsRoots.of_sets rfl rfl).trans (KeepsRoots.setSet fun _ => by simp)
+  · simp only [applyActive, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨info, -, -, -, -, rfl, rfl⟩ := h
+    exact KeepsRoots.of_sets rfl rfl
+  · simp only [applyClaimPow, ensure_eq_some, option_bind_eq_some, option_pure_eq,
+      Option.some.injEq, Prod.mk.injEq, exists_const] at h
+    obtain ⟨-, -, slot, -, -, -, -, -, rfl, rfl⟩ := h
+    exact (KeepsRoots.of_sets rfl rfl).trans (KeepsRoots.setSet fun _ => by simp)
+
+theorem applyOps_keepsRoots {P : Prims} {E : Env} {txh : Fr} (ops : List Op) :
+    ∀ (πs : List OpProof) (st st' : State) (bal gas : ℕ),
+      applyOps P E st txh ops πs = some (st', bal, gas) → KeepsRoots st st' := by
+  induction ops with
+  | nil =>
+    intro πs st st' bal gas h
+    cases πs with
+    | nil =>
+      simp only [applyOps, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, -, -⟩ := h
+      exact KeepsRoots.refl _
+    | cons _ _ => simp [applyOps] at h
+  | cons op ops ih =>
+    intro πs st st' bal gas h
+    cases πs with
+    | nil => simp [applyOps] at h
+    | cons π πs =>
+      simp only [applyOps, option_bind_eq_some, ensure_eq_some, option_pure_eq, exists_const,
+        Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨⟨st1, fee⟩, h1, ⟨st2, bal', gas'⟩, h2, -, -, rfl, rfl, rfl⟩ := h
+      exact (applyOp_keepsRoots h1).trans (ih πs st1 st2 bal' gas' h2)
+
+/-- A valid Mantle Transaction keeps the roots recorded for the note sets. -/
+theorem applyTx_keepsRoots {P : Prims} {E : Env} {st st' : State} {stx : SignedMantleTx}
+    {fee tip : ℕ} (h : applyTx P E st stx = some (st', fee, tip)) : KeepsRoots st st' := by
+  simp only [applyTx, ensure_eq_some, option_bind_eq_some, option_pure_eq, exists_const,
+    Option.some.injEq, Prod.mk.injEq] at h
+  obtain ⟨-, ⟨st1, bal, gas⟩, hops, f, -, -, rfl, -, -⟩ := h
+  exact KeepsRoots.trans (b := st.clearBuffers) ⟨le_rfl, fun _ _ => rfl⟩
+    (applyOps_keepsRoots _ _ _ _ _ _ hops)
 
 end
 

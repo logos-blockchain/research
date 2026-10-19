@@ -1,50 +1,35 @@
 import Mantle
 
-#print axioms Mantle.mmrRoot_mmrPeaks
-#print axioms Mantle.mem_of_mmrRoot
-#print axioms Mantle.mmrRoot_full
-#print axioms Mantle.rootFromPath_eq_subtree
-#print axioms Mantle.IMT.not_mem_iff
-#print axioms Mantle.IMT.inv_insertNullifier
-#print axioms Mantle.IMT.not_mem_of_path
-#print axioms Mantle.NoteSet.windowInv_recordCmRoot
-#print axioms Mantle.NoteSet.mem_of_txCmRoot
-#print axioms Mantle.NoteSet.txCmRoot_of_prefix
-#print axioms Mantle.NoteSet.not_provable_of_fresh
-#print axioms Mantle.supply_spend_append_le
-#print axioms Mantle.ZkTransfer.consumed
-#print axioms Mantle.validateSteps_spec
-#print axioms Mantle.applyOp_spec
-#print axioms Mantle.applyTx_value
-#print axioms Mantle.releaseWithdrawals_value
-#print axioms Mantle.finalizeDeclarations_value
-#print axioms Mantle.pol_sound
-#print axioms Mantle.pol_sound_of_inv
-#print axioms Mantle.validateSteps_program_outputs
-#print axioms Mantle.validateSteps_program_inputs
-#print axioms Mantle.payment_proof_bound
-#print axioms Mantle.validateSteps_users_perm
-#print axioms Mantle.releaseOne_cancelled
-#print axioms Mantle.limit_eq
-#print axioms Mantle.blocks_to_fill_set
-#print axioms Mantle.symbolic_complete
-#print axioms Mantle.Lottery.approx2_le_phi
-#print axioms Mantle.Lottery.phi_sub_approx2_le
-#print axioms Mantle.Lottery.split_advantage
-#print axioms Mantle.Lottery.error_table_f30
-#print axioms Mantle.Lottery.error_table_f20
-#print axioms Mantle.Lottery.constants_exact
-#print axioms Mantle.Lottery.win_prob_le
-#print axioms Mantle.Lottery.threshold_wrap
-#print axioms Mantle.Encoding.Codec.decodeAll_iff
-#print axioms Mantle.Encoding.signedTx_canonical
-#print axioms Mantle.Encoding.mantleTx_encode_injective
-#print axioms Mantle.Encoding.fe_canonical_mod_p
-#print axioms Mantle.Encoding.fe_rejects
-#print axioms Mantle.roundRobin_lt
-#print axioms Mantle.roundRobin_infinite
-#print axioms Mantle.seqOk_inscribe
-#print axioms Mantle.ChanInv.applyTx
-#print axioms Mantle.applyOps_gas_lt
-#print axioms Mantle.gas_check_holds
-#print axioms Mantle.Lottery.error_table_f30_all
+/-!
+The axiom gate of `Mantle`: every declaration of its modules may use only `propext`,
+`Classical.choice` and `Quot.sound`. A `sorry` or any other axiom fails the build:
+
+  lake build MantleTest
+-/
+
+open Lean
+
+/-- The axioms the library is meant to depend on. -/
+def expectedAxioms : List Name := [``propext, ``Classical.choice, ``Quot.sound]
+
+/-- A declaration of one of the modules of `Mantle`. -/
+def isOurs (env : Environment) (n : Name) : Bool :=
+  match env.getModuleIdxFor? n with
+  | none => false
+  | some idx =>
+    match env.header.moduleNames[idx.toNat]? with
+    | some m => (`Mantle).isPrefixOf m
+    | none => false
+
+run_cmd Elab.Command.liftCoreM do
+  let env ← getEnv
+  let mut checked : Nat := 0
+  for (n, _) in env.constants.toList do
+    unless isOurs env n && !n.isInternal && !n.hasMacroScopes do continue
+    checked := checked + 1
+    let axs ← collectAxioms n
+    if axs.contains ``sorryAx then throwError "unproved: {n}"
+    let bad := axs.filter (!expectedAxioms.contains ·)
+    unless bad.isEmpty do throwError "unexpected axioms on {n}: {bad.toList}"
+  if checked < 100 then
+    throwError "only {checked} declarations checked: the module filter is wrong"

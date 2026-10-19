@@ -14,7 +14,10 @@ Execution Market 1.3.1, *Base Fee Update Rule*: the smoothed average
   `q = 9/10`, `φ = 1/8`;
 * `updateGAvg_le`: blocks within `G_max` keep the average within `G_max`;
 * **`updateBaseFee_pos`**: rounding up keeps the base fee at least `1`, while rounding down
-  would make `0` absorbing (`floor_absorbing`);
+  would make `0` absorbing (`floor_absorbing`); but the effective floor is `7` units, not `1`: a
+  fee of at most 7 never falls (**`updateBaseFee_sticky`**), one of at least 7 never falls below
+  7 (`updateBaseFee_floor`), and above the target any fee rises by a unit
+  (`updateBaseFee_ratchet`);
 * `updateBaseFee_fixed`, `updateBaseFee_ge`, `updateBaseFee_le`: the fee is unchanged at the
   target, rises above it and falls below it;
 * `updateBaseFee_lower`, `updateBaseFee_upper`: a step changes the fee by at most `-12.5%` and
@@ -148,5 +151,45 @@ theorem updateBaseFee_upper {b gAvg : ℕ} (hg : gAvg ≤ G_MAX) :
 `G_max = 2 G_target + 1`: at `b = 8 G_target` it reaches `9 G_target + 1`. -/
 theorem increase_above_eighth :
     updateBaseFee (8 * G_TARGET) G_MAX = 9 * G_TARGET + 1 := by decide
+
+/-! ## The effective floor -/
+
+/-- **A base fee of at most 7 units never falls**: `⌈7b/8⌉ = b` for `b ≤ 7`, so even an empty
+chain leaves it unchanged. -/
+theorem updateBaseFee_sticky {b : ℕ} (hb : b ≤ 7) (gAvg : ℕ) : b ≤ updateBaseFee b gAvg := by
+  have h := Nat.mul_le_mul_left b (Nat.le_add_right BASE_FEE_NUMERATOR gAvg)
+  unfold updateBaseFee ceilDiv
+  rw [Nat.le_div_iff_mul_le (by decide)]
+  generalize b * (BASE_FEE_NUMERATOR + gAvg) = x at h ⊢
+  simp only [BASE_FEE_NUMERATOR, BASE_FEE_DENOMINATOR] at h ⊢
+  interval_cases b <;> omega
+
+/-- **A base fee of at least 7 units never falls below 7**: the effective floor is 7 units, not
+the `1` the specification states. -/
+theorem updateBaseFee_floor {b : ℕ} (hb : 7 ≤ b) (gAvg : ℕ) : 7 ≤ updateBaseFee b gAvg := by
+  have h := Nat.mul_le_mul_right (BASE_FEE_NUMERATOR + gAvg) hb
+  have h' := Nat.mul_le_mul_left 7 (Nat.le_add_right BASE_FEE_NUMERATOR gAvg)
+  unfold updateBaseFee ceilDiv
+  rw [Nat.le_div_iff_mul_le (by decide)]
+  generalize b * (BASE_FEE_NUMERATOR + gAvg) = x at h ⊢
+  generalize 7 * (BASE_FEE_NUMERATOR + gAvg) = y at h h'
+  simp only [BASE_FEE_NUMERATOR, BASE_FEE_DENOMINATOR] at h h' ⊢
+  omega
+
+/-- Above the target, any fee rises by at least one unit: below 8 units the rounding outweighs
+the `±12.5%` adjustment, so a small fee only ratchets up. -/
+theorem updateBaseFee_ratchet {b gAvg : ℕ} (hb : 1 ≤ b) (hg : G_TARGET + 1 ≤ gAvg) :
+    b + 1 ≤ updateBaseFee b gAvg := by
+  have h := Nat.mul_le_mul_left b (Nat.add_le_add_left hg BASE_FEE_NUMERATOR)
+  have e : b * (BASE_FEE_NUMERATOR + (G_TARGET + 1)) = b * BASE_FEE_DENOMINATOR + b := by
+    simp only [BASE_FEE_NUMERATOR, BASE_FEE_DENOMINATOR, G_TARGET]
+    ring
+  rw [e] at h
+  unfold updateBaseFee ceilDiv
+  rw [Nat.le_div_iff_mul_le (by decide), Nat.add_mul, Nat.one_mul]
+  generalize b * (BASE_FEE_NUMERATOR + gAvg) = x at h ⊢
+  generalize b * BASE_FEE_DENOMINATOR = z at h ⊢
+  simp only [BASE_FEE_DENOMINATOR] at h ⊢
+  omega
 
 end TokenEconomics

@@ -8,15 +8,13 @@ Machine-checked versions of results in [`reports/`](../reports) and of specifica
 ```sh
 # from formal/, inside `nix-shell` (shell.nix provides elan; the toolchain is pinned in lean-toolchain)
 lake exe cache get                               # fetch prebuilt Mathlib
-lake build                                       # check every proof
+lake build                                       # check every proof, and run the MantleTest and
+                                                 # TokenEconomicsTest libraries: axiom gates, Mantle's
+                                                 # test vectors, the block reward and base fee vs.
+                                                 # hand-computed values, the supply projection
 lake env lean StochasticRecurrenceTest/Axioms.lean   # axioms used by the main results
 lake env lean MiningOnboardingTest/Axioms.lean
 lake env lean MiningOnboardingTest/Report.lean       # calculator vs. the report's numbers
-lake env lean MantleTest/Axioms.lean
-lake env lean MantleTest/Vectors.lean                # encoding and BLAKE2b vs. Mantle's test vectors
-lake env lean TokenEconomicsTest/Axioms.lean
-lake env lean TokenEconomicsTest/Spec.lean           # block reward and base fee vs. hand-computed values
-lake env lean TokenEconomicsTest/Projection.lean     # the 10-year supply projection, simulated
 ```
 
 ## Libraries

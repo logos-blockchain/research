@@ -11,7 +11,8 @@ expansion `ψ(α) = α (c - c² α / 2)`, `c = -ln(1 - f)`, the order-1 one bein
 * `phi_eq`: `φ_f(α) = 1 - e^{-c α}`; `phi_add`: splitting a stake into two notes leaves the
   probability that one of them wins unchanged, which is why `φ` is used;
 * **`approx2_le_phi`**, **`phi_sub_approx2_le`**: `ψ(α) ≤ φ(α) ≤ ψ(α) + c³α³/6` for `α ≥ 0`:
-  the circuit's threshold never favours a note, and its error is third order;
+  the order-2 approximation never favours a note, and its error is third order (the circuit's
+  threshold in `𝔽_p` follows it only below the zero crossing, see below);
   `phi_le_approx1`: the order-1 expansion always overestimates;
 * **`split_advantage`**: under `ψ`, splitting a note into two of relative stakes `a, b > 0`
   (with `c b ≤ 1`, far beyond any real note) raises the probability that one of them wins, by
@@ -25,9 +26,10 @@ expansion `ψ(α) = α (c - c² α / 2)`, `c = -ln(1 - f)`, the order-1 one bein
   `v t₀ - v² ⌊t1_constant/S²⌋` below the zero crossing, `threshold_wrap` the near-`p` value
   past it (the corner case of the specification); **`constants_exact`**: the hexadecimal
   constants are exactly `⌊-p ln(1-f)⌋` and `⌊p ln²(1-f)/2⌋` for `f = 1/30` (a 53-term log
-  series, checked by the kernel); **`win_prob_le`**: so a note never wins with probability
-  above `φ_f(v/S) + 2v²/p`; `parabola_peak_zero`: for `f = 1/30` the peak
-  of `ψ` is at `α = 1/c ≈ 29.5` and its zero at `α = 2/c ≈ 59.0`.
+  series, checked by the kernel); **`win_prob_le`**: below the zero crossing, a note never wins
+  with probability above `φ_f(v/S) + 2v²/p`; past it the threshold wraps near `p` and the note
+  wins almost surely (`threshold_wrap`); `approx2_le_peak`, `parabola_peak_zero`: for
+  `f = 1/30` the maximum of `ψ` is at `α = 1/c ≈ 29.5` and its zero at `α = 2/c ≈ 59.0`.
 -/
 
 namespace Mantle.Lottery
@@ -188,12 +190,13 @@ theorem error_table_f30 :
   obtain ⟨hl, hu⟩ := hb
   refine ⟨by nlinarith, by nlinarith, by nlinarith, by nlinarith⟩
 
-/-- **For `f = 1/20`** the same errors are the table's `2.59%` and `-0.0444%`. -/
+/-- **For `f = 1/20`** the same errors round to `2.59%` and `-0.0444%`, the values of the table
+before Mantle 2.0.0 v8. -/
 theorem error_table_f20 :
-    0.0258 < approx1 (1 / 20) 1 / phi (1 / 20) 1 - 1 ∧
-      approx1 (1 / 20) 1 / phi (1 / 20) 1 - 1 < 0.0259 ∧
-      -0.000445 < approx2 (1 / 20) 1 / phi (1 / 20) 1 - 1 ∧
-      approx2 (1 / 20) 1 / phi (1 / 20) 1 - 1 < -0.000443 := by
+    0.02585 < approx1 (1 / 20) 1 / phi (1 / 20) 1 - 1 ∧
+      approx1 (1 / 20) 1 / phi (1 / 20) 1 - 1 < 0.02595 ∧
+      -0.0004445 < approx2 (1 / 20) 1 / phi (1 / 20) 1 - 1 ∧
+      approx2 (1 / 20) 1 / phi (1 / 20) 1 - 1 < -0.0004435 := by
   have hb := rate_bounds (x := 1 / 20) (by norm_num) (by norm_num)
   rw [phi_one]
   simp only [approx1, approx2, mul_one, one_mul]
@@ -203,9 +206,23 @@ theorem error_table_f20 :
   obtain ⟨hl, hu⟩ := hb
   refine ⟨by nlinarith, by nlinarith, by nlinarith, by nlinarith⟩
 
+/-- `ψ` reaches its maximum, `1/2`, at `α = 1/c`. -/
+theorem approx2_le_peak (h0 : 0 < f) (h1 : f < 1) (α : ℝ) :
+    approx2 f α ≤ approx2 f (1 / rate f) ∧ approx2 f (1 / rate f) = 1 / 2 := by
+  have hc := rate_pos h0 h1
+  have e : approx2 f (1 / rate f) = 1 / 2 := by
+    simp only [approx2]
+    field_simp
+    ring
+  refine ⟨?_, e⟩
+  rw [e]
+  simp only [approx2]
+  nlinarith [sq_nonneg (rate f * α - 1)]
+
 /-- For `f = 1/30` the parabola `ψ` peaks at `α = 1/c ∈ (29.4, 29.6)` and returns to `0` at
 `α = 2/c ∈ (58.9, 59.1)`, the specification's 29 and 59. -/
 theorem parabola_peak_zero :
+    (∀ α, approx2 (1 / 30) α ≤ approx2 (1 / 30) (1 / rate (1 / 30))) ∧
     (29.4 < 1 / rate (1 / 30) ∧ 1 / rate (1 / 30) < 29.6) ∧
       (58.9 < 2 / rate (1 / 30) ∧ 2 / rate (1 / 30) < 59.1) ∧
       approx2 (1 / 30) (2 / rate (1 / 30)) = 0 := by
@@ -215,7 +232,7 @@ theorem parabola_peak_zero :
   rw [abs_le] at hb
   norm_num at hb
   obtain ⟨hl, hu⟩ := hb
-  refine ⟨⟨?_, ?_⟩, ⟨?_, ?_⟩, ?_⟩
+  refine ⟨fun α => (approx2_le_peak (by norm_num) (by norm_num) α).1, ⟨?_, ?_⟩, ⟨?_, ?_⟩, ?_⟩
   · rw [lt_div_iff₀ hc]; nlinarith
   · rw [div_lt_iff₀ hc]; nlinarith
   · rw [lt_div_iff₀ hc]; nlinarith

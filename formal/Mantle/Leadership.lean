@@ -151,14 +151,16 @@ theorem pol_sound {aged latest : State} (Iaged : ∀ i < aged.numSets, (aged.set
     exact IMT.not_mem_of_path (Ilatest _ hil) (noteNf_ne_zero _ _) hl h2.symm hlt hnext
 
 /-- **`pol_sound` for ledger states reached by Mantle**: the invariant `Inv` keeps every IMT
-the sorted list of its set's nullifiers. -/
-theorem pol_sound_of_inv {aged latest : State} (hcap : Cap aged)
+the sorted list of its set's nullifiers. The Proof of Leadership involves no buffer, so the
+capacity it needs is the specification's, fewer than `2^32` commitments per set. -/
+theorem pol_sound_of_inv {aged latest : State}
+    (hcap : ∀ i < aged.numSets, (aged.sets i).cms.length < 2 ^ 32)
     (Il : Inv H latest) {w : PoLWitness}
     (h : PoLRel H (eligibleRoot H (setRoots H aged)) (eligibleRoot H (setRoots H latest)) w) :
     ∃ i, i < aged.numSets ∧ i < latest.numSets ∧
       noteCm H (w.note H) ∈ (aged.sets i).cms ∧
       noteNf H (noteCm H (w.note H)) w.sk ∉ (latest.sets i).nullifiers :=
-  pol_sound (fun i hi => by have := hcap i hi; omega) (fun i hi => (Il.sets i hi).imt) h
+  pol_sound hcap (fun i hi => (Il.sets i hi).imt) h
 
 /-- The note of a Proof of Leadership is a user note: no program note leads. -/
 theorem pol_user_note (w : PoLWitness) : (w.note H).IsUser := ⟨rfl, rfl⟩

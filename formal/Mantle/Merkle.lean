@@ -63,19 +63,6 @@ theorem subtree_succ' (g : ℕ → Fr) (h i : ℕ) : subtree H g (h + 1) i = sub
   | zero => rfl
   | succ h ih => rw [subtree, ih, ih, subtree]
 
-theorem subtree_congr {g g' : ℕ → Fr} {h i : ℕ}
-    (hg : ∀ j, i * 2 ^ h ≤ j → j < (i + 1) * 2 ^ h → g j = g' j) :
-    subtree H g h i = subtree H g' h i := by
-  induction h generalizing i with
-  | zero => simpa [subtree] using hg i (by simp) (by simp)
-  | succ h ih =>
-    simp only [subtree]
-    rw [ih, ih]
-    · intro j h1 h2
-      apply hg j <;> rw [pow_succ] <;> nlinarith
-    · intro j h1 h2
-      apply hg j <;> rw [pow_succ] <;> nlinarith
-
 /-- A subtree whose leaves are all `0` has root `emptyRoot`. -/
 theorem subtree_eq_emptyRoot {g : ℕ → Fr} {h i : ℕ}
     (hg : ∀ j, i * 2 ^ h ≤ j → j < (i + 1) * 2 ^ h → g j = 0) :
@@ -129,14 +116,6 @@ theorem length_pathOf (g : ℕ → Fr) (d i : ℕ) : (pathOf H g d i).length = d
   induction d generalizing g i with
   | zero => rfl
   | succ d ih => simp [pathOf, ih]
-
-theorem pathIndex_lt (p : List (Bool × Fr)) : pathIndex p < 2 ^ p.length := by
-  induction p with
-  | nil => simp [pathIndex]
-  | cons a p ih =>
-    obtain ⟨s, n⟩ := a
-    simp only [pathIndex, List.length_cons, pow_succ]
-    split_ifs <;> omega
 
 /-- **Binding.** Under a collision-free hash, a path whose root is the root of a tree proves
 the leaf of that tree at the index its selectors spell. -/

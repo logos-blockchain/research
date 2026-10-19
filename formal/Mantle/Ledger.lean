@@ -18,8 +18,9 @@ RFC-480 and RFC-481), and of a Mantle Transaction. A failed `assert` is `none` (
 
 Abstract primitives (`Prims`) stand for what the specification leaves to other documents or to
 classical hashing: `mantle_txhash`, `derive_op_id`, `declaration_id`, the encoding hashes of
-inscriptions and configurations, `derive_program_id`, Ed25519, the key and locator checks,
-the activity rule and the encoded size. No property of them is assumed anywhere.
+inscriptions and configurations, `derive_program_id`, Ed25519, the key check,
+`validate_multiaddr`, the activity rule and the encoded size. No property of them is assumed
+anywhere. `Prims.opId` stands for `op_id` already reduced modulo `p`, as every use makes it.
 
 Modelling choices:
 
@@ -39,6 +40,11 @@ Modelling choices:
   of `1`.
 * The checked sums of `tx_balance` and `tx_execution_gas` are checked once per Operation, from
   the last: the partial sums of naturals are below `2^64` iff the total is.
+* `SDP_DECLARE` also checks what its Validate block cites from SDP *Declare* without spelling it
+  out: the service type `BN = 0`, `validate_multiaddr` of every locator, and a `provider_id` and a
+  `zk_id` each unused in the service.
+* The proof of work ticket hashes the block hash reduced modulo `p` (`toFr`), as the
+  specification's `FiniteField(claim.block_hash, ...)`; `E.canonicalSlot` reads the raw hash.
 -/
 
 namespace Mantle
@@ -57,6 +63,16 @@ def SDP_SET : ℕ := 1
 
 /-- `WITHDRAW_DELAY`: one day of slots. -/
 def WITHDRAW_DELAY : Slot := 86_400
+
+/-- `MAX_OPERATION_DATA_SIZE`: the bound on an inscription and on deposit metadata. -/
+def MAX_OPERATION_DATA_SIZE : ℕ := 1_835_008
+
+/-- `EPOCH_POW_DISTRIBUTION_RATE_DEN · TARGET_CLAIMS_PER_BLOCK · EXPECTED_BLOCKS_PER_EPOCH`
+(Proof of Work, *Reward Pool*), with `EPOCH_POW_DISTRIBUTION_RATE_NUM = 1`. -/
+def EPOCH_POW_REWARD_DEN : ℕ := 200 * 10 * 21_600
+
+/-- `compute_epoch_pow_reward(pow_reward_pool)`. -/
+def computeEpochPowReward (pool : ℕ) : ℕ := pool * 1 / EPOCH_POW_REWARD_DEN
 
 /-- `assert` in the `Option` monad. -/
 def ensure (p : Prop) [Decidable p] : Option Unit := if p then some () else none
@@ -264,9 +280,10 @@ structure Prims where
   configHash : ChannelConfig → Fr
   programId : VerificationKey → Fr
   validKey : VerificationKey → Prop
+  /-- `validate_multiaddr(locator)`. -/
+  validLocator : List UInt8 → Prop
   activityValid : Active → Prop
   encodedSize : SignedMantleTx → ℕ
-  maxOpDataSize : ℕ
 
 /-- The block-level inputs of validation. -/
 structure Env where
@@ -372,6 +389,10 @@ def withChannels (st : State) (f : ChannelId → Option ChannelState) : State :=
 def withPow (st : State) (pool : ℕ) (nfs : Finset Fr) : State :=
   { st with powRewardPool := pool, powNullifiers := nfs }
 
+/-- Replace the reward of a proof of work claim for the epoch. -/
+def withEpochPowReward (st : State) (r : ℕ) : State :=
+  { st with epochPowReward := r }
+
 /-- `ledger.sets.append(s)`. -/
 def addSet (st : State) (s : NoteSet) : State :=
   { st with sets := Function.update st.sets st.numSets s, numSets := st.numSets + 1 }
@@ -421,7 +442,7 @@ def applyTransfer (st : State) (txh : Fr) (t : Transfer) (π : ProofBlob) :
 /-- `CHANNEL_DEPOSIT`. -/
 def applyDeposit (st : State) (txh : Fr) (d : ChannelDeposit) (π : ProofBlob) :
     Option (State × ℕ) := do
-  ensure (d.metadata.length ≤ P.maxOpDataSize)
+  ensure (d.metadata.length ≤ MAX_OPERATION_DATA_SIZE)
   let chan ← st.channels d.channel
   let j ← chan.noteSet
   let s := st.sets LEDGER_SET
@@ -457,6 +478,12 @@ def applyDeclare (st : State) (txh : Fr) (d : DeclarationMessage) (π : ProofBlo
   ensure (P.ed25519Verify txh d.providerId sig)
   ensure (st.declarations.lookup (P.declarationId d) = none)
   ensure (1 ≤ d.locators.length ∧ d.locators.length ≤ 8)
+  -- verified according to SDP *Declare*: a defined service (`BN = 0`), valid locators, and a
+  -- `provider_id` and a `zk_id` each unused in the service
+  ensure (d.serviceType = 0)
+  ensure (∀ l ∈ d.locators, P.validLocator l)
+  ensure (∀ e ∈ st.declarations, e.2.service = d.serviceType →
+    e.2.providerId ≠ d.providerId ∧ e.2.zkId ≠ d.zkId)
   ensure (s.Spendable d.inputs d.cmMerkleRoot)
   ensure (E.minStake ≤ d.amount)
   let cm := noteCm P.H (serviceNote P d)
@@ -502,7 +529,7 @@ def applyClaimPow (st : State) (c : ClaimPowReward) : Option (State × ℕ) := d
   let slot ← E.canonicalSlot c.blockHash
   ensure (slot ≤ E.blockSlot ∧ E.blockSlot - slot ≤ E.powWindow)
   ensure (c.epochNonce = E.epochNonceCurrent ∨ c.epochNonce = E.epochNoncePrevious)
-  let ticket := P.H.zkhash [c.publicKey, c.nonce, c.blockHash, c.epochNonce]
+  let ticket := P.H.zkhash [c.publicKey, c.nonce, toFr c.blockHash, c.epochNonce]
   ensure (ticket < E.difficultyReward)
   ensure (ticket ∉ st.powNullifiers)
   let cm := noteCm P.H (powNote P st c)
@@ -652,7 +679,7 @@ the note set of the channel (a new empty set for a channel being created). Retur
 its buffer extended by the validation, if the channel has one. -/
 def validateInscribe (st : State) (txh opIdFr : Fr) (m : Inscribe) (sig : Fr)
     (πs : List StepProof) : Option (Option NoteSet) := do
-  ensure (m.inscription.length ≤ P.maxOpDataSize)
+  ensure (m.inscription.length ≤ MAX_OPERATION_DATA_SIZE)
   let ns ← match st.channels m.channel with
     | some chan => do
       ensure (chan.accreditedKeys[(roundRobin E.blockSlot chan).1]? = some m.signer)

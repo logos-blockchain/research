@@ -346,7 +346,7 @@ theorem ChanInv.applyOp {E : Env} {st st' : State} {txh : Fr} {op : Op} {π : Op
     exact C.of_eq (by simp)
   · simp only [applyDeclare, ensure_eq_some, option_bind_eq_some, option_pure_eq,
       Option.some.injEq, Prod.mk.injEq, exists_const] at h
-    obtain ⟨R, -, -, -, -, -, -, -, rfl, rfl⟩ := h
+    obtain ⟨R, -, -, -, -, -, -, -, -, -, -, rfl, rfl⟩ := h
     exact C.of_eq (by simp)
   · simp only [applySdpWithdraw, ensure_eq_some, option_bind_eq_some, option_pure_eq,
       Option.some.injEq, Prod.mk.injEq, exists_const] at h

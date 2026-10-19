@@ -132,8 +132,8 @@ def SpendOutputOk (programId : Fr) (cm : Fr) (w : SpendOutputWitness) (ofProgram
     cm = noteCm H w.note ∧ w.value < TOKEN_BOUND
 
 /-- `ZkProgramSpendWitness`, with the fields of the inactive entries hashed into
-`spend_notes_hash`: `(nonce, pk, data)` of each inactive input and `(nonce, pk, program,
-data)` of each inactive output. -/
+`spend_notes_hash`: `(nonce, sk, data)` of each inactive input, whose public key is derived
+from `sk` as for an active one, and `(nonce, pk, program, data)` of each inactive output. -/
 structure ZkProgramSpendWitness where
   inputs : List SpendInputWitness
   outputs : List SpendOutputWitness
@@ -145,7 +145,7 @@ output, inactive entries holding value `0`. -/
 def spendNotesPreimage (w : ZkProgramSpendWitness) : List Fr :=
   PROGRAM_SPEND_NOTES_V1 ::
     (w.inputs.flatMap fun i => [1, i.value, i.nonce, kdf H i.sk, i.data]) ++
-    (w.inPad.flatMap fun p => [0, 0, p.1, p.2.1, p.2.2]) ++
+    (w.inPad.flatMap fun p => [0, 0, p.1, kdf H p.2.1, p.2.2]) ++
     (w.outputs.flatMap fun o => [1, o.value, o.nonce, o.pk, o.program, o.data]) ++
     (w.outPad.flatMap fun p => [0, 0, p.1, p.2.1, p.2.2.1, p.2.2.2])
 

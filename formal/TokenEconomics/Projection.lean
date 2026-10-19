@@ -7,9 +7,12 @@ Block Rewards, *Annex: Supply Projection*. The projection is a simulation with b
 assumptions and noise, whose 20 runs give a net circulating growth of `3.00%` of `S_cap` after
 10 years (`2.81%` to `3.18%`). A simulation's outcome cannot be proven; what can:
 
-* **`net_growth_le`**: whatever the stake and the fees, the net circulating growth over `N`
-  blocks is at most `MAX_RELEASE · N` units, so below `10%` of `S_cap` over 10 years
-  (`net_growth_ten_years`), and the reserve is never exhausted within them;
+* **`reserve_drain_le`**: whatever the stake and the fees, the reserve releases at most
+  `MAX_RELEASE · N` units over `N` blocks, so below `10%` of `S_cap` over 10 years
+  (`reserve_drain_ten_years`), and it is never exhausted within them;
+* **`net_growth_le`**: from a state with an empty pool and nothing pending, as at Genesis, the
+  net circulating growth of a run (leader shares and pending Blend share, less pooled fees) is at
+  most what the reserve released; block by block it is not (`block_growth_exceeds_release`);
 * **`steady_growth`**: with the stake and the pooled fees `D` per block constant, the circulating
   supply grows by `A (I_max S_cap Δ - D)` per block; at the target stake with fees pooled at
   `0.5%` a year, `A = 1/2` and the growth is `0.25%` of `S_cap` a year (`steady_quarter`), as the
@@ -37,9 +40,9 @@ def runRewards (st : RewardState) : List (ℕ × ℕ) → RewardState
   | [] => st
   | b :: bs => runRewards (rewardStep st b.1 b.2).1 bs
 
-/-- **Net circulating growth is at most `MAX_RELEASE` units per block**: what leaves the
-reserve. The pool only takes fees out of circulation. -/
-theorem net_growth_le (st : RewardState) (bs : List (ℕ × ℕ)) :
+/-- **The reserve releases at most `MAX_RELEASE` units per block**, whatever the stake and the
+fees. -/
+theorem reserve_drain_le (st : RewardState) (bs : List (ℕ × ℕ)) :
     st.reserve ≤ (runRewards st bs).reserve + MAX_RELEASE * bs.length ∧
       (runRewards st bs).reserve ≤ st.reserve := by
   induction bs generalizing st with
@@ -53,9 +56,58 @@ theorem net_growth_le (st : RewardState) (bs : List (ℕ × ℕ)) :
 
 /-- Over 10 years of blocks, at most `999,999,999,996,912,000` units leave the reserve, less than
 the `10¹⁸` of the reserve (`10%` of `S_cap`), which is never exhausted. -/
-theorem net_growth_ten_years :
+theorem reserve_drain_ten_years :
     MAX_RELEASE * (10 * BLOCKS_PER_YEAR) = 999_999_999_996_912_000 ∧
       999_999_999_996_912_000 < 10 ^ 18 := by decide
+
+/-- The leader shares of a run of blocks. -/
+def runLeader (st : RewardState) : List (ℕ × ℕ) → ℕ
+  | [] => 0
+  | b :: bs => leaderShare (rewardStep st b.1 b.2).2 + runLeader (rewardStep st b.1 b.2).1 bs
+
+/-- The fees pooled in a run of blocks. -/
+def runPooled (bs : List (ℕ × ℕ)) : ℕ := (bs.map Prod.snd).sum
+
+/-- A run moves tokens between the stocks: what leaves the reserve and the pool, with the fees
+pooled in the run, is the leader shares and the growth of the pending Blend share. -/
+theorem runRewards_conserves {st : RewardState} (I : PoolInv st) (bs : List (ℕ × ℕ)) :
+    (runRewards st bs).reserve + (runRewards st bs).pool + (runRewards st bs).pending +
+        runLeader st bs = st.reserve + st.pool + st.pending + runPooled bs := by
+  induction bs generalizing st with
+  | nil => simp [runRewards, runLeader, runPooled]
+  | cons b bs ih =>
+    have h1 := rewardStep_conserves I b.1 b.2
+    have h2 := ih (poolInv_rewardStep I b.1 b.2)
+    simp only [runRewards, runLeader, runPooled, List.map_cons, List.sum_cons] at h2 ⊢
+    omega
+
+/-- **Net circulating growth is at most what leaves the reserve**: from a state with an empty
+pool and nothing pending, as at Genesis, the leader shares of a run and the Blend share pending
+at its end, less the fees pooled in it, are at most what the reserve released, so at most
+`MAX_RELEASE` units per block. The bound holds over a run from such a state, not block by block
+(`block_growth_exceeds_release`); the proof of work pool, which drains into circulation too, is
+not counted. -/
+theorem net_growth_le {st : RewardState} (I : PoolInv st) (hp : st.pool = 0)
+    (he : st.pending = 0) (bs : List (ℕ × ℕ)) :
+    ((runLeader st bs + (runRewards st bs).pending : ℕ) : ℤ) - runPooled bs ≤
+        (st.reserve : ℤ) - (runRewards st bs).reserve ∧
+      st.reserve ≤ (runRewards st bs).reserve + MAX_RELEASE * bs.length := by
+  have h := runRewards_conserves I bs
+  refine ⟨?_, (reserve_drain_le st bs).1⟩
+  rw [hp, he] at h
+  push_cast
+  omega
+
+/-- One block can put far more than `MAX_RELEASE` into circulation, from the pool: at a stake
+above its target with fees in the window, nothing is released and the pool pays the average
+pooled fee, here more than ten times `MAX_RELEASE`. -/
+theorem block_growth_exceeds_release :
+    PoolInv ⟨10 ^ 18, 120 * 10 ^ 12, 0, List.replicate 120 (10 ^ 12)⟩ ∧
+      (rewardStep ⟨10 ^ 18, 120 * 10 ^ 12, 0, List.replicate 120 (10 ^ 12)⟩ (10 ^ 19) 0).1.reserve =
+        10 ^ 18 ∧
+      10 * MAX_RELEASE < (rewardStep ⟨10 ^ 18, 120 * 10 ^ 12, 0, List.replicate 120 (10 ^ 12)⟩
+        (10 ^ 19) 0).2 := by
+  refine ⟨⟨by decide +kernel, by decide +kernel⟩, by decide +kernel, by decide +kernel⟩
 
 /-! ## The steady state -/
 

@@ -83,10 +83,12 @@ can reference. -/
 theorem transfers_per_block : G_MAX / EXECUTION_TRANSFER_GAS = 5157 ∧ 5000 < 5157 ∧
     1024 < G_MAX / EXECUTION_TRANSFER_GAS := by decide
 
-/-- **Capacity of a note set.** A ZkTransfer creates at most 8 notes, so a block at the
-Execution Gas limit appends up to `5,157 · 8 = 41,256` commitments to the ledger set (or to a
-channel set, through steps). The `2^32 - 1` commitments of a depth-32 MMR (`mmrRoot_full`) are
-then exhausted in `104,106` such blocks, about 36 days at one block every 30 seconds. -/
+/-- **Capacity of a note set.** A ZkTransfer creates at most 8 notes, so the gas-priced
+Operations of a block at the Execution Gas limit append up to `5,157 · 8 = 41,256` commitments
+to the ledger set (or to a channel set, through steps). It is not a bound on a block: proof of
+work claims cost no Execution Gas, and the leader, service and withdrawal notes are added
+outside the gas. At that rate the `2^32 - 1` commitments of a depth-32 MMR (`mmrRoot_full`) are
+exhausted in `104,106` blocks, about 36 days at one block every 30 seconds. -/
 theorem blocks_to_fill_set :
     G_MAX / EXECUTION_TRANSFER_GAS * 8 = 41_256 ∧
       (2 ^ 32 - 1) / (G_MAX / EXECUTION_TRANSFER_GAS * 8) + 1 = 104_106 ∧

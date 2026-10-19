@@ -21,7 +21,9 @@ one `StepProof` per step, one payment proof per payment, one opening per bit of
   encoding of that transaction, which is well formed: the encoding is canonical and
   unambiguous, as the specification requires;
 * `signedTx_encode_injective`, `mantleTx_encode_injective`: distinct transactions have distinct
-  encodings (so `mantle_txhash` and `op_id` hash distinct preimages);
+  encodings, so `mantle_txhash` hashes distinct preimages. `op_id` does not: it hashes the payload
+  without its opcode, and some payloads decode under two opcodes (`SDP_DECLARE` and
+  `CLAIM_POW_REWARD`, `CHANNEL_DEPOSIT` and `PROGRAM_REGISTER`; `Vectors.lean`);
 * **`fe_canonical_mod_p`**: a decoded `FieldElement` is less than `p`, so two byte strings
   decoding to the same element of `𝔽_p` are equal: every field element has a single encoding
   (`fe_rejects` rejects `p`, which a 32-byte integer would otherwise accept).
@@ -48,9 +50,6 @@ def u8 : Codec ℕ := uint 1
 def u16 : Codec ℕ := uint 2
 def u32 : Codec ℕ := uint 4
 def u64 : Codec ℕ := uint 8
-
-/-- `MAX_OPERATION_DATA_SIZE`. -/
-def MAX_OPERATION_DATA_SIZE : ℕ := 1_835_008
 
 /-- `Inputs`, `Outputs`: a `Byte` count of field elements. -/
 def fes : Codec (List ℕ) := list 1 255 (by norm_num) fe
@@ -159,13 +158,16 @@ def withdrawC : Codec ChannelWithdraw :=
     (fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2⟩)
     (fun w => (w.channel, w.inputs, w.cmMerkleRoot, w.outputs))
 
+/-- `ServiceType = Byte ; 0 = BN`: any other byte is rejected. -/
+def serviceTypeC : Codec ℕ := filter u8 (· = 0)
+
 /-- `Locators = LocatorCount *Locator`, at most 8 locators of at most 329 bytes. -/
 def locatorsC : Codec (List Bytes) :=
   list 1 8 (by norm_num) (varBytes 2 329 (by norm_num))
 
 /-- `SDPDeclare = ServiceType Locators ProviderId ZkId Inputs CmMerkleRoot Value`. -/
 def declareC : Codec DeclarationMessage :=
-  via (pair u8 (pair locatorsC (pair h32 (pair fe (pair fes (pair fe u64))))))
+  via (pair serviceTypeC (pair locatorsC (pair h32 (pair fe (pair fes (pair fe u64))))))
     (fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2.1, x.2.2.2.2.1, x.2.2.2.2.2.1, x.2.2.2.2.2.2⟩)
     (fun d => (d.serviceType, d.locators, d.providerId, d.zkId, d.inputs, d.cmMerkleRoot,
       d.amount))
@@ -393,6 +395,16 @@ theorem signedTx_wf_proofs {s : SignedMantleTx} (h : signedTxC.wf s) :
     cases ps with
     | nil => exact absurd rfl hne
     | cons p ps => simp [ih ps h2]
+
+/-- The preimage of `declaration_id`: `service ‖ provider_id ‖ zk_id ‖ locators`, the service as
+its one-byte discriminant and the locators as the `Locators` production (Mantle, *Test
+Vectors*). -/
+def declarationIdPreimage (d : DeclarationMessage) : Bytes :=
+  u8.enc d.serviceType ++ h32.enc d.providerId ++ fe.enc d.zkId ++ locatorsC.enc d.locators
+
+/-- `declaration_id(declaration)`: BLAKE2b-256 of its preimage, with no domain separation. -/
+def declarationId (d : DeclarationMessage) : ℕ :=
+  (Codec.readLE 32 (Blake2b.hash256 (declarationIdPreimage d))).elim 0 Prod.fst
 
 /-- `mantle_txhash(tx)`: BLAKE2b-256 of `MANTLE_TXHASH_V1 ‖ encode(tx)`, read little-endian
 (Mantle, *Mantle Transaction*): the digest the Ed25519 signatures sign. -/

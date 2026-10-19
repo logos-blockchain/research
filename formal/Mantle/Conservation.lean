@@ -22,9 +22,13 @@ fee and the tip it pays, is at most the value before. No Operation creates value
 The statement is an inequality because notes can be lost: an output whose commitment already
 exists (same value, nonce, key, program and data) can never be spent separately.
 
-Hypotheses: the invariant `Inv` (established by `Inv` being preserved, from any state
-satisfying it), and `Cap`: every note set holds fewer than `2^31` commitments, so that the
-trees a proof refers to, of at most twice that many leaves, stay within depth `32`.
+Hypotheses: the invariant `Inv`, which every result preserves (so it holds along any execution
+from a state satisfying it; no Genesis state is built), and `Cap`: every note set holds fewer
+than `2^31` commitments. The factor `2` is a convenience of the proof, not a property of the
+specification: the invariant records only that each recorded root is a prefix of the
+commitments and that the buffer is a sublist of them, which bounds the tree under `tx_cm_root`
+by twice the set. In the specification that tree never exceeds the set, whose capacity is
+`2^32 - 1`; `Cap` leaves out sets of `2^31` to `2^32 - 1` commitments.
 -/
 
 namespace Mantle
@@ -247,6 +251,18 @@ variable (st : State)
 @[simp] theorem withPow_declarations (a b) : (st.withPow a b).declarations = st.declarations := rfl
 @[simp] theorem withPow_pool (a b) : (st.withPow a b).powRewardPool = a := rfl
 
+@[simp] theorem withEpochPowReward_sets (r) : (st.withEpochPowReward r).sets = st.sets := rfl
+@[simp] theorem withEpochPowReward_numSets (r) :
+    (st.withEpochPowReward r).numSets = st.numSets := rfl
+@[simp] theorem withEpochPowReward_channels (r) :
+    (st.withEpochPowReward r).channels = st.channels := rfl
+@[simp] theorem withEpochPowReward_pending (r) :
+    (st.withEpochPowReward r).pendingWithdrawals = st.pendingWithdrawals := rfl
+@[simp] theorem withEpochPowReward_declarations (r) :
+    (st.withEpochPowReward r).declarations = st.declarations := rfl
+@[simp] theorem withEpochPowReward_pool (r) :
+    (st.withEpochPowReward r).powRewardPool = st.powRewardPool := rfl
+
 @[simp] theorem addSet_sets (s) : (st.addSet s).sets = Function.update st.sets st.numSets s := rfl
 @[simp] theorem addSet_numSets (s) : (st.addSet s).numSets = st.numSets + 1 := rfl
 @[simp] theorem addSet_channels (s) : (st.addSet s).channels = st.channels := rfl
@@ -278,6 +294,10 @@ end State
     inflight H (st.withPow a b) = inflight H st := rfl
 @[simp] theorem inflight_addSet (st : State) (s) :
     inflight H (st.addSet s) = inflight H st := rfl
+@[simp] theorem setsValue_withEpochPowReward (st : State) (r) :
+    setsValue H (st.withEpochPowReward r) = setsValue H st := rfl
+@[simp] theorem inflight_withEpochPowReward (st : State) (r) :
+    inflight H (st.withEpochPowReward r) = inflight H st := rfl
 
 /-- A note set is well formed: its root window, a buffer made of commitments of the set, and an
 IMT that is the sorted linked list of exactly its nullifiers. -/
@@ -321,7 +341,8 @@ structure Inv (H : Hash) (st : State) : Prop where
   declOutputs : ∀ e ∈ st.declarations, e.2.withdrawAt = none → e.2.withdrawOutputs = []
   pending : ∀ w ∈ st.pendingWithdrawals, PendingOk H st w
 
-/-- Every note set holds fewer than `2^31` commitments. -/
+/-- Every note set holds fewer than `2^31` commitments: half the capacity of the specification,
+a convenience of the proof (see the module docstring). -/
 def Cap (st : State) : Prop := ∀ i < st.numSets, 2 * (st.sets i).cms.length < 2 ^ 32
 
 /-- The note sets only grow. -/
