@@ -123,7 +123,7 @@ Run: `python scripts/depth_profile.py`.
 
 Every gate must be shown to fail under a mutation of the code it guards before it counts.
 
-- **Phase 0 — spec 1.2.5 baseline.** *Code done; measurement running.*
+- **Phase 0 — spec 1.2.5 baseline.** *Done.*
   - Upstream already has the parent anchor, W = 12 and the window scope. Missing was the spec's
     selection order `(sl_parent, sl_U, id)`: the simulator ordered by `(sl_U, id)` under
     either anchor.
@@ -132,10 +132,29 @@ Every gate must be shown to fail under a mutation of the code it guards before i
   - Gates (each fails under its mutation):
     - `test_parent_order_takes_the_oldest_parent_first`;
     - `test_parent_anchor_rejects_a_stale_tip_fork` — no test covered the parent anchor before;
-    - `test_uncle_order_key_is_tagged_and_paired`.
-  - Measurement: `configs/spec-order-paired.yaml`, both orders on common random numbers. It
-    decides whether the §6.12/§6.13 parent-arm numbers move under the spec order. U = 0 must
-    be bit-identical between the orders.
+    - `test_uncle_order_key_is_tagged_and_paired`;
+    - `test_every_sweep_axis_is_recorded_and_grouped`.
+  - Found and fixed: `equilibrium()` grouped trajectories by `CONFIG_COLS`, which lacked
+    `uncle_window_anchor`, `uncle_order` and `ref_scope`; `ref_scope` was not recorded at all.
+    A sweep over any of them came back as the mean of its arms. No committed script analyses
+    the anchor sweeps through `equilibrium()` (`w_pairing_analysis.py` groups by the anchor
+    itself), so no published number is shown to be affected. Report §9 names that script for
+    the §6.12 knee and cap tables too. But it reads only `pref-window-anchor*` sweeps and
+    computes the W crossing. Those two tables have no committed analysis, so whether they went
+    through `equilibrium()` could not be checked.
+  - Measurement: `configs/spec-order-paired.yaml` (k = 2160, 20 paired replicates, parent
+    anchor, W = 12), analysed by `scripts/spec_order_analysis.py`. The spec order moves nothing
+    measurable:
+    - U = 0 is bit-identical in all 80 pairs (the identity check);
+    - every U ≥ 1 pair is bit-identical at ρ ≤ 0.56, and 221 of 240 are overall;
+    - the largest gap is −0.0007 ± 0.0003 (t = 2.2) at δ_max = 32, U = 2. It does not
+      survive the Bonferroni threshold of 2.87 for 12 cells.
+
+    The order matters only when the cap binds and the parent order differs from the slot
+    order. So the parent-arm results stand at W = 12. The W sweeps of §6.12 (the knee table and
+    the W crossing) were not re-run under the spec order.
+  - Equilibrium D̂/D under the spec rule, U = 4: 0.9999 / 0.9968 / 0.9868 / 0.9492 at
+    δ_max = 4 / 8 / 16 / 32. This is the depth-1 baseline for Phase 2.
 - **Phase 1 — depth metric in the engine.**
   - Move `scripts/depth_profile.py`'s classification into `fork.py` and `EpochResult`, next
     to `deep_orphan_share`. That metric is a block share at depth ≥ 2; the new one is the
@@ -203,3 +222,4 @@ Not fixed on this branch.
 - **The report, §3.2:** it says the residual cannot be split into first-fork and capacity
   loss. §4 above splits it.
 - **Lint:** an unused `dataclasses` import in `tests/test_multi_coalition.py`.
+- **Analysis grouping:** fixed on this branch (Phase 0).
