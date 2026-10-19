@@ -134,6 +134,10 @@ def select_uncles_at_production(
             return ()
         return tuple(_select(cands, set(), config, rng))   # cands already oldest-first (slot,id)
 
+    if config.uncle_depth != 1:
+        return _select_deep(slot, parent, uncles, arrival_v, arr_base, arrived, parent_id, t, w,
+                            config)
+
     # --- countable model (spec counting rules; the default) -----------------------------
     # Window walk over v's chain: chain blocks, their referenced uncles, and the slots both
     # occupy (the spec's occupied-slot exclusion in Uncle Selection).
@@ -188,3 +192,82 @@ def select_uncles_at_production(
                          dtype=np.int64)
     # cands are oldest-first in the configured order; one uncle per slot per the spec's selection.
     return tuple(_select(cands, set(), config, rng, slot=slot, one_per_slot=True))
+
+
+def _select_deep(slot, parent, uncles, arrival_v, arr_base, arrived, parent_id, t, w,
+                 config) -> tuple[int, ...]:
+    """Selection for ``uncle_depth != 1`` (the cousin study; the oldest strategy only).
+
+    A candidate is an arrived block in the window that lies off the producer's chain, is not yet
+    referenced by it, and occupies a slot the chain does not count. Its fork point is the chain
+    block its branch leaves from; its depth is the number of fork blocks from it down to the
+    fork point. It qualifies when its depth is at most ``uncle_depth`` (any depth under 0) and,
+    under the parent anchor, its fork point lies in the window.
+
+    Under ``uncle_depth > 1`` every fork block above the candidate must be referenced by the
+    chain or carried by this block. The proposer carries the missing ones first when the cap
+    leaves room for them and the candidate. They are in its view and in the window, or the
+    candidate is passed over. Candidates are taken oldest first in the configured order, by the
+    fork point under ``uncle_order="parent"``, and at most one per slot.
+    """
+    lo = t - w
+    on_chain: set[int] = set()
+    referenced: set[int] = set()
+    occupied: set[int] = set()
+    a = int(parent_id)
+    while a > GENESIS and int(slot[a]) >= lo:
+        on_chain.add(a)
+        occupied.add(int(slot[a]))
+        for u in uncles[a]:
+            referenced.add(u)
+            if int(slot[u]) >= lo:
+                occupied.add(int(slot[u]))
+        a = int(parent[a])
+    below = [a]                           # the next chain block below what has been walked
+
+    def is_chain(x: int) -> bool:
+        if x == GENESIS:
+            return True
+        while below[0] > GENESIS and int(slot[below[0]]) >= int(slot[x]):
+            on_chain.add(below[0])        # extend chain membership lazily, newest first
+            below[0] = int(parent[below[0]])
+        return x in on_chain
+
+    cands = []
+    for b in arrived.tolist():
+        if b == GENESIS or b in on_chain or b in referenced or int(slot[b]) in occupied:
+            continue
+        path: list[int] = []              # fork blocks above b, nearest first
+        x = int(parent[b])
+        while not is_chain(x):
+            path.append(x)
+            x = int(parent[x])
+        if config.uncle_depth > 0 and len(path) + 1 > config.uncle_depth:
+            continue                      # too deep
+        if config.uncle_window_anchor == "parent" and int(slot[x]) < lo:
+            continue                      # the fork point has left the window
+        need = []
+        if config.uncle_depth > 0:
+            need = [y for y in reversed(path) if y not in referenced]
+            if any(int(slot[y]) < lo or arrival_v[y - arr_base] > t for y in need):
+                continue                  # a missing fork block cannot be carried
+        key = ((int(slot[x]), int(slot[b]), b) if config.uncle_order == "parent"
+               else (int(slot[b]), b))
+        cands.append((key, b, need))
+
+    out: list[int] = []
+    chosen: set[int] = set()
+    taken: set[int] = set()
+    for _, b, need in sorted(cands):
+        if b in chosen or int(slot[b]) in taken:
+            continue
+        need = [y for y in need if y not in chosen]
+        if len(out) + len(need) + 1 > config.max_uncles:
+            continue                      # no room to unlock it; a cheaper one may still fit
+        for y in [*need, b]:
+            out.append(y)
+            chosen.add(y)
+            taken.add(int(slot[y]))
+        if len(out) >= config.max_uncles:
+            break
+    return tuple(out)

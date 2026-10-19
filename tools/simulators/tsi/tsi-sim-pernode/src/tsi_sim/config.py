@@ -71,6 +71,15 @@ RefScope = Literal["window", "chain"]
 #     (cryptarchia-v1-protocol.md 1.2.5, Uncle Selection). Under the parent anchor a candidate
 #     expires when its PARENT leaves the window, so this is oldest-to-expire first there.
 UncleOrder = Literal["uncle", "parent"]
+# How deep in a fork a countable entry may sit (PLAN.md, the cousin study). The fork point is
+# the chain block an entry's branch leaves from; depth 1 is a block whose parent is the fork
+# point. Under the parent anchor the window is measured to the fork point, which for depth 1
+# is the parent.
+#  1 — the first block of a fork: the spec rule.
+#  2, 3 — also cousins (the parent is an uncle) and children of cousins. Every fork block
+#     between the entry and the fork point must be referenced by the chain or carried by the
+#     same block.
+#  0 — the ceiling arm: any depth, no ancestry condition.
 
 
 @dataclass(frozen=True)
@@ -167,6 +176,9 @@ class SimConfig:
     # it is not "uncle", so every committed run keeps a byte-identical key. The spec 1.2.5 rule
     # is the arm uncle_window_anchor="parent", window_absorption=12, uncle_order="parent".
     uncle_order: UncleOrder = "uncle"
+    # See the note above SimConfig. Appended to key() only when not 1, so every committed run
+    # keeps its key; excluded from _base_key(), so paired_streams pairs the depths.
+    uncle_depth: int = 1
     # DEFAULT is the spec rule (see RefScope). Deliberately NOT in key(): the reference scope is a
     # MEASUREMENT rule that consumes no RNG, so both arms of a comparison run on a bit-identical
     # block tree and their difference carries no sampling noise at all — the same reasoning that
@@ -348,6 +360,12 @@ class SimConfig:
                              f"{self.uncle_window_anchor!r}")
         if self.uncle_order not in ("uncle", "parent"):
             raise ValueError(f"uncle_order must be uncle|parent, got {self.uncle_order!r}")
+        if self.uncle_depth < 0:
+            raise ValueError(f"uncle_depth must be >= 0, got {self.uncle_depth}")
+        if self.uncle_depth != 1 and (self.uncle_model != "countable"
+                                      or self.uncle_strategy != "oldest"):
+            raise ValueError("uncle_depth != 1 is defined for the countable model with the "
+                             "oldest strategy only")
         if self.ref_scope not in ("window", "chain"):
             raise ValueError(f"ref_scope must be window|chain, got {self.ref_scope!r}")
         if self.adversary_selection not in ("random", "whale"):
@@ -488,6 +506,8 @@ class SimConfig:
         # (anchor uncle, order parent) and (anchor parent, order uncle) must not share a stream.
         if self.uncle_order != "uncle":
             base = base + (("uncle_order", self.uncle_order),)
+        if self.uncle_depth != 1:
+            base = base + (("uncle_depth", self.uncle_depth),)
         return base
 
     def seed_key(self) -> tuple:
@@ -506,6 +526,7 @@ _SWEEP_AXES = (
     "n_nodes", "stake_dist", "latency", "max_uncles", "uncle_strategy", "uncle_window",
     "uncle_window_anchor",
     "uncle_order",
+    "uncle_depth",
     "ref_scope",
     "window_absorption",
     "topology", "degree", "link_latency_mean", "link_latency_dist",
@@ -525,6 +546,7 @@ class SweepConfig:
     uncle_window: list[int] = field(default_factory=lambda: [constants.W_DEFAULT])
     uncle_window_anchor: list[UncleWindowAnchor] = field(default_factory=lambda: ["uncle"])
     uncle_order: list[UncleOrder] = field(default_factory=lambda: ["uncle"])
+    uncle_depth: list[int] = field(default_factory=lambda: [1])
     ref_scope: list[RefScope] = field(default_factory=lambda: ["window"])
     window_absorption: list[float] = field(default_factory=lambda: [constants.W_ABS_DEFAULT])
     topology: list[Topology] = field(default_factory=lambda: ["regular"])

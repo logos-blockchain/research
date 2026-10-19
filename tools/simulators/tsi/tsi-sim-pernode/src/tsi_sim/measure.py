@@ -87,7 +87,7 @@ def _uncles_csr(tree: BlockTree) -> tuple[np.ndarray, np.ndarray]:
 
 def _measure_tips_py(distinct_tips, parent, slot, uncle_flat, uncle_ptr, T, w, countable,
                      uncle_stamp, honest_stamp, chain_stamp, parent_anchor=False,
-                     scope_refs=True):
+                     scope_refs=True, max_depth=1, ref_stamp=None):
     """Pure-Python per-distinct-tip walk (fallback / reference for the kernel)."""
     scope = scope_refs and countable     # the old model keeps its historical (unscoped) reach
     K = distinct_tips.shape[0]
@@ -113,6 +113,14 @@ def _measure_tips_py(distinct_tips, parent, slot, uncle_flat, uncle_ptr, T, w, c
                 honest_stamp[s] = ki
                 f ^= _mix_py(np.uint64(b))
             b = int(parent[b])
+        # pass 1b (deeper references only): every uncle the chain carries, at any slot. The
+        # ancestry condition reads these, whatever the reference scope.
+        if countable and max_depth != 1:
+            b = int(distinct_tips[ki])
+            while b > 0:
+                for j in range(int(uncle_ptr[b]), int(uncle_ptr[b + 1])):
+                    ref_stamp[int(uncle_flat[j])] = ki
+                b = int(parent[b])
         # pass 2: deduped referenced uncles in window + recovered orphan slots
         ucnt = 0
         rec = 0
@@ -135,17 +143,38 @@ def _measure_tips_py(distinct_tips, parent, slot, uncle_flat, uncle_ptr, T, w, c
                         d = int(slot[b]) - su
                         if d <= 0:
                             continue                     # uncle must strictly precede
-                        # window anchor: the uncle's own slot (spec), or its PARENT's. The
-                        # parent gap is never smaller, so the parent anchor is strictly tighter.
-                        gap = int(slot[b]) - int(slot[int(parent[u])]) if parent_anchor else d
-                        if gap > w:
-                            continue                     # outside the reference window
-                        if chain_stamp[u] == ki:
-                            continue                     # uncle lies on the counting chain
-                        pu = int(parent[u])
-                        if pu != 0 and chain_stamp[pu] != ki:
-                            deep += 1                    # not a first fork block: uncounted
-                            continue
+                        if max_depth == 1:
+                            # window anchor: the uncle's own slot (spec), or its PARENT's. The
+                            # parent gap is never smaller, so the parent anchor is tighter.
+                            gap = (int(slot[b]) - int(slot[int(parent[u])]) if parent_anchor
+                                   else d)
+                            if gap > w:
+                                continue                 # outside the reference window
+                            if chain_stamp[u] == ki:
+                                continue                 # uncle lies on the counting chain
+                            pu = int(parent[u])
+                            if pu != 0 and chain_stamp[pu] != ki:
+                                deep += 1                # not a first fork block: uncounted
+                                continue
+                        else:
+                            if chain_stamp[u] == ki:
+                                continue                 # uncle lies on the counting chain
+                            # walk up to the fork point; every fork block on the way must be
+                            # referenced by the chain unless the depth is unlimited (0)
+                            a = int(parent[u])
+                            depth = 1
+                            ancestry = True
+                            while a != 0 and chain_stamp[a] != ki:
+                                if ref_stamp[a] != ki:
+                                    ancestry = False
+                                depth += 1
+                                a = int(parent[a])
+                            if max_depth > 0 and (depth > max_depth or not ancestry):
+                                deep += 1                # too deep, or its fork unreferenced
+                                continue
+                            gap = int(slot[b]) - int(slot[a]) if parent_anchor else d
+                            if gap > w:
+                                continue                 # outside the reference window
                     ucnt += 1
                     if honest_stamp[su] != ki:
                         rec += 1             # recovered slots deduped by slot
@@ -177,7 +206,8 @@ if _HAVE_NUMBA:
 
     @njit(cache=True)
     def _measure_tips_nb(distinct_tips, parent, slot, uncle_flat, uncle_ptr, T, w, countable,
-                         uncle_stamp, honest_stamp, chain_stamp, parent_anchor, scope_refs):
+                         uncle_stamp, honest_stamp, chain_stamp, parent_anchor, scope_refs,
+                         max_depth, ref_stamp):
         scope = scope_refs and countable   # the old model keeps its historical (unscoped) reach
         K = distinct_tips.shape[0]
         m = np.empty(K, np.int64)
@@ -201,6 +231,12 @@ if _HAVE_NUMBA:
                     honest_stamp[s] = ki
                     f ^= _mix(uint64(b))
                 b = parent[b]
+            if countable and max_depth != 1:
+                b = distinct_tips[ki]
+                while b > 0:
+                    for j in range(uncle_ptr[b], uncle_ptr[b + 1]):
+                        ref_stamp[uncle_flat[j]] = ki
+                    b = parent[b]
             ucnt = 0
             rec = 0
             refs = 0
@@ -218,7 +254,7 @@ if _HAVE_NUMBA:
                         uncle_stamp[u] = ki      # dedup uncles by id
                         refs += 1
                         ok = True
-                        if countable:
+                        if countable and max_depth == 1:
                             d = slot[b] - su
                             gap = slot[b] - slot[parent[u]] if parent_anchor else d
                             if d <= 0 or gap > w:
@@ -230,6 +266,26 @@ if _HAVE_NUMBA:
                                 if pu != 0 and chain_stamp[pu] != ki:
                                     deep += 1            # not a first fork block: uncounted
                                     ok = False
+                        elif countable:
+                            d = slot[b] - su
+                            if d <= 0 or chain_stamp[u] == ki:
+                                ok = False               # non-preceding, or on the chain
+                            else:
+                                a = parent[u]            # walk up to the fork point
+                                depth = 1
+                                ancestry = True
+                                while a != 0 and chain_stamp[a] != ki:
+                                    if ref_stamp[a] != ki:
+                                        ancestry = False
+                                    depth += 1
+                                    a = parent[a]
+                                if max_depth > 0 and (depth > max_depth or not ancestry):
+                                    deep += 1            # too deep, or its fork unreferenced
+                                    ok = False
+                                else:
+                                    gap = slot[b] - slot[a] if parent_anchor else d
+                                    if gap > w:
+                                        ok = False       # outside the reference window
                         if ok:
                             ucnt += 1
                             if honest_stamp[su] != ki:
@@ -249,13 +305,14 @@ if _HAVE_NUMBA:
 def measure(tree: BlockTree, A, active_slots: np.ndarray, T: int, cutoff: int,
             use_numba: bool = True, legacy_block_count: bool = False,
             countable: bool = False, w: int = 0, parent_anchor: bool = False,
-            scope_refs: bool = True) -> Measurement:
+            scope_refs: bool = True, max_depth: int = 1) -> Measurement:
     """Per-node m/q/q_eff + agreement, deduped by tip and (optionally) numba-accelerated.
 
     ``countable`` applies the spec's per-reference counting rules (window ``w``,
     not-on-chain, parent-on-chain); ``countable=False`` reproduces the old model where every
     baked reference counts. ``scope_refs`` (spec rule, countable only) reads references only
     from the chain blocks inside ``[0, T)``, so a block past the window cannot add slots to it.
+    ``max_depth`` is ``SimConfig.uncle_depth`` (countable only; see ``tsi.countable_refs``).
     ``A`` is the full ``(N, n_blocks)`` arrival matrix or a pruned
     ``SlidingArrival`` — only ``tips_for_all_nodes`` reads it, so ``N`` is taken from the
     returned per-node tips.
@@ -271,12 +328,14 @@ def measure(tree: BlockTree, A, active_slots: np.ndarray, T: int, cutoff: int,
     uncle_stamp = np.full(tree.n_blocks, -1, np.int64)
     honest_stamp = np.full(max(T, 1), -1, np.int64)
     chain_stamp = np.full(tree.n_blocks, -1, np.int64)
+    ref_stamp = np.full(tree.n_blocks, -1, np.int64)
 
     kernel = _measure_tips_nb if (_HAVE_NUMBA and use_numba) else _measure_tips_py
     m_d, nh_d, nrec_d, nref_d, ndeep_d, clen_d, fp_d = kernel(
         distinct_tips.astype(np.int64), tree.parent, tree.slot,
         uncle_flat, uncle_ptr, np.int64(T), np.int64(w), bool(countable),
-        uncle_stamp, honest_stamp, chain_stamp, bool(parent_anchor), bool(scope_refs))
+        uncle_stamp, honest_stamp, chain_stamp, bool(parent_anchor), bool(scope_refs),
+        np.int64(max_depth), ref_stamp)
 
     # correct slot counting: canonical slots + recovered (non-canonical, deduped) uncle slots.
     # legacy_block_count reproduces the earlier per-block-id count (kernel's m = honest + ucnt).

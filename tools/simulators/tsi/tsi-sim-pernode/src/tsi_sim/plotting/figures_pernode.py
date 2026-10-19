@@ -19,7 +19,7 @@ from . import style
 CONFIG_COLS = ["n_nodes", "stake_dist", "pareto_shape", "topology", "degree",
                "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
                "latency", "uncle_model", "window_absorption", "max_uncles", "uncle_strategy",
-               "uncle_window", "uncle_window_anchor", "uncle_order", "ref_scope",
+               "uncle_window", "uncle_window_anchor", "uncle_order", "uncle_depth", "ref_scope",
                "init_dest", "init_spread", "genesis_d_factor",
                "f", "beta", "k", "fixed_point", "legacy_block_count"]
 
