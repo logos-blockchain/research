@@ -2,11 +2,11 @@
 
 As `emitT.py`, with one table per group of consecutive band members (`FamCfg.grpOf`), solved jointly by
 linear programming with their values within a factor `Γ` of each other (`Witness.solve_joint` in
-`tools/cbound/witness.py`). The potential grows by `γ = 1 + 1/(EL - 1)` per slot of the epoch's age,
-which covers the ratio between groups' tables when an epoch ends (`Γ ≤ 1 + (EL - 2G)(γ - 1)`) and costs a
-start factor below `e`. Lean computes each (group, representative)'s data (`FamCfg.repDataG`), the
+`tools/cbound/witness.py`). The potential grows by `γ = 1 + 1/(k (EL - 1))` per slot of the epoch's age,
+which covers the ratio between groups' tables when an epoch ends (`Γ ≤ 1 + (EL - 2G)(γ - 1)`, about
+`1 + 1/k`) and costs a start factor below `e^(1/k) ≤ sU` (`startChk`). Lean computes each (group, representative)'s data (`FamCfg.repDataG`), the
 contractions (`tabLpG`, `tabLpiG`) and the derived numbers (`SpecData.deriveLE`, with the checked phase's
-bound times `eUp`); the kernel checks them. The files:
+bound times `sU`); the kernel checks them. The files:
 
 - `Params.lean`, `Data.lean`, `Sw.lean`: as `emitT`;
 - `Tab.lean`: the tables (`TabQG`), `γ` and `Γ`;
@@ -15,7 +15,7 @@ bound times `eUp`); the kernel checks them. The files:
 
 Two passes, as `emitT`: `emit`, then `lake build` of the chunks, then `main`.
 
-Usage: python3 emitTG.py BETA DELTA K N DEPTH VJ.npy NG R M CW ZC X C Z TAU GAMMA_BIG NAME OUTDIR [emit|main]
+Usage: python3 emitTG.py BETA DELTA K N DEPTH VJ.npy NG R M CW ZC X C Z TAU GAMMA_BIG KSTART NAME OUTDIR [emit|main]
 """
 import sys, os, subprocess, re
 from fractions import Fraction as Fr
@@ -46,7 +46,7 @@ def reps(R, M):
     return out
 
 
-def write_tab(sub, ns, name, R, M, cw, zc, x, tabs, gam, Gam):
+def write_tab(sub, ns, name, R, M, cw, zc, x, tabs, gam, Gam, ks, sU):
     ws = ",\n    ".join(ql(w) for w, _ in tabs)
     cs = ",\n    ".join("[" + ",\n      ".join(ql(r) for r in cold) + "]" for _, cold in tabs)
     txt = (imports([f"public import {ns}.Data\n", "public import Cryptarchia.Prob.TableGSpec\n",
@@ -82,6 +82,9 @@ def γ : ℚ := {qQ(gam)}
 
 /-- The ratio between groups' tables. -/
 def Γ : ℚ := {qQ(Gam)}
+
+/-- The start factor's bound: `γ ^ (EL - 1) ≤ e ^ (1 / {ks}) ≤ sU`. -/
+def sU : ℚ := {qQ(sU)}
 
 end {ns}
 """)
@@ -138,8 +141,9 @@ theorem swOK : ∀ i : Fin 19, FamCfg.isSw i = true → F.idxChkSw i (dat i) = t
   intro i; fin_cases i
   exacts [{hsw}]
 
-/-- The (group, representative) entries, in chunks. -/
-def D : Fin {nj} → List (ℕ × (ℤ × ℤ) × RepData) := ![{", ".join(f"D{j}" for j in range(nj))}]
+/-- The (group, representative) entries, in chunks, by list lookup (Lean's interpreter takes time exponential in the
+index to evaluate `![…]`). -/
+def D (j : Fin {nj}) : List (ℕ × (ℤ × ℤ) × RepData) := [{", ".join(f"D{j}" for j in range(nj))}].getD j.val []
 
 theorem tabA : F.tabChkAG Q γ D := by
   intro j; fin_cases j
@@ -148,7 +152,7 @@ theorem tabA : F.tabChkAG Q γ D := by
 /-- The derived numbers (`SpecData.deriveLE`), with the tables' contractions by rule and the checked
 phase's bound times `eUp`, above the potential's start factor. -/
 def der : SpecDerived :=
-  eval% par.deriveLE F F.S.weakest dat (FamCfg.eOf dat 2 * eUp) Tq (F.tabLpG Q D) (F.tabLpiG Q {ng} D)
+  eval% par.deriveLE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) Tq (FamCfg.tabLpG Q D) (F.tabLpiG Q {ng} D)
 """
 
 
@@ -161,14 +165,14 @@ open Cryptarchia Cryptarchia.Prob
 
 {HEAD}
 {common_defs(nj, ng)}
-#eval (der.Ne, der.fin, der.lp, der.lpi, der.tgt, der.bx, der.Lw, der.J, der.G, der.G', der.r, der.T)
+#print der
 
 end {ns}
 """
     open(path, "w").write(txt)
 
 
-def write_main(out_dir, ns, name, nj, ng, T, cfg, Ne, fin, info):
+def write_main(out_dir, ns, name, nj, ng, ks, T, cfg, Ne, fin, info):
     D = cfg['Delta']; k = cfg['k']; N = cfg['N']; beta = T['beta']
     txt = (imports(main_imports(ns, nj)) + f"""
 /-!
@@ -208,7 +212,9 @@ theorem c2OK : cert2ChkQ F.S.weakest F.Δ F.c F.z F.s 0 F.d F.τ 0 (FamCfg.lrOf 
 
 theorem tabOK : F.tabChkG Q {ng} γ Γ (Config.specK par.k).epochLength der.G der.lp der.lpi D = true := by decide +kernel
 
-theorem finOK : FamCfg.finChkSpecE F F.S.weakest dat (FamCfg.eOf dat 2 * eUp) Tq par der = true := by decide +kernel
+theorem stOK : startChk ((Config.specK par.k).epochLength - 1) {ks} γ sU = true := by decide +kernel
+
+theorem finOK : FamCfg.finChkSpecE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) Tq par der = true := by decide +kernel
 
 /-- **Finality, certified** (`Claim.Finality`): f = 1/30, k = {k}, Δ = {D} slots, executions up to
 slot {N}; the adversary holds at most {float(beta)} of the participating stake, stakes are at most
@@ -220,7 +226,7 @@ theorem finality :
       (ρ := {q(T['rho'])}) (Hmin := {q(T['hmin'])}) (ε := {q(fin)}) := by
   intro Ω _ μ _ O E es hM hc hΔ hN hG hS hQ hD hH
   have hT : Tq.β = {qQ(beta)} ∧ Tq.ζ = 1 / 10 ^ 16 ∧ Tq.μ = {qQ(T['mu'])} := by decide +kernel
-  have h := FamCfg.finality_specTG F par der c2OK famOK dOK rfl swOK tabOK tabA rfl Tq finOK (by rw [hc]; rfl)
+  have h := FamCfg.finality_specTG F par der c2OK famOK dOK rfl swOK tabOK tabA rfl stOK Tq finOK (by rw [hc]; rfl)
     hΔ es hM hN (Smax := 10 ^ 30) (by rw [hT.2.1]; decide +kernel) (by rw [derNe]; decide +kernel) hG
     (fun ω => by rw [hT.1]; simpa using hS ω) (fun ω => by rw [hT.2.2]; simpa [par] using hQ ω)
     (fun ω => by simpa [par] using hD ω) (fun ω => by simpa [par] using hH ω)
@@ -238,13 +244,17 @@ if __name__ == "__main__":
     Vfile, ng = a[5], int(a[6])
     R, M = int(a[7]), int(a[8])
     cw, zc, x, c, z, tau, Gam = (Fr(v) for v in a[9:16])
-    name, out_dir = a[16], a[17]
-    mode = a[18] if len(a) > 18 else 'emit'
+    ks = int(a[16])
+    name, out_dir = a[17], a[18]
+    mode = a[19] if len(a) > 19 else 'emit'
     certE.set_depth(depth)
     T = certE.tband(beta, delta, mu=Fr(13, 100))
     fam = certE.epoch_members(T, K)
     EL = certE.EL
-    gam = 1 + Fr(1, EL - 1)
+    gam = 1 + Fr(1, ks * (EL - 1))
+    eUp = Fr(27182818286, 10000000000)
+    sU = Fr(int(float(eUp) ** (1 / ks) * 10 ** 9) + 1, 10 ** 9)
+    while sU ** ks < eUp: sU += Fr(1, 10 ** 9)
     D = 11
     cfg = dict(Delta=D, k=depth, N=N, c=c, z=z, s=Fr(1), d=Fr(1), tau=tau)
     ns = f"Cryptarchia.Prob.Certs.{name}"
@@ -263,7 +273,7 @@ if __name__ == "__main__":
             for g2 in range(ng):
                 for s in rl:
                     assert vq(*tabs[g2], R, M, cw, zc, s) <= Gam * vq(*tabs[g], R, M, cw, zc, s), (g, g2, s)
-        assert Gam <= 1 + (EL - 2 * 700) * (gam - 1) and (EL - 1) * (gam - 1) <= 1
+        assert Gam <= 1 + (EL - 2 * 700) * (gam - 1) and (EL - 1) * (gam - 1) * ks <= 1
         spec_fields = [("k", depth, "the security parameter: the configuration is `Config.specK k`"),
             ("κ", qQ(0), "the weight of the cold potential's second term: off, the tables bound failed checks"),
             ("N", N, "the horizon: executions up to slot N"),
@@ -275,7 +285,7 @@ if __name__ == "__main__":
         for f in os.listdir(sub):
             if re.fullmatch(r"I\d+\.lean", f): os.remove(f"{sub}/{f}")
         write_sw(sub, ns, name)
-        write_tab(sub, ns, name, R, M, cw, zc, x, tabs, gam, Gam)
+        write_tab(sub, ns, name, R, M, cw, zc, x, tabs, gam, Gam, ks, sU)
         for j in range(nj): write_rep(sub, ns, name, j, entries[j * CHUNK:(j + 1) * CHUNK])
         write_probe(ns, nj, ng, f"{out_dir}/{name}Probe.lean.txt")
         print("wrote", sub, nj, "chunks of", len(entries), "entries")
@@ -289,8 +299,10 @@ if __name__ == "__main__":
         finally:
             os.rename(probe, f"{out_dir}/{name}Probe.lean.txt")
         print(outp)
-        m = re.search(r"\((\d+), \(?([-\d/ ]+)\)?, ", outp)
-        Ne, fin = int(m.group(1)), Fr(m.group(2).replace(" ", ""))
-        write_main(out_dir, ns, name, nj, ng, T, cfg, Ne, fin, f"Derived by Lean: {outp.strip()}")
+        # the stored value of `der`, which the kernel checks (`#eval` of its fields can differ)
+        val = re.sub(r"\s+", " ", outp[outp.index("{"):outp.rindex("}") + 1])
+        Ne = int(re.search(r"Ne := (\d+)", val).group(1))
+        fin = Fr(re.search(r"fin := ([\d/ ]+)", val).group(1).replace(" ", ""))
+        write_main(out_dir, ns, name, nj, ng, ks, T, cfg, Ne, fin, f"Derived by Lean (`der`): {val}")
         os.remove(f"{out_dir}/{name}Probe.lean.txt")
         print("Ne", Ne, "fin", float(fin))

@@ -9,8 +9,9 @@ public import Mathlib.Analysis.Complex.ExponentialBounds
 
 As `TableSpec.lean`, with the grouped table (`TableGCert.lean`) as the failed-check potential. Its start
 factor `γ ^ (EL - 1)` scales the checked phase's bound in the settlement bound; with `(EL - 1)(γ - 1) ≤ 1`
-it is at most `e < eUp` (`pow_le_eUp`), and the numeric conditions are checked with the checked phase's
-bound times `eUp` (`finChkSpecE`). The data are computed by rule: each (group, representative)'s terminal
+it is at most `e^(1/k) ≤ sU` when `(EL - 1)(γ - 1) k ≤ 1` and `e < eUp ≤ sU^k` (`startChk`,
+`pow_le_start`), and the numeric conditions are checked with the checked phase's bound times `sU`
+(`finChkSpecE`). The data are computed by rule: each (group, representative)'s terminal
 table and one-switch tables at `γ` per slot (`FamCfg.repDataG`), and the contractions (`tabLpG`,
 `tabLpiG`).
 -/
@@ -40,6 +41,30 @@ theorem settleChkQ_e2 {d Δ : ℕ} {Bq : BandR} {e17 τ lp e2 b lr c lpi x yy : 
     (h : settleChkQ d Δ Bq e17 τ lp e2 b lr c lpi x yy k Ccap Lw r T = true) : 0 ≤ e2 := by
   simp only [settleChkQ, Bool.and_eq_true, decide_eq_true_eq] at h
   exact h.1.1.1.1.1.1.1.1.1.1.2
+
+/-- **The start factor's check**: `γ ^ n ≤ e ^ (1 / k) ≤ sU`. -/
+def startChk (n k : ℕ) (γ sU : ℚ) : Bool :=
+  decide (0 < k) && decide (1 ≤ γ) && decide ((n : ℚ) * (γ - 1) * k ≤ 1) && decide (eUp ≤ sU ^ k) && decide (0 ≤ sU)
+
+theorem pow_le_start {n k : ℕ} {γ sU : ℚ} (h : startChk n k γ sU = true) : (γ : ℝ) ^ n ≤ (sU : ℝ) := by
+  simp only [startChk, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨⟨⟨⟨hk, hγ⟩, hn⟩, hs⟩, hs0⟩ := h
+  have hkR : (0 : ℝ) < k := by exact_mod_cast hk
+  have hγR : (1 : ℝ) ≤ γ := by exact_mod_cast hγ
+  have h1 : (γ : ℝ) ≤ Real.exp ((γ : ℝ) - 1) := by linarith [Real.add_one_le_exp ((γ : ℝ) - 1)]
+  have hnR : (n : ℝ) * ((γ : ℝ) - 1) ≤ 1 / k := by
+    rw [le_div_iff₀ hkR]; exact_mod_cast hn
+  have hexp : Real.exp (1 / k) ^ k ≤ (sU : ℝ) ^ k := by
+    rw [← Real.exp_nat_mul, mul_one_div_cancel hkR.ne']
+    have := Real.exp_one_lt_d9
+    have hs' : ((eUp : ℚ) : ℝ) ≤ ((sU ^ k : ℚ) : ℝ) := by exact_mod_cast hs
+    push_cast at hs'
+    unfold eUp at hs'; push_cast at hs'; linarith
+  have hroot : Real.exp (1 / k) ≤ sU := (pow_le_pow_iff_left₀ (Real.exp_pos _).le (by exact_mod_cast hs0) hk.ne').1 hexp
+  calc (γ : ℝ) ^ n ≤ Real.exp ((γ : ℝ) - 1) ^ n := pow_le_pow_left₀ (by linarith) h1 n
+    _ = Real.exp (n * ((γ : ℝ) - 1)) := by rw [← Real.exp_nat_mul]
+    _ ≤ Real.exp (1 / k) := Real.exp_le_exp.2 hnR
+    _ ≤ sU := hroot
 
 namespace FamCfg
 
@@ -106,14 +131,15 @@ theorem finality_famTG {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsPr
 
 /-- **Finality at the specification, from a grouped table certificate's data.** The switching index checks,
 the family's, the grouped table certificate's and the numeric conditions (`finChkSpecE`, with the checked
-phase's bound scaled by `eUp`, above the start factor) give the finality bound `fin`. -/
+phase's bound scaled by `sU`, above the start factor, `startChk`) give the finality bound `fin`. -/
 theorem finality_specTG {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} (p : SpecData) (q : SpecDerived) {lpd : ℚ}
     {Q : TabQG} {nG m : ℕ} {γ Γ : ℚ} {D : Fin m → List (ℕ × (ℤ × ℤ) × RepData)}
     (hC2 : cert2ChkQ Bq F.Δ F.c F.z F.s 0 F.d F.τ lpd (lrOf dat) (bOf dat) (eOf dat) = true) (hS : F.S.chk F.famZ F.D = true)
     (hD : 0 < F.D) (hBq : Bq = F.S.weakest) (hsw : ∀ i : Fin 19, isSw i = true → F.idxChkSw i (dat i) = true)
     (htab : F.tabChkG Q nG γ Γ (Config.specK p.k).epochLength q.G q.lp q.lpi D = true) (htabA : F.tabChkAG Q γ D)
-    {n : ℕ} (hK : F.S.K = n + 1) (T : TBandQ) (hfin : finChkSpecE F Bq dat (eOf dat 2 * eUp) T p q = true)
+    {n : ℕ} (hK : F.S.K = n + 1) {k : ℕ} {sU : ℚ} (hst : startChk ((Config.specK p.k).epochLength - 1) k γ sU = true)
+    (T : TBandQ) (hfin : finChkSpecE F Bq dat (eOf dat 2 * sU) T p q = true)
     (hc : E.c = Config.specK p.k) (hΔ : E.Δ = F.Δ) (es : Ω → List Event) (hMod : Model μ O E es)
     (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ p.N) {Smax : ℚ}
     (hSm : Smax / Config.spec.p + Smax ^ 2 / Config.spec.p ≤ T.ζ)
@@ -153,17 +179,22 @@ theorem finality_specTG {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsP
   have hne : nEp E N = (N + 2) / (Config.specK k).epochLength := by unfold nEp; rw [hEL]
   have hnb : nbD E F.Δ G Tg = nbSpec (Config.specK k) F.Δ G Tg := by
     unfold nbD growLen nbSpec; rw [hc]
-  have he2 : (cert2T hC2).e 2 * (γ : ℝ) ^ (E.c.epochLength - 1) ≤ ((eOf dat 2 * eUp : ℚ) : ℝ) := by
+  have he2 : (cert2T hC2).e 2 * (γ : ℝ) ^ (E.c.epochLength - 1) ≤ ((eOf dat 2 * sU : ℚ) : ℝ) := by
     have h0 : (0 : ℝ) ≤ (eOf dat 2 : ℚ) := by
       have := (settleChkQ_e2 f.eps)
-      have hu : (0 : ℚ) < eUp := by norm_num [eUp]
+      have hu : (0 : ℚ) < sU := by
+        simp only [startChk, Bool.and_eq_true, decide_eq_true_eq] at hst
+        obtain ⟨⟨⟨⟨hk, -⟩, -⟩, hs⟩, hs0⟩ := hst
+        rcases hs0.lt_or_eq with h | h
+        · exact h
+        · rw [← h, zero_pow hk.ne'] at hs; norm_num [eUp] at hs
       exact_mod_cast nonneg_of_mul_nonneg_left this hu
     push_cast
-    exact mul_le_mul_of_nonneg_left (pow_le_eUp tf.γ1 (by rw [hEL]; exact tf.epoch)) h0
+    exact mul_le_mul_of_nonneg_left (by rw [hEL]; exact pow_le_start hst) h0
   have h1 := ((settleEps3G_mono_e2 E Bq.toBand (cert2T hC2) (by exact_mod_cast tf.lpi0) (by exact_mod_cast tf.le) he2
     G N G G' J Lw r Tg x yy).trans
     (settleEps3G_le_Q (d := 14) (lpi := lpi) (x := x) (yy := yy) (Ccap := G) (N := N) (G := G) (G' := G')
-    (J := J) (Lw := Lw) (r := r) (T := Tg) (e2R := ((eOf dat 2 * eUp : ℚ) : ℝ)) (cert2T hC2) Bq rfl rfl rfl rfl
+    (J := J) (Lw := Lw) (r := r) (T := Tg) (e2R := ((eOf dat 2 * sU : ℚ) : ℝ)) (cert2T hC2) Bq rfl rfl rfl rfl
     rfl rfl rfl rfl hk hne hnb f.eps)).trans
     (Rat.cast_le.2 f.epsle)
   have h2 := (bandEps_le_Q f.band).trans (Rat.cast_le.2 f.bandle)

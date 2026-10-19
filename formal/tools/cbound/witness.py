@@ -133,10 +133,13 @@ class Witness:
         res = linprog(cost, A_ub=A, b_ub=np.zeros(A.shape[0]), bounds=list(zip(lo, hi)), method='highs')
         return (res.x[:n] if res.status == 0 else None)
 
-    def solve_joint(self, groups, lam, lamb, gam):
+    def solve_joint(self, groups, lam, lamb, gam, sw=None, credit=True, sw_pre=True):
         """one table per group of members, in one program, each passing its members' checks at `lam` and
-        the boundary at `lamb`, with values within a factor `gam` of each other at every box entry"""
-        blocks = [self.system(g, None, lam, lamb, True) for g in groups]
+        the boundary at `lamb`, with values within a factor `gam` of each other at every box entry; the
+        boundary's one-switch automaton over `sw` (default each group's members), with the crossing's
+        credit or (`credit=False`, as `FamCfg.repChkCG`) without; with `sw_pre=False` the phase starts only in the
+        group's members, `sw` entering through `vmax`"""
+        blocks = [self.system(g, None, lam, lamb, True, sw, credit, sw_pre) for g in groups]
         n = blocks[0][4]
         offs = np.cumsum([0] + [b[0].shape[1] for b in blocks])
         A = sp.block_diag([b[0] for b in blocks], format='csr')
@@ -154,14 +157,18 @@ class Witness:
         res = linprog(cost, A_ub=A, b_ub=np.zeros(A.shape[0]), bounds=list(zip(lo, hi)), method='highs')
         return ([res.x[o:o + n] for o in offs[:-1]] if res.status == 0 else None)
 
-    def system(self, members, weakest, lam, lamb, switch=False):
+    def system(self, members, weakest, lam, lamb, switch=False, sw=None, credit=True, sw_pre=True):
         """a table passing every member's check at `lam`, and the boundary phases' at `lamb`: against the
-        weakest band, or (`switch`) through the one-switch automaton over the members, as `AutoSolE`
-        (each member's own table `vpost`, a table `vmax` above them, each member's `vpre` above `vmax`)"""
+        weakest band, or (`switch`) through the one-switch automaton over the members and `sw`, as
+        `AutoSolE` (each member's own table `vpost`, a table `vmax` above them, each member's `vpre` above
+        `vmax`), with the crossing's credit or (`credit=False`) without"""
         t, D, x, m, n, AX = self.t, self.D, self.x, self.m, self.t.n, self.t.AX
+        nm0 = len(members)
+        if switch and sw is not None:
+            members = list(members) + [B for B in sw if not any(B is M for M in members)]
         nm = len(members)
         bands = list(members) if switch else list(members) + [weakest]
-        lams = [lam] * nm + ([] if switch else [lamb])
+        lams = [lam] * nm0 + [None] * (nm - nm0) + ([] if switch else [lamb])
         nb = len(bands)
         tab = (CAP + 1) * D * m
         base_v = n
@@ -244,19 +251,21 @@ class Witness:
                     for a in range(CAP + 1):
                         add(g(s, a, 1) + [(tv(s, q, a), -1.0)])
                         recursion(B, tv, s, q, a)
-                phase(B, tv, s, lk, B['slo'] * B['elo'] ** D)
+                if lk is not None:
+                    phase(B, tv, s, lk, B['slo'] * B['elo'] ** D)
         if switch:
             # the one-switch automaton: vmax above every member's own table, each member's vpre above
             # vmax and its own recursion; the boundary phase's bound with vpre, against the family's
             # crossing bound
-            pat_w = min(B['slo'] * B['elo'] ** D for B in members)
+            pat_w = min(B['slo'] * B['elo'] ** D for B in members) if credit else 0.0
             for s in range(m):
                 for q in range(D):
                     for a in range(CAP + 1):
                         for k in range(nm):
                             add([(iv(k, s, q, a), 1.0), (imx(s, q, a), -1.0)])
-                            add([(imx(s, q, a), 1.0), (ipr(k, s, q, a), -1.0)])
-            for k, B in enumerate(members):
+                            if sw_pre or k < nm0:
+                                add([(imx(s, q, a), 1.0), (ipr(k, s, q, a), -1.0)])
+            for k, B in enumerate(members if sw_pre else members[:nm0]):
                 tv = lambda s, q, a, k=k: ipr(k, s, q, a)
                 for s in range(m):
                     for q in range(D):

@@ -43,7 +43,7 @@ import CryptarchiaCerts
 #print axioms Cryptarchia.Prob.settleEps3E_closed
 #print axioms Cryptarchia.Prob.bandEps_closed
 #print axioms Cryptarchia.Prob.geom_le_of
-#print axioms Cryptarchia.Prob.Certs.E20D11T.finality
+#print axioms Cryptarchia.Prob.Certs.E20D11G.finality
 #print axioms Cryptarchia.Prob.Certs.E20D11C.finality_closed
 #print axioms Cryptarchia.Prob.Certs.E20D11C.finality_closed_short
 #print axioms Cryptarchia.Prob.oneSwitchF_sound
