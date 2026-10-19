@@ -18,7 +18,9 @@ valid step consuming one of its notes before then cancels it; once released, its
 spent and no later step can consume them (`not_spendable_of_mem`). It carries no fee.
 
 **Sequencing and configuration**: `roundRobin_lt` (the sequencer index is a key of the
-channel), `multiSigOk_nodup` (the signatures of a configuration come from distinct accredited
+channel, given `SeqOk`, which every write of `tip_sequencer` keeps: `seqOk_defaultChannel`,
+`seqOk_config`, `seqOk_inscribe`), **`roundRobin_infinite`** (an infinite posting timeframe
+never rotates), `multiSigOk_nodup` (the signatures of a configuration come from distinct accredited
 keys), and the null channel has no note set and so receives no step (`createChannel_null`,
 `validateInscribe_no_set`).
 -/
@@ -179,12 +181,46 @@ theorem applyChannelWithdraw_fee {E : Env} {st st' : State} {txh : Fr} {w : Chan
 
 /-! ## Sequencing and configuration -/
 
-/-- The round robin names one of the accredited keys. -/
-theorem roundRobin_lt (slot : Slot) (c : ChannelState) (h : c.accreditedKeys ≠ []) :
-    (roundRobin slot c).1 < c.accreditedKeys.length := by
+/-- The tip sequencer of a channel is one of its accredited keys. -/
+def SeqOk (c : ChannelState) : Prop := c.tipSequencer < c.accreditedKeys.length
+
+/-- The round robin names one of the accredited keys. The infinite timeframe returns the tip
+sequencer unreduced, so this needs `SeqOk`. -/
+theorem roundRobin_lt (slot : Slot) (c : ChannelState) (h : c.accreditedKeys ≠ [])
+    (hs : SeqOk c) : (roundRobin slot c).1 < c.accreditedKeys.length := by
   have := List.length_pos_iff.2 h
   simp only [roundRobin]
-  split_ifs <;> exact Nat.mod_lt _ this
+  split_ifs
+  · exact Nat.mod_lt _ this
+  · exact hs
+  · exact Nat.mod_lt _ this
+
+/-- **An infinite posting timeframe never rotates**: while no timeout is due, the tip sequencer
+keeps its turn and its starting slot. A new channel has both parameters `0`, so its creator
+sequences it until a configuration changes them. -/
+theorem roundRobin_infinite (slot : Slot) (c : ChannelState) (hf : c.postingTimeframe = 0)
+    (ht : ¬(c.postingTimeout ≤ slot - c.tipSlot ∧ c.postingTimeout ≠ 0)) :
+    roundRobin slot c = (c.tipSequencer, c.tipSequencerStartingSlot) := by
+  simp only [roundRobin, ht, hf, ite_false, ite_true]
+
+/-- Every write of `tip_sequencer` keeps it below the number of keys: a new channel (`0` of one
+key), a configuration (`0`, with at least one key) and an inscription (`round_robin`). -/
+theorem seqOk_defaultChannel (slot : Slot) (k : Fr) (n : Option ℕ) :
+    SeqOk (defaultChannel slot [k] n) := by
+  simp [SeqOk, defaultChannel]
+
+theorem seqOk_config (c : ChannelState) (keys : List Fr) (h : keys ≠ []) (t : ℕ) (slot : Slot)
+    (pf po : ℕ) (cfg : Fr) :
+    SeqOk { c with accreditedKeys := keys, configurationThreshold := t, tipSlot := slot,
+                   tipSequencer := 0, tipSequencerStartingSlot := slot, postingTimeframe := pf,
+                   postingTimeout := po, configTipHash := cfg } :=
+  List.length_pos_iff.2 h
+
+theorem seqOk_inscribe (c : ChannelState) (h : c.accreditedKeys ≠ []) (hs : SeqOk c)
+    (slot : Slot) (tip : Fr) :
+    SeqOk { c with tipSequencerStartingSlot := (roundRobin slot c).2,
+                   tipSequencer := (roundRobin slot c).1, tipHash := tip, tipSlot := slot } :=
+  roundRobin_lt slot c h hs
 
 /-- The signatures of a configuration come from distinct accredited keys, as many as the
 threshold. -/

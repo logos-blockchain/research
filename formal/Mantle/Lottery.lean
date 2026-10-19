@@ -16,9 +16,9 @@ expansion `ψ(α) = α (c - c² α / 2)`, `c = -ln(1 - f)`, the order-1 one bein
 * **`split_advantage`**: under `ψ`, splitting a note into two of relative stakes `a, b > 0`
   (with `c b ≤ 1`, far beyond any real note) raises the probability that one of them wins, by
   `c³ab(a+b)/2 - c⁴a²b²/4 > 0`: a third-order incentive to split stake, which `φ` does not have;
-* the specification's error table (`error_table_f30`, `error_table_f20`): at `α = 1` and
-  `f = 1/30` the errors are `1.70%` and `-0.019%`, not the `2.59%` and `-0.0444%` of the table,
-  which are those of `f = 1/20`;
+* the specification's error table (`error_table_f30`): at `α = 1` and `f = 1/30` the errors
+  are the table's `1.70%` and `-0.0193%` (`error_table_f20`: those of `f = 1/20`, `2.59%` and
+  `-0.0444%`, which the table gave before Mantle 2.0.0 v8);
 * the threshold in `𝔽_p` (`threshold`, with the constants `t₀ = t0_constant / S` and
   `t₁ = p - t1_constant / S²`): `threshold_no_wrap` gives the integer value
   `v t₀ - v² ⌊t1_constant/S²⌋` below the zero crossing, `threshold_wrap` the near-`p` value
@@ -172,12 +172,12 @@ theorem rate_bounds {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x < 1) :
 theorem phi_one : phi f 1 = f := by simp [phi]
 
 /-- **For `f = 1/30`**, at a stake equal to the inferred total stake, the order-1 error is
-`1.70%` and the order-2 error `-0.019%`. -/
+`1.70%` and the order-2 error `-0.0193%`, to the digits of the table's last row. -/
 theorem error_table_f30 :
-    0.0170 < approx1 (1 / 30) 1 / phi (1 / 30) 1 - 1 ∧
-      approx1 (1 / 30) 1 / phi (1 / 30) 1 - 1 < 0.0171 ∧
-      -0.000194 < approx2 (1 / 30) 1 / phi (1 / 30) 1 - 1 ∧
-      approx2 (1 / 30) 1 / phi (1 / 30) 1 - 1 < -0.000192 := by
+    0.01695 < approx1 (1 / 30) 1 / phi (1 / 30) 1 - 1 ∧
+      approx1 (1 / 30) 1 / phi (1 / 30) 1 - 1 < 0.01705 ∧
+      -0.0001935 < approx2 (1 / 30) 1 / phi (1 / 30) 1 - 1 ∧
+      approx2 (1 / 30) 1 / phi (1 / 30) 1 - 1 < -0.0001925 := by
   have hb := rate_bounds (x := 1 / 30) (by norm_num) (by norm_num)
   rw [phi_one]
   simp only [approx1, approx2, mul_one, one_mul]
@@ -203,7 +203,7 @@ theorem error_table_f20 :
   refine ⟨by nlinarith, by nlinarith, by nlinarith, by nlinarith⟩
 
 /-- For `f = 1/30` the parabola `ψ` peaks at `α = 1/c ∈ (29.4, 29.6)` and returns to `0` at
-`α = 2/c ∈ (58.9, 59.1)`; the specification gives 29 and 58. -/
+`α = 2/c ∈ (58.9, 59.1)`, the specification's 29 and 59. -/
 theorem parabola_peak_zero :
     (29.4 < 1 / rate (1 / 30) ∧ 1 / rate (1 / 30) < 29.6) ∧
       (58.9 < 2 / rate (1 / 30) ∧ 2 / rate (1 / 30) < 59.1) ∧

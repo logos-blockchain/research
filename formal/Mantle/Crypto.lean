@@ -63,6 +63,13 @@ def Hash.model : Hash where
 /-- `UINT64_MAX + 1`: `TokenValue` is a `uint64`. -/
 def TOKEN_BOUND : ℕ := 2 ^ 64
 
+/-- The order `p` of the BN254 scalar field. -/
+def FIELD_ORDER : ℕ := 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001
+
+/-- `FiniteField(x, byte_order="little", modulus = p)`: a digest, read little-endian, reduced
+modulo `p`. -/
+def toFr (x : ℕ) : Fr := x % FIELD_ORDER
+
 /-- `class Note` (Mantle, *Notes*). `program = 0` and `data = 0` for a user note. -/
 structure Note where
   value : ℕ

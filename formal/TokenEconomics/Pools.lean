@@ -43,8 +43,9 @@ structure RewardState where
   pending : ℕ
   window : List ℕ
 
-/-- The state set at Genesis: `B_0 = 10⁹`, an empty pool, nothing pending, a zero window. -/
-def genesisRewards : RewardState := ⟨1_000_000_000, 0, 0, List.replicate WINDOW 0⟩
+/-- The state set at Genesis: `B_0 = 10¹⁸` units (`10⁹` LGO), an empty pool, nothing pending, a
+zero window. -/
+def genesisRewards : RewardState := ⟨10 ^ 18, 0, 0, List.replicate WINDOW 0⟩
 
 /-- `leader_share(b)`: 40% of the block reward, rounded down. -/
 def leaderShare (R : ℕ) : ℕ := 2 * R / 5
@@ -157,10 +158,10 @@ theorem rewardStep_conserves {st : RewardState} (I : PoolInv st) (stake pooled :
   simp only [rewardStep]
   omega
 
-/-- The reserve only decreases, by at most 95 LGO per block. -/
+/-- The reserve only decreases, by at most `MAX_RELEASE` units per block. -/
 theorem reserve_step {st : RewardState} (stake pooled : ℕ) :
     (rewardStep st stake pooled).1.reserve ≤ st.reserve ∧
-      st.reserve ≤ (rewardStep st stake pooled).1.reserve + 95 := by
+      st.reserve ≤ (rewardStep st stake pooled).1.reserve + MAX_RELEASE := by
   have := release_le stake (st.window.tail ++ [pooled]).sum st.reserve
   simp only [rewardStep]
   omega

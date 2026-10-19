@@ -1180,7 +1180,7 @@ theorem applyOps_grows {P : Prims} {E : Env} {txh : Fr} (ops : List Op) :
     | cons π πs =>
       simp only [applyOps, option_bind_eq_some, ensure_eq_some, option_pure_eq, exists_const,
         Option.some.injEq, Prod.mk.injEq] at h
-      obtain ⟨⟨st1, fee⟩, h1, ⟨st2, bal', gas'⟩, h2, -, rfl, rfl, rfl⟩ := h
+      obtain ⟨⟨st1, fee⟩, h1, ⟨st2, bal', gas'⟩, h2, -, -, rfl, rfl, rfl⟩ := h
       exact (applyOp_grows h1).trans (ih πs st1 st2 bal' gas' h2)
 
 theorem applyOps_spec {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSound] {E : Env} {txh : Fr} (ops : List Op) :
@@ -1203,7 +1203,7 @@ theorem applyOps_spec {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSound] {E
     | cons π πs =>
       simp only [applyOps, option_bind_eq_some, ensure_eq_some, option_pure_eq, exists_const,
         Option.some.injEq, Prod.mk.injEq] at h
-      obtain ⟨⟨st1, fee⟩, h1, ⟨st2, bal', gas'⟩, h2, -, rfl, rfl, rfl⟩ := h
+      obtain ⟨⟨st1, fee⟩, h1, ⟨st2, bal', gas'⟩, h2, -, -, rfl, rfl, rfl⟩ := h
       -- the later Operations only grow the note sets, so the capacity holds before them
       obtain ⟨I1, G1, V1⟩ := applyOp_spec I h1
         (hcap.of_grows (applyOps_grows ops πs st1 st2 bal' gas' h2))

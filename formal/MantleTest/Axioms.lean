@@ -39,4 +39,8 @@ import Mantle
 #print axioms Mantle.Encoding.Codec.decodeAll_iff
 #print axioms Mantle.Encoding.signedTx_canonical
 #print axioms Mantle.Encoding.mantleTx_encode_injective
-#print axioms Mantle.Encoding.fieldElement_not_canonical_mod_p
+#print axioms Mantle.Encoding.fe_canonical_mod_p
+#print axioms Mantle.Encoding.fe_rejects
+#print axioms Mantle.roundRobin_lt
+#print axioms Mantle.roundRobin_infinite
+#print axioms Mantle.seqOk_inscribe

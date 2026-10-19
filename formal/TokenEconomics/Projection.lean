@@ -8,7 +8,7 @@ assumptions and noise, whose 20 runs give a net circulating growth of `3.00%` of
 10 years (`2.81%` to `3.18%`). A simulation's outcome cannot be proven; what can:
 
 * **`net_growth_le`**: whatever the stake and the fees, the net circulating growth over `N`
-  blocks is at most `95 N` LGO, so at most `9.99%` of `S_cap` over 10 years
+  blocks is at most `MAX_RELEASE · N` units, so below `10%` of `S_cap` over 10 years
   (`net_growth_ten_years`), and the reserve is never exhausted within them;
 * **`steady_growth`**: with the stake and the pooled fees `D` per block constant, the circulating
   supply grows by `A (I_max S_cap Δ - D)` per block; at the target stake with fees pooled at
@@ -22,8 +22,8 @@ assumptions and noise, whose 20 runs give a net circulating growth of `3.00%` of
   continuous approximation `R̄ = D`, grows the circulating supply by
   `∫₀¹⁰ min(1, 1/2 + 24.5·10^{-t}) (1% - 0.5% (1 - 10^{-t})) dt ∈ (3.246%, 3.248%)` of `S_cap`.
   The annex's `3.00%` (all 20 runs below `3.18%`) is therefore the effect of its noise, which
-  lowers the growth by about a quarter of a point: the projection depends on the assumed noise
-  of the inferred stake as much as on the stake and the fees.
+  lowers the growth by about a quarter of a point, as the annex states (`3.25%` without the
+  noise, `3.10%` with half of it, `2.94%` with twice as much).
 -/
 
 namespace TokenEconomics
@@ -37,23 +37,25 @@ def runRewards (st : RewardState) : List (ℕ × ℕ) → RewardState
   | [] => st
   | b :: bs => runRewards (rewardStep st b.1 b.2).1 bs
 
-/-- **Net circulating growth is at most 95 LGO per block**: what leaves the reserve. The pool
-only takes fees out of circulation. -/
+/-- **Net circulating growth is at most `MAX_RELEASE` units per block**: what leaves the
+reserve. The pool only takes fees out of circulation. -/
 theorem net_growth_le (st : RewardState) (bs : List (ℕ × ℕ)) :
-    st.reserve ≤ (runRewards st bs).reserve + 95 * bs.length ∧
+    st.reserve ≤ (runRewards st bs).reserve + MAX_RELEASE * bs.length ∧
       (runRewards st bs).reserve ≤ st.reserve := by
   induction bs generalizing st with
   | nil => simp [runRewards]
   | cons b bs ih =>
     obtain ⟨h1, h2⟩ := reserve_step (st := st) b.1 b.2
     obtain ⟨i1, i2⟩ := ih (rewardStep st b.1 b.2).1
-    simp only [runRewards, List.length_cons]
+    simp only [runRewards, List.length_cons, Nat.mul_succ]
+    generalize MAX_RELEASE * bs.length = k at i1 ⊢
     constructor <;> omega
 
-/-- Over 10 years of blocks, at most `998,640,000` LGO leave the reserve: `9.99%` of `S_cap`,
-less than the `10⁹` of the reserve, which is never exhausted. -/
+/-- Over 10 years of blocks, at most `999,999,999,996,912,000` units leave the reserve, less than
+the `10¹⁸` of the reserve (`10%` of `S_cap`), which is never exhausted. -/
 theorem net_growth_ten_years :
-    95 * (10 * BLOCKS_PER_YEAR) = 998_640_000 ∧ 998_640_000 < 1_000_000_000 := by decide
+    MAX_RELEASE * (10 * BLOCKS_PER_YEAR) = 999_999_999_996_912_000 ∧
+      999_999_999_996_912_000 < 10 ^ 18 := by decide
 
 /-! ## The steady state -/
 

@@ -30,15 +30,15 @@ Modelling choices:
   same two phases are kept: `validateSteps` returns the set with its buffer extended,
   `executeSteps` applies the steps.
 * A `declare_id` is a natural standing for its 32 bytes, read little-endian as the encoding
-  does (`Encoding.fe`); SDP Epoch Finalization orders ids by those bytes, first byte first
+  does (`Encoding.h32`); SDP Epoch Finalization orders ids by those bytes, first byte first
   (`releaseOrder`), not by the natural.
-* `mantle_txhash` (`Prims.txHash`) is the value the proofs and the signatures receive; the
-  specification's, BLAKE2b-256 reduced modulo `p`, is `Encoding.mantleTxHash`. Nothing is assumed
-  about it, nor about `ed25519Verify`, so the theorems hold whichever value is signed.
+* `mantle_txhash` (`Prims.txHash`) is the 32-byte digest, which the Ed25519 signatures sign; the
+  ZK proofs receive it reduced modulo `p`, `mantle_txhash_fr` (`toFr`). The specification's
+  digest is `Encoding.mantleTxHash`. Nothing is assumed about it, nor about `ed25519Verify`.
 * The gas prices of `Env` are any naturals, `0` included; nothing needs the base fee's floor
   of `1`.
-* `round_robin` divides by `posting_timeframe`, which is `0` ("infinity") in a new channel;
-  in Python that raises `ZeroDivisionError`, in Lean `n / 0 = 0`, the intended meaning.
+* The checked sums of `tx_balance` and `tx_execution_gas` are checked once per Operation, from
+  the last: the partial sums of naturals are below `2^64` iff the total is.
 -/
 
 namespace Mantle
@@ -254,6 +254,7 @@ structure Prims where
   /-- `Groth16_verify(key, public_inputs, proof)`. -/
   groth16Verify : VerificationKey → List Fr → ProofBlob → Prop
   ed25519Verify : Fr → Fr → Fr → Prop
+  /-- `mantle_txhash(tx)`: the 32-byte digest. -/
   txHash : MantleTx → Fr
   opId : Op → Fr
   declarationId : DeclarationMessage → DeclarationId
@@ -411,7 +412,7 @@ def applyTransfer (st : State) (txh : Fr) (t : Transfer) (π : ProofBlob) :
   let s := st.sets LEDGER_SET
   ensure (s.Spendable t.inputs t.cmMerkleRoot)
   let R ← s.txCmRoot P.H t.cmMerkleRoot none
-  ensure (P.zkTransferVerify ⟨t.inputs, t.outputs, t.excessValue, R, txh⟩ π)
+  ensure (P.zkTransferVerify ⟨t.inputs, t.outputs, t.excessValue, R, toFr txh⟩ π)
   pure (st.setSet LEDGER_SET
     (((s.extendBuffer t.outputs).executeSpending t.inputs).executeAdding t.outputs), t.excessValue)
 
@@ -424,7 +425,7 @@ def applyDeposit (st : State) (txh : Fr) (d : ChannelDeposit) (π : ProofBlob) :
   let s := st.sets LEDGER_SET
   ensure (s.Spendable d.inputs d.cmMerkleRoot)
   let R ← s.txCmRoot P.H d.cmMerkleRoot none
-  ensure (P.zkTransferVerify ⟨d.inputs, d.outputs, d.excessValue, R, txh⟩ π)
+  ensure (P.zkTransferVerify ⟨d.inputs, d.outputs, d.excessValue, R, toFr txh⟩ π)
   let st1 := st.setSet j ((st.sets j).extendBuffer d.outputs)
   let st2 := st1.setSet LEDGER_SET ((st1.sets LEDGER_SET).executeSpending d.inputs)
   pure (st2.setSet j ((st2.sets j).executeAdding d.outputs), d.excessValue)
@@ -437,7 +438,7 @@ def applyChannelWithdraw (st : State) (txh : Fr) (w : ChannelWithdraw) (π : Pro
   let s := st.sets j
   ensure (s.Spendable w.inputs w.cmMerkleRoot)
   let R ← s.txCmRoot P.H w.cmMerkleRoot none
-  ensure (P.zkTransferVerify ⟨w.inputs, w.outputs, 0, R, txh⟩ π)
+  ensure (P.zkTransferVerify ⟨w.inputs, w.outputs, 0, R, toFr txh⟩ π)
   pure (st.withPending
     (st.pendingWithdrawals ++ [(E.blockSlot + WITHDRAW_DELAY, j, w.inputs, w.outputs)]), 0)
 
@@ -450,7 +451,7 @@ def applyDeclare (st : State) (txh : Fr) (d : DeclarationMessage) (π : ProofBlo
     Option (State × ℕ) := do
   let s := st.sets LEDGER_SET
   let R ← s.txCmRoot P.H d.cmMerkleRoot none
-  ensure (P.zkTransferVerify ⟨d.inputs, [], d.amount, R, txh⟩ π)
+  ensure (P.zkTransferVerify ⟨d.inputs, [], d.amount, R, toFr txh⟩ π)
   ensure (P.ed25519Verify txh d.providerId sig)
   ensure (st.declarations.lookup (P.declarationId d) = none)
   ensure (1 ≤ d.locators.length ∧ d.locators.length ≤ 8)
@@ -472,7 +473,7 @@ def applySdpWithdraw (st : State) (txh : Fr) (w : WithdrawMessage) (π : ProofBl
   ensure (info.nonce < w.nonce)
   ensure (w.serviceNoteNf ∉ (st.sets SDP_SET).nullifiers)
   ensure (P.zkTransferVerify ⟨[w.serviceNoteNf], w.outputs, w.excessValue,
-    mmrRoot P.H (mmrPeaks P.H [info.serviceNote]), txh⟩ π)
+    mmrRoot P.H (mmrPeaks P.H [info.serviceNote]), toFr txh⟩ π)
   let st1 := st.updateDecl w.declaration fun i =>
     { i with nonce := w.nonce, withdrawAt := some (E.currentEpoch + 2),
              withdrawOutputs := w.outputs }
@@ -535,6 +536,8 @@ def roundRobin (slot : Slot) (c : ChannelState) : ℕ × Slot :=
   if c.postingTimeout ≤ elapsed ∧ c.postingTimeout ≠ 0 then
     let k := elapsed / c.postingTimeout
     ((c.tipSequencer + k) % c.accreditedKeys.length, c.tipSlot + k * c.postingTimeout)
+  else if c.postingTimeframe = 0 then
+    (c.tipSequencer, c.tipSequencerStartingSlot)
   else
     let d := slot - c.tipSequencerStartingSlot
     ((c.tipSequencer + d / c.postingTimeframe) % c.accreditedKeys.length,
@@ -732,6 +735,7 @@ def applyOps (st : State) (txh : Fr) : List Op → List OpProof → Option (Stat
     let (st1, fee) ← applyOp P E st txh op π
     let (st2, bal, gas) ← applyOps st1 txh ops πs
     ensure (fee + bal < TOKEN_BOUND)
+    ensure (executionGas st op + gas < TOKEN_BOUND)
     pure (st2, fee + bal, executionGas st op + gas)
   | _, _ => none
 

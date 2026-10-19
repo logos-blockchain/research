@@ -12,20 +12,23 @@ stake deviation `δ_t = (D_0,target - D_0,t) / D_0,target`, the annualized pooli
 `γ_t = (1/Δ_t)(1/T) ∑ D_1,τ / D_1,target`, and the average pooled reward `R̄_t = (1/T) ∑ D_1,τ`
 over the last `T = 120` blocks.
 
-The real-valued definitions (`emissionFactor`, `reward`) take the parameters of the table;
-`block_reward` is the integer reference (`aNumerator`, `release`, `payout`). Results:
+Tokens are counted in units of `10⁻⁹` LGO, the units of `TokenValue` (Mantle, *Arithmetic*):
+`S_cap = 10¹⁹`. The real-valued definitions (`emissionFactor`, `reward`) take the parameters of
+the table; `block_reward` is the integer reference (`aNumerator`, `release`, `payout`). Results:
 
 * **`aNumerator_eq`**: `A_t' = A_SCALE · A_t` exactly: the integer numerator *is* the emission
-  rate factor, `FEE_AVG_NUMERATOR = 10,512` and `A_SCALE = 1.2·10⁸` being the exact constants;
+  rate factor, `FEE_AVG_NUMERATOR = 10,512` and `A_SCALE = 1.2·10¹⁷` being the exact constants;
 * **`release_eq`**, **`payout_eq`**: the release is `min(⌊A_t · I_max S_cap Δ_t⌋, B_{t-1})` and
-  the payout `⌊(1 - A_t) R̄_t⌋`, with `I_max S_cap Δ_t = 62,500/657` (`max_release_eq`);
+  the payout `⌊(1 - A_t) R̄_t⌋`, with `I_max S_cap Δ_t = 62,500·10⁹/657` (`max_release_eq`);
 * `reward_floor`: when the reserve does not bind, the integer reward is within `2` of `R_t`;
-* `release_le`: at most `95` LGO leave the reserve per block, so at most `99,864,000` per year,
-  within `I_max · S_cap = 10⁸` (`annual_release_le`), and the reserve `B_0 = 10⁹` lasts at least
-  `Y = 10` years (`reserve_lasts`);
-* `intermediates_lt`, `outputs_lt`: with fees in `uint64`, every product of `block_reward`
-  stays below `2^101` (in fact `2^98`) and both results fit in `uint64`, as the specification
-  states.
+* `release_le`: at most `MAX_RELEASE = 95,129,375,951` units leave the reserve per block, so at
+  most `I_max · S_cap = 10¹⁷` per year, short of it by `308,800` units (`annual_release_le`), and
+  the reserve `B_0 = 10¹⁸` lasts at least `Y = 10` years (`reserve_lasts`);
+* **`intermediates_lt`**, `outputs_lt`: every product of `block_reward` stays below `2^127`, as
+  the specification states, and both results fit in `uint64`. The specification bounds the fees
+  of a block by the maximum supply; `uint64` fees and stake suffice, and the largest product, the
+  payout's, stays below `2^108`: it is non-zero only when `A_t' < A_SCALE`, which bounds the
+  window's fees by the stake.
 -/
 
 namespace TokenEconomics
@@ -34,8 +37,8 @@ noncomputable section
 
 /-! ## Parameters -/
 
-/-- `S_cap`: 10 billion LGO. -/
-def S_CAP : ℝ := 10 ^ 10
+/-- `S_cap`: 10 billion LGO, `10¹⁹` units of `10⁻⁹` LGO. -/
+def S_CAP : ℝ := 10 ^ 19
 /-- Blocks per year: one every 30 seconds. -/
 def BLOCKS_PER_YEAR : ℕ := 365 * 2880
 /-- `Δ_t`: the fraction of a year in one block. -/
@@ -44,8 +47,8 @@ def DELTA : ℝ := 1 / BLOCKS_PER_YEAR
 def T : ℕ := 120
 def I_MAX : ℝ := 1 / 100
 def I_MIN : ℝ := 0
-def D0_TARGET : ℝ := 3 * 10 ^ 9
-def D1_TARGET : ℝ := 10 ^ 10
+def D0_TARGET : ℝ := 3 * 10 ^ 18
+def D1_TARGET : ℝ := 10 ^ 19
 def ALPHA_D : ℝ := 1 / 4
 def ALPHA_A : ℝ := 1
 /-- `Y`: the lifetime of the reserve at the maximum release rate. -/
@@ -76,12 +79,15 @@ def reward (D0 S : ℝ) : ℝ :=
 
 /-! ## The integer reference -/
 
-def A_SCALE : ℕ := 120_000_000
-def STAKE_TARGET : ℕ := 3_000_000_000
+def A_SCALE : ℕ := 120_000_000_000_000_000
+def STAKE_TARGET : ℕ := 3_000_000_000_000_000_000
 def FEE_AVG_NUMERATOR : ℕ := 10_512
 def WINDOW : ℕ := 120
-def RELEASE_NUMERATOR : ℕ := 62_500
+def RELEASE_NUMERATOR : ℕ := 62_500_000_000_000
 def RELEASE_DENOMINATOR : ℕ := 657
+
+/-- `⌊62,500·10⁹/657⌋`: the most the reserve releases in a block. -/
+def MAX_RELEASE : ℕ := 95_129_375_951
 
 /-- `a_numerator = min(max(STAKE_TARGET - stake + FEE_AVG_NUMERATOR * sum_fees, 0), A_SCALE)`;
 in `ℕ`, truncated subtraction is the `max(·, 0)`. -/
@@ -107,8 +113,8 @@ theorem maxRelease_eq : maxRelease = (RELEASE_NUMERATOR : ℝ) / RELEASE_DENOMIN
     RELEASE_DENOMINATOR]
   norm_num
 
-/-- The two terms of the emission rate factor, over `I_max`, are `(3·10⁹ - D_0)/(12·10⁷)` and
-`10,512 ∑ D_1 / (12·10⁷)`. -/
+/-- The two terms of the emission rate factor, over `I_max`, are `(3·10¹⁸ - D_0)/(12·10¹⁶)` and
+`10,512 ∑ D_1 / (12·10¹⁶)`. -/
 theorem inner_eq (D0 S : ℝ) :
     (ALPHA_D * stakeDeviation D0 + ALPHA_A * poolingRate S + I_MIN) / I_MAX =
       ((STAKE_TARGET : ℝ) - D0 + FEE_AVG_NUMERATOR * S) / A_SCALE := by
@@ -186,23 +192,24 @@ theorem reward_floor (stake sumFees reserve : ℕ)
 
 /-! ## Bounds -/
 
-/-- At most `⌊62,500/657⌋ = 95` LGO leave the reserve per block. -/
-theorem release_le (stake sumFees reserve : ℕ) : release stake sumFees reserve ≤ 95 := by
+/-- At most `⌊62,500·10⁹/657⌋ = MAX_RELEASE` units leave the reserve per block. -/
+theorem release_le (stake sumFees reserve : ℕ) : release stake sumFees reserve ≤ MAX_RELEASE := by
   unfold release
   refine (min_le_left _ _).trans ?_
   calc RELEASE_NUMERATOR * aNumerator stake sumFees / (RELEASE_DENOMINATOR * A_SCALE)
       ≤ RELEASE_NUMERATOR * A_SCALE / (RELEASE_DENOMINATOR * A_SCALE) :=
         Nat.div_le_div_right (Nat.mul_le_mul_left _ (aNumerator_le _ _))
-    _ = 95 := by decide
+    _ = MAX_RELEASE := by decide
 
 theorem release_le_reserve (stake sumFees reserve : ℕ) :
     release stake sumFees reserve ≤ reserve := min_le_right _ _
 
-/-- The release over a year stays within `I_max · S_cap = 10⁸` LGO. -/
-theorem annual_release_le : 95 * BLOCKS_PER_YEAR ≤ 100_000_000 := by decide
+/-- The release over a year stays within `I_max · S_cap = 10¹⁷` units, `308,800` short of it
+by the floor. -/
+theorem annual_release_le : MAX_RELEASE * BLOCKS_PER_YEAR + 308_800 = 10 ^ 17 := by decide
 
-/-- At the maximum release rate the reserve `B_0 = 10⁹` lasts at least `Y = 10` years. -/
-theorem reserve_lasts : B0 = 1_000_000_000 ∧ 10 * (95 * BLOCKS_PER_YEAR) < 1_000_000_000 := by
+/-- At the maximum release rate the reserve `B_0 = 10¹⁸` lasts at least `Y = 10` years. -/
+theorem reserve_lasts : B0 = 10 ^ 18 ∧ 10 * (MAX_RELEASE * BLOCKS_PER_YEAR) < 10 ^ 18 := by
   refine ⟨by norm_num [B0, I_MAX, S_CAP, Y], by decide⟩
 
 /-- The payout of a block is at most a `1/120` share of the pooled fees of the window. -/
@@ -217,23 +224,48 @@ theorem payout_le (stake sumFees : ℕ) : WINDOW * payout stake sumFees ≤ sumF
     Nat.mul_div_le (A_SCALE * sumFees) (WINDOW * A_SCALE),
     Nat.mul_div_mul_right sumFees WINDOW hA]
 
-/-- **Every intermediate of `block_reward` stays below `2^101`**, for a window of `120` fees
-in `uint64`. -/
-theorem intermediates_lt {stake : ℕ} {window : List ℕ} (hl : window.length = WINDOW) (hw : ∀ x ∈ window, x < 2 ^ 64) :
-    FEE_AVG_NUMERATOR * window.sum < 2 ^ 101 ∧
-      STAKE_TARGET + FEE_AVG_NUMERATOR * window.sum < 2 ^ 101 ∧
-      RELEASE_NUMERATOR * aNumerator stake window.sum < 2 ^ 101 ∧
-      (A_SCALE - aNumerator stake window.sum) * window.sum < 2 ^ 98 := by
+/-- The payout's product is non-zero only when `A_t' < A_SCALE`, and then the fees of the
+window are bounded by the stake: `10,512 ∑ D_1 < A_SCALE + D_0`. -/
+theorem payout_product_le (stake sumFees : ℕ) :
+    FEE_AVG_NUMERATOR * ((A_SCALE - aNumerator stake sumFees) * sumFees) ≤
+      A_SCALE * (A_SCALE + stake) := by
+  rcases Nat.lt_or_ge (aNumerator stake sumFees) A_SCALE with h | h
+  · have hs : FEE_AVG_NUMERATOR * sumFees < A_SCALE + stake := by
+      simp only [aNumerator, min_lt_iff, lt_irrefl, or_false] at h
+      omega
+    calc FEE_AVG_NUMERATOR * ((A_SCALE - aNumerator stake sumFees) * sumFees)
+        ≤ FEE_AVG_NUMERATOR * (A_SCALE * sumFees) :=
+          Nat.mul_le_mul_left _ (Nat.mul_le_mul_right _ (Nat.sub_le _ _))
+      _ = A_SCALE * (FEE_AVG_NUMERATOR * sumFees) := by ring
+      _ ≤ A_SCALE * (A_SCALE + stake) := Nat.mul_le_mul_left _ hs.le
+  · simp [Nat.sub_eq_zero_of_le h]
+
+/-- **Every intermediate of `block_reward` stays below `2^127`**, for a `uint64` stake and a
+window of `120` fees in `uint64`; the largest, the payout's product, below `2^108`. -/
+theorem intermediates_lt {stake : ℕ} {window : List ℕ} (hs : stake < 2 ^ 64)
+    (hl : window.length = WINDOW) (hw : ∀ x ∈ window, x < 2 ^ 64) :
+    FEE_AVG_NUMERATOR * window.sum < 2 ^ 85 ∧
+      STAKE_TARGET + FEE_AVG_NUMERATOR * window.sum < 2 ^ 85 ∧
+      RELEASE_NUMERATOR * aNumerator stake window.sum < 2 ^ 103 ∧
+      (A_SCALE - aNumerator stake window.sum) * window.sum < 2 ^ 108 := by
   have hsum : window.sum ≤ WINDOW * (2 ^ 64 - 1) := by
     have := List.sum_le_length_nsmul window (2 ^ 64 - 1) (fun x hx => by have := hw x hx; omega)
     simpa [hl] using this
   have ha := aNumerator_le stake window.sum
+  have hp := payout_product_le stake window.sum
   simp only [WINDOW] at hsum
-  refine ⟨by simp only [FEE_AVG_NUMERATOR]; omega, by simp only [STAKE_TARGET, FEE_AVG_NUMERATOR]; omega,
-    by simp only [RELEASE_NUMERATOR, A_SCALE] at ha ⊢; omega, ?_⟩
-  calc (A_SCALE - aNumerator stake window.sum) * window.sum ≤ A_SCALE * (120 * (2 ^ 64 - 1)) :=
-        Nat.mul_le_mul (Nat.sub_le _ _) hsum
-    _ < 2 ^ 98 := by decide
+  simp only [FEE_AVG_NUMERATOR, STAKE_TARGET, RELEASE_NUMERATOR, A_SCALE] at ha hp ⊢
+  omega
+
+/-- The bound of the specification, `2^127`, for fees bounded by the maximum supply `10¹⁹`. -/
+theorem intermediates_lt_spec {stake : ℕ} {window : List ℕ} (hs : stake < 2 ^ 64)
+    (hl : window.length = WINDOW) (hw : ∀ x ∈ window, x ≤ 10 ^ 19) :
+    FEE_AVG_NUMERATOR * window.sum < 2 ^ 127 ∧
+      STAKE_TARGET + FEE_AVG_NUMERATOR * window.sum < 2 ^ 127 ∧
+      RELEASE_NUMERATOR * aNumerator stake window.sum < 2 ^ 127 ∧
+      (A_SCALE - aNumerator stake window.sum) * window.sum < 2 ^ 127 := by
+  obtain ⟨h1, h2, h3, h4⟩ := intermediates_lt hs hl fun x hx => (hw x hx).trans_lt (by decide)
+  refine ⟨h1.trans (by decide), h2.trans (by decide), h3.trans (by decide), h4.trans (by decide)⟩
 
 /-- **Both results of `block_reward` fit in a `uint64`.** -/
 theorem outputs_lt {stake reserve : ℕ} {window : List ℕ} (hl : window.length = WINDOW)
@@ -243,7 +275,11 @@ theorem outputs_lt {stake reserve : ℕ} {window : List ℕ} (hl : window.length
     have := List.sum_le_length_nsmul window (2 ^ 64 - 1) (fun x hx => by have := hw x hx; omega)
     simpa [hl] using this
   have hp := payout_le stake window.sum
-  refine ⟨by simp only [blockReward]; have := release_le stake window.sum reserve; omega, ?_⟩
+  refine ⟨by
+    simp only [blockReward]
+    have := release_le stake window.sum reserve
+    simp only [MAX_RELEASE] at this
+    omega, ?_⟩
   simp only [blockReward]
   simp only [WINDOW] at hp hsum
   omega
@@ -254,7 +290,7 @@ theorem outputs_lt {stake reserve : ℕ} {window : List ℕ} (hl : window.length
 the fees. -/
 theorem regime_release {stake sumFees reserve : ℕ}
     (h : A_SCALE ≤ STAKE_TARGET + FEE_AVG_NUMERATOR * sumFees - stake) :
-    payout stake sumFees = 0 ∧ release stake sumFees reserve = min 95 reserve := by
+    payout stake sumFees = 0 ∧ release stake sumFees reserve = min MAX_RELEASE reserve := by
   have ha : aNumerator stake sumFees = A_SCALE := min_eq_right h
   refine ⟨by simp [payout, ha], ?_⟩
   simp only [release, ha]

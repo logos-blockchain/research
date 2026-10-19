@@ -25,7 +25,9 @@ diverted to it, of the reserve, of the rewards pool and of the pending Blend sha
 
 **`executeBlock_total`**: executing a block never increases the total; **`executeChain_total`**:
 so the total of any chain of blocks never exceeds that of Genesis, the maximum supply
-`S_cap` fixed at Genesis. The leader reward, the Blend reward and the release of the reserve
+`S_cap` fixed at Genesis. **`executeChain_tokenValue`**: from a Genesis of at most `10¹⁹` units
+of `10⁻⁹` LGO, every unspent note and every stock stays at most `10¹⁹ < 2^64`, so every token
+value fits a `TokenValue` (Mantle, *Arithmetic*). The leader reward, the Blend reward and the release of the reserve
 move tokens between these stocks; the only way the total decreases is notes that can never be
 spent, such as two leader rewards of the same value under the same `reward_key` (one
 commitment, so one spendable note).
@@ -381,6 +383,43 @@ theorem executeChain_total {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSoun
     obtain ⟨I1, IP1, -, T1⟩ := executeBlock_total I IP h1 (hcap.of_grows G)
     obtain ⟨I2, IP2, T2⟩ := ih b1 b' I1 IP1 h2 hcap
     exact ⟨I2, IP2, T2.trans T1⟩
+
+/-! ## Every token value fits a `TokenValue` -/
+
+/-- The maximum supply: `10¹⁰` LGO, `10¹⁹` units of `10⁻⁹` LGO. -/
+def MAX_SUPPLY : ℕ := 10 ^ 19
+
+theorem maxSupply_lt : MAX_SUPPLY < TOKEN_BOUND := by decide
+
+/-- An unspent note of a set counts at most the tokens of the block state. -/
+theorem cmValue_le_total (H : Hash) (b : BlockState) {i : ℕ} {c : Fr}
+    (hi : i < b.ledger.numSets) (hc : c ∈ (b.ledger.sets i).cms)
+    (hu : Unspent H (b.ledger.sets i).nullifiers c) : cmValue H c ≤ total H b := by
+  have h1 : cmValue H c ≤ (b.ledger.sets i).supply H :=
+    Finset.single_le_sum (f := cmValue H) (fun _ _ => Nat.zero_le _)
+      (Finset.mem_filter.2 ⟨List.mem_toFinset.2 hc, hu⟩)
+  have h2 : (b.ledger.sets i).supply H ≤ setsValue H b.ledger :=
+    Finset.single_le_sum (f := fun j => (b.ledger.sets j).supply H) (fun _ _ => Nat.zero_le _)
+      (Finset.mem_range.2 hi)
+  simp only [total, value]
+  omega
+
+/-- **Every token value fits a `TokenValue`**: along any chain of blocks from a state holding at
+most the maximum supply, every unspent note, the proof of work pool, the reserve, the rewards
+pool and the pending Blend share are at most `10¹⁹`, below `2^64`. -/
+theorem executeChain_tokenValue {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSound]
+    {pow : PowShare} {blocks : List BlockInputs} {b b' : BlockState} (I : Inv P.H b.ledger)
+    (IP : PoolInv b.rewards) (hg : total P.H b ≤ MAX_SUPPLY)
+    (h : executeChain P pow b blocks = some b') (hcap : Cap b'.ledger) :
+    total P.H b' ≤ MAX_SUPPLY ∧
+      (∀ i < b'.ledger.numSets, ∀ c ∈ (b'.ledger.sets i).cms,
+        Unspent P.H (b'.ledger.sets i).nullifiers c → cmValue P.H c ≤ MAX_SUPPLY) ∧
+      b'.ledger.powRewardPool ≤ MAX_SUPPLY ∧ b'.rewards.reserve ≤ MAX_SUPPLY ∧
+      b'.rewards.pool ≤ MAX_SUPPLY ∧ b'.rewards.pending ≤ MAX_SUPPLY := by
+  have ht := (executeChain_total blocks b b' I IP h hcap).2.2.trans hg
+  refine ⟨ht, fun i hi c hc hu => (cmValue_le_total P.H b' hi hc hu).trans ht, ?_⟩
+  simp only [total, value] at ht
+  omega
 
 end
 

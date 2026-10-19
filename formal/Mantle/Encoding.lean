@@ -9,7 +9,8 @@ Mantle Transaction Encoding 2.1.0 (RFC-480 §7, RFC-481 §5), production by prod
 codecs (`Codec.lean`) over the types of the ledger model (`Ledger.lean`): a `FieldElement`,
 `Hash32` or `Ed25519PublicKey` is a 32-byte little-endian integer, an `Ed25519Signature` or a
 `G2Point` 64 bytes, a `Groth16Proof` 128 bytes; counts and lengths are `Byte`, `UINT16` or
-`UINT32` prefixes with the bounds of the specification (`MAX_OPERATION_DATA_SIZE` for
+`UINT32` prefixes with the bounds of the specification, and a `FieldElement` (or a `ZkPublicKey`)
+is rejected unless it is less than `p` (`MAX_OPERATION_DATA_SIZE` for
 inscriptions and deposit metadata, 329 bytes per locator and 8 locators, 8 outputs for a
 program spend, the bit mask of `ProgramOutputs` with no bit set from `OutputCount` up, the
 activity metadata type `0x01`). The proofs are decoded from the Operations parsed before them:
@@ -21,10 +22,9 @@ one `StepProof` per step, one payment proof per payment, one opening per bit of
   unambiguous, as the specification requires;
 * `signedTx_encode_injective`, `mantleTx_encode_injective`: distinct transactions have distinct
   encodings (so `mantle_txhash` and `op_id` hash distinct preimages);
-* `fieldElement_not_canonical_mod_p`: a `FieldElement` is any 32 bytes, so the encodings of
-  `x` and `x + p` are distinct and both accepted for values below `2^256 - p`: up to 5 encodings
-  per field element, unless the decoder rejects values `≥ p`, which the specification does not
-  require.
+* **`fe_canonical_mod_p`**: a decoded `FieldElement` is less than `p`, so two byte strings
+  decoding to the same element of `𝔽_p` are equal: every field element has a single encoding
+  (`fe_rejects` rejects `p`, which a 32-byte integer would otherwise accept).
 -/
 
 namespace Mantle.Encoding
@@ -33,8 +33,13 @@ open Codec
 
 /-! ## Terminals -/
 
-/-- `FieldElement`, `Hash32`, `Ed25519PublicKey`, `ZkPublicKey`, `G1Point`: 32 bytes. -/
-def fe : Codec ℕ := uint 32
+/-- The order `p` of the BN254 scalar field. -/
+abbrev P : ℕ := FIELD_ORDER
+
+/-- `FieldElement`, `ZkPublicKey`: 32 bytes, rejected unless less than `p`. -/
+def fe : Codec ℕ := filter (uint 32) (· < P)
+/-- `Hash32`, `Ed25519PublicKey`, `G1Point`: any 32 bytes. -/
+def h32 : Codec ℕ := uint 32
 /-- `Ed25519Signature`, `G2Point`: 64 bytes. -/
 def b64 : Codec ℕ := uint 64
 /-- `Groth16Proof`: 128 bytes. -/
@@ -130,27 +135,27 @@ def stepC : Codec Step where
 
 /-- `ChannelInscribe = ChannelId Inscription Parent Signer Steps`. -/
 def inscribeC : Codec Inscribe :=
-  via (pair fe (pair opData (pair fe (pair fe (list 2 65535 (by norm_num) stepC)))))
+  via (pair h32 (pair opData (pair h32 (pair h32 (list 2 65535 (by norm_num) stepC)))))
     (fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2.1, x.2.2.2.2⟩)
     (fun m => (m.channel, m.inscription, m.parent, m.signer, m.steps))
 
 /-- `ChannelConfig = ChannelId Parent KeyCount *Signer PostingTimeframe PostingTimeout
 ConfigThreshold`. -/
 def configC : Codec ChannelConfig :=
-  via (pair fe (pair fe (pair (list 2 65535 (by norm_num) fe) (pair u32 (pair u32 u16)))))
+  via (pair h32 (pair h32 (pair (list 2 65535 (by norm_num) h32) (pair u32 (pair u32 u16)))))
     (fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2.1, x.2.2.2.2.1, x.2.2.2.2.2⟩)
     (fun c => (c.channel, c.parent, c.keys, c.postingTimeframe, c.postingTimeout,
       c.configurationThreshold))
 
 /-- `ChannelDeposit = ChannelId Inputs CmMerkleRoot Outputs Value DepositMetadata`. -/
 def depositC : Codec ChannelDeposit :=
-  via (pair fe (pair fes (pair fe (pair fes (pair u64 opData)))))
+  via (pair h32 (pair fes (pair fe (pair fes (pair u64 opData)))))
     (fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2.1, x.2.2.2.2.1, x.2.2.2.2.2⟩)
     (fun d => (d.channel, d.inputs, d.cmMerkleRoot, d.outputs, d.excessValue, d.metadata))
 
 /-- `ChannelWithdraw = ChannelId Inputs CmMerkleRoot Outputs`. -/
 def withdrawC : Codec ChannelWithdraw :=
-  via (pair fe (pair fes (pair fe fes)))
+  via (pair h32 (pair fes (pair fe fes)))
     (fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2⟩)
     (fun w => (w.channel, w.inputs, w.cmMerkleRoot, w.outputs))
 
@@ -160,14 +165,14 @@ def locatorsC : Codec (List Bytes) :=
 
 /-- `SDPDeclare = ServiceType Locators ProviderId ZkId Inputs CmMerkleRoot Value`. -/
 def declareC : Codec DeclarationMessage :=
-  via (pair u8 (pair locatorsC (pair fe (pair fe (pair fes (pair fe u64))))))
+  via (pair u8 (pair locatorsC (pair h32 (pair fe (pair fes (pair fe u64))))))
     (fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2.1, x.2.2.2.2.1, x.2.2.2.2.2.1, x.2.2.2.2.2.2⟩)
     (fun d => (d.serviceType, d.locators, d.providerId, d.zkId, d.inputs, d.cmMerkleRoot,
       d.amount))
 
 /-- `SDPWithdraw = DeclarationId Nonce NoteNf Outputs Value`. -/
 def sdpWithdrawC : Codec WithdrawMessage :=
-  via (pair fe (pair u64 (pair fe (pair fes u64))))
+  via (pair h32 (pair u64 (pair fe (pair fes u64))))
     (fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2.1, x.2.2.2.2⟩)
     (fun w => (w.declaration, w.nonce, w.serviceNoteNf, w.outputs, w.excessValue))
 
@@ -177,20 +182,20 @@ def activityC : Codec Bytes := filter (bytes 229) fun b => b.head? = some 1
 
 /-- `SDPActive = DeclarationId Nonce ActivityMetadata`. -/
 def activeC : Codec Active :=
-  via (pair fe (pair u64 activityC))
+  via (pair h32 (pair u64 activityC))
     (fun x => ⟨x.1, x.2.1, x.2.2⟩)
     (fun a => (a.declaration, a.nonce, a.metadata))
 
 /-- `ClaimPowReward = EpochNonce BlockHash ZkPublicKey PowNonce`. -/
 def claimC : Codec ClaimPowReward :=
-  via (pair fe (pair fe (pair fe fe)))
+  via (pair fe (pair h32 (pair fe fe)))
     (fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2⟩)
     (fun c => (c.epochNonce, c.blockHash, c.publicKey, c.nonce))
 
 /-- `ProgramRegister = Groth16VerificationKey = Alpha Beta Gamma Delta IC`, with exactly four
 `IC` points: 352 bytes. -/
 def registerC : Codec ProgramRegister :=
-  via (pair fe (pair b64 (pair b64 (pair b64 (exactList 4 fe)))))
+  via (pair h32 (pair b64 (pair b64 (pair b64 (exactList 4 h32)))))
     (fun x => ⟨⟨x.1, x.2.1, x.2.2.1, x.2.2.2.1, x.2.2.2.2⟩⟩)
     (fun r => (r.key.alpha, r.key.beta, r.key.gamma, r.key.delta, r.key.ic))
 
@@ -389,32 +394,45 @@ theorem signedTx_wf_proofs {s : SignedMantleTx} (h : signedTxC.wf s) :
     | nil => exact absurd rfl hne
     | cons p ps => simp [ih ps h2]
 
-/-- The order of the scalar field of BN254. -/
-def P : ℕ := 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001
-
-/-- `mantle_txhash` as the proofs receive it: BLAKE2b-256 of `MANTLE_TXHASH_V1 ‖ encode(tx)`,
-read little-endian and reduced modulo `p` (Mantle, *Mantle Transaction*). -/
+/-- `mantle_txhash(tx)`: BLAKE2b-256 of `MANTLE_TXHASH_V1 ‖ encode(tx)`, read little-endian
+(Mantle, *Mantle Transaction*): the digest the Ed25519 signatures sign. -/
 def mantleTxHash (tx : MantleTx) : ℕ :=
-  ((Codec.readLE 32 (Blake2b.hash256 (Blake2b.ascii "MANTLE_TXHASH_V1" ++ mantleTxC.enc tx))).elim
-    0 Prod.fst) % P
+  (Codec.readLE 32 (Blake2b.hash256 (Blake2b.ascii "MANTLE_TXHASH_V1" ++ mantleTxC.enc tx))).elim
+    0 Prod.fst
 
-theorem mantleTxHash_lt (tx : MantleTx) : mantleTxHash tx < P :=
+/-- `mantle_txhash_fr`: the digest reduced modulo `p`, as the proofs receive it. -/
+def mantleTxHashFr (tx : MantleTx) : ℕ := toFr (mantleTxHash tx)
+
+theorem mantleTxHashFr_lt (tx : MantleTx) : mantleTxHashFr tx < P :=
   Nat.mod_lt _ (by decide)
 
 /-- Primitives whose `mantle_txhash` is the specification's. No theorem needs it: they hold for
 any `txHash`. -/
 def _root_.Mantle.Prims.SpecTxHash (Pr : Prims) : Prop := ∀ tx, Pr.txHash tx = mantleTxHash tx
 
-/-- **A `FieldElement` is not canonical modulo `p`**: `0` and `p` are both accepted, with
-distinct encodings, and every value below `2^256 - p` has the same issue; a field element has
-up to `⌊2^256 / p⌋ = 5` encodings. -/
-theorem fieldElement_not_canonical_mod_p :
-    fe.wf 0 ∧ fe.wf P ∧ fe.enc 0 ≠ fe.enc P ∧ 0 % P = P % P ∧ 2 ^ 256 / P = 5 := by
-  have h0 : fe.wf 0 := by show (0 : ℕ) < 256 ^ 32; norm_num
-  have hP : fe.wf P := by show P < 256 ^ 32; decide
-  refine ⟨h0, hP, ?_, by simp, by decide⟩
-  intro h
-  have := fe.enc_injective h0 hP h
-  exact absurd this (by decide)
+theorem fe_wf_iff (x : ℕ) : fe.wf x ↔ x < P := by
+  have : P < 256 ^ 32 := by decide
+  show x < 256 ^ 32 ∧ x < P ↔ x < P
+  omega
+
+/-- **A `FieldElement` has a single encoding**: two byte strings that decode to the same element
+of `𝔽_p` are equal (Mantle Transaction Encoding, choice 4). -/
+theorem fe_canonical_mod_p {b b' : Bytes} {x y : ℕ} (hb : fe.decodeAll b = some x)
+    (hb' : fe.decodeAll b' = some y) (h : x % P = y % P) : b = b' := by
+  obtain ⟨hx, rfl⟩ := fe.decodeAll_iff.1 hb
+  obtain ⟨hy, rfl⟩ := fe.decodeAll_iff.1 hb'
+  rw [Nat.mod_eq_of_lt ((fe_wf_iff x).1 hx), Nat.mod_eq_of_lt ((fe_wf_iff y).1 hy)] at h
+  rw [h]
+
+/-- The 32 bytes of `p`, which `uint 32` accepts, are rejected as a `FieldElement`. -/
+theorem fe_rejects : (uint 32).wf P ∧ fe.decodeAll ((uint 32).enc P) = none := by
+  have hP : (uint 32).wf P := by show P < 256 ^ 32; decide
+  refine ⟨hP, ?_⟩
+  cases h : fe.decodeAll ((uint 32).enc P) with
+  | none => rfl
+  | some x =>
+    obtain ⟨hx, he⟩ := fe.decodeAll_iff.1 h
+    have := (uint 32).enc_injective hP hx.1 he
+    exact absurd ((fe_wf_iff x).1 hx) (by omega)
 
 end Mantle.Encoding
