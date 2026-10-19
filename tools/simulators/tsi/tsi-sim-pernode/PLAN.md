@@ -204,7 +204,9 @@ Every gate must be shown to fail under a mutation of the code it guards before i
    blocks Phase 3 onward.
 2. What ρ does production expect (Blend budget, N, peering degree)? Up to ρ ≈ 0.56 the
    depth-2 ceiling is under 0.25 pp, well inside the ±0.9 % per-epoch noise.
-3. Should the simulator defaults move to the spec 1.2.5 rule (see §7)?
+3. ~~Should the simulator defaults move to the spec 1.2.5 rule?~~ Decided 2026-10-19: not on
+   this branch. Its configs set the spec rule explicitly. Moving the defaults is a separate
+   task, done together with re-pinning the report to 1.2.5 (§7).
 
 ## 7. Drift found outside this study
 
@@ -212,7 +214,8 @@ Not fixed on this branch.
 
 - **Simulator defaults** are the rule before Cryptarchia 1.2.0: uncle anchor, W = 10, order
   by uncle slot. `scripts/spec_point.py` and `scripts/spec_jitter.py` label the uncle anchor
-  "SPEC AS DEPLOYED". Spec 1.2.0–1.2.5 and the node use the parent anchor at W = 12.
+  "SPEC AS DEPLOYED". Spec 1.2.0–1.2.5 and the node use the parent anchor at W = 12. To move
+  together with the report re-pin below.
 - **The report, §6.12 and §8.5:** §8.5 is measured against rev 1.2.1, and lists the uncle
   anchor and W = 10 as the current spec. §6.12 calls the uncle anchor at W = 10 "today's
   recipe".
