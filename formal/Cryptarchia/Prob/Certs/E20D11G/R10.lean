@@ -28,21 +28,21 @@ def r10_8 : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => (0, s, F.repDataG 
 def r10_9 : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => (0, s, F.repDataG (Q.tab 0) γ nG 0 Rd s)) ((Q.tab 0).repList.getD 119 (0, 0))
 def r10_10 : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => (0, s, F.repDataG (Q.tab 0) γ nG 0 Rd s)) ((Q.tab 0).repList.getD 120 (0, 0))
 
-theorem c10_0 : F.repChkAG (Q.tab r10_0.1) γ nG r10_0.1 Rd r10_0.2.1 r10_0.2.2 = true := by decide +kernel
-theorem c10_1 : F.repChkAG (Q.tab r10_1.1) γ nG r10_1.1 Rd r10_1.2.1 r10_1.2.2 = true := by decide +kernel
-theorem c10_2 : F.repChkAG (Q.tab r10_2.1) γ nG r10_2.1 Rd r10_2.2.1 r10_2.2.2 = true := by decide +kernel
-theorem c10_3 : F.repChkAG (Q.tab r10_3.1) γ nG r10_3.1 Rd r10_3.2.1 r10_3.2.2 = true := by decide +kernel
-theorem c10_4 : F.repChkAG (Q.tab r10_4.1) γ nG r10_4.1 Rd r10_4.2.1 r10_4.2.2 = true := by decide +kernel
-theorem c10_5 : F.repChkAG (Q.tab r10_5.1) γ nG r10_5.1 Rd r10_5.2.1 r10_5.2.2 = true := by decide +kernel
-theorem c10_6 : F.repChkAG (Q.tab r10_6.1) γ nG r10_6.1 Rd r10_6.2.1 r10_6.2.2 = true := by decide +kernel
-theorem c10_7 : F.repChkAG (Q.tab r10_7.1) γ nG r10_7.1 Rd r10_7.2.1 r10_7.2.2 = true := by decide +kernel
-theorem c10_8 : F.repChkAG (Q.tab r10_8.1) γ nG r10_8.1 Rd r10_8.2.1 r10_8.2.2 = true := by decide +kernel
-theorem c10_9 : F.repChkAG (Q.tab r10_9.1) γ nG r10_9.1 Rd r10_9.2.1 r10_9.2.2 = true := by decide +kernel
-theorem c10_10 : F.repChkAG (Q.tab r10_10.1) γ nG r10_10.1 Rd r10_10.2.1 r10_10.2.2 = true := by decide +kernel
+theorem c10_0 : F.repChkAG (Q.tab r10_0.1) γ nG r10_0.1 Rd cst r10_0.2.1 r10_0.2.2 = true := by decide +kernel
+theorem c10_1 : F.repChkAG (Q.tab r10_1.1) γ nG r10_1.1 Rd cst r10_1.2.1 r10_1.2.2 = true := by decide +kernel
+theorem c10_2 : F.repChkAG (Q.tab r10_2.1) γ nG r10_2.1 Rd cst r10_2.2.1 r10_2.2.2 = true := by decide +kernel
+theorem c10_3 : F.repChkAG (Q.tab r10_3.1) γ nG r10_3.1 Rd cst r10_3.2.1 r10_3.2.2 = true := by decide +kernel
+theorem c10_4 : F.repChkAG (Q.tab r10_4.1) γ nG r10_4.1 Rd cst r10_4.2.1 r10_4.2.2 = true := by decide +kernel
+theorem c10_5 : F.repChkAG (Q.tab r10_5.1) γ nG r10_5.1 Rd cst r10_5.2.1 r10_5.2.2 = true := by decide +kernel
+theorem c10_6 : F.repChkAG (Q.tab r10_6.1) γ nG r10_6.1 Rd cst r10_6.2.1 r10_6.2.2 = true := by decide +kernel
+theorem c10_7 : F.repChkAG (Q.tab r10_7.1) γ nG r10_7.1 Rd cst r10_7.2.1 r10_7.2.2 = true := by decide +kernel
+theorem c10_8 : F.repChkAG (Q.tab r10_8.1) γ nG r10_8.1 Rd cst r10_8.2.1 r10_8.2.2 = true := by decide +kernel
+theorem c10_9 : F.repChkAG (Q.tab r10_9.1) γ nG r10_9.1 Rd cst r10_9.2.1 r10_9.2.2 = true := by decide +kernel
+theorem c10_10 : F.repChkAG (Q.tab r10_10.1) γ nG r10_10.1 Rd cst r10_10.2.1 r10_10.2.2 = true := by decide +kernel
 
 def D10 : List (ℕ × (ℤ × ℤ) × RepData) := [r10_0, r10_1, r10_2, r10_3, r10_4, r10_5, r10_6, r10_7, r10_8, r10_9, r10_10]
 
-theorem chkA10 : D10.all (fun p => F.repChkAG (Q.tab p.1) γ nG p.1 Rd p.2.1 p.2.2) = true := by
+theorem chkA10 : D10.all (fun p => F.repChkAG (Q.tab p.1) γ nG p.1 Rd cst p.2.1 p.2.2) = true := by
   simp only [D10, List.all_cons, List.all_nil, c10_0, c10_1, c10_2, c10_3, c10_4, c10_5, c10_6, c10_7, c10_8, c10_9, c10_10, Bool.and_self]
 
 end Cryptarchia.Prob.Certs.E20D11G

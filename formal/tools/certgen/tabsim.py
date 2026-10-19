@@ -14,7 +14,8 @@ The per-entry data are cached on disk (`CACHE`), keyed by the table and the entr
 parallel.
 
 Usage: python3 tabsim.py BETA DELTA K N DEPTH VJ.npy NG R M CW ZC X C Z TAU GAMMA_BIG KSTART RDLY [MODE]
-with MODE `own` (each member's own delayed chain), `grp` (the group's, as `chkDlyG`, the default).
+with MODE `own` (each member's own delayed chain) or `grp` (the group's): explicit chains, kept for comparison with
+the envelope (`rep_w`), which the certificate uses.
 """
 import sys, os, pickle, hashlib
 from fractions import Fraction as Fr
@@ -85,7 +86,7 @@ def reps(R, M):
 # ---- a representative's data
 
 def step_tab(Bs, D, Dl, X, v):
-    """`stepTabGZ`: one step, the largest over `Bs` and at least 0, rounded up"""
+    """one step of the delayed chain, the largest over `Bs` and at least 0, rounded up"""
     m = MZ(X, D)
     w = lambda q, a, u: v[(q, a, u)]
     return {(q, a, u): max([0] + [cdiv(stepz(B, D, Dl, X, SZ, w, q, a, u), m) for B in Bs])
@@ -192,9 +193,12 @@ def rep_w(args):
     X = ph_of(x, gam, gl)
     lo = g_floor(X, SZ)
     floor = [lo(0, a, True) for a in range(3)]
-    post = seeds_chain(D, Dl, X, SZ, lo, H, PAD, 3, 2, 200, famZ, floor)
-    posts = {k: fill([famZ[k]], D, Dl, X, SZ, lo, post[k]) for k in range(len(famZ))}
-    eIn = [rup(bound_q(famZ[k], D, X, posts[k]), 13) for k in range(len(famZ))]
+    # the group's members' own post-switch tables, each from the seeds of the one before
+    posts, t = {}, floor
+    for i, k in enumerate(grp_members):
+        t = solve_seeds([famZ[k]], D, Dl, X, SZ, lo, H, PAD, 3 if i == 0 else 2, 200, t)
+        posts[k] = fill([famZ[k]], D, Dl, X, SZ, lo, t)
+    eIn = [rup(bound_q(famZ[k], D, X, posts[k]), 13) if k in posts else Fr(0) for k in range(len(famZ))]
     BW = worst_z(famZ)
     w = solve_seeds([BW], D, Dl, X, SZ, lo, H, PAD, 3, 200, floor)
     W = fill([BW], D, Dl, X, SZ, lo, w)
@@ -203,6 +207,41 @@ def rep_w(args):
     PW = fill([BW], D, Dl, X, SZ, Wlo, pw)
     eE = rup(max([Fr(0)] + [bound_q(famZ[k], D, X, PW) for k in grp_members]), 13)
     env = {k: envelope(famZ[k], D, Dl, X, posts[k], W, mu, n) for k in grp_members}
+    return dict(eIn=eIn, eE=eE, env=env)
+
+
+def rep_g(args):
+    """the group-worst variant: one post-switch table `P_g` and one envelope `Z_g` for the whole group, from the
+    group's worst band; each member's bounds with its own band over them"""
+    tab, s, x, gam, famZ, D, Dl, grp_members, mu, n = args
+    gl = g_list(tab, s, x)
+    X = ph_of(x, gam, gl)
+    lo = g_floor(X, SZ)
+    floor = [lo(0, a, True) for a in range(3)]
+    BW = worst_z(famZ)
+    w = solve_seeds([BW], D, Dl, X, SZ, lo, H, PAD, 3, 200, floor)
+    W = fill([BW], D, Dl, X, SZ, lo, w)
+    Wlo = lambda q, a, u: W[(q, a, u)]
+    pw = solve_seeds([BW], D, Dl, X, SZ, Wlo, H, PAD, 0, 200, [W[(0, a, True)] for a in range(3)])
+    PW = fill([BW], D, Dl, X, SZ, Wlo, pw)
+    Bg = worst_z([famZ[k] for k in grp_members])
+    pg = solve_seeds([Bg], D, Dl, X, SZ, lo, H, PAD, 3, 200, floor)
+    Pg = fill([Bg], D, Dl, X, SZ, lo, pg)
+    eIn = [rup(bound_q(famZ[k], D, X, Pg), 13) if k in grp_members else Fr(0) for k in range(len(famZ))]
+    eE = rup(max([Fr(0)] + [bound_q(famZ[k], D, X, PW) for k in grp_members]), 13)
+    lam, _ = envelope(Bg, D, Dl, X, Pg, W, mu, n)
+    # the envelope's table, to bound each member's phase without the terminal table
+    m = MZ(X, D); T = 2 ** 32
+    Lg = lambda Y: {kk: max(0, cdiv(v, m)) for kk, v in lin_step(Bg, D, Dl, X, Y).items()}
+    Y = {kk: (max(0, W[kk] - Pg[kk]) + 1) * T for kk in Pg}
+    ys = [Y]
+    for _ in range(n): ys.append(Lg(ys[-1]))
+    acc = {kk: 0 for kk in Pg}
+    for Yi in reversed(ys[:n]):
+        acc = {kk: Yi[kk] + cdiv(acc[kk] * Fr(mu).denominator, Fr(mu).numerator) for kk in Pg}
+    Z = {kk: cdiv(acc[kk], T) for kk in Pg}
+    X0 = dict(X); X0['gn'] = {kk: 0 for kk in X['gn']}
+    env = {k: (lam, rup(Fr(boundz(famZ[k], D, X0, SZ, lambda q, a, u: Z[(q, a, u)]), m * SZ), 13)) for k in grp_members}
     return dict(eIn=eIn, eE=eE, env=env)
 
 
@@ -298,6 +337,19 @@ class Cert:
         jobs = [(self.tabs[g], s, self.x, self.gam, self.famZ, self.D, self.Dl, self.members(g), mu, n) for g, s in keys]
         with Pool(procs) as p:
             res = p.map(rep_w, jobs, chunksize=4)
+        out = dict(zip(keys, res))
+        pickle.dump(out, open(path, 'wb'))
+        return out
+
+    def gdata(self, mu=Fr(9, 10), n=40, procs=11):
+        os.makedirs(CACHE, exist_ok=True)
+        path = os.path.join(CACHE, f"{self.key}_g_{mu.numerator}_{mu.denominator}_{n}.pkl")
+        if os.path.exists(path):
+            return pickle.load(open(path, 'rb'))
+        keys = [(g, s) for g in range(self.ng) for s in self.reps]
+        jobs = [(self.tabs[g], s, self.x, self.gam, self.famZ, self.D, self.Dl, self.members(g), mu, n) for g, s in keys]
+        with Pool(procs) as p:
+            res = p.map(rep_g, jobs, chunksize=4)
         out = dict(zip(keys, res))
         pickle.dump(out, open(path, 'wb'))
         return out

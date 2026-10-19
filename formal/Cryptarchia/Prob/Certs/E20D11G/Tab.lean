@@ -95,4 +95,8 @@ def nG : ℕ := 4
 /-- The delayed tables' steps: the contraction `lp` is paid within `Rd` slots of a boundary. -/
 def Rd : ℕ := 60
 
+/-- The checks' constants, as literals (`FamCfg.cstOf`): the delay, the bands' denominator, the tables' scale and
+the bands over `ℕ`. The main file checks them against the family (`FamCfg.cstOK`). -/
+def cst : ChkCst := eval% F.cstOf
+
 end Cryptarchia.Prob.Certs.E20D11G

@@ -28,21 +28,21 @@ def r75_8 : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => (3, s, F.repDataG 
 def r75_9 : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => (3, s, F.repDataG (Q.tab 3) γ nG 3 Rd s)) ((Q.tab 3).repList.getD 42 (0, 0))
 def r75_10 : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => (3, s, F.repDataG (Q.tab 3) γ nG 3 Rd s)) ((Q.tab 3).repList.getD 43 (0, 0))
 
-theorem c75_0 : F.repChkAG (Q.tab r75_0.1) γ nG r75_0.1 Rd r75_0.2.1 r75_0.2.2 = true := by decide +kernel
-theorem c75_1 : F.repChkAG (Q.tab r75_1.1) γ nG r75_1.1 Rd r75_1.2.1 r75_1.2.2 = true := by decide +kernel
-theorem c75_2 : F.repChkAG (Q.tab r75_2.1) γ nG r75_2.1 Rd r75_2.2.1 r75_2.2.2 = true := by decide +kernel
-theorem c75_3 : F.repChkAG (Q.tab r75_3.1) γ nG r75_3.1 Rd r75_3.2.1 r75_3.2.2 = true := by decide +kernel
-theorem c75_4 : F.repChkAG (Q.tab r75_4.1) γ nG r75_4.1 Rd r75_4.2.1 r75_4.2.2 = true := by decide +kernel
-theorem c75_5 : F.repChkAG (Q.tab r75_5.1) γ nG r75_5.1 Rd r75_5.2.1 r75_5.2.2 = true := by decide +kernel
-theorem c75_6 : F.repChkAG (Q.tab r75_6.1) γ nG r75_6.1 Rd r75_6.2.1 r75_6.2.2 = true := by decide +kernel
-theorem c75_7 : F.repChkAG (Q.tab r75_7.1) γ nG r75_7.1 Rd r75_7.2.1 r75_7.2.2 = true := by decide +kernel
-theorem c75_8 : F.repChkAG (Q.tab r75_8.1) γ nG r75_8.1 Rd r75_8.2.1 r75_8.2.2 = true := by decide +kernel
-theorem c75_9 : F.repChkAG (Q.tab r75_9.1) γ nG r75_9.1 Rd r75_9.2.1 r75_9.2.2 = true := by decide +kernel
-theorem c75_10 : F.repChkAG (Q.tab r75_10.1) γ nG r75_10.1 Rd r75_10.2.1 r75_10.2.2 = true := by decide +kernel
+theorem c75_0 : F.repChkAG (Q.tab r75_0.1) γ nG r75_0.1 Rd cst r75_0.2.1 r75_0.2.2 = true := by decide +kernel
+theorem c75_1 : F.repChkAG (Q.tab r75_1.1) γ nG r75_1.1 Rd cst r75_1.2.1 r75_1.2.2 = true := by decide +kernel
+theorem c75_2 : F.repChkAG (Q.tab r75_2.1) γ nG r75_2.1 Rd cst r75_2.2.1 r75_2.2.2 = true := by decide +kernel
+theorem c75_3 : F.repChkAG (Q.tab r75_3.1) γ nG r75_3.1 Rd cst r75_3.2.1 r75_3.2.2 = true := by decide +kernel
+theorem c75_4 : F.repChkAG (Q.tab r75_4.1) γ nG r75_4.1 Rd cst r75_4.2.1 r75_4.2.2 = true := by decide +kernel
+theorem c75_5 : F.repChkAG (Q.tab r75_5.1) γ nG r75_5.1 Rd cst r75_5.2.1 r75_5.2.2 = true := by decide +kernel
+theorem c75_6 : F.repChkAG (Q.tab r75_6.1) γ nG r75_6.1 Rd cst r75_6.2.1 r75_6.2.2 = true := by decide +kernel
+theorem c75_7 : F.repChkAG (Q.tab r75_7.1) γ nG r75_7.1 Rd cst r75_7.2.1 r75_7.2.2 = true := by decide +kernel
+theorem c75_8 : F.repChkAG (Q.tab r75_8.1) γ nG r75_8.1 Rd cst r75_8.2.1 r75_8.2.2 = true := by decide +kernel
+theorem c75_9 : F.repChkAG (Q.tab r75_9.1) γ nG r75_9.1 Rd cst r75_9.2.1 r75_9.2.2 = true := by decide +kernel
+theorem c75_10 : F.repChkAG (Q.tab r75_10.1) γ nG r75_10.1 Rd cst r75_10.2.1 r75_10.2.2 = true := by decide +kernel
 
 def D75 : List (ℕ × (ℤ × ℤ) × RepData) := [r75_0, r75_1, r75_2, r75_3, r75_4, r75_5, r75_6, r75_7, r75_8, r75_9, r75_10]
 
-theorem chkA75 : D75.all (fun p => F.repChkAG (Q.tab p.1) γ nG p.1 Rd p.2.1 p.2.2) = true := by
+theorem chkA75 : D75.all (fun p => F.repChkAG (Q.tab p.1) γ nG p.1 Rd cst p.2.1 p.2.2) = true := by
   simp only [D75, List.all_cons, List.all_nil, c75_0, c75_1, c75_2, c75_3, c75_4, c75_5, c75_6, c75_7, c75_8, c75_9, c75_10, Bool.and_self]
 
 end Cryptarchia.Prob.Certs.E20D11G

@@ -209,8 +209,9 @@ The certificate is the data below; Lean computes the rest and the kernel checks 
 - the switching tables of the reach, the checked phase and spans (`Sw.lean`);
 - the tables (`Tab.lean`), and each (group, representative)'s terminal table and one-switch tables
   (`R<j>.lean`);
-- the derived numbers `der` (`SpecData.deriveLE`): the tables' contractions by rule (`tabLpG`,
-  `tabLpiG`), the settlement parameters by rule, and the bounds;
+- the derived numbers `der`: the tables' contractions, the settlement parameters and the bounds, computed by
+  the generator's mirror of the rules (`tools/certgen/tabsim.py`, `SpecData.deriveLE`); the kernel checks every
+  condition on them, so they need not follow the rules;
 - the checks of the reach potential (`c2OK`), the tables (`tabOK`) and every numeric condition (`finOK`).
 -/
 
@@ -236,25 +237,26 @@ theorem swOK : ∀ i : Fin 19, FamCfg.isSw i = true → F.idxChkSw i (dat i) = t
 index to evaluate `![…]`). -/
 def D (j : Fin 96) : List (ℕ × (ℤ × ℤ) × RepData) := [D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, D11, D12, D13, D14, D15, D16, D17, D18, D19, D20, D21, D22, D23, D24, D25, D26, D27, D28, D29, D30, D31, D32, D33, D34, D35, D36, D37, D38, D39, D40, D41, D42, D43, D44, D45, D46, D47, D48, D49, D50, D51, D52, D53, D54, D55, D56, D57, D58, D59, D60, D61, D62, D63, D64, D65, D66, D67, D68, D69, D70, D71, D72, D73, D74, D75, D76, D77, D78, D79, D80, D81, D82, D83, D84, D85, D86, D87, D88, D89, D90, D91, D92, D93, D94, D95].getD j.val []
 
-theorem tabA : F.tabChkAG Q γ nG Rd D := by
+theorem tabA : F.tabChkAG Q γ nG Rd cst D := by
   intro j; fin_cases j
   exacts [chkA0, chkA1, chkA2, chkA3, chkA4, chkA5, chkA6, chkA7, chkA8, chkA9, chkA10, chkA11, chkA12, chkA13, chkA14, chkA15, chkA16, chkA17, chkA18, chkA19, chkA20, chkA21, chkA22, chkA23, chkA24, chkA25, chkA26, chkA27, chkA28, chkA29, chkA30, chkA31, chkA32, chkA33, chkA34, chkA35, chkA36, chkA37, chkA38, chkA39, chkA40, chkA41, chkA42, chkA43, chkA44, chkA45, chkA46, chkA47, chkA48, chkA49, chkA50, chkA51, chkA52, chkA53, chkA54, chkA55, chkA56, chkA57, chkA58, chkA59, chkA60, chkA61, chkA62, chkA63, chkA64, chkA65, chkA66, chkA67, chkA68, chkA69, chkA70, chkA71, chkA72, chkA73, chkA74, chkA75, chkA76, chkA77, chkA78, chkA79, chkA80, chkA81, chkA82, chkA83, chkA84, chkA85, chkA86, chkA87, chkA88, chkA89, chkA90, chkA91, chkA92, chkA93, chkA94, chkA95]
 
-/-- The derived numbers (`SpecData.deriveLE`), with the tables' contractions by rule and the checked
-phase's bound times `eUp`, above the potential's start factor. -/
+/-- The derived numbers: the settlement parameters `Lw J x G G' r T yy`, the slots and epochs covered
+`M Ne`, the contractions `lp lpi`, and the bounds `tgt bx fin`. -/
 def der : SpecDerived :=
-  eval% par.deriveLE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) (fun _ => Rd) Tq (FamCfg.tabLpG Q D) (F.tabLpiG Q nG D)
+  ⟨15044, 7930, (12933 / 10000 : ℚ), 363, 1289, 106, 34, (703 / 1250 : ℚ), 5185665, 18,
+    (501935563 / 500000000 : ℚ), (1246046537 / 1250000000 : ℚ), (13 / 500000 : ℚ), (6603 / 10000000000 : ℚ), (19 / 500000 : ℚ)⟩
 
-theorem derNe : der.Ne = 18 := by decide +kernel
+theorem derNe : der.Ne = 18 := rfl
 
-theorem derFin : der.fin = (19 / 500000 : ℚ) := by decide +kernel
+theorem derFin : der.fin = (19 / 500000 : ℚ) := rfl
 
-/-- Derived by Lean (`der`): { Lw := 15044, J := 7930, x := 12933 / 10000, G := 363, G' := 1289, r := 106, T := 34, yy := 703 / 1250, M := 5185665, Ne := 18, lp := 200774225067 / 200000000000, lpi := 4984186147813 / 5000000000000, tgt := 13 / 500000, bx := 6603 / 10000000000, fin := 19 / 500000 } -/
 theorem c2OK : cert2ChkQ F.S.weakest F.Δ F.c F.z F.s 0 F.d F.τ 0 (FamCfg.lrOf dat) (FamCfg.bOf dat) (FamCfg.eOf dat) =
     true := by
   decide +kernel
 
-theorem tabOK : F.tabChkG Q nG γ Γ (Config.specK par.k).epochLength der.G Rd der.lp der.lpi D = true := by decide +kernel
+theorem tabOK : F.tabChkG Q nG γ Γ (Config.specK par.k).epochLength der.G Rd cst der.lp der.lpi D = true := by
+  decide +kernel
 
 theorem stOK : startChk ((Config.specK par.k).epochLength - 1) 10 γ sU = true := by decide +kernel
 

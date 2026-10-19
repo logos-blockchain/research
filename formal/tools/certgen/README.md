@@ -62,17 +62,20 @@ epoch's age, which covers `Γ` when an epoch ends and costs a start factor `γ^(
 (`startChk`). This is the two-month certificate (`E20D11G`, 3.8e-5): four groups at δ = 0.085, where the band
 term is 18 × 6.6e-7, with in-epoch contraction 0.996837.
 
-Each (group, representative) is checked from seeds (`repChkAG`, about 5 s and 2 GB in the kernel):
+Each (group, representative) is checked in about 1.4 s and 1.7 GB in the kernel (`repChkAG`), its tables given by rows
+over `ℕ` and computed once at elaboration time:
 
-- the one-switch tables come from the family's worst band (`chkOneW`): one post-switch table `W`, which bounds
+- the one-switch tables come from the family's worst band (`chkOneWN`): one post-switch table `W`, which bounds
   every member's because `slot4` is monotone in the band, and one pre-switch table above it. Each of the
   group's members also has its own post-switch table, for its in-epoch bound;
 - a phase starting more than `RDLY` slots before a boundary is bounded by the member's geometric envelope
-  `P + λ^r Z` (`chkEnvW`, `phase_autoEnv`): `P` its own post-switch table, `Z ≥ W − P` with one step of the
+  `P + λ^r Z` (`chkEnvN`, `phase_autoEnv`): `P` its own post-switch table, `Z ≥ W − P` with one step of the
   recursion's linear part at most `λ Z`, which suffices since the step is subadditive. So the one-switch
   contraction (1.0039) is paid only for the `RDLY = 60` slots before a boundary (`Ccap`).
 
-The 96 chunks build eight at a time in about 27 min.
+The checks run over `ℕ` (`stepN`, `chkOneWN`, `chkEnvN`), whose arithmetic the kernel does by GMP, with the
+constants as literals (`ChkCst`); `der` is written by the generator from `tabsim.py`. The 96 chunks build eight
+at a time in about 11 min, the main file in about 1.5 min.
 
 ```sh
 python3 emitTG.py 1/5 85/1000 32 5184000 1000 VJ.npy 4 10 20 27/20 13/10 13/5 27/20 2 41/40 219/200 10 60 E20D11G ../../Cryptarchia/Prob/Certs emit

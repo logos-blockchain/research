@@ -75,10 +75,11 @@ failed-check potential): the switching tables for the reach, the checked phase a
 table certificate; the checked phase's bound is scaled by the potential's start factor `γ ^ (EL - 1)`. -/
 theorem finality_famTG {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} {lpd lp lpi : ℚ} {Q : TabQG} {nG m G R : ℕ}
+    {c : ChkCst}
     {γ Γ : ℚ} {D : Fin m → List (ℕ × (ℤ × ℤ) × RepData)}
     (hP : cert2ChkQ Bq F.Δ F.c F.z F.s 0 F.d F.τ lpd (lrOf dat) (bOf dat) (eOf dat) = true) (hS : F.S.chk F.famZ F.D = true)
     (hD : 0 < F.D) (hBq : Bq = F.S.weakest) (hsw : ∀ i : Fin 19, isSw i = true → F.idxChkSw i (dat i) = true)
-    (htab : F.tabChkG Q nG γ Γ E.c.epochLength G R lp lpi D = true) (htabA : F.tabChkAG Q γ nG R D)
+    (htab : F.tabChkG Q nG γ Γ E.c.epochLength G R c lp lpi D = true) (htabA : F.tabChkAG Q γ nG R c D)
     (hRG : R ≤ G) {n : ℕ} (hK : F.S.K = n + 1) (T : TBandQ) (hT : famChkQ F T = true) (es : Ω → List Event) (hMod : Model μ O E es) {N : ℕ}
     (hN : ∀ ω, (wF (E.withO (O ω)) (es ω)).now ≤ N) (hΔ : E.Δ = F.Δ) (hG1 : F.Δ + 1 ≤ G)
     (hGEL : G + 1 < E.c.epochLength) {M G' J Lw r Tg : ℕ} {x yy : ℚ} (hx : 1 ≤ x) (hyy0 : 0 < yy) (hyy1 : yy ≤ 1)
@@ -134,10 +135,11 @@ the family's, the grouped table certificate's and the numeric conditions (`finCh
 phase's bound scaled by `sU`, above the start factor, `startChk`) give the finality bound `fin`. -/
 theorem finality_specTG {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ] {O : Ω → Oracle}
     {E : Env} (F : FamCfg) {Bq : BandR} {dat : Fin 19 → IdxData} (p : SpecData) (q : SpecDerived) {lpd : ℚ}
-    {Q : TabQG} {nG m R : ℕ} {γ Γ : ℚ} {D : Fin m → List (ℕ × (ℤ × ℤ) × RepData)}
+    {Q : TabQG} {nG m R : ℕ} {c : ChkCst} {γ Γ : ℚ} {D : Fin m → List (ℕ × (ℤ × ℤ) × RepData)}
     (hC2 : cert2ChkQ Bq F.Δ F.c F.z F.s 0 F.d F.τ lpd (lrOf dat) (bOf dat) (eOf dat) = true) (hS : F.S.chk F.famZ F.D = true)
     (hD : 0 < F.D) (hBq : Bq = F.S.weakest) (hsw : ∀ i : Fin 19, isSw i = true → F.idxChkSw i (dat i) = true)
-    (htab : F.tabChkG Q nG γ Γ (Config.specK p.k).epochLength q.G R q.lp q.lpi D = true) (htabA : F.tabChkAG Q γ nG R D)
+    (htab : F.tabChkG Q nG γ Γ (Config.specK p.k).epochLength q.G R c q.lp q.lpi D = true)
+    (htabA : F.tabChkAG Q γ nG R c D)
     {n : ℕ} (hK : F.S.K = n + 1) {k : ℕ} {sU : ℚ} (hst : startChk ((Config.specK p.k).epochLength - 1) k γ sU = true)
     (T : TBandQ) (hfin : finChkSpecE F Bq dat (eOf dat 2 * sU) (fun _ => R) T p q = true)
     (hc : E.c = Config.specK p.k) (hΔ : E.Δ = F.Δ) (es : Ω → List Event) (hMod : Model μ O E es)
@@ -212,18 +214,20 @@ namespace FamCfg
 
 variable (F : FamCfg)
 
+/-- Rows over `ℤ` as rows over `ℕ`. -/
+def rowsToN (rows : List (List ℤ)) : List (List ℕ) := rows.map (·.map Int.toNat)
+
 /-- The envelope's rule: `Z` sums the iterates over `envMu`, `envN` of them (`envZ`). -/
 def envMu : ℚ := 9 / 10
 def envN : ℕ := 40
 
 /-- Each of group `grp`'s members' envelope (`envZ`, from its post-switch table and `W`, listed by `(q, a, u)`);
 `([], 1, 0)` for the other members. -/
-def envListX (X : PhZ) (post : List (List ℤ)) (W : List ℤ) (n grp : ℕ) : List (List (List ℤ) × ℚ × ℚ) :=
-  let vm := rowsZ (tabZ W) 0 F.Δ
+def envListX (X : PhZ) (prow : List (List (List ℤ))) (vm : List (List ℤ)) (n grp : ℕ) :
+    List (List (List ℕ) × ℚ × ℚ) :=
   (List.finRange F.S.K).map fun k => if F.grpOf n k == grp then
-      envZ (F.famZ k) F.D F.Δ X SZ
-        (rowsZ (tabZ (fillRowsZ [F.famZ k] F.D F.Δ X SZ (gFloorZ X SZ) (seedL (post.getD k.val [])) 0 F.Δ)) 0 F.Δ)
-        vm envMu envN
+      let e := envZ (F.famZ k) F.D F.Δ X SZ (prow.getD k.val []) vm envMu envN
+      (rowsToN e.1, e.2)
     else ([], 1, 0)
 
 /-- **A (group, representative)'s data**, computed: the group's table's terminal table; the members'
@@ -232,19 +236,30 @@ group's members' largest pre-switch bound; and its members' envelopes and delaye
 def repDataG (Q : TabQ) (γ : ℚ) (n grp R : ℕ) (s : ℤ × ℤ) : RepData :=
   let g := Q.gList s
   let X := PhZ.ofQ (Q.x, γ, fun a b _ => g.getD (2 * a.val + if b then 1 else 0) 0)
-  let post := F.postSeedsX X
-  let eIn := F.eInListX X post
+  let lo := gFloorZ X SZ
   let BW := worstZ F.famL
-  let w := solveSeedsZ [BW] F.D F.Δ X SZ (gFloorZ X SZ) (2 ^ 32) (2 ^ 8) 3 200 (floorX X)
-  let W := fillRowsZ [BW] F.D F.Δ X SZ (gFloorZ X SZ) (seedL w) 0 F.Δ
+  let w := solveSeedsZ [BW] F.D F.Δ X SZ lo (2 ^ 32) (2 ^ 8) 3 200 (floorX X)
+  let W := fillRowsZ [BW] F.D F.Δ X SZ lo (seedL w) 0 F.Δ
   let pw := solveSeedsZ [BW] F.D F.Δ X SZ (tabZ W) (2 ^ 32) (2 ^ 8) 0 200 [W.getD 1 0, W.getD 3 0, W.getD 5 0]
   let PW := fillRowsZ [BW] F.D F.Δ X SZ (tabZ W) (seedL pw) 0 F.Δ
-  let eE := rupQ 13 ((F.grpMem n grp).foldl (fun m k =>
-    max m ((autoBoundZ (F.famZ k) F.D X SZ (tabZ PW) : ℚ) / (X.M F.D * SZ : ℤ))) 0)
-  let env := F.envListX X post W n grp
-  ⟨g, post, [], eIn, eE,
+  -- the group's members' own post-switch tables, each from the seeds of the one before
+  let ks := F.grpMem n grp
+  let seeds := (ks.foldl (fun (acc : List (List ℤ) × List ℤ) k =>
+    let t := solveSeedsZ [F.famZ k] F.D F.Δ X SZ lo (2 ^ 32) (2 ^ 8) (if acc.1 = [] then 3 else 2) 200 acc.2
+    (acc.1 ++ [t], t)) ([], floorX X)).1
+  let posts := (List.finRange F.S.K).map fun k => match ks.idxOf? k with
+    | some i => rowsZ (tabZ (fillRowsZ [F.famZ k] F.D F.Δ X SZ lo (seedL (seeds.getD i [])) 0 F.Δ)) 0 F.Δ
+    | none => []
+  let m := (X.M F.D * SZ : ℤ)
+  let eIn := (List.finRange F.S.K).map fun k => match ks.idxOf? k with
+    | some _ => rupQ 13 ((autoBoundZ (F.famZ k) F.D X SZ (tabRZ (posts.getD k.val [])) : ℚ) / m)
+    | none => 0
+  let eE := rupQ 13 (ks.foldl (fun e k => max e ((autoBoundZ (F.famZ k) F.D X SZ (tabZ PW) : ℚ) / m)) 0)
+  let env := F.envListX X posts (rowsZ (tabZ W) 0 F.Δ) n grp
+  ⟨g, [], [], eIn, eE,
     (List.range F.S.K).map (fun k => let e := env.getD k ([], 1, 0)
-      if e.1 = [] then 0 else rupQ 13 (eIn.getD k 0 + e.2.1 ^ R * e.2.2)), env, w, pw⟩
+      if e.1 = [] then 0 else rupQ 13 (eIn.getD k 0 + e.2.1 ^ R * e.2.2)), env,
+    rowsToN (rowsZ (tabZ W) 0 F.Δ), rowsToN (rowsZ (tabZ PW) 0 F.Δ), posts.map rowsToN⟩
 
 /-- All the chunks' entries. -/
 def allRepsG {m : ℕ} (D : Fin m → List (ℕ × (ℤ × ℤ) × RepData)) : List (ℕ × (ℤ × ℤ) × RepData) :=

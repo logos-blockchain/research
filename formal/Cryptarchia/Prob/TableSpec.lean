@@ -231,7 +231,7 @@ def repData (Q : TabQ) (s : ℤ × ℤ) : RepData :=
   let X := PhZ.ofQ (Q.x, 1, fun a b _ => g.getD (2 * a.val + if b then 1 else 0) 0)
   let post := F.postSeedsX X
   let pre := F.preSeedsX X post
-  ⟨g, post, pre, F.eInListX X post, F.eEOfX X post pre, [], [], [], []⟩
+  ⟨g, post, pre, F.eInListX X post, F.eEOfX X post pre, [], [], [], [], []⟩
 
 /-- All the chunks' representatives with their data. -/
 def allReps {n : ℕ} (D : Fin n → List ((ℤ × ℤ) × RepData)) : List ((ℤ × ℤ) × RepData) := (List.finRange n).flatMap D

@@ -5,9 +5,9 @@ linear programming with their values within a factor `Γ` of each other (`Witnes
 `tools/cbound/witness.py`). The potential grows by `γ = 1 + 1/(k (EL - 1))` per slot of the epoch's age,
 which covers the ratio between groups' tables when an epoch ends (`Γ ≤ 1 + (EL - 2G)(γ - 1)`, about
 `1 + 1/k`) and costs a start factor below `e^(1/k) ≤ sU` (`startChk`). The one-switch tables come from the
-family's worst band (`chkOneW`: one post-switch table `W` and one pre-switch table for every member, with
+family's worst band (`chkOneWN`: one post-switch table `W` and one pre-switch table for every member, with
 each of the group's members' own post-switch table for its in-epoch bound). A phase starting more than
-`RDLY` slots before a boundary is bounded by its member's geometric envelope `P + λ^r Z` (`chkEnvW`,
+`RDLY` slots before a boundary is bounded by its member's geometric envelope `P + λ^r Z` (`chkEnvN`,
 `phase_autoEnv`), so the one-switch contraction is paid only within `RDLY` slots of a boundary (`Ccap`).
 Lean computes each (group, representative)'s data (`FamCfg.repDataG`), the contractions (`tabLpG`,
 `tabLpiG`) and the derived numbers (`SpecData.deriveLE`, with the checked phase's bound times `sU`); the
@@ -97,6 +97,10 @@ def nG : ℕ := {ng}
 /-- The delayed tables' steps: the contraction `lp` is paid within `Rd` slots of a boundary. -/
 def Rd : ℕ := {rd}
 
+/-- The checks' constants, as literals (`FamCfg.cstOf`): the delay, the bands' denominator, the tables' scale and
+the bands over `ℕ`. The main file checks them against the family (`FamCfg.cstOK`). -/
+def cst : ChkCst := eval% F.cstOf
+
 end {ns}
 """)
     open(f"{sub}/Tab.lean", "w").write(txt)
@@ -106,7 +110,7 @@ def write_rep(sub, ns, name, j, entries):
     dep = f"R{j - CHAINS}" if j >= CHAINS else "Tab"
     defs = "".join(f"def r{j}_{i} : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => ({g}, s, F.repDataG (Q.tab {g}) γ nG {g} Rd s)) "
                    f"((Q.tab {g}).repList.getD {k} (0, 0))\n" for i, (g, k) in enumerate(entries))
-    chks = "".join(f"theorem c{j}_{i} : F.repChkAG (Q.tab r{j}_{i}.1) γ nG r{j}_{i}.1 Rd r{j}_{i}.2.1 r{j}_{i}.2.2 = true := by decide +kernel\n"
+    chks = "".join(f"theorem c{j}_{i} : F.repChkAG (Q.tab r{j}_{i}.1) γ nG r{j}_{i}.1 Rd cst r{j}_{i}.2.1 r{j}_{i}.2.2 = true := by decide +kernel\n"
                    for i in range(len(entries)))
     names = ", ".join(f"r{j}_{i}" for i in range(len(entries)))
     cs = ", ".join(f"c{j}_{i}" for i in range(len(entries)))
@@ -125,7 +129,7 @@ open Cryptarchia Cryptarchia.Prob
 {chks}
 def D{j} : List (ℕ × (ℤ × ℤ) × RepData) := [{names}]
 
-theorem chkA{j} : D{j}.all (fun p => F.repChkAG (Q.tab p.1) γ nG p.1 Rd p.2.1 p.2.2) = true := by
+theorem chkA{j} : D{j}.all (fun p => F.repChkAG (Q.tab p.1) γ nG p.1 Rd cst p.2.1 p.2.2) = true := by
   simp only [D{j}, List.all_cons, List.all_nil, {cs}, Bool.and_self]
 
 end {ns}
@@ -156,34 +160,13 @@ theorem swOK : ∀ i : Fin 19, FamCfg.isSw i = true → F.idxChkSw i (dat i) = t
 index to evaluate `![…]`). -/
 def D (j : Fin {nj}) : List (ℕ × (ℤ × ℤ) × RepData) := [{", ".join(f"D{j}" for j in range(nj))}].getD j.val []
 
-theorem tabA : F.tabChkAG Q γ nG Rd D := by
+theorem tabA : F.tabChkAG Q γ nG Rd cst D := by
   intro j; fin_cases j
   exacts [{", ".join(f"chkA{j}" for j in range(nj))}]
-
-/-- The derived numbers (`SpecData.deriveLE`), with the tables' contractions by rule and the checked
-phase's bound times `eUp`, above the potential's start factor. -/
-def der : SpecDerived :=
-  eval% par.deriveLE F F.S.weakest dat (FamCfg.eOf dat 2 * sU) (fun _ => Rd) Tq (FamCfg.tabLpG Q D) (F.tabLpiG Q nG D)
 """
 
 
-def write_probe(ns, nj, ng, path):
-    txt = imports(main_imports(ns, nj)) + f"""
-{SEC}
-namespace {ns}
-
-open Cryptarchia Cryptarchia.Prob
-
-{HEAD}
-{common_defs(nj, ng)}
-#print der
-
-end {ns}
-"""
-    open(path, "w").write(txt)
-
-
-def write_main(out_dir, ns, name, nj, ng, ks, T, cfg, Ne, fin, info):
+def write_main(out_dir, ns, name, nj, ng, ks, T, cfg, Ne, fin, der):
     D = cfg['Delta']; k = cfg['k']; N = cfg['N']; beta = T['beta']
     txt = (imports(main_imports(ns, nj)) + f"""
 /-!
@@ -200,8 +183,9 @@ The certificate is the data below; Lean computes the rest and the kernel checks 
 - the switching tables of the reach, the checked phase and spans (`Sw.lean`);
 - the tables (`Tab.lean`), and each (group, representative)'s terminal table and one-switch tables
   (`R<j>.lean`);
-- the derived numbers `der` (`SpecData.deriveLE`): the tables' contractions by rule (`tabLpG`,
-  `tabLpiG`), the settlement parameters by rule, and the bounds;
+- the derived numbers `der`: the tables' contractions, the settlement parameters and the bounds, computed by
+  the generator's mirror of the rules (`tools/certgen/tabsim.py`, `SpecData.deriveLE`); the kernel checks every
+  condition on them, so they need not follow the rules;
 - the checks of the reach potential (`c2OK`), the tables (`tabOK`) and every numeric condition (`finOK`).
 -/
 
@@ -212,16 +196,22 @@ open Cryptarchia Cryptarchia.Prob
 
 {HEAD}
 {common_defs(nj, ng)}
-theorem derNe : der.Ne = {Ne} := by decide +kernel
+/-- The derived numbers: the settlement parameters `Lw J x G G' r T yy`, the slots and epochs covered
+`M Ne`, the contractions `lp lpi`, and the bounds `tgt bx fin`. -/
+def der : SpecDerived :=
+  ⟨{der[0]}, {der[1]}, {qQ(der[2])}, {der[3]}, {der[4]}, {der[5]}, {der[6]}, {qQ(der[7])}, {der[8]}, {der[9]},
+    {qQ(der[10])}, {qQ(der[11])}, {qQ(der[12])}, {qQ(der[13])}, {qQ(der[14])}⟩
 
-theorem derFin : der.fin = {qQ(fin)} := by decide +kernel
+theorem derNe : der.Ne = {Ne} := rfl
 
-/-- {info} -/
+theorem derFin : der.fin = {qQ(fin)} := rfl
+
 theorem c2OK : cert2ChkQ F.S.weakest F.Δ F.c F.z F.s 0 F.d F.τ 0 (FamCfg.lrOf dat) (FamCfg.bOf dat) (FamCfg.eOf dat) =
     true := by
   decide +kernel
 
-theorem tabOK : F.tabChkG Q nG γ Γ (Config.specK par.k).epochLength der.G Rd der.lp der.lpi D = true := by decide +kernel
+theorem tabOK : F.tabChkG Q nG γ Γ (Config.specK par.k).epochLength der.G Rd cst der.lp der.lpi D = true := by
+  decide +kernel
 
 theorem stOK : startChk ((Config.specK par.k).epochLength - 1) {ks} γ sU = true := by decide +kernel
 
@@ -299,22 +289,22 @@ if __name__ == "__main__":
         write_sw(sub, ns, name)
         write_tab(sub, ns, name, R, M, cw, zc, x, tabs, gam, Gam, ks, sU, ng, rd)
         for j in range(nj): write_rep(sub, ns, name, j, entries[j * CHUNK:(j + 1) * CHUNK])
-        write_probe(ns, nj, ng, f"{out_dir}/{name}Probe.lean.txt")
         print("wrote", sub, nj, "chunks of", len(entries), "entries")
     else:
-        probe = f"{out_dir}/{name}Probe.lean"
-        os.rename(f"{out_dir}/{name}Probe.lean.txt", probe)
-        try:
-            outp = subprocess.run(["nix-shell", "shell.nix", "--run", f"lake env lean {os.path.abspath(probe)}"],
-                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                                  cwd=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")).stdout
-        finally:
-            os.rename(probe, f"{out_dir}/{name}Probe.lean.txt")
-        print(outp)
-        # the stored value of `der`, which the kernel checks (`#eval` of its fields can differ)
-        val = re.sub(r"\s+", " ", outp[outp.index("{"):outp.rindex("}") + 1])
-        Ne = int(re.search(r"Ne := (\d+)", val).group(1))
-        fin = Fr(re.search(r"fin := ([\d/ ]+)", val).group(1).replace(" ", ""))
-        write_main(out_dir, ns, name, nj, ng, ks, T, cfg, Ne, fin, f"Derived by Lean (`der`): {val}")
-        os.remove(f"{out_dir}/{name}Probe.lean.txt")
+        # the derived numbers, from the mirror (`tabsim`): the kernel checks every condition on them
+        import tabsim
+        from certnum import rup
+        sim = tabsim.Cert(beta, delta, K, N, depth, Vfile, ng, R, M, cw, zc, x, c, z, tau, Gam, ks)
+        wd = sim.wdata(mu=Fr(9, 10), n=40)
+        lp, lpi, _ = sim.contractions_w(wd, rd)
+        lp, lpi = rup(lp, 10), rup(lpi, 10)
+        d = sim.derive(lp, lpi, lambda G: rd)
+        e, lr, b = emitF.derived(sim.index_dats())
+        rl = emitF.spec_rules(dict(Delta=D, k=depth, N=N, c=c, z=z, tau=tau), certE.weakest([m['B'] for m in sim.fam]),
+                              [v if i != 2 else v * sim.sU for i, v in enumerate(e)], lr, b, lpi, emitF.EPS)
+        Mh = N + d['G'] + d['Gp'] + D + 2
+        der = [rl['Lw'], rl['J'], rl['x'], d['G'], d['Gp'], rl['r'], rl['T'], rl['yy'], Mh, d['Ne'], lp, lpi, d['tgt'],
+               d['bx'], d['fin']]
+        Ne, fin = d['Ne'], d['fin']
+        write_main(out_dir, ns, name, nj, ng, ks, T, cfg, Ne, fin, der)
         print("Ne", Ne, "fin", float(fin))

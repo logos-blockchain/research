@@ -28,21 +28,21 @@ def r87_8 : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => (3, s, F.repDataG 
 def r87_9 : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => (3, s, F.repDataG (Q.tab 3) γ nG 3 Rd s)) ((Q.tab 3).repList.getD 174 (0, 0))
 def r87_10 : ℕ × (ℤ × ℤ) × RepData := eval% (fun s => (3, s, F.repDataG (Q.tab 3) γ nG 3 Rd s)) ((Q.tab 3).repList.getD 175 (0, 0))
 
-theorem c87_0 : F.repChkAG (Q.tab r87_0.1) γ nG r87_0.1 Rd r87_0.2.1 r87_0.2.2 = true := by decide +kernel
-theorem c87_1 : F.repChkAG (Q.tab r87_1.1) γ nG r87_1.1 Rd r87_1.2.1 r87_1.2.2 = true := by decide +kernel
-theorem c87_2 : F.repChkAG (Q.tab r87_2.1) γ nG r87_2.1 Rd r87_2.2.1 r87_2.2.2 = true := by decide +kernel
-theorem c87_3 : F.repChkAG (Q.tab r87_3.1) γ nG r87_3.1 Rd r87_3.2.1 r87_3.2.2 = true := by decide +kernel
-theorem c87_4 : F.repChkAG (Q.tab r87_4.1) γ nG r87_4.1 Rd r87_4.2.1 r87_4.2.2 = true := by decide +kernel
-theorem c87_5 : F.repChkAG (Q.tab r87_5.1) γ nG r87_5.1 Rd r87_5.2.1 r87_5.2.2 = true := by decide +kernel
-theorem c87_6 : F.repChkAG (Q.tab r87_6.1) γ nG r87_6.1 Rd r87_6.2.1 r87_6.2.2 = true := by decide +kernel
-theorem c87_7 : F.repChkAG (Q.tab r87_7.1) γ nG r87_7.1 Rd r87_7.2.1 r87_7.2.2 = true := by decide +kernel
-theorem c87_8 : F.repChkAG (Q.tab r87_8.1) γ nG r87_8.1 Rd r87_8.2.1 r87_8.2.2 = true := by decide +kernel
-theorem c87_9 : F.repChkAG (Q.tab r87_9.1) γ nG r87_9.1 Rd r87_9.2.1 r87_9.2.2 = true := by decide +kernel
-theorem c87_10 : F.repChkAG (Q.tab r87_10.1) γ nG r87_10.1 Rd r87_10.2.1 r87_10.2.2 = true := by decide +kernel
+theorem c87_0 : F.repChkAG (Q.tab r87_0.1) γ nG r87_0.1 Rd cst r87_0.2.1 r87_0.2.2 = true := by decide +kernel
+theorem c87_1 : F.repChkAG (Q.tab r87_1.1) γ nG r87_1.1 Rd cst r87_1.2.1 r87_1.2.2 = true := by decide +kernel
+theorem c87_2 : F.repChkAG (Q.tab r87_2.1) γ nG r87_2.1 Rd cst r87_2.2.1 r87_2.2.2 = true := by decide +kernel
+theorem c87_3 : F.repChkAG (Q.tab r87_3.1) γ nG r87_3.1 Rd cst r87_3.2.1 r87_3.2.2 = true := by decide +kernel
+theorem c87_4 : F.repChkAG (Q.tab r87_4.1) γ nG r87_4.1 Rd cst r87_4.2.1 r87_4.2.2 = true := by decide +kernel
+theorem c87_5 : F.repChkAG (Q.tab r87_5.1) γ nG r87_5.1 Rd cst r87_5.2.1 r87_5.2.2 = true := by decide +kernel
+theorem c87_6 : F.repChkAG (Q.tab r87_6.1) γ nG r87_6.1 Rd cst r87_6.2.1 r87_6.2.2 = true := by decide +kernel
+theorem c87_7 : F.repChkAG (Q.tab r87_7.1) γ nG r87_7.1 Rd cst r87_7.2.1 r87_7.2.2 = true := by decide +kernel
+theorem c87_8 : F.repChkAG (Q.tab r87_8.1) γ nG r87_8.1 Rd cst r87_8.2.1 r87_8.2.2 = true := by decide +kernel
+theorem c87_9 : F.repChkAG (Q.tab r87_9.1) γ nG r87_9.1 Rd cst r87_9.2.1 r87_9.2.2 = true := by decide +kernel
+theorem c87_10 : F.repChkAG (Q.tab r87_10.1) γ nG r87_10.1 Rd cst r87_10.2.1 r87_10.2.2 = true := by decide +kernel
 
 def D87 : List (ℕ × (ℤ × ℤ) × RepData) := [r87_0, r87_1, r87_2, r87_3, r87_4, r87_5, r87_6, r87_7, r87_8, r87_9, r87_10]
 
-theorem chkA87 : D87.all (fun p => F.repChkAG (Q.tab p.1) γ nG p.1 Rd p.2.1 p.2.2) = true := by
+theorem chkA87 : D87.all (fun p => F.repChkAG (Q.tab p.1) γ nG p.1 Rd cst p.2.1 p.2.2) = true := by
   simp only [D87, List.all_cons, List.all_nil, c87_0, c87_1, c87_2, c87_3, c87_4, c87_5, c87_6, c87_7, c87_8, c87_9, c87_10, Bool.and_self]
 
 end Cryptarchia.Prob.Certs.E20D11G
