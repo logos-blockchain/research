@@ -13,7 +13,7 @@ A machine-checked model of Mantle 2.1.0 as specified by [logos-lips#480](https:/
 - **Value** (`Supply.lean`, `Conservation.lean`): a commitment opens to at most one note, so `cmValue` and the nullifier its holder derives (`cmNf`) are functions of the hash. The value of a note set is the total value of its *distinct* unspent commitments; the value of a state adds the notes withdrawn SDP declarations will release and the proof of work pool.
 - **Capacity** (`Cap`): theorems that use Merkle membership in a state assume every note set holds fewer than `2^31` commitments. This is a convenience of the proof, not a property of the specification: the invariant bounds the tree under `tx_cm_root` by twice the set, where in the specification it never exceeds the set. The results say nothing about sets of `2^31` to `2^32 - 1` commitments. `pol_sound_of_inv` needs only fewer than `2^32`.
 - **Transaction hash**: `Prims.txHash` is the 32-byte `mantle_txhash` the Ed25519 signatures sign; the ZK proofs receive `toFr` of it, `mantle_txhash_fr`, and the proof of work ticket the block hash reduced the same way.
-- **Initial state**: no Genesis state is built. Every result holds from any state satisfying the invariants (`Inv`, and `ChanInv` for the gas bound), which each Operation preserves.
+- **Initial state**: no Genesis state is built; the results hold for any valid Genesis. The invariants the proofs carry (`Inv`, `ChanInv`) are not assumed of it: `State.IsGenesis` states only what any valid Genesis visibly leaves (`Genesis.lean`): note sets that are empty sets to which commitments were appended and distinct non-zero nullifiers spent, their roots recorded; declarations with distinct ids, service notes in the SDP set, and nothing released; no pending channel withdrawal; and channels without note sets, each with a key, its tip sequencer one of them and a `uint16` threshold (the null channel). `Inv.of_genesis` and `ChanInv.of_genesis` derive the invariants, and `isGenesis_exists` shows the conditions satisfiable.
 
 ## Assumptions
 
@@ -84,7 +84,7 @@ Confirmed as stated: the hexadecimal lottery constants and the `f = 1/30` error 
 
 - Zero knowledge and privacy, Groth16 and BN254, Ed25519 unforgeability: the theorems rest on the soundness hypotheses above, and hold for every signature check.
 - The ticket's uniformity (`win_prob_le` reads `threshold / p` as the winning probability), the entropy contribution, Cryptarchia and the Proof of Quota, the PoW difficulty and window maintenance, the Blend activity rule, `validate_multiaddr` (abstract).
-- The Genesis state (the results hold from any state satisfying the invariants), and the composition of the per-inscription program guarantees over a chain.
+- A particular Genesis state (the results hold for any valid Genesis, `State.IsGenesis`), and the composition of the per-inscription program guarantees over a chain.
 - The BLAKE2b implementation is tested (RFC 7693 and the specification's vectors), not proven; the 2 MiB block size and the 1024-transaction limit are not modelled.
 - The row "a program step serves the intents over the assets of the zone", which the ledger does not check.
 
@@ -103,6 +103,7 @@ Confirmed as stated: the hexadecimal lottery constants and the `f = 1/30` error 
 | `Supply.lean`, `Conservation.lean` | the value of a note set and of a state, the invariant |
 | `NoValueCreated.lean` | one theorem per Operation, `applyTx_value`, `balance_check_holds`, `KeepsRoots` |
 | `Block.lean` | the block-level steps of Mantle |
+| `Genesis.lean` | what any valid Genesis leaves, and the invariants it satisfies |
 | `Leadership.lean` | the eligible root and the Proof of Leadership |
 | `Programs.lean` | the program guarantees |
 | `Channels.lean` | steps, mini-blocks, withdrawals, sequencing, the channel invariant |

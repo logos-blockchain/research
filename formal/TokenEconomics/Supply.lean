@@ -1,5 +1,6 @@
 import Mantle.Block
 import Mantle.GasBound
+import Mantle.Genesis
 import TokenEconomics.Pools
 
 /-!
@@ -29,8 +30,9 @@ pool and the pending Blend share (`RewardState.stock`).
 
 * **`executeBlock_total`**: executing a block never increases the total;
   **`executeChain_total`**: so along any chain of blocks the total never exceeds that of its
-  first state. No Genesis state is built: the results hold from any state satisfying the
-  invariants, Genesis being one by the specification;
+  first state. No Genesis state is built: **`genesis_chain_total`**, **`genesis_chain_tokenValue`**
+  hold for any valid Genesis (`BlockState.IsGenesis`), deriving the invariants instead of
+  assuming them;
 * **`executeChain_tokenValue`**: from a state of at most `10¹⁹` units of `10⁻⁹` LGO, every
   unspent note and every stock stays at most `10¹⁹ < 2^64`, so every token value fits a
   `TokenValue` (Mantle, *Arithmetic*); `executeBlock_fees_le`: the fees and tips of a block are
@@ -47,9 +49,9 @@ rewards of the same value under the same `reward_key` in the ledger set (one com
 spendable note).
 
 Hypotheses, each stated by the theorems that use it: knowledge soundness of the ZkTransfer and
-the ZkProgramSpend (`Prims.ZkTransferSound`, `Prims.ZkProgramSpendSound`); the invariants of the
-first state (`Inv` of the ledger, `PoolInv` of the reward state, `ChanInv` of the channels), each
-preserved; the capacity `Cap` of the note sets of the last state, fewer than `2^31` commitments
+the ZkProgramSpend (`Prims.ZkTransferSound`, `Prims.ZkProgramSpendSound`); a valid Genesis
+(`BlockState.IsGenesis`), or more generally the invariants of the first state (`Inv` of the
+ledger, `PoolInv` of the reward state, `ChanInv` of the channels), each preserved; the capacity `Cap` of the note sets of the last state, fewer than `2^31` commitments
 per set (half the specification's, see `Mantle.Cap`); and a share diverted to the proof of work
 pool of at most the fees (`PowShare.le`). The Blend reward of an epoch is an input, at most the
 pending share (its schedule is `runEpochs_pending`).
@@ -693,6 +695,45 @@ theorem _root_.Mantle.ChanInv.executeChain {P : Prims} {pow : PowShare} (blocks 
 /-- A state without channels, such as Genesis, satisfies `ChanInv`. -/
 theorem chanInv_of_none {st : Mantle.State} (h : ∀ id, st.channels id = none) : ChanInv st :=
   fun id c hc => by simp [h id] at hc
+
+/-! ## From any valid Genesis -/
+
+/-- What any valid Genesis leaves in a block state: a Mantle state of `State.IsGenesis`, and an
+empty window of pooled fees. The reserve, the pool, the pending Blend share and the diverted
+fees are free. -/
+structure BlockState.IsGenesis (H : Hash) (b : BlockState) : Prop where
+  ledger : b.ledger.IsGenesis H
+  window : b.rewards.window = List.replicate WINDOW 0
+
+/-- An empty window of pooled fees satisfies the pool invariant, whatever the pool holds. -/
+theorem poolInv_of_window {r : RewardState} (h : r.window = List.replicate WINDOW 0) :
+    PoolInv r :=
+  ⟨by simp [h], by simp [h, unpaidShares_replicate]⟩
+
+/-- **From any valid Genesis, along any chain of blocks**, the invariants hold and no token is
+minted. -/
+theorem genesis_chain_total {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSound]
+    {pow : PowShare} {blocks : List BlockInputs} {b b' : BlockState} (G : b.IsGenesis P.H)
+    (h : executeChain P pow b blocks = some b') (hcap : Cap b'.ledger) :
+    Inv P.H b'.ledger ∧ PoolInv b'.rewards ∧ ChanInv b'.ledger ∧ total P.H b' ≤ total P.H b := by
+  obtain ⟨I, IP, T⟩ := executeChain_total blocks b b' (Inv.of_genesis G.ledger)
+    (poolInv_of_window G.window) h hcap
+  exact ⟨I, IP, (ChanInv.of_genesis G.ledger).executeChain blocks h, T⟩
+
+/-- **From any valid Genesis of at most the maximum supply, every token value fits a
+`TokenValue`** along any chain of blocks. -/
+theorem genesis_chain_tokenValue {P : Prims} [P.ZkTransferSound] [P.ZkProgramSpendSound]
+    {pow : PowShare} {blocks : List BlockInputs} {b b' : BlockState} (G : b.IsGenesis P.H)
+    (hg : total P.H b ≤ MAX_SUPPLY) (h : executeChain P pow b blocks = some b')
+    (hcap : Cap b'.ledger) :
+    total P.H b' ≤ MAX_SUPPLY ∧
+      (∀ i < b'.ledger.numSets, ∀ c ∈ (b'.ledger.sets i).cms,
+        Unspent P.H (b'.ledger.sets i).nullifiers c → cmValue P.H c ≤ MAX_SUPPLY) ∧
+      (∀ e ∈ b'.ledger.declarations, listValue P.H e.2.withdrawOutputs ≤ MAX_SUPPLY) ∧
+      b'.ledger.powRewardPool ≤ MAX_SUPPLY ∧ b'.powPending ≤ MAX_SUPPLY ∧
+      b'.rewards.reserve ≤ MAX_SUPPLY ∧
+      b'.rewards.pool ≤ MAX_SUPPLY ∧ b'.rewards.pending ≤ MAX_SUPPLY :=
+  executeChain_tokenValue (Inv.of_genesis G.ledger) (poolInv_of_window G.window) hg h hcap
 
 end
 

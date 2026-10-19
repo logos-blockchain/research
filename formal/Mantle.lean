@@ -20,3 +20,4 @@ import Mantle.Codec
 import Mantle.Encoding
 import Mantle.Blake2b
 import Mantle.GasBound
+import Mantle.Genesis
