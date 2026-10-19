@@ -83,32 +83,35 @@ a new slot: up to two entries per slot at depth 2, three at depth 3.
 ## 4. Pilot: the most a deeper rule could recover
 
 `scripts/depth_profile.py` uses the spec 1.2.5 rule (N = 1 000, Blend, 3 hops, degree 6). It
-classifies the occupied slots of the last epoch's window against the final canonical chain.
-k = 256 with 10 replicates; the k = 2160 rows have 2 replicates. Values are % of occupied
-slots, mean (SEM). "Lost" means neither canonical nor recovered. The depth columns split the
-lost slots by the smallest fork depth among their blocks.
+reads the engine's lost-slot shares (`fork.lost_slots`, Phase 1). Every epoch these file the
+occupied window slots that the count misses under the smallest fork depth among their blocks.
+Each trajectory runs 8 epochs, and its post-burn-in epochs are averaged. k = 256 has 10
+replicates; the k = 2160 rows have 2. Values are % of occupied slots, mean (SEM over
+replicates).
 
 | k | U | δ_max | ρ | lost | depth 1 | depth 2 | depth 2, parent referenced | depth 3 | depth ≥ 4 |
 |---|---|---|---|---|---|---|---|---|---|
-| 256 | 4 | 4 | ≈ 0.36 | 0.08 (0.03) | 0.01 | 0.07 | 0.07 | 0.00 | 0.00 |
-| 256 | 4 | 8 | ≈ 0.56 | 0.29 (0.06) | 0.05 | 0.24 | 0.22 | 0.00 | 0.00 |
-| 256 | 4 | 16 | ≈ 0.96 | 1.35 (0.18) | 0.11 | 1.22 | 1.15 | 0.02 | 0.00 |
-| 256 | 4 | 32 | ≈ 1.76 | 5.00 (0.28) | 0.38 | 4.37 | 4.19 | 0.26 | 0.00 |
-| 2160 | 4 | 16 | ≈ 0.96 | 1.44 (0.02) | 0.05 | 1.36 | 1.28 | 0.04 | 0.00 |
-| 2160 | 4 | 32 | ≈ 1.76 | 4.80 (0.56) | 0.34 | 4.23 | 4.11 | 0.23 | 0.01 |
-| 256 | 2 | 16 | ≈ 0.96 | 1.46 (0.06) | 0.15 | 1.26 | 1.22 | 0.06 | 0.00 |
-| 256 | 2 | 32 | ≈ 1.76 | 7.52 (0.44) | 2.71 | 4.48 | 4.35 | 0.30 | 0.02 |
-| 256 | 1 | 16 | ≈ 0.96 | 4.89 (0.25) | 3.56 | 1.32 | 1.23 | 0.01 | 0.00 |
+| 256 | 4 | 4 | ≈ 0.36 | 0.09 (0.02) | 0.02 | 0.07 | 0.07 | 0.00 | 0.00 |
+| 256 | 4 | 8 | ≈ 0.56 | 0.31 (0.02) | 0.05 | 0.25 | 0.23 | 0.00 | 0.00 |
+| 256 | 4 | 16 | ≈ 0.96 | 1.39 (0.11) | 0.10 | 1.27 | 1.19 | 0.01 | 0.00 |
+| 256 | 4 | 32 | ≈ 1.76 | 5.60 (0.19) | 0.59 | 4.75 | 4.55 | 0.25 | 0.00 |
+| 2160 | 4 | 16 | ≈ 0.96 | 1.40 (0.09) | 0.04 | 1.33 | 1.25 | 0.03 | 0.00 |
+| 2160 | 4 | 32 | ≈ 1.76 | 4.95 (0.66) | 0.40 | 4.25 | 4.10 | 0.28 | 0.02 |
+| 256 | 2 | 16 | ≈ 0.96 | 1.50 (0.07) | 0.16 | 1.31 | 1.25 | 0.03 | 0.00 |
+| 256 | 2 | 32 | ≈ 1.76 | 7.77 (0.41) | 2.68 | 4.81 | 4.63 | 0.26 | 0.02 |
+| 256 | 1 | 16 | ≈ 0.96 | 4.83 (0.28) | 3.46 | 1.36 | 1.27 | 0.02 | 0.00 |
 
 Reading:
 
-- At U = 4, 83–94 % of the loss sits at depth 2, and 90–100 % of that has a referenced parent.
-  The depth-2 ceiling is about 0.07 pp at ρ ≈ 0.36, 0.22 pp at ρ ≈ 0.56, 1.2 pp at ρ ≈ 1 and
-  4.2 pp at ρ ≈ 1.8.
-- Depth 3 holds at most 0.06 pp at ρ ≈ 1 and 0.30 pp at ρ ≈ 1.8 (U ≥ 2). Depth ≥ 4 holds
-  at most 0.02 pp.
-- The lost shares agree with the report's countable–unrestricted gaps at U = 4 (§3.2: 0.09,
-  0.31, 1.19, 4.66 pp), which were measured under the uncle anchor at W = 10.
+- At U = 4, 77–95 % of the loss sits at depth 2, and 89–96 % of that has a referenced parent.
+  The depth-2 ceiling is about 0.07 pp at ρ ≈ 0.36, 0.23 pp at ρ ≈ 0.56, 1.2 pp at ρ ≈ 1 and
+  4.1–4.6 pp at ρ ≈ 1.8.
+- Depth 3 holds at most 0.03 pp at ρ ≈ 1 and 0.28 pp at ρ ≈ 1.8 (U ≥ 2). Depth ≥ 4 holds at
+  most 0.02 pp.
+- At ρ ≤ 1 the lost shares agree with the report's countable–unrestricted gaps at U = 4
+  (§3.2: 0.09, 0.31, 1.19 pp). At ρ ≈ 1.8 they run 0.3–0.9 pp above §3.2's 4.66 pp, which was
+  measured under the uncle anchor at W = 10. The extra is depth 1 (0.4–0.6 pp), which is
+  where the parent anchor's window binds.
 - At U ≤ 2 under overload, depth-1 loss appears: capacity and the window bind.
 
 Caveats:
@@ -155,12 +158,22 @@ Every gate must be shown to fail under a mutation of the code it guards before i
     the W crossing) were not re-run under the spec order.
   - Equilibrium D̂/D under the spec rule, U = 4: 0.9999 / 0.9968 / 0.9868 / 0.9492 at
     δ_max = 4 / 8 / 16 / 32. This is the depth-1 baseline for Phase 2.
-- **Phase 1 — depth metric in the engine.**
-  - Move `scripts/depth_profile.py`'s classification into `fork.py` and `EpochResult`, next
-    to `deep_orphan_share`. That metric is a block share at depth ≥ 2; the new one is the
-    lost slots by depth.
-  - Gate: `1 − lost` must equal the measured count over the active slots of the same tree,
-    exactly.
+- **Phase 1 — depth metric in the engine.** *Done.*
+  - `fork.lost_slots` classifies the occupied window slots, next to `deep_orphan_share`. That
+    metric is a block share at depth ≥ 2; the new one is the lost slots by depth.
+  - It shares `canonical_and_depth` with `fork_stats`, so the chain and depth rules exist
+    once.
+  - `EpochResult`, the result rows and `equilibrium()` carry five shares: depth 1, 2, 2 with a
+    counted parent, 3, and ≥ 4.
+  - `scripts/depth_profile.py` now reads them, instead of keeping its own classifier.
+  - Gates:
+    - `test_lost_slots_match_the_measured_count`: on an epoch with deep forks,
+      `occupied − lost` equals every node's measured `m`, exactly. This holds under the
+      countable model in both scopes, and under `--old`.
+    - `test_lost_slots_by_depth_and_scope`: a hand-built tree pins the buckets, the
+      shallowest-block rule, the scope and the parent mark.
+    - Six mutations of `lost_slots` each fail one of the two tests.
+  - Cost: 4 ms on a 22 000-block epoch at k = 2160 (0.45 % of the epoch).
 - **Phase 2 — deeper references in the simulator.**
   - `max_depth` ∈ {1, 2, 3}, where 1 is today's rule. Add a ceiling arm: any depth, slot
     deduplication, no ancestry condition. It replaces `--old`, which deduplicates by block
