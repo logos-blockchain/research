@@ -17,6 +17,9 @@ lies on the chain of `A`, or is an entry referenced by that chain or carried by 
 maximum depth is the only parameter. A deeper entry counts exactly as an uncle does: its slot
 joins the occupied-slot count of the Total Stake Inference (TSI).
 
+Depth 3 is out of scope from Phase 3 on (decided 2026-10-19). Phase 2 measured its gain over
+depth 2, and the gain fails the Phase 6 gate at every load.
+
 ## 2. Pins
 
 | source | revision | read |
@@ -254,35 +257,33 @@ Every gate must be shown to fail under a mutation of the code it guards before i
     depth-2 slots uncounted. The window, the cap and the proposer's view bind those slots, not
     the ancestry condition.
 - **Phase 3 — the minimal rule set for route A.**
-  - The recursive parent rule.
-  - The lag `L` as one constant, with its constraint where it is defined: `L ≥ max depth − 1`.
-    If `L` is smaller, the deepest entries cannot be verified.
+  - The parent rule at maximum depth 2.
+  - The lag `L = 1` as one constant, with its constraint where it is defined:
+    `L ≥ max depth − 1`. If `L` is smaller, the deepest entries cannot be verified.
   - Every place that reads `ledger_LATEST`: PoL input 5, header validation step 9,
     `valid_uncle`, the node's prover and verifier.
   - Route B priced.
 - **Phase 4 — security.**
-  - What `L` blocks of spent-note eligibility cost, for `L` = 1 and 2.
-  - §6.4 (withholding) and §6.6 (selfish mining) re-run with deeper references. With them, the
-    first `max_depth` blocks of a released branch count.
-  - If uncle rewards are ever added: `w_u + w_n < 1`, extended to self-orphaning `max_depth`
-    blocks.
+  - What one block of spent-note eligibility costs (`L = 1`).
+  - §6.4 (withholding) and §6.6 (selfish mining) re-run with cousins. With them, the first
+    two blocks of a released branch count.
+  - If uncle rewards are ever added: `w_u + w_n < 1`, extended to self-orphaning two blocks.
   - The spec's "self-signed later" caveat, applied at every depth.
 - **Phase 5 — cost.**
   - Node changes: a referenced-entry index in `verify_uncles_ancestry`; a deeper entry
     verified against the state of the fork point.
   - The prover proves against the lagged root.
   - Whether the lag takes proving off the critical path (unmeasured).
-  - Cap pressure, by depth.
-- **Phase 6 — decision, one depth at a time.**
+- **Phase 6 — decision.**
   - Depth 2 goes to an RFC only if the PoL owners accept `L = 1` and its gain clears the
     ±0.9 % per-epoch noise at the ρ projected for production (§3.7).
-  - Depth 3 additionally needs its gain over depth 2 to clear that noise, and `L = 2` accepted.
+  - Depth 3 needed its gain over depth 2 to clear that noise. It did not (Phase 2).
   - A depth that fails is recorded in the report as an overload contingency (§8.3).
 
 ## 6. Open questions
 
-1. Is a lag of `ledger_LATEST` acceptable to the PoL owners, at `L = 1` and at `L = 2`? This
-   blocks Phase 3 onward.
+1. Is a one-block lag of `ledger_LATEST` (`L = 1`) acceptable to the PoL owners? This blocks
+   Phase 3 onward.
 2. What ρ does production expect (Blend budget, N, peering degree)? Depth 2 gains under
    0.4 pp up to ρ ≈ 0.56. At U ≥ 2 it passes the ±0.9 % per-epoch noise from ρ ≈ 0.9
    (Phase 2).
