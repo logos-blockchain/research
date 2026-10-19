@@ -6,7 +6,8 @@ parent-arm run) or by the parent's slot (``"parent"``, the spec). Both arms shar
 streams, so replicate *i* of each is a matched pair. Prints, per (delay, U), the mean paired
 difference ``parent − uncle`` in equilibrium D̂/D with its SEM and |t|, and the number of
 pairs that are bit-identical. U = 0 must be bit-identical in every pair: with no uncles the
-order is never consulted.
+order is never consulted. The U ≥ 1 gaps form one family; its Bonferroni |t| threshold at 5 %
+(two-sided, Student t with pairs − 1 degrees of freedom) is printed under the table.
 
 Run:  python scripts/spec_order_analysis.py runs/<dir>
 """
@@ -17,6 +18,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+from scipy import stats
 
 from tsi_sim.plotting.figures_pernode import equilibrium, sem
 
@@ -46,6 +48,10 @@ def main() -> None:
     out = paired(df)
     pd.set_option("display.width", 120)
     print(out.to_string(index=False, float_format=lambda x: f"{x:.5f}"))
+    k = int((out.U > 0).sum())
+    n = int(out.n_pair.iloc[0])
+    thr = stats.t.ppf(1 - 0.025 / k, n - 1)
+    print(f"Bonferroni |t| threshold for {k} U >= 1 gaps at 5 % ({n} pairs): {thr:.2f}")
 
 
 if __name__ == "__main__":

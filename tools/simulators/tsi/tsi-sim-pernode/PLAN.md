@@ -151,7 +151,8 @@ Every gate must be shown to fail under a mutation of the code it guards before i
     - U = 0 is bit-identical in all 80 pairs (the identity check);
     - every U ≥ 1 pair is bit-identical at ρ ≤ 0.56, and 221 of 240 are overall;
     - the largest gap is −0.0007 ± 0.0003 (t = 2.2) at δ_max = 32, U = 2. It does not
-      survive the Bonferroni threshold of 2.87 for 12 cells.
+      survive the Bonferroni threshold of 3.25 for 12 cells (Student t, 19 degrees of
+      freedom).
 
     The order matters only when the cap binds and the parent order differs from the slot
     order. So the parent-arm results stand at W = 12. The W sweeps of §6.12 (the knee table and
@@ -174,17 +175,84 @@ Every gate must be shown to fail under a mutation of the code it guards before i
       shallowest-block rule, the scope and the parent mark.
     - Six mutations of `lost_slots` each fail one of the two tests.
   - Cost: 4 ms on a 22 000-block epoch at k = 2160 (0.45 % of the epoch).
-- **Phase 2 — deeper references in the simulator.**
-  - `max_depth` ∈ {1, 2, 3}, where 1 is today's rule. Add a ceiling arm: any depth, slot
-    deduplication, no ancestry condition. It replaces `--old`, which deduplicates by block
-    and differs at U = 1 (§3.2).
-  - The window is anchored at the fork point, and the cap is shared. The selector may carry an
-    unreferenced ancestor to unlock a deeper slot. The counting checks in `measure.py` accept
-    the same entries.
-  - Sweeps, all paired: the `countable-vs-old-paired` grid, `fine-delay-paired`,
-    `rho-boundary`, and the §3.7 N-scaling. U = 0 is the identity check.
-  - Output: D̂/D at equilibrium for each depth. Report whether depth 3 pushes cap use high
-    enough that depth-1 loss returns at U = 4.
+- **Phase 2 — deeper references in the simulator.** *Done.*
+  - Model: `SimConfig.uncle_depth` is 1 (the spec), 2 (cousins), 3 (children of cousins) or
+    0 (the ceiling: any depth, slot deduplication, no ancestry condition). The ceiling stands
+    in for `--old`, which deduplicates by block and differs at U = 1 (§3.2).
+  - Rule: every fork block between an entry and the chain is referenced by the chain or
+    carried in the same block. The window is measured to the fork point, and the cap is
+    shared. The selector carries a missing fork block first when the cap, its view and the
+    window allow it; otherwise it takes a cheaper entry. `tsi.countable_refs` and both kernels
+    in `measure.py` accept the same entries.
+  - Gates:
+    - `tests/test_deeper_refs.py`: the oracle and both kernels on a hand-built fork (depths
+      1–4, every depth setting, both anchors); the kernels against the oracle on simulated
+      trees; selection and counting agree end to end; the selector unlocks, skips and orders
+      as specified.
+    - `test_lost_slots_match_the_measured_count` extended to depth 2 and the ceiling.
+    - Thirteen mutations each fail a test. Depth 1 reproduces three Phase 0 cells bit for bit.
+  - Sweeps: 20 paired replicates, the spec 1.2.5 rule, N = 1 000, Blend with 3 hops. ρ comes
+    from `rho_for`. Analysis: `scripts/depth_analysis.py`.
+    - `configs/depth-overload-paired.yaml`: k = 2160, ρ ≈ 0.36 / 0.56 / 0.96 / 1.76,
+      U = 0 / 1 / 2 / 4, depths 1 / 2 / 3 / 0.
+    - `configs/depth-rho-boundary-paired.yaml`: k = 256, ten loads from ρ ≈ 0.56 to 1.96,
+      U = 1 / 2 / 3, depths 1 / 2 / 0.
+    - `configs/depth-fine-paired.yaml`: k = 2160, ρ ≈ 0.21–0.41, U = 1 / 2 / 4, depths 1 / 0.
+    - The §3.7 N-scaling was not run. N moves accuracy only through ρ, which the boundary
+      sweep covers directly.
+  - Checks:
+    - U = 0 is bit-identical in all 80 pairs of every deeper arm.
+    - Counting rejected no entry that selection emitted, in any of the 3 680 trajectories
+      (`deep_ref_share` = 0).
+    - The δ_max = 4 cells of the overload and fine sweeps agree in every column of every
+      epoch row.
+    - No arm sits above D̂/D = 1 beyond noise (largest z = 1.97 over 184 cells).
+  - Significance: the U ≥ 1 gaps of each printed table form one family, tested by Bonferroni
+    at 5 % with the Student t quantile at 19 degrees of freedom (thresholds 3.35–3.96).
+  - Equilibrium D̂/D on the overload grid, with paired gaps (mean ± SEM; * resolved):
+
+    | ρ | U | depth 1 | depth 2 | depth 2 − 1 | depth 3 − 2 | ceiling − depth 2 |
+    |---|---|---|---|---|---|---|
+    | 0.36 | 2 | 0.9975 | 0.9991 | +0.0016 ± 0.0006 | −0.0003 ± 0.0004 | −0.0003 ± 0.0004 |
+    | 0.36 | 4 | 0.9999 | 1.0001 | +0.0003 ± 0.0006 | +0.0001 ± 0.0003 | +0.0001 ± 0.0003 |
+    | 0.56 | 2 | 0.9960 | 0.9998 | +0.0037 ± 0.0005 * | −0.0005 ± 0.0004 | −0.0003 ± 0.0005 |
+    | 0.56 | 4 | 0.9967 | 0.9986 | +0.0019 ± 0.0006 | +0.0009 ± 0.0007 | +0.0011 ± 0.0006 |
+    | 0.96 | 2 | 0.9861 | 0.9981 | +0.0120 ± 0.0009 * | −0.0001 ± 0.0007 | +0.0002 ± 0.0005 |
+    | 0.96 | 4 | 0.9868 | 0.9993 | +0.0125 ± 0.0009 * | +0.0002 ± 0.0006 | +0.0001 ± 0.0005 |
+    | 1.76 | 2 | 0.9220 | 0.9568 | +0.0348 ± 0.0014 * | +0.0017 ± 0.0005 | +0.0018 ± 0.0003 * |
+    | 1.76 | 4 | 0.9492 | 0.9892 | +0.0400 ± 0.0022 * | +0.0017 ± 0.0006 | +0.0027 ± 0.0006 * |
+
+  - Reading:
+    - Up to ρ ≈ 0.96 depth 2 recovers what the ceiling recovers: no ceiling − depth 2 gap is
+      resolved there (largest |t| = 1.8). On the boundary grid (k = 256) none is resolved up
+      to ρ ≈ 1.96 (largest |t| = 1.9).
+    - At ρ ≈ 1.76 the slots beyond depth 2 are worth +0.0018 ± 0.0003 (U = 2) and
+      +0.0027 ± 0.0006 (U = 4), both resolved. Depth 3 alone gains +0.0017 in both cells,
+      from about 0.17 pp of depth-3 slots, and is not resolved (|t| = 3.1–3.2 against 3.74).
+      Either way the gain beyond depth 2 is under a third of the ±0.9 % per-epoch noise, so
+      depth 3 fails the accuracy part of the Phase 6 gate at every load measured.
+    - Depth 2 is not resolved at ρ ≈ 0.36. On the overload grid at ρ ≈ 0.56 it gains
+      0.19–0.37 pp, resolved at U = 1 and 2. At U ≥ 2 its gain passes the ±0.9 % per-epoch
+      noise from ρ ≈ 0.9: on the boundary grid at U = 2 it is +0.0086 at ρ ≈ 0.76 and +0.0106
+      at ρ ≈ 0.91.
+    - At U = 4, depth 2 keeps D̂/D at 0.9986 or above up to ρ ≈ 0.96. At ρ ≈ 1.76 it gives
+      0.9892, against 0.9492 at depth 1. At U = 3 on the boundary grid it gives 0.9932 at
+      ρ ≈ 1.56 and 0.9669 at ρ ≈ 1.96, against 0.9581 and 0.9173.
+    - At U = 1, depth 2 gains at most +0.0104 ± 0.0021 (ρ ≈ 1.16), and under 0.005 past
+      ρ ≈ 1.2, where depth-1 loss reaches 16–33 %. An entry whose parent is not yet
+      referenced costs two entries, which U = 1 cannot carry.
+    - In the design band (fine sweep, ρ ≈ 0.21–0.41) the ceiling gains at most
+      +0.0015 ± 0.0004 (ρ ≈ 0.41, U = 4, |t| = 4.1, the only resolved cell). That is a sixth
+      of the per-epoch noise.
+    - The §4 pilot predicted the gain. Its depth-2 ceiling at U = 4 was 0.07 / 0.23 / 1.2 /
+      4.1–4.6 pp. The measured depth-2 gains are 0.03 / 0.19 / 1.25 / 4.00 pp.
+  - Cap pressure: at U = 4 every deeper arm raises depth-1 loss at ρ ≈ 1.76, by
+    +0.101 ± 0.014 pp (depth 2), +0.110 ± 0.010 (depth 3) and +0.109 ± 0.011 (ceiling). At
+    ρ ≤ 0.96 the rise is at most 0.007 pp and not resolved. Under overload at U = 1 and 2 it
+    is 0.27–0.48 pp at ρ ≈ 1.76. The D̂/D gains above are net of it.
+  - Residual: at ρ ≈ 1.76 and U = 4, depth 2 and the ceiling leave the same 0.27 pp of
+    depth-2 slots uncounted. The window, the cap and the proposer's view bind those slots, not
+    the ancestry condition.
 - **Phase 3 — the minimal rule set for route A.**
   - The recursive parent rule.
   - The lag `L` as one constant, with its constraint where it is defined: `L ≥ max depth − 1`.
@@ -215,8 +283,9 @@ Every gate must be shown to fail under a mutation of the code it guards before i
 
 1. Is a lag of `ledger_LATEST` acceptable to the PoL owners, at `L = 1` and at `L = 2`? This
    blocks Phase 3 onward.
-2. What ρ does production expect (Blend budget, N, peering degree)? Up to ρ ≈ 0.56 the
-   depth-2 ceiling is under 0.25 pp, well inside the ±0.9 % per-epoch noise.
+2. What ρ does production expect (Blend budget, N, peering degree)? Depth 2 gains under
+   0.4 pp up to ρ ≈ 0.56. At U ≥ 2 it passes the ±0.9 % per-epoch noise from ρ ≈ 0.9
+   (Phase 2).
 3. ~~Should the simulator defaults move to the spec 1.2.5 rule?~~ Decided 2026-10-19: not on
    this branch. Its configs set the spec rule explicitly. Moving the defaults is a separate
    task, done together with re-pinning the report to 1.2.5 (§7).
