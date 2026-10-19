@@ -156,7 +156,8 @@ def equilibrium(df: pd.DataFrame, burn_frac: float = 0.5) -> pd.DataFrame:
     agg = {c: (c, "mean") for c in
            ("mean_ratio", "range_ratio", "iqr_ratio", "agreement_window", "agreement_tip",
             "mean_q", "mean_q_eff", "mean_orphan_rate", "max_ratio", "min_ratio",
-            "deep_ref_share", "p_ref", "fork_rate")
+            "deep_ref_share", "p_ref", "fork_rate", "lost_d1_share", "lost_d2_share",
+            "lost_d2_parent_ref_share", "lost_d3_share", "lost_d4plus_share")
            if c in tail.columns}
     return tail.groupby([*cfg_cols, "replicate"], as_index=False).agg(**agg)
 

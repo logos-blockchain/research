@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from tsi_sim.blocktree import BlockTree
 from tsi_sim.config import SimConfig
@@ -54,3 +55,80 @@ def test_engine_reports_fork_columns():
     # heavy delay -> real forks
     assert df[df.epoch >= 4].fork_rate.mean() > 0.0
     assert df.max_reorg_depth.max() >= 1
+
+
+def _lost_slots_tree():
+    """Window [0, 20); canonical 1(s0) 2(s2) 5(s5) 11(s10) 12(s11) 13(s12) 15(s25) 16(s26).
+
+    Fork off 2: 3(s3, depth 1) -> 4(s4, d2) -> 6(s6, d3) -> 7(s7, d4) -> 14(s14, d5), and a
+    second child of 3, 8(s7, d2), sharing slot 7 with the depth-4 block 7.
+    Fork off 5: 9(s8, d1) -> 10(s9, d2).
+    Block 5 (in the window) carries uncle 3; block 15 (past the window) carries uncle 9.
+    """
+    #             id: 0   1  2  3  4  5  6  7  8  9 10  11  12  13  14  15  16
+    tree = make_tree([-1, 0, 2, 3, 4, 5, 6, 7, 7, 8, 9, 10, 11, 12, 14, 25, 26],
+                     [-1, 0, 1, 2, 3, 2, 4, 6, 3, 5, 9, 5, 11, 12, 7, 13, 15],
+                     [0, 1, 2, 3, 4, 3, 5, 6, 4, 4, 5, 4, 5, 6, 7, 7, 8])
+    tree.uncles[5] = (3,)
+    tree.uncles[15] = (9,)
+    return tree
+
+
+def test_lost_slots_by_depth_and_scope():
+    from tsi_sim.fork import lost_slots
+
+    tree = _lost_slots_tree()
+    # Window scope (the spec rule): only block 5's reference counts, so slot 3 is covered.
+    # Lost: s4 (d2, parent 3 counted), s6 (d3), s7 (shallowest d2 via block 8, parent 3
+    # counted), s8 (d1), s9 (d2, parent 9 not counted), s14 (d5, filed under >= 4).
+    w = lost_slots(tree, None, T=20, cutoff=100, scope_refs=True)
+    assert w.occupied == 13
+    assert w.by_depth == (1, 3, 1, 1)
+    assert w.d2_parent_ref == 2
+    # Chain scope: block 15's reference reaches back and covers slot 8, so its child's slot 9
+    # now has a counted parent too.
+    c = lost_slots(tree, None, T=20, cutoff=100, scope_refs=False)
+    assert c.occupied == 13
+    assert c.by_depth == (0, 3, 1, 1)
+    assert c.d2_parent_ref == 3
+
+
+@pytest.mark.parametrize("model,scope", [("countable", "window"), ("countable", "chain"),
+                                         ("old", "window")])
+def test_lost_slots_match_the_measured_count(monkeypatch, model, scope):
+    """occupied - lost must equal the slot count measure() hands the estimator, exactly."""
+    import tsi_sim.engine as engine
+    import tsi_sim.epoch as ep
+    from tsi_sim.fork import lost_slots
+
+    seen: dict = {}
+    build, sim = ep.build_tree_pernode, engine.simulate_epoch
+
+    def capture_tree(*a, **kw):
+        seen["tree"], seen["A"] = build(*a, **kw)
+        return seen["tree"], seen["A"]
+
+    def capture_result(*a, **kw):
+        seen["er"] = sim(*a, **kw)
+        return seen["er"]
+
+    monkeypatch.setattr(ep, "build_tree_pernode", capture_tree)
+    monkeypatch.setattr(engine, "simulate_epoch", capture_result)
+    cfg = SimConfig(n_nodes=300, stake_dist="pareto", topology="blend", degree=6,
+                    link_latency_mean=0.5, link_latency_dist="geo", blend_hops=3,
+                    blend_delay_max=32.0, max_uncles=2, uncle_model=model, ref_scope=scope,
+                    uncle_window_anchor="parent", window_absorption=12.0, k=64, epochs=2,
+                    genesis_d_factor=1.0)
+    run_trajectory(cfg)
+    tree, A, er = seen["tree"], seen["A"], seen["er"]
+    lost = lost_slots(tree, A, cfg.period_T, cfg.epoch_len,
+                      scope_refs=scope == "window" and model != "old")
+    assert lost.lost > 0                                     # the fixture loses slots
+    if model == "countable":
+        assert lost.by_depth[1] > 0      # ...and has deep forks the first-fork rule misses
+    assert er.agreement_window == 1.0                        # one chain over the window
+    assert lost.occupied == er.n_active_window
+    assert np.all(er.m == lost.occupied - lost.lost)
+    shares = (er.lost_d1_share, er.lost_d2_share, er.lost_d3_share, er.lost_d4plus_share)
+    assert shares == tuple(n / lost.occupied for n in lost.by_depth)
+    assert er.lost_d2_parent_ref_share == lost.d2_parent_ref / lost.occupied

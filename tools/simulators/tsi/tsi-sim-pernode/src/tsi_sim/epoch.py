@@ -35,6 +35,14 @@ class EpochResult:
                               # (uncountable by construction, §2.1)
     deep_ref_share: float     # share of examined references rejected by the parent-on-chain
                               # (first-fork) counting rule; 0 under the old model
+    # Occupied window slots the count misses, as shares of all occupied window slots, by the
+    # smallest fork depth among their blocks (fork.lost_slots). They sum to the shortfall of
+    # the counted slots against the occupied ones.
+    lost_d1_share: float
+    lost_d2_share: float
+    lost_d2_parent_ref_share: float   # ...depth-2 slots whose fork's first block is counted
+    lost_d3_share: float
+    lost_d4plus_share: float
 
 
 def _canonical_producer_split(
@@ -126,6 +134,10 @@ def simulate_epoch(
         tree, A, T, cutoff=E, coalition_mask=attribution)
     ref_total = int(ms.ref_total.sum())
     deep_ref_share = (int(ms.ref_deep.sum()) / ref_total) if ref_total else 0.0
+    # measure() scopes references to the window under the countable model only.
+    lost = fork.lost_slots(tree, A, T, cutoff=E,
+                           scope_refs=config.ref_scope == "window" and config.uncle_model != "old")
+    occ = lost.occupied or 1
 
     return EpochResult(
         d_next=d_next, m=ms.m, q=ms.q, q_eff=ms.q_eff, n_blocks=tree.n_blocks - 1,
@@ -136,4 +148,7 @@ def simulate_epoch(
         fork_rate=fork_rate, max_reorg_depth=max_reorg_depth, mean_reorg_depth=mean_reorg_depth,
         p_ref=p_ref, p_ref_honest=p_ref_honest, deep_orphan_share=deep_orphan_share,
         deep_ref_share=deep_ref_share,
+        lost_d1_share=lost.by_depth[0] / occ, lost_d2_share=lost.by_depth[1] / occ,
+        lost_d2_parent_ref_share=lost.d2_parent_ref / occ, lost_d3_share=lost.by_depth[2] / occ,
+        lost_d4plus_share=lost.by_depth[3] / occ,
     )

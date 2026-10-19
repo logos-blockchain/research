@@ -69,5 +69,10 @@ def divergence_row(
         p_ref_honest=er.p_ref_honest,
         deep_orphan_share=er.deep_orphan_share,
         deep_ref_share=er.deep_ref_share,
+        lost_d1_share=er.lost_d1_share,
+        lost_d2_share=er.lost_d2_share,
+        lost_d2_parent_ref_share=er.lost_d2_parent_ref_share,
+        lost_d3_share=er.lost_d3_share,
+        lost_d4plus_share=er.lost_d4plus_share,
     )
     return row
