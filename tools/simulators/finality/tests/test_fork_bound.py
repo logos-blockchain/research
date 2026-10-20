@@ -5,8 +5,8 @@ import math
 import numpy as np
 import pytest
 
-from finality_sim.fork_bound import (blocks_below, blocks_pmf, conditional_mean, deepest_fork,
-                                     fork_sample, gmin_bound)
+from finality_sim.fork_bound import (blocks_below, blocks_pmf, conditional_mean, crossing_chance,
+                                     deepest_fork, fork_sample, gmin_bound)
 from finality_sim.nonce import _rates, min_rule_choices
 
 F = 1 / 30
@@ -81,18 +81,47 @@ def test_the_bound_lies_above_the_conditional_mean_and_adds_up():
     short = gmin_bound(F, 1 / 3, 2_880, 40, delta=10)
     g, _ = min_rule_choices(F, 1 / 3, 77_760, 3_000, 3, sub_windows=27, delta=10, near_slots=10_000)
     assert short["cross"] > 10 * b["cross"] and short["bound"] >= g.mean()
-    # the crossing term is the sum its pieces describe: the emptied sub-window's factor c + A_0,
-    # weighted by the previous sub-window's bound at the offset A_0 + Z - N, where that is positive
-    from finality_sim.fork_bound import _crossing, _crossing_parts
-    n_max = 2_880 // 11 + 1
-    harm = np.concatenate(([0.0], np.cumsum(1.0 / np.arange(1, n_max + 2))))
-    c = 1.0 + harm[n_max]
-    phi, pz, p_n, ws, p_w = _crossing_parts(F, 1 / 3, 2_880, 40, None, 10, 200, harm, c)
-    total = 0.0
-    for w, pw in zip(ws, p_w):
-        for z, pzz in enumerate(pz):
-            for n, pn in enumerate(p_n):
-                o = w + z - n
-                if o >= 1:
-                    total += pw * pzz * pn * (c + w) * phi[min(o, phi.size - 1)]
-    assert _crossing(F, 1 / 3, 2_880, 40, None, 10, 200, harm, c) == pytest.approx(total, rel=1e-9)
+
+
+@pytest.mark.parametrize("kw", [dict(growth=0.845), dict(delta=10)])
+def test_the_crossing_law_is_the_share_of_windows_whose_deepest_fork_empties_the_sub_window(kw):
+    """The law the crossing term weighs, including the offsets the previous sub-window's wins
+    complete, against the windows drawn slot by slot: exact under random delay, from above under a
+    worst case."""
+    from finality_sim.formation import _enumeration_windows
+    a, h, dead, _ = _rates(F, 1 / 3, kw.get("growth"), kw.get("delta"))
+    for sub in (1_440, 2_880):
+        _, d_max, n0, _, _ = _enumeration_windows(20_000, h, a, dead, 8_000, sub, 17, 1)
+        share = float(np.mean(d_max >= n0))
+        sem = math.sqrt(share * (1 - share) / d_max.size)
+        law = crossing_chance(F, 1 / 3, sub, **kw)
+        if "growth" in kw:
+            assert law == pytest.approx(share, abs=4 * sem)
+        else:
+            assert share - 2 * sem <= law <= 1.25 * share
+
+
+def test_the_crossing_term_weighs_the_emptied_sub_window_by_its_wins():
+    """At a short sub-window, the crossing term's weight on the emptied sub-window, ``c + A_0`` over
+    the crossing law, is the windows' own ``c + A_0`` summed where the deepest fork empties the
+    sub-window: exactly under random delay, from above under a worst case; and the term, which
+    multiplies it by the previous sub-window's factor, lies above it."""
+    from finality_sim.fork_bound import _crossing_parts, _crossing_sum, _emptied
+    from finality_sim.formation import _enumeration_windows
+    sub = 2_880
+    for kw in (dict(growth=0.845), dict(delta=10)):
+        a, h, dead, _ = _rates(F, 1 / 3, kw.get("growth"), kw.get("delta"))
+        _, d_max, n0, _, a0 = _enumeration_windows(20_000, h, a, dead, 8_000, sub, 23, 1)
+        n_max = sub // (dead + 1) + 1 if dead else sub
+        harm = np.concatenate(([0.0], np.cumsum(1.0 / np.arange(1, n_max + 2))))
+        c = 1.0 + harm[n_max]
+        weight = (c + a0) * (d_max >= n0)
+        sampled, sem = float(weight.mean()), float(weight.std() / math.sqrt(weight.size))
+        os_, phi, mass, pz, p_n, ws, p_w = _crossing_parts(F, 1 / 3, sub, 35, kw.get("growth"), kw.get("delta"),
+                                                            200, harm, c)
+        law = _crossing_sum(os_, mass, pz, p_n, ws, p_w, _emptied(c))
+        if "growth" in kw:
+            assert law == pytest.approx(sampled, abs=4 * sem)
+        else:
+            assert sampled - 2 * sem <= law <= 1.3 * sampled
+        assert gmin_bound(F, 1 / 3, sub, 35, **kw)["cross"] >= law > 0.5

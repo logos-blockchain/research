@@ -3,7 +3,7 @@
 # targets; `make tables` prints the notes' tables from runs/, and `make check-tables` checks that
 # each appears verbatim in a note.
 .PHONY: install test mutations firstlook mapping a1 b2 b3 b4 b5 b6 b7 recovery c1 c3 c4 d0 d1b d5 d6 e2 \
-        e5 further designs all tables check-tables octave-reference clean
+        e5 further designs j1 j2 j3 all tables check-tables octave-reference clean
 
 VENV   ?= .venv
 PYTHON ?= $(HOME)/.pyenv/versions/3.13.7/bin/python
@@ -32,8 +32,10 @@ firstlook:
 mapping: install              # MAPPING.md
 	$(PY) scripts/mapping_numbers.py
 
-a1: install                   # RATE.md, A1 (about 10 s)
+a1: install                   # RATE.md, A1 (about 10 s), its release round and the convention (about 3 minutes on 4 cores)
 	$(PY) scripts/a1_baseline.py
+	$(PY) scripts/a1_baseline.py release
+	$(PY) scripts/a1_convention.py
 
 c1: install                   # RATE.md, C1 (about 10 s; needs nothing else)
 	$(PY) scripts/c1_rate.py
@@ -65,7 +67,7 @@ b6: install                   # SETTLEMENT.md, B6 grinding (about 4 minutes on 1
 b7: install                   # SETTLEMENT.md, B7 nonce (about 3 minutes on 14 cores; needs a1, b2)
 	$(PY) scripts/b7_nonce.py
 
-recovery: install             # SETTLEMENT.md, B5 automatic recovery (about 30 s; needs a1); the engine's partition about 30 minutes on 14 cores
+recovery: install             # SETTLEMENT.md, B5 automatic recovery (about 30 s; needs a1); the engine's partition about 20 minutes on 4 cores
 	$(PY) scripts/b5_recovery.py
 	$(PY) scripts/b5_recovery_sweep.py
 	$(PY) scripts/b5_partition.py
@@ -107,10 +109,20 @@ designs: install              # PLAN.md phase H: H.1, H.2, H.3 (about 10 minutes
 	$(PY) scripts/h3_time_rule.py
 	$(PY) scripts/i2_discriminant.py
 
-all: a1 c1 c3 c4 b2 b3 b4 b5 recovery d0 d1b d5 d6 e2 e5 b6 b7 further designs
+j1: install                   # DAG.md J.1 (seconds; needs circom 2.2.2 and logos-blockchain-circuits v0.5.6)
+	$(PY) scripts/j1_circuit.py
+
+j2: install                   # DAG.md J.2 (about 25 minutes on 4 cores; needs b2 and e5)
+	$(PY) scripts/j2_attacks.py
+
+j3: install                   # DAG.md J.3 (about 5 minutes on 4 cores)
+	$(PY) scripts/j3_regions.py
+	$(PY) scripts/j3_bound.py
+
+all: a1 c1 c3 c4 b2 b3 b4 b5 recovery d0 d1b d5 d6 e2 e5 b6 b7 further designs j2 j3
 
 tables: install
-	for t in a1 c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b5part b6 b7 d0 d1b d3 d5 d6 e2 e5 e5balance g1 g3 g4 g6 g7 h1 h2 h3 b5eng i2; do \
+	for t in a1 a1release a1conv c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b5part b6 b7 d0 d1b d3 d5 d6 e2 e5 e5balance g1 g3 g4 g6 g7 h1 h2 h3 b5eng i2 j1 j2 j3 j3bound; do \
 		$(PY) scripts/tables.py $$t; done
 
 check-tables: install

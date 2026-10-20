@@ -32,6 +32,11 @@ from . import constants
 from .config import SimConfig
 from .memguard import check_alloc
 
+# How long before the sender's deadline a hostile last relay releases a block it holds to the
+# deadline (blend_adversary_action == "deadline"), in slots: the broadcast must reach the sender
+# before the deadline for its fallback not to fire.
+DEADLINE_MARGIN = 0.01
+
 
 def _circulant_edges(n: int, degree: int) -> set[tuple[int, int]]:
     """A valid d-regular base graph (ring lattice); randomised later by edge swaps."""
@@ -150,12 +155,16 @@ def _blend_arrival_column(
     ``Uniform(0, blend_delay_max)`` mixing delay before forwarding. The last relay's forward is
     the final network-wide gossip that makes the block visible. Relays are blind forwarders, so
     every node — relays included — first learns the block from that final gossip; only the
-    producer knows it earlier (handled by the caller). With ``config.blend_adversary_relays`` a
-    relay in ``adversary_mask`` holds the block for the longest delay, ``blend_delay_max``, or
-    with ``blend_adversary_action == "drop"`` drops it. ``config.blend_copies`` copies go through
-    independent cascades and the block arrives with the first; when every copy is dropped the
-    producer gossips it directly ``1 + config.blend_fallback_slots`` after the slot. During a
-    partition a copy whose relay lies across the cut from the producer is lost.
+    producer knows it earlier (handled by the caller). The first cascade starts at the slot, or
+    with ``config.blend_release_next_round`` at the next round, slot + 1. With
+    ``config.blend_adversary_relays`` a relay in ``adversary_mask`` holds the block for the
+    longest delay, ``blend_delay_max``, or with ``blend_adversary_action == "drop"`` drops it;
+    with ``"deadline"`` a hostile last relay then holds it until just before the sender's
+    deadline, ``slot + 1 + config.blend_fallback_slots`` less the gossip back to the sender.
+    ``config.blend_copies`` copies go through independent cascades and the block arrives with the
+    first; when every copy is dropped the producer gossips it directly
+    ``1 + config.blend_fallback_slots`` after the slot. During a partition a copy whose relay lies
+    across the cut from the producer is lost.
     """
     n = path_latency.shape[0]
     hops = int(config.blend_hops)
@@ -164,16 +173,19 @@ def _blend_arrival_column(
     rounds = config.blend_delay_dist == "rounds"
     hostile = config.blend_adversary_relays and adversary_mask is not None
     drop = hostile and config.blend_adversary_action == "drop"
+    deadline = (float(slot) + 1.0 + float(config.blend_fallback_slots)
+                if hostile and config.blend_adversary_action == "deadline" else None)
+    release = float(slot) + (1.0 if config.blend_release_next_round else 0.0)
     cut = (partition_mask is not None
            and config.partition_start <= slot < config.partition_start + config.partition_slots)
     side = bool(partition_mask[producer]) if cut else False
     best = None                                            # earliest arrival over the copies
     for _ in range(int(config.blend_copies)):
         relays = rng.choice(pool, size=hops, replace=False)
-        t = float(slot)
+        t = release
         src = int(producer)
         lost = False
-        for r in relays.tolist():                 # transport leg, then this relay's mix delay
+        for i, r in enumerate(relays.tolist()):   # transport leg, then this relay's mix delay
             t += float(path_latency[src, r])
             if cut and bool(partition_mask[r]) != side:    # a relay across the cut: the copy is lost
                 lost = True
@@ -183,6 +195,8 @@ def _blend_arrival_column(
                     lost = True
                     break
                 t += float(int(delay_max)) if rounds else delay_max
+                if deadline is not None and i == hops - 1:      # the last relay reads the slot
+                    t = max(t, deadline - float(path_latency[r, producer]) - DEADLINE_MARGIN)
             elif rounds:                          # whole rounds, uniform on [1, delay_max]
                 t += float(rng.integers(1, int(delay_max) + 1))
             else:
@@ -222,11 +236,19 @@ def arrival_column(
             col = col + extra
         else:
             col = col + rng.exponential(config.jitter_mean, size=col.shape)
-    if partition_mask is not None and config.partition_slots > 0:
-        start = float(config.partition_start)
-        end = start + float(config.partition_slots)
-        far = partition_mask != partition_mask[producer]
-        inside = (col >= start) & (col < end)
-        col = np.where(far & inside, end + path_latency[producer].astype(np.float64), col)
+    col = across_cut(col, path_latency, producer, config, partition_mask)
     col[producer] = float(slot)                        # producer sees own block instantly
     return col
+
+
+def across_cut(col: np.ndarray, path_latency: np.ndarray, producer: int, config: SimConfig,
+               partition_mask: np.ndarray | None) -> np.ndarray:
+    """Arrivals of ``producer``'s block across a partition's cut that fall within the
+    partition's slots, moved to the span's end plus the path latency."""
+    if partition_mask is None or config.partition_slots <= 0:
+        return col
+    start = float(config.partition_start)
+    end = start + float(config.partition_slots)
+    far = partition_mask != partition_mask[producer]
+    inside = (col >= start) & (col < end)
+    return np.where(far & inside, end + path_latency[producer].astype(np.float64), col)

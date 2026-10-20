@@ -159,7 +159,8 @@ def _coalition_ids(config: SimConfig, stake: np.ndarray,
 def _partition_mask(config: SimConfig, stake: np.ndarray,
                     adversary_mask: np.ndarray | None) -> np.ndarray | None:
     """One side of a network partition: honest nodes in a random order until their stake reaches
-    ``partition_share`` of all stake, as the random coalition is drawn. ``None`` without a
+    ``partition_share`` of all stake, as the random coalition is drawn, and with
+    ``partition_adversary_side == "side"`` the coalition's nodes too. ``None`` without a
     partition. Seeded apart from every other stream, so a run without one is bit-identical to
     before."""
     if config.partition_share <= 0.0:
@@ -172,6 +173,8 @@ def _partition_mask(config: SimConfig, stake: np.ndarray,
     take = int(np.searchsorted(np.cumsum(stake[order]), target, side="left")) + 1
     mask = np.zeros(config.n_nodes, dtype=bool)
     mask[order[:min(take, order.size)]] = True
+    if adversary_mask is not None and config.partition_adversary_side == "side":
+        mask |= adversary_mask
     return mask
 
 
@@ -265,6 +268,8 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
 
     # sawtooth schedules must run their full budget; the detector would misread a rejoin ramp
     allow_early = config.early_stop and config.adversary_period == 0
+    # The partition's slots are counted within an epoch, so it splits the first epoch only.
+    partition = _partition_mask(config, stake, adv_mask)
 
     rows: list[dict[str, Any]] = []
     stop_after: int | None = None
@@ -283,7 +288,7 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
             active_stake_frac = float(stake[~inactive_mask].sum() / d_true) * active_stake_frac
         er = simulate_epoch(config, stake, d_est, path_latency, children[epoch + 3],
                             adversary_mask=behaviour_mask, coalition_mask=adv_mask,
-                            partition_mask=_partition_mask(config, stake, adv_mask),
+                            partition_mask=partition if epoch == 0 else None,
                             coalition_ids=coal_ids,
                             inactive_mask=inactive_mask)
         row = divergence_row(config, epoch, d_est, er, d_true)

@@ -38,11 +38,11 @@ from tsi_sim.rng import seedseq_for
 from tsi_sim.stake import make_stake
 
 
-def _tree(config: SimConfig):
-    """The engine's block tree with every node's stake estimate at the true stake: ``(tree,
-    arrival, stake, mask, side, public)`` with ``arrival[i, b]`` the slot block ``b`` reaches node
-    ``i``, ``mask`` the coalition's nodes (all false without one), ``side`` one side of a
-    partition or ``None``, and ``public`` the honest blocks."""
+def _tree(config: SimConfig, stake_scale: float = 1.0):
+    """The engine's block tree with every node's stake estimate at ``stake_scale`` times the true
+    stake: ``(tree, arrival, stake, mask, side, public)`` with ``arrival[i, b]`` the slot block
+    ``b`` reaches node ``i``, ``mask`` the coalition's nodes (all false without one), ``side`` one
+    side of a partition or ``None``, and ``public`` the honest blocks."""
     if config.adversary_strategy != "withhold":
         raise ValueError("needs adversary_strategy='withhold'")
     root = seedseq_for(config)
@@ -51,7 +51,7 @@ def _tree(config: SimConfig):
     mask = _adversary_mask(config, stake)
     side = _partition_mask(config, stake, mask)
     path_latency = topology.build_path_latency(config, np.random.default_rng(c_graph))
-    d_est = np.full(config.n_nodes, float(stake.sum()))
+    d_est = np.full(config.n_nodes, float(stake.sum()) * stake_scale)
     p = lottery.win_probs(stake, d_est, config.f)
     slots, nodes = lottery.sample_wins(p, config.epoch_len, np.random.default_rng(c_lottery))
     active, groups = lottery.group_by_slot(slots, nodes)
@@ -72,13 +72,14 @@ def partition_tree(config: SimConfig):
     return _tree(config)
 
 
-def withhold_tree(config: SimConfig):
+def withhold_tree(config: SimConfig, stake_scale: float = 1.0):
     """The engine's block tree under a withholding coalition: ``(tree, arrival, mask, public,
     canonical)`` with ``arrival[i, b]`` the slot block ``b`` reaches node ``i``, ``mask`` the
-    coalition's nodes, ``public`` the honest blocks and ``canonical`` the best public chain."""
+    coalition's nodes, ``public`` the honest blocks and ``canonical`` the best public chain.
+    ``stake_scale`` as in ``_tree``."""
     if config.adversary_frac <= 0:
         raise ValueError("needs adversary_frac > 0")
-    tree, arrival, _, mask, _, public = _tree(config)
+    tree, arrival, _, mask, _, public = _tree(config, stake_scale)
     # best public tip: highest, then earliest slot, then lowest id
     ids = np.nonzero(public)[0]
     order = np.lexsort((-ids, -tree.slot[ids], tree.height[ids]))
@@ -90,9 +91,10 @@ def withhold_tree(config: SimConfig):
     return tree, arrival, mask, public, canonical
 
 
-def withhold_timelines(config: SimConfig) -> tuple[np.ndarray, np.ndarray, float]:
+def withhold_timelines(config: SimConfig,
+                       stake_scale: float = 1.0) -> tuple[np.ndarray, np.ndarray, float]:
     """Canonical slots, the coalition's distinct winning slots, and the honest orphan share."""
-    tree, _, mask, public, canonical = withhold_tree(config)
+    tree, _, mask, public, canonical = withhold_tree(config, stake_scale)
     adv = mask[tree.leader.clip(min=0)] & (tree.slot >= 0)
     canon_slots = np.sort(tree.slot[canonical]).astype(np.int64)
     adv_slots = np.unique(tree.slot[adv]).astype(np.int64)
@@ -100,17 +102,21 @@ def withhold_timelines(config: SimConfig) -> tuple[np.ndarray, np.ndarray, float
     return canon_slots, adv_slots, float(orphan)
 
 
-def fallback_share(tree, arrival: np.ndarray, public: np.ndarray, fallback_slots: float) -> float:
-    """The share of honest blocks that reached their first other node no sooner than the sender's
-    fallback would deliver them, ``1 + fallback_slots`` after the slot: under dropping relays, the
-    blocks every copy of which was dropped."""
-    ids = np.nonzero(public)[0]
-    first = np.empty(ids.size)
-    for j, b in enumerate(ids):
+def fallback_blocks(tree, arrival: np.ndarray, public: np.ndarray, fallback_slots: float) -> np.ndarray:
+    """The honest blocks that reached their first other node no sooner than the sender's fallback
+    would deliver them, ``1 + fallback_slots`` after the slot: under dropping relays, the blocks
+    every copy of which was dropped."""
+    out = np.zeros(public.size, dtype=bool)
+    for b in np.nonzero(public)[0]:
         col = arrival[:, b].copy()
         col[int(tree.leader[b])] = np.inf                     # the producer holds it from the slot
-        first[j] = col.min() - tree.slot[b]
-    return float(np.mean(first >= 1.0 + fallback_slots))
+        out[b] = col.min() - tree.slot[b] >= 1.0 + fallback_slots
+    return out
+
+
+def fallback_share(tree, arrival: np.ndarray, public: np.ndarray, fallback_slots: float) -> float:
+    """The share of honest blocks delivered by the sender's fallback (``fallback_blocks``)."""
+    return float(fallback_blocks(tree, arrival, public, fallback_slots)[public].mean())
 
 
 @njit(cache=True)

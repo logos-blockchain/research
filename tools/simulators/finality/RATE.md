@@ -64,6 +64,76 @@ orphan share of 0.042; the specification's (3 hops, up to 3 rounds) gives 0.179.
 is the canonical chain's: with no attack, 30 blocks take 15–25 minutes and 100 blocks 50–90
 minutes across the table.
 
+**The release round.** The engine starts a block's cascade at the block's slot. The Blend
+specification releases every generated message at the next round, one round later
+(`tsi_sim`, `blend_release_next_round`). The study keeps the engine's release: it is the
+convention of the specification's stake-inference analysis, whose 0.15 the engine reproduces
+above, and of the TSI report. Measured on the specification's row
+(`scripts/a1_baseline.py release`, `runs/a1/release.csv`), with both releases of a run drawing the
+same stake, graph, lottery and mixing delays ("paired"), and on A1's own seeds:
+
+| seeds | runs | released | orphan share ± sem | growth / f ± sem | change, run by run | depth at 1e-9: 25 % / 30 % / a third |
+| --- | --- | --- | --- | --- | --- | --- |
+| A1's, its row | 8 | at the slot | 0.179 ± 0.005 | 0.845 ± 0.007 | – | 88 / 165 / 276 |
+| A1's | 32 | at the slot | 0.182 ± 0.002 | 0.834 ± 0.004 | – | 91 / 172 / 291 |
+| paired | 32 | at the slot | 0.180 ± 0.004 | 0.832 ± 0.005 | – | 91 / 173 / 294 |
+| paired | 32 | at the next round | 0.199 ± 0.004 | 0.812 ± 0.005 | -0.0196 ± 0.0007 | 96 / 186 / 324 |
+
+The depth is B5's closed form at the growth, the report's convention. On B3's settings, with a
+coalition withholding and honest relays, as G6 plays the race, 64 paired runs a cell:
+
+| α | copies | runs | orphans: at the slot / next round | growth / win: at the slot / next round | change, run by run | depth at 1e-9 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0.25 | 1 | 64 | 0.150 / 0.168 | 0.846 / 0.829 | -0.0176 ± 0.0004 | 88 / 92 (+5%) |
+| 0.30 | 1 | 64 | 0.142 / 0.159 | 0.853 / 0.836 | -0.0171 ± 0.0004 | 160 / 170 (+6%) |
+| 0.33 | 1 | 64 | 0.137 / 0.153 | 0.863 / 0.846 | -0.0164 ± 0.0004 | 255 / 274 (+7%) |
+| 0.25 | 2 | 64 | 0.135 / 0.153 | 0.862 / 0.844 | -0.0180 ± 0.0004 | 84 / 88 (+5%) |
+| 0.30 | 2 | 64 | 0.128 / 0.145 | 0.867 / 0.850 | -0.0172 ± 0.0003 | 153 / 162 (+6%) |
+| 0.33 | 2 | 64 | 0.122 / 0.139 | 0.878 / 0.860 | -0.0174 ± 0.0004 | 240 / 258 (+7%) |
+
+- **The engine's release is a round optimistic.** Released at the next round, every block waits
+  one round more: the honest orphan share rises by about two points and the growth falls by
+  0.016–0.020, measured run by run to within 0.001. The depth at `1e-9` grows by 5–7 % against a
+  withholding coalition and by 5–10 % at the convention's growth, most against a third: 294 to
+  324 blocks.
+- **Eight runs leave the convention's growth a sampling error of about 0.007.** A1's eight runs
+  of the specification's row give 0.845; the same seeds over 32 runs give 0.834, and 32 other
+  runs 0.832. With them the convention's depths are 172–173 and 291–294 blocks against 30 % and
+  a third, where 0.845 gives 165 and 276. Read as the depth of a chain on which every node
+  produces, A1's growth is therefore low by about 5 % from sampling, and by 5–10 % more from the
+  release round.
+
+**The convention, and the attack it stands for.** The report's random-delay depths read B5's
+closed form at A1's growth, eight runs on Pareto stakes, canonical blocks per slot over `f`: the
+report's convention, 165 / 276 blocks against 30 % / a third. G6 and G7 read the same form at the
+growth per honest win on B3's engine, whose stakes are equal. Per win takes the adversary's rate
+as `α·λ`, with `λ = −ln(1 − f) = 1.017·f`, where per `f` takes `α·f`; its exact rate,
+`1 − (1 − f)^α`, lies between. With every node producing, one copy released at the slot
+(`scripts/a1_convention.py`, `runs/a1/convention.csv`):
+
+| setting | runs | orphan share ± sem | growth / f ± sem | growth / win | depth at 1e-9, 30 %: per f / exact / per win | depth at 1e-9, a third: per f / exact / per win |
+| --- | --- | --- | --- | --- | --- | --- |
+| A1, Pareto stakes | 8 | 0.179 ± 0.005 | 0.845 ± 0.007 | 0.831 | 165 / 170 / 173 | 276 / 288 / 294 |
+| A1, Pareto stakes | 32 | 0.182 ± 0.002 | 0.834 ± 0.004 | 0.820 | 172 / 178 / 181 | 291 / 304 / 311 |
+| A1's seeds, equal stakes | 32 | 0.191 ± 0.001 | 0.819 ± 0.003 | 0.805 | 181 / 188 / 191 | 313 / 328 / 336 |
+| B3's engine, equal stakes | 64 | 0.192 ± 0.001 | 0.822 ± 0.002 | 0.808 | 179 / 186 / 189 | 307 / 322 / 329 |
+
+- **Three things lower the growth the convention reads, each worth 5–8 % of depth against a
+  third:** more runs, 0.845 to 0.834 per `f` and 276 to 291 blocks; equal stakes on the same
+  seeds, 0.834 to 0.819 and 291 to 313; and the unit, 313 per `f`, 328 at the exact rate and 336
+  per win. B3's engine with every node producing gives 329 per win, about a standard error from
+  A1's seeds on equal stakes, and 337 with the specification's two copies released a round later
+  (`FURTHER.md` G7). The engine's arms of G6 and G7 are read per win, which overstates the
+  adversary's rate by 0.6 %.
+- **The attack the convention stands for needs less.** A coalition that withholds every win
+  orphans no honest block with its own, so the chain it withholds from grows faster than one on
+  which every node produces. With honest relays its race needs 158 / 257 blocks with one copy
+  released at the slot and 160 / 261 with the specification's two copies released a round later
+  (`FURTHER.md` G7; 162 / 258 in the paired runs above). The convention covers the private attack
+  in both setups. It does not cover a chain under a deflated inference, on which the honest stake
+  alone produces as every node does here, nor relays that hold or drop blocks (`FURTHER.md` G6,
+  G7).
+
 ## C1 — block rate against delay
 
 Orphan share · growth / f, 0.1 s links, 8 replicates per cell, by block interval:
@@ -164,9 +234,21 @@ The longest-chain row equals the private-attack threshold of Dembo et al. (gated
 tolerates more. The analysis is for proof of work. For proof of stake the paper adds that GHOST
 "provides no security (for any parameters) with unconstrained equivocation". Cryptarchia's lottery
 lets one win sign blocks on any branch, so a weighted fork choice would also need each win to add
-weight once (`PLAN.md` E3 names the tag that could enforce it, `ρ_LEAD`). H4 is refuted for a delay
-chosen by an adversary. Under random delay it was not tested on the chain; E2's DAG, which weighs
+weight once. The win tag `ρ_LEAD` counts a win once on a side (`DAG.md` E3), but no rule every
+node applies alike stops a second copy on the other side from moving the balance again (`DAG.md`
+J.1). H4 is refuted for a delay chosen by an adversary. Under random delay it was not tested on the chain; E2's DAG, which weighs
 every honest block, settles sooner than the chain at the same block rate (`DAG.md`).
+
+**With one weight per win, the depth (`DAG.md` J.2).** The chain with GHOST's weight, each win
+weighing once and uncles carrying the orphans, is variant (a) of phase J; its attacks are the
+DAG's. If each withheld win moves the balance once, the strongest attack within `Δ` against a
+third at `1e-9`, under J.1's fixed tie rule, needs 2.8 hours at 1 s and 5.0 at 10 s, where the
+longest-chain rule's attack needs 3.5 and 6.8 (B2). With ties the adversary steers, as the Online
+rule's first-seen choice lets it, it needs 17.1 hours at 10 s. But a tag found on both sides weighs
+on neither, so a placed win can be retracted by a second copy on the other side and move the
+balance twice. The balance's edge at today's block rate then falls to 0.326 of the stake at 1 s
+and 0.279 at 10 s under the fixed rule, and a third holds the balance for ever with positive
+chance at every delay: no depth holds against it.
 
 ## C4 — Ouroboros Taktikos
 

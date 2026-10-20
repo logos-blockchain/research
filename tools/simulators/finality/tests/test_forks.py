@@ -10,24 +10,28 @@ from finality_sim.race import fallback_share
 
 def _tree():
     # 0 genesis; canonical 1-2-3-4; X=5 forks at 1 after 2's slot, Y=6 extends X, Z=7 is 4's
-    # sibling, W=8 is 1's sibling at 1's own slot
-    slot = np.array([-1, 5, 12, 20, 31, 14, 25, 33, 5])
-    parent = np.array([-1, 0, 1, 2, 3, 1, 5, 3, 0])
-    height = np.array([0, 1, 2, 3, 4, 2, 3, 4, 1])
-    canonical = np.zeros(9, bool)
+    # sibling, W=8 is 1's sibling at 1's own slot, X'=9 is a second block at X's slot (one win
+    # signed twice), V=10 extends W at Z's slot, U=11 is 4's sibling at Y's slot
+    slot = np.array([-1, 5, 12, 20, 31, 14, 25, 33, 5, 14, 33, 25])
+    parent = np.array([-1, 0, 1, 2, 3, 1, 5, 3, 0, 1, 8, 3])
+    height = np.array([0, 1, 2, 3, 4, 2, 3, 4, 1, 2, 2, 4])
+    canonical = np.zeros(12, bool)
     canonical[[1, 2, 3, 4]] = True
-    public = np.ones(9, bool)
+    public = np.ones(12, bool)
     public[0] = False
     return SimpleNamespace(slot=slot, parent=parent, height=height), public, canonical
 
 
 def test_fork_counts_on_a_hand_built_tree():
     tree, public, canonical = _tree()
-    assert fork_points(tree.parent, canonical).tolist() == [0, 1, 2, 3, 4, 1, 1, 3, 0]
-    # target 1 counts W (slot after genesis, forks below 1), not X, Y, Z (descendants);
-    # target 2 counts X and Y, not W (at its parent's slot) nor Z; 3 counts X and Y; 4 counts Y and Z
-    assert fork_counts(tree, public, canonical).tolist() == [1, 2, 2, 2]
-    public[[5, 6, 7, 8]] = False
+    assert fork_points(tree.parent, canonical).tolist() == [0, 1, 2, 3, 4, 1, 1, 3, 0, 1, 0, 3]
+    # target 1 counts the slots of W and V (after genesis, forking below 1), not X, X', Y, Z, U
+    # (descendants); target 2 counts slot 14 (X and X' once), slot 25 (through Y, which forks
+    # below 2, though U does not) and slot 33 (through V, though Z does not), not W (at its
+    # parent's slot); 3 counts the same three; 4 counts slots 25 and 33, each once. A block count
+    # would give 2, 4, 4, 4.
+    assert fork_counts(tree, public, canonical).tolist() == [2, 3, 3, 2]
+    public[[5, 6, 7, 8, 9, 10, 11]] = False
     assert fork_counts(tree, public, canonical).tolist() == [0, 0, 0, 0]
 
 

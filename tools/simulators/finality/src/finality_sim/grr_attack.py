@@ -209,8 +209,91 @@ def _attack_rule(d_sym, a_sym, t_sym, deadline, burn):
     return at_conf, ever + at_conf, targets, accepted, depth_sum
 
 
+@njit(cache=True)
+def _attack_observed(d_sym, a_sym, t_sym, t0, burn, mode):
+    """The attack against the observed counting rule with the no-fork deadlines ``t0``: the rule
+    accepts the ``k``-th block of ``S`` with ``F`` forks when it arrives within ``t0[k - F]``
+    slots, since its bound reads ``k`` and ``F`` only through ``k + 1 - F``. The forks are honest
+    depth since the target: in ``mode`` 0 all of it that is not on ``S``, which also counts honest
+    blocks on neither chain, some of which may descend from the target and are no forks, so it
+    counts at least what the client does; in ``mode`` 1 only the depth on ``L``, the competing
+    chain, at most what the client counts; in ``mode`` 2 none. As ``_attack_rule``, with the sum
+    of the forks at acceptance."""
+    n = d_sym.size
+    k_max = t0.size - 1
+    steps_max = max(80, 4 * k_max)
+    at_conf = 0
+    ever = 0
+    targets = 0
+    accepted = 0
+    depth_sum = 0
+    fork_sum = 0
+    lead = 0
+    for j0 in range(n - steps_max):
+        if j0 >= burn:
+            targets += 1
+            x, y, k = lead, 0, 1
+            on_s, on_l, honest = 0, 0, 0
+            acc = -1
+            fail_ever = False
+            for step in range(steps_max):
+                d, a = d_sym[j0 + step], a_sym[j0 + step]
+                if d < 0:
+                    x += 1
+                    y += 1
+                    k += 1
+                else:
+                    honest += d
+                    if y < 0:
+                        s_tmp = y + a - d
+                        l_raw = x + a - d
+                        l_tmp = max(0, l_raw)
+                        if l_raw <= 0:
+                            on_l += d
+                    else:
+                        s_raw = y + a - d
+                        s_tmp = max(0, s_raw)
+                        l_tmp = x + a - d
+                        if s_raw <= 0:
+                            on_s += d
+                    if l_tmp >= s_tmp:
+                        x_new, y_new = l_tmp, s_tmp
+                    else:
+                        x_new, y_new = s_tmp, l_tmp
+                        on_s, on_l = on_l, on_s
+                    k = k + y_new + d - y
+                    x, y = x_new, y_new
+                if acc < 0:
+                    forks = honest - on_s if mode == 0 else (on_l if mode == 1 else 0)
+                    m = min(k, k_max) - forks
+                    if m >= 1 and t0[m] >= 0 and t_sym[j0 + step] - t_sym[j0] <= t0[m]:
+                        acc = step
+                        accepted += 1
+                        depth_sum += k
+                        fork_sum += forks
+                        if y >= 0:
+                            at_conf += 1
+                            fail_ever = True
+                elif y >= 0 and not fail_ever:
+                    fail_ever = True
+                    ever += 1
+        d, a = d_sym[j0], a_sym[j0]
+        lead = max(lead + a - max(d, 0), 0)
+    return at_conf, ever + at_conf, targets, accepted, depth_sum, fork_sum
+
+
 def occupancy(f: float, share: float) -> float:
     return 1.0 - (1.0 - f) ** share
+
+
+def attack_observed(alpha: float, f: float, delta: int, n_slots: int, t0: np.ndarray, seed: int,
+                    mode: int, burn: int = 2000) -> tuple[int, int, int, int, int, int]:
+    """The attack against the observed counting rule (``_attack_observed``) over one run: failures
+    at acceptance and ever, the targets, the accepted targets, and the sums of the depth and of the
+    forks at acceptance."""
+    d_sym, a_sym, t_sym = _symbols_timed(n_slots, occupancy(f, 1.0 - alpha), occupancy(f, alpha),
+                                         delta, seed)
+    return _attack_observed(d_sym, a_sym, t_sym, np.asarray(t0, np.float64), burn, mode)
 
 
 def attack_rule(alpha: float, f: float, delta: int, n_slots: int, deadline: np.ndarray, seed: int,

@@ -4,8 +4,9 @@ The network splits into two honest sides for a span of slots while a coalition w
 block it wins. At the span's end each side holds its own chain. Rule 8 compares densities over a
 window: a side's density is the number of blocks of its chain with slots in the window, the
 coalition's fork holds one block per slot it won there. The closed form of B5 takes each side's
-blocks as binomial at the growth A1 measured for the whole network; the engine shows what a side
-grows at on its own.
+blocks as binomial over the slots its stake occupies, thinned by a growth per occupied slot, at
+the growth A1 measured for the whole network; the engine shows what a side grows at on its own,
+in the same unit: its chain's blocks in the span over the slots its leaders occupied there.
 """
 
 from __future__ import annotations
@@ -37,14 +38,15 @@ def chain_slots(tree, tip: int) -> np.ndarray:
 
 def measure(config: SimConfig) -> dict:
     """One partitioned run: each side's share of all stake, its chain's density over the span and
-    its length at the span's end, the blocks its leaders made in the span, and the coalition's
-    distinct winning slots there."""
+    its length at the span's end, the blocks its leaders made in the span and the distinct slots
+    they occupied, and the coalition's distinct winning slots there. A side counts its honest
+    nodes only: the coalition withholds, wherever it sits (``partition_adversary_side``)."""
     tree, arrival, stake, mask, side, public = partition_tree(config)
     start = int(config.partition_start)
     end = start + int(config.partition_slots)
     total = float(stake.sum())
     honest = ~mask
-    sides = {"a": side, "b": honest & ~side}
+    sides = {"a": side & honest, "b": honest & ~side}
     out = dict(alpha=float(stake[mask].sum() / total), span_slots=end - start)
     in_span = (tree.slot >= start) & (tree.slot < end)
     for name, nodes in sides.items():
@@ -55,6 +57,7 @@ def measure(config: SimConfig) -> dict:
         out[f"length_{name}"] = int(tree.height[tip])
         made = public & in_span & nodes[tree.leader.clip(min=0)]
         out[f"made_{name}"] = int(made.sum())
+        out[f"occupied_{name}"] = int(np.unique(tree.slot[made]).size)
     coalition = mask[tree.leader.clip(min=0)] & (tree.slot >= 0) & in_span
     out["fork"] = int(np.unique(tree.slot[coalition]).size)
     return out

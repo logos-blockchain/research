@@ -32,6 +32,41 @@ def test_the_selection_excess_is_the_brownian_maximum():
     assert mc < 0.02 * 648_000 * occupancy(F, 0.5)          # under two percent of its wins
 
 
+def test_after_deflation_the_honest_stake_alone_fills_slots_at_f_and_the_race_reads_the_convention():
+    """On the engine's tree with every estimate at ``1 - α`` of the true stake while the coalition
+    withholds: the honest stake alone occupies slots at ``f`` and the coalition at the raised
+    threshold, which are the lottery's identities, and the canonical growth per honest win is the
+    one everyone producing at ``f`` gives (A1's measure, the report's convention), well below the
+    growth of the chain withheld from at the true thresholds."""
+    from tsi_sim.config import SimConfig
+
+    from finality_sim.baseline import run
+    from finality_sim.race import withhold_tree
+    alpha, reps = 1 / 3, 8
+    base = dict(n_nodes=1000, stake_dist="uniform", topology="blend", degree=6, link_latency_dist="geo",
+                k=256, epochs=1, f=F, max_uncles=0, prune_arrival=False, adversary_strategy="withhold",
+                blend_hops=3, blend_delay_max=3.0, blend_delay_dist="rounds", link_latency_mean=0.1)
+    lam = -math.log(1 - F)
+    slots = honest = coalition = canon_deflated = canon_withheld = 0
+    for rep in range(reps):
+        cfg = SimConfig(**base, adversary_frac=alpha, replicate=rep)
+        tree, _, mask, public, canonical = withhold_tree(cfg, 1 - alpha)
+        slots += cfg.epoch_len
+        honest += np.unique(tree.slot[public]).size
+        coalition += np.unique(tree.slot[mask[tree.leader.clip(min=0)] & (tree.slot >= 0)]).size
+        canon_deflated += int(canonical.sum())
+        canon_withheld += int(withhold_tree(cfg)[4].sum())
+
+    def sd(p):
+        return math.sqrt(p * (1 - p) / slots)
+    assert abs(honest / slots - F) < 4 * sd(F)
+    assert abs(coalition / slots - occupancy(F, 0.5)) < 4 * sd(occupancy(F, 0.5))
+    everyone = np.mean([run(SimConfig(**base, adversary_frac=0.0, replicate=rep)).growth_rate
+                        for rep in range(reps)]) / lam
+    deflated, withheld = canon_deflated / slots / lam, canon_withheld / slots / ((1 - alpha) * lam)
+    assert abs(deflated - everyone) < 0.03 * everyone and withheld - deflated > 0.04
+
+
 def test_a_cap_on_the_correction_multiplies_the_periods():
     assert periods_to_deflate(1 / 3, 0.05) == 8 and periods_to_deflate(1 / 3, 0.10) == 4
     assert periods_to_deflate(0.30, 0.05) == 7 and periods_to_deflate(0.25, 0.20) == 2

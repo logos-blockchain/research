@@ -13,7 +13,7 @@ cite. Specifications are read at `logos-lips` `47a73cdc`, the node at `logos-blo
 
 ## Contents
 
-- **[1. Summary](#s1)** — every route against 30 % and a third, and the three worth taking
+- **[1. Summary](#s1)** — every route against 30 % and a third, and the two recommended
 - **[2. What is measured](#s2)** — finality notions, adversary, delay models, the engine
 - **[3. The three routes in depth](#s3)** — the nonce, a settled level, a smaller `k`
 - **[4. Settlement on the chain](#s4)** — the client rule
@@ -24,7 +24,7 @@ cite. Specifications are read at `logos-lips` `47a73cdc`, the node at `logos-blo
 - **[9. The multi-proposer DAG](#s9)** — Areon
 - **[10. Findings about the protocol as it stands](#s10)**
 - **[11. Open questions](#s11)**
-- **[12. Further routes](#s12)** — a delayed nonce, the epoch apart from `k`, Blend's delay, density, anchoring
+- **[12. Further routes](#s12)** — a delayed nonce, the epoch apart from `k`, Blend's delay, density, anchoring, the inference, adversarial relays, a fork choice that tolerates delay
 - **[13. Three designs](#s13)** — recovery in a partition, the delay function, time under the worst case
 - **[14. Reproducibility](#s14)**
 - **[The epoch nonce, the lottery and the length of finality](grinding.md)** — a review of the approaches to grinding and what each leaves of the depth
@@ -41,53 +41,67 @@ worst case in which an adversary delivers each honest block as late as a bound `
 reads them against an adversary holding a share `α` of the stake, 30 % and a third, at a failure
 probability `ε = 1e-9` per block. Times are on the honest chain while the adversary withholds its
 blocks, one clock per delay model ([§2](#s2)), on the specification's Blend (3 hops of up to 3
-rounds), whose worst case is taken at `Δ = 10` s. Random-delay figures are the private attack's;
-worst-case figures are proven against every attack.
+rounds), whose worst case is taken at `Δ = 10` s. Random-delay figures are the private attack's
+with honest relays, read at a convention that covers it ([§2](#s2)); worst-case figures are proven
+against every attack.
 
 | route | what changes | time until final, 30 % / a third | what it costs | verdict |
 | --- | --- | --- | --- | --- |
-| a nonce that resists grinding ([§5](#s5)) | the epoch nonce taken from the smallest contributions of 25 sub-windows | removes most of the depth grinding adds: with today's nonce, against an adversary that evaluates `2^64` nonces an epoch, the depths grow 2.7 to 4.5 times; passed through a sequential delay that spans a sub-window ([§12](#s12), G1; [§13](#s13), H.2) it leaves the choices at the cut-off alone, a factor of at most 1.08, as a bound within the model | a hard fork; a window before the cut-off of at least 54 hours (`6⌊k/f⌋` at `k = 1080`), the shortest measured at which the choices at the cut-off stay near one; without the delay, notes frozen one epoch earlier; with it, the contribution bound to the parent block and a sequential computation of about a day once an epoch | recommended, with the delay; the others depend on it |
-| settled level ([§4](#s4)) | a client depth; nothing in consensus | random delay: 2.6 / 4.8–4.9 h, and 1.5 / 2.4 h reading elapsed time (measured with a nonce that is not ground); guaranteed at 10 s: 15.5–15.9 / 28.3–29.5 h | nothing | recommended |
-| smaller `k` ([§6](#s6)) | `k`, and a recovery trigger | `k = 1080` against 30 %, guaranteed at 10 s: 15.8 h, at the edge (an estimated 1,060–1,093 blocks against 1,080) and only while the inference is not deflated ([§12](#s12), G7); against a third no `k` below 2160; with the delayed nonce of [§12](#s12), `k = 1620` holds a third and `k = 1080` holds 30 % as bounds | a recovery window of 36 hours; a look-back horizon of months; a partition deeper than `k` needs a one-off vote round below a third ([§13](#s13)) and operators at a third | not recommended until the nonce's factor is bounded and the trigger is partition-safe; both have designs in [§12](#s12) and [§13](#s13) |
+| a nonce that resists grinding ([§5](#s5)) | the epoch nonce taken from the smallest contributions of 25 sub-windows and passed through a sequential delay that spans the last one ([§12](#s12), G1; [§13](#s13), H.2) | removes the depth grinding adds: with today's nonce, against an adversary that evaluates `2^64` nonces an epoch, the depths grow 2.7 to 4.5 times; with this one the depth at `k = 2160` lies within thirteen blocks of a nonce that is not ground as a bound within the model, and within two sampled; without the delay, by a hindsight estimate, 13–28 % deeper | a hard fork; a window before the cut-off of at least 54 hours (`6⌊k/f⌋` at `k = 1080`), the shortest measured at which the choices at the cut-off stay near one; the contribution bound to the parent's contribution, which every node derives; a sequential computation of about a day once an epoch | recommended, with the delay; the others depend on it |
+| settled level ([§4](#s4)) | a client depth; nothing in consensus | random delay: 2.3 / 4.1 h, and 1.5 / 2.4 h reading elapsed time (measured with a nonce that is not ground); guaranteed at 10 s: 13.1 / 23.2 h | nothing | recommended |
+| smaller `k` ([§6](#s6)) | `k`, and a recovery trigger | with the nonce of the first route, guaranteed at 10 s as bounds within the model: `k = 1080` holds 30 % and `k = 1620` a third, final in 15.8 / 24.6 h, while the inference is not deflated ([§12](#s12), G7) and against up to 450,000 and 7,800 delay evaluators | a recovery window of 36 / 54 hours; a look-back horizon of months; a partition deeper than `k` needs a one-off vote round below a third ([§13](#s13)) and operators at a third | not recommended: no trigger is partition-safe at a third, and below it the vote round needs Blend's relays to deliver ([§13](#s13)) |
 | faster blocks ([§7](#s7)) | `f` | random delay, against a third: 160 minutes at 30 s blocks, 144 at 15 s, by the race's fit | ×2.0 the blocks at 15 s | not recommended: little gain from 30 % |
 | regular block intervals ([§7](#s7)) | the lottery becomes a curve of the slots since the parent | against a third Topl's shape needs more than 60 blocks at `1e-3`, today's lottery 58 | a third more blocks; a new stake inference | not recommended |
 | certificates ([§8](#s8)) | anonymous-seat votes through Blend | no committee against a third; against 30 %, 33,473 seats while every honest vote counts | ×1,675 Blend cover at 10-minute rounds | not recommended |
-| multi-proposer DAG ([§9](#s9)) | replaces the chain and its fork choice | random delay, at today's block rate, against a third: 106 minutes, the chain 160 by the same fit | as the chain at that rate | not recommended: no proof; faster rates fall to a balancing attack below a third |
+| multi-proposer DAG ([§9](#s9)) | replaces the chain and its fork choice | random delay, at today's block rate, against a third: 106 minutes, the chain 160 by the same fit | as the chain at that rate | not recommended: a balancing attack that retracts its wins holds a third for ever at every delay, at today's block rate and above |
 
 The worst-case figures hold while the inferred stake is the true stake. An adversary that
 withholds every block for one period, 4.5 days at `k = 2160`, lowers it by its share and raises
-every lottery threshold for the next epoch; the proven depth at `Δ = 10` s is then B2's at
-`10/(1 − α)` s, 2,426 blocks against a third and 1,248 against 30 %, so `k = 2160` holds a third
-only while the inference is not deflated ([§12](#s12), G7).
+every lottery threshold for the next epoch; the proven depth at `Δ = 10` s is then the proven
+depth at `10/(1 − α)` s, 2,426 blocks against a third and 1,248 against 30 %, so `k = 2160` holds a
+third only while the inference is not deflated ([§12](#s12), G7). Under random delay the deflation
+takes the private attack past the convention the random-delay figures read: on the engine it needs
+189 / 334 blocks against 30 % / a third, where the convention reads 165 / 276.
 
-Two routes are worth taking now, and a third once two things are settled ([§3](#s3)):
+A fork choice that weighs every honest block, the DAG's or the chain's with its uncles weighed,
+gives no smaller `k` either: an adversary that places and retracts its wins holds a third's two
+sides level for ever at every delay ([§9](#s9), [§12](#s12)).
+
+Two routes are recommended, and a third is not, since no trigger heals a partition at a third
+([§3](#s3)):
 
 1. **A nonce that resists grinding.** With today's hash-chain nonce, an adversary that withholds
    its wins picks the next epoch's leader schedule among many. Against 30 % and a third the depths
    then grow 2.7 to 4.5 times. At `Δ = 10` s `k = 2160` can no longer be proven against 30 % once
-   the adversary evaluates `2^40` nonces an epoch, nor against a third from `2^8`. Taking the
-   nonce from the smallest contribution of each of 25 sub-windows, with notes frozen one epoch
-   earlier, cuts the factor per nonce from up to `6·10^14` to an estimated 5.9–7.3 against a third
-   under random delay and 10.6–18.1 under the worst case. `k = 2160` absorbs a factor of 81. A
-   delay function does as well only if an adversary can evaluate about two nonces an epoch.
+   the adversary evaluates `2^40` nonces an epoch, nor against a third from `2^8`. The nonce taken
+   from the smallest contribution of each of 25 sub-windows and passed through a sequential delay
+   that spans the last sub-window, with each contribution bound to its parent's, leaves the
+   adversary few values it can see while it can still choose between them. Against a third under
+   the worst case at `k = 2160` the depth is then 1,523 blocks as a bound within the model, 13 more
+   than a nonce that is not ground, and 1,511 sampled. Without the delay, with notes frozen one
+   epoch earlier, the same nonce cuts the factor per nonce from up to `6·10^14` to an estimated
+   5.9–7.3 against a third under random delay and 10.6–18.1 under the worst case, a hindsight
+   estimate; `k = 2160` absorbs a factor of 80.7.
 2. **A settled level in the node's API.** A client accepts a block once the depth for its share
    `α`, failure probability `ε` and delay model lies on top of it. It accepts sooner if it also
-   reads the time the blocks took. With the nonce of route 1, against a third this is 4.8–4.9 hours
-   under random delay and 28.3–29.5 hours guaranteed at 10 s. Reading elapsed time takes 2.4 hours,
+   reads the time the blocks took. With the nonce of route 1, against a third this is 4.1 hours
+   under random delay and 23.2 hours guaranteed at 10 s. Reading elapsed time takes 2.4 hours,
    measured with a nonce that is not ground.
 3. **A smaller `k` with automatic recovery.** With the nonce of route 1, the worst case at 10 s
-   needs an estimated 1,060–1,093 blocks against 30 %, so `k = 1080` holds 30 % only under the
-   smaller estimate: 15.8 hours. Against a third no `k` below 2160 holds. The recovery trigger heals
-   an eclipse through a density test whose window is 36 hours at `k = 1080`. It cannot heal a
-   partition deeper than `k`: no density test tells a third's withheld fork from an honest third.
-   The route waits for a bound on the nonce's factor and a partition-safe trigger.
+   needs 901 blocks against 30 % and 1,530 against a third, as bounds within the model, so
+   `k = 1080` holds 30 % and `k = 1620` holds a third, final in 15.8 and 24.6 hours, while the
+   inference is not deflated. The recovery trigger heals an eclipse through a density test whose
+   window is 36 hours at `k = 1080`. It cannot heal a partition deeper than `k` at a third: no rule
+   that reads the chains tells a third's withheld fork from an honest third. Below a third a
+   one-off round of votes can, while Blend's relays deliver the votes ([§13](#s13)).
 
 Specification candidates follow from them:
 
-1. **The epoch nonce from the smallest contributions** of sub-windows, with the contribution
-   `ρ_LEAD` bound to the epoch nonce and notes frozen one epoch earlier, or, under the delay of
-   [§13](#s13), bound to the parent block ([§3.1](#s31)). A bound on its factor without the delay
-   is open.
+1. **The epoch nonce from the smallest contributions** of sub-windows, passed through a sequential
+   delay that spans the last sub-window, with the minima taken over a contribution bound to the
+   parent's contribution ([§3.1](#s31), [§13](#s13)). Without the delay the contribution `ρ_LEAD` is
+   bound to the epoch nonce and notes are frozen one epoch earlier, and a bound on the factor is
+   open.
 2. **A settled level** beside the tip and `B_imm`: the depth table, and the elapsed-time rule under
    random delay ([§3.2](#s32)).
 3. **Two corrections to the Bootstrap rule** ([§10](#s10)): its depth test should read the deeper of
@@ -96,12 +110,13 @@ Specification candidates follow from them:
 4. **An automatic-recovery trigger** with eight rules, for eclipses, if `k` is to shrink
    ([§3.3](#s33)).
 
-Five further routes are read in [§12](#s12). One of them, the nonce of route 1 passed through a
-sequential delay that spans the last sub-window, 4.5 hours on the adversary's hardware at
-`k = 2160`, with the contribution bound to the parent block, leaves the adversary the choices at
-the cut-off alone: the depths return to within eleven blocks of a nonce that is not ground, a
-bound within the model, and `k = 1620` holds a third and `k = 1080` holds 30 %. Honest nodes
-compute the delay in about a day.
+Six further routes are read in [§12](#s12). One of them is the delay of route 1: a sequential
+computation that spans the last sub-window, 4.5 hours on the adversary's hardware at `k = 2160`,
+with the contribution bound to the parent's contribution. It leaves the adversary few values it can
+see while it can still choose them: against a third under the worst case at `k = 2160` the depth is
+1,511 blocks sampled and 1,523 as a bound within the model, within thirteen of a nonce that is not
+ground, and `k = 1620` holds a third and `k = 1080` holds 30 % unless the adversary runs more than
+7,800 and 450,000 delay evaluators. Honest nodes compute the delay in about a day.
 
 ---
 
@@ -128,7 +143,16 @@ hold against a third, and 30 % at the loosest; the summary and [§3](#s3) read t
   holding a message a whole number of rounds as the node's release delayer does. Testnet 0.3.0
   runs 1 hop of 1 round; the specification allows 3 hops of up to 3 rounds. The specification's
   Blend orphans 18 % of blocks and delivers a block to every node within 10.2 s at the 99th
-  percentile.
+  percentile. The depths read the private race at the growth the engine measures with every node
+  producing, a canonical chain of `0.845·f` blocks a slot over eight runs: the report's convention,
+  the figure the specification's stake-inference analysis uses. As a measure of a chain on which
+  every node produces it is low. 32 runs give `0.834·f`, equal stakes `0.819·f` on the same seeds,
+  and Blend releases a block a round after its slot where the engine starts its cascade at the slot,
+  which lowers the growth by 0.02 more (`RATE.md` A1). The attack it stands for needs less, since a
+  withholding adversary orphans no honest block with its own: on the engine, with honest relays and
+  the specification's two Blend copies released a round after the slot, the race needs 160 / 261
+  blocks against 30 % / a third, within the convention's 165 / 276. Relays that hold or drop blocks,
+  and a deflated inference, take it past the convention ([§12](#s12), G6, G7).
 - **Worst case.** An adversary delivers every honest block as late as a bound `Δ` allows. The
   bounds of Gaži, Ren and Russell ("Practical Settlement Bounds for Longest-Chain Consensus",
   ePrint 2022/1571, revision 2025-05-02) apply. Their code is ported, checked against their Table 1
@@ -162,7 +186,8 @@ the chain there, and can also fork away the last honest blocks. Each choice is a
 schedule. To keep an attack's chance at `ε`, its chance against one schedule must fall by a factor
 `R`. A block whose race crosses an epoch's end meets two ground nonces, and its factor is `R_2`.
 Against 30 % and a third `R_2` reaches `10^19` and `10^28` under the worst case at 10 s
-([§5](#s5)). The depth that holds `ε = 1e-9` under each factor, with two ground nonces:
+(`SETTLEMENT.md`, B6), and [§5](#s5) gives the depths. The depth that holds `ε = 1e-9` under
+each factor, with two ground nonces:
 
 | nonce | random, specification, α = 0.30 | random, specification, α = 0.33 | worst, 10 s, α = 0.30 | worst, 10 s, α = 0.33 |
 | --- | --- | --- | --- | --- |
@@ -209,7 +234,9 @@ changes the nonce only if it holds a sub-window's minimum. Two kinds of choice r
   case at 10 s. The adversary decides before it knows the later contributions, so a hindsight count
   overstates what it reaches. These are estimates, not bounds.
 
-**What it needs.**
+**What it needs.** Without a delay, the three conditions below. With the delay of [§12](#s12), a
+contribution bound to the parent's contribution, which every node derives, replaces the first two,
+and the third stands.
 
 - **A contribution bound to the epoch nonce.** Today `ρ_LEAD = hash(NONCE_CONTRIB_V1 ‖ sl ‖ noteID ‖
   sk)`, for the slot `sl`, the note `noteID` and its secret key `sk`, depends on the note and the
@@ -234,11 +261,12 @@ changes the nonce only if it holds a sub-window's minimum. Two kinds of choice r
   because rare windows offer many choices. A smaller `k` would need a window longer than `6⌊k/f⌋`
   slots.
 
-**What it buys.** Against a third under the worst case at 10 s, the guarantee needs an estimated
-1,859–1,939 blocks at `k = 2160`, against 5,732–6,287 with today's nonce: 28.3–29.5 hours instead
-of 87–96. Under random delay on the specification's Blend it needs an estimated 326–333 blocks
-instead of 1,171–1,245: 4.8–4.9 hours instead of 17–18. `k = 2160` holds a third up to a factor of
-81 per nonce.
+**What it buys.** With the delay of [§12](#s12), against a third under the worst case at 10 s the
+guarantee needs 1,523 blocks at `k = 2160` as a bound within the model, against 5,732–6,287 with
+today's nonce: 23.2 hours instead of 87–96. Under random delay on the specification's Blend it
+needs 278 blocks instead of 1,171–1,245: 4.1 hours instead of 17–18. Without the delay it needs an
+estimated 1,859–1,939 and 326–333 blocks, 28.3–29.5 and 4.8–4.9 hours. `k = 2160` holds a third up
+to a factor of 80.7 per nonce.
 
 **The alternative, a delay function.** Ouroboros Phalanx (CIP-0161) keeps the hash chain and passes
 its value through a verifiable delay function. Honest nodes compute it once an epoch, in 82
@@ -254,18 +282,20 @@ nonces it evaluates, not how many it can choose between. Against a third under t
 leave 1,544–1,614, as the smallest contributions do at the cut-off. A delay whose input the
 adversary cannot evaluate before it must choose would leave it one nonce. The two combine: the
 smallest contributions make an input the adversary can form only from the start of the last
-sub-window, so a delay that spans the sub-window, with the contribution bound to the parent block,
-removes the decisions before the cut-off ([§12](#s12), [§13](#s13)).
+sub-window, so a delay that spans the sub-window, with the contribution bound to the parent's
+contribution, removes the decisions before the cut-off ([§12](#s12), [§13](#s13)).
 
 **What is shown, and what is not.** The choices at the cut-off are counted against an enumeration
 of every fork and every subset of withheld wins, under the condition of `SETTLEMENT.md` B6 for a
 fork to win. The worst-case depths read the proven bound of Gaži, Ren and Russell. Open:
 
-- a bound on the decisions before the cut-off, which are estimated in hindsight;
+- without the delay, a bound on the decisions before the cut-off, which are estimated in
+  hindsight;
 - the inferred stake, which the adversary moves by withholding blocks without changing the nonce,
   one lottery threshold step per block;
-- a proof of the rule in the model of Praos's or Genesis's analysis; under the delay, [§13](#s13)
-  reduces it to a bound on the choices at the cut-off.
+- under the delay, the sequentiality assumption and the number of delay evaluators an adversary
+  runs: [§13](#s13) proves the lemma that reduces the rule to the values the adversary sees while
+  it can still choose them, and bounds those within the walk's model.
 
 <a id="s32"></a>
 ### 3.2 A settled level in the node's API
@@ -280,24 +310,29 @@ adversary's chance, computed exactly as Grunspan and Pérez-Marco do, is at most
 model the rule holds `ε` for every history of honest block times.
 
 **What it buys**, against 30 % / a third, at `ε = 1e-9`. The depth rule includes the nonce of
-[§3.1](#s31) at `k = 2160` and its estimated factor. Hours are on the clocks of [§2](#s2). The
-elapsed-time rule is measured with a nonce that is not ground, on the engine's timelines, where the
-depth rule's mean is 2.2 / 3.9 h:
+[§3.1](#s31) at `k = 2160` under the delay of [§12](#s12), at its bound. Hours are on the clocks of
+[§2](#s2). The elapsed-time rule is measured with a nonce that is not ground, on the engine's
+timelines, where the depth rule's mean is 2.2 / 3.9 h:
 
 | delay | depth rule | reading elapsed time, mean / 90th percentile | `k = 2160` |
 | --- | --- | --- | --- |
-| random, specification's Blend | 187–189 / 326–333 blocks: 2.6 / 4.8–4.9 h | 1.5 / 2.4 h, 1.9 / 3.2 h | 30.4 / 31.9 h |
-| worst case, `Δ = 10` s | 1,057–1,088 / 1,859–1,939 blocks: 15.5–15.9 / 28.3–29.5 h | the observed counting rule with no forks, 209 / 374 blocks: 2.9 / 5.4 h ([§13](#s13)) | 31.6 / 32.9 h |
+| random, specification's Blend | 165 / 278 blocks: 2.3 / 4.1 h | 1.5 / 2.4 h, 1.9 / 3.2 h | 30.4 / 31.9 h |
+| worst case, `Δ = 10` s | 895 / 1,523 blocks: 13.1 / 23.2 h | the observed counting rule with no forks under worst-case delay, 226 / 408 blocks: 3.3 / 6.2 h ([§13](#s13)) | 31.6 / 32.8 h |
+
+Without the delay the depth rule needs an estimated 187–189 / 326–333 blocks under random delay and
+1,057–1,088 / 1,859–1,939 under the worst case: 2.6–2.7 / 4.8–4.9 h and 15.5–15.9 / 28.3–29.5 h.
 
 **What the client accepts.** The adversary's share; the delay model; the grinding its depths
 include; a view that is not eclipsed. Under random delay also: the adversary withholds every win
-and never extends the public chain, Blend's delays are not the adversary's to choose, and the
-honest chain grows as the engine measured. Under the worst case only the depth rule applies. The
-elapsed-time rule's rates hold while the inferred stake is the true stake; after a period of
-withholding the total-stake inference raises every rate by `1/(1 − α)`, and the rule must take
-those rates, with the depth rule as its cap. It then settles a chain nobody withholds from in
-66 / 106 minutes against 30 % / a third, and a chain the adversary withholds from at the depth
-rule's depth ([§12](#s12), G4).
+and never extends the public chain, Blend's delays are not the adversary's to choose, its relays
+are honest, and the honest chain grows as the engine measured. Under the worst case the depth rule
+applies, and the observed counting rule of [§13](#s13), which holds `ε` per target, not given the
+client's view. Both random-delay rules hold while the inferred stake is the true stake. After a
+period of withholding the total-stake inference raises every rate by `1/(1 − α)`: the
+elapsed-time rule must take those rates, with the depth rule as its cap, and then settles a chain
+nobody withholds from in 66 / 106 minutes against 30 % / a third; and the private attack needs
+189 / 334 blocks, past the depth rule's table, whose random-delay depths cover only an inference
+that is not deflated ([§12](#s12), G4, G7).
 
 **What is shown, and what is not.** The worst-case depths are the proven bound. The random-delay
 depths are the private race with a premined lead, in closed form. The race played on the engine's
@@ -305,19 +340,23 @@ timelines matches it within three blocks at `1e-3` up to 30 %; against a third t
 over-asks by about a quarter ([§4](#s4)). On the engine's timelines both rules hold `ε` where it
 can be measured, at `1e-3`: against 30 % the race beats the elapsed-time rule on 1.1e-3 of 78,696
 targets, consistent with `ε`. Under the worst case the rule that reads time is the observed
-counting rule of [§13](#s13): 374 blocks against a third when the adversary withholds, where the
-depth rule needs 1,510. Open: both rules against an adversary that also extends the public chain.
+counting rule of [§13](#s13): 408 blocks against a third under a worst-case delay, and 374 when the
+adversary withholds without delaying, where the depth rule needs 1,510. Open: both rules against an
+adversary that also extends the public chain.
 
 <a id="s33"></a>
 ### 3.3 A smaller `k` with automatic recovery
 
 **What `k` must cover.** `k` binds every node, so it must hold under the worst case. With the nonce
-of [§3.1](#s31) the worst case at 10 s needs an estimated 1,060–1,093 blocks against 30 % at
-`k = 1080`. `k = 1080` holds 30 % under the smaller estimate, fails it by 13 blocks under the
-larger, and fails it after a period of withholding, when the inference is deflated and B2's depth
-is 1,248 ([§12](#s12), G7): k-finality in 15.8 hours instead of 31.6, at the edge. Against a third it needs an
-estimated 1,862–1,943 blocks at `k = 1620`, so no `k` below 2160 holds a third. With today's nonce,
-`k = 2160` itself cannot be proven against 30 % at 10 s.
+of [§3.1](#s31) under the delay of [§12](#s12), the worst case at 10 s needs 901 blocks against
+30 % at `k = 1080` and 1,530 against a third at `k = 1620`, as bounds within the model with one
+delay evaluator. `k = 1080` holds 30 % against up to 450,000 evaluators and `k = 1620` holds a
+third against up to 7,800: k-finality in 15.8 and 24.6 hours instead of 31.6 and 32.8. Both fail
+after a period of withholding, when the inference is deflated and the proven depth is 1,248 and
+2,426 ([§12](#s12), G7), and so does `k = 2160` against a third. Without the delay the estimate is
+1,060–1,093 blocks against 30 % at `k = 1080`, at the edge, and 1,862–1,943 against a third at
+`k = 1620`, which fails. With today's nonce, `k = 2160` itself cannot be proven against 30 % at
+10 s.
 
 **What it breaks.** A split heals by itself only while the losing side has made fewer than `k`
 blocks. Past that a node stays on the losing side. A restart does not return it ([§10](#s10)).
@@ -327,13 +366,15 @@ block density in a window after the divergence. Eight rules keep it safe where i
 take effect: 36 hours at `k = 1080`. The test holds only where the honest chain had its full
 density over the window, which is an eclipse. In a partition deeper than `k` each honest side has
 its own share, and a third's withheld fork is denser than an honest third every time. Such a split
-still waits for operators.
+still waits for operators at a third; below a third a one-off round of votes separates the sides
+while Blend's relays deliver them ([§13](#s13)).
 
 **The horizon.** A note spent since the divergence is unspent on the fork, so its key can sign for
 the fork. Over the horizon the chance that the window favours the adversary's fork must stay below
 `1e-9`. With every freed key for sale at Bitcoin's turnover, 0.125–0.243 % a day, and the nonce of
-[§3.1](#s31) at its larger estimate, the 36-hour window at `k = 1080` holds 30 % for 106–204 days
-under the worst case at 10 s and 117–226 under random delay.
+[§3.1](#s31) under its delay, the 36-hour window at `k = 1080` holds 30 % for 111–215 days under
+the worst case at 10 s and 121–233 under random delay; without the delay, at the larger estimate,
+106–204 and 117–226.
 
 **What it costs.** A split heals only once its window has passed, 36 hours. `B_imm` may move back
 within `H`, so every consumer of it needs a path for that, and the `k`-deep block is final only
@@ -342,17 +383,19 @@ against forks that lose the density test. Nodes keep block trees and ledger stat
 **What is shown, and what is not.** The trigger's eight rules come from attacks on simpler forms of
 it (`SETTLEMENT.md`, B5). Its horizon rests on the turnover of staked notes in Cryptarchia, which
 is not measured, and on how many old keys an adversary could buy. A forward-secure leader key would
-remove that dependence. The `k = 1080` figure rests on the hindsight estimate of [§3.1](#s31).
+remove that dependence. The `k` figures rest on the walk's model of the nonce, on the delay's
+sequentiality and on an inference that is not deflated ([§12](#s12), [§13](#s13)).
 
 ### 3.4 The three together
 
-With the nonce of [§3.1](#s31) at its estimated factor, one clock per delay model; reading elapsed
-time is measured with a nonce that is not ground:
+With the nonce of [§3.1](#s31) under the delay of [§12](#s12), at its bound, one clock per delay
+model; reading elapsed time is measured with a nonce that is not ground. Every figure holds while
+the inference is not deflated ([§12](#s12), G7):
 
 | against | today, random delay / worst case | settled, random delay | settled, reading elapsed time | settled, guaranteed at 10 s | `k`, guaranteed at 10 s |
 | --- | --- | --- | --- | --- | --- |
-| 30 % | 30.4 / 31.6 h; `k` not proven at 10 s with two ground nonces | 2.6 h | 1.5 h | 15.5–15.9 h | 15.8 h (`k = 1080`) under the smaller estimate, 31.6 h (`k = 2160`) otherwise |
-| a third | 31.9 / 32.9 h; `k` not proven at 10 s with two ground nonces | 4.8–4.9 h | 2.4 h | 28.3–29.5 h | 32.9 h (`k = 2160`) |
+| 30 % | 30.4 / 31.6 h; `k` not proven at 10 s with two ground nonces | 2.3 h | 1.5 h | 13.1 h | 15.8 h (`k = 1080`) |
+| a third | 31.9 / 32.8 h; `k` not proven at 10 s with two ground nonces | 4.1 h | 2.4 h | 23.2 h | 24.6 h (`k = 1620`) |
 
 ---
 
@@ -379,7 +422,8 @@ depth 120 from 25 % at 5 s, and at 30 % and a third throughout (`SETTLEMENT.md`,
   times the attack's at delays up to 10 s, and up to 6.6 times at 20 s.
 - **The bound describes Cryptarchia's slot lottery.** The attack behind the lower bound, played on
   the 1 s slot lottery, lands within 7 % of the bound computed in continuous time.
-- **`k = 2160` holds a third of the stake at `1e-9` only for delays up to 13 s,** without grinding.
+- **`k = 2160` holds a third of the stake at `1e-9` only for delays up to 13 s,** without grinding
+  and while the inference is not deflated.
 - **A rule that also reads elapsed time settles 35–40 % sooner from 30 %.** Against a third at
   `1e-9`, on the engine's timelines of the specification's Blend, it accepts after 2.4 hours on
   average where the depth rule needs 276 blocks and 3.9 hours. Against a quarter it accepts after
@@ -429,7 +473,8 @@ adversary can evaluate; the smallest contributions of sub-windows reduce how man
 The table of [§3.1](#s31) compares them, and [`grinding.md`](grinding.md) reviews every approach
 side by side. Under the worst case at 10 s against a third, a cap of 2
 nonces leaves 1,544–1,614 blocks; the smallest contributions leave 1,518 at the cut-off and an
-estimated 1,859–1,939 with the decisions before it, at `k = 2160`.
+estimated 1,859–1,939 with the decisions before it, at `k = 2160`, and passed through a delay that
+spans the last sub-window, 1,523 as a bound ([§12](#s12)).
 
 ---
 
@@ -464,19 +509,22 @@ test of the Bootstrap rule. Eight rules keep it safe where it can be:
    72 hours at `k = 2160`, 54 at `k = 1620`, 36 at `k = 1080`, 4 at `k = 120`.
 6. Bound the horizon `H` against keys that become free (below).
 7. Break ties by a rule that reads the two chains alone. Two honest sides of an even split tie in
-   density with probability 0.5–0.7 % at the longest windows, and under a strict order would never
-   heal.
+   density with probability 0.5–0.7 % at the longest windows by the closed form, and on the engine
+   in 1.0 % of windows with one Blend copy and 1.6 % with two; under a strict order they would
+   never heal.
 8. Compare only from a chain that had its full density over the window. Every window and horizon
    here gives the honest chain the whole honest stake. In a partition each honest side produces
    with its own share, and the adversary withholds a fork made with all of its stake: against an
    honest side holding 35 % of all stake, a 30 % adversary's fork is denser in 64–70 % of the
    specification's windows, and against an honest third, a third's fork always is. On the engine,
-   with the network split and most Blend copies lost across the cut, a side holding 30–40 % of
-   all stake grows at 0.82–0.86 per win against the whole network's 0.845, and the closed form
-   read at that growth lies within three standard errors of the engine: a 30 % fork beats a 35 %
-   side in 65 % of windows, a third's beats a 40 % side in 55 % where the closed form at the
-   whole network's growth says 36 % (`SETTLEMENT.md`, B5). Today the Online rule caps what such a
-   fork reorganises at `k`. A node whose chain was sparse over the window therefore does not
+   with most Blend copies lost across the cut, a side holding 30–40 % of all stake grows at
+   0.83–0.86 per occupied slot, about the whole network's 0.845, and the closed form read at the
+   side's growth lies within half a standard error of the engine. With the adversary's nodes on
+   the far side of the cut, its best placement, a 30 % fork beats a 35 % side in 65 % of windows
+   and a third's beats a 40 % side in 55 %, where the closed form at the whole network's growth
+   says 36 %; with its nodes beside the side, 42 % and 17 % (`SETTLEMENT.md`, B5). Today the
+   Online rule caps what such a fork reorganises at `k`. A node whose chain was sparse over the
+   window therefore does not
    compare, and leaves the split to operators, as today. The trigger heals an eclipse, where one
    side is the whole honest chain, and not a partition deeper than `k`.
 
@@ -532,7 +580,9 @@ altogether.
 - **A fork choice that weighs uncles is no better.** The exact consistency regions of GHOST, the
   fork choice that weighs every block of a subtree (Gaži, Motaqy and Russell, ePrint 2024/1830),
   never exceed the longest-chain rule's at any delay. In proof of stake GHOST also needs control of
-  equivocation.
+  equivocation. Weighing every honest block with one weight per win does not help against a
+  scheduled delay either: a coalition that places and retracts its wins keeps two sides level for
+  ever against a third ([§9](#s9)).
 - **A lottery curve of the slots since the parent (Ouroboros Taktikos) does not cut orphans.**
   Under Blend's delays every curve raises the orphan share, to 25–44 % on the specification's
   Blend. A node that has not yet received the latest block sees a larger gap and wins more often.
@@ -650,12 +700,23 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
   honest block back until the next one appears keeps two conflicting subDAGs at equal weight, and
   nothing settles while it does. Against delays of up to 10 s, the attack needs 40–45 % of the
   stake at Cryptarchia's block rate, against the chain's 46 %; 21–32 % at `f_A = 0.1`; and 3–6 % at
-  `f_A = 0.25`, where with 10 % three attempts in four hold the balance for a day. Against a third,
-  only today's block rate stays out of its reach. No proof covers the DAG below that edge.
-- **One win must weigh once, across both sides.** A lottery ticket that does not depend on the
-  parent can sign blocks in one subDAG or in both of two conflicting ones. Each win carries a tag,
-  `ρ_LEAD`, fixed per note and slot. The weight must count each tag once, and a tag found on both
-  sides must weigh on neither; without that, GHOST-like weights provide no security at all.
+  `f_A = 0.25`, where with 10 % three attempts in four hold the balance for a day. These edges
+  count one move per withheld win. With one move per win and a tie rule every node applies alike,
+  the strongest attack against a third needs 2.8 hours at `1e-9` at `Δ = 1` s and 5.0 at 10 s,
+  against the chain's 3.5 and 6.8. But a tag found on both sides weighs on neither, so a placed win
+  can be retracted by a second copy on the other side, and one win moves the balance twice. The
+  edges then fall below a third at every block rate and delay measured: at today's rate to 0.318
+  with ties steered and 0.326 with a fixed tie rule at `Δ = 1` s, and to 0.235 and 0.279 at 10 s. A
+  third holds the balance for ever with positive chance at every delay, so no depth settles against
+  it, and no bound does: the bound from convergence opportunities, counting both moves of a win, is
+  finite at 10 s only up to 0.223 of the stake, and against 25 % at 1 s it needs 14.2 hours where
+  the chain's bound needs 3.3 (`DAG.md` J.2, J.3).
+- **One win weighs once on a side, and still moves a balance twice.** A lottery ticket that does
+  not depend on the parent can sign blocks in one subDAG or in both of two conflicting ones. Each
+  win carries a tag, `ρ_LEAD`, fixed per note and slot, and the weight must count each tag once on
+  a side; without that, GHOST-like weights provide no security at all. Across two sides no rule
+  every node applies alike makes a win weigh once: whether a tag found on both weighs on both or on
+  neither, its second copy moves the balance again, when the adversary chooses (`DAG.md` J.1).
 - **The window must span the block interval.** At `f_A = 1/30`, the paper's 30-slot window leaves
   36–56 % of the honest blocks without a reference inside it, and so without weight.
 - **The ledger needs a rule.** Honest blocks must reference only the side their fork choice
@@ -693,9 +754,10 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
   `1/(1 − α)` for the next epoch, and the deflation holds while it withholds. The honest chain then
   runs at the full rate `f`, and a worst case of `Δ = 10` s reads as 15 s against a third: the
   proven depth is 2,426 blocks (27 hours) where it was 1,510 (23 hours), so `k = 2160` no longer
-  holds a third; under random delay the depth is 404 blocks where it was 276, in less time. A cap on
-  the correction of 5 % a period prices the deflation at 36 days of withholding
-  ([§12](#s12), G7).
+  holds a third. Under random delay the chain the adversary withholds from then grows as one on
+  which every node produces: on the engine its private attack needs 334 blocks where it needed 257,
+  past the 276 the random-delay figures read, though in less time. A cap on the correction of 5 % a
+  period prices the deflation at 36 days of withholding ([§12](#s12), G7).
 - **The bound's reference code needs more phases at depth.** LCanalysis follows its lower-bound
   attack for 80 phases, too few past its Table 1's depths. At a third of the stake, `Δ = 1` s and
   depth 60 the bound falls from `6.9e-3` to `5.5e-12` in the port at 30 states; the original code,
@@ -709,12 +771,14 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
 
 - **A bound for the nonce rule without the delay.** The decisions an adversary takes before the
   cut-off, its own blocks published or withheld and honest minima removed, are estimated in
-  hindsight, not bounded. The smaller-`k` figures of [§3.3](#s33) rest on that estimate. Under
-  the delay of [§13](#s13) those decisions are blind, the choices at the cut-off are bounded, and
-  the lemma that carries the bound into Praos's and Genesis's theorems is stated and proved there;
-  what remains is the sequentiality assumption itself.
+  hindsight, not bounded. Under the delay of [§13](#s13) those decisions are blind, and the values
+  the adversary sees while it can still choose them are bounded within the walk's model for a
+  stated number of delay evaluators; the lemma that carries the count into Praos's and Genesis's
+  theorems is stated and proved there. What remains is the sequentiality assumption itself and the
+  number of evaluators an adversary runs.
 - **The inference's correction.** A period of withholding deflates the inferred stake by the
-  adversary's share and raises every worst-case depth ([§12](#s12), G7). Whether to cap the
+  adversary's share, raises every worst-case depth and takes the private attack under random delay
+  past the convention ([§12](#s12), G7). Whether to cap the
   correction, and at what rate, trades the price of the deflation against the inference's response
   to stake that leaves; both are sized there.
 - **The nonce rule's other channels.** The inferred stake moves without changing the nonce, by
@@ -724,10 +788,12 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
 - **Recovery in a partition.** No density test tells a third's withheld fork from an honest third
   ([§6](#s6)). Whether any local test can, and what a node should do when its own chain was sparse
   over the window, is open.
-- **Blend's relays.** Relays that hold every honest block for the longest mixing delay cost 7 % of
-  depth; a third of the relays dropping what they carry sends half of the honest blocks through
-  the sender's fallback, in the clear, and costs 37 % ([§12](#s12), G6). Open: the share of the
-  relays an adversary can run, which the service declaration prices, not its stake.
+- **Blend's relays.** Relays that hold every honest block for the longest mixing delay cost 3–8 %
+  of depth, and holding to the sender's deadline 14–23 % against a third with no exposure; a third
+  of the relays dropping what they carry sends half of the honest blocks through the sender's
+  fallback, in the clear, and costs 47 % with two copies and 62 % with one ([§12](#s12), G6).
+  Open: the share of the relays an adversary can run, which the service declaration prices, not
+  its stake.
 - **Turnover in Cryptarchia itself.** The recovery horizon rests on how fast staked notes are spent,
   measured elsewhere at 0.05–0.3 % a day, and on how many of their old keys an adversary could buy.
   [§6](#s6) gives the horizon against turnover when every freed key is bought;
@@ -735,50 +801,58 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
 - **The emission budget.** Votes and the DAG both pay in Blend cover traffic. Which multiple is
   acceptable is a budget decision, not a measurement.
 - **Peras's proofs** for Poisson seat counts and for votes delayed by Blend (design (a)).
-- **A safety proof for the DAG** below the balancing attack's edge.
+- **A safety proof for a weight of every honest block** below the balancing attack's edge, which
+  retraction puts below a third at today's block rate; the bound from convergence opportunities
+  covers up to 0.223 of the stake at 10 s ([§9](#s9)).
 - **Proving on the reference node.** The proving time on a Raspberry Pi 5, which
   `tools/benchmarks/pol-proving` measures.
 
 [§13](#s13) takes up recovery in a partition, the delay function and time under the worst case:
-recovery attestations separate partitions below a third and nothing separates one at a third;
-the delay function must span the last sub-window, 4.5 hours on the adversary's hardware at
-`k = 2160`, with the contribution bound to the parent block; a time-reading rule under the worst
-case is the counting bound read with the forks the client sees, 374 blocks against a third.
+recovery attestations separate partitions below a third while Blend's relays deliver the votes,
+and nothing separates one at a third; the delay function must span the last sub-window, 4.5 hours
+on the adversary's hardware at `k = 2160`, with the contribution bound to the parent's
+contribution; a time-reading rule under the worst case is the counting bound read with the forks
+the client sees, 408 blocks against a third, which holds `ε` per target by computation.
 
 ---
 
 <a id="s12"></a>
 ## 12. Further routes
 
-Five ways to shorten finality that the routes of [§1](#s1) do not cover, and two checks on the
-figures (`FURTHER.md`), each read against 30 % and a third at `ε = 1e-9`:
+Six ways to shorten finality that the routes of [§1](#s1) do not cover, and two checks on the
+figures (`FURTHER.md`; phase J in `DAG.md`), each read against 30 % and a third at `ε = 1e-9`:
 
 | route | what changes | what it buys | what it costs |
 | --- | --- | --- | --- |
-| a delayed nonce (G1) | the nonce of [§3.1](#s31) passes through a sequential delay that spans the last sub-window, 4.5 hours on the adversary's hardware at `k = 2160`, with the contribution bound to the parent block | the adversary decides blind before the cut-off, and the choices it can still evaluate at the cut-off leave a factor per nonce of 1.00–1.01 with a margin of ten minutes, and at most 1.08 for forks across the sub-window's start, bounded from B6's walk: against a third at 10 s the depth is the unground one within eleven blocks, 1,511–1,521 at `k = 2160` (23.0–23.1 h) instead of an estimated 1,859–1,939; `k = 1620` holds a third and `k = 1080` holds 30 % | a sequential computation of about a day once an epoch, 22 hours at a speed ratio of 5 and `k = 2160`, by whoever first needs the nonce, with a proof in the block that uses it |
+| a delayed nonce (G1) | the nonce of [§3.1](#s31) passes through a sequential delay that spans the last sub-window, 4.5 hours on the adversary's hardware at `k = 2160`, with the contribution bound to the parent's contribution | the adversary decides blind before the cut-off; at a margin of ten minutes the contributions of [§3.1](#s31), which it knows ahead, leave a factor per nonce of 1.005–1.054, and the chained contribution 1.002–1.04; against a third at 10 s the depth is 1,511 blocks at `k = 2160` sampled and 1,523 as a bound (23.0–23.2 h), instead of an estimated 1,859–1,939; `k = 1620` holds a third and `k = 1080` holds 30 % unless the adversary runs more than 7,800 and 450,000 delay evaluators | a sequential computation of about a day once an epoch, 22 hours at a speed ratio of 5 and `k = 2160`, by whoever first needs the nonce, with a proof published before the nonce is first used |
 | the epoch apart from `k` (G2) | the epoch keeps its length when `k` shrinks | at `k = 1080` the nonce's sub-windows, the recovery window (72 h) and the horizon stay those of `k = 2160` | one more parameter; a stake snapshot that stays 7.5 days old |
-| Blend's delay (G3) | the Blend setting | from the specification's setting (`Δ = 11` s, its p99 rounded up) to testnet's (2 s), the worst-case depth against a third falls from 1,649 to 812 blocks (25.5 to 10.5 h) and the random-delay depth from 276 to 172 (4.1 to 2.2 h); one hop of three rounds (4 s) gives 936 (12.7 h); with the nonce under G1's delay each depth grows by at most 1 % | anonymity, in the Blend report's terms: one hop exposes the whole path of one message in three to an adversary holding a third of the nodes, three hops one in 27; one round of mixing blends a third of the broadcasts three rounds do |
-| settlement on a chain nobody withholds from (G4) | a client rule; nothing in consensus | the elapsed-time rule of [§3.2](#s32) settles such a chain in 39 / 53 minutes against 30 % / a third on the specification's Blend, against the depth rule's 98 / 163; with the rates the total-stake inference leaves after a period of withholding, and the depth rule as a cap, 66 / 106 minutes | the rule's rates must follow the inference: after a period of withholding every rate rises by `1/(1 − α)`, and B4's rule then understates the adversary; on a chain the adversary withholds from the safe rule is the depth rule; random delay only |
-| anchoring (G5) | a checkpoint written to another chain | the same choice between old forks for every node, which heals a partition deeper than `k`; finality at the anchor interval plus the other chain's | a dependence on another chain; a fork-choice rule for anchored forks; not measured |
-| the inference as a lever (G7) | nothing; a check on every worst-case figure | nothing: a period of withholding, 4.5 days at `k = 2160`, lowers the inferred stake by the adversary's share and raises every threshold by `1/(1 − α)`; `Δ = 10` s then reads as `10/(1 − α)` s and the proven depth is 2,426 blocks against a third (27 hours) and 1,248 against 30 %, so `k = 2160`, `k = 1620` and `k = 1080` hold their shares only while the inference is not deflated; under random delay 276 becomes 404 blocks against a third in less time | a cap on the correction, 5 % a period, prices the deflation at 36 days and slows the response to stake that leaves alike; a client can read the worst-case table at `Δ` divided by what remains of the inferred stake |
-| adversarial relays (G6), a check on the random-delay model | the adversary's relays hold every honest block for the longest mixing delay, or drop it; one copy of each block or the specification's two | holding: the honest orphan share rises by two points and the depth at `1e-9` by 7 %, 257 to 274 blocks against a third at the growth a withholding adversary leaves, and the report's 276, read at the growth with everyone producing, covers it; dropping: a third of the relays drops both copies of half of the honest blocks, which arrive by the sender's fallback 16 rounds late, and the depth is 352 with two copies, 416 with one | none for holding; dropping also identifies half of the honest leaders, since the fallback broadcasts in the clear; the lever is the adversary's share of the relays, which the service declaration prices |
+| Blend's delay (G3) | the Blend setting | from the specification's setting (`Δ = 11` s, its p99 rounded up) to testnet's (2 s), the worst-case depth against a third falls from 1,649 to 812 blocks (25.5 to 10.5 h) and the random-delay depth from 276 to 172 (4.1 to 2.2 h); one hop of three rounds (4 s) gives 936 (12.7 h); with the nonce under G1's delay each depth grows by at most 1 % at 16 s and less, by 7 % under the worst case at 24 s and by 29 % under random delay at 34 s | anonymity, in the Blend report's terms: one hop exposes the whole path of one message in three to an adversary holding a third of the nodes, three hops one cascade in 27, about one block in 14 with the specification's two copies; one round of mixing blends 3/7 of what three rounds do |
+| settlement on a chain nobody withholds from (G4) | a client rule; nothing in consensus | the elapsed-time rule of [§3.2](#s32) settles such a chain in 39 / 53 minutes against 30 % / a third on the specification's Blend, against the depth rule's 98 / 163; with the rates the total-stake inference leaves after a period of withholding, and the depth rule as a cap, 66 / 106 minutes | the rule's rates must follow the inference: after a period of withholding every rate rises by `1/(1 − α)`, and the elapsed-time rule of [§3.2](#s32) then understates the adversary; on a chain the adversary withholds from the safe rule is the depth rule, whose random-delay table covers an inference that is not deflated (G7); random delay only |
+| anchoring (G5) | a checkpoint written to another chain | a timestamp: it settles forks that did not exist when the anchor was written, a long-range fork from bought keys and the history offered to a node starting from genesis, never a partition, since an anchor does not show a block was public and an adversary can anchor its private fork first ([§13](#s13)); finality at the anchor interval plus the other chain's | a dependence on another chain; a rule for conflicting anchors; not measured |
+| the inference as a lever (G7) | nothing; a check on every worst-case figure | nothing: a period of withholding, 4.5 days at `k = 2160`, lowers the inferred stake by the adversary's share and raises every threshold by `1/(1 − α)`; `Δ = 10` s then reads as `10/(1 − α)` s and the proven depth is 2,426 blocks against a third (27 hours) and 1,248 against 30 %, so `k = 2160`, `k = 1620` and `k = 1080` hold their shares only while the inference is not deflated; under random delay the private attack's race on the engine then needs 189 / 334 blocks against 30 % / a third, where it needed 158 / 257, past the convention's 165 / 276, in less time, and with relays that hold to the sender's deadline 240 / 473 | a cap on the correction, 5 % a period, prices the deflation at 36 days and slows the response to stake that leaves alike; a client can read the worst-case table at `Δ` divided by what remains of the inferred stake |
+| adversarial relays (G6), a check on the random-delay model | the adversary's relays hold every honest block for the longest mixing delay or to the sender's deadline, or drop it; one copy of each block or the specification's two | holding: +3–8 %, 257 to 274 blocks against a third with one copy; to the deadline 317 with one copy and 273 with two; the report's 165 and 276 cover holding against a third with one copy released at the slot, and neither holding against 30 % (167), the deadline (186, 317), holding in the specification's setup of two copies released a round after the slot (170, 282) nor holding under deflation (204, 367); dropping: the depth is 352 with two copies, +47 %, and 416 with one, +62 % | none for holding, which exposes no one; dropping exposes nearly every honest leader within an epoch, since the fallback sends half the blocks in the clear; the lever is the adversary's share of the relays, which the service declaration prices |
+| a fork choice that tolerates delay (phase J) | each side of a fork weighed by its wins since the closest common ancestor, one weight per win: the chain with its uncles weighed, or the DAG | against a third nothing: an adversary that places and retracts its wins keeps two sides level for ever under either tie rule, at every delay, so neither an attack depth nor a bound exists; with one move per win, which no rule every node applies alike enforces, the strongest attack would need 2.8 hours at 1 s and 5.0 at 10 s against the chain's 3.5 and 6.8; against 25 % at 1 s the bound needs 14.2 hours, the chain's 3.3 | a new fork choice, a tie rule every node applies alike, and the bound that does not exist |
 
 **A delayed nonce.** The decisions of [§3.1](#s31) before the cut-off are worth something only if
 the adversary can compute the nonce each outcome gives before it must act, and a blind choice among
 `G` nonces gains nothing. It can compute an outcome's nonce from the moment the inputs are known:
 for the last sub-window, from the sub-window's start, 4.3 hours before the cut-off at `k = 2160`,
 since the earlier minima are fixed by then and it knows its own contributions ahead. The delay
-must therefore span the sub-window, with the contribution `ρ_LEAD` bound to the parent block so
-that no contribution is known before its block is built, which also replaces the binding to the
-epoch nonce and the notes frozen one epoch earlier. What remains is the choices at the cut-off in
-the epochs whose lead outlasts the margin beyond the sub-window: a lead lasts about one block
-interval per block of lead, and against a third under the worst case it lasts 10 minutes or more in
-6 % of epochs and 20 minutes or more in 0.6 %, a factor per nonce of 1.00–1.01 at a margin of 10
-minutes; forks across the sub-window's start add at most 1.08, a bound from B6's walk. The depths
-are [§3.1](#s31)'s "not ground" row within eleven blocks. Honest nodes compute `R·(W + margin)` for a
-speed ratio `R`: 22 hours at `R = 5` and `k = 2160`, 11 at `k = 1080`, within the `4⌊k/f⌋` slots
-before the nonce is first used up to `R = 16`. Phalanx's 82 independent pieces do not serve: one
-piece takes 53 s on the adversary's hardware.
+must therefore span the sub-window, and a value counts only if the adversary sees it while it can
+still publish a fork that reaches it. A choice is still open ten minutes after the cut-off in 30 %
+of epochs against a third under the worst case, and in 14 % at twenty, since the adversary's lead
+at the cut-off adds to what it gains after. The contributions of [§3.1](#s31), which the adversary
+knows ahead, then leave a factor per nonce of 1.005–1.054 at a margin of ten minutes. With the
+minima taken over a contribution bound to the parent's contribution, `c(b) = hash(NONCE_CONTRIB_V2 ‖
+c(parent) ‖ ρ_LEAD(b))`, which every node derives from public values while `ρ_LEAD` stays the win
+tag it is today, a value of the adversary's branch exists only once the block the branch forks
+from does. That also replaces the binding to the epoch nonce and the notes frozen one epoch
+earlier, and the factor is 1.002–1.04. The depths are [§3.1](#s31)'s "not ground" row within two
+blocks sampled at `k = 2160`, and within thirteen as a bound that grows with the delay evaluators
+the adversary runs. Honest nodes compute `R·(W + margin)` for a speed ratio `R`: 22 hours at
+`R = 5` and `k = 2160`, 11 at `k = 1080`, within the `4⌊k/f⌋` slots before the nonce is first used
+up to a ratio of 15 to 16, counting the squarings. Phalanx's 82 independent pieces do not serve:
+one piece takes 53 s on the adversary's hardware.
 
 **A chain nobody withholds from.** A private attack withholds the adversary's blocks from the
 target's parent on, so during an attack the canonical chain runs at the honest rate; a chain nobody
@@ -788,10 +862,12 @@ a third, where the depth rule needs 98 / 163 at the same rate. The adversary can
 density: a block that extends the public tip lengthens the chain its private one must beat, and a
 block that ties an honest one replaces it. But the total-stake inference sets the lottery's
 thresholds from the previous period's occupied slots, so an adversary that withholds for a whole
-period, 3 days at `k = 2160`, lowers the inferred stake by its share and every rate rises by
+period, 4.5 days at `k = 2160`, lowers the inferred stake by its share and every rate rises by
 `1/(1 − α)`: the honest stake alone then produces at the full rate, and the adversary wins faster
-than the rule assumes. The race's ratio is unchanged, but the depth rule moves all the same: the
-delay is fixed in slots and the orphan share rises with the rate (G7). The safe elapsed-time
+than the rule assumes. The race's ratio is unchanged, and so is the depth rule in the report's
+convention; on the engine the deflated race needs the depth of a chain on which every node
+produces, past the convention, and the worst case moves it further, since its delay is fixed in
+slots (G7). The safe elapsed-time
 rule takes the adjusted rates and the depth rule as its cap: 66 / 106 minutes on a chain nobody
 withholds from (played on timelines, 65 / 103 on average and 90 / 141 at the 90th percentile),
 and the depth rule's time on one the adversary withholds from. A rule that reads the density
@@ -803,8 +879,8 @@ of G1 the recovery horizon of [§6](#s6) is the unground one in every cell.
 <a id="s13"></a>
 ## 13. Three designs
 
-The three questions [§12](#s12) leaves open, each with a hypothesis that can fail (`DESIGNS.md`,
-`PLAN.md` H8–H10):
+The three questions [§12](#s12) leaves open, each with a hypothesis that can fail (`DESIGNS.md`;
+`PLAN.md` H8–H10, and H11–H13 for what the designs rest on):
 
 **Recovery in a partition (H.1).** No rule that reads chains and their stake-weighted content can
 tell a third's withheld fork from an honest third: after an even partition the three chains follow
@@ -813,60 +889,78 @@ honest sides hold `(1 − α)/2` each, and a one-off round of anonymous-seat vot
 node holds two chains both deeper than `k` since their divergence, separates them: a chain is kept
 when its seats exceed a threshold, the densest kept chain wins. A round of 2,300 expected seats
 separates a quarter at `1e-9`; 15,000 separate 30 % if every honest vote counts, 158,000 if a tenth
-are lost; 32 % needs 95,000 with every vote counted; a third none. The adversary can choose which
-honest history survives, never its own. Anchoring a checkpoint to another chain timestamps a block
-and does not show it was public; it settles forks older than the anchor and the start of a
-bootstrapping node, not a partition. Rule 8's test serves as a partition detector: a side holding
-up to about 0.6 of all stake is declared sparse with certainty against 30 % over 36 hours, the
-whole honest chain once in `10^9` windows; a node whose chain is sparse reports `B_imm` as
-provisional.
+are lost; 32 % needs 95,000 with every vote counted; a third none. The round needs relays that
+deliver: relays at the adversary's share that drop what they carry lose 58–66 % of single-copy votes
+against 25–30 %, and 33–43 % with two copies. Then no round separates a quarter or 30 % unless the
+lost votes fall back to direct broadcast, which identifies their voters. The adversary can choose
+which honest history survives, never its own. Anchoring a checkpoint to another chain timestamps a
+block and does not show it was public; it settles forks older than the anchor and the start of a
+bootstrapping node, not a partition. Rule 8's test serves as a partition detector: against 30 %
+over 36 hours a side holding up to 0.57 of all stake is declared sparse with chance 0.9999 or more,
+one of 0.6 with 0.926, and the whole honest chain once in `10^9` windows; a node whose chain is
+sparse reports `B_imm` as provisional. It reads a side only while the side runs at the thresholds
+set before the split, at least 3 days at `k = 2160`; within 7.5 to 15 days each side's inference
+has corrected, and every chain, the adversary's fork included, fills its slots at `f`.
 
 **The delay function (H.2).** In Praos's model a choice among nonces the adversary has not
 evaluated is blind and costs nothing, and a choice among evaluated ones multiplies the failure
 probability by their expected number. A candidate nonce of the last sub-window can be evaluated
-from the sub-window's start, so a delay of ten minutes blinds nothing and leaves B7's estimate;
-the design that works binds the contribution to the parent block and spans the sub-window,
-`T_a = W + margin`, 4.5 hours at `k = 2160` with a margin of ten minutes, which leaves a factor
-per nonce of 1.00–1.01 from the sub-window and at most 1.08 from forks across its start, a bound
-from B6's walk.
-Honest nodes pay `R·T_a` for a speed ratio `R`. The documented ratio is 3 to 5: Chia's class-group
-ASIC squares in about 1 µs against 3.85 µs on the fastest CPU and 4.7 µs on a commodity one, and
-the 10 that CIP-0161 assumes is attributed to Ethereum's `A_max`, which measured an attacker
-against commodity ASICs. At a ratio of 5 the honest computation is 22 hours at `k = 2160` and 11 at
-`k = 1080`, `1.7·10^10` squarings of one core once an epoch, and the `4⌊k/f⌋` slots before the
-nonce is first used hold a ratio up to 16. The design: the hash of the sub-window minima, fixed at
-the cut-off, passed through sequential squarings in a class group of a 1,024-bit discriminant, the
-output hashed into the nonce, with a Wesolowski proof of one group element carried by the first
-block of the new epoch and verified in milliseconds in place of the computation. MinRoot and the
+from the sub-window's start, so a delay of ten minutes blinds nothing and leaves the estimate of
+[§3.1](#s31). The design that works spans the sub-window, `T_a = W + margin`, 4.5 hours at
+`k = 2160` with a margin of ten minutes, and takes the minima over a contribution bound to the
+parent's contribution, `c(b) = hash(NONCE_CONTRIB_V2 ‖ c(parent) ‖ ρ_LEAD(b))`, which every node
+derives from public values and which leaves `ρ_LEAD` the win tag it is today. A value of the
+adversary's branch then exists only once the block it forks from does, and the proof of leadership
+is unchanged. Bound to the parent block itself, a branch takes a contribution for every body
+variant the adversary computes; bound to the parent's own tag, a block on the adversary's own win
+has a value known ahead, which does worse than no binding. The chained contribution leaves a factor
+of 1.009 against a third under the worst case at `k = 2160`, sampled, and as a bound the walk's
+1.08 plus 0.016 for a blind switch plus `1.6·10^-6` for each delay evaluator. Honest nodes pay
+`R·T_a` for a speed ratio `R`. The documented ratio is 3 to 5: Chia's class-group ASIC squares in
+about 1 µs against 3.85 µs on the fastest CPU and 4.7 µs on a commodity one, and the 10 that
+CIP-0161 assumes is attributed to Ethereum's `A_max`, which measured an attacker against commodity
+ASICs. At a ratio of 5 the honest computation is 22 hours at `k = 2160` and 11 at `k = 1080`,
+`1.7·10^10` squarings of one core once an epoch, and the `4⌊k/f⌋` slots before the nonce is first
+used hold a ratio of 15 to 16 counting the squarings. The design: the hash of the sub-window
+minima, fixed at the cut-off, passed through sequential squarings in a class group of a 1,024-bit
+discriminant, the output hashed into the nonce, with a Wesolowski proof of one group element
+published within the phase and verified in 2–4 ms in place of the computation. MinRoot and the
 other field-root candidates are broken; squaring in a group of unknown order is not. Praos and
-Genesis bound the nonce's bias by a union bound over the candidates the adversary can set it to
-and then bound the candidates by its oracle queries; the rule bounds the same count by the
-candidates it has evaluated, and Genesis's theorem for the Bootstrap rule adds to Praos's only a
-term in `k` and the density window, so the lemma stands under both of Cryptarchia's rules. The
-class number of a 1024-bit discriminant costs about `2^91` operations by the published estimates,
-between NIST's 80- and 112-bit levels, which is a century for a machine of `10^18` operations a
-second and two hundred thousand such machines within the delay; 2048 bits give `2^139` at no cost in
-time. A proof still needs the formal write-up and the sequentiality assumption itself.
+Genesis bound the nonce's bias by a union bound over the candidates the adversary can set it to and
+then bound the candidates by its oracle queries; the rule bounds the same count by the candidates
+whose values the adversary sees while it can still choose them, and Genesis's theorem for the
+Bootstrap rule adds to Praos's only a term in `k` and the density window, so the lemma stands under
+both of Cryptarchia's rules. The discrete logarithm in the class group of a 1024-bit discriminant
+costs `2^91.4` operations by Biasse, Jacobson and Silvester's table, between NIST's 80- and 112-bit
+levels, and `2^101.4` by their stated method, with the class group up to 1.6 times that: two
+hundred thousand to three hundred million machines of `10^18` operations a second within the
+delay. 2048 bits give `2^139.4` and `2^149.4`, at no cost in time if the speed ratio holds there. A
+proof still needs the formal write-up and the sequentiality assumption itself.
 
-**Time under the worst case (H.3).** B3's delay-scheduling attack beats B4's elapsed-time rule at
-worst-case rates whenever the rule accepts: 51–58 % of accepted targets at `ε = 1e-3`. An
-adversary that schedules delays controls the clock the rule reads, so the chain's speed is not
-evidence. A counting bound is: every block of a competing chain is a distinct win, the adversary's
-or an honest one not on the canonical chain, so with `n` canonical blocks in `t` slots the
-competing chain leads by at most `2A(t) + H(t) − 2n` plus the worst-case lead. It holds for every
-strategy within `Δ`, and it bites only on a fast chain: 574 blocks against a third at `1e-9` when
-the chain runs at the full rate, where B2's depth is 1,510, and nothing at the rate of a chain the
-adversary withholds from. A client can count the honest wins instead of taking their mean: an
-honest block that descends from the target sits on no chain without it, so the competing chain's
-honest blocks are among the forks the client has received, the blocks after the target's parent
-that do not descend from the target, plus those of the last `Δ` slots. The observed counting rule,
-`L + A(t) + forks + H_late` against `n`, settles a chain the adversary withholds from at 374 blocks
-against a third (5.4 hours on the honest chain's clock), 209 against 30 % and 112 against a
-quarter, a quarter of B2's depth; three targets in four see no fork, and each fork costs about three
-blocks. An adversary that balances the honest chain returns it to B2's depth, and one that
-publishes every win as a fork stalls it at 30 % and above, at the cost of its rewards; the depth
-rule caps it. Played at `1e-3` on the engine's timelines the race beats it on none of 70,000
-targets a share. A time-conditioned form of B2's bound is not derived.
+**Time under the worst case (H.3).** The delay-scheduling attack behind the lower bound of
+[§4](#s4) beats the elapsed-time rule of [§3.2](#s32) in 51–58 % of the targets the rule accepts at
+`ε = 1e-3`, 2.2–2.7e-2 per target: an adversary that schedules delays controls the clock the rule
+reads, so the chain's speed is not evidence. A counting bound is: every block of a competing chain
+is a distinct win, the adversary's or an honest one not on the canonical chain, so with `n`
+canonical blocks in `t` slots the competing chain leads by at most `2A(t) + H(t) − 2n` plus the
+worst-case lead. It holds for every strategy within `Δ`, and it bites only on a fast chain: 574
+blocks against a third at `1e-9` when the chain runs at the full rate, where the proven depth is
+1,510, and nothing at the rate of a chain the adversary withholds from. A client can count the
+honest wins instead of taking their mean: an honest block that descends from the target sits on no
+chain without it, so the competing chain's honest blocks are among the forks the client has
+received, counted once a slot, plus those of the last `Δ` slots. The observed counting rule,
+`L + A(t) + forks + H_late` against `n` with `t` read on the client's clock, settles at 408 / 226 /
+120 blocks against a third / 30 % / a quarter under a worst-case delay, 6.2 hours against a third,
+and at 374 / 209 / 112 on a chain the adversary withholds from without delaying it, a quarter of
+the proven depth; each fork costs 2–3 blocks, and 3.5–4.4 % of targets see two or more. It holds
+`ε` per target, not given the client's view: with the worst-case walk's law an adversary that keeps
+its chain private until acceptance, and times it as it likes, fails at most 0.10 ε at `1e-3` and
+0.0018 ε at `1e-9`, where the rule's own geometric law would allow 1.13–1.16 ε. The delay-scheduling
+attack, with every honest block off the client's chain counted as a fork, makes it accept no
+target. An adversary that balances the honest chain, its own blocks counted as forks, stalls it
+from a quarter up, and one that publishes every win as a fork stalls it at 30 % and a third, at the
+cost of its rewards; the depth rule caps it. A time-conditioned form of the proven bound is not
+derived.
 
 ---
 
@@ -883,6 +977,17 @@ make tables           # every table of the notes, from runs/
 make check-tables     # each table appears verbatim in a note
 make octave-reference # the original LCanalysis in Octave, in the background, for hours
 ```
+
+`make a1` also compares the random-delay convention with the engine's own arms
+(`scripts/a1_convention.py`); `make further` plays the engine's arms of G6 and G7; `make designs`
+counts the values an adversary sees while it can still choose them (H.2, `finality_sim.formation`)
+and plays the observed counting rule against adaptive timing (H.3, `finality_sim.adaptive`).
+Phase J's fork choice has its own targets: `make j1` counts the proof of leadership's constraints
+(`scripts/j1_circuit.py`), `make j2` plays every attack within `Δ` with one and two moves per win
+(`finality_sim.delayfc`, `scripts/j2_attacks.py`; it needs `make b2` and `make e5`), and `make j3`
+computes the published regions and the bound from convergence opportunities
+(`finality_sim.convergence`, `finality_sim.cobound`, `scripts/j3_regions.py`,
+`scripts/j3_bound.py`).
 
 Proving is timed apart, on the machine at hand: `make run` in
 [`tools/benchmarks/pol-proving`](../../tools/benchmarks/pol-proving) writes to

@@ -1,13 +1,6 @@
 """Phase G, further routes (PLAN.md, phase G).
 
-G1, a delayed nonce. If the nonce passes through a sequential delay that outlasts the time the
-coalition has to decide, the coalition decides blind and gains nothing from a choice. At the
-cut-off it has until its private chain's lead is spent. ``lead_lasts`` is the chance that the lead
-``Z`` after the cut-off (B6, ``finality_sim.grinding.post_cutoff``) lasts at least ``slots`` slots,
-taking a lead of ``z`` to last ``z / (h_c - a)`` slots, its mean under a drift of ``h_c - a``
-canonical honest blocks per slot net of the coalition's wins. ``delayed_factor`` is the factor per
-nonce that remains under a delay: the choices at the cut-off count only in the windows whose lead
-lasts that long.
+G1, a delayed nonce: ``finality_sim.formation``.
 
 G4, settlement on a chain nobody withholds from. B4's elapsed-time rule accepts the ``n``-th
 canonical block counting the target when the coalition's exact chance, given the time ``t`` since
@@ -30,29 +23,7 @@ import numpy as np
 from scipy import stats
 
 from finality_sim.elapsed import deadlines, log_fail
-from finality_sim.grinding import post_cutoff
-from finality_sim.nonce import _rates, min_rule_choices
 from finality_sim.private_race import log_strict, strict_depth
-
-
-def lead_lasts(f: float, alpha: float, slots: float, growth: float | None = None,
-               delta: int | None = None) -> float:
-    """P(the coalition's lead after the cut-off lasts at least ``slots`` slots)."""
-    a, _, _, rate = _rates(f, alpha, growth, delta)
-    z = post_cutoff(f, alpha, growth, delta)
-    need = math.ceil(slots * (rate - a))
-    return float(z[need:].sum()) if need < z.size else 0.0
-
-
-def delayed_factor(f: float, alpha: float, window_slots: int, sub_windows: int, minutes: float,
-                   n_samples: int, seed: int, growth: float | None = None,
-                   delta: int | None = None, near_slots: int = 20_000) -> float:
-    """E[1 + (G_min - 1)·1{the lead lasts at least ``minutes``}] over sampled windows."""
-    a, _, _, rate = _rates(f, alpha, growth, delta)
-    g, _, z = min_rule_choices(f, alpha, window_slots, n_samples, seed, sub_windows=sub_windows,
-                               growth=growth, delta=delta, near_slots=near_slots, with_lead=True)
-    need = math.ceil(60 * minutes * (rate - a))
-    return float(np.mean(1.0 + (g - 1.0) * (z >= need)))
 
 
 def _rule_rates(alpha: float, g: float, f: float, adjusted: bool) -> tuple[float, float]:
@@ -123,26 +94,28 @@ def attestation_seats(alpha: float, eps: float, eps_live: float,
     chance at most ``eps``, while an honest side of an even partition, backed by ``(1 - alpha)/2``
     with a share ``undelivered`` of its votes lost, draws fewer than ``theta`` with chance at most
     ``eps_live``. Seats are Poisson in the share. ``(-1, -1)`` when the side's share is not above
-    ``alpha``, where no threshold separates them."""
+    ``alpha``, where no threshold separates them.
+
+    Whether ``n`` seats suffice is not monotone in ``n``, since ``theta`` moves in whole seats, so
+    a bisection can stop above the fewest: the seats are doubled until they suffice, and every
+    count below is scanned."""
     side = (1 - alpha) / 2 * (1 - undelivered)
     if side <= alpha:
         return -1, -1
 
-    def theta_for(n: int) -> int:
-        return int(stats.poisson.isf(eps, alpha * n)) + 1       # P(X >= theta) <= eps
+    def holds(n: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        theta = stats.poisson.isf(eps, alpha * n).astype(np.int64) + 1     # P(X >= theta) <= eps
+        return theta, stats.poisson.cdf(theta - 1, side * n) <= eps_live
 
-    def holds(n: int) -> bool:
-        return stats.poisson.cdf(theta_for(n) - 1, side * n) <= eps_live
-
-    lo, hi = 1, 1
-    while not holds(hi):
-        lo, hi = hi, 2 * hi
+    hi = 1
+    while not holds(np.array([hi]))[1][0]:
+        hi *= 2
         if hi > 1 << 30:
             return -1, -1
-    while hi - lo > 1:
-        mid = (lo + hi) // 2
-        lo, hi = (mid, hi) if not holds(mid) else (lo, mid)
-    return hi, theta_for(hi)
+    n = np.arange(1, hi + 1)
+    theta, ok = holds(n)
+    first = int(np.argmax(ok))
+    return int(n[first]), int(theta[first])
 
 
 def detector_power(alpha: float, g: float, w: int, eps: float, sides, f: float = 1 / 30):
@@ -175,7 +148,11 @@ def counting_ratio(alpha: float, delta: int, f: float = 1 / 30) -> float:
 
 def counting_logp(n: int, t: float, alpha: float, delta: int, f: float = 1 / 30) -> float:
     """log of the counting bound on the coalition's chance, given ``n`` canonical blocks counting
-    the target ``t`` slots after its parent, under a worst case of ``delta``.
+    the target, under a worst case of ``delta``. ``t`` is the client's clock when it evaluates,
+    less the parent's slot: a block the coalition released late carries a slot earlier than the
+    clock, and the wins of the slots between count. The client keeps the chain it holds on a
+    tie, as Cryptarchia's Online rule keeps the first-seen chain, so a competing chain must be
+    strictly longer.
 
     Every block is a distinct lottery win. Above the parent the competing chain holds at most the
     coalition's wins ``A(t)``, each of which may also sit on the canonical chain, and the honest
@@ -208,26 +185,30 @@ def counting_logp(n: int, t: float, alpha: float, delta: int, f: float = 1 / 30)
 
 
 def counting_observed_logp(n: int, t: float, forks: int, alpha: float, delta: int,
-                           f: float = 1 / 30) -> float:
+                           f: float = 1 / 30, ties_to_coalition: bool = False) -> float:
     """log of the counting bound when the client also counts the ``forks`` it has received: the
-    blocks with a slot after the target's parent's that do not descend from the target.
+    distinct slots of the blocks with a slot after the target's parent's that do not descend from
+    the target (``finality_sim.forks``). ``t`` is the client's clock less the parent's slot, as in
+    ``counting_logp``.
 
     An honest block sits on one chain, and one that descends from the target sits on no chain
-    without it. The honest blocks a competing chain holds above the parent are therefore among the
-    forks received, once the blocks of the last ``delta`` slots, ``H_late``, Poisson at the honest
-    occupancy over ``delta``, have arrived. The coalition's wins ``A(t)`` may sit anywhere, and the
-    lead ``L`` before the parent is the worst-case walk's. The competing chain holds at most
-    ``L + A + forks + H_late`` blocks above the parent against the canonical ``n``, and the target
+    without it. A chain holds one block per slot. The honest blocks a competing chain holds above
+    the parent therefore sit at distinct slots among the forks received, once the blocks of the last
+    ``delta`` slots, ``H_late``, Poisson at the honest occupancy over ``delta``, have arrived. The
+    coalition's wins ``A(t)`` may sit anywhere, and the lead ``L`` before the parent is the
+    worst-case walk's. The competing chain holds at most ``L + A + forks + H_late`` blocks above
+    the parent against the canonical ``n``. The client keeps its chain on a tie, so the target
     falls if ``L + A + H_late >= n + 1 - forks`` at acceptance, or later by a catch-up at the
-    ratio ``counting_ratio``. A coalition that publishes its wins as forks raises ``forks`` by
-    as much as ``A``; the bound stays sound and the rule accepts later.
+    ratio ``counting_ratio``; with ``ties_to_coalition`` a tie suffices. A coalition that
+    publishes its wins as forks raises ``forks`` by at most one a win; the bound stays sound and
+    the rule accepts later.
     """
     from finality_sim.recovery import occupancy
     a, h = occupancy(f, alpha), occupancy(f, 1 - alpha)
     rho = counting_ratio(alpha, delta, f)
     if rho >= 1.0:
         return 0.0
-    need = n + 1 - forks                                              # L + A + H_late must reach it
+    need = n + 1 - forks - int(ties_to_coalition)                     # L + A + H_late must reach it
     if need <= 0:
         return 0.0
     top = need + 1
@@ -241,16 +222,18 @@ def counting_observed_logp(n: int, t: float, forks: int, alpha: float, delta: in
 
 
 def counting_observed_depth(alpha: float, delta: int, eps: float, rate: float, forks: int = 0,
-                            forks_per_slot: float = 0.0, f: float = 1 / 30) -> int:
-    """The first depth at which ``counting_observed_logp`` holds ``eps`` when the ``n``-th block
-    arrives ``n / rate`` slots after the parent and the client has received ``forks`` plus
+                            forks_per_slot: float = 0.0, f: float = 1 / 30,
+                            ties_to_coalition: bool = False) -> int:
+    """The first depth at which ``counting_observed_logp`` holds ``eps`` when the client holds the
+    ``n``-th block ``n / rate`` slots after the parent and has received ``forks`` plus
     ``forks_per_slot`` a slot; -1 if none below 5,000."""
     if counting_ratio(alpha, delta, f) >= 1.0:
         return -1
     for d in range(1, 5000):
         n = d + 1
         t = n / rate
-        if counting_observed_logp(n, t, forks + int(forks_per_slot * t), alpha, delta, f) <= math.log(eps):
+        if counting_observed_logp(n, t, forks + int(forks_per_slot * t), alpha, delta, f,
+                                  ties_to_coalition) <= math.log(eps):
             return d
     return -1
 
@@ -277,15 +260,18 @@ def counting_observed_deadlines(alpha: float, delta: int, eps: float, n_max: int
 
 
 def observed_settle(canon: np.ndarray, deadlines: np.ndarray, forks: np.ndarray,
-                    fork_grid) -> tuple[np.ndarray, np.ndarray]:
+                    fork_grid, clock: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """Play the observed counting rule: for each target canonical block ``i`` with a parent, the
     confirmations at which the rule accepts it and the slots from the target to acceptance, -1
     where it never does. ``deadlines[n, j]`` is the deadline for the ``n``-th block at
-    ``fork_grid[j]`` forks, and a target with more forks than the grid holds is not accepted."""
+    ``fork_grid[j]`` forks, and a target with more forks than the grid holds is not accepted.
+    ``clock[m]`` is the slot at which the client holds canonical block ``m``, its slot when not
+    given: the rule reads its clock then, less the parent's slot."""
+    clock = canon if clock is None else clock
     n_c, n_max = canon.size, deadlines.shape[0] - 1
     col = {int(k): j for j, k in enumerate(fork_grid)}
     k_out = np.full(n_c, -1, np.int64)
-    t_out = np.full(n_c, -1, np.int64)
+    t_out = np.full(n_c, -1, np.result_type(clock, np.int64))
     for i in range(1, n_c):
         j = col.get(int(forks[i]))
         if j is None:
@@ -294,16 +280,16 @@ def observed_settle(canon: np.ndarray, deadlines: np.ndarray, forks: np.ndarray,
             m = i + n - 1
             if m >= n_c:
                 break
-            if deadlines[n, j] >= 0 and canon[m] - canon[i - 1] <= deadlines[n, j]:
+            if deadlines[n, j] >= 0 and clock[m] - canon[i - 1] <= deadlines[n, j]:
                 k_out[i] = n - 1
-                t_out[i] = canon[m] - canon[i]
+                t_out[i] = clock[m] - canon[i]
                 break
     return k_out, t_out
 
 
 def counting_depth(alpha: float, delta: int, eps: float, rate: float, f: float = 1 / 30) -> int:
-    """The first depth at which ``counting_logp`` holds ``eps`` when the ``n``-th block arrives
-    ``n / rate`` slots after the parent; -1 if none below 5,000."""
+    """The first depth at which ``counting_logp`` holds ``eps`` when the client holds the ``n``-th
+    block ``n / rate`` slots after the parent; -1 if none below 5,000."""
     if counting_ratio(alpha, delta, f) >= 1.0:
         return -1
     for d in range(1, 5000):

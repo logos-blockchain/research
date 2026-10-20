@@ -303,7 +303,10 @@ def build_tree_pernode(
 
       * ``H = max path latency`` over the graph (for ``blend``, ``H`` also adds the whole mix
         cascade: ``(blend_hops+1)*max_path_latency + blend_hops*blend_delay_max``, a hard bound
-        since the per-relay mixing delays are ``Uniform``-bounded). Any block with
+        since the per-relay mixing delays are ``Uniform``-bounded, plus one round when the
+        cascade starts at the next round, and at least the sender's fallback,
+        ``1 + blend_fallback_slots + max_path_latency``, when hostile relays drop blocks or hold
+        them to the sender's deadline). Any block with
         ``slot <= t - H`` has, under *deterministic* latency, reached **every** node
         (``slot + propagation <= t``), so the best of them — the "fully-propagated tip" ``gb`` —
         is a valid candidate for *all* nodes and is tracked incrementally. Only blocks with
@@ -320,7 +323,7 @@ def build_tree_pernode(
     """
     import warnings
 
-    from .topology import arrival_column
+    from .topology import across_cut, arrival_column
     from .uncles import select_uncles_at_production
 
     n = config.n_nodes
@@ -359,8 +362,11 @@ def build_tree_pernode(
         max_pl = float(path_latency.max())
         dmax = float(config.blend_delay_max)
         horizon = (config.blend_hops + 1) * max_pl + config.blend_hops * dmax
-        if config.blend_adversary_relays and config.blend_adversary_action == "drop":
-            # a block whose every copy is dropped arrives by the sender's fallback
+        if config.blend_release_next_round:
+            horizon += 1.0                             # the cascade starts a round after the slot
+        if config.blend_adversary_relays and config.blend_adversary_action in ("drop", "deadline"):
+            # a block whose every copy is dropped arrives by the sender's fallback, and one held to
+            # the sender's deadline just before it
             horizon = max(horizon, 1.0 + float(config.blend_fallback_slots) + max_pl)
     else:
         horizon = float(path_latency.max())            # H; disconnected -> full scan
@@ -518,7 +524,8 @@ def build_tree_pernode(
                 # its fastest legal publication. Oldest first, so each block's parent arrival is
                 # already final when the no-earlier-than-parent clamp is applied.
                 prod = int(leader[rb])
-                rel = float(t) + path_latency[prod]
+                rel = across_cut(float(t) + path_latency[prod], path_latency, prod, config,
+                                 partition_mask)                 # a partition's cut holds it too
                 np.maximum(rel, A[:, int(parent[rb])], out=rel)
                 np.minimum(rel, A[:, rb], out=rel)           # coalition already had it privately
                 A[:, rb] = rel

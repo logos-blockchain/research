@@ -93,12 +93,30 @@ def blocks_below(slots: int, n_lo: int, f: float, alpha: float, growth: float | 
     return float(stats.nbinom.sf(slots - n_lo * (dead + 1), n_lo, h))
 
 
+def _previous_law(step, stay, o_lo, o_max, depth):
+    """For each offset ``o`` from ``o_lo`` to ``o_max``, row ``o - o_lo``: the pmf of ``D_1``, the deepest
+    feasible fork counted back from the previous sub-window's last block, at ``j = 0..depth``. The walk
+    from the boundary is ``V_j = Y_0 + ... + Y_j - j``, the first gap taken whole; a fork from ``j``
+    wins when ``o + V_j >= 1``, and ``D_1 = j`` when ``o + V_j = 1``, the next gap holds no win and the
+    walk never rises again. A row sums to the chance that the fork crosses at all, one for ``o >= 1``."""
+    os_ = np.arange(o_lo, o_max + 1)
+    q = np.zeros((os_.size, depth + 1))
+    lead = step.copy()                                                # Y_0 + ... + Y_j at index v + j
+    for j in range(depth + 1):
+        if j:
+            lead = np.convolve(lead, step)
+        idx = 1 - os_ + j
+        ok = (idx >= 0) & (idx < lead.size)
+        q[ok, j] = lead[idx[ok]] * step[0] * stay
+    return os_, q
+
+
 def _crossing_parts(f, alpha, sub_slots, n_lo, growth, delta, floor, harmonic, c):
-    """The pieces of ``_crossing``: ``phi[o]``, the bound on the previous sub-window's factor at
-    offset ``o``; the laws of ``Z``, of the sub-window's blocks ``N`` and of the coalition's wins
-    ``A_0`` in it (values and weights)."""
+    """The pieces of ``_crossing``: the offsets ``o`` and, at each, ``phi``, the bound on the previous
+    sub-window's factor times the chance that the fork crosses, and that chance; the laws of ``Z``, of
+    the sub-window's blocks ``N`` and of the coalition's wins ``A_0`` in it (values and weights)."""
     a, _, _, _ = _rates(f, alpha, growth, delta)
-    first, step = walk(f, alpha, growth, delta)
+    _, step = walk(f, alpha, growth, delta)
     pz = post_cutoff(f, alpha, growth, delta, floor=floor)
     pm = _renewal(_ladder(step, floor))
     stay = float(pm[0])
@@ -107,53 +125,77 @@ def _crossing_parts(f, alpha, sub_slots, n_lo, growth, delta, floor, harmonic, c
     keep = np.nonzero(p_w > 1e-18)[0]
     p_w, ws = p_w[keep], keep
     o_max = int(ws.max() + pz.size)
-    phi = np.zeros(o_max + 1)
+    rises = np.cumsum(np.convolve(step, pm)[::-1])[::-1]              # P(Y_0 + M >= t)
+    o_lo = 1 - int(np.nonzero(rises > 1e-18)[0].max())
     p_low = blocks_below(sub_slots, n_lo, f, alpha, growth, delta)
-    os_ = np.arange(1, o_max + 1)
-    # D_1 = 0: the walk never rises again from its start, with no win in the first two gaps
-    phi[1] += step[0] * step[0] * stay * 1.0                          # A_1 = 0, no block dropped
-    lead = step.copy()                                                # lead_0 = Y_0, offset 0
-    for j in range(1, 4 * n_lo + 1):
-        lead = np.convolve(lead, step)                                # lead_j, index v + j
-        idx = 1 - os_ + j
-        ok = (idx >= 0) & (idx < lead.size)
-        pj = np.zeros(o_max + 1)
-        pj[os_[ok]] = lead[idx[ok]] * step[0] * stay
-        a1 = j + 1 - os_                                              # A_1 given D_1 = j
-        if j < n_lo:
-            val = 1.0 + harmonic[n_lo] - harmonic[n_lo - j] + np.maximum(a1, 0) / (n_lo - j + 1)
-        else:
-            val = (c + np.maximum(a1, 0)) ** 2
-        phi[1:] += pj[1:] * val
-    phi[1:] += (c + n_lo) ** 2 * p_low
-    return phi, pz, p_n, ws, p_w
+    os_, q = _previous_law(step, stay, o_lo, o_max, 4 * n_lo)
+    js = np.arange(q.shape[1])
+    a1 = np.maximum(js[None, :] + 1 - os_[:, None], 0)               # A_1 given D_1 = j
+    short = js < n_lo
+    val = np.where(short[None, :],
+                   1.0 + harmonic[n_lo] - harmonic[n_lo - np.minimum(js, n_lo)][None, :]
+                   + a1 / (n_lo - np.minimum(js, n_lo) + 1)[None, :],
+                   (c + a1) ** 2)
+    mass = q.sum(axis=1)
+    phi = (q * val).sum(axis=1) + (c + n_lo) ** 2 * np.minimum(p_low, mass)
+    return os_, phi, mass, pz, p_n, ws, p_w
+
+
+def _crossing_sum(os_, values, pz, p_n, ws, p_w, weight):
+    """``sum over A_0, Z, N of P(A_0) P(Z) P(N) weight(A_0) values[A_0 + Z - N]``, zero below ``os_[0]``."""
+    total = 0.0
+    ns = np.arange(p_n.size)
+    zs = np.arange(pz.size)
+    for w, pw in zip(ws, p_w):
+        o = w + zs[:, None] - ns[None, :] - os_[0]
+        inside = o >= 0
+        v = np.where(inside, values[np.clip(o, 0, values.size - 1)], 0.0)
+        total += pw * weight(w) * float(np.sum(pz[:, None] * p_n[None, :] * v))
+    return total
+
+
+def _emptied(c):
+    """The bound on the factor of a sub-window the fork empties, as a function of the coalition's
+    wins ``A_0`` in it: ``c`` for the minima of its honest blocks and one per win."""
+    return lambda w: c + w
 
 
 def _crossing(f, alpha, sub_slots, n_lo, growth, delta, floor, harmonic, c):
     """``E[G_min; the deepest fork reaches the previous sub-window]`` from above.
 
-    The fork crosses only if the coalition's wins in the sub-window, ``A_0``, and its lead after
-    the cut-off reach ``N + 1``, with ``N`` the sub-window's blocks; ``A_0``, ``Z`` and ``N`` are
-    independent. The sub-window's factor is then at most ``c + A_0``, every win being below a
-    floor of nothing. In the previous sub-window the walk starts with the offset
-    ``o = A_0 + Z - N`` and a first gap taken whole, and its deepest feasible fork ``D_1`` and
-    wins ``A_1 = D_1 + 1 - o`` follow the law of ``deepest_fork``; its factor is bounded as the
-    main term bounds the last sub-window's, with a square beyond ``n_lo`` blocks."""
-    phi, pz, p_n, ws, p_w = _crossing_parts(f, alpha, sub_slots, n_lo, growth, delta, floor, harmonic, c)
-    total = 0.0
-    ns = np.arange(p_n.size)
-    zs = np.arange(pz.size)
-    for w, pw in zip(ws, p_w):
-        o = np.clip(w + zs[:, None] - ns[None, :], 0, phi.size - 1)
-        total += pw * (c + w) * float(np.sum(pz[:, None] * p_n[None, :] * phi[o]))
-    return total
+    The fork crosses when the coalition's wins in the sub-window, ``A_0``, its lead after the cut-off
+    ``Z`` and the previous sub-window's walk reach the sub-window's blocks ``N``: with the offset
+    ``o = A_0 + Z - N``, when ``o + max_j V_j >= 1`` (``_previous_law``), which a positive offset
+    always meets and a negative one through the previous sub-window's wins. ``A_0``, ``Z`` and ``N``
+    are independent. The emptied sub-window's factor is at most ``c + A_0``, every win being below a
+    floor of nothing. In the previous sub-window the deepest feasible fork ``D_1`` and the wins after
+    it, ``A_1 = D_1 + 1 - o``, follow ``_previous_law``; its factor is bounded as the main term bounds
+    the last sub-window's, with a square beyond ``n_lo`` blocks."""
+    os_, phi, _, pz, p_n, ws, p_w = _crossing_parts(f, alpha, sub_slots, n_lo, growth, delta, floor,
+                                                     harmonic, c)
+    return _crossing_sum(os_, phi, pz, p_n, ws, p_w, _emptied(c))
+
+
+def crossing_chance(f: float, alpha: float, sub_slots: int, growth: float | None = None,
+                    delta: int | None = None, floor: int = 200) -> float:
+    """P(the deepest feasible fork empties a sub-window of ``sub_slots`` slots), from the law the
+    crossing term uses: exact under random delay, from above under a worst case."""
+    _, _, dead, rate = _rates(f, alpha, growth, delta)
+    n_lo = max(1, int(0.7 * sub_slots * rate))
+    n_max = sub_slots // (dead + 1) + 1 if dead else sub_slots
+    harmonic = np.concatenate(([0.0], np.cumsum(1.0 / np.arange(1, n_max + 2))))
+    os_, _, mass, pz, p_n, ws, p_w = _crossing_parts(f, alpha, sub_slots, n_lo, growth, delta, floor,
+                                                      harmonic, 1.0 + harmonic[n_max])
+    return _crossing_sum(os_, mass, pz, p_n, ws, p_w, lambda w: 1.0)
 
 
 def gmin_bound(f: float, alpha: float, sub_slots: int, n_lo: int, growth: float | None = None,
-               delta: int | None = None, d_max: int = 800, floor: int = 200) -> dict:
+               delta: int | None = None, d_max: int = 800, floor: int = 200,
+               n_lo_prev: int | None = None) -> dict:
     """An upper bound on ``E[G_min]`` for a sub-window of ``sub_slots`` slots, split at ``n_lo``
     blocks: the main term on ``N >= n_lo, D < n_lo``; the forks of ``D >= n_lo``, linear; the
-    windows of ``N < n_lo``, linear; and the forks that cross into the previous sub-window; with
+    windows of ``N < n_lo``, linear; and the forks that cross into the previous sub-window, whose
+    blocks are split at ``n_lo_prev`` (``n_lo`` by default; the two splits are chosen apart); with
     ``E[D]`` and ``E[A]``."""
     p, a1, a2 = deepest_fork(f, alpha, growth, delta, d_max=d_max, floor=floor)
     _, _, dead, _ = _rates(f, alpha, growth, delta)
@@ -165,7 +207,8 @@ def gmin_bound(f: float, alpha: float, sub_slots: int, n_lo: int, growth: float 
     tail_d = float(np.sum(p[n_lo:] * (c - 1.0) + a1[n_lo:]))
     p_low = blocks_below(sub_slots, n_lo, f, alpha, growth, delta)
     tail_n = (c - 1.0 + n_lo) * p_low
-    cross = _crossing(f, alpha, sub_slots, n_lo, growth, delta, floor, harmonic, c)
+    cross = _crossing(f, alpha, sub_slots, n_lo if n_lo_prev is None else n_lo_prev, growth, delta,
+                      floor, harmonic, c)
     return dict(bound=1.0 + main + tail_d + tail_n + cross, main=main, tail_d=tail_d, tail_n=tail_n,
                 cross=cross, p_low=p_low, e_d=float(np.sum(np.arange(p.size) * p)),
                 e_a=float(a1.sum()), mass=float(p.sum()))

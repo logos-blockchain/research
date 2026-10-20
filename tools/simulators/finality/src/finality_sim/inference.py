@@ -5,7 +5,11 @@ period, ``PERIOD = 6⌊k/f⌋`` slots, with a full correction (``beta = 1``): a 
 every block it wins for a period lowers the inferred stake by its share ``α`` and raises every
 threshold by ``1/(1 − α)``. The honest stake alone then occupies slots at ``f``, the coalition at
 ``1 − (1 − f)^(α/(1−α))``, and a worst case of ``Δ`` slots reads as one of ``Δ/(1 − α)`` at the
-old rates.
+old rates. Under random delay the honest chain then grows as it does with everyone producing at
+``f``. In the convention's model, which reads that growth for every race, ``q`` is unchanged; on
+the engine the honest growth falls from the withheld race's to every node producing's, and the
+depth rises past the convention (FURTHER.md G7). The engine plays it with every estimate deflated
+(``finality_sim.race.withhold_tree``, ``stake_scale = 1 − α``).
 
 Withholding fewer blocks gives a smaller raise, and the coalition can choose among the nested
 schedules the raise levels give its own wins; the honest nodes' outputs stay unknown to it. The

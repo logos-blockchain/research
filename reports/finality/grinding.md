@@ -71,7 +71,8 @@ the window before the cut-off, `η_e = hash(η_(e−1) ‖ μ_1 ‖ … ‖ μ_m
 `k = 2160` (note B7). A withheld block changes the nonce only if it holds a sub-window's minimum.
 At the cut-off the adversary reaches 1.06 nonces on average against a third, and at most 1.08 as
 a bound from the walk of B6 (note H.2): 277 blocks under random delay and 1,518 under the worst
-case at the mean, 278 and 1,521 at the bound, within eleven of a nonce no one chose. Before the cut-off it still decides, as blocks appear,
+case at the mean, 278 and 1,521 at the bound, within eleven of a nonce no one chose at
+`k = 2160`. Before the cut-off it still decides, as blocks appear,
 whether to publish each of its own and whether to remove an honest one that holds a minimum, by
 racing it or, under the worst case, by delivering a rival within `Δ`; counted in hindsight those
 decisions leave an estimated 5.9–7.3 per nonce against a third under random delay and 10.6–18.1
@@ -85,30 +86,40 @@ are fixed, and sub-windows of at least 54 hours in all. It is a hard fork.
 A delay makes a decision blind if the adversary cannot see the nonce each outcome gives before it
 must act. The rule's candidates can be formed from the start of the last sub-window, since the
 earlier minima are fixed by then and the adversary knows its own contributions ahead, so a delay
-of minutes blinds nothing. Two changes make it work (note H.2). The contribution is bound to the
-parent block, `ρ_LEAD := hash(NONCE_CONTRIB_V1 ‖ parent ‖ sl ‖ noteID ‖ sk)`, so that no
-contribution exists before its block is built, which also replaces the two conditions above. And
-the delay spans the sub-window with a margin, `T_a = W + 10` minutes on the adversary's hardware,
-4.5 hours at `k = 2160`, so that every candidate's value arrives after the cut-off and the
-adversary's choice is open only while its lead lasts the margin. The factor is then at most 1.08:
-278 blocks under random delay and 1,521 under the worst case against a third, 165 and 895
-against 30 %; `k = 1620` holds a third and `k = 1080` holds 30 % while the inferred stake is the
-true stake. The bound is within the walk's model, and a lemma carries it into Praos's and
-Genesis's theorems in place of their hash budget, under the sequentiality of the delay and a
-random oracle for the hash of its output. Honest nodes compute the delay once an epoch, `R·T_a`
-for a speed ratio `R`: 22 hours at `R = 5` and 45 at `R = 10` at `k = 2160`, 11 and 22 at
-`k = 1080`, within the `4⌊k/f⌋` slots before the nonce is first used up to `R = 16`. The
-documented ratio of Chia's class-group hardware to a CPU is 3 to 5. The function is Wesolowski's
-over the class group of a prime discriminant derived from the input each epoch: a proof of one
-group element, verified in milliseconds; a 1024-bit discriminant costs about `2^91` operations to
-break and two hundred thousand machines of `10^18` operations a second to break within the delay,
-and 2048 bits give `2^139` at no cost in time.
+of minutes blinds nothing. Two changes make it work (note H.2). The delay spans the sub-window
+with a margin, `T_a = W + 10` minutes on the adversary's hardware, 4.5 hours at `k = 2160`, so that
+no candidate's value arrives sooner than ten minutes after the cut-off, and a value counts only if
+the adversary can still publish a fork that reaches it when it arrives. And the minima are taken
+over a contribution bound to the parent's contribution, `c(b) = hash(NONCE_CONTRIB_V2 ‖ c(parent) ‖
+ρ_LEAD(b))`, which every node derives from public values while `ρ_LEAD` stays the win tag it is
+today, so that a value of the adversary's branch exists only once the block the branch forks from
+does, which also replaces the two conditions above. Bound to the parent block itself, a branch's
+later blocks take as many contributions as body variants the adversary computes; bound to the
+parent's own tag, a block on the adversary's own previous win has a value known ahead, and the
+factor is worse than with no binding. With the chained contribution the factor against a third
+under the worst case at `k = 2160` is 1.009, sampled, almost all of it the chance that the
+adversary sees the honest default's value while a branch it has not seen can still replace it.
+As a bound it is the walk's 1.08 on the choices at the cut-off, plus 0.016 for that switch, plus
+`1.6·10^-6` for each delay evaluator the adversary runs, for the branches that keep up with the
+honest chain over the delay's span. The depths are 892 / 1,511 under the worst case sampled and
+895 / 1,523 at the bounds, against 30 % / a third, within thirteen blocks of a nonce no one chose
+at `k = 2160`; `k = 1620` holds a third against up to 7,800 evaluators and `k = 1080` holds 30 %
+against up to 450,000, while the inferred stake is the true stake. A lemma carries the count into
+Praos's and Genesis's theorems in place of their hash budget, under the sequentiality of the delay
+and a random oracle for the hash of its output. Honest nodes compute the delay once an epoch,
+`R·T_a` for a speed ratio `R`: 22 hours at `R = 5` and 45 at `R = 10` at `k = 2160`, 11 and 22 at
+`k = 1080`, and the `4⌊k/f⌋` slots before the nonce is first used hold a ratio of 15 to 16 counting
+the squarings. The documented ratio of Chia's class-group hardware to a CPU is 3 to 5. The function
+is Wesolowski's over the class group of a prime discriminant derived from each candidate: a proof
+of one group element, verified in 2–4 ms; a 1024-bit discriminant costs `2^91.4` operations for the
+discrete logarithm by Biasse, Jacobson and Silvester's table and `2^101.4` by their stated method,
+and 2048 bits `2^139.4` and `2^149.4`, at no cost in time if the speed ratio holds there.
 
 ### 3.5 A beacon that is not a hash of the chain
 
 A dedicated coin-tossing protocol, as in the first Ouroboros, or a threshold signature over the
 epoch, removes the bias at its source. Each needs a set of identified parties that run a round
-among themselves. Cryptarchia's leaders are anonymous, and the study's phase on certified
+among themselves. Cryptarchia's leaders are anonymous, and the study's reading of certified
 finality prices any round of anonymous votes through Blend at thousands of seats and finds no
 committee at a third of the stake ([`README.md`](README.md), §8). A beacon of that kind is a
 larger change than the nonce rule and does not fit the lottery as it stands.
@@ -119,20 +130,23 @@ Grinding is not the only way an adversary moves the schedule. The total-stake in
 every threshold from the occupied slots of the previous period and corrects in full each period.
 An adversary that withholds every block for one period, 4.5 days at `k = 2160`, lowers the
 inferred stake by its share and raises every threshold by `1/(1 − α)` for the next epoch, and the
-deflation holds while it withholds. The catch-up ratio is unchanged and the depth moves all the
-same: under the worst case the delay is fixed in slots while blocks come faster, so 10 s reads as
-15 s against a third and the proven depth is 2,426 blocks, 1,248 against 30 %; under random delay
-the orphan share rises with the rate and 276 blocks become 404. No `k` the study considered holds
-its share after it. Choosing the raise level after seeing its own wins is worth under half a
-percent of the adversary's wins. A cap on the correction of 5 % a period prices the deflation at
-36 days of withholding and slows the inference's response to stake that leaves by the same
-factor; a client can read the worst-case table at `Δ` divided by what remains of the inferred
-stake (note G7).
+deflation holds while it withholds. The catch-up ratio is unchanged. Under the worst case the depth
+moves all the same: the delay is fixed in slots while blocks come faster, so 10 s reads as 15 s
+against a third and the proven depth is 2,426 blocks, 1,248 against 30 %. No `k` the study
+considered holds its share after it. Under random delay the report's convention stays where it
+is, 165 / 276, and comes sooner. The convention reads a chain on which every node produces, and the
+deflation turns the chain the adversary withholds from into one: on the engine the private race
+needs 189 / 334 blocks after it, where at the true thresholds it needs 158 / 257, within the
+convention (note G7).
+Choosing the raise level after seeing its own wins is worth under half a percent of the
+adversary's wins. A cap on the correction of 5 % a period prices the deflation at 36 days of
+withholding and slows the inference's response to stake that leaves by the same factor; a client
+can read the worst-case table at `Δ` divided by what remains of the inferred stake (note G7).
 
 ## 4. The approaches side by side
 
 Depth in blocks at `1e-9` with two ground nonces at `k = 2160`, against 30 % / a third; hours on
-the honest chain's clock, 50.7 / 53.2 s a block under random delay and 52.6 / 54.8 s under the
+the honest chain's clock, 50.7 / 53.2 s a block under random delay and 52.6 / 54.7 s under the
 worst case. "Bound" means a figure that holds for every strategy within the stated model;
 "estimate" means a hindsight count of the adversary's decisions.
 
@@ -141,31 +155,34 @@ worst case. "Bound" means a figure that holds for every strategy within the stat
 | no grinding | 1 | 165 / 276 (2.3 / 4.1 h) | 892 / 1,510 (13.0 / 23.0 h) | – | the reference |
 | today's nonce, `2^64` evaluations | `10^11`–`10^14` | 504–574 / 1,171–1,245 (7.1–8.1 / 17.3–18.4 h) | 2,424–2,825 / 5,732–6,287 (35–41 / 87–96 h) | nothing | bound, both sides |
 | today's nonce, `2^40` evaluations | set by the budget | 459–479 / 865–893 (6.5–6.7 / 12.8–13.2 h) | 2,246–2,436 / 4,437–4,617 (33–36 / 67–70 h) | nothing | bound, both sides |
-| a delay on the hash chain (Phalanx) | `2^8`–`2^16` | 220–296 / 388–532 (3.1–4.2 / 5.7–7.9 h) | 1,142–1,539 / 2,048–2,812 (17–22 / 31–43 h) | 82 iterations of nine minutes an epoch, by hourly leaders | bound on the evaluations |
+| a delay on the hash chain (Phalanx) | `2^8`–`2^16` | 220–296 / 388–532 (3.1–4.2 / 5.7–7.9 h) | 1,142–1,539 / 2,048–2,812 (17–23 / 31–43 h) | 82 iterations of nine minutes an epoch, by hourly leaders | bound on the evaluations |
 | the smallest contributions, choices at the cut-off | 1.03 / 1.06 | 165 / 277 | 894 / 1,518 | a hard fork, 25 sub-windows, two conditions on keys and notes | bound within the walk's model, 1.04 / 1.08 |
-| the smallest contributions, decisions before the cut-off | 3.7–4.1 / 5.9–7.3 (random), 6.6–9.4 / 10.6–18.1 (worst) | 187–189 / 326–333 (2.6 / 4.8–4.9 h) | 1,057–1,088 / 1,859–1,939 (15.5–15.9 / 28.3–29.5 h) | the same | estimate |
-| the smallest contributions with a delay that spans a sub-window | at most 1.04 / 1.08 | 165 / 278 (2.3 / 4.1 h) | 895 / 1,521 (13.1 / 23.1 h) | the contribution bound to the parent; about a day of sequential computation an epoch; a proof an epoch | bound within the walk's model; the lemma in Praos's model |
-| the inference deflated, no grinding | 1 | 219 / 404 | 1,248 / 2,426 (13.9 / 27.0 h) | one period of the adversary's rewards | bound; a cap on the correction prices it |
+| the smallest contributions, decisions before the cut-off | 3.7–4.1 / 5.9–7.3 (random), 6.6–9.4 / 10.6–18.1 (worst) | 187–189 / 326–333 (2.6–2.7 / 4.8–4.9 h) | 1,057–1,088 / 1,859–1,939 (15.5–15.9 / 28.3–29.5 h) | the same | estimate |
+| the smallest contributions with a delay that spans a sub-window | 1.002–1.003 / 1.009–1.011 sampled; at most 1.05 / 1.10 plus a term per delay evaluator | 165 / 276–278 (2.3 / 4.1 h) | 892–895 / 1,511–1,523 (13.0–13.1 / 23.0–23.2 h) | the contribution bound to the parent's contribution; about a day of sequential computation an epoch; a proof an epoch | sampled, and bound within the walk's model for a stated number of delay evaluators; the lemma in Praos's model |
+| the inference deflated, no grinding | 1 | 165 / 276 in the convention (1.6 / 2.7 h at 35.5 s a block); 189 / 334 on the engine's race | 1,248 / 2,426 (13.9 / 27.0 h at 40 s a block) | one period of the adversary's rewards | bound; a cap on the correction prices it |
 
 ## 5. What to take, and what to decide
 
 The combination of §3.3 and §3.4 is the only approach that leaves the depth within a few blocks
 of a nonce no one chose, as a bound rather than an estimate, and it is the one the study
 recommends ([`README.md`](README.md), §1). Its price is a hard fork, a contribution bound to its
-parent block, sub-windows of 54 hours in all, and a sequential computation of about a day each
-epoch by whoever first needs the nonce, with a short proof for everyone else. Phalanx's delay
+parent's contribution, sub-windows of 54 hours in all, and a sequential computation of about a day
+each epoch by whoever first needs the nonce, with a short proof for everyone else. Phalanx's delay
 costs less computation and leaves a factor between `2^8` and `2^16`; today's nonce costs nothing
 and leaves `k = 2160` unprovable at the specification's Blend against 30 % of the stake.
 
-The decisions are the owner's:
+Four parameters remain to be chosen:
 
 - the sub-window count `m`, which sets the delay's span `W = ⌊6⌊k/f⌋/m⌋` against the choices a
   fork across a boundary adds, 25 at `k = 2160`;
 - the margin beyond `W`, ten minutes, and the speed ratio `R` to design for, 5 by the documented
-  hardware and 10 by CIP-0161's assumption, 16 at most within the phase;
-- the discriminant's size, 1024 bits as Chia runs it or 2048 at no cost in time;
+  hardware and 10 by CIP-0161's assumption, 15 to 16 at most within the phase counting the
+  squarings;
+- the discriminant's size, 1024 bits as Chia runs it or 2048 at no cost in time if the speed ratio
+  holds there;
 - whether to cap the inference's correction, and at what rate, which the deflation of §3.6 makes
   a question for the lottery whatever the nonce.
 
-What stays open is the sequentiality assumption itself, which no proof removes, and the formal
-write-up of the lemma, which the design note states and proves in Praos's resettable model.
+What stays open is the sequentiality assumption itself, which no proof removes; the number of
+delay evaluators an adversary runs, which the bound grows with; and the formal write-up of the
+lemma, which the design note states and proves in Praos's resettable model.

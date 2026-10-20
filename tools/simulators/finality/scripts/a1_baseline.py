@@ -9,6 +9,17 @@ Every point: N = 1000 nodes, peering degree 6, Pareto stake, f = 1/30, one epoch
   links), where its engine measured o = 0.20, 0.35, 0.60 at delta = 2, 8, 32 s (§6.10, §7);
 - node-aligned: whole-round mixing delays uniform on [1, Delta_max] (the node's release
   delayer), Delta_max from 1 to 12, at 1 and 3 hops and 0.1 s and 0.5 s mean geo links.
+
+    python scripts/a1_baseline.py release    # writes runs/a1/release.csv (about 3 minutes on 4 cores)
+
+The release round: the engine starts a block's cascade at its slot, the Blend specification
+releases every generated message at the next round (tsi_sim, blend_release_next_round). At either
+release: the specification's row (3 hops, 3 rounds, 0.1 s links), 32 runs, and the depth at 1e-9
+of B5's closed form at its growth, the report's convention, beside A1's own eight runs of the row
+and 24 more on its seeds; and B3's withholding coalition on the
+same Blend with honest relays, one copy and two, 64 runs a cell, the depth at the growth per
+honest win it leaves, as G6 reads it. Both releases of a run draw the same stake, graph, lottery
+and mixing delays (paired_streams), so the change in growth is measured run by run.
 """
 
 from __future__ import annotations
@@ -21,7 +32,10 @@ import pandas as pd
 from joblib import Parallel, delayed
 from tsi_sim.config import SimConfig
 
+from b3_race import BASE as B3_BASE
 from finality_sim.baseline import DEPTHS, run
+from finality_sim.private_race import strict_depth
+from finality_sim.race import withhold_tree
 
 OUT = pathlib.Path(__file__).resolve().parent.parent / "runs" / "a1"
 REPLICATES = 8
@@ -92,5 +106,69 @@ def main() -> None:
         print(s.round(3).to_string(index=False))
 
 
+SPEC = dict(blend_hops=3, blend_delay_max=3.0, blend_delay_dist="rounds", link_latency_mean=0.1)
+SHARES = (0.25, 0.30, 1 / 3)
+
+
+def _a1_spec(next_round: bool, rep: int, paired: bool = True) -> dict:
+    m = run(SimConfig(**BASE, **SPEC, blend_release_next_round=next_round, paired_streams=paired, replicate=rep))
+    return dict(next_round=next_round, replicate=rep, orphan=m.orphan_share, growth=m.growth_rate / BASE["f"])
+
+
+def _withheld(next_round: bool, copies: int, alpha: float, rep: int) -> dict:
+    cfg = SimConfig(**B3_BASE, **SPEC, adversary_frac=alpha, blend_copies=copies,
+                    blend_release_next_round=next_round, paired_streams=True, replicate=rep)
+    tree, _, _, public, canonical = withhold_tree(cfg)
+    win = (1 - alpha) * -np.log(1 - B3_BASE["f"])                  # honest wins per slot
+    return dict(next_round=next_round, copies=copies, alpha=round(alpha, 4), replicate=rep,
+                orphan=1.0 - canonical[public].sum() / public.sum(),
+                growth=canonical.sum() / cfg.epoch_len / win)
+
+
+def _pair(g: pd.DataFrame) -> list[dict]:
+    """Both releases of one cell, and the paired change in growth: both releases of a replicate
+    draw the same stake, graph, lottery and mixing delays (paired_streams)."""
+    at = g[~g.next_round.astype(bool)].set_index("replicate").sort_index()
+    nx = g[g.next_round.astype(bool)].set_index("replicate").sort_index()
+    diff = nx.growth - at.growth
+    return [dict(next_round=nr, runs=len(x), orphan=float(x.orphan.mean()),
+                 orphan_sem=float(x.orphan.std(ddof=1) / np.sqrt(len(x))), growth=float(x.growth.mean()),
+                 growth_sem=float(x.growth.std(ddof=1) / np.sqrt(len(x))), growth_change=float(diff.mean()),
+                 growth_change_sem=float(diff.std(ddof=1) / np.sqrt(len(diff))))
+            for nr, x in ((False, at), (True, nx))]
+
+
+def release() -> None:
+    a1 = pd.DataFrame(Parallel(n_jobs=4, backend="loky")(
+        delayed(_a1_spec)(nr, r) for nr in (False, True) for r in range(32)))
+    own = pd.DataFrame(Parallel(n_jobs=4, backend="loky")(          # A1's own seeds: its eight, and more
+        delayed(_a1_spec)(False, r, paired=False) for r in range(32)))
+    wh = pd.DataFrame(Parallel(n_jobs=4, backend="loky")(
+        delayed(_withheld)(nr, c, a, r) for nr in (False, True) for c in (1, 2) for a in SHARES
+        for r in range(64)))
+    rows = []
+    for n in (8, 32):
+        g = own[own.replicate < n]
+        for a in SHARES:
+            rows.append(dict(setting=f"everyone producing, A1's seeds, {n} runs", copies=1, alpha=round(a, 4),
+                             next_round=False, runs=n, orphan=float(g.orphan.mean()),
+                             orphan_sem=float(g.orphan.std(ddof=1) / np.sqrt(n)), growth=float(g.growth.mean()),
+                             growth_sem=float(g.growth.std(ddof=1) / np.sqrt(n)), growth_change=np.nan,
+                             growth_change_sem=np.nan,
+                             depth_1e9=strict_depth(a / (a + (1 - a) * float(g.growth.mean())), np.log(1e-9))))
+    for x in _pair(a1):
+        for a in SHARES:
+            rows.append(dict(setting="everyone producing", copies=1, alpha=round(a, 4), **x,
+                             depth_1e9=strict_depth(a / (a + (1 - a) * x["growth"]), np.log(1e-9))))
+    for (c, a), g in wh.groupby(["copies", "alpha"], sort=False):
+        for x in _pair(g):
+            rows.append(dict(setting="coalition withholding", copies=c, alpha=a, **x,
+                             depth_1e9=strict_depth(a / (a + (1 - a) * x["growth"]), np.log(1e-9))))
+    t = pd.DataFrame(rows)
+    t.to_csv(OUT / "release.csv", index=False)
+    with pd.option_context("display.width", 250):
+        print(t.to_string(index=False, float_format=lambda v: f"{v:.4g}"))
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(release() if sys.argv[1:] == ["release"] else main())

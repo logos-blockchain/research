@@ -23,7 +23,8 @@ UncleModel = Literal["countable", "old"]
 Topology = Literal["full_mesh", "regular", "blend"]
 LinkLatencyDist = Literal["fixed", "uniform", "exp", "geo"]
 BlendDelayDist = Literal["continuous", "rounds"]
-BlendAdversaryAction = Literal["hold", "drop"]
+BlendAdversaryAction = Literal["hold", "drop", "deadline"]
+PartitionAdversarySide = Literal["rest", "side"]
 JitterDist = Literal["exp", "poisson"]
 ChurnMode = Literal["sine", "ramp", "step"]
 InitDest = Literal["common", "heterogeneous"]
@@ -118,7 +119,11 @@ class SimConfig:
     # blocks it carries as much as the protocol allows. Appended to key() only when set.
     blend_adversary_relays: bool = False
     # What a hostile relay does with a copy it carries: "hold" it for the longest mixing delay, or
-    # "drop" it. Read only with blend_adversary_relays; appended to key() only when non-default.
+    # "drop" it. "deadline" holds as "hold" does, and a hostile LAST relay, which decrypts the
+    # proposal and so reads its slot, holds it further, until just before the sender's deadline
+    # (slot + 1 + blend_fallback_slots, less the gossip back to the sender), so the block arrives
+    # as late as it can without the sender's fallback firing. Read only with
+    # blend_adversary_relays; appended to key() only when non-default.
     blend_adversary_action: BlendAdversaryAction = "hold"
     # Copies of a block proposal sent through independent cascades, 1 + R_D in the Blend
     # specification (R_D = 1: two). The block arrives with the first copy that is not dropped.
@@ -130,14 +135,24 @@ class SimConfig:
     # the path latency. Read only when every copy is dropped; appended to key() only when
     # non-default.
     blend_fallback_slots: float = 15.0
+    # When the sender releases a block proposal into its first cascade. False (default, every
+    # historical run): at the block's slot. True: at the next round, slot + 1, as the Blend
+    # specification releases every generated message; the fallback's deadline is unchanged, since
+    # it already counts from that round. Appended to key() only when set.
+    blend_release_next_round: bool = False
     # A network partition (engine._partition_mask): honest nodes drawn by stake until their share
     # of all stake reaches partition_share form one side. In the slots [partition_start,
-    # partition_start + partition_slots) a block made on one side reaches the other at the span's
-    # end plus the path latency, a Blend copy whose relay lies across the cut is lost, and the
-    # windowed fork choice is off. Appended to key() only when set.
+    # partition_start + partition_slots) of the first epoch a block made on one side reaches the
+    # other at the span's end plus the path latency, a Blend copy whose relay lies across the cut
+    # is lost, and the windowed fork choice is off. Appended to key() only when set.
     partition_share: float = 0.0
     partition_start: int = 0
     partition_slots: int = 0
+    # Where the adversary_frac coalition's nodes sit during a partition, the adversary's choice:
+    # "rest" (default) with the other side, or "side" with the side of partition_share, whose
+    # blocks can then use the coalition's nodes as Blend relays. Appended to key() only when
+    # non-default.
+    partition_adversary_side: PartitionAdversarySide = "rest"
     # Mean one-way per-link latency in SLOTS (1 slot = 1 s). Realistic direct-gossip links are
     # sub-slot (~0.04-0.15 slot = 40-150 ms); whole-slot values (1, 2, ...) model routing over
     # the Blend mixnet, where each hop costs seconds. Arrivals are kept sub-slot (float).
@@ -375,8 +390,8 @@ class SimConfig:
         if self.blend_delay_dist == "rounds" and (self.blend_delay_max < 1
                                                   or self.blend_delay_max != int(self.blend_delay_max)):
             raise ValueError("blend_delay_dist='rounds' needs a whole blend_delay_max >= 1")
-        if self.blend_adversary_action not in ("hold", "drop"):
-            raise ValueError(f"blend_adversary_action must be hold|drop, got "
+        if self.blend_adversary_action not in ("hold", "drop", "deadline"):
+            raise ValueError(f"blend_adversary_action must be hold|drop|deadline, got "
                              f"{self.blend_adversary_action!r}")
         if self.blend_copies < 1:
             raise ValueError(f"blend_copies must be >= 1, got {self.blend_copies}")
@@ -386,6 +401,9 @@ class SimConfig:
             raise ValueError(f"partition_share must be in [0, 1), got {self.partition_share}")
         if self.partition_start < 0 or self.partition_slots < 0:
             raise ValueError("partition_start and partition_slots must be >= 0")
+        if self.partition_adversary_side not in ("rest", "side"):
+            raise ValueError(f"partition_adversary_side must be rest|side, got "
+                             f"{self.partition_adversary_side!r}")
         if self.adversary_selection not in ("random", "whale"):
             raise ValueError(f"adversary_selection must be random|whale, got "
                              f"{self.adversary_selection!r}")
@@ -518,6 +536,10 @@ class SimConfig:
             base = base + (("fallback", self.blend_fallback_slots),)
         if self.partition_share > 0.0 or self.partition_start or self.partition_slots:
             base = base + (("partition", self.partition_share, self.partition_start, self.partition_slots),)
+        if self.blend_release_next_round:
+            base = base + ("release_next_round",)
+        if self.partition_adversary_side != "rest":
+            base = base + (("partition_adversary", self.partition_adversary_side),)
         # Same append-only-when-non-default discipline: a run at the default precision keeps a
         # byte-identical key, so no committed result is reseeded by adding the knob.
         if self.f_precision != 1_000_000:

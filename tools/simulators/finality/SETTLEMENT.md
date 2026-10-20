@@ -540,41 +540,104 @@ Two honest sides of an even split, without a coalition, tie over the window with
 **On the engine.** The engine splits the honest nodes into a side holding a share of all stake and
 the rest for a span of 36 hours while the coalition withholds (`tsi_sim`, `partition_share`;
 `finality_sim.partition`, `scripts/b5_partition_engine.py`). A block made on one side reaches the
-other at the span's end; a Blend copy whose relay lies across the cut is lost, so most blocks reach
-their own side by the sender's fallback, 16 rounds late; the coalition's nodes lie on the rest's
-side. On the specification's Blend with B3's settings, 256 runs a cell and 512 for the ties, the
-closed form read at the side's realised share, at A1's growth and at the growth the side showed:
+other at the span's end. A Blend copy whose relay lies across the cut is lost, so most blocks reach
+their own side by the sender's fallback, 16 rounds late. Within a side, gossip takes the full
+graph's shortest paths, as if each side's peers formed a connected graph of their own. A side's
+density counts its chain's blocks, as `maxvalid-bg` does, and no uncles are referenced. A side's
+growth is per occupied slot: its chain's blocks in the span over the slots its leaders occupied
+there. That is the unit of A1's growth and of the closed form. On the specification's Blend with
+B3's settings, 256 runs a cell and 512 for the ties, with the coalition's nodes on the rest's side
+of the cut and one Blend copy, the closed form is read at the side's realised share, at A1's
+growth and at the growth the side showed, with its distance from the engine in standard errors:
 
-| α | side set | side held | density: side / fork | growth / win: side, rest, A1 | fork denser, engine ± sem | closed form at A1's growth | closed form at the side's growth | side's chain longer at rejoin |
+| α | side set | side held | density: side / fork | growth per occupied slot: side, rest, A1 | fork denser, engine ± sem | closed form at A1's growth (z) | closed form at the side's growth (z) | chain longer at rejoin: side, rest |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0.25 | 0.30 | 0.300 | 1,131 / 1,098 | 0.859, 0.835, 0.845 | 0.195 ± 0.025 | 0.371 | 0.241 | 0.000 |
-| 0.25 | 0.35 | 0.350 | 1,293 / 1,093 | 0.840, 0.843, 0.845 | 0.000 ± 0.001 | 0.000 | 0.000 | 0.000 |
-| 0.25 | 0.40 | 0.400 | 1,448 / 1,095 | 0.824, 0.853, 0.845 | 0.000 ± 0.001 | 0.000 | 0.000 | 1.000 |
-| 0.30 | 0.30 | 0.300 | 1,129 / 1,310 | 0.858, 0.849, 0.845 | 1.000 ± 0.001 | 1.000 | 1.000 | 0.000 |
-| 0.30 | 0.35 | 0.350 | 1,292 / 1,311 | 0.839, 0.859, 0.845 | 0.652 ± 0.030 | 0.643 | 0.710 | 0.270 |
-| 0.30 | 0.40 | 0.400 | 1,446 / 1,316 | 0.823, 0.873, 0.845 | 0.004 ± 0.004 | 0.001 | 0.008 | 1.000 |
-| 0.33 | 0.30 | 0.300 | 1,130 / 1,453 | 0.857, 0.860, 0.845 | 1.000 ± 0.001 | 1.000 | 1.000 | 0.000 |
-| 0.33 | 0.35 | 0.350 | 1,291 / 1,455 | 0.840, 0.871, 0.845 | 1.000 ± 0.001 | 0.999 | 1.000 | 0.953 |
-| 0.33 | 0.40 | 0.400 | 1,446 / 1,455 | 0.823, 0.886, 0.845 | 0.547 ± 0.031 | 0.355 | 0.634 | 1.000 |
+| 0.25 | 0.30 | 0.300 | 1,131 / 1,098 | 0.863, 0.841, 0.845 | 0.195 ± 0.025 | 0.371 (+7.1) | 0.206 (+0.4) | 0.000, 1.000 |
+| 0.25 | 0.35 | 0.350 | 1,293 / 1,093 | 0.845, 0.848, 0.845 | 0.000 ± 0.001 | 0.000 (+0.0) | 0.000 (+0.0) | 0.000, 1.000 |
+| 0.25 | 0.40 | 0.400 | 1,448 / 1,095 | 0.829, 0.858, 0.845 | 0.000 ± 0.001 | 0.000 (+0.0) | 0.000 (+0.0) | 1.000, 0.000 |
+| 0.30 | 0.30 | 0.300 | 1,129 / 1,310 | 0.862, 0.855, 0.845 | 1.000 ± 0.001 | 1.000 (-0.0) | 1.000 (-0.2) | 0.000, 1.000 |
+| 0.30 | 0.35 | 0.350 | 1,292 / 1,311 | 0.844, 0.864, 0.845 | 0.652 ± 0.030 | 0.643 (-0.3) | 0.657 (+0.2) | 0.270, 0.719 |
+| 0.30 | 0.40 | 0.400 | 1,446 / 1,316 | 0.828, 0.877, 0.845 | 0.004 ± 0.004 | 0.001 (-0.8) | 0.005 (+0.3) | 1.000, 0.000 |
+| 0.33 | 0.30 | 0.300 | 1,130 / 1,453 | 0.862, 0.865, 0.845 | 1.000 ± 0.001 | 1.000 (-0.0) | 1.000 (-0.0) | 0.000, 1.000 |
+| 0.33 | 0.35 | 0.350 | 1,291 / 1,455 | 0.845, 0.875, 0.845 | 1.000 ± 0.001 | 0.999 (-1.4) | 0.999 (-1.3) | 0.953, 0.043 |
+| 0.33 | 0.40 | 0.400 | 1,446 / 1,455 | 0.829, 0.889, 0.845 | 0.547 ± 0.031 | 0.355 (-6.2) | 0.561 (+0.5) | 1.000, 0.000 |
 
-| sides | runs | density tie, engine | equal length at rejoin | growth / win: a, b, A1 |
+| sides | copies | runs | density tie, engine | equal length at rejoin | growth per occupied slot: a, b, A1 |
+| --- | --- | --- | --- | --- | --- |
+| 0.500 / 0.500 | 1 | 512 | 0.0098 | 0.0098 | 0.800, 0.802, 0.845 |
+| 0.500 / 0.500 | 2 | 512 | 0.0156 | 0.0156 | 0.813, 0.812, 0.845 |
+
+- **A side grows as the whole network does.** Per occupied slot a side holding 30 %, 35 % and
+  40 % of all stake grows at 0.863, 0.845 and 0.829 against the whole network's 0.845: the smaller
+  side faster, the larger slower. Two even sides, each losing seven copies in eight across the
+  cut, grow at 0.80.
+- **The closed form holds at the side's growth.** Read there it lies within half a standard error
+  of the engine where the outcome is uncertain: 0.206 against 0.195, 0.657 against 0.652, and
+  0.561 against 0.547. Read at A1's growth it misses by six and seven standard errors, 0.371
+  against 0.195 and 0.355 against 0.547: where the fork and the side are close, two points of
+  growth move the beaten share by nearly twenty.
+
+The coalition's nodes may sit on either side of the cut, as the adversary chooses
+(`partition_adversary_side`), and a block proposal may go through the specification's two copies
+(`blend_copies`). The share of windows in which the fork is denser than the side, ± sem, with the
+coalition's nodes with the rest or beside the side:
+
+| α | side set | with the rest, one copy | beside the side, one copy | with the rest, two copies | beside the side, two copies |
+| --- | --- | --- | --- | --- | --- |
+| 0.25 | 0.30 | 0.195 ± 0.025 | 0.102 ± 0.019 | 0.148 ± 0.022 | 0.059 ± 0.015 |
+| 0.25 | 0.35 | 0.000 ± 0.001 | 0.004 ± 0.004 | 0.004 ± 0.004 | 0.000 ± 0.001 |
+| 0.25 | 0.40 | 0.000 ± 0.001 | 0.000 ± 0.001 | 0.000 ± 0.001 | 0.000 ± 0.001 |
+| 0.30 | 0.30 | 1.000 ± 0.001 | 1.000 ± 0.001 | 1.000 ± 0.001 | 1.000 ± 0.001 |
+| 0.30 | 0.35 | 0.652 ± 0.030 | 0.422 ± 0.031 | 0.637 ± 0.030 | 0.199 ± 0.025 |
+| 0.30 | 0.40 | 0.004 ± 0.004 | 0.008 ± 0.006 | 0.004 ± 0.004 | 0.004 ± 0.004 |
+| 0.33 | 0.30 | 1.000 ± 0.001 | 1.000 ± 0.001 | 1.000 ± 0.001 | 1.000 ± 0.001 |
+| 0.33 | 0.35 | 1.000 ± 0.001 | 0.988 ± 0.007 | 1.000 ± 0.001 | 0.977 ± 0.009 |
+| 0.33 | 0.40 | 0.547 ± 0.031 | 0.172 ± 0.024 | 0.504 ± 0.031 | 0.062 ± 0.015 |
+
+At rejoin, between two honest sides of 35 % each against a 30 % coalition:
+
+| coalition's nodes | copies | longer at rejoin: side, rest | equal length |
+| --- | --- | --- | --- |
+| with the rest | 1 | 0.270, 0.719 | 0.012 |
+| beside the side | 1 | 0.777, 0.211 | 0.012 |
+| with the rest | 2 | 0.133, 0.867 | 0.000 |
+| beside the side | 2 | 0.879, 0.113 | 0.008 |
+
+The threshold of H.1's detector over the 36 hours, at `1e-9` and A1's growth
+(`finality_sim.further.detector_power`), against each side's own density:
+
+| α | threshold over 36 h | sides held | runs below it, engine | closed form, least |
 | --- | --- | --- | --- | --- |
-| 0.500 / 0.500 | 512 | 0.0098 | 0.0098 | 0.794, 0.796, 0.845 |
+| 0.25 | 2,445 | 0.30, 0.35, 0.40, 0.45 | 1.000 | 1.000000 |
+| 0.30 | 2,274 | 0.30, 0.35, 0.40 | 1.000 | 1.000000 |
+| 0.33 | 2,160 | 0.27, 0.30, 0.32, 0.35, 0.37, 0.40 | 1.000 | 1.000000 |
 
-- **The closed form holds given the growth, and the growth moves in a split.** With most copies
-  lost across the cut, a side holding 30–40 % of all stake grows at 0.82–0.86 per win against the
-  whole network's 0.845, the larger side slower, and two even sides at 0.79. Read at the side's
-  growth the closed form lies within three standard errors of the engine where the outcome is
-  uncertain, 0.24 against 0.20, 0.71 against 0.65 and 0.63 against 0.55; read at A1's growth it
-  puts a third's fork against a 40 % side at 0.36 where the engine shows 0.55, and a quarter's
-  against a 30 % side at 0.37 where the engine shows 0.20.
-- **The rule-8 figures stand where they decide.** A 30 % fork is denser than an honest 35 % side
-  in 65 % of windows, a third's than an honest third in every one; a third's against 40 % moves
-  from a third of the windows to half. Two even honest sides tie in 1.0 % of windows, against the
-  closed form's 0.7 %, within the sampling error of 512 runs.
-- **At rejoin the longest-chain rule follows the larger side,** in every run where the sides
-  differ by five points of stake; two sides of 35 % each with the coalition's relays on one side
-  go to that side in 73 % of runs.
+- **The adversary's best placement is with the rest,** where the side under test cannot use its
+  relays. From there a 30 % fork beats a 35 % side in 65 % of windows, and from beside the side
+  in 42 %; a third's beats a 40 % side in 55 % and 17 %.
+- **The specification's two copies help the side a little.** With the coalition with the rest
+  the two shares fall to 0.637 and 0.504, and beside the side to 0.199 and 0.062.
+- **The rule-8 figures stand where they decide.** The adversary chooses its placement, so the
+  first column decides: a 30 % fork is denser than an honest 35 % side in 65 % of windows, 64 %
+  with two copies; a third's than an honest third in every one, and than a 40 % side in half.
+  Two even honest sides tie in 1.0 % of windows with one copy and 1.6 % with two, against the
+  closed form's 0.7 %, within 0.7 and 1.6 standard errors.
+- **H.1's detector sees every side.** Every side of every run falls below the detector's
+  threshold, as the closed form says. The engine holds every stake estimate at the true stake,
+  so this is the detector within one inference period of the split: after it each side's
+  inference adapts to its own stake (`DESIGNS.md` H.1).
+- **At rejoin the longest-chain rule follows the longer chain,** the larger side's in every run
+  where the sides differ by five points of stake. Between two sides of 35 % each the coalition's
+  nodes decide: the side they sit with is longer in 72–78 % of runs with one copy and 87–88 %
+  with two, and the sides tie in at most 1.2 %. The runs read the longest chain without `B_imm`.
+  At `k = 2160` a 36-hour split adds 1,129–1,448 blocks to a side of 30–40 %, fewer than `k`, so
+  the Online rule compares the chains. At a `k` below a side's blocks over the split, as at the
+  runs' `k = 512`, `B_imm` forbids the switch and the sides stay apart.
+- **Gaps that reach no result.** The engine's partition splits only the first epoch of a
+  multi-epoch run, and a selfish coalition's releases wait for the span's end across the cut, as
+  every other block does. Within a side gossip keeps the full graph's paths: a side drawn at
+  random from a degree-6 graph would otherwise fall apart, which a real partition's sides, each
+  connected, do not.
 
 With the window at its longest, `4⌊k/f⌋` slots, the largest share the density test holds
 (`runs/b5/recovery_share.csv`):
@@ -932,7 +995,7 @@ Over the 54-hour window of `k = 1080`, 82 machines evaluate about 3,700 candidat
 - **A delay whose input the coalition cannot evaluate before it must choose leaves `B = 1`.**
   With the smallest contributions, the input of the last sub-window can be formed from the
   sub-window's start, so the delay must span the sub-window, with the contribution bound to the
-  parent block (`FURTHER.md` G1, `DESIGNS.md` H.2).
+  parent's contribution (`FURTHER.md` G1, `DESIGNS.md` H.2).
 
 **The smallest contributions.** The window before the cut-off, `6⌊k/f⌋` slots, is split into `m`
 sub-windows counted back from the cut-off, each `⌊6⌊k/f⌋/m⌋` slots long, the oldest taking the
@@ -993,8 +1056,8 @@ The rule needs three conditions:
 3. **Sub-windows long enough that forks rarely cross them.** Each sub-window a feasible fork
    reaches multiplies the choices at the cut-off.
 
-Under the delay of `DESIGNS.md` H.2 the contribution bound to the parent block replaces
-conditions 1 and 2.
+Under the delay of `DESIGNS.md` H.2 the contribution bound to the parent's contribution replaces
+conditions 1 and 2: no contribution of a branch exists before the block it forks from.
 
 `E[G_min]` with the sub-windows each `k` needs, from 100,000 windows a cell, each drawn slot by
 slot over its last 20,000 slots; the standard error is at most 0.3 % at `k ≥ 1080`, and

@@ -40,3 +40,18 @@ def test_timelines_replay_the_symbols():
     assert honest.size - d_sym[phase].sum() in (0, 1, 2, 3)
     assert adv_slots.size - a_sym.sum() in range(0, delta + 2)
     assert np.all(np.diff(honest) > delta)
+
+
+def test_the_observed_attack_counts_forks_between_none_and_every_diverted_block():
+    """With no forks counted the attack against the observed rule is the attack against its
+    no-fork deadlines. Counting the honest depth on the competing chain accepts no more often, and
+    counting every honest block off the client's chain, no more often still."""
+    from finality_sim.further import counting_observed_deadlines
+    from finality_sim.grr_attack import _attack_observed, _attack_rule, _symbols_timed
+    alpha, f, delta = 0.30, 1 / 30, 10
+    t0 = counting_observed_deadlines(alpha, delta, 1e-3, 120, (0,), f)[:, 0]
+    d, a, t = _symbols_timed(4_000_000, occupancy(f, 1 - alpha), occupancy(f, alpha), delta, 7)
+    blind = _attack_observed(d, a, t, t0, 2000, 2)
+    assert blind[:5] == _attack_rule(d, a, t, t0, 2000) and blind[5] == 0 and blind[3] > 0
+    on_l, off_s = (_attack_observed(d, a, t, t0, 2000, mode) for mode in (1, 0))
+    assert blind[3] >= on_l[3] >= off_s[3]
