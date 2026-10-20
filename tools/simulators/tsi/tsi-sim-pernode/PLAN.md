@@ -24,9 +24,9 @@ depth 2, and the gain fails the Phase 6 gate at every load.
 
 | source | revision | read |
 |---|---|---|
-| logos-lips | `origin/master` `949faa95` | Cryptarchia 1.2.5 (`cryptarchia-v1-protocol.md`), Proof of Leadership (`cryptarchia-proof-of-leadership.md`), Block Execution (`bedrock-v1.1-block-construction.md`), `proof-of-quota.md` |
+| logos-lips | `origin/master` `949faa95` | Cryptarchia 1.2.5 (`cryptarchia-v1-protocol.md`), Proof of Leadership (`cryptarchia-proof-of-leadership.md`), Block Execution (`bedrock-v1.1-block-construction.md`), `proof-of-quota.md`, `payload-formatting.md`, `blend-protocol.md`, `bedrock-service-reward-distribution.md`, `trusted-setup-ceremony.md` |
 | logos-lips, in flight | branch `Bedrock-RFC-Eras` | rev 1.3.0 adds `era(sl_U) = era(sl_A)`; a deeper rule inherits it |
-| logos-blockchain | `origin/master` `670f95653` | `services/chain/chain-service/src/uncle.rs`; deployment `uncle_reference_window_in_block: 12` |
+| logos-blockchain | `670f95653` (`origin/master` when pinned) | `services/chain/chain-service/src/uncle.rs`, `services/chain/chain-leader/src/leadership.rs`, `consensus/cryptarchia-engine/src/lib.rs`; deployment `uncle_reference_window_in_block: 12` |
 | this repository | `origin/master` `5a26561` | branch base |
 
 The spec 1.2.5 rule, as the simulator expresses it, is the arm
@@ -55,12 +55,16 @@ validity rule built on it would depend on each node's block tree, which the spec
 
 | route | how | cost | verdict |
 |---|---|---|---|
-| A. lag | Every PoL proves against the root of the block `L` levels above its parent. Depth up to `L + 1` is then verifiable from the referencing chain: depth 2 needs `L = 1`, depth 3 needs `L = 2`. | The circuit is unchanged (`ledger_LATEST` is a public input). The PoL input definition, header validation step 9, the leader's prover and the node's verifier change. A spent note stays eligible for `L` more blocks. | the only general route |
-| B. empty parents | Allow `C` only when `U` carries no transactions and no uncles. `U.body_root` is then a constant, and the state of `U` follows from the state of its parent through Block Execution steps 1–2. | No PoL change. Its value is the share of such `U`, which depends on transaction load. The simulator does not model load. | narrow; price in Phase 3 |
+| A. lag | Every PoL proves against the root of the block `L` levels above its parent. Depth up to `L + 1` is then verifiable from the referencing chain: depth 2 needs `L = 1`, depth 3 needs `L = 2`. | The circuit is unchanged (`ledger_LATEST` is a public input). The PoL input definition, header validation step 9, the leader's prover and the node's verifier change. A spent note stays eligible for `L` more blocks. Those are chain blocks, so they earn a reward and fork-choice weight. An uncle's proof reads the state of its parent's parent: one chain block beyond the window, which is anchored to the parent to bound retention (`cryptarchia-v1-protocol.md:327`). | general; needs the PoL owners (§6, question 1) |
+| A′. dual proof | Every header carries a second PoL, from the same circuit, against the state of its grandparent. The chain checks only the first proof. A cousin is checked only by its second proof. It then proves what an uncle at its slot with parent `G` proves. | +128 bytes per header. Blend pads every message to the maximum proposal (§3.3), which holds 5 headers, so every Blend message grows by 640 bytes: 19 318 → 19 958, +3.3 %. Storage grows by 128 bytes per stored header. Every block needs a second proving run. Proving is benchmarked only on a 24-core laptop (678 ms on one thread, PoL Benchmarks); Blend sizes for a Raspberry Pi 5 (`blend-protocol.md:481`). Three rules are needed. Header validation enforces the second proof: an unchecked one earns nothing (`:380`), and the node makes a fresh `P_LEAD` on every proving call (`leadership.rs:194–195`). The block-ID preimage absorbs the second proof (`:272`, `:274–288`). `sl_U < sl_C` is stated, and `U` is read from `uncle_headers` of `A`'s chain, never from the block tree. Enforcement must handle a child of genesis, and a grandparent older than the snapshot after a halt longer than an epoch. One proof over both roots would add 32 bytes per header instead, but it is a new circuit and needs a new Groth16 phase 2 (`trusted-setup-ceremony.md:66`). | sound; costs every Blend message |
+| B. unchanged parents | Verify `C`'s own PoL against the state of `U`'s parent. It verifies exactly when `U` changed no note. That holds when `U` carries no transactions (its uncles are never executed) and is not the first block of an epoch that distributes service rewards (`bedrock-service-reward-distribution.md:53`). | No PoL change. Its value is the share of such `U`, which depends on transaction load. The simulator does not model load. | narrow; price in Phase 3 |
 | C. claimed root | `U`'s header carries its post-state root. | The root cannot be checked, so spent notes from the stake snapshot would count. | rejected |
 | D. no PoL check | Count `C` without verifying its proof. | Fabricated headers inflate the count at will. | rejected |
+| E. re-rooting | The leader of an orphaned block `X` at depth ≥ 2 proves its win at `sl_X` again, against the state of the fork point `G`. It publishes a header at `sl_X` with parent `G`. That header is the first block of a fork, so the 1.2.5 rules accept it as an uncle (`cryptarchia-v1-protocol.md:325–329`). The spec records that a note owner can self-sign such a header later (`:331`). Header validation bounds a header's slot only by the current slot (step 6) and its height only by the latest immutable block (step 8). | No consensus, header, circuit or per-message change. Each re-rooted block costs one proving run, off the critical path, and one Blend message. The slot's leadership quota went to the original proposal (`Q_L = β_D(1 + R_D)`, and the key nullifier binds the note key, the index and the slot, `proof-of-quota.md:197–204`). So the message needs core or proof-of-work quota. It covers every depth. Its gain is at most the Phase 2 ceiling. Two things reduce it: the delay to detect the orphaning, prove and propagate, all within `W·f⁻¹` slots of `G`; and leaders that do not re-root, since uncles earn nothing (`:380`, `:386`). | lead candidate; measure (Phase 2b) |
 
 Blend's proof of quota reads `ledger_AGED` only, so route A does not touch it.
+
+Node work for any route that carries cousins: `uncle.rs:116–122` rejects an entry whose parent is off the chain, `uncle.rs:131–134` panics when the parent's state is missing, and the engine records only the slots of referenced uncles, not their IDs (`cryptarchia-engine/src/lib.rs:180–182`). Re-rooting needs none of it.
 
 ### 3.3 What carries over unchanged
 
@@ -72,9 +76,10 @@ Blend's proof of quota reads `ledger_AGED` only, so route A does not touch it.
 - **The count.** `N_BLOCKS` already counts the slots of every carried entry. Deduplication is
   per slot.
 - **Agreement.** The recursive rule reads only the chain of `A` and the carried entries.
-- **Size.** If deeper entries share `MAX_UNCLES`, proposal size does not change. Blend pads
-  every proposal to the maximum, so a separate cap would add one entry (361 bytes at rev 1.2.5)
-  to every proposal.
+- **Size.** If deeper entries share `MAX_UNCLES`, the maximum proposal does not change. Blend
+  pads every message, not only proposals, to that maximum (`Max_Body_Length`,
+  `payload-formatting.md:78–82`). A separate cap would add one 361-byte entry to every Blend
+  message: 19 318 → 19 679 bytes, +1.9 %.
 - **Retention.** Anchored at the fork point, the window bounds how far back the chain must be
   reached, as it does for uncles.
 
@@ -256,6 +261,17 @@ Every gate must be shown to fail under a mutation of the code it guards before i
   - Residual: at ρ ≈ 1.76 and U = 4, depth 2 and the ceiling leave the same 0.27 pp of
     depth-2 slots uncounted. The window, the cap and the proposer's view bind those slots, not
     the ancestry condition.
+- **Phase 2b — re-rooting in the simulator (route E).** *Next.*
+  - Model: a leader whose block `X` sits at depth ≥ 2 in its own view publishes a copy of `X`
+    at `sl_X` with parent the fork point `G`. It does so after a delay for detecting the
+    orphaning and proving. The copy then travels like a block, and the spec 1.2.5 rule counts
+    it as an uncle. Two parameters: the share of leaders that re-root, and the delay.
+  - Re-rooting adds no rule per depth, so it re-roots every depth ≥ 2. The analysis reports
+    depth 2 and depth ≥ 3 apart.
+  - Arms, paired: depth 1 (the spec), depth 2, the ceiling, and re-rooting from full
+    participation at zero delay down to partial participation at realistic delays.
+  - Gates: at zero participation, re-rooting is bit-identical to depth 1; counting rejects no
+    copy that selection emits; a hand-built tree pins which copies count.
 - **Phase 3 — the minimal rule set for route A.**
   - The parent rule at maximum depth 2.
   - The lag `L = 1` as one constant, with its constraint where it is defined:
@@ -267,6 +283,8 @@ Every gate must be shown to fail under a mutation of the code it guards before i
   - What one block of spent-note eligibility costs (`L = 1`).
   - §6.4 (withholding) and §6.6 (selfish mining) re-run with cousins. With them, the first
     two blocks of a released branch count.
+  - Whether those analyses assume that only the first block of a released branch can count.
+    Under 1.2.5 every block of it can, by re-rooting.
   - If uncle rewards are ever added: `w_u + w_n < 1`, extended to self-orphaning two blocks.
   - The spec's "self-signed later" caveat, applied at every depth.
 - **Phase 5 — cost.**
@@ -274,16 +292,20 @@ Every gate must be shown to fail under a mutation of the code it guards before i
     verified against the state of the fork point.
   - The prover proves against the lagged root.
   - Whether the lag takes proving off the critical path (unmeasured).
+  - Re-rooting: leader-side logic only. It detects the orphaning, proves again, and publishes
+    under core or proof-of-work quota.
 - **Phase 6 — decision.**
   - Depth 2 goes to an RFC only if the PoL owners accept `L = 1` and its gain clears the
     ±0.9 % per-epoch noise at the ρ projected for production (§3.7).
+  - Re-rooting changes no rule. If Phase 2b shows a gain that clears the same noise, it is
+    proposed as leader behaviour next to Uncle Selection.
   - Depth 3 needed its gain over depth 2 to clear that noise. It did not (Phase 2).
   - A depth that fails is recorded in the report as an overload contingency (§8.3).
 
 ## 6. Open questions
 
 1. Is a one-block lag of `ledger_LATEST` (`L = 1`) acceptable to the PoL owners? This blocks
-   Phase 3 onward.
+   route A from Phase 3 on. Re-rooting (Phase 2b) does not depend on it.
 2. What ρ does production expect (Blend budget, N, peering degree)? Depth 2 gains under
    0.4 pp up to ρ ≈ 0.56. At U ≥ 2 it passes the ±0.9 % per-epoch noise from ρ ≈ 0.9
    (Phase 2).
