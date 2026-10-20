@@ -1,3 +1,5 @@
+module
+
 /-!
 # Exploration: a calculator and a continuing-entry simulator (`Float`)
 
@@ -15,6 +17,8 @@ Nothing here is proven; the proven statements are in the other files, and the te
 
 Units: balances in LOGOS, time in epochs. `epochsOfMonths q = q · 365 / (12 · 7.5)`.
 -/
+
+@[expose] public section
 
 namespace Onboarding.Explore
 
