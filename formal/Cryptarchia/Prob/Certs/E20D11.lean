@@ -46,16 +46,17 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
   intro i; fin_cases i
   exacts [chk0, chk1, chk2, chk3, chk4, chk5, chk6, chk7, chk8, chk9, chk10, chk11, chk12, chk13, chk14, chk15, chk16, chk17, chk18]
 
-/-- The derived numbers (`SpecData.derive`), computed at elaboration time: the contractions from the
-tables' bounds; the settlement parameters by their rules (Lw = 33795, J = 18401, G = 539, G' = 1910,
-r = 297, T = 33) and tilts; the slots and epochs covered; and the bounds on settlement
+/-- The derived numbers (`SpecData.derive`), computed by the generator's mirror of its rules: the
+contractions from the tables' bounds; the settlement parameters by their rules (Lw = 33795, J = 18401, G = 539,
+G' = 1910, r = 297, T = 33) and tilts; the slots and epochs covered; and the bounds on settlement
 (7.00e-11), on leaving the band in one epoch (2.343e-14) and on a finality violation
 (7.20e-11). The kernel checks every condition on them (`mainOK`, `finOK`). -/
-def der : SpecDerived := eval% par.derive F F.S.weakest dat Tq
+def der : SpecDerived :=
+  ⟨33795, 18401, (6197 / 5000 : ℚ), 539, 1910, 297, 33, (74 / 125 : ℚ), 31538462, 49, (9993122321849 / 10000000000000 : ℚ), (99784382037 / 100000000000 : ℚ), (7 / 100000000000 : ℚ), (2343 / 100000000000000000 : ℚ), (9 / 125000000000 : ℚ)⟩
 
-theorem derNe : der.Ne = 49 := by decide +kernel
+theorem derNe : der.Ne = 49 := rfl
 
-theorem derFin : der.fin = (9 / 125000000000 : ℚ) := by decide +kernel
+theorem derFin : der.fin = (9 / 125000000000 : ℚ) := rfl
 
 theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by decide +kernel
 

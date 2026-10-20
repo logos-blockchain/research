@@ -44,14 +44,16 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
   intro i; fin_cases i
   exacts [chk0, chk1, chk2, chk3, chk4, chk5, chk6, chk7, chk8, chk9, chk10, chk11, chk12, chk13, chk14, chk15, chk16, chk17, chk18]
 
-/-- The derived numbers (`ClosedData.derive`), computed at elaboration time: the contractions from the
-tables' bounds, the settlement parameters by their rules (G = 638, and per t: g = 18, j = 171,
-w = 314, ρr = 3; T = 29) and the tilts, the growth blocks, each settlement term's constant
-and rate, the band's terms, and the short form's rates. The kernel checks every condition on them (`closedOK`). -/
-def der : ClosedDerived := eval% par.derive F F.S.weakest dat Tq
+/-- The derived numbers (`ClosedData.derive`), computed by the generator's mirror of its rules: the
+contractions from the tables' bounds, the settlement parameters by their rules (G = 638, and per t:
+g = 18, j = 171, w = 314, ρr = 3; T = 29) and the tilts, the growth blocks, each
+settlement term's constant and rate, the band's terms, and the short form's rates. The kernel checks every
+condition on them (`closedOK`). -/
+def der : ClosedDerived :=
+  ⟨638, 18, 171, 314, 3, 29, (6171 / 5000 : ℚ), (1231 / 2000 : ℚ), (9991766645093 / 10000000000000 : ℚ), (9979331723099 / 10000000000000 : ℚ), 60, 18, (2413096528491 / 10000000000000000000000000000000000000 : ℚ), (16209434556783 / 25000000000000 : ℚ), (2535649690733 / 2500000000000 : ℚ), (13265584250663 / 20000000000000 : ℚ), (35602554677807 / 100000000000000 : ℚ), (70202007678953 / 100000000000000 : ℚ), (81024145195269 / 100000000000000 : ℚ), (3383851530979 / 5000000000000 : ℚ), (21840405964033 / 10000000000000 : ℚ), (63751989880813 / 100000000000000 : ℚ), (39134358174139 / 50000000 : ℚ), (4486043732677 / 25000000000000 : ℚ), (10000849 / 10000000 : ℚ), (6787204045793 / 5000000000000 : ℚ), (1000081693 / 1000000000 : ℚ), (13418599101303 / 10000000000000 : ℚ), 50, (702021 / 1000000 : ℚ), (2907775500000000000000009359 / 5000000000000000000000000000 : ℚ), (149047 / 200000 : ℚ), (780757 / 500000 : ℚ)⟩
 
 theorem derLen : der.nb = 60 ∧ der.nb0 = 18 ∧ der.G = 638 ∧ der.g = 18 ∧ der.w = 314 ∧
-    der.T = 29 := by decide +kernel
+    der.T = 29 := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by decide +kernel
 

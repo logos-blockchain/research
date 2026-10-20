@@ -28,6 +28,11 @@ def qQ(x):
     return f"({x.numerator} : ℚ)" if x.denominator == 1 else f"({x.numerator} / {x.denominator} : ℚ)"
 
 
+def lit(vals):
+    """a structure's fields as an anonymous constructor: naturals as they are, the rest as rationals"""
+    return "⟨" + ", ".join(qQ(v) if isinstance(v, Fr) else str(int(v)) for v in vals) + "⟩"
+
+
 ETA_ZETA = "(1 / 10 ^ 70) (1 / 10 ^ 16)"
 HEAD = "set_option maxRecDepth 100000\nset_option maxHeartbeats 0\n"
 SEC = "@[expose] public section\n"
@@ -433,16 +438,17 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
   intro i; fin_cases i
   exacts [{", ".join(f"chk{i}" for i in range(19))}]
 
-/-- The derived numbers (`SpecData.derive`), computed at elaboration time: the contractions from the
-tables' bounds; the settlement parameters by their rules (Lw = {Lw}, J = {J}, G = {G}, G' = {Gp},
-r = {r}, T = {Tg}) and tilts; the slots and epochs covered; and the bounds on settlement
+/-- The derived numbers (`SpecData.derive`), computed by the generator's mirror of its rules: the
+contractions from the tables' bounds; the settlement parameters by their rules (Lw = {Lw}, J = {J}, G = {G},
+G' = {Gp}, r = {r}, T = {Tg}) and tilts; the slots and epochs covered; and the bounds on settlement
 ({float(tgt):.2e}), on leaving the band in one epoch ({float(bx):.3e}) and on a finality violation
 ({float(fin):.2e}). The kernel checks every condition on them (`mainOK`, `finOK`). -/
-def der : SpecDerived := eval% par.derive F F.S.weakest dat Tq
+def der : SpecDerived :=
+  {lit([Lw, J, x, G, Gp, r, Tg, yy, M, Ne, lp, lpi, tgt, bx, fin])}
 
-theorem derNe : der.Ne = {Ne} := by decide +kernel
+theorem derNe : der.Ne = {Ne} := rfl
 
-theorem derFin : der.fin = {qQ(fin)} := by decide +kernel
+theorem derFin : der.fin = {qQ(fin)} := rfl
 
 theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by decide +kernel
 
@@ -607,14 +613,18 @@ theorem idxOK : ∀ i : Fin 19, F.idxChk i (dat i) = true := by
   intro i; fin_cases i
   exacts [{", ".join(f"chk{i}" for i in range(19))}]
 
-/-- The derived numbers (`ClosedData.derive`), computed at elaboration time: the contractions from the
-tables' bounds, the settlement parameters by their rules (G = {cl['G']}, and per t: g = {cl['g']}, j = {cl['j']},
-w = {cl['w']}, ρr = {cl['rho']}; T = {cl['Tg']}) and the tilts, the growth blocks, each settlement term's constant
-and rate, the band's terms, and the short form's rates. The kernel checks every condition on them (`closedOK`). -/
-def der : ClosedDerived := eval% par.derive F F.S.weakest dat Tq
+/-- The derived numbers (`ClosedData.derive`), computed by the generator's mirror of its rules: the
+contractions from the tables' bounds, the settlement parameters by their rules (G = {cl['G']}, and per t:
+g = {cl['g']}, j = {cl['j']}, w = {cl['w']}, ρr = {cl['rho']}; T = {cl['Tg']}) and the tilts, the growth blocks, each
+settlement term's constant and rate, the band's terms, and the short form's rates. The kernel checks every
+condition on them (`closedOK`). -/
+def der : ClosedDerived :=
+  {lit([cl['G'], cl['g'], cl['j'], cl['w'], cl['rho'], cl['Tg'], cl['x'], cl['yy'], q_['lp'], q_['lpi'], q_['nb'], q_['nb0']]
+       + [C[f'{a}{i}'] for i in range(1, 8) for a in ('A', 'q') if not (a, i) in (('q', 1), ('A', 2))]
+       + [q_['Cs'][0], q_['Qs'][0], q_['Cs'][1], q_['Qs'][1], q_['t0'], q_['qs'], q_['As'], q_['qb'], q_['Ab']])}
 
 theorem derLen : der.nb = {q_['nb']} ∧ der.nb0 = {q_['nb0']} ∧ der.G = {cl['G']} ∧ der.g = {cl['g']} ∧ der.w = {cl['w']} ∧
-    der.T = {cl['Tg']} := by decide +kernel
+    der.T = {cl['Tg']} := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem mainOK : F.mainChk F.S.weakest par.κ der.lp der.lpi dat = true := by decide +kernel
 
