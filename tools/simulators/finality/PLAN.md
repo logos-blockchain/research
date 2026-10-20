@@ -76,6 +76,7 @@ Phase by phase:
 | I.2 class-group sequentiality | done: the time-lock and adaptive-root assumptions pinned; the class number of a 1024-bit discriminant costs about `2^91` operations by Biasse, Jacobson and Silvester's estimates, between NIST's 80- and 112-bit levels, a century at `10^18` a second and two hundred thousand such machines within the delay; 2048 bits give `2^139` at no cost in time, since the squaring count halves |
 | I.3 a partition mode in the engine | done: `tsi_sim` splits the honest nodes for a span, loses Blend copies across the cut and reads far arrivals at the span's end; 256 runs a cell: the closed form holds given a side's growth, which falls to 0.82–0.86 in a split as most copies fall back, and read at A1's growth overstates a quarter's fork against a 30 % side (0.37 against 0.20) and understates a third's against 40 % (0.36 against 0.55); a 30 % fork beats a 35 % side in 65 % of windows, a third's beats a third always; even sides tie in 1.0 % |
 | H.3 time under the worst case | done: B4's rule beaten by the delay-scheduling attack; the counting bound, sound and empty on a slow chain; the observed counting rule, which counts the forks the client receives, 374 blocks against a third on a chain the coalition withholds from and B2's depth under a balancing coalition; a time-conditioned B2 bound not derived |
+| J a fork choice that tolerates delay | planned: the reading settled with the owner; one weight per win and the tie rule; every attack within `Δ` at today's block rate; a bound; what `k` is; the nonce; the inference; the synthesis |
 
 Before review, in this order:
 
@@ -456,6 +457,20 @@ Each hypothesis below can fail, and says what would fail it.
   Fails if the honest sides grow faster during a partition than the closed form assumes by enough
   to move the beaten share by more than five points, which makes rule 8's thresholds the
   engine's, not the model's (Phase I, I.3).
+- **H14.** A fork choice that weighs every honest block turns delay into time, not depth. At
+  `f = 1/30`, with one weight per win and a fixed tie rule, the strongest attack of J.2 against a
+  third at `1e-9` needs less than a quarter more time at `Δ = 10` s than at 1 s, where B2's attack
+  on the chain needs 1.9 times as much (3.5 to 6.8 hours). It also needs less time than the
+  chain's attack at 10 s. Fails if neither variant of Phase J meets both parts (Phase J, J.2).
+- **H15.** That robustness can be proven. A bound for such a fork choice under a delay chosen
+  within `Δ`, ported or derived for the slot lottery, holds a third at `1e-9` and `Δ = 10` s
+  within 11.5 hours: half of B2's 22.9, and about what the chain needs at `Δ = 1` s (9.6 hours).
+  Fails if no analysis gives a depth against `ε`, or if the bound exceeds 11.5 hours (Phase J,
+  J.3).
+- **H16.** What `k` carries survives the change. On the chosen variant the nonce's choices at the
+  cut-off stay within 10 % of the chain's under H.2's rule, and a deflated inference raises the
+  depth by less than a fifth, where it raises the chain's bound by 61 % (1,510 to 2,426 blocks).
+  Fails if either does not hold (Phase J, J.5 and J.6).
 
 ## 3. Questions for the owner
 
@@ -851,6 +866,121 @@ engine work. None depends on another.
   Exit: `SETTLEMENT.md` B5 gains the engine's columns beside the closed form, the report's §6
   reads them, the engine gains the mode and its tests. If H13 fails, rule 8's thresholds are
   re-read from the engine's growth per side and H.1's seats recomputed at it.
+
+### Phase J — a fork choice that tolerates delay, to shrink `k`
+
+`k` binds every node, so it must hold under the worst case. Under the longest-chain rule the worst
+case grows with the delay. Against a third at `1e-9`, B2's bound doubles from `Δ = 1` s to 10 s,
+758 to 1,510 blocks, and its attack grows from 278 to 445 blocks. In time that is 9.6 to 22.9
+hours for the bound and 3.5 to 6.8 for the attack. The adversary turns each second of delay into
+honest blocks the chain discards. Areon (§7.1) counts every honest block made within a window
+instead, so that a delay costs time, not weight. Its Theorem 5.6 asks `k ≥ C1·w + C2·ln(1/ε)`
+with `w ≥ Δ`, and the delay enters only through `w`.
+
+Phase E measured the premise and what blocks it:
+
+- **The premise holds for the private attack.** Under a delay of 1–20 s at today's block rate,
+  the DAG's private race against a third needs 34–42 layers at `1e-3`, 28–40 minutes, and no
+  honest block is wasted (E5).
+- **No bound covers the DAG.** The paper's model lets the adversary schedule every delivery
+  within `Δ` (§2.1). Its drift, `E[G] ≥ γ·λ_h·w` (equation (4)), assumes that the honest
+  references land on one side. E5's balancing attack splits them: at `f_A = 0.25` and
+  `Δ = 10` s, 3–6 % of the stake holds the balance. The paper does not discuss the attack.
+- **At today's block rate a third is inside the edge.** At `Δ = 10` s the balancing attack needs
+  0.404 of the stake with ties the adversary steers, and 0.451 with a fixed tie rule such as the
+  paper's `(slot, y)` order. A third cannot hold the balance forever. How long it can, and so how
+  deep a block must be before every attack within `Δ` has failed at `1e-9`, is not measured.
+
+This phase measures that depth, and bounds it if it can. Two variants are carried side by side:
+
+- **(a) The chain with GHOST's weight.** The fork choice weighs each branch by every block that
+  descends from it and that the node holds, orphans included, each win once. Uncle references,
+  in the protocol since revision 1.2.0 with a window of 12 block intervals, carry the orphans on
+  chain. The ledger, the nonce and Mantle's order stay the chain's. This is C3's rule.
+- **(b) Areon-Base**, as E1 built it, with Phase E's corrections: weight since the closest common
+  ancestor (E2), one weight per win (E3), references only to the preferred frontier (E4), and a
+  window of `Δ` plus several block intervals (E2, E5).
+
+Order: J.0 first. Then J.1 and J.2, the cheap test: if no variant beats the chain's attack, the
+phase stops there. Then J.3, the research. J.4–J.6 run beside J.3, and J.7 closes the phase.
+
+- **J.0 — The reading, settled with the owner.** The owner co-authored Areon. Three readings
+  decide what is analysed, asked one at a time:
+  1. *The adversary.* Whether Theorem 5.6 is meant against an adversary that schedules every
+     delivery within `Δ`, as §2.1 states, and if so which step of its proof excludes E5's
+     balancing attack.
+  2. *The weight.* Accumulated since the closest common ancestor, the only reading E2 found to
+     settle, rather than over the last `w` slots, as Definition 5.3 counts it.
+  3. *The unit of `k`.* Slots, as Corollary 5.9's `T_final = k·τ_slot` reads it, rather than
+     short-reference layers, as Definition 5.1 counts them. E5 found that a depth in layers holds
+     only at the delay it was set for.
+  Without an answer the phase takes E1's choices and counts `k` in slots. The v1 PDF read for
+  this plan has SHA-1 `6b3b4082`.
+- **J.1 — One weight per win, and the tie rule.**
+  1. *The tag.* The weight counts each win once on a side, and a win found on both sides weighs
+     on neither (E3). The tag must be the same whatever the parent, as today's `ρ_LEAD` is. H.2
+     binds the nonce contribution to the parent, so it differs from parent to parent. The proof of
+     leadership then carries two values: a win tag that does not depend on the parent, for the
+     weight, the tie rule and equivocation; and the contribution, for the nonce, bound to a parent
+     value the adversary cannot vary. Price the second hash in the circuit.
+  2. *The tie rule.* Equal weights are broken by the win tag of each side's first block, or by the
+     paper's `(slot, y)` order. Measure what the adversary gains by choosing which withheld win to
+     publish when its tag wins the tie: B7's displacement, on the new rule.
+  3. *A repeated tag.* Both blocks stay valid and referable, and the rule above sets their weight.
+- **J.2 — Every attack within `Δ`, at today's block rate** (`balance.py`, `e5_delay.py`,
+  `areon.py`, `grr_attack.py`).
+  1. *The balance's tail.* Extend E5's phase chain from the edge to the chance that the balance
+     still holds after `t` slots: `α` of 0.25, 0.30 and a third, `f = 1/30`, `Δ` of 1, 2, 5, 10
+     and 20 s, with the fixed tie rule and with ties the adversary steers.
+  2. *The combined attack.* The adversary holds the balance while it builds a private branch, and
+     releases the branch at the moment that maximises its success at each depth. Played on the
+     slot lottery with a delay chosen per block within `Δ`, as B3 plays GRR's attack on the chain.
+  3. *The tie rule's exploit* of J.1, inside the same play.
+  4. *Both variants, and the chain beside them* at B2's lower bound.
+  Gates: with `Δ = 0` the plays equal E2's race; on a chain-shaped DAG they equal B3's; the
+  balance's tail matches a slot-level simulation of the phases; each attack's success falls with
+  depth; each gate has a mutation that fails it. The depth in slots at `1e-9` of the strongest
+  attack, extrapolated as B2's lower depths are, is the least `k` a variant can claim. If no
+  variant beats the chain's attack at `Δ = 10` s against a third, 445 blocks or 6.8 hours, H14
+  fails and the phase stops.
+- **J.3 — A bound.** `k` binds every node, so it rests on a proven bound, as B2 is for the chain.
+  1. *Read and pin* Kiffer, Rajaraman and shelat (§7.2), which treats GHOST and the balance attack
+     with Markov chains, and Gaži, Motaqy and Russell (ePrint 2024/1830, read for C3's regions),
+     for a settlement error against depth rather than a region alone.
+  2. *Port* one that gives it to the slot lottery with one weight per win, as B1 ported GRR. Gate
+     it against J.2: it must lie above every attack at every depth.
+  3. *If neither gives one,* derive it: a Markov chain over the split of the honest weight between
+     two sides and the adversary's reserve that dominates every schedule within `Δ`, the analogue
+     of GRR's alphabet for this weight. Research: weeks, and it may not close.
+  Without a bound a variant gives a settlement level read from attacks, as the random-delay table
+  is, and no smaller `k`.
+- **J.4 — What `k` is, and what a smaller `k` breaks.**
+  1. *The rules.* `k` in slots for both variants. `B_imm` is the latest block of the preferred
+     ancestry made at least `k` slots ago, and the Online rule ignores forks that diverge before
+     it. The Bootstrap rule compares weight, one per win, over its window after the divergence.
+  2. *The epoch apart from `k`* (G2), so that the nonce's sub-windows, the inference's period and
+     the recovery window keep their lengths at `k = 2160`. §6.1's uncle-window rule
+     `W ≤ ⌊0.6k⌋` is read again.
+  3. *The consumers* of §6.3, each against a `k` in slots.
+  4. *Splits longer than `k`.* A split heals by itself only within `k` (B5). A smaller `k` also
+     shortens the offline grace margin and the even-split horizon (§6.4). H.1's attestations
+     cover a split below a third and operators the rest; both are restated at the new `k`.
+- **J.5 — The nonce on the new fork choice.** B7's minima over the preferred ancestry. The fork law
+  at the cut-off is redone for a weight race since the closest common ancestor, by
+  `fork_bound.py`'s method; on a chain-shaped DAG it must equal the chain's law. Then `E[G_min]`
+  under H.2's delay, at the sub-windows of the decoupled epoch.
+- **J.6 — The inference.** Count blocks, one per win tag (E4), in place of occupied slots. Then
+  replay G7's deflation. On the chain a deflated inference reads `Δ` as `Δ/(1 − α)`. A fork
+  choice whose depth barely moves with `Δ` may lose little to it; J.2's plays at the raised
+  rates measure how little.
+- **J.7 — The synthesis.** For each variant, against 30 % and a third at `Δ = 10` s: `k` in slots
+  and hours, from J.3's bound or, marked as such, from J.2's attacks; J.5's nonce and J.6's
+  inference included; the splits of J.4; the cost: references per block and header bytes (E6),
+  the ledger order of (b) (E4), and the fork choice's computation on the reference node. Beside
+  them, today's `k = 2160` and B2's 1,510 blocks.
+  Exit: `DAG.md` gains J's sections and `RATE.md` C3 the chain variant; the report's §9 and §12
+  gain a row each; H7's verdict is read again. If H15 fails, the route gives at most a settlement
+  level and `k` stays the chain's.
 
 ## 5. Measurement protocol
 
