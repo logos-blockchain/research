@@ -364,8 +364,11 @@ needs no tables at all.
   family each member starts from the previous member's seeds (`seedsZ`, `preSeedsZ`). A
   certificate runs the solver at elaboration time (`eval%`, `EvalLit.lean`) and the kernel
   only checks its result, so the solver needs no soundness theorem.
-* **One check per phase index** (`oneSwitchF_sound`, `switchF_sound`): the one-switch
-  tables (`AutoSolE`) or the switching table, for the whole family, with their bounds.
+* **One check per phase index** (`oneSwitchNF_sound`, `switchF_sound`): the one-switch
+  tables (`AutoSolE`) or the switching table, for the whole family, with their bounds. The
+  one-switch tables are given by rows over `ℕ`, filled from their seeds at elaboration time, which
+  the kernel checks several times faster than it fills them (`chkOneNF`; `chkOneF` checks the
+  seeds alone).
 -/
 
 /-! ## Rounding and folds -/
@@ -1240,6 +1243,51 @@ theorem oneSwitchWN_sound {famN : Fin K → BandN} {famQ : Fin K → BandQ} {fam
   obtain ⟨⟨hs, hb⟩, he⟩ := hks k hk
   exact ⟨solRowsNG_autoSol (hR k) (hA k) hD hX hS hs, autoBoundZ_le (hR k) (hA k) hD' hX hS' hb,
     autoBoundZ_le (hR k) (hA k) hD' hX hS' he⟩
+
+/-- Every check of member `k` of a one-switch index, its tables given by rows over `ℕ` (as `chkOneF`, which
+fills them from seeds): its band and the phase over `ℕ`, its post-switch table `Post k` solving its
+recursion and at most `Vr`, its pre-switch table `Pre k` solving it above `Vr`, and their bounds. -/
+def chkOneNF (famZ : Fin K → BandZ) (D : ℤ) (Δ : ℕ) (X : PhZ) (S : ℤ) (Vr : List (List ℕ))
+    (Post Pre : Fin K → List (List ℕ)) (eIn : Fin K → ℚ) (eE : ℚ) (k : Fin K) : Bool :=
+  (famZ k).nonneg && X.nonneg &&
+    solRowsNG (famZ k).toN D.toNat Δ X.toN S.toNat (Post k) &&
+    solRowsNL (famZ k).toN D.toNat Δ X.toN S.toNat Vr (Pre k) &&
+    allN3 Δ (fun q a u => Nat.ble (tabN (Post k) q a u) (tabN Vr q a u)) &&
+    decide ((autoBoundZ (famZ k) D X S (tabRZ (rowsToZ (Post k))) : ℚ) ≤ eIn k * (X.M D * S : ℤ)) &&
+    decide ((autoBoundZ (famZ k) D X S (tabRZ (rowsToZ (Pre k))) : ℚ) ≤ eE * (X.M D * S : ℤ))
+
+/-- **The one-switch tables of an index, for the whole family, by rows over `ℕ`.** -/
+theorem oneSwitchNF_sound (hR : ∀ k, (famZ k).Rep D (famQ k)) (hA : ∀ k, (famQ k).Agrees (fam k)) (hD : 0 < D)
+    (hX : X.Rep x θ g) (hS : 0 < S) {Vr : List (List ℕ)} {Post Pre : Fin K → List (List ℕ)} {eIn : Fin K → ℚ}
+    {eE : ℚ} (h : (List.finRange K).all (chkOneNF famZ D Δ X S Vr Post Pre eIn eE) = true) :
+    AutoSolE fam Δ x θ (castG g) (fun k => castZ S (tabRZ (rowsToZ (Pre k))))
+        (fun k => castZ S (tabRZ (rowsToZ (Post k)))) (castZ S (tabRZ (rowsToZ Vr))) ∧
+      (∀ k, autoBound (fam k) x θ (castG g) (castZ S (tabRZ (rowsToZ (Post k)))) ≤ eIn k) ∧
+      (∀ k, autoBound (fam k) x θ (castG g) (castZ S (tabRZ (rowsToZ (Pre k)))) ≤ eE) := by
+  have hDn : ((D.toNat : ℕ) : ℤ) = D := Int.toNat_of_nonneg hD.le
+  have hSn : ((S.toNat : ℕ) : ℤ) = S := Int.toNat_of_nonneg hS.le
+  have hD0 : 0 < D.toNat := by omega
+  have hS0 : 0 < S.toNat := by omega
+  have key : ∀ k, AutoSol (fam k) Δ x θ (castG g) (castZ S (tabRZ (rowsToZ (Post k)))) ∧
+      (∀ q < Δ, ∀ a u, castZ S (tabRZ (rowsToZ (Post k))) q a u ≤ castZ S (tabRZ (rowsToZ Vr)) q a u) ∧
+      PreSol (fam k) Δ x θ (castG g) (castZ S (tabRZ (rowsToZ Vr))) (castZ S (tabRZ (rowsToZ (Pre k)))) ∧
+      autoBound (fam k) x θ (castG g) (castZ S (tabRZ (rowsToZ (Post k)))) ≤ eIn k ∧
+      autoBound (fam k) x θ (castG g) (castZ S (tabRZ (rowsToZ (Pre k)))) ≤ eE := by
+    intro k
+    have hk := List.all_eq_true.1 h k (List.mem_finRange k)
+    simp only [chkOneNF, Bool.and_eq_true, decide_eq_true_eq] at hk
+    obtain ⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩ := hk
+    have hRk : (famZ k).toN.toZ.Rep (D.toNat : ℕ) (famQ k) := by rw [hDn, BandZ.toN_toZ h1]; exact hR k
+    have hXN := PhZ.toN_rep hX h2
+    have sPost := solRowsNG_autoSol hRk (hA k) hD0 hXN hS0 h3
+    have sPre := solRowsNL_preSol hRk (hA k) hD0 hXN hS0 h4
+    rw [hSn] at sPost sPre
+    refine ⟨sPost, fun q hq a u => ?_, sPre, autoBoundZ_le (hR k) (hA k) hD hX hS h6,
+      autoBoundZ_le (hR k) (hA k) hD hX hS h7⟩
+    refine castZ_le hS ?_
+    rw [tabRZ_toZ, tabRZ_toZ]; exact_mod_cast Nat.le_of_ble_eq_true (allN3_sound h5 hq a u)
+  exact ⟨⟨fun k => (key k).1, fun k => (key k).2.1, fun k => (key k).2.2.1⟩, fun k => (key k).2.2.2.1,
+    fun k => (key k).2.2.2.2⟩
 
 end Index
 

@@ -82,7 +82,7 @@ def write_sw(sub, ns, name):
     lines = []
     for i in SW:
         lines += [f"def vs{i} : List ℤ := eval% F.swSeeds {i}\n",
-                  f"def dat{i} : IdxData := ⟨[], [], [], 0, vs{i}, eval% F.eSOf {i} vs{i}⟩\n",
+                  f"def dat{i} : IdxData := ⟨[], [], [], [], 0, vs{i}, eval% F.eSOf {i} vs{i}⟩\n",
                   f"theorem sw{i} : F.idxChkSw {i} dat{i} = true := by decide +kernel\n"]
     txt = (imports([f"public import {ns}.Data\n", "public import Cryptarchia.Prob.TableSpec\n",
                     f"meta import {ns}.Data\n", "meta import Cryptarchia.Prob.TableSpec\n"]) + f"""

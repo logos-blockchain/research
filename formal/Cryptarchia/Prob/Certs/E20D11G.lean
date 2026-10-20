@@ -145,7 +145,7 @@ set_option maxRecDepth 100000
 set_option maxHeartbeats 0
 
 /-- The phase indices' data: the switching tables of indices 0, 1, 2, 17; the others take no part. -/
-def datZ : IdxData := ⟨[], [], [], 0, [], 0⟩
+def datZ : IdxData := ⟨[], [], [], [], 0, [], 0⟩
 
 def dat : Fin 19 → IdxData := ![dat0, dat1, dat2, datZ, datZ, datZ, datZ, datZ, datZ, datZ, datZ, datZ, datZ, datZ, datZ, datZ, datZ, dat17, datZ]
 

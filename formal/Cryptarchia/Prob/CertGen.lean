@@ -637,12 +637,13 @@ structure FamCfg extends PotCfg where
   famZL : List (List ℤ)
   D : ℤ
 
-/-- One index's data, computed at elaboration time: each member's post- and pre-switch seeds,
-in-epoch bound and the largest pre-switch bound, and the switching table's seeds and largest
-bound. -/
+/-- One index's data, computed at elaboration time: each member's post- and pre-switch tables and the
+table above the post-switch ones, by rows over `ℕ`, each member's in-epoch bound and the largest
+pre-switch bound, and the switching table's seeds and largest bound. -/
 structure IdxData where
-  post : List (List ℤ)
-  pre : List (List ℤ)
+  post : List (List (List ℕ))
+  pre : List (List (List ℕ))
+  vmax : List (List ℕ)
   eIn : List ℚ
   eE : ℚ
   vs : List ℤ
@@ -673,9 +674,25 @@ def preSeeds (i : ℕ) (post : List (List ℤ)) : List (List ℤ) :=
 def swSeeds (i : ℕ) : List ℤ :=
   solveSeedsZ F.famL F.D F.Δ (F.X i) SZ (gFloorZ (F.X i) SZ) (2 ^ 32) (2 ^ 8) 3 200 (F.floor i)
 
-def postTop (dat : IdxData) (k : Fin F.S.K) : Fin 3 → ℤ := seedL (dat.post.getD k.val [])
+/-- A table listed by `(q, a, u)`, as `n` rows over `ℕ`. -/
+def rowsOfList (l : List ℤ) (n : ℕ) : List (List ℕ) :=
+  (List.range n).map fun q => ((l.drop (6 * q)).take 6).map Int.toNat
 
-def preTop (dat : IdxData) (k : Fin F.S.K) : Fin 3 → ℤ := seedL (dat.pre.getD k.val [])
+/-- Each member's post-switch table, `vmax` above them, and each member's pre-switch table, from their seeds. -/
+def postRows (i : ℕ) (post : List (List ℤ)) : List (List (List ℕ)) :=
+  List.zipWith (fun B t => rowsOfList (fillRowsZ [B] F.D F.Δ (F.X i) SZ (gFloorZ (F.X i) SZ) (seedL t) 0 F.Δ) F.Δ)
+    F.famL post
+
+def vmaxRows (i : ℕ) (post : List (List ℤ)) : List (List ℕ) :=
+  rowsOfList (vmaxListZ F.famL F.D F.Δ (F.X i) SZ post) F.Δ
+
+def preRows (i : ℕ) (post pre : List (List ℤ)) : List (List (List ℕ)) :=
+  let vm := vmaxListZ F.famL F.D F.Δ (F.X i) SZ post
+  List.zipWith (fun B t => rowsOfList (fillRowsZ [B] F.D F.Δ (F.X i) SZ (tabZ vm) (seedL t) 0 F.Δ) F.Δ) F.famL pre
+
+def postR (dat : IdxData) (k : Fin F.S.K) : List (List ℕ) := dat.post.getD k.val []
+
+def preR (dat : IdxData) (k : Fin F.S.K) : List (List ℕ) := dat.pre.getD k.val []
 
 def eIn (dat : IdxData) (k : Fin F.S.K) : ℚ := dat.eIn.getD k.val 0
 
@@ -706,20 +723,21 @@ def isOne (i : ℕ) : Bool := !(i == 2 || i == 17)
 def idxChk (i : ℕ) (dat : IdxData) : Bool :=
   decide ((F.X i).Rep (xgNQ F.c F.z F.s F.d F.τ i).1 (xgNQ F.c F.z F.s F.d F.τ i).2.1 (xgNQ F.c F.z F.s F.d F.τ i).2.2) &&
     (!isSw i || (List.finRange F.S.K).all (chkSwF F.famZ F.D F.Δ (F.X i) SZ (seedL dat.vs) fun _ => dat.eS)) &&
-    (!isOne i || (List.finRange F.S.K).all (chkOneF F.famZ F.D F.Δ (F.X i) SZ (F.postTop dat) (F.preTop dat) (F.eIn dat) dat.eE))
+    (!isOne i || (List.finRange F.S.K).all (chkOneNF F.famZ F.D F.Δ (F.X i) SZ dat.vmax (F.postR dat) (F.preR dat) (F.eIn dat) dat.eE))
 
 /-- The tables, over `ℝ`. -/
 noncomputable def vsR (i : ℕ) (dat : IdxData) : ℕ → Fin 3 → Bool → ℝ :=
   castZ SZ (fillAllZ F.famL F.D F.Δ (F.X i) SZ (gFloorZ (F.X i) SZ) (seedL dat.vs))
 
-noncomputable def vpostR (i : ℕ) (dat : IdxData) (k : Fin F.S.K) : ℕ → Fin 3 → Bool → ℝ :=
-  castZ SZ (postF F.famZ F.D F.Δ (F.X i) SZ (F.postTop dat) k)
+noncomputable def vpostR (_i : ℕ) (dat : IdxData) (k : Fin F.S.K) : ℕ → Fin 3 → Bool → ℝ :=
+  castZ SZ (tabRZ (rowsToZ (F.postR dat k)))
 
-noncomputable def vpreR (i : ℕ) (dat : IdxData) (k : Fin F.S.K) : ℕ → Fin 3 → Bool → ℝ :=
-  castZ SZ (preF F.famZ F.D F.Δ (F.X i) SZ (F.postTop dat) (F.preTop dat) k)
+noncomputable def vpreR (_i : ℕ) (dat : IdxData) (k : Fin F.S.K) : ℕ → Fin 3 → Bool → ℝ :=
+  castZ SZ (tabRZ (rowsToZ (F.preR dat k)))
 
-noncomputable def vmaxR (i : ℕ) (dat : IdxData) : ℕ → Fin 3 → Bool → ℝ :=
-  castZ SZ (vmaxF F.famZ F.D F.Δ (F.X i) SZ (F.postTop dat))
+/-- The table above the post-switch ones (it reads only the data; `F` is kept for field notation). -/
+noncomputable def vmaxR (_F : FamCfg) (_i : ℕ) (dat : IdxData) : ℕ → Fin 3 → Bool → ℝ :=
+  castZ SZ (tabRZ (rowsToZ dat.vmax))
 
 /-- `xg` at the potential's parameters, over `ℝ`. -/
 noncomputable abbrev xgR (i : Fin 19) := xg F.c F.z F.s F.d F.τ i
@@ -751,7 +769,7 @@ theorem idx_one (hi : isOne i = true) :
       ∀ k, autoBound (F.S.fam k) (F.xgR i).1 (F.xgR i).2.1 (F.xgR i).2.2 (F.vpreR i dat k) ≤ dat.eE := by
   have hX := idx_rep hS hD h
   simp only [idxChk, hi, Bool.not_true, Bool.false_or, Bool.and_eq_true] at h
-  have := oneSwitchF_sound (F.S.rep hS) F.S.agrees hD hX SZ_pos h.2
+  have := oneSwitchNF_sound (F.S.rep hS) F.S.agrees hD hX SZ_pos h.2
   rw [xgR, xg_ofQ rfl rfl rfl rfl rfl i]
   exact this
 

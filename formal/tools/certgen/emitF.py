@@ -266,14 +266,15 @@ end {ns}
 
 
 def index_lines(i):
-    """index `i`'s seeds and bounds, computed at elaboration time, and its check"""
+    """index `i`'s seeds, tables by rows and bounds, computed at elaboration time, and its check"""
     lines = []
     if is_one(i):
         lines += [f"def post{i} : List (List ℤ) := eval% F.postSeeds {i}\n",
                   f"def pre{i} : List (List ℤ) := eval% F.preSeeds {i} post{i}\n"]
-        one = f"post{i}, pre{i}, eval% F.eInList {i} post{i}, eval% F.eEOf {i} post{i} pre{i}"
+        one = (f"eval% F.postRows {i} post{i}, eval% F.preRows {i} post{i} pre{i}, eval% F.vmaxRows {i} post{i},\n"
+               f"  eval% F.eInList {i} post{i}, eval% F.eEOf {i} post{i} pre{i}")
     else:
-        one = "[], [], [], 0"
+        one = "[], [], [], [], 0"
     if is_sw(i):
         lines.append(f"def vs{i} : List ℤ := eval% F.swSeeds {i}\n")
         sw = f"vs{i}, eval% F.eSOf {i} vs{i}"

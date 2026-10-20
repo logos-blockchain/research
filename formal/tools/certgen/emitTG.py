@@ -144,7 +144,7 @@ def main_imports(ns, nj):
 
 
 def common_defs(nj, ng):
-    z = "⟨[], [], [], 0, [], 0⟩"
+    z = "⟨[], [], [], [], 0, [], 0⟩"
     dat = ", ".join(f"dat{i}" if i in SW else "datZ" for i in range(19))
     hsw = ", ".join(f"fun _ => sw{i}" if i in SW else "fun h => absurd h (by decide)" for i in range(19))
     return f"""/-- The phase indices' data: the switching tables of indices 0, 1, 2, 17; the others take no part. -/
