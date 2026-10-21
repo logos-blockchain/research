@@ -24,9 +24,9 @@ depth 2, and the gain fails the Phase 6 gate at every load.
 
 | source | revision | read |
 |---|---|---|
-| logos-lips | `origin/master` `949faa95` | Cryptarchia 1.2.5 (`cryptarchia-v1-protocol.md`), Proof of Leadership (`cryptarchia-proof-of-leadership.md`), Block Execution (`bedrock-v1.1-block-construction.md`), `proof-of-quota.md`, `payload-formatting.md`, `blend-protocol.md`, `bedrock-service-reward-distribution.md`, `trusted-setup-ceremony.md` |
+| logos-lips | `origin/master` `949faa95` | Cryptarchia 1.2.5 (`cryptarchia-v1-protocol.md`), Proof of Leadership (`cryptarchia-proof-of-leadership.md`), Block Execution (`bedrock-v1.1-block-construction.md`), Synchronization (`cryptarchia-v1-bootstr-sync.md`), `proof-of-quota.md`, `payload-formatting.md`, `blend-protocol.md`, `bedrock-service-reward-distribution.md`, `trusted-setup-ceremony.md` |
 | logos-lips, in flight | branch `Bedrock-RFC-Eras` | rev 1.3.0 adds `era(sl_U) = era(sl_A)`; a deeper rule inherits it |
-| logos-blockchain | `670f95653` (`origin/master` when pinned) | `services/chain/chain-service/src/uncle.rs`, `services/chain/chain-leader/src/leadership.rs`, `consensus/cryptarchia-engine/src/lib.rs`; deployment `uncle_reference_window_in_block: 12` |
+| logos-blockchain | `670f95653` (`origin/master` when pinned) | `services/chain/chain-service/src/uncle.rs`, `services/chain/chain-leader/src/leadership.rs`, `consensus/cryptarchia-engine/src/lib.rs`, `ledger/src/lib.rs`, `services/chain/chain-service/src/sync/block_provider.rs`, `services/tx-service/src/backend/pool.rs`, `services/tx-service/src/backend/policy/powclaim.rs`; deployment `uncle_reference_window_in_block: 12`, proof-of-work `slot_window: 300` |
 | this repository | `origin/master` `5a26561` | branch base |
 
 The spec 1.2.5 rule, as the simulator expresses it, is the arm
@@ -62,6 +62,7 @@ validity rule built on it would depend on each node's block tree, which the spec
 | C′. compact entries | An entry carries only what the PoL check reads: the slot, `P_LEAD`, `ρ_LEAD` and the proof, plus the parent (1.2.5) or the root (route C). It carries no signature. | An entry shrinks from 361 to 232 bytes (8 + 32 + 32 + 32 + 128). The maximum proposal falls by 4 × 129 = 516 bytes to 17 676, and every Blend message by the same: 19 318 → 18 802, −2.7 %. This holds at depth 1 too. Anyone who has seen a proof can build an entry from it. The count is per slot, so that adds no slot (`:331`). The block ID of a referenced block can no longer be derived (`:315`). Only the not-on-the-chain rule (`:326`) and the selection tie-break (`:366`) read it. Per-slot counting makes the first redundant, and the second can order by the proof. | independent of depth; price with route C |
 | D. no PoL check | Count `C` without verifying its proof. | Fabricated headers inflate the count at will. | rejected |
 | E. re-rooting | The leader of an orphaned block `X` at depth ≥ 2 proves its win at `sl_X` again, against the state of the fork point `G`. It publishes a header at `sl_X` with parent `G`. That header is the first block of a fork, so the 1.2.5 rules accept it as an uncle (`cryptarchia-v1-protocol.md:325–329`). The spec records that a note owner can self-sign such a header later (`:331`). Header validation bounds a header's slot only by the current slot (step 6) and its height only by the latest immutable block (step 8). | No consensus, header, circuit or per-message change. Each re-rooted block costs one proving run, off the critical path, and one Blend message. The slot's leadership quota went to the original proposal (`Q_L = β_D(1 + R_D)`, and the key nullifier binds the note key, the index and the slot, `proof-of-quota.md:197–204`). So the message needs core or proof-of-work quota. It covers every depth. Its gain is at most the Phase 2 ceiling. Two things reduce it: the delay to detect the orphaning, prove and propagate, all within `W·f⁻¹` slots of `G`; and leaders that do not re-root, since uncles earn nothing (`:380`, `:386`). | lead candidate; measure (Phase 2b) |
+| F. cousin parents' bodies | A cousin `C` with parent `U` is verified against the state its leader proved against: the state of the fork point `G` after `U`'s transactions, validated as a block's are. A node that accepted `U` already holds that state. Every accepted block was executed (`cryptarchia-v1-protocol.md:463`), and the node keeps a ledger state per block until the block is pruned (`ledger/src/lib.rs:149`). A fork is pruned once it diverges below the latest immutable block (`:499`), which lies at least `k` blocks, so at least 2 160 slots, below the tip (`:124`). The window spans 360 slots. So a node that validates `A` within `k − W·f⁻¹` = 1 800 slots of `sl_A` still holds `U` if it accepted it. A validator that lacks `U` downloads it, as it downloads an orphan's missing ancestors (`cryptarchia-v1-bootstr-sync.md:97`, `:180`). Peers serve any block of their block tree (`block_provider.rs:136`). The stored block that carries `C` also carries `U`'s uncle headers and transactions, for nodes that synchronise after `U` is pruned. `U`'s `body_root` commits to them, so the proposal, the header and the block ID of `A` do not change. | No PoL, circuit, header or proposal change, so no Blend change. No spent note gains eligibility. The stored block grows by one body per cousin parent: up to `MAX_BLOCK_SIZE` plus 1 445 bytes of uncle headers. Transactions the chain already holds could be stored by reference. Bodies are needed for at most the depth-2 share of §4: 0.07 % of occupied slots at ρ ≈ 0.36, 1.3 % at ρ ≈ 0.96. A node that holds none of the parents executes up to `1 + MAX_UNCLES` blocks to validate one. A validator that receives `A` before `U` cannot validate `A` until it has `U` (Phase 2d). It records no verdict meanwhile, as for an unresolved reference (`bedrock-v1.1-block-construction.md:334`). The mempool matters only for the first acceptance of `U`, as for any block. The node keeps a transaction 10 minutes after a chain block includes it, so that a competing proposal still resolves (`pool.rs:31`, `:89`). It keeps a pending transaction 1 hour by default (`pool.rs:35`, configurable), and a proof-of-work claim 600 slots past its 300-slot acceptance window (`powclaim.rs:30–31`). Each exceeds the window. None is specified. Depth 3 needs two bodies, executed in order. Changes: the uncle rules and the counted set (Cryptarchia); the stored block and "the carried `uncle_headers` are not executed" (Block Construction `:211–216`, `:397`); downloading a cousin's parent (Synchronization); in the node, `uncle.rs:116–122` and `:131–134`. | sound, no per-message cost; candidate if Phase 2b falls short (Phase 2d, §6 question 5) |
 
 Blend's proof of quota reads `ledger_AGED` only, so route A does not touch it.
 
@@ -286,6 +287,15 @@ Every gate must be shown to fail under a mutation of the code it guards before i
     snapshot's stake, and the block rate falls to about `f(1 − σ)`.
   - Gates: at σ = 0 the spent-stake arm is bit-identical to the honest arm; a hand-built tree
     pins which entries count.
+- **Phase 2d — the live path of route F in the simulator.**
+  - Route F counts what depth 2 counts, so Phase 2 already measured its gain.
+  - Metric, on the depth-2 arm of the Phase 2b sweeps: for every chain block `A` that carries
+    a cousin `C` with parent `U`, the share of nodes that receive `A` before `U`, and by how
+    many slots. Those nodes must download `U` before they validate `A`.
+  - The simulator makes a block usable at a node only after its parent (`blocktree.py:498`),
+    so the proposer that carries `C` holds `U`. It models neither the download nor its effect
+    on fork choice, so the metric is a static price.
+  - Gate: a hand-built arrival matrix pins the share.
 - **Phase 3 — the minimal rule set for route A.**
   - The parent rule at maximum depth 2.
   - The lag `L = 1` as one constant, with its constraint where it is defined:
@@ -305,6 +315,10 @@ Every gate must be shown to fail under a mutation of the code it guards before i
     after the snapshot, and keys bought from former owners. What a block rate of `f(1 − σ)`
     does to the epoch schedule, whose phases are sized in slots
     (`cryptarchia-v1-protocol.md:150–154`).
+  - Route F: an adversary can withhold `U` from some nodes. They wait for an honest holder:
+    the proposer of `A`, the leader of `C`, or any node that accepted `U`. The work to validate
+    one block reaches `1 + MAX_UNCLES` executions. One cousin parent per block, or cousin
+    parents counted in the `MAX_BLOCK_SIZE` of `A`, keeps it near one block.
 - **Phase 5 — cost.**
   - Node changes: a referenced-entry index in `verify_uncles_ancestry`; a deeper entry
     verified against the state of the fork point.
@@ -312,6 +326,9 @@ Every gate must be shown to fail under a mutation of the code it guards before i
   - Whether the lag takes proving off the critical path (unmeasured).
   - Re-rooting: leader-side logic only. It detects the orphaning, proves again, and publishes
     under core or proof-of-work quota.
+  - Route F: the stored-block format; downloading a cousin's parent; validating `U` against
+    the state of `G` on a node that did not accept `U`; `uncle.rs` reading the state of `U`
+    where it now panics (`:131–134`).
 - **Phase 6 — decision.**
   - Depth 2 goes to an RFC only if the PoL owners accept `L = 1` and its gain clears the
     ±0.9 % per-epoch noise at the ρ projected for production (§3.7).
@@ -319,6 +336,9 @@ Every gate must be shown to fail under a mutation of the code it guards before i
     proposed as leader behaviour next to Uncle Selection.
   - Route C goes to an RFC only if the PoL owners accept the unchecked root, Phase 4 bounds the
     spent stake, and Phase 2c shows a gain over re-rooting that clears the same noise.
+  - Route F needs no PoL change. It goes to an RFC only if depth 2 clears the same noise at the
+    production ρ, re-rooting leaves a share of that gain which clears it too (Phase 2b), and
+    Phase 2d shows that few validators receive `A` before `U`.
   - Depth 3 needed its gain over depth 2 to clear that noise. It did not (Phase 2).
   - A depth that fails is recorded in the report as an overload contingency (§8.3).
 
@@ -334,6 +354,10 @@ Every gate must be shown to fail under a mutation of the code it guards before i
    task, done together with re-pinning the report to 1.2.5 (§7).
 4. Would the PoL owners accept an unchecked `ledger_LATEST` for references (route C)? A
    spent snapshot note would then count for up to two epochs after the spend.
+5. Route F puts a cousin's inputs in the stored block but not in the proposal. A validator that
+   lacks `U` waits for it, as one that lacks a transaction does. Would the Block Construction
+   owners accept that? Cryptarchia 1.2.0 made uncle availability structural
+   (`cryptarchia-v1-protocol.md:392`); route F gives that up for cousins on the proposal path.
 
 ## 7. Drift found outside this study
 
@@ -352,4 +376,13 @@ Not fixed on this branch.
 - **The report, §3.2:** it says the residual cannot be split into first-fork and capacity
   loss. §4 above splits it.
 - **Lint:** an unused `dataclasses` import in `tests/test_multi_coalition.py`.
+- **Cryptarchia, the note at `:390`:** it argues that a candidate within the window is still in
+  the block tree because the latest immutable block is "at most `s` slots back". The claim
+  needs a lower bound on that distance instead. `k` blocks occupy at least `k` slots, so it
+  holds always when `W·f⁻¹ ≤ k`, that is `W ≤ k·f` = 72. Up to the virtual bound `⌊0.6k⌋` =
+  1 296 (38 880 slots) it holds only while `k` blocks take longer than the window: likely, not
+  certain.
+- **Node, mempool settings:** `pow_claim_grace_slots` (default 0,
+  `nodes/node/binary/src/config/mempool/serde.rs:22`) is never read. The pool uses twice the
+  acceptance window (`powclaim.rs:30–31`).
 - **Analysis grouping:** fixed on this branch (Phase 0).
