@@ -1142,3 +1142,22 @@ free channels, from the rates alone; `p_disp` solves its recursion; the reachabl
 last sub-window average `1/((1 − c)(1 − p_own))` when any honest block may be attempted and
 `1/(1 − p_own)` without removals; and over today's window at `k = 2160`, against a third under the
 worst case at 10 s, no fork reaches past the near slots. Eleven mutations fail them.
+
+## Counted in slots (Phase K)
+
+`SLOTS.md` reads this note with `k` counted in slots. Where each part goes:
+
+- **B2 and B3** become waits. K.1 bounds a wait of `T` slots by B2's bound at the depth the wait
+  guarantees, with the honest chain's growth over the wait and the coalition's lead at the target,
+  and plays B3's private race scored `T` slots after the target. Against a third at `Δ = 10` s and
+  `1e-9` the wait is 26.3 hours, where 1,510 blocks take 23.0 on the worst-case clock.
+- **B4's depth rule** becomes a wait, which K.1 gives under random delay: 5.1 hours against a third
+  on the specification's Blend, where 276 blocks take 4.1. B4's elapsed-time rule reads blocks and
+  time, and stays a client's rule beside the protocol's `K`.
+- **B5's table of what each `k` holds** becomes K.2's table of what each `K` holds, and its trigger
+  and horizon K.3's splits and eclipses: counted in slots the self-healing horizon is `K` for every
+  side.
+- **B6's factors** stay the nonce's. K.2 absorbs them in a wait, and K.4 reads B6's two-nonce
+  coverage with races that last at most `K` slots: no target meets a nonce its own private chain
+  set while `K` is at most `4⌊k/f⌋`.
+- **B7's sub-windows** keep their lengths with the epoch (K.4).

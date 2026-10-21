@@ -1061,3 +1061,13 @@ hold at every phase. It does not close cheaply and is not computed.
 lets the balance stand for ever against a third with a positive chance at every delay from 1 s, so
 the error never falls to `1e-9`. Without retraction the opportunity bound would need 31.2 hours,
 above the chain's 23.0, and Gaži, Motaqy and Russell's machinery gives no depth.
+
+## Counted in slots (Phase K)
+
+J.0 already counted `k` in slots, as the paper's Corollary 5.9 does, so nothing in this note moves
+with `SLOTS.md` K.0. E2's and E5's figures are times already. A wait gives no more against
+retraction than a depth does: a balance that stands for ever with a positive chance outlasts every
+`K`. E5's finding that a depth in layers holds only at the delay it was set for is the case for a
+`k` in slots on the DAG, and J.4's rules, which J did not run, are K.0's. Beside the chain, the
+comparison moves from B2's depths to K.1's waits: against a third at `Δ = 10` s the chain's bound
+needs 26.3 hours as a wait, where its depth takes 23.0 on the worst-case clock (`RATE.md`).

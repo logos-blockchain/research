@@ -186,3 +186,25 @@ Four parameters remain to be chosen:
 What stays open is the sequentiality assumption itself, which no proof removes; the number of
 delay evaluators an adversary runs, which the bound grows with; and the formal write-up of the
 lemma, which the design note states and proves in Praos's resettable model.
+
+## 6. Counted in slots
+
+Counted in slots, a block is final once `K` slots have passed since its slot (`SLOTS.md` K.0). A
+factor `F` per nonce is then absorbed where the chance against a wait of `K` slots is at most
+`ε/F`. The waits that hold `ε = 1e-9`, against 30 % / a third (`SLOTS.md` K.2):
+
+| approach | random delay, the specification's Blend | worst case, 10 s |
+| --- | --- | --- |
+| no grinding | 3.1 / 5.1 h | 15.5 / 26.3 h |
+| today's nonce, one ground nonce | 7.6–7.8 / 13.9–14.3 h | 35.7–36.8 / 67.4–69.4 h |
+| today's nonce, two ground nonces | 9.5–10.8 / 21.7–23.1 h | 42.0–49.0 / 99.5–109.1 h |
+| the smallest contributions with a delay that spans a sub-window, two nonces at H.2's bound | 3.1 / 5.1 h | 15.6 / 26.6 h |
+| the inference deflated, no grinding | 2.2 / 3.4 h in the convention's model, 2.5 / 4.2 h at the engine's growth | 15.9 / 29.8 h |
+
+- **With today's nonce no `K` up to 54 hours holds a third at 10 s.** The specification's slot
+  parameter, `s = 3⌊k/f⌋`, holds 30 % with two ground nonces.
+- **With the delayed nonce a third needs 26.6 hours,** 0.3 more than a nonce that is not ground.
+- **Every target stays inside the bound while `K` is at most `4⌊k/f⌋` slots.** A race lasts at
+  most `K`, so a target meets two ground nonces only within `K` slots of its epoch's end, and none
+  meets a nonce its own private chain set (`SLOTS.md` K.4). Counted in blocks, 13 % of targets lay
+  outside the bound.

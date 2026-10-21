@@ -128,3 +128,50 @@ itself.
   must never be reverted, so `B_imm` would become at least the latest certified block in commit,
   pruning and rule 8. If certification arrives sooner than the uncle window (`W·f⁻¹` = 360 slots),
   pruning at it would discard uncle candidates the inference still needs.
+
+## 7. Counted in slots (Phase K)
+
+`SLOTS.md` K.0 reads `k` as a window of `K` slots. The rules of §1 then read:
+
+| role | counted in blocks | counted in slots |
+| --- | --- | --- |
+| finality | `B_imm` is the `k`-deep block of the node's own chain | `B_imm` is the latest block of the node's own chain whose slot is at most `sl − K` |
+| Online fork choice | a fork deeper than `k` blocks is ignored | a fork that diverges before `B_imm` is ignored, so a rollback reaches at most `K` slots back |
+| Bootstrap fork choice | a fork deeper than `k` is decided by density over `s_gen = ⌊k/4f⌋` slots, and each node reads the depth of its own branch | a fork that diverges before `B_imm` is decided by density; both branches have the same divergence age, so every node holding both decides alike |
+| epoch | `10⌊k/f⌋` slots, in phases of 3, 3 and 4 `⌊k/f⌋` | the same slots (K.0); each phase that waits for finality must last at least `K` (`SLOTS.md` K.4) |
+| uncle window | `W ≤ ⌊0.6k⌋`, so that `W·f⁻¹` stays within `s/5` | `W·f⁻¹ = 360` slots must stay within `K`, as it does for every candidate |
+
+**The consumers of §3** wait a fixed time. `B_imm`, and the node's LIB with it, trails the clock by
+`K` slots and steps through the chain's blocks as each becomes `K` slots old. Counted in blocks it
+trails the chain instead: on the honest chain while 30 % to a third of the stake withholds, 2,160
+blocks take 30.4–32.8 hours (`FURTHER.md` G7). The wallet's leader-claim reservations, which expire
+after `k` immutable blocks, expire after `K` slots. The architecture overview's "Block finalizes
+after being buried by 2160 blocks" becomes a block finalizes `K` slots after its slot.
+
+**The quantities of §4** that read `K`, for the two candidates of K.0 at each `k` of B5, with the
+epoch at its length at `k = 2160` (`scripts/k5_mapping.py`):
+
+| k | K = ⌊k/f⌋ | K = 3⌊k/f⌋ | offline grace margin, K / T_offline | targets meeting two ground nonces | targets outside B6's bound | self-healing horizon in blocks, sides of 0.5 / 0.2 of the stake |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2160 | 64,800 slots, 18.0 h | 194,400 slots, 54.0 h | 54 / 162 | 10 % / 30 % | none / none | 35.7 / 88.8 h |
+| 1620 | 48,600 slots, 13.5 h | 145,800 slots, 40.5 h | 40.5 / 121.5 | 7.5 % / 22.5 % | none / none | 26.8 / 66.6 h |
+| 1080 | 32,400 slots, 9.0 h | 97,200 slots, 27.0 h | 27 / 81 | 5 % / 15 % | none / none | 17.8 / 44.4 h |
+| 432 | 12,960 slots, 3.6 h | 38,880 slots, 10.8 h | 10.8 / 32.4 | 2 % / 6 % | none / none | 7.1 / 17.8 h |
+| 216 | 6,480 slots, 1.8 h | 19,440 slots, 5.4 h | 5.4 / 16.2 | 1 % / 3 % | none / none | 3.6 / 8.9 h |
+| 120 | 3,600 slots, 1.0 h | 10,800 slots, 3.0 h | 3 / 9 | 0.6 % / 1.7 % | none / none | 2.0 / 4.9 h |
+
+- **The largest rollback is `K`.** So are the offline grace margin's numerator and the
+  self-healing horizon. The grace period rests on an attacker being unable to grow, within it, a
+  fork deeper than the finality window (§4); counted in slots its margin is `K/T_offline`, 54 at
+  `K = ⌊k/f⌋` and `k = 2160`, as today, and 162 at `K = s`.
+- **The self-healing horizon is `K` for every side.** Counted in blocks it grows as a side's share
+  falls, 35.7 hours for half of the stake and 88.8 for a fifth at `k = 2160`. Counted in slots a
+  side of any share finalizes past the split once `K` slots pass, unless finality waits on density
+  (`SLOTS.md` K.3).
+- **Every target's race stays covered.** A race lasts at most `K` slots, so a target meets two
+  ground nonces only past its epoch's cut-off and within `K` slots of the epoch's end, and none
+  meets a nonce its own private chain set while `K` is at most `4⌊k/f⌋` (`SLOTS.md` K.4).
+- **The epoch's quantities keep their values** (K.0): the epoch, its phases, the inference's
+  window and noise, the blocks an epoch and SDP's lag. With the epoch tied to `k` instead, as today,
+  they move with `k` as §4 gives, and the shares of targets meeting two nonces are 10 % and 30 % at
+  every `k`.

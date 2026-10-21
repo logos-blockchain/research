@@ -2,7 +2,8 @@
 
 Phase C of `PLAN.md`, with the Phase A1 baseline it builds on. Every table is generated from
 `runs/` by `scripts/tables.py`; the runs come from `scripts/a1_baseline.py`, `scripts/c1_rate.py`,
-`scripts/c1_settle_surface.py`, `scripts/c3_ghost.py` and `scripts/c4_taktikos.py`.
+`scripts/c1_settle_surface.py`, `scripts/c3_ghost.py` and `scripts/c4_taktikos.py`, and Phase K's
+from `scripts/k5_rate.py`.
 
 ## The engine and its calibration
 
@@ -338,3 +339,38 @@ they favour the honest side.
 - **L3 through Taktikos:** fewer orphans fails. What remains is a regular block interval that,
   on the specification's Blend, settles against a quarter of the stake in two thirds of the time,
   at the cost of more blocks. It needs a new stake inference and has no worst-case bound.
+
+## Counted in slots (Phase K)
+
+With `k` counted in slots (`SLOTS.md` K.0), k-finality lasts `K` slots at any block rate. Counted
+in blocks, `k = 2160` lasts 18 hours at 30 s blocks with no forks and 9 hours at 15 s. What a
+faster block rate can still change is the `K` that holds a share. At `ε = 1e-9`, on the
+specification's Blend, against each share: B5's closed form at C1's growth on C1's clock and the
+wait `slots.wait_needed` gives under random delay; B2's upper bound at `Δ = 10` s on the worst-case
+clock `Δ + 1/p_h`, and the wait `slots.worst_needed` bounds. B2's port counts time in block
+intervals, `D = f·Δ`, so at `Δ = 10` s 20 s blocks read the bound 30 s blocks read at 15 s, and
+15 s blocks the bound they read at 20 s (`scripts/k5_rate.py`):
+
+| block interval | α | random delay: B5's depth | random delay: a wait | worst, 10 s: B2's depth | worst, 10 s: a wait, bound |
+| --- | --- | --- | --- | --- | --- |
+| 30 s | 0.25 | 88 (1.2 h) | 1.7 h | 474 (6.6 h) | 8.3 h |
+| 30 s | 0.30 | 165 (2.3 h) | 3.1 h | 892 (13.0 h) | 15.5 h |
+| 30 s | 0.33 | 276 (4.1 h) | 5.1 h | 1,510 (23.0 h) | 26.3 h |
+| 20 s | 0.25 | 113 (1.1 h) | 1.5 h | 661 (6.7 h) | 8.1 h |
+| 20 s | 0.30 | 234 (2.4 h) | 3.1 h | 1,325 (14.1 h) | 16.1 h |
+| 20 s | 0.33 | 440 (4.8 h) | 5.7 h | 2,426 (26.8 h) | 29.6 h |
+| 15 s | 0.25 | 133 (1.0 h) | 1.4 h | 971 (8.0 h) | 9.2 h |
+| 15 s | 0.30 | 298 (2.5 h) | 3.0 h | 2,105 (18.2 h) | 20.1 h |
+| 15 s | 0.33 | 620 (5.5 h) | 6.2 h | 4,282 (38.4 h) | 41.1 h |
+
+- **Under the worst case a faster block rate needs a longer `K`.** A fixed delay costs more block
+  intervals as blocks speed up. Against a third the wait grows from 26.3 hours at 30 s blocks to
+  29.6 at 20 s and 41.1 at 15 s, and against 30 % from 15.5 to 16.1 and 20.1. Against a quarter it
+  moves within an hour, 8.3, 8.1 and 9.2 hours.
+- **Under random delay a faster rate shortens the wait against a quarter only.** In B5's closed
+  form the wait falls from 1.7 to 1.4 hours against a quarter, holds at 3.0–3.1 against 30 %, and
+  grows from 5.1 to 6.2 against a third. The closed form over-asks as orphans rise; the race fitted
+  in E2 gains 10 % against a third at 15 s blocks (C1), so the growth there is the closed form's.
+- **`k` counted in slots takes the block rate out of finality's time.** Counted in blocks, faster
+  blocks shorten k-finality in proportion; counted in slots they shorten it only through the `K`
+  the worst case allows, and at `Δ = 10` s that `K` grows.

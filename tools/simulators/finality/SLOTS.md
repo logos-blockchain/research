@@ -27,8 +27,9 @@ read count `k` in blocks, as Genesis's do.
 - The Online rule ignores a fork that diverges before `B_imm`. A rollback reaches at most `K`
   slots back.
 - The Bootstrap rule compares a fork that diverges before `B_imm` by its density.
-- A variant adds a density floor `φ`: `B_imm` moves to a block only once `φ` blocks of the chain
-  follow it.
+- A variant adds a density floor `φ`, in one of two forms (K.3). Under the depth form `B_imm`
+  moves to a block once the block is `K` slots old and `φ` blocks follow it. Under the density
+  form it moves to a block once the `K` slots after the block hold `φ` blocks of the chain.
 
 **The candidates.** `K = ⌊k/f⌋` = 64,800 slots, 18 hours, the time 2,160 blocks take at the full
 rate with no forks. `K = s = 3⌊k/f⌋` = 194,400 slots, 54 hours, the specification's own slot
@@ -39,10 +40,709 @@ the epoch at today's length, `10⌊k/f⌋` slots at `k = 2160` (G2).
 
 ## K.1 — settlement after a wait of `T` slots
 
+`src/finality_sim/slots.py` and `scripts/k1_settle.py`, with runs in `runs/k1/`.
+
+**The rule.** A wait of `T` slots accepts the prefix up to a target's slot once `T` slots have
+passed since that slot. A client can read it as a settled level, and `B_imm` reads it at `T = K`.
+The rule fails when that prefix is displaced after the wait.
+
+**Random delay.** The private race with a premined lead, in B4's model. Per slot the coalition wins
+at `a = α·λ` and the canonical chain grows at `h = (1 − α)·g·λ`, with `λ = −ln(1 − f)` and `g`
+A1's growth. B4 gives the coalition's chance `P(n, t)` exactly, for `n` canonical blocks counting
+the target `t` slots after the target's parent. The wait averages it over the gap from the parent
+to the target, exponential at `h`, and over the canonical blocks the wait holds, Poisson at `h·T`.
+The depth rule beside it waits for B5's closed-form depth.
+
+**The worst case.** A bound in four steps:
+
+1. Once the prefix up to the target's slot lies `D` deep in an honest chain, B2's upper bound
+   `UB(D)` holds the chance of its displacement.
+2. Every honest block reaches every honest node within `Δ`. An honest win that comes at least `Δ`
+   slots after the last such win, a renewal, therefore lengthens every honest chain once it is
+   delivered. Over the wait every honest chain gains at least the renewals `N` delivered within
+   it, B5's law: `P(N ≥ n) = P(Bin(T − nΔ, p_h) ≥ n)`.
+3. A chain's blocks up to the target's slot exceed what every honest node held `Δ` after that slot
+   by at most `W + 1`. Only the coalition's wins follow the last honest block of that prefix, and
+   that block extended a chain every honest node held `Δ` later. `W` is the largest excess of the
+   coalition's wins over the renewals since any earlier slot. Its law is the stationary lead of
+   H.3's cycle walk plus the coalition's wins in the part of the current cycle that has passed.
+4. After the wait the target therefore lies at least `N − W − 2` deep, one block going to a
+   renewal not yet delivered. `N` is counted from `2Δ` slots after the target, so that it does
+   not depend on `W`. Then `ε(T) ≤ min_D [UB(D) + P(N − W − 2 < D)]`.
+
+The attack beside the bound is an estimate: B2's lower depth on the worst-case clock of
+`Δ + 1/p_h` slots a block, marked `*` where B2 extrapolates it and `≤` where it is B2's first
+computed depth.
+
+The wait under random delay, against the depth rule's depth and its time on the report's clock,
+`30/((1 − α)g)` seconds a block (`runs/k1/random.csv`):
+
+ε = 1e-6
+
+| α | testnet: wait (h) | testnet: depth rule, blocks / h | specification: wait (h) | specification: depth rule, blocks / h | specification: wait over the depth rule's time, report's / model's clock |
+| --- | --- | --- | --- | --- | --- |
+| 0.05 | 0.14 | 6 / 0.05 | 0.17 | 6 / 0.06 | 2.789 / 2.836 |
+| 0.10 | 0.22 | 10 / 0.10 | 0.28 | 12 / 0.13 | 2.092 / 2.128 |
+| 0.15 | 0.32 | 17 / 0.17 | 0.42 | 20 / 0.23 | 1.811 / 1.842 |
+| 0.20 | 0.48 | 26 / 0.28 | 0.65 | 32 / 0.39 | 1.658 / 1.687 |
+| 0.25 | 0.75 | 42 / 0.48 | 1.08 | 56 / 0.74 | 1.465 / 1.490 |
+| 0.30 | 1.25 | 72 / 0.88 | 1.97 | 105 / 1.48 | 1.335 / 1.358 |
+| a third | 1.88 | 110 / 1.42 | 3.27 | 177 / 2.62 | 1.250 / 1.271 |
+
+ε = 1e-9
+
+| α | testnet: wait (h) | testnet: depth rule, blocks / h | specification: wait (h) | specification: depth rule, blocks / h | specification: wait over the depth rule's time, report's / model's clock |
+| --- | --- | --- | --- | --- | --- |
+| 0.05 | 0.24 | 10 / 0.09 | 0.30 | 11 / 0.11 | 2.587 / 2.631 |
+| 0.10 | 0.36 | 17 / 0.16 | 0.45 | 19 / 0.21 | 2.174 / 2.211 |
+| 0.15 | 0.53 | 27 / 0.27 | 0.68 | 32 / 0.37 | 1.829 / 1.860 |
+| 0.20 | 0.77 | 42 / 0.45 | 1.04 | 52 / 0.64 | 1.629 / 1.657 |
+| 0.25 | 1.19 | 67 / 0.77 | 1.70 | 88 / 1.16 | 1.473 / 1.498 |
+| 0.30 | 1.96 | 114 / 1.40 | 3.09 | 165 / 2.32 | 1.331 / 1.354 |
+| a third | 2.94 | 172 / 2.21 | 5.10 | 276 / 4.08 | 1.249 / 1.271 |
+
+Under the worst case, the attack's estimate – the bound, in hours (`runs/k1/worst.csv`):
+
+ε = 1e-6, hours
+
+| α | 1 s | 2 s | 3 s | 5 s | 8 s | 10 s | 15 s | 20 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.05 | ≤ 0.2 – 0.6 | ≤ 0.2 – 0.6 | ≤ 0.2 – 0.7 | ≤ 0.2 – 0.7 | ≤ 0.2 – 0.9 | ≤ 0.2 – 1.0 | ≤ 0.3 – 1.3 | ≤ 0.3 – 1.9 |
+| 0.10 | 0.2 – 0.9 | 0.2 – 0.9 | 0.2 – 1.0 | 0.2 – 1.1 | 0.2 – 1.3 | 0.3 – 1.4 | 0.3 – 2.0 | 0.4 – 2.8 |
+| 0.15 | 0.3 – 1.3 | 0.3 – 1.4 | 0.3 – 1.4 | 0.4 – 1.6 | 0.4 – 1.9 | 0.4 – 2.1 | 0.5 – 3.0 | 0.6 – 4.2 |
+| 0.20 | 0.5 – 1.9 | 0.5 – 2.1 | 0.5 – 2.2 | 0.6 – 2.4 | 0.7 – 2.9 | 0.7 – 3.3 | 0.9 – 4.7 | 1.1 – 6.9 |
+| 0.25 | 0.8 – 3.1 | 0.9 – 3.2 | 0.9 – 3.5 | 1.0 – 3.9 | 1.2 – 4.8 | 1.3 – 5.5 | 1.7 – 8.1 | 2.2* – 12.4 |
+| 0.30 | 1.5* – 5.2 | 1.6* – 5.6 | 1.7* – 6.0 | 1.9* – 6.9 | 2.3* – 8.7 | 2.6* – 10.3 | 3.6* – 16.1 | 5.0* – 26.9 |
+| a third | 2.3* – 7.9 | 2.5* – 8.6 | 2.7* – 9.3 | 3.1* – 11.0 | 3.8* – 14.4 | 4.4* – 17.5 | 6.7* – 29.6 | 10.5* – 55.0 |
+
+ε = 1e-9, hours
+
+| α | 1 s | 2 s | 3 s | 5 s | 8 s | 10 s | 15 s | 20 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.05 | ≤ 0.2 – 0.9 | ≤ 0.2 – 1.0 | ≤ 0.2 – 1.0 | ≤ 0.2 – 1.1 | 0.2 – 1.3 | 0.2 – 1.5 | 0.3 – 2.0 | 0.3 – 2.8 |
+| 0.10 | 0.3 – 1.4 | 0.3 – 1.4 | 0.3 – 1.5 | 0.3 – 1.6 | 0.4 – 1.9 | 0.4 – 2.1 | 0.5 – 2.9 | 0.6 – 4.2 |
+| 0.15 | 0.5 – 2.0 | 0.5 – 2.1 | 0.5 – 2.2 | 0.6 – 2.4 | 0.6 – 2.9 | 0.7 – 3.2 | 0.8 – 4.4 | 1.0 – 6.3 |
+| 0.20 | 0.8 – 3.0 | 0.8 – 3.1 | 0.8 – 3.3 | 0.9 – 3.7 | 1.0 – 4.4 | 1.1 – 5.0 | 1.4 – 7.0 | 1.7 – 10.3 |
+| 0.25 | 1.3 – 4.6 | 1.3 – 4.9 | 1.4 – 5.2 | 1.5* – 5.9 | 1.8* – 7.2 | 2.0* – 8.3 | 2.6* – 12.1 | 3.3* – 18.6 |
+| 0.30 | 2.2* – 7.9 | 2.4* – 8.4 | 2.5* – 9.1 | 2.9* – 10.5 | 3.4* – 13.2 | 3.9* – 15.5 | 5.4* – 24.3 | 7.7* – 40.4 |
+| a third | 3.5* – 12.0 | 3.8* – 13.0 | 4.1* – 14.1 | 4.7* – 16.7 | 5.8* – 21.8 | 6.8* – 26.3 | 10.2* – 44.5 | 16.0* – 82.6 |
+
+The bound over B2's upper depth on the worst-case clock, at `1e-9`:
+
+| α | 1 s | 2 s | 3 s | 5 s | 8 s | 10 s | 15 s | 20 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.05 | 2.24 | 2.17 | 2.12 | 2.00 | 1.83 | 1.72 | 1.55 | 1.41 |
+| 0.10 | 1.90 | 1.86 | 1.82 | 1.73 | 1.64 | 1.57 | 1.43 | 1.33 |
+| 0.15 | 1.70 | 1.66 | 1.63 | 1.57 | 1.50 | 1.44 | 1.34 | 1.26 |
+| 0.20 | 1.55 | 1.52 | 1.49 | 1.45 | 1.38 | 1.35 | 1.27 | 1.20 |
+| 0.25 | 1.42 | 1.40 | 1.38 | 1.34 | 1.29 | 1.26 | 1.20 | 1.15 |
+| 0.30 | 1.31 | 1.30 | 1.28 | 1.25 | 1.21 | 1.19 | 1.14 | 1.10 |
+| a third | 1.25 | 1.24 | 1.22 | 1.20 | 1.17 | 1.15 | 1.11 | 1.07 |
+
+The race scored a wait after each target, on the engine's specification Blend with the coalition
+withholding (B4's timelines) and on independent slots at the model's rates, at the waits whose
+closed-form chance is `1e-2` and `1e-3`; the standard error is the spread of the 64 replicates'
+rates (`runs/k1/played.csv`):
+
+| timelines | α | ε | wait (h) | closed form | race, rate ± se | targets |
+| --- | --- | --- | --- | --- | --- | --- |
+| engine | 0.10 | 1e-2 | 0.04 | 1.0e-02 | 7.4e-03 ± 4.7e-04 | 123,486 |
+| engine | 0.10 | 1e-3 | 0.10 | 9.9e-04 | 5.4e-04 ± 1.1e-04 | 123,486 |
+| model | 0.10 | 1e-2 | 0.04 | 1.0e-02 | 9.0e-03 ± 3.9e-04 | 126,884 |
+| model | 0.10 | 1e-3 | 0.10 | 9.9e-04 | 7.7e-04 ± 1.3e-04 | 126,884 |
+| engine | 0.25 | 1e-2 | 0.27 | 1.0e-02 | 5.6e-03 ± 9.2e-04 | 103,933 |
+| engine | 0.25 | 1e-3 | 0.47 | 1.0e-03 | 5.8e-04 ± 3.8e-04 | 103,933 |
+| model | 0.25 | 1e-2 | 0.27 | 1.0e-02 | 1.0e-02 ± 1.1e-03 | 103,436 |
+| model | 0.25 | 1e-3 | 0.47 | 1.0e-03 | 1.4e-03 ± 4.1e-04 | 103,436 |
+| engine | 0.30 | 1e-2 | 0.53 | 1.0e-02 | 5.0e-03 ± 9.6e-04 | 95,731 |
+| engine | 0.30 | 1e-3 | 0.88 | 1.0e-03 | 2.2e-04 ± 1.2e-04 | 95,731 |
+| model | 0.30 | 1e-2 | 0.53 | 1.0e-02 | 9.9e-03 ± 1.3e-03 | 94,196 |
+| model | 0.30 | 1e-3 | 0.88 | 1.0e-03 | 7.5e-04 ± 3.5e-04 | 94,196 |
+| engine | a third | 1e-2 | 0.90 | 1.0e-02 | 4.2e-03 ± 1.2e-03 | 88,964 |
+| engine | a third | 1e-3 | 1.48 | 1.0e-03 | 0 | 88,964 |
+| model | a third | 1e-2 | 0.90 | 1.0e-02 | 8.1e-03 ± 1.8e-03 | 87,209 |
+| model | a third | 1e-3 | 1.48 | 1.0e-03 | 6.4e-04 ± 4.2e-04 | 87,209 |
+
+Reading:
+
+- **Under random delay a wait costs a quarter more than the depth rule against a third.** At
+  `1e-9` on the specification's Blend it is 5.10 hours, where the depth rule's 276 blocks take
+  4.08 on the report's clock: 1.249 times as long, and 1.271 times on the model's own clock.
+- **The smaller the share, the larger the factor and the smaller the time.** Against a tenth the
+  wait is 2.174 times the depth rule's time, 0.45 hours against 0.21. A depth rule waits for few
+  blocks there, and a wait must also cover the runs in which the honest blocks come slowly.
+- **Testnet's Blend** settles a third in 2.94 hours of wait at `1e-9`.
+- **Under the worst case the bound costs a seventh over B2's depth against a third at 10 s.** It
+  waits 26.3 hours, 1.15 times B2's 1,510 blocks on the worst-case clock. The excess falls as
+  the depth grows, to 1.07 at 20 s, and reaches 2.24 against 5 % at 1 s, where few blocks
+  suffice and the coalition's lead `W` weighs most.
+- **The attack's estimate lies far below the bound**, 6.8 hours against a third at 10 s. It
+  converts B2's lower depth at the clock's mean.
+- **The race on the model's own slots matches the closed form.** Every cell lies within 2.5
+  standard errors of it, and six of the eight at or below it. On the engine's timelines the race
+  succeeds 0.42–0.74 times as often at `1e-2`, and never at `1e-3` against a third. The chain
+  the coalition withholds from grows faster on the engine than A1's convention, as B3 and B4
+  found, so the closed form errs on the safe side.
+
+Gates (`tests/test_slots.py`, `tests/test_k2.py`):
+
+- the chance at every depth, in one pass, is B4's `P(n, t)`;
+- the closed form matches the premined race played on its model's slots at waits whose chance
+  lies between `2e-3` and `0.1`, within four standard errors;
+- on a chain with one canonical block every `c` slots, a wait of `d·c` slots, or up to `c − 1`
+  more, is the depth `d`, target by target;
+- `W`'s law matches the walk it stands for, sampled in 30 independent runs, from above and within
+  a tenth;
+- the bound lies above the premined race played on the worst case's own timelines, honest blocks
+  only at renewals, and falls with the wait;
+- raising both of B4's rates by a factor shortens the wait by that factor exactly, the reading of
+  a deflated inference in the convention's model;
+- a faster honest chain lowers the worst-case bound at a given wait, and a faster coalition
+  raises it.
+
+Each gate fails under a registered mutation of its function (`scripts/check_mutations.py`).
+
 ## K.2 — what a `K` holds
+
+`scripts/k2_holds.py`, with runs in `runs/k2/`.
+
+**What is read.** `K` is read at `⌊k/f⌋` and `3⌊k/f⌋` slots for each `k` of B5 and 1620: the time
+`k` blocks take at the full rate with no forks, and the specification's slot parameter `s`. A `K`
+holds a share at `1e-9` when the chance against a wait of `K` slots (K.1), multiplied by the factor
+of the nonce in force, is at most `1e-9`.
+
+- **The share.** Under random delay it is found by bisection, as B6's `held_random` finds it for
+  `k`. Under the worst case it is read on B5's grid of shares, 0.05 to a third every 0.005, from
+  B2's bound recomputed here at every depth up to 7,000 (`runs/k2/ub_grid.parquet`), linear in the
+  share between grid points, as B5's `held_worst` reads it.
+- **Today's nonce.** One and two ground nonces carry B6's upper ends at `1e-9`, recomputed on B6's
+  grids with B6's settings (`runs/k2/factors.csv`). The script checks that they return B6's shares
+  for `k` in blocks. B6's factor does not depend on `k`.
+- **The nonce of §3.1 under its delay.** Two nonces at H.2's bound with one delay evaluator: the
+  walk's `E[G_min]` plus the blind switch plus the evaluator term, at a margin of ten minutes and
+  the sub-windows of `k = 2160`, squared (`DESIGNS.md` H.2). The epoch keeps today's length (K.0),
+  so its sub-windows are those of `k = 2160` whatever `K` is. H.2 computes the bound at 30 % and a
+  third, on the specification's Blend and at 10 s. Its column takes the third's factor at every
+  share up to a third, where the factor is largest, and reads no share above a third.
+- **A deflated inference** (`FURTHER.md` G7) raises every threshold by `1/(1 − α)`. Per slot the
+  honest stake then wins at `f` and the coalition at `1 − (1 − f)^(α/(1 − α))`. Under the worst
+  case `Δ` stays fixed in slots, so B2's bound is read at `Δ/(1 − α)` at the old rates, as G7 reads
+  it, with the renewal and lead laws at the raised rates. Under random delay, in the convention's
+  model, both rates rise by `1/(1 − α)` and the race keeps its ratio: a wait of `K` slots after a
+  deflation is a wait of `K/(1 − α)` before it. On the engine, G7's deflated arm measured the
+  growth of that chain, one Blend copy released at the slot.
+
+The largest share each `K` holds at `1e-9` (`runs/k2/holds.csv`):
+
+K = ⌊k/f⌋
+
+| model | case | k = 2160 | k = 1620 | k = 1080 | k = 432 | k = 216 | k = 120 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| random, testnet | no grinding | 0.427 | 0.417 | 0.400 | 0.348 | 0.292 | 0.231 |
+| random, testnet | today's nonce, one ground | 0.381 | 0.367 | 0.344 | 0.289 | 0.250 | 0.211 |
+| random, testnet | today's nonce, two ground | 0.358 | 0.344 | 0.326 | 0.280 | 0.241 | 0.203 |
+| random, testnet | a deflated inference | 0.443 | 0.435 | 0.422 | 0.378 | 0.326 | 0.264 |
+| random, specification | no grinding | 0.390 | 0.380 | 0.363 | 0.311 | 0.255 | 0.195 |
+| random, specification | today's nonce, one ground | 0.345 | 0.330 | 0.308 | 0.256 | 0.219 | 0.180 |
+| random, specification | today's nonce, two ground | 0.322 | 0.309 | 0.292 | 0.248 | 0.211 | 0.174 |
+| random, specification | the nonce of §3.1 under its delay | ≥ a third | ≥ a third | ≥ a third | 0.310 | 0.254 | 0.194 |
+| random, specification | a deflated inference | 0.406 | 0.397 | 0.383 | 0.337 | 0.284 | 0.222 |
+| worst, 1 s | no grinding | ≥ a third | ≥ a third | 0.311 | 0.223 | 0.138 | 0.061 |
+| worst, 1 s | today's nonce, one ground | 0.304 | 0.289 | 0.267 | 0.208 | 0.134 | 0.060 |
+| worst, 1 s | today's nonce, two ground | 0.296 | 0.281 | 0.259 | 0.201 | 0.131 | 0.060 |
+| worst, 1 s | a deflated inference | ≥ a third | ≥ a third | ≥ a third | 0.251 | 0.159 | 0.070 |
+| worst, 10 s | no grinding | 0.310 | 0.290 | 0.257 | 0.164 | 0.077 | < 0.05 |
+| worst, 10 s | today's nonce, one ground | 0.262 | 0.247 | 0.225 | 0.158 | 0.076 | < 0.05 |
+| worst, 10 s | today's nonce, two ground | 0.254 | 0.240 | 0.218 | 0.153 | 0.075 | < 0.05 |
+| worst, 10 s | the nonce of §3.1 under its delay | 0.309 | 0.289 | 0.256 | 0.163 | 0.076 | < 0.05 |
+| worst, 10 s | a deflated inference | 0.307 | 0.289 | 0.260 | 0.170 | 0.081 | < 0.05 |
+| worst, 20 s | no grinding | 0.248 | 0.224 | 0.187 | 0.082 | < 0.05 | < 0.05 |
+| worst, 20 s | today's nonce, one ground | 0.212 | 0.197 | 0.172 | 0.080 | < 0.05 | < 0.05 |
+| worst, 20 s | today's nonce, two ground | 0.205 | 0.190 | 0.166 | 0.078 | < 0.05 | < 0.05 |
+| worst, 20 s | a deflated inference | 0.225 | 0.205 | 0.172 | 0.076 | < 0.05 | < 0.05 |
+
+K = 3⌊k/f⌋
+
+| model | case | k = 2160 | k = 1620 | k = 1080 | k = 432 | k = 216 | k = 120 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| random, testnet | no grinding | 0.454 | 0.448 | 0.439 | 0.408 | 0.374 | 0.335 |
+| random, testnet | today's nonce, one ground | 0.425 | 0.415 | 0.400 | 0.355 | 0.312 | 0.279 |
+| random, testnet | today's nonce, two ground | 0.407 | 0.396 | 0.377 | 0.334 | 0.301 | 0.271 |
+| random, testnet | a deflated inference | 0.465 | 0.460 | 0.453 | 0.428 | 0.400 | 0.366 |
+| random, specification | no grinding | 0.419 | 0.413 | 0.403 | 0.371 | 0.337 | 0.298 |
+| random, specification | today's nonce, one ground | 0.389 | 0.379 | 0.363 | 0.318 | 0.277 | 0.247 |
+| random, specification | today's nonce, two ground | 0.371 | 0.359 | 0.341 | 0.300 | 0.268 | 0.238 |
+| random, specification | the nonce of §3.1 under its delay | ≥ a third | ≥ a third | ≥ a third | ≥ a third | ≥ a third | 0.297 |
+| random, specification | a deflated inference | 0.428 | 0.424 | 0.416 | 0.390 | 0.360 | 0.325 |
+| worst, 1 s | no grinding | ≥ a third | ≥ a third | ≥ a third | 0.325 | 0.265 | 0.202 |
+| worst, 1 s | today's nonce, one ground | ≥ a third | ≥ a third | 0.329 | 0.277 | 0.236 | 0.192 |
+| worst, 1 s | today's nonce, two ground | ≥ a third | ≥ a third | 0.316 | 0.269 | 0.229 | 0.186 |
+| worst, 1 s | a deflated inference | ≥ a third | ≥ a third | ≥ a third | ≥ a third | 0.295 | 0.229 |
+| worst, 10 s | no grinding | ≥ a third | ≥ a third | ≥ a third | 0.273 | 0.208 | 0.142 |
+| worst, 10 s | today's nonce, one ground | 0.321 | 0.305 | 0.282 | 0.235 | 0.193 | 0.138 |
+| worst, 10 s | today's nonce, two ground | 0.304 | 0.292 | 0.274 | 0.228 | 0.186 | 0.135 |
+| worst, 10 s | the nonce of §3.1 under its delay | ≥ a third | ≥ a third | ≥ a third | 0.272 | 0.208 | 0.141 |
+| worst, 10 s | a deflated inference | ≥ a third | ≥ a third | 0.329 | 0.274 | 0.214 | 0.148 |
+| worst, 20 s | no grinding | 0.315 | 0.300 | 0.276 | 0.204 | 0.132 | 0.058 |
+| worst, 20 s | today's nonce, one ground | 0.266 | 0.251 | 0.232 | 0.184 | 0.128 | 0.056 |
+| worst, 20 s | today's nonce, two ground | 0.256 | 0.243 | 0.225 | 0.177 | 0.124 | 0.056 |
+| worst, 20 s | a deflated inference | 0.284 | 0.271 | 0.250 | 0.187 | 0.122 | 0.054 |
+
+Against `k` in blocks, without grinding and with two ground nonces: B5's and B6's shares
+(`SETTLEMENT.md` B5, B6), which B6 did not compute at `k = 1620`:
+
+random, specification
+
+| k | k blocks: no grinding / two ground nonces | K = ⌊k/f⌋ slots | K = 3⌊k/f⌋ slots |
+| --- | --- | --- | --- |
+| 2160 | 0.412 / 0.358 | 0.390 / 0.322 | 0.419 / 0.371 |
+| 1620 | — / — | 0.380 / 0.309 | 0.413 / 0.359 |
+| 1080 | 0.393 / 0.327 | 0.363 / 0.292 | 0.403 / 0.341 |
+| 432 | 0.357 / 0.288 | 0.311 / 0.248 | 0.371 / 0.300 |
+| 216 | 0.319 / 0.255 | 0.255 / 0.211 | 0.337 / 0.268 |
+| 120 | 0.276 / 0.226 | 0.195 / 0.174 | 0.298 / 0.238 |
+
+worst, 10 s
+
+| k | k blocks: no grinding / two ground nonces | K = ⌊k/f⌋ slots | K = 3⌊k/f⌋ slots |
+| --- | --- | --- | --- |
+| 2160 | ≥ a third / 0.288 | 0.310 / 0.254 | ≥ a third / 0.304 |
+| 1620 | — / — | 0.290 / 0.240 | ≥ a third / 0.292 |
+| 1080 | 0.313 / 0.256 | 0.257 / 0.218 | ≥ a third / 0.274 |
+| 432 | 0.242 / 0.208 | 0.164 / 0.153 | 0.273 / 0.228 |
+| 216 | 0.172 / 0.161 | 0.077 / 0.075 | 0.208 / 0.186 |
+| 120 | 0.106 / 0.103 | < 0.05 / < 0.05 | 0.142 / 0.135 |
+
+The wait against 30 % and a third at `1e-9` in each case, beside the two candidates at
+`k = 2160`; "past the curve" marks a wait beyond the 7,000 blocks of B2's bound computed at the
+deflated delay (`runs/k2/waits.csv`):
+
+| model | case | 30 %: wait (h) | a third: wait (h) | K = 64,800 (18 h): 30 % / a third | K = 194,400 (54 h): 30 % / a third |
+| --- | --- | --- | --- | --- | --- |
+| worst, 1 s | no grinding | 7.9 | 12.0 | yes / yes | yes / yes |
+| worst, 1 s | one ground nonce, lower end | 15.5 | 28.3 | yes / no | yes / yes |
+| worst, 1 s | one ground nonce, upper end | 16.7 | 29.2 | yes / no | yes / yes |
+| worst, 1 s | two ground nonces, lower end | 17.0 | 34.3 | yes / no | yes / yes |
+| worst, 1 s | two ground nonces, upper end | 19.5 | 39.8 | no / no | yes / yes |
+| worst, 1 s | deflated | 5.7 | 8.4 | yes / yes | yes / yes |
+| worst, 10 s | no grinding | 15.5 | 26.3 | yes / no | yes / yes |
+| worst, 10 s | one ground nonce, lower end | 35.7 | 67.4 | no / no | yes / no |
+| worst, 10 s | one ground nonce, upper end | 36.8 | 69.4 | no / no | yes / no |
+| worst, 10 s | two ground nonces, lower end | 42.0 | 99.5 | no / no | yes / no |
+| worst, 10 s | two ground nonces, upper end | 49.0 | 109.1 | no / no | yes / no |
+| worst, 10 s | nonce §3.1, two nonces at H.2's bound | 15.6 | 26.6 | yes / no | yes / yes |
+| worst, 10 s | deflated | 15.9 | 29.8 | yes / no | yes / yes |
+| worst, 10 s | deflated, nonce §3.1 at H.2's bound at the old rates | 16.0 | 30.1 | yes / no | yes / yes |
+| worst, 20 s | no grinding | 40.4 | 82.6 | no / no | yes / no |
+| worst, 20 s | one ground nonce, lower end | 102.4 | 229.3 | no / no | no / no |
+| worst, 20 s | one ground nonce, upper end | 105.5 | 235.9 | no / no | no / no |
+| worst, 20 s | two ground nonces, lower end | 149.4 | 376.1 | no / no | no / no |
+| worst, 20 s | two ground nonces, upper end | 164.8 | 385.4 | no / no | no / no |
+| worst, 20 s | deflated | 83.2 | past the curve | no / no | no / no |
+| random, specification | no grinding | 3.1 | 5.1 | yes / yes | yes / yes |
+| random, specification | one ground nonce, lower end | 7.6 | 13.9 | yes / yes | yes / yes |
+| random, specification | one ground nonce, upper end | 7.8 | 14.3 | yes / yes | yes / yes |
+| random, specification | two ground nonces, lower end | 9.5 | 21.7 | yes / no | yes / yes |
+| random, specification | two ground nonces, upper end | 10.8 | 23.1 | yes / no | yes / yes |
+| random, specification | nonce §3.1, two nonces at H.2's bound | 3.1 | 5.1 | yes / yes | yes / yes |
+| random, specification | deflated, the convention's model | 2.2 | 3.4 | yes / yes | yes / yes |
+| random, specification | deflated, the engine's growth | 2.5 | 4.2 | yes / yes | yes / yes |
+
+The chance of displacement after each candidate at 10 s, and the largest grinding factor on that
+chance it absorbs at `1e-9` (`runs/k2/absorbs.csv`):
+
+| α | K | chance after K slots | largest factor absorbed | after a deflated inference: chance / factor |
+| --- | --- | --- | --- | --- |
+| 0.30 | 64,800 | 3.9e-11 | 26 | 6.8e-11 / 15 |
+| 0.30 | 194,400 | 9.2e-32 | 1.1e+22 | 4.2e-31 / 2.4e+21 |
+| a third | 64,800 | 6.6e-07 | none | 3.5e-06 / none |
+| a third | 194,400 | 4.4e-19 | 2.3e+09 | 5.4e-17 / 1.8e+07 |
+
+Reading:
+
+- **Counted in slots, `⌊k/f⌋` holds less than `k` blocks did under the worst case.** A wait does
+  not stretch while the coalition withholds, so it must cover a chain that grows from the honest
+  stake alone, one block per `Δ + 1/p_h` slots. At 10 s `k = 2160` blocks hold a third without
+  grinding, and `K = 64,800` slots hold 0.310. With two ground nonces the shares are 0.288 and
+  0.254.
+- **`⌊k/f⌋` does not hold a third at 10 s.** After 64,800 slots the chance is 6.6e-7, and the
+  wait that holds `1e-9` is 26.3 hours. It holds 30 %, with a factor of 26 to spare.
+- **The specification's own slot parameter holds what `k = 2160` blocks held, and more.**
+  `K = 3⌊k/f⌋` = 194,400 slots holds a third at 10 s without grinding, with the nonce of §3.1 under
+  its delay (26.6 hours), and after a deflated inference (29.8 hours; 30.1 with the nonce of §3.1 at
+  H.2's factor at the old rates). It absorbs a grinding factor of 2.3e+09, and 1.8e+07 after
+  a deflated inference. With two ground nonces it holds 0.304 where `k = 2160` blocks held 0.288.
+- **With today's nonce, no candidate holds a third at 10 s.** One ground nonce needs 67.4–69.4
+  hours and two need 99.5–109.1. Against 30 %, `3⌊k/f⌋` holds with two ground nonces, at
+  42.0–49.0 hours.
+- **At 20 s no candidate holds a third.** The wait is 82.6 hours without grinding.
+- **In slots a deflated inference costs about an eighth at 10 s, and helps at 1 s.** Against a
+  third it lengthens the wait from 26.3 to 29.8 hours, where in blocks it raised B2's depth by 61 %
+  (G7).
+  The honest stake then fills slots at `f`, so the chain grows faster in slots while the delay
+  weighs more in blocks. At 1 s the first wins: the wait falls from 12.0 to 8.4 hours. Under random
+  delay a deflation shortens the wait: against a third from 5.1 hours to 3.4 in the convention's
+  model and to 4.2 at the engine's deflated growth. At 20 s against a third the deflated bound does
+  not reach `1e-9` within the 7,000 blocks computed.
+- **Under random delay a `K` in slots holds about what `k` in blocks held.** On the
+  specification's Blend `⌊k/f⌋` holds 0.390 at `k = 2160`, where 2,160 blocks held 0.412, and
+  `3⌊k/f⌋` holds 0.419.
+- **The smaller `k`s.** `3⌊k/f⌋` at `k = 1080`, 27 hours, holds a third at 10 s without grinding and
+  with the nonce of §3.1, 0.329 after a deflated inference and 0.274 with two ground nonces.
+  `⌊k/f⌋` at `k = 1080`, 9 hours, holds 0.257.
+
+H19 holds: `K = ⌊k/f⌋` does not hold a third at 10 s and `1e-9`, and `K = 3⌊k/f⌋` does, with the
+nonce of §3.1 under its delay, also after a deflated inference. The deflated case uses H.2's factor
+at the old rates, since H.2 bounds it there only. At 194,400 slots the margin is a factor of
+1.8e+07, so a factor at the raised rates up to that size leaves the verdict standing.
+
+Gates: the share search returns the share at which a wait's chance reaches `1e-9`, and a longer
+wait holds more; a deflated inference is the lottery at the raised rate
+`f' = 1 − (1 − f)^(1/(1 − α))` with the shares unchanged; against a third the deflated bound lies
+below the plain one at 1 s and above it at 10 s (`tests/test_k2.py`). The script also
+checks that B6's shares for `k` in blocks come back from the recomputed factors. Each gate fails
+under a registered mutation.
 
 ## K.3 — splits and eclipses
 
+`src/finality_sim/floor.py` and `scripts/k3_splits.py`, with runs in `runs/k3/`. `ε = 1e-9` and
+`f = 1/30`. Counts follow B5's laws: binomial at A1's growth under random delay, and the renewal law
+under a worst case of `Δ = 10` s. A chain made by one share alone, at its fastest, holds one block
+per slot the share occupies.
+
+**Without a floor.** A node fixes its chain once a block the rest of the network lacks is `K` slots
+old. Who made the block does not matter: the coalition, or the node itself while it is cut off.
+Counted in blocks, the chain first needs `k` blocks after the divergence.
+
+- **The self-healing horizon is `K` for every side.** In blocks a side of share `s` makes `k` blocks
+  in `k / (1 − (1 − f)^s)` slots, so the horizon grows as its share falls (`MAPPING.md` §5). In
+  slots it is `K`, whatever the share.
+- **An eclipse fixes a fork after `K` slots and one block.** An eclipsed node that is shown a chain
+  made by a share `σ`, or that makes blocks of its own, fixes that chain `K` slots after its first
+  block. In blocks it needs `k + 1` of them.
+- **The inference bounds both.** A chain made by `σ` alone lowers its own inferred stake. When the
+  eclipse starts with the inference's window, the inference corrects in full at the next epoch,
+  `10⌊k/f⌋` slots later: 7.5 days with the epoch at today's length. From then `σ` fills its slots
+  at `f` (`FURTHER.md` G7). So in blocks no eclipse at `k = 2160` takes longer than 8.2 days,
+  whatever `σ`.
+
+When an eclipsed node fixes the chain it is shown, made by a share `σ`: on average, with the
+inference corrected at the next epoch where that comes sooner. The two forms of the floor are
+described below (`runs/k3/eclipse.csv`):
+
+| σ | in blocks, k = 2160 (days) | slots, K = ⌊k/f⌋ (days) | slots, K = 3⌊k/f⌋ (days) | depth form at 3⌊k/f⌋ (days) | density form at ⌊k/f⌋ (days) | density form at 3⌊k/f⌋ (days) |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0.001 | 8.24 | 1.09 | 2.59 | 8.63 | 8.25 | 9.75 |
+| 0.01 | 8.17 | 0.78 | 2.28 | 8.56 | 8.25 | 9.75 |
+| 0.05 | 7.87 | 0.76 | 2.26 | 8.25 | 8.25 | 9.75 |
+| 0.1 | 7.39 | 0.75 | 2.25 | 7.87 | 8.25 | 9.75 |
+| 0.2 | 3.70 | 0.75 | 2.25 | 5.59 | 8.25 | 9.75 |
+| 0.25 | 2.96 | 0.75 | 2.25 | 4.48 | 8.25 | 9.75 |
+| 0.3 | 2.47 | 0.75 | 2.25 | 3.73 | 8.25 | 9.75 |
+| a third | 2.23 | 0.75 | 2.25 | 3.36 | 8.25 | 9.75 |
+
+- In slots without a floor an eclipse takes `K` plus the first block: 0.75 or 2.25 days for every
+  `σ` from a tenth up, and 1.1 or 2.6 days at `σ = 0.001`.
+- In blocks the same eclipse takes 2.2 days at a third and 7.4–8.2 days from a tenth down.
+
+**The floor.** It takes two forms:
+
+- **The depth form.** `B_imm` moves to a block once the block is `K` slots old and `φ` blocks deep.
+  This is K.0's variant: the later of a time and a depth.
+- **The density form.** `B_imm` moves to a block once the `K` slots after it hold `φ` blocks. A
+  chain too sparse over `K` is not fixed until its density rises, when its inference has corrected
+  or the split has ended.
+
+`φ` is the largest floor that the honest chain a coalition of `α_max` withholds from reaches within
+`K` with chance at least `1 − ε`. That chain is the honest stake alone, at A1's growth under random
+delay and at the renewal rate under the worst case. A protocol takes the worst case's floor, the
+lower of the two, so that the chain reaches it under both models. The table gives the floor, what
+it costs, and the largest side that stays below it at `K` with chance `1 − ε` at one block per
+occupied slot. The last column subtracts the coalition, which can sign on the side
+(`runs/k3/floor.csv`):
+
+| K | α_max | delay | floor φ | withheld-from chain, mean | nobody withholds: waits | withheld from: waits | largest side held at K | its honest part, the coalition signing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ⌊k/f⌋, 18.0 h | 0.25 | random, specification | 1,161 | 1,375 | 2e-64 | 9e-10 | 0.445 | 0.195 |
+| ⌊k/f⌋, 18.0 h | 0.25 | worst, 10 s | 1,131 | 1,300 | 9e-64 | 8e-10 | 0.432 | 0.182 |
+| ⌊k/f⌋, 18.0 h | 0.3 | random, specification | 1,078 | 1,285 | 2e-82 | 1e-9 | 0.410 | 0.110 |
+| ⌊k/f⌋, 18.0 h | 0.3 | worst, 10 s | 1,064 | 1,231 | 2e-82 | 8e-10 | 0.404 | 0.104 |
+| ⌊k/f⌋, 18.0 h | a third | random, specification | 1,022 | 1,224 | 2e-96 | 9e-10 | 0.386 | 0.053 |
+| ⌊k/f⌋, 18.0 h | a third | worst, 10 s | 1,019 | 1,184 | 2e-96 | 9e-10 | 0.385 | 0.052 |
+| K.1's least against a third at 10 s, 26.3 h | 0.25 | random, specification | 1,751 | 2,012 | 6e-83 | 9e-10 | 0.475 | 0.225 |
+| K.1's least against a third at 10 s, 26.3 h | 0.25 | worst, 10 s | 1,697 | 1,902 | 1e-81 | 8e-10 | 0.459 | 0.209 |
+| K.1's least against a third at 10 s, 26.3 h | 0.3 | random, specification | 1,628 | 1,879 | < 1e-99 | 1e-9 | 0.439 | 0.139 |
+| K.1's least against a third at 10 s, 26.3 h | 0.3 | worst, 10 s | 1,599 | 1,801 | < 1e-99 | 9e-10 | 0.430 | 0.130 |
+| K.1's least against a third at 10 s, 26.3 h | a third | random, specification | 1,545 | 1,791 | < 1e-99 | 9e-10 | 0.414 | 0.081 |
+| K.1's least against a third at 10 s, 26.3 h | a third | worst, 10 s | 1,532 | 1,731 | < 1e-99 | 1e-9 | 0.411 | 0.077 |
+| 3⌊k/f⌋, 54.0 h | 0.25 | random, specification | 3,750 | 4,126 | < 1e-99 | 9e-10 | 0.520 | 0.270 |
+| 3⌊k/f⌋, 54.0 h | 0.25 | worst, 10 s | 3,607 | 3,901 | < 1e-99 | 9e-10 | 0.499 | 0.249 |
+| 3⌊k/f⌋, 54.0 h | 0.3 | random, specification | 3,491 | 3,854 | < 1e-99 | 9e-10 | 0.482 | 0.182 |
+| 3⌊k/f⌋, 54.0 h | 0.3 | worst, 10 s | 3,403 | 3,693 | < 1e-99 | 9e-10 | 0.469 | 0.169 |
+| 3⌊k/f⌋, 54.0 h | a third | random, specification | 3,318 | 3,673 | < 1e-99 | 9e-10 | 0.457 | 0.123 |
+| 3⌊k/f⌋, 54.0 h | a third | worst, 10 s | 3,264 | 3,551 | < 1e-99 | 9e-10 | 0.449 | 0.115 |
+
+- **At `K = 3⌊k/f⌋` the floor exceeds `k = 2160`.** Against a third it is 3,264 blocks under the
+  worst case and 3,318 under random delay. At `K = ⌊k/f⌋` it is 1,019–1,022.
+- **It costs nothing where nobody withholds.** A chain at the full rate falls below the floor with
+  chance below `1e-63` at `⌊k/f⌋` and below `1e-99` at `3⌊k/f⌋`. The chain a coalition of `α_max`
+  withholds from falls below it with chance at most `ε`. Finality then waits for the next block
+  whose depth or window reaches the floor.
+- **What it buys against an eclipse.** Under the depth form the eclipsed chain needs `φ + 1`
+  blocks: 3.4 days at a third and 5.6 days at 0.2. At the smallest `σ` it takes 8.6 days, once its
+  inference has corrected. Under the density form a chain made by any `σ` up to a third is never
+  dense enough over `K`. It is fixed only after its inference corrects and a window after that is
+  full: 9.75 days at `3⌊k/f⌋` and 8.25 days at `⌊k/f⌋`. In blocks the same eclipse takes 2.2–8.2
+  days.
+
+The depth form's `φ + 1` blocks and today's `k + 1`, made by `σ` alone without the inference's
+correction: on average, and the earliest by which they come with chance `1e-9`
+(`runs/k3/eclipse.csv`):
+
+| σ | k = 2160 blocks: mean (days) | k = 2160 blocks: at 1e-9 (days) | φ + 1 = 3,265 blocks at 3⌊k/f⌋: mean (days) | the same at 1e-9 (days) |
+| --- | --- | --- | --- | --- |
+| 0.001 | 738 | 647 | 1,115 | 1,002 |
+| 0.01 | 73.8 | 64.7 | 111 | 100 |
+| 0.05 | 14.8 | 12.9 | 22.3 | 20.1 |
+| 0.1 | 7.39 | 6.48 | 11.2 | 10.0 |
+| 0.2 | 3.70 | 3.25 | 5.59 | 5.03 |
+| 0.25 | 2.96 | 2.60 | 4.48 | 4.03 |
+| 0.3 | 2.47 | 2.17 | 3.73 | 3.36 |
+| a third | 2.23 | 1.95 | 3.36 | 3.02 |
+
+**What the floor buys against a partition.** A side fixes its fork once its chain reaches the
+floor.
+
+- **Under the depth form, after `φ + 1` blocks.** At `k = 2160`, at one block per occupied slot, an
+  even side fixes at 54 hours, a 0.3 side at 90 and a 0.2 side at 134. In blocks they take 36, 59
+  and 89 hours.
+- **Under the density form, a side below the floor's density stays provisional until its inference
+  corrects.** Sides of 0.3 and 0.2 then fix at 9.75 days at the earliest. An even side at one block
+  per occupied slot reaches the floor at `K`. Two even sides grew at 0.80 per occupied slot on the
+  engine (I.3), and at that growth an even side stays below the floor until the correction.
+
+The self-healing horizon in hours, at its earliest, at one block per occupied slot unless stated.
+The floor is the worst case's against a third at `K = 3⌊k/f⌋`, with the epoch at today's length.
+`–` marks a side whose window reaches the floor with a chance between `1e-9` and one half
+(`runs/k3/horizon.csv`):
+
+| k | side's share | in blocks, today (h) | slots, K = ⌊k/f⌋ (h) | slots, K = 3⌊k/f⌋ (h) | floor φ at 3⌊k/f⌋ | depth form (h) | density form (h) | density form, the side at 0.80 (h) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2160 | 0.5 | 35.7 | 18.0 | 54.0 | 3,264 | 54.0 | 54.0 | 234.0 |
+| 2160 | 0.3 | 59.3 | 18.0 | 54.0 | 3,264 | 89.6 | 234.0 | 234.0 |
+| 2160 | 0.2 | 88.8 | 18.0 | 54.0 | 3,264 | 134.2 | 234.0 | 234.0 |
+| 1620 | 0.5 | 26.8 | 13.5 | 40.5 | 2,415 | 40.5 | 40.5 | 220.5 |
+| 1620 | 0.3 | 44.5 | 13.5 | 40.5 | 2,415 | 66.3 | 220.5 | 220.5 |
+| 1620 | 0.2 | 66.6 | 13.5 | 40.5 | 2,415 | 99.3 | 220.5 | 220.5 |
+| 1080 | 0.5 | 17.8 | 9.0 | 27.0 | 1,573 | 27.0 | 27.0 | 207.0 |
+| 1080 | 0.3 | 29.6 | 9.0 | 27.0 | 1,573 | 43.2 | 207.0 | 207.0 |
+| 1080 | 0.2 | 44.4 | 9.0 | 27.0 | 1,573 | 64.7 | 207.0 | 207.0 |
+| 432 | 0.5 | 7.1 | 3.6 | 10.8 | 583 | 10.8 | 10.8 | – |
+| 432 | 0.3 | 11.9 | 3.6 | 10.8 | 583 | 16.0 | 190.8 | 190.8 |
+| 432 | 0.2 | 17.8 | 3.6 | 10.8 | 583 | 24.0 | 190.8 | 190.8 |
+| 216 | 0.5 | 3.6 | 1.8 | 5.4 | 266 | 5.4 | 5.4 | – |
+| 216 | 0.3 | 5.9 | 1.8 | 5.4 | 266 | 7.3 | – | 185.4 |
+| 216 | 0.2 | 8.9 | 1.8 | 5.4 | 266 | 11.0 | 185.4 | 185.4 |
+| 120 | 0.5 | 2.0 | 1.0 | 3.0 | 131 | 3.0 | 3.0 | 3.0 |
+| 120 | 0.3 | 3.3 | 1.0 | 3.0 | 131 | 3.6 | – | – |
+| 120 | 0.2 | 4.9 | 1.0 | 3.0 | 131 | 5.4 | 183.0 | 183.0 |
+
+**A floor as a quorum.** The coalition signs on both sides of a partition. The two sides therefore
+reach the floor together once `h_1 + α` and `h_2 + α` both do, with `h_1 + h_2 = 1 − α`, and the
+smaller side holds at most `(1 + α)/2`. Under the density form a floor separates the sides of every
+partition only if two conditions hold. A side of `(1 + α)/2`, at its fastest, reaches it with
+chance at most `ε`. The honest chain the coalition withholds from reaches it with chance at least
+`1 − ε`. This is H.1's bound, with blocks as the votes. A side is fastest at one block per slot it
+occupies. Under the worst case no delay slows it, and under random delay the coalition's blocks
+need not be orphaned. The table gives the least `K` at which a floor exists, beside the seats of
+H.1's attestation round, whose safety is at `1e-9` and liveness at `1e-6`
+(`runs/k3/quorum.csv`):
+
+| α | model | honest chain withheld from, blocks per 1,000 slots | side of (1 + α)/2, blocks per 1,000 slots | least K (days) | floor at it | at 3⌊k/f⌋: honest tail / side tail | H.1's seats |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.2 | random, the side at one block per occupied slot | 22.62 | 20.14 | 5.65 | 10,417 | 4,010 / 4,292 | 832 |
+| 0.2 | random, the side at 0.863 | 22.62 | 17.38 | 1.18 | 2,034 | 4,010 / 3,730 | 832 |
+| 0.2 | worst, 1 s | 26.06 | 20.14 | 1.04 | 2,068 | 4,661 / 4,292 | 832 |
+| 0.2 | worst, 5 s | 23.60 | 20.14 | 2.63 | 4,980 | 4,237 / 4,292 | 832 |
+| 0.2 | worst, 10 s | 21.11 | 20.14 | 28.4 | 50,670 | 3,806 / 4,292 | 832 |
+| 0.25 | random, the side at one block per occupied slot | 21.22 | 20.97 | 516 | 940,407 | 3,750 / 4,461 | 2,271 |
+| 0.25 | random, the side at 0.863 | 21.22 | 18.09 | 3.27 | 5,549 | 3,750 / 3,876 | 2,271 |
+| 0.25 | worst, 1 s | 24.49 | 20.97 | 2.91 | 5,700 | 4,367 / 4,461 | 2,271 |
+| 0.25 | worst, 5 s | 22.31 | 20.97 | 17.5 | 32,754 | 3,993 / 4,461 | 2,271 |
+| 0.25 | worst, 10 s | 20.07 | 20.97 | none | – | 3,607 / 4,461 | 2,271 |
+| 0.3 | random, the side at one block per occupied slot | 19.83 | 21.79 | none | – | 3,491 / 4,630 | 14,966 |
+| 0.3 | random, the side at 0.863 | 19.83 | 18.81 | 30.5 | 50,961 | 3,491 / 4,022 | 14,966 |
+| 0.3 | worst, 1 s | 22.91 | 21.79 | 28.4 | 54,835 | 4,073 / 4,630 | 14,966 |
+| 0.3 | worst, 5 s | 20.99 | 21.79 | none | – | 3,745 / 4,630 | 14,966 |
+| 0.3 | worst, 10 s | 19.00 | 21.79 | none | – | 3,403 / 4,630 | 14,966 |
+| a third | random, the side at one block per occupied slot | 18.89 | 22.35 | none | – | 3,318 / 4,742 | none |
+| a third | random, the side at 0.863 | 18.89 | 19.29 | none | – | 3,318 / 4,119 | none |
+| a third | worst, 1 s | 21.86 | 22.35 | none | – | 3,876 / 4,742 | none |
+| a third | worst, 5 s | 20.10 | 22.35 | none | – | 3,578 / 4,742 | none |
+| a third | worst, 10 s | 18.27 | 22.35 | none | – | 3,264 / 4,742 | none |
+
+- **At a third no floor exists at any `K`.** There `(1 + α)/2 = 1 − α`. A side that holds the
+  coalition's blocks grows at least as fast as the honest chain the coalition withholds from.
+- **Under the worst case the honest chain loses `Δ` a block, and the side loses nothing.** At 10 s
+  no floor separates a quarter at any `K`. At 5 s it takes 17.5 days, and at 1 s 2.9.
+- **Under random delay it rests on the side's growth.** At one block per occupied slot it takes
+  516 days against a quarter, and nothing works against 30 %. At 0.863 per occupied slot, the
+  fastest a side grew on the engine, it takes 3.3 days and 30.5 days.
+- **At `K = 3⌊k/f⌋` no floor separates partitions against a quarter in any model.** In every row
+  the honest chain's lower tail lies below the side's upper tail.
+- **Seats are better votes than blocks.** H.1's round separates a quarter with 2,271 seats and
+  30 % with 14,966. A seat is drawn in proportion to stake whatever the delay. A block of the
+  honest chain is lost to delay; a block of a side the coalition fills is not.
+
+**The Bootstrap rule, the offline grace period and recovery.** The Bootstrap rule's window and the
+offline grace margin against `K`, with the epoch at today's length (`runs/k3/bootstrap.csv`):
+
+| k | s_gen = ⌊k/4f⌋ (h) | window B5 needs against a third, random / worst 10 s (h) | K = ⌊k/f⌋ / 3⌊k/f⌋ (h) | rule 5's cap (h) | K / T_offline |
+| --- | --- | --- | --- | --- | --- |
+| 2160 | 4.50 | 4.9 / 4.8 | 18.0 / 54.0 | 72.0 | 54.0 / 162.0 |
+| 1620 | 3.38 | 4.9 / 4.8 | 13.5 / 40.5 | 72.0 | 40.5 / 121.5 |
+| 1080 | 2.25 | 4.9 / 4.8 | 9.0 / 27.0 | 72.0 | 27.0 / 81.0 |
+| 432 | 0.90 | 4.9 / 4.8 | 3.6 / 10.8 | 72.0 | 10.8 / 32.4 |
+| 216 | 0.45 | 4.9 / 4.8 | 1.8 / 5.4 | 72.0 | 5.4 / 16.2 |
+| 120 | 0.25 | 4.9 / 4.8 | 1.0 / 3.0 | 72.0 | 3.0 / 9.0 |
+
+- **Rule 2 holds by construction.** A fork diverges before `B_imm` when its divergence block's
+  slot is at most `sl − K`. That reads the same from either branch, so every node holding both
+  chains decides alike. §10's finding cannot occur: nodes on the two sides of a split no longer
+  choose different chains until both pass `k`.
+- **Rule 3 holds whenever the window fits in `K`.** A fork that diverges before `B_imm` is at least
+  `K` slots old, so both chains hold the whole window. Both candidates exceed the 4.8–4.9 hours a
+  window needs against a third at `1e-9` per window (B5). Today's `s_gen = ⌊k/4f⌋`, 4.5 hours at
+  `k = 2160` and 15 minutes at `k = 120`, falls short of it. Rule 4 still sizes the window for
+  `(α, ε, H)`, apart from `K`.
+- **Rule 5 keeps its cap.** With the epoch at today's length, a fork's own nonce and inferred stake
+  take effect 72 hours after its divergence, whatever `K`.
+- **The density form is rule 8 applied to `B_imm`.** Under random delay its floor is H.1's
+  detector threshold over a window of `K`: the same lower tail of the same count, gated in
+  `tests/test_floor.py`. A node whose chain is sparse then never fixes its fork. An eclipse or a
+  sparse partition heals by the Online rule when it ends, with no trigger. The trigger's rules
+  matter only for a chain that was dense, or for a split that outlasts the inference's correction.
+- **The floor holds only until the inference corrects.** A side keeps the thresholds set before
+  the split for at least `4⌊k/f⌋` slots, 3 days at `k = 2160`, and has corrected in full 7.5 to 15
+  days after it (H.1). From then every chain, the coalition's fork included, fills its slots at `f`
+  and reaches either form of the floor.
+- **`B_imm` must not move on time alone.** Without a floor, a node that receives no blocks for `K`
+  slots sees `B_imm` reach its own tip. A node offline that long would come back fixed on whatever
+  tip it held. Today a node offline for longer than `T_offline`, 20 minutes, takes the Bootstrap
+  rule, which freezes `B_imm`. At `k = 2160`, `K` is 54 or 162 times `T_offline`. Either form of
+  the floor also keeps `B_imm` from passing a block that `φ` blocks do not follow.
+- **What the floor leaves to operators.** A split that outlasts the inference's correction. A
+  partition at a third, where the coalition fills both sides. Below a third, every split that the
+  quorum table does not separate at the chosen `K`. H.1's attestation round separates those while
+  Blend's relays deliver the votes.
+
+H.1's detector over a window of `K`: the chance that a side holding a share of all stake falls
+below the threshold, under random delay at A1's growth. The whole honest stake gives the false
+alarm (`runs/k3/detector.csv`):
+
+| K | α | expected, honest alone | threshold | side 0.35 | side 0.50 | side 0.57 | side 0.60 | side 0.65 | side 0.70 | the whole honest chain |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ⌊k/f⌋, 18 h | 0.3 | 1,285 | 1,078 | 1.0000 | 1.0000 | 0.8177 | 0.2197 | 3e-04 | 1e-09 | 1e-09 |
+| ⌊k/f⌋, 18 h | a third | 1,224 | 1,022 | 1.0000 | 0.9995 | 0.2015 | 0.0062 | 1e-07 | 8e-15 | 9e-10 |
+| 3⌊k/f⌋, 54 h | 0.3 | 3,854 | 3,491 | 1.0000 | 1.0000 | 1.0000 | 0.9992 | 0.0613 | 9e-10 | 9e-10 |
+| 3⌊k/f⌋, 54 h | a third | 3,673 | 3,318 | 1.0000 | 1.0000 | 0.9989 | 0.5597 | 3e-06 | 2e-19 | 9e-10 |
+
+- At `3⌊k/f⌋` against a third the detector declares a side of 0.57 of all stake sparse with
+  chance 0.999, and one of 0.6 with chance 0.56. It declares the whole honest chain sparse once in
+  `10^9` windows.
+- At `⌊k/f⌋` it still sees an even side, and few larger ones.
+
+**Verdicts.**
+
+- **H20 holds.** Without a floor an eclipse of `K` slots fixes a fork whatever the stake, with one
+  block. At `K = 3⌊k/f⌋` a floor sized at `1e-9` for the honest chain a third withholds from is
+  3,264 blocks under the worst case and 3,318 under random delay, more than `k = 2160`. A chain
+  nobody withholds from falls below it with chance below `1e-99`. At the smallest stake both forms
+  meet the inference's correction as blocks do: 8.2 days in blocks, 8.6 under the depth form and
+  9.75 under the density form.
+- **H21 fails in its first part.** At `K = 3⌊k/f⌋` no floor separates the sides of every partition
+  against a quarter, in either model. The least `K` is 2.9 days under the worst case at 1 s, 17.5
+  days at 5 s, and none at 10 s. Under random delay it is 3.3 days with the side at the engine's
+  0.863, and 516 days with the side at one block per occupied slot. The second part holds: at a
+  third no floor exists at any `K`.
+
+Gates (`tests/test_floor.py`):
+
+- the counts are B5's laws in both models;
+- the floor is the largest the withheld-from chain reaches at `ε`, and under random delay it is
+  H.1's detector threshold;
+- the safe floor is the smallest a side reaches at `ε`, and the provisional share reaches the floor
+  at `ε`;
+- the least quorum window is the first that separates, by direct binomial and renewal tails, and
+  no window exists where the side grows as fast;
+- the eclipse time is the blocks' lower tail;
+- after the correction a chain fills its slots at `f`, sampled slot by slot;
+- a sparse chain waits for its correction under the density form.
+
+Each fails under a registered mutation (`scripts/check_mutations.py`).
+
 ## K.4 — the nonce and the epoch
 
+**What does not move.** The nonce's rules count the walk's blocks and the epoch's slots, never the
+unit of `k`. With the epoch at its length at `k = 2160` (K.0), B7's sub-windows stay 15,552 slots
+at `m = 25`. H.2's delay still spans the last sub-window and a margin, 4.5 hours on the coalition's
+hardware. The lottery constants are still fixed `4⌊k/f⌋` slots, 72 hours, before their epoch. B6's
+choices at the cut-off, B7's estimate and H.2's lemma read the coalition's lead backwards from the
+cut-off, which no rule about `B_imm` changes. A factor `F` per nonce multiplies the chance against
+one schedule, so a wait absorbs it where its chance is at most `ε/F`: K.2 reads the factor off
+K.1's wait instead of B2's depth.
+
+**What moves: how long a race lasts.** Counted in blocks, a race against a target lasts until the
+target lies deep enough, however long the chain takes. Against a third under the worst case at
+10 s, B6's two-nonce depth takes 96 hours on the worst-case clock, 24 past the 72 hours from a
+cut-off to the next epoch's first slot. A target within 24 hours before a cut-off then races into
+the next epoch with a private chain that holds the cut-off. It meets a nonce the coalition picks
+itself, and no bound covers it (`SETTLEMENT.md` B6): 24 of each epoch's 180 hours, 13 % of
+targets. Counted in slots, the Online
+rule ignores a fork that diverges before `B_imm`, so a race lasts at most `K` slots after its
+target (`finality_sim.slotmap`):
+
+- **A target meets two ground nonces** only past its epoch's cut-off and within `K` slots of the
+  epoch's end: 10 % of targets at `K = ⌊k/f⌋` and 30 % at `K = 3⌊k/f⌋`, at `k = 2160`.
+- **No target meets a nonce its own private chain set** while `K` is at most the `4⌊k/f⌋` slots
+  from a cut-off to the next epoch. Both candidates are, at every `k` of B5 (`MAPPING.md` §7), so
+  B6's bounds cover every target.
+- **A `K` past `4⌊k/f⌋` uncovers targets again.** If the `K` that holds a share under a nonce's
+  factor exceeds 72 hours, the targets within `K − 4⌊k/f⌋` slots before a cut-off race into an
+  epoch whose nonce their private chain set, as in B6. K.2 gives the `K` each factor needs. With
+  today's nonce, against a third under the worst case at 10 s, B6's two-nonce depth alone takes 96
+  hours.
+
+**The epoch's phases.** The specification already times the epoch in slots that stand for
+finality (`cryptarchia-v1-protocol.md`, Epoch Schedule). The snapshot phase lasts `s` slots: "We
+wait for this value to finalize before entering the next phase". The buffer phase waits "another
+slot finality period". The lottery constants wait "another `4k/f` slots for these values to
+finalize". Counted in slots a value is final once `K` slots have passed, so each phase that waits
+for finality must last at least `K`: the snapshot phase, `s` slots, and the constants' lead,
+`4⌊k/f⌋`. Both candidates fit. `K = ⌊k/f⌋` leaves the phases three and four windows long. `K = s`
+makes the snapshot phase one window and the constants' lead one and a third. The buffer phase
+exists so that an honest leader contributes to the nonce, which rests on the honest stake's wins
+over its slots, not on finality (`MAPPING.md` §6). A `K` above `s` would need the phases to grow
+with it. The inference's period, `6⌊k/f⌋` slots, keeps its length with the epoch. G7's deflation
+becomes a time (K.2).
+
 ## K.5 — every other result, read again
+
+Each note ends with a section that reads it in slots:
+
+- **`MAPPING.md` §7.** The rules of §1 with `K`. `B_imm` trails the clock by `K` slots, so every
+  consumer waits a fixed time. The `k`-sized quantities at both candidates, and the self-healing
+  horizon, which becomes `K` for every side.
+- **`RATE.md`.** k-finality no longer shrinks with the block rate. Under the worst case at 10 s a
+  faster rate needs a longer `K`: against a third the wait K.1 bounds grows from 26.3 hours at 30 s
+  blocks to 29.6 at 20 s and 41.1 at 15 s.
+- **`FURTHER.md`.** G3: from the specification's Blend to testnet's, the worst-case wait against a
+  third falls to 45 %, where the depth falls to 49 %. G4: a wait gains nothing on a chain nobody
+  withholds from. G6: hostile relays cost more as a wait than as a depth, 56 % against 47 % for
+  relays that drop, with two copies. G7: a deflation costs less in time than in blocks (K.2).
+- **`DESIGNS.md`.** H.1's seats and H.2 do not move. H.1's trigger fires at one slot for every
+  node holding both chains. H.3's rules already read time.
+- **`CERTIFIED.md`.** Settlement becomes a wait. Certificates stall in a partition, where a window
+  in slots without a floor finalizes both sides.
+- **`DAG.md`.** J.0 already counted `k` in slots, so nothing moves; retraction outlasts every `K`.
+- **`SETTLEMENT.md`.** B2–B7, each pointed to its part of K.1–K.4.

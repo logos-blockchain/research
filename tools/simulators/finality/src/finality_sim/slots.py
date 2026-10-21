@@ -65,13 +65,15 @@ def log_fail_all(n_max: int, t: float, a: float, h: float) -> np.ndarray:
 
 
 def wait_logfail(T: float, alpha: float, g: float, f: float = F,
-                 nodes: int = GAP_NODES) -> float:
+                 nodes: int = GAP_NODES, a: float | None = None, h: float | None = None) -> float:
     """log of the private race's chance against a wait of ``T`` slots after the target's slot.
 
     The gap from the parent to the target is exponential at ``h`` (Gauss–Laguerre), and the
-    canonical blocks after the target within the wait are Poisson at ``h·T``.
+    canonical blocks after the target within the wait are Poisson at ``h·T``. ``a`` and ``h``, when
+    given, replace ``rates(alpha, g, f)``: G7's deflated inference raises both.
     """
-    a, h = rates(alpha, g, f)
+    a0, h0 = rates(alpha, g, f)
+    a, h = (a0 if a is None else a), (h0 if h is None else h)
     mu = h * T
     n_max = int(mu + 14 * math.sqrt(mu + 1) + 40)
     n = np.arange(1, n_max + 1)
@@ -82,15 +84,16 @@ def wait_logfail(T: float, alpha: float, g: float, f: float = F,
     return float(special.logsumexp(terms))
 
 
-def wait_needed(alpha: float, eps: float, g: float, f: float = F, t_max: int = 2_000_000) -> int:
+def wait_needed(alpha: float, eps: float, g: float, f: float = F, t_max: int = 2_000_000,
+                a: float | None = None, h: float | None = None) -> int:
     """The shortest wait, in slots, whose chance is at most ``eps``; -1 past ``t_max``."""
     target = math.log(eps)
-    if wait_logfail(t_max, alpha, g, f) > target:
+    if wait_logfail(t_max, alpha, g, f, a=a, h=h) > target:
         return -1
     lo, hi = 0, t_max
     while hi - lo > 1:
         mid = (lo + hi) // 2
-        lo, hi = (lo, mid) if wait_logfail(mid, alpha, g, f) <= target else (mid, hi)
+        lo, hi = (lo, mid) if wait_logfail(mid, alpha, g, f, a=a, h=h) <= target else (mid, hi)
     return hi
 
 
@@ -208,13 +211,17 @@ def lead_law(p_a: float, p_h: float, delta: int, size: int = 400) -> np.ndarray:
 
 
 def worst_logbound(T: int, alpha: float, delta: int, log_ub: np.ndarray, f: float = F,
-                   w_law: np.ndarray | None = None) -> tuple[float, int]:
+                   w_law: np.ndarray | None = None, p_h: float | None = None,
+                   p_a: float | None = None) -> tuple[float, int]:
     """log of ``min_D [UB(D) + P(N − W − 2 < D)]`` for a wait of ``T`` slots, and the ``D`` that
     attains it (0 if no depth helps). ``log_ub[D - 1]`` is log B2's upper bound at depth ``D``.
 
     ``N`` counts the renewals of ``T − 2Δ`` slots from a live start: ``P(N ≤ n)`` is
-    ``P(Bin(w − (n + 1)Δ, p_h) ≤ n)``, B5's law. ``W`` follows ``lead_law``, independent of ``N``."""
-    p_h, p_a = occupancy(f, 1 - alpha), occupancy(f, alpha)
+    ``P(Bin(w − (n + 1)Δ, p_h) ≤ n)``, B5's law. ``W`` follows ``lead_law``, independent of ``N``.
+    ``p_h`` and ``p_a``, when given, replace the honest and the coalition's slot occupancy: G7's
+    deflated inference raises both."""
+    p_h = occupancy(f, 1 - alpha) if p_h is None else p_h
+    p_a = occupancy(f, alpha) if p_a is None else p_a
     w = max(T - 2 * delta, 0)
     pz = lead_law(p_a, p_h, delta) if w_law is None else w_law
     d_max = log_ub.size
@@ -231,21 +238,23 @@ def worst_logbound(T: int, alpha: float, delta: int, log_ub: np.ndarray, f: floa
 
 
 def worst_needed(alpha: float, eps: float, delta: int, log_ub: np.ndarray, f: float = F,
-                 t_max: int = 6_000_000) -> int:
+                 t_max: int = 6_000_000, p_h: float | None = None,
+                 p_a: float | None = None) -> int:
     """The shortest wait whose worst-case bound is at most ``eps``; -1 past ``t_max``."""
     target = math.log(eps)
-    p_h, p_a = occupancy(f, 1 - alpha), occupancy(f, alpha)
+    p_h = occupancy(f, 1 - alpha) if p_h is None else p_h
+    p_a = occupancy(f, alpha) if p_a is None else p_a
     w_law = lead_law(p_a, p_h, delta)
     clock = delta + 1.0 / p_h
     d_eps = int(np.argmax(log_ub <= target)) + 1 if (log_ub <= target).any() else log_ub.size
     hi = int(d_eps * clock) + 4 * delta + 100
-    while worst_logbound(hi, alpha, delta, log_ub, f, w_law)[0] > target:
+    while worst_logbound(hi, alpha, delta, log_ub, f, w_law, p_h, p_a)[0] > target:
         hi *= 2
         if hi > t_max:
             return -1
     lo = 0
     while hi - lo > 1:
         mid = (lo + hi) // 2
-        ok = worst_logbound(mid, alpha, delta, log_ub, f, w_law)[0] <= target
+        ok = worst_logbound(mid, alpha, delta, log_ub, f, w_law, p_h, p_a)[0] <= target
         lo, hi = (lo, mid) if ok else (mid, hi)
     return hi

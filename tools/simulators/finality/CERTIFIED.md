@@ -348,3 +348,20 @@ Where rounds fail:
   below `1e-3` takes a target 45 blocks deep at 25 % and 11 at 10 %. Under that delay model a
   certificate therefore comes no sooner than settlement at `1e-3`. It then makes the block final
   at the round's `ε`, where settlement on the chain needs the depths of B2.
+
+## Counted in slots (Phase K)
+
+With `k` counted in slots (`SLOTS.md` K.0), votes move little: rounds are slots and seats are shares
+of the stake, so nothing in D0–D5 reads `k`'s unit.
+
+- **Settlement becomes a wait.** D6 compares a certificate with settlement at a depth, 45 blocks
+  against a quarter of the stake at `Δ = 10` s. Counted in slots the target must be old enough
+  instead, and a certificate under that delay model still comes no sooner than the wait K.1 bounds
+  at `1e-3`. Where it then makes the block final at the round's `ε`, settlement on the chain needs
+  the waits of K.1, not the depths of B2.
+- **A partition separates the two notions.** Certificates stall on both sides of a partition that
+  cuts off more than 9 % of the honest stake at 25 %, while the chain continues. Counted in slots,
+  each side's `B_imm` passes the split `K` slots after it, unless finality waits on density
+  (`SLOTS.md` K.3). Certificates keep safety where a window in slots without a floor does not.
+- **Forward security does not move.** Whoever gathers past voters' keys forges past certificates
+  whatever unit `k` takes (D4).

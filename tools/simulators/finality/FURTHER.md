@@ -3,7 +3,8 @@
 Phase G of `PLAN.md`: ways to shorten finality that the three routes of the report do not cover,
 read against 30 % and a third of the stake at `ε = 1e-9`. Tables come from `runs/` through
 `scripts/tables.py`; runs from `scripts/g1_delayed_nonce.py`, `scripts/g3_blend_delay.py`,
-`scripts/g4_density.py` and `scripts/g6_relays.py`. G2 and G5 need no run.
+`scripts/g4_density.py` and `scripts/g6_relays.py`. G2 and G5 need no run. Phase K's section at
+the end reads from `scripts/k5_further.py`.
 
 ## G1 — the smallest contributions with a delayed nonce
 
@@ -534,3 +535,83 @@ the inferred stake by its share at `k = 2160`:
   attack's depth to that of a chain on which every node produces, 334 blocks against a third on
   the engine where the race at the true thresholds needs 257 and the report's convention reads 276,
   though it comes sooner.
+
+## Counted in slots (Phase K)
+
+With `k` counted in slots (`SLOTS.md` K.0), each route reads as a time.
+
+**G1 and G2 do not move.** The delayed nonce's span, `W + margin`, and its honest cost are in slots
+and keep their lengths with the epoch. G2's decoupled epoch is K.0's reading, so a smaller `K`
+moves neither (`SLOTS.md` K.4).
+
+**G3: a faster Blend saves more counted in slots.** A shorter delay shortens both the depth and the
+time each honest block takes. Each cell gives G3's depth and its time without grinding, then the
+wait K.1 gives under random delay at the setting's growth, and bounds under the worst case at the
+setting's `Δ` (`scripts/k5_further.py`):
+
+| hops | rounds | Δ | random, 0.30 | worst, 0.30 | random, 0.33 | worst, 0.33 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 2 s | 114 (1.4 h), 2.0 h | 525 (6.5 h), 8.4 h | 172 (2.2 h), 2.9 h | 812 (10.5 h), 13.0 h |
+| 1 | 2 | 3 s | 116 (1.4 h), 2.0 h | 558 (7.1 h), 9.1 h | 178 (2.3 h), 3.1 h | 871 (11.6 h), 14.1 h |
+| 1 | 3 | 4 s | 122 (1.5 h), 2.1 h | 593 (7.7 h), 9.7 h | 188 (2.5 h), 3.3 h | 936 (12.7 h), 15.3 h |
+| 1 | 5 | 6 s | 131 (1.7 h), 2.3 h | 675 (9.1 h), 11.3 h | 206 (2.8 h), 3.6 h | 1,087 (15.3 h), 18.2 h |
+| 1 | 8 | 9 s | 148 (2.0 h), 2.7 h | 829 (11.9 h), 14.3 h | 240 (3.4 h), 4.3 h | 1,385 (20.7 h), 23.9 h |
+| 1 | 12 | 13 s | 176 (2.5 h), 3.4 h | 1,123 (17.4 h), 20.2 h | 302 (4.6 h), 5.7 h | 1,987 (31.9 h), 35.7 h |
+| 3 | 1 | 5 s | 136 (1.8 h), 2.5 h | 632 (8.4 h), 10.5 h | 216 (3.0 h), 3.9 h | 1,008 (13.9 h), 16.7 h |
+| 3 | 2 | 8 s | 157 (2.2 h), 2.9 h | 773 (10.9 h), 13.2 h | 259 (3.8 h), 4.7 h | 1,275 (18.7 h), 21.8 h |
+| 3 | 3 | 11 s | 165 (2.3 h), 3.1 h | 961 (14.3 h), 16.9 h | 276 (4.1 h), 5.1 h | 1,649 (25.5 h), 29.0 h |
+| 3 | 5 | 16 s | 222 (3.4 h), 4.4 h | 1,446 (23.6 h), 26.7 h | 410 (6.7 h), 8.0 h | 2,696 (45.5 h), 49.9 h |
+| 3 | 8 | 24 s | 283 (4.7 h), 5.8 h | 3,229 (59.8 h), 64.5 h | 574 (10.0 h), 11.6 h | 7,367 (140.7 h), 147.9 h |
+| 3 | 12 | 34 s | 560 (10.8 h), 12.6 h | – | 1,657 (33.4 h), 36.3 h | – |
+
+From the specification's setting to testnet's, against a third under the worst case, the depth
+falls to 49 %, 1,649 to 812 blocks, its time to 41 %, and the wait to 45 %, 29.0 to 13.0 hours.
+Under random delay the depth falls to 62 % and the wait to 58 %, 5.1 to 2.9 hours.
+
+**G4: a wait reads no rate.** The elapsed-time rule settles a chain nobody withholds from in 39 / 53
+minutes against 30 % / a third because it reads how fast the blocks came. A wait of `K` slots reads
+the clock alone and gains nothing on such a chain. The gain stays a client's, with B4's rule at
+G4's adjusted rates.
+
+**G6: hostile relays cost more counted in slots.** They slow the honest chain as well as lengthen
+the race, and a wait pays for both. Each arm's closed form at its growth per honest win, on the
+clock of G6's hours, beside the wait K.1 gives at that growth:
+
+| α | relays | copies | closed form at 1e-9 | a wait at 1e-9 | over honest relays: blocks / wait |
+| --- | --- | --- | --- | --- | --- |
+| 0.25 | honest | 1 | 87 (1.1 h) | 1.7 h | – |
+| 0.25 | honest | 2 | 84 (1.1 h) | 1.6 h | – |
+| 0.25 | hostile, holding | 1 | 90 (1.2 h) | 1.8 h | +3 % / +6 % |
+| 0.25 | hostile, holding | 2 | 87 (1.1 h) | 1.7 h | +4 % / +5 % |
+| 0.25 | hostile, holding to the deadline | 1 | 96 (1.3 h) | 1.9 h | +10 % / +15 % |
+| 0.25 | hostile, holding to the deadline | 2 | 89 (1.2 h) | 1.7 h | +6 % / +7 % |
+| 0.25 | hostile, dropping | 1 | 110 (1.6 h) | 2.3 h | +26 % / +36 % |
+| 0.25 | hostile, dropping | 2 | 99 (1.3 h) | 2.0 h | +18 % / +23 % |
+| 0.30 | honest | 1 | 158 (2.2 h) | 3.0 h | – |
+| 0.30 | honest | 2 | 151 (2.0 h) | 2.8 h | – |
+| 0.30 | hostile, holding | 1 | 167 (2.3 h) | 3.1 h | +6 % / +7 % |
+| 0.30 | hostile, holding | 2 | 159 (2.2 h) | 3.0 h | +5 % / +7 % |
+| 0.30 | hostile, holding to the deadline | 1 | 186 (2.7 h) | 3.6 h | +18 % / +22 % |
+| 0.30 | hostile, holding to the deadline | 2 | 167 (2.3 h) | 3.2 h | +11 % / +14 % |
+| 0.30 | hostile, dropping | 1 | 230 (3.5 h) | 4.6 h | +46 % / +56 % |
+| 0.30 | hostile, dropping | 2 | 198 (2.9 h) | 3.8 h | +31 % / +38 % |
+| 0.33 | honest | 1 | 257 (3.7 h) | 4.7 h | – |
+| 0.33 | honest | 2 | 240 (3.4 h) | 4.3 h | – |
+| 0.33 | hostile, holding | 1 | 274 (4.0 h) | 5.1 h | +7 % / +7 % |
+| 0.33 | hostile, holding | 2 | 259 (3.7 h) | 4.7 h | +8 % / +9 % |
+| 0.33 | hostile, holding to the deadline | 1 | 317 (4.8 h) | 6.0 h | +23 % / +27 % |
+| 0.33 | hostile, holding to the deadline | 2 | 273 (4.0 h) | 5.0 h | +14 % / +16 % |
+| 0.33 | hostile, dropping | 1 | 416 (6.7 h) | 8.1 h | +62 % / +73 % |
+| 0.33 | hostile, dropping | 2 | 352 (5.4 h) | 6.7 h | +47 % / +56 % |
+
+Against a third, relays that hold to the sender's deadline cost 23 % in blocks and 27 % in the wait
+with one copy. Relays that drop cost 47 % and 56 % with the specification's two copies, and 62 %
+and 73 % with one.
+
+**G7: a deflation costs less counted in slots.** Under the worst case it grows B2's depth by
+24–61 % and its time by at most 17 %, as G7's table gives. Under random delay the deflated race
+needs more blocks in less time: 334 blocks in 3.4 hours against a third, where the race at the true
+thresholds needs 257 in 3.7. `SLOTS.md` K.2 reads both as waits.
+
+**G5 does not move.** An anchor still settles no partition, now one whose divergence is older than
+`K`.

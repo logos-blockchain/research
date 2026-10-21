@@ -3,7 +3,7 @@
 # targets; `make tables` prints the notes' tables from runs/, and `make check-tables` checks that
 # each appears verbatim in a note.
 .PHONY: install test mutations firstlook mapping a1 b2 b3 b4 b5 b6 b7 recovery c1 c3 c4 d0 d1b d5 d6 e2 \
-        e5 further designs j1 j2 j3 all tables check-tables octave-reference clean
+        e5 further designs j1 j2 j3 k1 k2 k3 k5 all tables check-tables octave-reference clean
 
 VENV   ?= .venv
 PYTHON ?= $(HOME)/.pyenv/versions/3.13.7/bin/python
@@ -119,10 +119,26 @@ j3: install                   # DAG.md J.3 (about 5 minutes on 4 cores)
 	$(PY) scripts/j3_regions.py
 	$(PY) scripts/j3_bound.py
 
-all: a1 c1 c3 c4 b2 b3 b4 b5 recovery d0 d1b d5 d6 e2 e5 b6 b7 further designs j2 j3
+k1: install                   # SLOTS.md K.1 (about 2 minutes on 6 cores; needs a1, b2)
+	$(PY) scripts/k1_settle.py
+
+k2: install                   # SLOTS.md K.2 (about 10 minutes on 6 cores; needs a1, b2, b6, further, designs)
+	$(PY) scripts/k2_holds.py
+
+k3: install                   # SLOTS.md K.3 (about a minute; needs a1, b2)
+	$(PY) scripts/k3_splits.py
+
+k5: install                   # SLOTS.md K.4, K.5 (about 3 minutes on 4 cores; needs c1, further)
+	$(PY) scripts/k5_mapping.py
+	$(PY) scripts/k5_rate.py
+	$(PY) scripts/k5_further.py
+
+all: a1 c1 c3 c4 b2 b3 b4 b5 recovery d0 d1b d5 d6 e2 e5 b6 b7 further designs j2 j3 k1 k2 k3 k5
 
 tables: install
-	for t in a1 a1release a1conv c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b5part b6 b7 d0 d1b d3 d5 d6 e2 e5 e5balance g1 g3 g4 g6 g7 h1 h2 h3 b5eng i2 j1 j2 j3 j3bound; do \
+	for t in a1 a1release a1conv c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b5part b6 b7 d0 d1b d3 d5 d6 e2 e5 e5balance g1 g3 g4 g6 g7 h1 h2 h3 b5eng i2 j1 j2 j3 j3bound \
+	         k1 k1worst k1ratio k1played k2 k2compare k2waits k2absorbs k3horizon k3eclipse k3early k3floor \
+	         k3quorum k3detector k3bootstrap k5mapping k5rate k5blend k5relays; do \
 		$(PY) scripts/tables.py $$t; done
 
 check-tables: install

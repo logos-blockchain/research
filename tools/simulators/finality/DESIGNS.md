@@ -821,3 +821,20 @@ fork from 30 % up, stalls it, and the depth rule caps it. The rule does not hold
 client's view, and its own geometric law would not hold it against a coalition that times the
 acceptance. A time-conditioned form of B2's bound, the port's recursion read at `(n, t)` rather than
 at `n`, is not derived here.
+
+## Counted in slots (Phase K)
+
+With `k` counted in slots (`SLOTS.md` K.0), the three designs move little.
+
+- **H.1's seats do not move.** They separate shares of the stake, not blocks. The round's trigger,
+  two chains that both exceed `k` blocks since their divergence, becomes two chains whose
+  divergence is older than `K`. Both chains reach that age at the same slot, so every node that
+  holds both enters the same round. The detector reads a side at the thresholds set before the
+  split, which the epoch times, not `K`. `SLOTS.md` K.3 reads a floor that makes finality itself
+  wait on a sparse chain.
+- **H.2 does not move.** The delay spans the last sub-window and a margin, and the honest nodes
+  compute it within the `4⌊k/f⌋` slots before the nonce is first used. Both are in slots and keep
+  their lengths with the epoch (`SLOTS.md` K.4).
+- **H.3's rules already read time.** The observed counting rule reads `(n, t)`, and a wait is the
+  rule that reads `t` alone: K.1 bounds it from B2 and the honest chain's growth over the wait. A
+  bound read at `(n, t)` is still not derived.
