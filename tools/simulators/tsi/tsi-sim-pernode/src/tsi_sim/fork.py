@@ -196,8 +196,8 @@ class ParentWait:
 def parent_wait(tree: BlockTree, A, T: int, cutoff: int, n_nodes: int) -> ParentWait:
     """Aggregate ``tree.parent_wait`` over the canonical blocks of ``[0, T)``.
 
-    NaN where nothing is measured: every field without deeper rules, and all but
-    ``block_share`` in an epoch whose chain carries no such entry.
+    NaN where nothing is measured: every field without deeper rules, all but ``block_share`` in
+    an epoch whose chain carries no such entry, and ``wait_mean`` in one where no node waits.
     """
     nan = float("nan")
     if tree.parent_wait is None:
@@ -212,5 +212,5 @@ def parent_wait(tree: BlockTree, A, T: int, cutoff: int, n_nodes: int) -> Parent
     late, total, longest = rows[has].T
     return ParentWait(block_share=float(has.mean()),
                       node_share=float((late / n_nodes).mean()),
-                      wait_mean=float(total.sum() / late.sum()) if late.sum() else 0.0,
+                      wait_mean=float(total.sum() / late.sum()) if late.sum() else nan,
                       wait_max=float(longest.max()))

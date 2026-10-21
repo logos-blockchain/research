@@ -15,7 +15,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tsi_sim.blocktree import BlockTree, _Copies, _fork_point, _off_chain_parents, _wait, _Watch
+from tsi_sim.blocktree import (
+    BlockTree,
+    _Copies,
+    _fork_point,
+    _off_chain_parents,
+    _parent_wait_row,
+    _wait,
+    _Watch,
+)
 from tsi_sim.config import SimConfig, SweepConfig
 from tsi_sim.fork import fork_stats, lost_slots, parent_wait
 from tsi_sim.measure import measure
@@ -187,6 +195,22 @@ def test_off_chain_parents_and_the_wait():
     assert _wait(col_b, np.array([[1.0], [0.0], [2.0]])) == (0.0, 0.0, 0.0)
 
 
+def test_the_wait_row_reads_every_off_chain_parent():
+    tree = _tree(())
+    parent = tree.ref_parent.copy()
+    parent[9] = 4                                      # entry 9 now hangs off 4: depth 3
+    # block 7 carries 4 (parent 3) and 9 (parent 4): both parents are off its chain
+    M = np.zeros((2, 11))
+    M[:, 7] = 10.0                                     # both nodes receive block 7 at 10
+    M[:, 3] = (5.0, 12.0)                              # node 1 waits 2 slots for 3
+    M[:, 4] = (13.0, 6.0)                              # node 0 waits 3 slots for 4
+    assert _parent_wait_row(7, (4, 9), parent, tree.ref_slot, M) == (2.0, 5.0, 3.0)
+    assert _parent_wait_row(7, (3,), parent, tree.ref_slot, M) is None   # 3's parent 2 is on it
+    # columns from id 4 on (base 4): parent 3 was pruned and has reached every node
+    assert _parent_wait_row(7, (4, 9), parent, tree.ref_slot, M[:, 4:], base=4) == (1.0, 3.0, 3.0)
+    assert _parent_wait_row(7, (4,), parent, tree.ref_slot, M[:, 4:], base=4) == (0.0, 0.0, 0.0)
+
+
 def test_parent_wait_reads_the_canonical_window_blocks():
     tree = _tree(())
     tree.parent_wait = np.full((9, 3), np.nan)
@@ -200,6 +224,9 @@ def test_parent_wait_reads_the_canonical_window_blocks():
     early = parent_wait(tree, None, T=8, cutoff=30, n_nodes=4)                     # so is 7
     assert early.block_share == 0.0 and np.isnan(early.node_share)
     assert np.isnan(parent_wait(_tree(()), None, T=20, cutoff=30, n_nodes=4).node_share)
+    tree.parent_wait[7] = (0.0, 0.0, 0.0)              # no node waits: no mean wait
+    calm = parent_wait(tree, None, T=20, cutoff=30, n_nodes=4)
+    assert calm.node_share == 0.0 and np.isnan(calm.wait_mean) and calm.wait_max == 0.0
 
 
 # --- end to end ------------------------------------------------------------------------------
@@ -306,6 +333,23 @@ def test_the_watch_matches_a_brute_force_replay(monkeypatch):
             assert got[x][1] == pytest.approx(tau)
         n_copies += len(got)
     assert n_copies > 0
+
+
+def test_the_wait_matches_a_recount_from_the_full_matrix(monkeypatch):
+    _, seen = _capture(monkeypatch, uncle_depth=2, prune_arrival=False)
+    n_rows = 0
+    for _, tree, A in seen:
+        for b in range(1, tree.n_blocks):
+            us = _off_chain_parents(b, tree.uncles[b], tree.parent, tree.slot)
+            if not us:
+                assert np.isnan(tree.parent_wait[b]).all()
+                continue
+            wait = A[:, us].max(axis=1) - A[:, b]
+            late = wait > 0
+            want = (late.sum(), wait[late].sum(), wait.max() if late.any() else 0.0)
+            np.testing.assert_allclose(tree.parent_wait[b], want)
+            n_rows += 1
+    assert n_rows > 0
 
 
 def test_the_wait_is_the_same_on_the_pruned_and_full_matrix():

@@ -335,6 +335,18 @@ def _wait(col_b: np.ndarray, cols_u: np.ndarray) -> tuple[float, float, float]:
     return float(late.sum()), float(wait[late].sum()), float(wait.max())
 
 
+def _parent_wait_row(b: int, entries, parent: np.ndarray, slot: np.ndarray, M: np.ndarray,
+                     base: int = 0) -> tuple[float, float, float] | None:
+    """The ``parent_wait`` row of block ``b``, read from the arrival columns ``M[:, id - base]``.
+    None when no entry has a parent off ``b``'s chain. A parent below ``base`` was pruned and
+    has reached every node."""
+    us = _off_chain_parents(b, entries, parent, slot)
+    if not us:
+        return None
+    live = [u - base for u in us if u >= base]
+    return _wait(M[:, b - base], M[:, live]) if live else (0.0, 0.0, 0.0)
+
+
 class _SelfishCoalition:
     """Eyal–Sirer SM1 private-chain state, driven from the coalition's shared view.
 
@@ -707,9 +719,9 @@ def build_tree_pernode(
                 if reroot_mask[v] and p_id > 0:
                     watches.append(_Watch(b, A[v], parent, key, slot, t, horizon, w))
             if parent_wait is not None and uncles[b]:
-                us = _off_chain_parents(b, uncles[b], parent, slot)
-                if us:
-                    parent_wait[b] = _wait(A[:, b], A[:, us])
+                row = _parent_wait_row(b, uncles[b], parent, slot, A)
+                if row is not None:
+                    parent_wait[b] = row
             nb += 1
 
         for c in coalitions:
@@ -837,12 +849,9 @@ def _build_pruned(active_slots, winners_per_slot, path_latency, config, rng,
             pv = float(buf[v, p_id - base]) if p_id >= base else float(t)   # finalized parent <= t
             buf[v, b - base] = max(float(t), pv)
             if parent_wait is not None and uncles[b]:
-                us = _off_chain_parents(b, uncles[b], parent, slot)
-                if us:
-                    # a finalized parent (id < base) has reached every node already
-                    live = [u - base for u in us if u >= base]
-                    parent_wait[b] = (_wait(buf[:, b - base], buf[:, live]) if live
-                                      else (0.0, 0.0, 0.0))
+                row = _parent_wait_row(b, uncles[b], parent, slot, buf, base)
+                if row is not None:
+                    parent_wait[b] = row
             nb += 1
 
     tree = BlockTree(slot=slot, parent=parent, height=height, leader=leader, uncles=uncles,

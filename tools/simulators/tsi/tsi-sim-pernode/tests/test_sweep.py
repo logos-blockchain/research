@@ -44,9 +44,11 @@ def test_prune_shrinks_estimate_and_keeps_all_workers(monkeypatch):
 
 def test_rerooting_is_sized_for_the_full_matrix():
     # Re-rooting forces the full arrival matrix (build_tree_pernode), whatever prune_arrival says.
-    pruned = SimConfig(n_nodes=1000, k=2160, stake_dist="pareto")
-    reroot = SimConfig(n_nodes=1000, k=2160, stake_dist="pareto", reroot_share=0.5)
-    full = SimConfig(n_nodes=1000, k=2160, stake_dist="pareto", **FULL)
+    # Paired streams give all three the same stake draw, which sizes the peak epoch.
+    cell = dict(n_nodes=1000, k=2160, stake_dist="pareto", paired_streams=True)
+    pruned = SimConfig(**cell)
+    reroot = SimConfig(**cell, reroot_share=0.5)
+    full = SimConfig(**cell, **FULL)
     assert sweep.estimate_worker_bytes(reroot) == sweep.estimate_worker_bytes(full)
     assert sweep.estimate_worker_bytes(pruned) < sweep.estimate_worker_bytes(full)
 
