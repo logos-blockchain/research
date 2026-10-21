@@ -4,7 +4,9 @@ An exploratory study of how far, and by which means, the time until a Cryptarchi
 relied on can be shortened. It sizes every route by number before any design is chosen. It
 changes no specification.
 
-Branch `fast-finalization`, based on `origin/master` at `272fd9a`. The TSI per-node engine
+Branch `fast-finalization-slots`, from `fast-finalization` at `bd90263`, reads the study again
+with `k` counted in slots (Phase K). Branch `fast-finalization`, based on `origin/master` at
+`272fd9a`, counts it in blocks. The TSI per-node engine
 (`../tsi/tsi-sim-pernode`) is consumed as a library for fork structure, delay and attacks.
 Specifications are read at `logos-lips` `47a73cdc`. The node is read at `logos-blockchain`
 `4e0405d51`, and testnet 0.3.0 at `865df42ba`.
@@ -21,7 +23,7 @@ and the order of work. The finished story is `../../../reports/finality/`.*
 | §1 | a first look: where the time goes, what `k` buys, what each lever is worth (numbers from `firstlook.py`) |
 | §2 | the levers, each with a hypothesis that can fail |
 | §3 | the owner's decisions on nine questions that shape the study |
-| §4 | the work plan, phases A–H |
+| §4 | the work plan, phases A–K |
 | §5 | the measurement protocol |
 | §6 | what depends on `k` today, in the specifications and in the node |
 | §7 | literature to reproduce before it is relied on |
@@ -37,6 +39,7 @@ Executed from 2026-10-05 to 2026-10-20. Results live in seven notes beside this 
 - `DAG.md`: E0–E6, J.0–J.3.
 - `FURTHER.md`: G1–G7.
 - `DESIGNS.md`: H.1–H.3.
+- `SLOTS.md`: K.0–K.5, on the branch `fast-finalization-slots`.
 
 Phase by phase:
 
@@ -76,6 +79,7 @@ Phase by phase:
 | I.2 class-group sequentiality | done: the time-lock and adaptive-root assumptions pinned; Biasse, Jacobson and Silvester's Table 4 is the discrete logarithm's cost by Vollmer's algorithm, `2^91.4` at 1024 bits by its rows, which come out of their method only with the anchor at 4.8 MIPS, and `2^101.4` at the stated 4,800 MIPS, with the class group 1.33–1.61 times that; within the delay that takes two hundred thousand to three hundred million machines of `10^18` operations a second; 2048 bits give `2^139.4`–`2^149.4` at no cost in time if the speed ratio holds there |
 | I.3 a partition mode in the engine | done: `tsi_sim` splits the honest nodes for a span, loses Blend copies across the cut and reads far arrivals at the span's end; per occupied slot a side grows as the network does (0.863 / 0.845 / 0.829 for sides of 30 / 35 / 40 %), and at that growth the closed form lies within 0.5 standard errors of the engine; at A1's growth it misses by up to 19 points; the coalition's nodes sit on either side of the cut, as it chooses: a 30 % fork beats a 35 % side in 65 % of windows with its nodes beyond the cut and 42 % beside the side, a third's beats a 40 % side in 55 % and 17 %, and a third's beats a third always; two copies give 0.637 / 0.504; H.1's detector sees every side; even sides tie in 1.0–1.6 % |
 | H.3 time under the worst case | done: B4's rule beaten in 51–58 % of its acceptances; the counting bound, empty on a slow chain; the observed counting rule, counting the distinct slots of the forks received, 408 blocks against a third under worst-case delay and 374 when only withheld from; it holds `ε` per target by computation with the worst-case walk's law, not given the view, and not under its own geometric law; a balancing coalition with its own blocks counted stalls it; a time-conditioned B2 bound not derived |
+| K finality counted in slots | planned, on the branch `fast-finalization-slots` (`SLOTS.md`) |
 | J a fork choice that tolerates delay | J.0–J.3 done (`DAG.md`), and the phase stops at J.2 on its stop condition. J.0: the readings without the owner's answer are E1's, with `k` in slots. J.1: one weight per win under the win tag `ρ_LEAD`; a nonce contribution every node derives from the parent's contribution, at no cost to the proof (3.5–5.9 % if proved); ties broken by each side's first block. J.2: with one move per win the strongest attack within `Δ` against a third needs 2.8 hours at 1 s and 5.0 at 10 s, against the chain's 3.5 and 6.8; but a tag found on both sides weighs on neither, so a coalition retracts a placed win with a second copy on the other side and one win moves the balance twice, and no rule every node applies alike blocks it; the balancing edges then fall below a third at every delay, 0.318 / 0.326 at 1 s and 0.235 / 0.279 at 10 s with ties steered / fixed, so no attack depth exists against a third and no variant beats the chain. J.3, computed anyway: neither Kiffer, Rajaraman and shelat nor Gaži, Motaqy and Russell gives an error against depth; the opportunity bound is finite only up to 0.223 at 10 s and needs 14.2 hours against 25 % at 1 s, where the chain's bound needs 3.3. J.4–J.6 not run, moot against a third. J.7 is this verdict: a fork choice that weighs every honest block gives no smaller `k` |
 
 Before review, in this order:
@@ -139,6 +143,11 @@ Hypotheses:
 | H14 | fails: with one move per win the first part fails (1.78 times as long at 10 s as at 1 s, against 1.25) and the second holds (4.97 hours against the chain's 6.78); with retraction, which E3's rule allows, neither holds: against a third no attack has a depth at any delay, and the phase stops at J.2 (`DAG.md` J.2) |
 | H15 | fails: under J.1's rule a third holds the balance for ever at every delay from 1 s, so no bound exists against it; without retraction, which no rule every node applies alike achieves, the opportunity bound would need 31.2 hours at 10 s, above the chain's 23.0 (`DAG.md` J.3) |
 | H16 | not tested: the phase stopped at J.2 |
+| H17 | not yet tested (Phase K) |
+| H18 | not yet tested (Phase K) |
+| H19 | not yet tested (Phase K) |
+| H20 | not yet tested (Phase K) |
+| H21 | not yet tested (Phase K) |
 
 Three notions of finality carry the document. They are measured separately and never mixed.
 
@@ -483,6 +492,25 @@ Each hypothesis below can fail, and says what would fail it.
   cut-off stay within 10 % of the chain's under H.2's rule, and a deflated inference raises the
   depth by less than a fifth, where it raises the chain's bound by 61 % (1,510 to 2,426 blocks).
   Fails if either does not hold (Phase J, J.5 and J.6).
+- **H17.** Under random delay a fixed wait costs little over the depth rule. Against a third at
+  `1e-9` on the specification's Blend, the wait that holds `ε` is within a quarter of the depth
+  rule's mean time: 5.1 hours, where 276 blocks take 4.1. Fails if longer (Phase K, K.1).
+- **H18.** Under the worst case a wait costs less than a fifth over B2's depth on its clock.
+  Against a third at `Δ = 10` s and `1e-9`, within 27.5 hours, where 1,510 blocks take 22.9.
+  Fails if longer (Phase K, K.1).
+- **H19.** The specification's slot parameter holds where the plain conversion fails.
+  `K = ⌊k/f⌋`, 18 hours at `k = 2160`, does not hold a third at `Δ = 10` s and `1e-9`, and
+  `K = s = 3⌊k/f⌋`, 54 hours, does, with the nonce of §3.1 under its delay, also after a deflated
+  inference. Fails if either part does not hold (Phase K, K.2).
+- **H20.** Finality in slots needs a floor. Without one, eclipsing a node for `K` slots fixes a
+  fork there, whatever the adversary's stake. A floor sized at `1e-9` for the honest chain a third
+  withholds from, at `K = s`, makes the eclipsed chain need more blocks than `k = 2160`, and delays
+  finality on a chain nobody withholds from with chance below `ε`. Fails if either does not hold
+  (Phase K, K.3).
+- **H21.** Below a third a floor separates partitions. At `K = s`, against 25 % under both delay
+  models, a floor exists that no two sides of a partition both reach while the adversary signs on
+  both, and that the honest chain the adversary withholds from still reaches, each at `1e-9`. At
+  a third none exists at any `K`. Fails if either part does not hold (Phase K, K.3).
 
 ## 3. Questions for the owner
 
@@ -1002,6 +1030,114 @@ phase stops there. Then J.3, the research. J.4–J.6 run beside J.3, and J.7 clo
   Exit: `DAG.md` gains J's sections and `RATE.md` C3 the chain variant; the report's §9 and §12
   gain a row each; H7's verdict is read again. If H15 fails, the route gives at most a settlement
   level and `k` stays the chain's.
+
+### Phase K — finality counted in slots
+
+Phases A–J count `k` in blocks, as the specification does at `47a73cdc`: "Block depth finality.
+Blocks deeper than `k` on any given chain are considered immutable", 2160 blocks
+(`cryptarchia-v1-protocol.md`, Notation), and the Online rule rejects "any forks that diverge
+further back than `k` blocks" (`fork-choice.md`). The owner's direction is to count it in slots,
+as the owner reads Crypsinous, the design Cryptarchia follows. This phase reads every result again
+under that assumption, on the branch `fast-finalization-slots`. `SLOTS.md` carries it.
+
+What the sources count (K.0 quotes them, pinned):
+
+- **Praos** defines persistence in blocks, "more than k blocks deep in the ledger", and liveness in
+  slots, "after the passing of time corresponding to u slots" (§2.2).
+- **Genesis** keeps a chain only "if (Ci forks from Cmax at most k blocks)" (`maxvalid-bg`), and
+  a read outputs the local chain "chopping of k blocks" (§3.3).
+- **Crypsinous** uses Genesis's rule: "we utilize the same chain selection rule in our protocol"
+  (§6.2). Its ledger maintenance then updates the forward-secure encryption "for its time to be a
+  least τ − k" (Appendix C.3, step 28), which reads `k` as slots.
+- **The specification** defines beside `k` the slot security parameter `s = 3⌊k/f⌋`, "Sufficient
+  slots such that `k` blocks have been produced with high probability", which times the epoch's
+  phases.
+
+The rules under the phase's reading, for a window of `K` slots:
+
+- `B_imm` is the latest block of the local chain whose slot is at most `sl − K`, for the current
+  slot `sl`. Commit, fork pruning and rule 8 of Block Header Validation read it as today.
+- The Online rule ignores a fork that diverges before `B_imm`, so a rollback reaches at most `K`
+  slots back.
+- The Bootstrap rule compares a fork that diverges before `B_imm` by its density.
+- A variant adds a density floor `φ`: `B_imm` moves to a block only once `φ` blocks of the chain
+  follow it. Finality is then the later of a time and a depth.
+
+The candidates for `K` are `⌊k/f⌋` = 64,800 slots, 18 hours, the time 2,160 blocks take at the
+full rate with no forks; `s = 3⌊k/f⌋` = 194,400 slots, 54 hours, the specification's own slot
+parameter; and the least `K` that holds each `(α, ε, Δ)`. The epoch keeps its length,
+`10⌊k/f⌋` slots at `k = 2160`, unless a step says otherwise (G2).
+
+Three things change in kind:
+
+- **A wait is a time.** A coalition that withholds no longer lengthens it. `K` must instead hold
+  while the honest chain grows slowly: from the honest stake alone, and under the worst case one
+  block per `Δ + 1/p_h` slots. A depth converts to a time only with the honest chain's growth
+  over the wait, and the time must also cover that growth's lower tail.
+- **Finality no longer needs blocks.** An eclipsed node finalizes the chain it is shown once `K`
+  slots pass, whatever stake made that chain, its own blocks included. Counted in blocks, the fork
+  needs `k` of them. A partition side finalizes after `K` slots whatever its share, where its
+  horizon in blocks grows as its share falls (`MAPPING.md` §5).
+- **Both branches of a fork have one divergence age.** A node holding both decides alike, so the
+  Bootstrap rule's depth test can no longer split the nodes after a split (`SETTLEMENT.md` B5,
+  rule 2).
+
+Steps:
+
+- **K.0 — The reading.** Quote the sources above. Record the rules and the candidates. Taken
+  without the owner's answer: these rules, the floor measured as a variant, and the epoch at
+  today's length.
+- **K.1 — Settlement after a wait of `T` slots** (`slots.py`).
+  1. *Random delay.* The private race with a premined lead, scored `T` slots after the target:
+     B4's exact chance `P(n, t)` averaged over the canonical blocks the honest chain makes in the
+     wait, in closed form at A1's growth; and the race played on the engine's timelines, scored
+     at `T`. Gates: at a fixed depth the closed form returns B5's; on the timelines the race beats
+     the wait at `1e-3` within its error.
+  2. *The worst case, a bound.* Once the prefix up to the target's slot lies `D` deep, B2 bounds
+     its displacement. After `T` slots it lies at least `N − Z − 1` deep, `N` the honest blocks
+     made `Δ` apart within the wait (B5's renewal law) and `Z` the coalition's private lead at
+     the target's slot (the stationary law of its wins against those renewals), independent of
+     `N`. So `ε(T) ≤ min_D [B2(D) + P(N − Z − 1 < D)]`. Gates: the bound lies above the played
+     attack at every `T`, and falls with `T`.
+  3. *The worst case, the attack.* B3's delay-scheduling attack on the slot lottery, scored `T`
+     slots after the target.
+  Each gate has a mutation that fails it. Table: `T` at `1e-6` and `1e-9` for `α` from 5 % to a
+  third and `Δ` from 1 to 20 s, in hours, beside B2's depth on the worst-case clock.
+- **K.2 — What a `K` holds.** The largest share each `K` holds at `1e-9`, as B5's table does
+  for `k`, under random delay and the worst case: without grinding; with today's nonce, one and
+  two ground nonces (B6's factors); with the nonce of §3.1 under H.2's delay (its factor); and
+  after a deflated inference, the race at the raised rates with `Δ` fixed in slots (G7). For
+  `K = ⌊k/f⌋` and `3⌊k/f⌋` at `k` of 2160, 1620, 1080, 432, 216 and 120.
+- **K.3 — Splits and eclipses.**
+  1. *Without a floor.* The self-healing horizon is `K` for every share. An eclipse fixes a fork
+     after `K` slots and one block the honest chain lacks. Each against today's horizon in blocks.
+  2. *The floor.* Size `φ` so that the honest chain a coalition of `α_max` withholds from reaches
+     it within `K` at `ε`, under each delay model. What it costs: finality waits on a sparse
+     chain, and how often a chain nobody withholds from waits. What it buys: an eclipse needs `φ`
+     blocks of the eclipsed chain; a partition side below the floor stays provisional and rejoins
+     when the split ends.
+  3. *A floor as a quorum.* The adversary signs on both sides of a partition, so two sides both
+     reach the floor once `h_1 + α` and `h_2 + α` both do. The floor separates partitions only if
+     it lies above the density of `(1 + α)/2` of the stake and below the lower tail of the honest
+     chain a coalition of `α` withholds from: H.1's bound, with blocks as the votes. Find the
+     least `K` at which one exists against 25 % and 30 %, under both delay models.
+  4. *The Bootstrap rule, the offline grace period and recovery.* Rule 2 holds by construction.
+     The density window, `T_offline` and the trigger's rules 3–8 read again against `K`; H.1's
+     attestations and detector at the new `K`.
+- **K.4 — The nonce and the epoch.** B7's sub-windows, H.2's span `W + margin` and the
+  `4⌊k/f⌋` phase are in slots and keep their lengths with the epoch. A race lasts at most `K`
+  slots, so B6's two-nonce coverage reads at `K`. A factor `F` per nonce is absorbed when
+  `ε(K) ≤ ε/F`.
+- **K.5 — Every other result, read again.** `MAPPING.md`: the rules, the consumers and the
+  `k`-sized quantities with `K`. `RATE.md`: k-finality no longer shrinks with the block rate, and
+  B2's bound in time at `f` of 1/20 and 1/15. `FURTHER.md`: G3's Blend settings, G4, G6 and G7 in
+  time. `DESIGNS.md`: H.3's rules already read time. `CERTIFIED.md` and `DAG.md`: J.0 counted `k`
+  in slots; what moves.
+- **K.6 — The report.** `reports/finality/` on this branch, read under the slot assumption
+  throughout.
+
+Exit: `SLOTS.md` carries K.0–K.5, each note gains a short section on what slots change, and the
+report states every result in slots. H17–H21 get their verdicts.
 
 ## 5. Measurement protocol
 
