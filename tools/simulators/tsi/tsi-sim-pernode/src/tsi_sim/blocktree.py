@@ -13,7 +13,7 @@ deep-fork rules never engage.
 from __future__ import annotations
 
 import heapq
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -33,10 +33,41 @@ class BlockTree:
     height: np.ndarray        # int64, chain height (genesis = 0)
     leader: np.ndarray        # int64, producing node id (genesis = -1)
     uncles: list[tuple[int, ...]]   # referenced uncle ids per block (filled later)
+    # Re-rooted copies (PLAN.md Phase 2b). Copy j has id n_blocks + j, the slot of its original
+    # copy_of[j], and the fork point as parent; its leader published it at copy_pub[j]. A copy is
+    # only ever an uncle entry: no block builds on it, so fork choice, the chain and the fork
+    # statistics never see it. Every reader of an entry id takes its slot and parent from
+    # ref_slot and ref_parent.
+    copy_slot: np.ndarray = field(default_factory=lambda: np.empty(0, np.int64))
+    copy_parent: np.ndarray = field(default_factory=lambda: np.empty(0, np.int64))
+    copy_of: np.ndarray = field(default_factory=lambda: np.empty(0, np.int64))
+    copy_pub: np.ndarray = field(default_factory=lambda: np.empty(0, np.float64))
+    # Deeper rules only (PLAN.md Phase 2d): per block whose entries include one whose parent lies
+    # off the block's chain, the nodes that receive the block before every such parent, the
+    # slots they wait in total, and the longest wait. NaN rows elsewhere; None when not measured.
+    parent_wait: np.ndarray | None = None
 
     @property
     def n_blocks(self) -> int:
         return self.slot.shape[0]
+
+    @property
+    def ref_slot(self) -> np.ndarray:
+        """Slot by entry id: the blocks, then the copies."""
+        if self.copy_slot.size == 0:
+            return self.slot
+        return np.concatenate([self.slot, self.copy_slot])
+
+    @property
+    def ref_parent(self) -> np.ndarray:
+        """Parent by entry id: the blocks, then the copies."""
+        if self.copy_parent.size == 0:
+            return self.parent
+        return np.concatenate([self.parent, self.copy_parent])
+
+    def original(self, u: int) -> int:
+        """The block an entry stands for: itself, or the original of a copy."""
+        return u if u < self.n_blocks else int(self.copy_of[u - self.n_blocks])
 
     def ancestors(self, block_id: int) -> list[int]:
         """Ancestor chain of ``block_id`` from itself down to (excluding) genesis."""
@@ -174,6 +205,136 @@ def _max_span_blocks(active_slots: np.ndarray, counts: np.ndarray, span: float) 
     return best
 
 
+# --- Re-rooting (PLAN.md Phase 2b) and the wait for off-chain parents (Phase 2d) --------------
+
+def _fork_point(parent: np.ndarray, height: np.ndarray, a: int, b: int) -> int:
+    """The latest common ancestor of blocks ``a`` and ``b``."""
+    while height[a] > height[b]:
+        a = int(parent[a])
+    while height[b] > height[a]:
+        b = int(parent[b])
+    while a != b:
+        a, b = int(parent[a]), int(parent[b])
+    return a
+
+
+class _Watch:
+    """A re-rooting leader's watch on one of its blocks ``x``.
+
+    The leader's view puts ``x`` at depth >= 2 from the moment its best tip leaves the subtree of
+    ``x``'s parent. Only a block outside that subtree that ranks above ``x`` can cause that, so the
+    watch replays the leader's arrivals only once such a block exists. The replay runs in arrival
+    order, ties by rank, so the detection time is exact.
+    """
+
+    __slots__ = ("x", "arr", "key", "best", "members", "events", "armed", "expires")
+
+    def __init__(self, x: int, arr_v: np.ndarray, parent: np.ndarray, key: np.ndarray,
+                 slot: np.ndarray, t: int, horizon: float, w: int) -> None:
+        self.x, self.arr, self.key = x, arr_v, key
+        self.best = int(key[x])            # the leader's best tip once it has produced x
+        self.expires = t + w               # past this slot no copy of x can enter a window
+        p = int(parent[x])
+        self.members = {p}
+        for b in range(p + 1, x + 1):      # the subtree of x's parent, as produced so far
+            if int(parent[b]) in self.members:
+                self.members.add(b)
+        self.events: list[tuple[float, int, int, bool]] = []
+        self.armed = False
+        lo = int(np.searchsorted(slot[:x], t - horizon, side="right"))
+        for b in range(lo, x):             # earlier blocks still on their way to the leader
+            if arr_v[b] > t:
+                self._note(b)
+
+    def _note(self, b: int) -> None:
+        member = b in self.members
+        if member or self.key[b] > self.key[self.x]:
+            self.events.append((float(self.arr[b]), -int(self.key[b]), b, member))
+            self.armed = self.armed or not member
+
+    def observe(self, b: int, parent: np.ndarray) -> None:
+        """Block ``b`` was produced after ``x``, and its arrival column is set."""
+        if int(parent[b]) in self.members:
+            self.members.add(b)
+        self._note(b)
+
+    def check(self, t: float) -> int | None:
+        """Replay the arrivals up to ``t``. Returns the block that takes the tip out, if any."""
+        self.events.sort()
+        done = 0
+        for a, neg_key, b, member in self.events:
+            if a > t:
+                break
+            done += 1
+            if -neg_key > self.best:
+                self.best = -neg_key
+                if not member:
+                    return b
+        del self.events[:done]
+        self.armed = any(not member for *_, member in self.events)
+        return None
+
+
+class _Copies:
+    """The copies re-rooting leaders publish in one epoch. Copy ``j`` has id ``base + j``."""
+
+    def __init__(self, n: int, base: int) -> None:
+        self.base = base
+        self.slot: list[int] = []
+        self.parent: list[int] = []
+        self.of: list[int] = []
+        self.pub: list[float] = []
+        self.arr = np.empty((n, 64), np.float64)
+        self.live: list[int] = []
+
+    def add(self, x: int, slot_x: int, g: int, t_pub: float, col: np.ndarray) -> int:
+        j = len(self.of)
+        if j == self.arr.shape[1]:
+            self.arr = np.concatenate([self.arr, np.empty_like(self.arr)], axis=1)
+        self.arr[:, j] = col
+        self.slot.append(slot_x)
+        self.parent.append(g)
+        self.of.append(x)
+        self.pub.append(t_pub)
+        self.live.append(j)
+        return self.base + j
+
+    def prune(self, lo: int) -> None:
+        """Forget the copies whose slot has left every window."""
+        self.live = [j for j in self.live if self.slot[j] >= lo]
+
+    def in_view(self, v: int, t: int) -> np.ndarray | None:
+        """Ids of the live copies node ``v`` has received by ``t``."""
+        if not self.live:
+            return None
+        js = np.asarray(self.live, np.int64)
+        js = js[self.arr[v, js] <= t]
+        return js + self.base if js.size else None
+
+
+def _off_chain_parents(b: int, entries, parent: np.ndarray, slot: np.ndarray) -> list[int]:
+    """Parents of ``b``'s entries that lie off ``b``'s chain: the blocks route F executes."""
+    out: list[int] = []
+    for e in entries:
+        u = int(parent[e])
+        a = int(parent[b])
+        while a > GENESIS and int(slot[a]) > int(slot[u]):
+            a = int(parent[a])
+        if a != u and u not in out:
+            out.append(u)
+    return out
+
+
+def _wait(col_b: np.ndarray, cols_u: np.ndarray) -> tuple[float, float, float]:
+    """Nodes that receive a block before every parent in ``cols_u`` (one column each), their
+    summed wait in slots, and the longest wait."""
+    wait = cols_u.max(axis=1) - col_b
+    late = wait > 0.0
+    if not late.any():
+        return 0.0, 0.0, 0.0
+    return float(late.sum()), float(wait[late].sum()), float(wait.max())
+
+
 class _SelfishCoalition:
     """Eyal–Sirer SM1 private-chain state, driven from the coalition's shared view.
 
@@ -276,6 +437,8 @@ def build_tree_pernode(
     rng: np.random.Generator,
     adversary_mask: np.ndarray | None = None,
     coalition_ids: np.ndarray | None = None,
+    reroot_mask: np.ndarray | None = None,
+    reroot_rng: np.random.Generator | None = None,
 ):
     """Build the global block tree AND the per-node arrival matrix.
 
@@ -284,6 +447,12 @@ def build_tree_pernode(
 
     ``coalition_ids`` optionally splits those nodes into rival selfish coalitions (``-1`` honest,
     ``0..K-1`` membership — see ``engine._coalition_ids``). ``None`` is the single-coalition case.
+
+    ``reroot_mask[v] == True`` marks a node that re-roots its blocks (PLAN.md Phase 2b): once its
+    view puts one at depth >= 2 (``_Watch``), it publishes a copy ``config.reroot_delay`` slots
+    later, whose arrival column is drawn from ``reroot_rng``. Copies join the uncle candidates of
+    every later block and never the fork choice, so the tree they leave behind is the one the
+    same streams build without them. ``None`` re-roots nothing.
 
     Each winner builds on the best tip *in its own arrival-filtered view*; uncle refs are
     baked at production from the producer's view. Returns ``(BlockTree, A)`` where
@@ -322,8 +491,11 @@ def build_tree_pernode(
     n_blocks = 1 + sum(int(g.shape[0]) for g in winners_per_slot)
     E = config.epoch_len
 
-    slot = np.empty(n_blocks, np.int64)
-    parent = np.empty(n_blocks, np.int64)
+    # Copies take ids from n_blocks on, and uncle selection reads their slot and parent by id, so
+    # under re-rooting those two arrays get room for one copy per block.
+    room = n_blocks if reroot_mask is not None else 0
+    slot = np.empty(n_blocks + room, np.int64)
+    parent = np.empty(n_blocks + room, np.int64)
     height = np.empty(n_blocks, np.int64)
     leader = np.empty(n_blocks, np.int64)
     uncles: list[tuple[int, ...]] = [() for _ in range(n_blocks)]
@@ -371,7 +543,10 @@ def build_tree_pernode(
     # "finalized => arrived-everywhere" assumption, so it too forces the full matrix.
     withholding = ((adversary_mask is not None and config.adversary_frac > 0.0
                     and config.adversary_strategy == "withhold") or deep_parent)
-    if config.prune_arrival and windowed and config.jitter_mean == 0.0 and not withholding:
+    # A re-rooting leader's watch replays its own arrivals, which the prune drops.
+    reroot = reroot_mask is not None
+    if (config.prune_arrival and windowed and config.jitter_mean == 0.0 and not withholding
+            and not reroot):
         # (selfish already cleared `windowed`, so it never reaches the pruned path either)
         return _build_pruned(active_slots, winners_per_slot, path_latency, config, rng,
                              slot, parent, height, leader, uncles, key, c1, c2,
@@ -417,10 +592,35 @@ def build_tree_pernode(
                else (np.where(adversary_mask, 0, -1).astype(np.int8)
                      if selfish and adversary_mask is not None else None))
 
+    w = config.effective_uncle_window
+    watches: list[_Watch] = []
+    copies = _Copies(n, n_blocks) if reroot else None
+    parent_wait = np.full((n_blocks, 3), np.nan) if config.uncle_depth != 1 else None
+
     nb = 1
     for si in range(active_slots.shape[0]):
         t = int(active_slots[si])
         winners = winners_per_slot[si]
+        if reroot:
+            # Detect before this slot's blocks select their uncles, so that a copy published by
+            # now is a candidate for them.
+            live = []
+            for wt in watches:
+                if t > wt.expires:
+                    continue
+                hit = wt.check(t) if wt.armed else None
+                if hit is None:
+                    live.append(wt)
+                    continue
+                x = wt.x
+                g = _fork_point(parent, height, x, hit)
+                t_pub = float(wt.arr[hit]) + config.reroot_delay
+                col = arrival_column(path_latency, int(leader[x]), t_pub, config, reroot_rng)
+                np.maximum(col, A[:, g], out=col)
+                cid = copies.add(x, int(slot[x]), g, t_pub, col)
+                slot[cid], parent[cid] = slot[x], g
+            watches = live
+            copies.prune(t - w)
         # --- fork choice: window [lo, nb) + fully-propagated best gb ---
         if windowed:
             thr = t - horizon
@@ -474,7 +674,8 @@ def build_tree_pernode(
                 uncles[b] = ()
             else:
                 uncles[b] = select_uncles_at_production(
-                    slot, parent, uncles, A[v], b, p_id, t, config, rng
+                    slot, parent, uncles, A[v], b, p_id, t, config, rng,
+                    extra=copies.in_view(v, t) if reroot else None,
                 )
             col = arrival_column(path_latency, v, t, config, rng)   # (rng drawn either way)
             if hide:
@@ -500,6 +701,15 @@ def build_tree_pernode(
                 A[v, b] = max(float(t), float(A[v, p_id]))   # producer sees own block at its slot
                 for c in coalitions:
                     c.note_block(b, float(A[c.coal, b].min()))
+            if reroot:
+                for wt in watches:
+                    wt.observe(b, parent)
+                if reroot_mask[v] and p_id > 0:
+                    watches.append(_Watch(b, A[v], parent, key, slot, t, horizon, w))
+            if parent_wait is not None and uncles[b]:
+                us = _off_chain_parents(b, uncles[b], parent, slot)
+                if us:
+                    parent_wait[b] = _wait(A[:, b], A[:, us])
             nb += 1
 
         for c in coalitions:
@@ -534,7 +744,13 @@ def build_tree_pernode(
         c.n_abandoned += len(c.priv)
         c.priv.clear()
 
-    tree = BlockTree(slot=slot, parent=parent, height=height, leader=leader, uncles=uncles)
+    tree = BlockTree(slot=slot[:n_blocks], parent=parent[:n_blocks], height=height, leader=leader,
+                     uncles=uncles, parent_wait=parent_wait)
+    if reroot and copies.of:
+        tree.copy_slot = np.asarray(copies.slot, np.int64)
+        tree.copy_parent = np.asarray(copies.parent, np.int64)
+        tree.copy_of = np.asarray(copies.of, np.int64)
+        tree.copy_pub = np.asarray(copies.pub, np.float64)
     return tree, A
 
 
@@ -568,6 +784,7 @@ def _build_pruned(active_slots, winners_per_slot, path_latency, config, rng,
     buf = np.full((n, buf_width), float(E), np.float64)           # sentinel = E ("never arrives")
     buf[:, 0] = 0.0                                               # genesis (id 0) known to all
     base = 0                                                      # absolute id at buf[:, 0]
+    parent_wait = np.full((n_blocks, 3), np.nan) if config.uncle_depth != 1 else None
 
     gb_key, gb_id, fp_idx = int(key[0]), 0, 1
     nb = 1
@@ -619,9 +836,17 @@ def _build_pruned(active_slots, winners_per_slot, path_latency, config, rng,
             buf[:, b - base] = col
             pv = float(buf[v, p_id - base]) if p_id >= base else float(t)   # finalized parent <= t
             buf[v, b - base] = max(float(t), pv)
+            if parent_wait is not None and uncles[b]:
+                us = _off_chain_parents(b, uncles[b], parent, slot)
+                if us:
+                    # a finalized parent (id < base) has reached every node already
+                    live = [u - base for u in us if u >= base]
+                    parent_wait[b] = (_wait(buf[:, b - base], buf[:, live]) if live
+                                      else (0.0, 0.0, 0.0))
             nb += 1
 
-    tree = BlockTree(slot=slot, parent=parent, height=height, leader=leader, uncles=uncles)
+    tree = BlockTree(slot=slot, parent=parent, height=height, leader=leader, uncles=uncles,
+                     parent_wait=parent_wait)
     return tree, SlidingArrival(buf=buf, base=base, horizon=float(horizon), n=n, nb=nb)
 
 

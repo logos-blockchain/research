@@ -93,11 +93,12 @@ def fork_stats(tree: BlockTree, A, T: int, cutoff: int,
     max_depth = int(branch_depths.max()) if branch_depths.size else 0
     mean_depth = float(branch_depths.mean()) if branch_depths.size else 0.0
 
-    # p_ref: fraction of in-window orphans referenced as an uncle by a canonical block
+    # p_ref: fraction of in-window orphans referenced as an uncle by a canonical block, directly
+    # or through a re-rooted copy
     referenced = np.zeros(nb, dtype=bool)
     for b in np.nonzero(canonical)[0]:
         for u in tree.uncles[b]:
-            referenced[u] = True
+            referenced[tree.original(u)] = True
     ref_orphans = int((orphan_in_win & referenced).sum())
     p_ref = ref_orphans / n_orphan if n_orphan else 1.0
 
@@ -125,6 +126,8 @@ class LostSlots:
                                           # 1, 2, 3, >= 4
     d2_parent_ref: int                    # depth-2 lost slots with a block whose parent (the
                                           # first block of its fork) is a counted uncle
+    rerooted: tuple[int, int, int, int] = (0, 0, 0, 0)   # slots only counted re-rooted copies
+                                          # cover, by the same depth; not lost
 
     @property
     def lost(self) -> int:
@@ -138,7 +141,8 @@ def lost_slots(tree: BlockTree, A, T: int, cutoff: int, scope_refs: bool = True)
     by a canonical block, and under ``scope_refs`` (the spec rule) by one that lies in the window
     itself. Every other occupied slot is lost, and is filed under the smallest fork depth among its
     blocks (``canonical_and_depth``). ``d2_parent_ref`` marks the depth-2 lost slots a cousin rule
-    could count: those with a block whose parent is a counted uncle.
+    could count: those with a block whose parent is a counted uncle. A counted re-rooted copy
+    covers its original's slot; the slots only copies cover are filed under ``rerooted`` instead.
 
     ``occupied - lost`` equals the slot count ``measure`` reads from the same chain (asserted in
     tests/test_fork.py), so the depth shares sum to the estimator's own shortfall.
@@ -149,9 +153,13 @@ def lost_slots(tree: BlockTree, A, T: int, cutoff: int, scope_refs: bool = True)
     canonical, depth = canonical_and_depth(tree, A, cutoff)
     in_win = (tree.slot >= 0) & (tree.slot < T) & (np.arange(nb) > 0)
     counted = np.zeros(nb, dtype=bool)
+    copy_slots: set[int] = set()
     for b in np.nonzero(canonical & in_win if scope_refs else canonical)[0]:
         for u in tree.uncles[b]:
-            counted[u] = True
+            if u < nb:
+                counted[u] = True
+            else:
+                copy_slots.add(int(tree.copy_slot[u - nb]))
     covered = set(tree.slot[in_win & (canonical | counted)].tolist())
     shallowest: dict[int, int] = {}
     parent_ref: set[int] = set()
@@ -164,8 +172,45 @@ def lost_slots(tree: BlockTree, A, T: int, cutoff: int, scope_refs: bool = True)
         if d == 2 and counted[int(tree.parent[b])]:
             parent_ref.add(s)
     by_depth = [0, 0, 0, 0]
-    for d in shallowest.values():
-        by_depth[min(d, 4) - 1] += 1
+    rerooted = [0, 0, 0, 0]
+    for s, d in shallowest.items():
+        (rerooted if s in copy_slots else by_depth)[min(d, 4) - 1] += 1
     return LostSlots(occupied=len(set(tree.slot[in_win].tolist())),
                      by_depth=(by_depth[0], by_depth[1], by_depth[2], by_depth[3]),
-                     d2_parent_ref=sum(1 for s in parent_ref if shallowest[s] == 2))
+                     d2_parent_ref=sum(1 for s in parent_ref
+                                       if shallowest[s] == 2 and s not in copy_slots),
+                     rerooted=(rerooted[0], rerooted[1], rerooted[2], rerooted[3]))
+
+
+@dataclass(frozen=True)
+class ParentWait:
+    """The validators route F makes wait (PLAN.md Phase 2d), over the canonical window blocks."""
+
+    block_share: float     # share of those blocks with an entry whose parent is off the chain
+    node_share: float      # mean over such blocks of the node share that receives the block
+                           # before every such parent
+    wait_mean: float       # mean wait of those nodes, slots
+    wait_max: float        # longest wait, slots
+
+
+def parent_wait(tree: BlockTree, A, T: int, cutoff: int, n_nodes: int) -> ParentWait:
+    """Aggregate ``tree.parent_wait`` over the canonical blocks of ``[0, T)``.
+
+    NaN where nothing is measured: every field without deeper rules, and all but
+    ``block_share`` in an epoch whose chain carries no such entry.
+    """
+    nan = float("nan")
+    if tree.parent_wait is None:
+        return ParentWait(nan, nan, nan, nan)
+    canonical, _ = canonical_and_depth(tree, A, cutoff)
+    in_win = canonical & (tree.slot >= 0) & (tree.slot < T)
+    in_win[0] = False
+    rows = tree.parent_wait[in_win]
+    has = ~np.isnan(rows[:, 0])
+    if not has.any():
+        return ParentWait(0.0 if rows.shape[0] else nan, nan, nan, nan)
+    late, total, longest = rows[has].T
+    return ParentWait(block_share=float(has.mean()),
+                      node_share=float((late / n_nodes).mean()),
+                      wait_mean=float(total.sum() / late.sum()) if late.sum() else 0.0,
+                      wait_max=float(longest.max()))

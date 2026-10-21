@@ -325,14 +325,16 @@ def measure(tree: BlockTree, A, active_slots: np.ndarray, T: int, cutoff: int,
     distinct_tips, inverse = np.unique(tips, return_inverse=True)
     inverse = inverse.ravel()
     uncle_flat, uncle_ptr = _uncles_csr(tree)
-    uncle_stamp = np.full(tree.n_blocks, -1, np.int64)
+    # entry ids reach past the blocks to the re-rooted copies
+    ref_slot, ref_parent = tree.ref_slot, tree.ref_parent
+    uncle_stamp = np.full(ref_slot.shape[0], -1, np.int64)
     honest_stamp = np.full(max(T, 1), -1, np.int64)
-    chain_stamp = np.full(tree.n_blocks, -1, np.int64)
-    ref_stamp = np.full(tree.n_blocks, -1, np.int64)
+    chain_stamp = np.full(ref_slot.shape[0], -1, np.int64)
+    ref_stamp = np.full(ref_slot.shape[0], -1, np.int64)
 
     kernel = _measure_tips_nb if (_HAVE_NUMBA and use_numba) else _measure_tips_py
     m_d, nh_d, nrec_d, nref_d, ndeep_d, clen_d, fp_d = kernel(
-        distinct_tips.astype(np.int64), tree.parent, tree.slot,
+        distinct_tips.astype(np.int64), ref_parent, ref_slot,
         uncle_flat, uncle_ptr, np.int64(T), np.int64(w), bool(countable),
         uncle_stamp, honest_stamp, chain_stamp, bool(parent_anchor), bool(scope_refs),
         np.int64(max_depth), ref_stamp)

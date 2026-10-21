@@ -80,6 +80,9 @@ UncleOrder = Literal["uncle", "parent"]
 #     between the entry and the fork point must be referenced by the chain or carried by the
 #     same block.
 #  0 — the ceiling arm: any depth, no ancestry condition.
+# Re-rooting (PLAN.md Phase 2b, route E) changes no rule. A re-rooting leader whose own view puts
+# one of its blocks at depth >= 2 publishes a copy at the block's slot whose parent is the fork
+# point. The copy is the first block of a fork, so the depth-1 rule counts it as an uncle.
 
 
 @dataclass(frozen=True)
@@ -179,6 +182,13 @@ class SimConfig:
     # See the note above SimConfig. Appended to key() only when not 1, so every committed run
     # keeps its key; excluded from _base_key(), so paired_streams pairs the depths.
     uncle_depth: int = 1
+    # See the note above SimConfig. reroot_share is the stake share of the nodes that re-root
+    # (0 = none, the spec baseline). reroot_delay is the slots from the moment a leader's best tip
+    # leaves the subtree of its block's parent to the copy's publication; the copy then travels
+    # like a block. Appended to key() only when the share is not 0, and excluded from
+    # _base_key(), so paired_streams pairs re-rooting with every depth.
+    reroot_share: float = 0.0
+    reroot_delay: float = 0.0
     # DEFAULT is the spec rule (see RefScope). Deliberately NOT in key(): the reference scope is a
     # MEASUREMENT rule that consumes no RNG, so both arms of a comparison run on a bit-identical
     # block tree and their difference carries no sampling noise at all — the same reasoning that
@@ -366,6 +376,12 @@ class SimConfig:
                                       or self.uncle_strategy != "oldest"):
             raise ValueError("uncle_depth != 1 is defined for the countable model with the "
                              "oldest strategy only")
+        if self.reroot_share > 0.0 and (self.uncle_model != "countable" or self.uncle_depth != 1
+                                        or self.uncle_strategy != "oldest"
+                                        or self.adversary_frac > 0.0 or self.jitter_mean > 0.0):
+            # Detection replays arrivals inside the deterministic horizon, so jitter is out.
+            raise ValueError("re-rooting is defined for the honest countable model at depth 1, "
+                             "with the oldest strategy and no jitter")
         if self.ref_scope not in ("window", "chain"):
             raise ValueError(f"ref_scope must be window|chain, got {self.ref_scope!r}")
         if self.adversary_selection not in ("random", "whale"):
@@ -400,6 +416,8 @@ class SimConfig:
             "adversary_period": self.adversary_period >= 0,
             "adversary_withhold_epochs": self.adversary_withhold_epochs >= 0,
             "adversary_coalitions": self.adversary_coalitions >= 1,
+            "reroot_share": 0.0 <= self.reroot_share <= 1.0,
+            "reroot_delay": self.reroot_delay >= 0.0,
         }
         bad = [name for name, ok in checks.items() if not ok]
         if bad:
@@ -508,6 +526,8 @@ class SimConfig:
             base = base + (("uncle_order", self.uncle_order),)
         if self.uncle_depth != 1:
             base = base + (("uncle_depth", self.uncle_depth),)
+        if self.reroot_share > 0.0:
+            base = base + (("reroot", self.reroot_share, self.reroot_delay),)
         return base
 
     def seed_key(self) -> tuple:
@@ -527,6 +547,8 @@ _SWEEP_AXES = (
     "uncle_window_anchor",
     "uncle_order",
     "uncle_depth",
+    "reroot_share",
+    "reroot_delay",
     "ref_scope",
     "window_absorption",
     "topology", "degree", "link_latency_mean", "link_latency_dist",
@@ -547,6 +569,8 @@ class SweepConfig:
     uncle_window_anchor: list[UncleWindowAnchor] = field(default_factory=lambda: ["uncle"])
     uncle_order: list[UncleOrder] = field(default_factory=lambda: ["uncle"])
     uncle_depth: list[int] = field(default_factory=lambda: [1])
+    reroot_share: list[float] = field(default_factory=lambda: [0.0])
+    reroot_delay: list[float] = field(default_factory=lambda: [0.0])
     ref_scope: list[RefScope] = field(default_factory=lambda: ["window"])
     window_absorption: list[float] = field(default_factory=lambda: [constants.W_ABS_DEFAULT])
     topology: list[Topology] = field(default_factory=lambda: ["regular"])
@@ -574,6 +598,12 @@ class SweepConfig:
                 or overrides["uncle_window"] != self.uncle_window[0]
                 or overrides["window_absorption"] != self.window_absorption[0]
             ):
+                continue
+            # re-rooting is defined at depth 1 only, and a zero share reads no delay.
+            if overrides["reroot_share"] > 0.0 and overrides["uncle_depth"] != 1:
+                continue
+            if (overrides["reroot_share"] == 0.0
+                    and overrides["reroot_delay"] != self.reroot_delay[0]):
                 continue
             # each uncle model reads exactly one window knob — collapse the other axis so a
             # sweep never emits duplicate cells that differ only in an ignored field.

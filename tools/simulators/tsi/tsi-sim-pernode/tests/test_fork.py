@@ -93,12 +93,13 @@ def test_lost_slots_by_depth_and_scope():
     assert c.d2_parent_ref == 3
 
 
-@pytest.mark.parametrize("model,scope,depth", [("countable", "window", 1),
-                                               ("countable", "chain", 1),
-                                               ("old", "window", 1),
-                                               ("countable", "window", 2),
-                                               ("countable", "window", 0)])
-def test_lost_slots_match_the_measured_count(monkeypatch, model, scope, depth):
+@pytest.mark.parametrize("model,scope,depth,reroot", [("countable", "window", 1, 0.0),
+                                                      ("countable", "chain", 1, 0.0),
+                                                      ("old", "window", 1, 0.0),
+                                                      ("countable", "window", 2, 0.0),
+                                                      ("countable", "window", 0, 0.0),
+                                                      ("countable", "window", 1, 1.0)])
+def test_lost_slots_match_the_measured_count(monkeypatch, model, scope, depth, reroot):
     """occupied - lost must equal the slot count measure() hands the estimator, exactly."""
     import tsi_sim.engine as engine
     import tsi_sim.epoch as ep
@@ -121,13 +122,15 @@ def test_lost_slots_match_the_measured_count(monkeypatch, model, scope, depth):
                     link_latency_mean=0.5, link_latency_dist="geo", blend_hops=3,
                     blend_delay_max=32.0, max_uncles=2, uncle_model=model, ref_scope=scope,
                     uncle_window_anchor="parent", window_absorption=12.0, uncle_depth=depth,
-                    k=64, epochs=2, genesis_d_factor=1.0)
+                    reroot_share=reroot, k=64, epochs=2, genesis_d_factor=1.0)
     run_trajectory(cfg)
     tree, A, er = seen["tree"], seen["A"], seen["er"]
     lost = lost_slots(tree, A, cfg.period_T, cfg.epoch_len,
                       scope_refs=scope == "window" and model != "old")
     assert lost.lost > 0                                     # the fixture loses slots
-    if model == "countable" and depth == 1:
+    if reroot:
+        assert sum(lost.rerooted) > 0    # ...and copies cover some, which are then not lost
+    elif model == "countable" and depth == 1:
         assert lost.by_depth[1] > 0      # ...and has deep forks the first-fork rule misses
     assert er.agreement_window == 1.0                        # one chain over the window
     assert lost.occupied == er.n_active_window

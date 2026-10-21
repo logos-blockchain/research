@@ -15,7 +15,7 @@ _CONFIG_FIELDS = (
     "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
     "init_dest", "init_spread", "uncle_model", "window_absorption",
     "uncle_window", "max_uncles", "uncle_strategy", "uncle_window_anchor", "uncle_order",
-    "uncle_depth",
+    "uncle_depth", "reroot_share", "reroot_delay",
     "ref_scope",
     # Recorded so downstream analysis can TELL whether a countable/--old pair actually shared
     # its RNG streams. The paired test is only valid on paired runs, and without this column
@@ -75,5 +75,14 @@ def divergence_row(
         lost_d2_parent_ref_share=er.lost_d2_parent_ref_share,
         lost_d3_share=er.lost_d3_share,
         lost_d4plus_share=er.lost_d4plus_share,
+        rerooted_share=er.rerooted_share,
+        rerooted_d2_share=er.rerooted_d2_share,
+        rerooted_d3plus_share=er.rerooted_d3plus_share,
+        reroot_made_share=er.reroot_made_share,
+        reroot_lag_mean=er.reroot_lag_mean,
+        parent_wait_block_share=er.parent_wait_block_share,
+        parent_wait_node_share=er.parent_wait_node_share,
+        parent_wait_mean=er.parent_wait_mean,
+        parent_wait_max=er.parent_wait_max,
     )
     return row

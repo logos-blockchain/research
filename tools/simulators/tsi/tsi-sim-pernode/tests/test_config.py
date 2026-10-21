@@ -147,8 +147,10 @@ def test_key_covers_every_field():
     # tree, so excluding it from key() is what makes the two arms share a tree and their
     # difference carry no sampling noise. Like selfish_lead_cap it changes results at an
     # unchanged key, which is why report §9 records what was re-measured for it.
+    # reroot_delay is read only when reroot_share > 0, the way uncle_window is read only by the
+    # old model.
     ignored = {"root_seed", "windowed_fork_choice", "prune_arrival", "early_stop",
-               "uncle_window", "paired_streams", "ref_scope"}
+               "uncle_window", "paired_streams", "ref_scope", "reroot_delay"}
     names = {f.name for f in dataclasses.fields(SimConfig)} - ignored
     a = SimConfig()
     for name in names:
@@ -159,6 +161,9 @@ def test_key_covers_every_field():
     # ... and uncle_window IS distinguished under the old model, where it is live.
     old = SimConfig(uncle_model="old")
     assert old.key() != dataclasses.replace(old, uncle_window=old.uncle_window + 1).key()
+    # ... and reroot_delay under a re-rooting share.
+    rr = SimConfig(reroot_share=0.5)
+    assert rr.key() != dataclasses.replace(rr, reroot_delay=1.0).key()
     # paired_streams leaves key() untouched but DOES change the seed derived from it.
     a_paired = dataclasses.replace(a, paired_streams=True)
     assert a.key() == a_paired.key()

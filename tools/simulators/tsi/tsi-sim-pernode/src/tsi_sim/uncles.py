@@ -86,6 +86,7 @@ def select_uncles_at_production(
     config: SimConfig,
     rng: np.random.Generator,
     arr_base: int = 0,
+    extra: np.ndarray | None = None,
 ) -> tuple[int, ...]:
     """Uncles a block gets when produced by node ``v`` (arrival row ``arrival_v``) at slot ``t``.
 
@@ -100,6 +101,9 @@ def select_uncles_at_production(
     ``arrival_v`` is indexed by *block id minus ``arr_base``* — ``arr_base=0`` for the full arrival
     matrix row ``A[v]``, or the sliding-window buffer's base offset when pruning (every uncle-window
     block ``[t-w_u, t)`` is inside the kept span, so the buffer row covers all candidates).
+
+    ``extra`` holds the ids of re-rooted copies in ``v``'s view (PLAN.md Phase 2b, countable model
+    at depth 1). ``slot`` and ``parent`` cover those ids, and every rule above applies to them.
     """
     u_max = config.max_uncles
     if u_max <= 0:
@@ -108,10 +112,14 @@ def select_uncles_at_production(
     slot_view = slot[:nb]
     lo = int(np.searchsorted(slot_view, t - w, side="left"))   # slot >= t-w_u
     hi = int(np.searchsorted(slot_view, t, side="left"))       # slot <  t
-    if hi <= lo:
-        return ()
     # blocks in the window that have arrived at v (candidates before excluding own chain)
-    arrived = np.nonzero(arrival_v[lo - arr_base:hi - arr_base] <= t)[0] + lo
+    arrived = (np.nonzero(arrival_v[lo - arr_base:hi - arr_base] <= t)[0] + lo if hi > lo
+               else np.empty(0, np.int64))
+    if extra is not None:
+        extra = extra[(slot[extra] >= t - w) & (slot[extra] < t)]
+        if extra.size:
+            arrived = np.concatenate([arrived, extra])
+            arrived = arrived[np.lexsort((arrived, slot[arrived]))]   # oldest first, then id
     if arrived.size == 0:
         return ()
 
