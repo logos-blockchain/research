@@ -61,8 +61,8 @@ validity rule built on it would depend on each node's block tree, which the spec
 | C. snapshot-only references | A reference's PoL is verified against the epoch state of its slot and against a `ledger_LATEST` that the entry carries and no node checks. The count then rests only on the lottery: a note of the stake snapshot won the slot. No chain state is read, so the ancestry condition can go and every depth counts. The window can be measured to the entry's own slot: the parent anchor exists to bound the state the check reads (`cryptarchia-v1-protocol.md:327`). | The circuit is unchanged. Each entry carries its root, +32 bytes, so every Blend message grows by 128 bytes: 19 318 → 19 446, +0.66 %. A spent note keeps counting until its snapshot expires. The snapshot of epoch `ep` is the note set at the start of epoch `ep − 1` (`:220`), so that is up to two epochs after the spend: 1 296 000 slots, 15 days at 1 s per slot. Under 1.2.5 the limit is under `W·f⁻¹` = 360 slots after the spend, through a self-signed uncle whose parent precedes the spend (`:327`, `:331`). The rule cannot stay a cousin rule: a spent note's win can name any counted uncle in the window as its parent. Whoever holds the key of a spent snapshot note can add that stake's wins to the count: its former owner, or anyone the owner sells the key to. D̂ rises by that stake (β = 1). If it is a share σ of the snapshot, the block rate falls to about `f(1 − σ)`. Eligibility (`:168`) requires an unspent note, so references need their own definition. The PoL owners must accept an unchecked `ledger_LATEST` for references. Proof of quota already skips the unspent check (`proof-of-quota.md:46`, `:118`). | price it: Phase 2c, Phase 4 (§6, question 4) |
 | C′. compact entries | An entry carries only what the PoL check reads: the slot, `P_LEAD`, `ρ_LEAD` and the proof, plus the parent (1.2.5) or the root (route C). It carries no signature. | An entry shrinks from 361 to 232 bytes (8 + 32 + 32 + 32 + 128). The maximum proposal falls by 4 × 129 = 516 bytes to 17 676, and every Blend message by the same: 19 318 → 18 802, −2.7 %. This holds at depth 1 too. Anyone who has seen a proof can build an entry from it. The count is per slot, so that adds no slot (`:331`). The block ID of a referenced block can no longer be derived (`:315`). Only the not-on-the-chain rule (`:326`) and the selection tie-break (`:366`) read it. Per-slot counting makes the first redundant, and the second can order by the proof. | independent of depth; price with route C |
 | D. no PoL check | Count `C` without verifying its proof. | Fabricated headers inflate the count at will. | rejected |
-| E. re-rooting | The leader of an orphaned block `X` at depth ≥ 2 proves its win at `sl_X` again, against the state of the fork point `G`. It publishes a header at `sl_X` with parent `G`. That header is the first block of a fork, so the 1.2.5 rules accept it as an uncle (`cryptarchia-v1-protocol.md:325–329`). The spec records that a note owner can self-sign such a header later (`:331`). Header validation bounds a header's slot only by the current slot (step 6) and its height only by the latest immutable block (step 8). | No consensus, header, circuit or per-message change. Each re-rooted block costs one proving run, off the critical path, and one Blend message. The slot's leadership quota went to the original proposal (`Q_L = β_D(1 + R_D)`, and the key nullifier binds the note key, the index and the slot, `proof-of-quota.md:197–204`). So the message needs core or proof-of-work quota. It covers every depth. Its gain is at most the Phase 2 ceiling. Two things reduce it: the delay to detect the orphaning, prove and propagate, all within `W·f⁻¹` slots of `G`; and leaders that do not re-root, since uncles earn nothing (`:380`, `:386`). | lead candidate; measure (Phase 2b) |
-| F. cousin parents' bodies | A cousin `C` with parent `U` is verified against the state its leader proved against: the state of the fork point `G` after `U`'s transactions, validated as a block's are. A node that accepted `U` already holds that state. Every accepted block was executed (`cryptarchia-v1-protocol.md:463`), and the node keeps a ledger state per block until the block is pruned (`ledger/src/lib.rs:149`). A fork is pruned once it diverges below the latest immutable block (`:499`), which lies at least `k` blocks, so at least 2 160 slots, below the tip (`:124`). The window spans 360 slots. So a node that validates `A` within `k − W·f⁻¹` = 1 800 slots of `sl_A` still holds `U` if it accepted it. A validator that lacks `U` downloads it, as it downloads an orphan's missing ancestors (`cryptarchia-v1-bootstr-sync.md:97`, `:180`). Peers serve any block of their block tree (`block_provider.rs:136`). The stored block that carries `C` also carries `U`'s uncle headers and transactions, for nodes that synchronise after `U` is pruned. `U`'s `body_root` commits to them, so the proposal, the header and the block ID of `A` do not change. | No PoL, circuit, header or proposal change, so no Blend change. No spent note gains eligibility. The stored block grows by one body per cousin parent: up to `MAX_BLOCK_SIZE` plus 1 445 bytes of uncle headers. Transactions the chain already holds could be stored by reference. Bodies are needed for at most the depth-2 share of §4: 0.07 % of occupied slots at ρ ≈ 0.36, 1.3 % at ρ ≈ 0.96. A node that holds none of the parents executes up to `1 + MAX_UNCLES` blocks to validate one. A validator that receives `A` before `U` cannot validate `A` until it has `U` (Phase 2d). It records no verdict meanwhile, as for an unresolved reference (`bedrock-v1.1-block-construction.md:334`). The mempool matters only for the first acceptance of `U`, as for any block. The node keeps a transaction 10 minutes after a chain block includes it, so that a competing proposal still resolves (`pool.rs:31`, `:89`). It keeps a pending transaction 1 hour by default (`pool.rs:35`, configurable), and a proof-of-work claim 600 slots past its 300-slot acceptance window (`powclaim.rs:30–31`). Each exceeds the window. None is specified. Depth 3 needs two bodies, executed in order. Changes: the uncle rules and the counted set (Cryptarchia); the stored block and "the carried `uncle_headers` are not executed" (Block Construction `:211–216`, `:397`); downloading a cousin's parent (Synchronization); in the node, `uncle.rs:116–122` and `:131–134`. | sound, no per-message cost; candidate if Phase 2b falls short (Phase 2d, §6 question 5) |
+| E. re-rooting | The leader of an orphaned block `X` at depth ≥ 2 proves its win at `sl_X` again, against the state of the fork point `G`. It publishes a header at `sl_X` with parent `G`. That header is the first block of a fork, so the 1.2.5 rules accept it as an uncle (`cryptarchia-v1-protocol.md:325–329`). The spec records that a note owner can self-sign such a header later (`:331`). Header validation bounds a header's slot only by the current slot (step 6) and its height only by the latest immutable block (step 8). | No consensus, header, circuit or per-message change. Each re-rooted block costs one proving run, off the critical path, and one Blend message. On a core node that message takes the place of a cover message (`blend-protocol.md:244`). The slot's leadership quota went to the original proposal (`Q_L = β_D(1 + R_D)`, and the key nullifier binds the note key, the index and the slot, `proof-of-quota.md:197–204`). So the message needs core or proof-of-work quota. It covers every depth. Its gain is at most the Phase 2 ceiling. Two things reduce it: the delay to detect the orphaning, prove and propagate, all within `W·f⁻¹` slots of `G`; and leaders that do not re-root, since uncles earn nothing (`:380`, `:386`). | recovers the depth-2 gain when all the stake re-roots within 10 slots; the gain scales with the share that re-roots (Phase 2b) |
+| F. cousin parents' bodies | A cousin `C` with parent `U` is verified against the state its leader proved against: the state of the fork point `G` after `U`'s transactions, validated as a block's are. A node that accepted `U` already holds that state. Every accepted block was executed (`cryptarchia-v1-protocol.md:463`), and the node keeps a ledger state per block until the block is pruned (`ledger/src/lib.rs:149`). A fork is pruned once it diverges below the latest immutable block (`:499`), which lies at least `k` blocks, so at least 2 160 slots, below the tip (`:124`). The window spans 360 slots. So a node that validates `A` within `k − W·f⁻¹` = 1 800 slots of `sl_A` still holds `U` if it accepted it. A validator that lacks `U` downloads it, as it downloads an orphan's missing ancestors (`cryptarchia-v1-bootstr-sync.md:97`, `:180`). Peers serve any block of their block tree (`block_provider.rs:136`). The stored block that carries `C` also carries `U`'s uncle headers and transactions, for nodes that synchronise after `U` is pruned. `U`'s `body_root` commits to them, so the proposal, the header and the block ID of `A` do not change. | No PoL, circuit, header or proposal change, so no Blend change. No spent note gains eligibility. The stored block grows by one body per cousin parent: up to `MAX_BLOCK_SIZE` plus 1 445 bytes of uncle headers. Transactions the chain already holds could be stored by reference. Bodies are needed for at most the depth-2 share of §4: 0.07 % of occupied slots at ρ ≈ 0.36, 1.3 % at ρ ≈ 0.96. A node that holds none of the parents executes up to `1 + MAX_UNCLES` blocks to validate one. A validator that receives `A` before `U` cannot validate `A` until it has `U` (Phase 2d). It records no verdict meanwhile, as for an unresolved reference (`bedrock-v1.1-block-construction.md:334`). The mempool matters only for the first acceptance of `U`, as for any block. The node keeps a transaction 10 minutes after a chain block includes it, so that a competing proposal still resolves (`pool.rs:31`, `:89`). It keeps a pending transaction 1 hour by default (`pool.rs:35`, configurable), and a proof-of-work claim 600 slots past its 300-slot acceptance window (`powclaim.rs:30–31`). Each exceeds the window. None is specified. Depth 3 needs two bodies, executed in order. Changes: the uncle rules and the counted set (Cryptarchia); the stored block and "the carried `uncle_headers` are not executed" (Block Construction `:211–216`, `:397`); downloading a cousin's parent (Synchronization); in the node, `uncle.rs:116–122` and `:131–134`. | sound, no per-message cost; adds to re-rooting only where little of the stake re-roots, or late (Phases 2b and 2d, §6 questions 5 and 6) |
 
 Blend's proof of quota reads `ledger_AGED` only, so route A does not touch it.
 
@@ -263,17 +263,84 @@ Every gate must be shown to fail under a mutation of the code it guards before i
   - Residual: at ρ ≈ 1.76 and U = 4, depth 2 and the ceiling leave the same 0.27 pp of
     depth-2 slots uncounted. The window, the cap and the proposer's view bind those slots, not
     the ancestry condition.
-- **Phase 2b — re-rooting in the simulator (route E).** *Next.*
-  - Model: a leader whose block `X` sits at depth ≥ 2 in its own view publishes a copy of `X`
-    at `sl_X` with parent the fork point `G`. It does so after a delay for detecting the
-    orphaning and proving. The copy then travels like a block, and the spec 1.2.5 rule counts
-    it as an uncle. Two parameters: the share of leaders that re-root, and the delay.
-  - Re-rooting adds no rule per depth, so it re-roots every depth ≥ 2. The analysis reports
-    depth 2 and depth ≥ 3 apart.
-  - Arms, paired: depth 1 (the spec), depth 2, the ceiling, and re-rooting from full
-    participation at zero delay down to partial participation at realistic delays.
-  - Gates: at zero participation, re-rooting is bit-identical to depth 1; counting rejects no
-    copy that selection emits; a hand-built tree pins which copies count.
+- **Phase 2b — re-rooting in the simulator (route E).** *Done.*
+  - Model (`SimConfig.reroot_share`, `reroot_delay`):
+    - Nodes holding a share of the stake re-root. The set is drawn once per replicate, so every
+      arm of a replicate has the same set.
+    - A re-rooting leader watches each of its blocks `X` whose parent is not genesis. Its view
+      puts `X` at depth ≥ 2 from the moment its best tip leaves the subtree of `X`'s parent. The
+      watch replays the leader's arrivals in time order, so the detection time is exact.
+    - The leader publishes a copy `reroot_delay` slots later. The copy has the slot `sl_X`, and
+      its parent is the fork point of `X` and that tip. It travels like a block, on its own
+      random stream. It joins the uncle candidates of every later block, and fork choice never
+      sees it. The spec 1.2.5 rule counts it as the first block of a fork.
+    - One copy per block. The watch stops `W·f⁻¹` slots after `sl_X`, when no copy can enter a
+      window any more.
+    - Re-rooting runs on the full arrival matrix, because the watch reads the leader's arrivals
+      and the prune drops them. Both matrices give the same tree (`test_pernode` parity).
+  - Gates (`tests/test_reroot.py`):
+    - the watch on a hand-built fork: a sibling of `X` keeps it at depth 1; a branch outside the
+      parent's subtree puts it at depth 2, including one produced before `X`; simultaneous
+      arrivals are taken by rank;
+    - the watch against a brute-force replay of every leader's view on simulated epochs: the
+      same copies, fork points and detection times;
+    - a hand-built tree pins which copies count, in the oracle and both kernels, and a counted
+      copy covers its slot in `lost_slots`;
+    - selection takes a copy in view in age order, and only inside the window;
+    - a zero share is the spec arm, key included; copies that arrive too late change no other
+      column; counting rejects no copy that selection emits;
+    - `test_lost_slots_match_the_measured_count` extended to re-rooting;
+    - 34 mutations of the Phase 2b and 2d code each fail a gate, and every gate passes without
+      them.
+  - Sweep: `configs/reroot-overload-paired.yaml`, the Phase 2 overload grid (k = 2160) at
+    U = 1 / 2 / 4, with 20 paired replicates: 2 160 trajectories. Arms: depth 1, depth 2, the
+    ceiling, and re-rooting by half or all of the stake at a delay of 0, 10 or 60 slots.
+    Analysis: `scripts/reroot_analysis.py`. Its 216 paired gaps, each re-rooting arm against
+    depth 1, depth 2 and the ceiling, form one family. The Bonferroni threshold is |t| = 4.53.
+  - Checks:
+    - The depth arms reproduce the Phase 2 overload run in every column of all 12 980 epoch
+      rows.
+    - Counting rejected no entry that selection emitted, in any trajectory
+      (`deep_ref_share` = 0).
+    - No arm sits above D̂/D = 1 beyond noise (largest z = 1.52 over 108 cells).
+  - Share of the depth-2 gain that re-rooting recovers, `(arm − depth 1) / (depth 2 − depth 1)`,
+    by the share of the stake that re-roots and the delay in slots (* the gap to depth 2 is
+    resolved):
+
+    | ρ | U | depth 2 − 1 | all, 0 | all, 10 | all, 60 | half, 0 | half, 10 | half, 60 |
+    |---|---|---|---|---|---|---|---|---|
+    | 0.96 | 2 | +0.0120 | 1.07 | 1.04 | 1.05 | 0.56 * | 0.55 * | 0.52 * |
+    | 0.96 | 4 | +0.0125 | 0.99 | 0.99 | 1.01 | 0.55 * | 0.57 * | 0.54 * |
+    | 1.76 | 2 | +0.0348 | 1.02 | 0.96 | 0.75 * | 0.54 * | 0.51 * | 0.39 * |
+    | 1.76 | 4 | +0.0400 | 1.01 | 0.96 | 0.72 * | 0.54 * | 0.53 * | 0.39 * |
+
+  - Reading:
+    - Re-rooting by all the stake within 10 slots recovers the depth-2 gain. No gap to depth 2
+      is resolved there. The largest is −0.0017 ± 0.0007 (|t| = 2.3, ρ ≈ 1.76, U = 4,
+      10 slots). At ρ ≈ 1.76 and U = 4, the 0-slot arm gives D̂/D = 0.9896, against 0.9892 at
+      depth 2 and 0.9492 at depth 1.
+    - A 60-slot delay costs a quarter of the gain at ρ ≈ 1.76: −0.0088 ± 0.0007 (U = 2) and
+      −0.0110 ± 0.0010 (U = 4) against depth 2. At ρ ≈ 0.96 it costs nothing resolved.
+    - Half the stake recovers about half the gain: 0.51–0.57 at a delay of 10 slots or less
+      (U ≥ 2). At ρ ≈ 1.76 a 60-slot delay brings that to 0.39.
+    - Copies also cover depth ≥ 3. At ρ ≈ 1.76 and U = 4, all the stake at 0 slots leaves
+      0.09 pp of occupied slots lost at depth ≥ 3, against 0.24 pp at depth 2 and 0.05 pp for
+      the ceiling. It leaves 0.45 pp lost at depth 2, against 0.27 pp for depth 2 and the
+      ceiling. That share grows with the delay: 0.54 pp at 10 slots and 1.47 pp at 60. Net,
+      re-rooting is level with depth 2 and 0.0023 ± 0.0004 below the ceiling (|t| = 5.3).
+    - A leader detects the orphaning 14–15 slots after the block's slot on average at
+      ρ ≈ 0.96, and 28–29 slots after it at ρ ≈ 1.76.
+    - At ρ ≈ 0.56 all the stake gains +0.0028 to +0.0035 at U ≥ 2, resolved and level with
+      the ceiling. At ρ ≈ 0.36 no gap to depth 1 is resolved (largest |t| = 2.1). Both gains
+      stay under 0.4 pp, below the ±0.9 % per-epoch noise.
+    - At U = 1 and ρ ≈ 0.96 all the stake gains +0.0067 to +0.0070, level with the ceiling
+      (largest |t| = 0.4). At ρ ≈ 1.76 no rule gains more than +0.0020, and re-rooting gains at
+      most +0.0018 (|t| ≤ 2.5). Depth-1 loss is 31 % of occupied slots there: the single entry
+      per block binds before any depth does. All the stake makes copies for 12.1 % of occupied
+      slots, and 0.6 % count.
+    - Copies made by all the stake: 0.07–0.08 % of occupied slots at ρ ≈ 0.36, 0.30–0.32 % at
+      ρ ≈ 0.56, 1.2–1.4 % at ρ ≈ 0.96 and 4.7–5.4 % at ρ ≈ 1.76 (U ≥ 2). Half the stake makes
+      about half as many. Each costs one proving run and one Blend message (§3.2).
 - **Phase 2c — snapshot-only references in the simulator (route C).**
   - Honest gain: the ceiling with the window measured to each entry's own slot
     (`uncle_depth = 0`, `uncle_window_anchor = "uncle"`, `uncle_order = "uncle"`). It runs paired
@@ -287,15 +354,31 @@ Every gate must be shown to fail under a mutation of the code it guards before i
     snapshot's stake, and the block rate falls to about `f(1 − σ)`.
   - Gates: at σ = 0 the spent-stake arm is bit-identical to the honest arm; a hand-built tree
     pins which entries count.
-- **Phase 2d — the live path of route F in the simulator.**
+- **Phase 2d — the live path of route F in the simulator.** *Done.*
   - Route F counts what depth 2 counts, so Phase 2 already measured its gain.
-  - Metric, on the depth-2 arm of the Phase 2b sweeps: for every chain block `A` that carries
-    a cousin `C` with parent `U`, the share of nodes that receive `A` before `U`, and by how
-    many slots. Those nodes must download `U` before they validate `A`.
-  - The simulator makes a block usable at a node only after its parent (`blocktree.py:498`),
-    so the proposer that carries `C` holds `U`. It models neither the download nor its effect
-    on fork choice, so the metric is a static price.
-  - Gate: a hand-built arrival matrix pins the share.
+  - Metric (`BlockTree.parent_wait`, `fork.parent_wait`), under any deeper rule: per block, the
+    nodes that receive it before they hold every off-chain parent of its entries, their total
+    wait and the longest. It is read over the canonical window blocks of the depth-2 arm of the
+    Phase 2b sweep. Those nodes must download `U` before they validate `A`.
+  - The simulator makes a block usable at a node only after its parent (`blocktree.py:699`),
+    so the proposer that carries `C` holds `U`. The wait runs until `U` arrives by broadcast.
+    The simulator models neither the download nor its effect on fork choice, so the metric is a
+    static price.
+  - Gates (`tests/test_reroot.py`): hand-built parents and arrival columns pin the wait, with
+    two off-chain parents and with a pruned one; it matches a recount from the full matrix in
+    every block; the pruned and full matrices give the same rows.
+  - Results (`scripts/reroot_analysis.py`; `scripts/parent_wait_blocks.py` re-runs the
+    trajectories with a wait and lists the blocks):
+    - Blocks with an entry whose parent is off the chain: 0.08–0.10 % of canonical window
+      blocks at ρ ≈ 0.36, 0.38–0.42 % at ρ ≈ 0.56, 1.6–1.9 % at ρ ≈ 0.96, and 6.6–6.8 % at
+      ρ ≈ 1.76 (1.6 % at U = 1).
+    - A node waits in 6 of the 4 345 epochs of the 240 trajectories, burn-in included. Each
+      time one block makes it wait.
+    - In all six, the leader of `A` also produced `U` and `C`, and `A` carried both. The nodes
+      that wait received `A` before `U`, although `U` was produced 5 to 39 slots before `A`.
+    - In three of them, 999 of the 1 000 nodes wait: 2.4 slots on average (3.8 at most) at
+      ρ ≈ 0.96, and 1.9 (3.1) and 12.7 (13.95) slots at ρ ≈ 1.76. In the other three, 9 to
+      53 nodes wait at most 0.52 slots.
 - **Phase 3 — the minimal rule set for route A.**
   - The parent rule at maximum depth 2.
   - The lag `L = 1` as one constant, with its constraint where it is defined:
@@ -332,13 +415,20 @@ Every gate must be shown to fail under a mutation of the code it guards before i
 - **Phase 6 — decision.**
   - Depth 2 goes to an RFC only if the PoL owners accept `L = 1` and its gain clears the
     ±0.9 % per-epoch noise at the ρ projected for production (§3.7).
-  - Re-rooting changes no rule. If Phase 2b shows a gain that clears the same noise, it is
-    proposed as leader behaviour next to Uncle Selection.
+  - Re-rooting changes no rule. It is proposed as leader behaviour next to Uncle Selection if
+    its gain clears the same noise at the production ρ. Phase 2b: by all the stake within
+    10 slots it clears the noise wherever depth 2 does on the overload grid, at ρ ≈ 0.96 and
+    1.76 with U ≥ 2. Half the stake gains 0.63–0.71 pp at ρ ≈ 0.96, under the noise, and
+    1.4–2.2 pp at ρ ≈ 1.76.
   - Route C goes to an RFC only if the PoL owners accept the unchecked root, Phase 4 bounds the
     spent stake, and Phase 2c shows a gain over re-rooting that clears the same noise.
   - Route F needs no PoL change. It goes to an RFC only if depth 2 clears the same noise at the
-    production ρ, re-rooting leaves a share of that gain which clears it too (Phase 2b), and
-    Phase 2d shows that few validators receive `A` before `U`.
+    production ρ, and re-rooting leaves a share of that gain which clears it too.
+    - Phase 2b: all the stake within 10 slots leaves no share resolved. Half the stake leaves
+      0.53–0.58 pp at ρ ≈ 0.96 and 1.6–2.5 pp at ρ ≈ 1.76. A 60-slot delay leaves 0.9–1.1 pp
+      at ρ ≈ 1.76. The case for route F therefore rests on §6, question 6.
+    - Phase 2d: a validator waits for `U` only when the leader of `A` produced it, in 6 of
+      4 345 epochs.
   - Depth 3 needed its gain over depth 2 to clear that noise. It did not (Phase 2).
   - A depth that fails is recorded in the report as an overload contingency (§8.3).
 
@@ -348,7 +438,7 @@ Every gate must be shown to fail under a mutation of the code it guards before i
    route A from Phase 3 on. Re-rooting (Phase 2b) does not depend on it.
 2. What ρ does production expect (Blend budget, N, peering degree)? Depth 2 gains under
    0.4 pp up to ρ ≈ 0.56. At U ≥ 2 it passes the ±0.9 % per-epoch noise from ρ ≈ 0.9
-   (Phase 2).
+   (Phase 2). Re-rooting by all the stake recovers the same gain (Phase 2b).
 3. ~~Should the simulator defaults move to the spec 1.2.5 rule?~~ Decided 2026-10-19: not on
    this branch. Its configs set the spec rule explicitly. Moving the defaults is a separate
    task, done together with re-pinning the report to 1.2.5 (§7).
@@ -358,6 +448,13 @@ Every gate must be shown to fail under a mutation of the code it guards before i
    lacks `U` waits for it, as one that lacks a transaction does. Would the Block Construction
    owners accept that? Cryptarchia 1.2.0 made uncle availability structural
    (`cryptarchia-v1-protocol.md:392`); route F gives that up for cousins on the proposal path.
+   In Phase 2d a node waited in 6 of 4 345 epochs, at most 13.95 slots, each time for a `U`
+   that the leader of `A` produced.
+6. How much of the stake would re-root, and how soon after detecting the orphaning? Uncles earn
+   nothing (`cryptarchia-v1-protocol.md:380`, `:386`), so re-rooting is node behaviour without
+   an incentive. Its gain scales with the share that re-roots, and a 60-slot delay costs a
+   quarter of it at ρ ≈ 1.76 (Phase 2b). The answer decides between re-rooting alone and
+   route F.
 
 ## 7. Drift found outside this study
 
