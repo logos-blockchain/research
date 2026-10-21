@@ -1091,14 +1091,16 @@ Steps:
   1. *Random delay.* The private race with a premined lead, scored `T` slots after the target:
      B4's exact chance `P(n, t)` averaged over the canonical blocks the honest chain makes in the
      wait, in closed form at A1's growth; and the race played on the engine's timelines, scored
-     at `T`. Gates: at a fixed depth the closed form returns B5's; on the timelines the race beats
-     the wait at `1e-3` within its error.
+     at `T`. Gates: the chance at every depth is B4's; the closed form matches the race played on
+     its model's slots; on a chain with one block every `c` slots a wait of `d·c` is the depth
+     `d`, target by target.
   2. *The worst case, a bound.* Once the prefix up to the target's slot lies `D` deep, B2 bounds
-     its displacement. After `T` slots it lies at least `N − Z − 1` deep, `N` the honest blocks
-     made `Δ` apart within the wait (B5's renewal law) and `Z` the coalition's private lead at
-     the target's slot (the stationary law of its wins against those renewals), independent of
-     `N`. So `ε(T) ≤ min_D [B2(D) + P(N − Z − 1 < D)]`. Gates: the bound lies above the played
-     attack at every `T`, and falls with `T`.
+     its displacement. After `T` slots it lies at least `N − W − 2` deep, `N` the honest
+     renewals of the wait, honest wins at least `Δ` apart, each delivered within it (B5's law),
+     and `W` the coalition's private lead at the target's slot, the stationary excess of its wins
+     over those renewals, independent of `N`. So `ε(T) ≤ min_D [B2(D) + P(N − W − 2 < D)]`.
+     Gates: `W`'s law matches the walk it stands for, sampled; the bound lies above the private
+     race played on the worst case's own timelines, and falls with `T`.
   3. *The worst case, the attack.* B3's delay-scheduling attack on the slot lottery, scored `T`
      slots after the target.
   Each gate has a mutation that fails it. Table: `T` at `1e-6` and `1e-9` for `α` from 5 % to a
