@@ -1150,7 +1150,11 @@ worst case at 10 s, no fork reaches past the near slots. Eleven mutations fail t
 - **B2 and B3** become waits. K.1 bounds a wait of `T` slots by B2's bound at the depth the wait
   guarantees, with the honest chain's growth over the wait and the coalition's lead at the target,
   and plays B3's private race scored `T` slots after the target. Against a third at `Δ = 10` s and
-  `1e-9` the wait is 26.3 hours, where 1,510 blocks take 23.0 on the worst-case clock.
+  `1e-9` the wait is 26.3 hours, where 1,510 blocks take 23.0 on the worst-case clock. K.7 bounds the
+  wait in GRR's own model instead, their chain frozen at the phase in which the wait passes: 10.1
+  hours on the slot lottery. It also finds that LCanalysis freezes its depth bound at half the
+  count the paper's argument needs; at the paper's count B2's depths halve, 755 blocks against a
+  third at 10 s.
 - **B4's depth rule** becomes a wait, which K.1 gives under random delay: 5.1 hours against a third
   on the specification's Blend, where 276 blocks take 4.1. B4's elapsed-time rule reads blocks and
   time, and stays a client's rule beside the protocol's `K`.

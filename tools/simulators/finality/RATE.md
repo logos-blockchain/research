@@ -366,7 +366,9 @@ intervals, `D = f·Δ`, so at `Δ = 10` s 20 s blocks read the bound 30 s blocks
 - **Under the worst case a faster block rate needs a longer `K`.** A fixed delay costs more block
   intervals as blocks speed up. Against a third the wait grows from 26.3 hours at 30 s blocks to
   29.6 at 20 s and 41.1 at 15 s, and against 30 % from 15.5 to 16.1 and 20.1. Against a quarter it
-  moves within an hour, 8.3, 8.1 and 9.2 hours.
+  moves within an hour, 8.3, 8.1 and 9.2 hours. The bound computed in GRR's own model on the slot
+  lottery keeps the order at under half the times: against a third 10.1, 12.5 and 20.4 hours
+  (`SLOTS.md` K.7).
 - **Under random delay a faster rate shortens the wait against a quarter only.** In B5's closed
   form the wait falls from 1.7 to 1.4 hours against a quarter, holds at 3.0–3.1 against 30 %, and
   grows from 5.1 to 6.2 against a third. The closed form over-asks as orphans rise; the race fitted

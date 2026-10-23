@@ -566,6 +566,8 @@ setting's `Δ` (`scripts/k5_further.py`):
 
 From the specification's setting to testnet's, against a third under the worst case, the depth
 falls to 49 %, 1,649 to 812 blocks, its time to 41 %, and the wait to 45 %, 29.0 to 13.0 hours.
+The bound computed in GRR's own model on the slot lottery falls to 46 %, 11.2 to 5.1 hours
+(`SLOTS.md` K.7).
 Under random delay the depth falls to 62 % and the wait to 58 %, 5.1 to 2.9 hours.
 
 **G4: a wait reads no rate.** The elapsed-time rule settles a chain nobody withholds from in 39 / 53
@@ -611,7 +613,9 @@ and 73 % with one.
 **G7: a deflation costs less counted in slots.** Under the worst case it grows B2's depth by
 24–61 % and its time by at most 17 %, as G7's table gives. Under random delay the deflated race
 needs more blocks in less time: 334 blocks in 3.4 hours against a third, where the race at the true
-thresholds needs 257 in 3.7. `SLOTS.md` K.2 reads both as waits.
+thresholds needs 257 in 3.7. `SLOTS.md` K.2 reads both as waits. Under K.7's bound a deflation
+lengthens the worst-case wait against a third at 10 s from 10.1 to 12.4 hours, by 23 %, and a cap
+on the correction prices it in epochs (`SLOTS.md` K.7, K.8).
 
 **G5 does not move.** An anchor still settles no partition, now one whose divergence is older than
 `K`.

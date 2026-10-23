@@ -836,5 +836,6 @@ With `k` counted in slots (`SLOTS.md` K.0), the three designs move little.
   compute it within the `4⌊k/f⌋` slots before the nonce is first used. Both are in slots and keep
   their lengths with the epoch (`SLOTS.md` K.4).
 - **H.3's rules already read time.** The observed counting rule reads `(n, t)`, and a wait is the
-  rule that reads `t` alone: K.1 bounds it from B2 and the honest chain's growth over the wait. A
-  bound read at `(n, t)` is still not derived.
+  rule that reads `t` alone: K.1 bounds it from B2 and the honest chain's growth over the wait, and
+  K.7 in GRR's own model, 10.1 hours against a third at 10 s. A bound read at `(n, t)` is still not
+  derived.

@@ -184,6 +184,9 @@ Reading:
   the coalition withholds from grows faster on the engine than A1's convention, as B3 and B4
   found, so the closed form errs on the safe side.
 
+K.7 bounds the same worst-case wait in GRR's own model, at 10.1 hours against a third at 10 s on the
+slot lottery, and reads K.2 to K.5 again under that bound.
+
 Gates (`tests/test_slots.py`, `tests/test_k2.py`):
 
 - the chance at every depth, in one pass, is B4's `P(n, t)`;
@@ -204,7 +207,8 @@ Each gate fails under a registered mutation of its function (`scripts/check_muta
 
 ## K.2 — what a `K` holds
 
-`scripts/k2_holds.py`, with runs in `runs/k2/`.
+`scripts/k2_holds.py`, with runs in `runs/k2/`. K.7 reads the worst-case parts again under a bound
+computed in GRR's own model, which shortens every worst-case wait to under half.
 
 **What is read.** `K` is read at `⌊k/f⌋` and `3⌊k/f⌋` slots for each `k` of B5 and 1620: the time
 `k` blocks take at the full rate with no forks, and the specification's slot parameter `s`. A `K`
@@ -746,3 +750,510 @@ Each note ends with a section that reads it in slots:
   in slots without a floor finalizes both sides.
 - **`DAG.md`.** J.0 already counted `k` in slots, so nothing moves; retraction outlasts every `K`.
 - **`SETTLEMENT.md`.** B2–B7, each pointed to its part of K.1–K.4.
+
+## K.7 — a wait in GRR's own model
+
+`src/finality_sim/waitbound.py` and `scripts/k7_wait.py`, with runs in `runs/k7/`.
+
+**Why K.1's bound is loose.** B2 freezes LCanalysis's chain at the earliest moment the target could
+lie `D` deep: when the coalition's lead, the honest successes and twice the coalition's successes
+since the target reach `D`. Against a third that count grows by `4/3` a block interval. K.1 then
+also waits for the honest chain to grow `D` blocks at its slowest, about `0.55` a block interval at
+10 s. Each step is sound. Together they ask for B2's depth at the honest chain's slowest pace, where
+B2 itself froze more than twice as early.
+
+**The bound.** The paper's Lemma 10 keeps the prefix up to slot `ℓ` in every dominant chain from
+`t` on if the margin `μ_ℓ` is negative at every time from `t`. A wait of `T` slots fixes that
+prefix at `ℓ + T`, so it fails only if `μ_ℓ ≥ 0` at some time from `ℓ + T`. LCanalysis's chain bounds
+the margin phase by phase. The bound runs the same chain, with the same symbols, transitions, final
+vector and stationary reach where it starts, and freezes it at the phase in which the wait passes
+instead of at B2's count:
+
+- **The clock.** A phase is a wait for the next success, exponential with a mean of one block
+  interval, and, for a phase of `h` honest successes, a span below `h·Δ`. The clock counts each
+  wait rounded up to a slot and each span as `h·Δ`, so it runs ahead of time. The chain therefore
+  freezes at, or before, the phase in which `T` passes, and keeps the state after that phase, which
+  bounds the margin over all of it.
+- **The start.** The phase that covers the target is weighted by its length, which is at most its
+  wait plus `h·Δ`, over the mean phase, `1/g` block intervals with `g = e^(−(1 − α)·D)` and `D` the
+  delay in block intervals. The clock starts at that phase's start, before the target. The weights
+  add `g + (1 − α)·D − 1` to the mass.
+- **Slots.** The paper computes in continuous time, and B2 reads it at `D = f·Δ`. On the lottery a
+  phase also holds the slot of its first honest success, so the coalition wins in `Δ + 1` slots of
+  a lone honest success, where continuous time gives it `Δ`. The bound runs the chain at `Δ + 1`
+  slots and `λ = −ln(1 − f)` successes a slot, whose chance of at least one success per slot is the
+  lottery's. Per honest phase the coalition then wins at least as often as on the lottery, and the
+  honest depth needs gaps of `Δ + 1`. The continuous reading, at `Δ` and `f`, sits beside it.
+
+The attack's estimate – the bound on slots, in hours, beside K.1's table (`runs/k7/worst.csv`):
+
+ε = 1e-6, hours
+
+| α | 1 s | 2 s | 3 s | 5 s | 8 s | 10 s | 15 s | 20 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.05 | ≤ 0.2 – 0.2 | ≤ 0.2 – 0.2 | ≤ 0.2 – 0.2 | ≤ 0.2 – 0.3 | ≤ 0.2 – 0.3 | ≤ 0.2 – 0.4 | ≤ 0.3 – 0.5 | ≤ 0.3 – 0.8 |
+| 0.10 | 0.2 – 0.3 | 0.2 – 0.4 | 0.2 – 0.4 | 0.2 – 0.4 | 0.2 – 0.5 | 0.3 – 0.5 | 0.3 – 0.8 | 0.4 – 1.2 |
+| 0.15 | 0.3 – 0.5 | 0.3 – 0.5 | 0.3 – 0.6 | 0.4 – 0.6 | 0.4 – 0.7 | 0.4 – 0.8 | 0.5 – 1.1 | 0.6 – 1.7 |
+| 0.20 | 0.5 – 0.8 | 0.5 – 0.8 | 0.5 – 0.8 | 0.6 – 0.9 | 0.7 – 1.1 | 0.7 – 1.3 | 0.9 – 1.8 | 1.1 – 2.8 |
+| 0.25 | 0.8 – 1.2 | 0.9 – 1.3 | 0.9 – 1.3 | 1.0 – 1.5 | 1.2 – 1.8 | 1.3 – 2.1 | 1.7 – 3.1 | 2.2* – 4.9 |
+| 0.30 | 1.5* – 2.0 | 1.6* – 2.2 | 1.7* – 2.3 | 1.9* – 2.7 | 2.3* – 3.3 | 2.6* – 3.9 | 3.6* – 6.2 | 5.0* – 10.7 |
+| a third | 2.3* – 3.1 | 2.5* – 3.4 | 2.7* – 3.6 | 3.1* – 4.2 | 3.8* – 5.5 | 4.4* – 6.7 | 6.7* – 11.5 | 10.5* – 22.3 |
+
+ε = 1e-9, hours
+
+| α | 1 s | 2 s | 3 s | 5 s | 8 s | 10 s | 15 s | 20 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.05 | ≤ 0.2 – 0.4 | ≤ 0.2 – 0.4 | ≤ 0.2 – 0.4 | ≤ 0.2 – 0.4 | 0.2 – 0.5 | 0.2 – 0.5 | 0.3 – 0.8 | 0.3 – 1.2 |
+| 0.10 | 0.3 – 0.5 | 0.3 – 0.6 | 0.3 – 0.6 | 0.3 – 0.6 | 0.4 – 0.7 | 0.4 – 0.8 | 0.5 – 1.2 | 0.6 – 1.7 |
+| 0.15 | 0.5 – 0.8 | 0.5 – 0.8 | 0.5 – 0.9 | 0.6 – 0.9 | 0.6 – 1.1 | 0.7 – 1.2 | 0.8 – 1.7 | 1.0 – 2.6 |
+| 0.20 | 0.8 – 1.2 | 0.8 – 1.2 | 0.8 – 1.3 | 0.9 – 1.4 | 1.0 – 1.7 | 1.1 – 1.9 | 1.4 – 2.7 | 1.7 – 4.2 |
+| 0.25 | 1.3 – 1.8 | 1.3 – 1.9 | 1.4 – 2.0 | 1.5* – 2.3 | 1.8* – 2.8 | 2.0* – 3.2 | 2.6* – 4.7 | 3.3* – 7.4 |
+| 0.30 | 2.2* – 3.1 | 2.4* – 3.3 | 2.5* – 3.5 | 2.9* – 4.0 | 3.4* – 5.0 | 3.9* – 5.9 | 5.4* – 9.4 | 7.7* – 16.1 |
+| a third | 3.5* – 4.7 | 3.8* – 5.1 | 4.1* – 5.5 | 4.7* – 6.4 | 5.8* – 8.4 | 6.8* – 10.1 | 10.2* – 17.4 | 16.0* – 33.5 |
+
+K.1's bound over the continuous reading, at `1e-9`:
+
+| α | 1 s | 2 s | 3 s | 5 s | 8 s | 10 s | 15 s | 20 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.05 | 2.55 | 2.60 | 2.64 | 2.72 | 2.81 | 2.84 | 2.76 | 2.57 |
+| 0.10 | 2.56 | 2.60 | 2.63 | 2.70 | 2.77 | 2.79 | 2.76 | 2.63 |
+| 0.15 | 2.57 | 2.60 | 2.63 | 2.69 | 2.75 | 2.78 | 2.77 | 2.68 |
+| 0.20 | 2.59 | 2.62 | 2.65 | 2.70 | 2.76 | 2.78 | 2.79 | 2.74 |
+| 0.25 | 2.61 | 2.64 | 2.67 | 2.72 | 2.78 | 2.80 | 2.83 | 2.80 |
+| 0.30 | 2.65 | 2.68 | 2.70 | 2.75 | 2.81 | 2.84 | 2.88 | 2.88 |
+| a third | 2.68 | 2.71 | 2.73 | 2.78 | 2.84 | 2.87 | 2.92 | 2.93 |
+
+The bound on slots over the continuous reading, at `1e-9`:
+
+| α | 1 s | 2 s | 3 s | 5 s | 8 s | 10 s | 15 s | 20 s |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.05 | 1.010 | 1.013 | 1.017 | 1.027 | 1.045 | 1.058 | 1.089 | 1.108 |
+| 0.10 | 1.015 | 1.018 | 1.021 | 1.029 | 1.043 | 1.054 | 1.082 | 1.105 |
+| 0.15 | 1.020 | 1.023 | 1.026 | 1.033 | 1.045 | 1.055 | 1.080 | 1.105 |
+| 0.20 | 1.026 | 1.029 | 1.032 | 1.039 | 1.050 | 1.059 | 1.083 | 1.109 |
+| 0.25 | 1.034 | 1.037 | 1.040 | 1.047 | 1.058 | 1.067 | 1.092 | 1.121 |
+| 0.30 | 1.045 | 1.048 | 1.052 | 1.060 | 1.073 | 1.082 | 1.111 | 1.147 |
+| a third | 1.056 | 1.060 | 1.064 | 1.073 | 1.089 | 1.101 | 1.137 | 1.187 |
+
+Reading:
+
+- **A wait needs well under half of what K.1 read.** Against a third at 10 s and `1e-9` the bound
+  is 10.1 hours on slots and 9.2 in the continuous reading, where K.1 bounds 26.3. K.1 is 2.55
+  to 2.93 times the continuous reading at every cell. Against 30 % the bound is 5.9 hours, against
+  15.5.
+- **It lies below B2's depth on its own clock.** 1,510 blocks take 23.0 hours on the worst-case
+  clock at 10 s, and the wait is 10.1. The proven wait now asks less time than the proven depth.
+- **Under the worst case at 2 to 3 s a wait costs what random delay costs on the specification's
+  Blend.** Against a third the bound on slots is 4.7 hours at 1 s and 5.5 at 3 s, where the
+  random-delay wait is 5.10.
+- **The slot costs 1 to 19 %.** It weighs most where the delay is long and the coalition large,
+  where the bound lies nearest the edge of the secure region: 10 % against a third at 10 s and 19 %
+  at 20 s.
+- **Against a third the attack's estimate lies at 0.48 to 0.75 of the bound,** nearest at short
+  delays: 3.5 hours against 4.7 at 1 s, 6.8 against 10.1 at 10 s, and 16.0 against 33.5 at 20 s.
+- **B2 itself freezes at half the paper's count.** The paper's text puts the earliest error at
+  `ρ + h + 2a ≥ 2k`: two chains of `k` blocks above the target, the coalition's wins counting on
+  both. The code freezes at `ρ + h + 2a ≥ k`, and its Table 1 uses that count. At the text's count
+  B2's depth at `1e-9` halves: 755 blocks against a third at 10 s instead of 1,510, and 446 against
+  30 % instead of 892. The study keeps the code's count for every depth in blocks.
+
+**Checks.** The wait with half-slot levels, with twice the states, and with each phase's span
+charged at the depth it adds, which the span exceeds, so that the last is no bound and brackets
+what the `h·Δ` charge costs (`runs/k7/checks.csv`):
+
+| α | Δ | variant | wait at 1e-6 (h) | wait at 1e-9 (h) |
+| --- | --- | --- | --- | --- |
+| a third | 10 s | the bound | 6.69 | 10.11 |
+| a third | 10 s | half-slot levels | 6.64 | 10.04 |
+| a third | 10 s | twice the states | 6.69 | 10.11 |
+| a third | 10 s | spans at the depth they add | 6.37 | 9.64 |
+| a third | 20 s | the bound | 22.30 | 33.47 |
+| a third | 20 s | half-slot levels | 22.19 | 33.31 |
+| a third | 20 s | twice the states | 22.33 | 33.53 |
+| a third | 20 s | spans at the depth they add | 19.09 | 28.76 |
+| 0.10 | 10 s | the bound | 0.54 | 0.81 |
+| 0.10 | 10 s | half-slot levels | 0.53 | 0.81 |
+| 0.10 | 10 s | twice the states | 0.54 | 0.81 |
+| 0.10 | 10 s | spans at the depth they add | 0.49 | 0.75 |
+| a third | 1 s | the bound | 3.12 | 4.75 |
+| a third | 1 s | half-slot levels | 3.09 | 4.71 |
+| a third | 1 s | twice the states | 3.12 | 4.75 |
+| a third | 1 s | spans at the depth they add | 3.11 | 4.74 |
+
+- Half-slot levels shorten the bound by under 1 %, and twice the states change it by under 0.2 %.
+- The `h·Δ` charge costs 4.6 % against a third at 10 s and 14 % at 20 s, where phases hold most
+  honest successes.
+
+**The bound against its chain and against the attack.** The continuous reading beside its chain
+played on phases drawn in continuous time with their true lengths, targets at uniform times; and
+the bound on slots beside the paper's attack played against a wait on the slot lottery. The
+attack's late successes come in clusters, one long-lived fork beating many targets in a row, so its
+standard error is the spread of 16 runs' rates (`runs/k7/played.csv`):
+
+| α | Δ | wait (h) | continuous reading | its chain, true lengths | reading over its chain | bound on slots | the paper's attack on slots |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| a third | 10 s | 0.25 | 4.65e-01 | 4.31e-01 ± 6.2e-04 | 1.08 | 5.04e-01 | 3.51e-01 ± 2.1e-03 |
+| a third | 10 s | 0.50 | 2.51e-01 | 2.29e-01 ± 5.3e-04 | 1.10 | 2.87e-01 | 1.68e-01 ± 1.8e-03 |
+| a third | 10 s | 1.00 | 7.89e-02 | 6.90e-02 ± 3.2e-04 | 1.14 | 1.00e-01 | 4.47e-02 ± 8.4e-04 |
+| a third | 10 s | 2.00 | 8.37e-03 | 5.97e-03 ± 9.6e-05 | 1.40 | 1.29e-02 | 3.40e-03 ± 3.5e-04 |
+| 0.25 | 5 s | 0.25 | 5.66e-02 | 4.83e-02 ± 2.7e-04 | 1.17 | 6.52e-02 | 3.71e-02 ± 6.9e-04 |
+| 0.25 | 5 s | 0.50 | 5.32e-03 | 4.56e-03 ± 8.4e-05 | 1.17 | 6.78e-03 | 2.80e-03 ± 1.7e-04 |
+| 0.25 | 5 s | 1.00 | 5.20e-05 | 2.03e-05 ± 5.6e-06 | 2.56 | 8.07e-05 | 1.16e-05 ± 8.5e-06 |
+| 0.25 | 5 s | 2.00 | 5.21e-09 | 0 | – | 1.19e-08 | 0 |
+| a third | 1 s | 0.25 | 2.04e-01 | 1.91e-01 ± 4.9e-04 | 1.07 | 2.22e-01 | 1.82e-01 ± 1.4e-03 |
+| a third | 1 s | 0.50 | 6.10e-02 | 5.76e-02 ± 2.9e-04 | 1.06 | 7.06e-02 | 5.23e-02 ± 1.0e-03 |
+| a third | 1 s | 1.00 | 6.16e-03 | 5.99e-03 ± 9.6e-05 | 1.03 | 8.01e-03 | 4.69e-03 ± 3.2e-04 |
+| a third | 1 s | 2.00 | 6.93e-05 | 3.91e-05 ± 7.8e-06 | 1.77 | 1.13e-04 | 7.08e-05 ± 5.5e-05 |
+
+- **The clock costs little.** The continuous reading lies 3 to 40 % above its chain where the
+  chain fails more often than once in a thousand, more as the wait grows, since the clock's lead
+  over time accumulates; and up to 2.56 times above where the chain's rate rests on a few dozen
+  failures.
+- **The bound on slots lies above the attack at every wait.** The attack reaches 0.82 of it at 1 s
+  and a quarter of an hour, and 0.26 to 0.70 at 10 s.
+
+**K.2 read again.** The largest share each `K` holds at `1e-9` under the bound, with K.2's factors
+(`runs/k7/holds.csv`):
+
+K = ⌊k/f⌋
+
+| model | case | k = 2160 | k = 1620 | k = 1080 | k = 432 | k = 216 | k = 120 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| worst, 1 s | no grinding | ≥ a third | ≥ a third | ≥ a third | 0.312 | 0.248 | 0.180 |
+| worst, 1 s | today's nonce, one ground | ≥ a third | ≥ a third | 0.318 | 0.268 | 0.225 | 0.174 |
+| worst, 1 s | today's nonce, two ground | ≥ a third | 0.326 | 0.307 | 0.260 | 0.217 | 0.169 |
+| worst, 1 s | a deflated inference | ≥ a third | ≥ a third | ≥ a third | ≥ a third | 0.275 | 0.205 |
+| worst, 10 s | no grinding | ≥ a third | ≥ a third | 0.327 | 0.261 | 0.194 | 0.126 |
+| worst, 10 s | today's nonce, one ground | 0.313 | 0.298 | 0.275 | 0.228 | 0.183 | 0.123 |
+| worst, 10 s | today's nonce, two ground | 0.298 | 0.286 | 0.267 | 0.220 | 0.177 | 0.120 |
+| worst, 10 s | the nonce of §3.1 under its delay | ≥ a third | ≥ a third | 0.326 | 0.261 | 0.193 | 0.125 |
+| worst, 10 s | a deflated inference | ≥ a third | ≥ a third | 0.319 | 0.261 | 0.198 | 0.130 |
+| worst, 20 s | no grinding | 0.306 | 0.290 | 0.264 | 0.185 | 0.104 | < 0.05 |
+| worst, 20 s | today's nonce, one ground | 0.256 | 0.242 | 0.223 | 0.171 | 0.101 | < 0.05 |
+| worst, 20 s | today's nonce, two ground | 0.248 | 0.235 | 0.216 | 0.165 | 0.099 | < 0.05 |
+| worst, 20 s | a deflated inference | 0.270 | 0.256 | 0.233 | 0.163 | 0.091 | < 0.05 |
+
+K = 3⌊k/f⌋
+
+| model | case | k = 2160 | k = 1620 | k = 1080 | k = 432 | k = 216 | k = 120 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| worst, 1 s | no grinding | ≥ a third | ≥ a third | ≥ a third | ≥ a third | ≥ a third | 0.297 |
+| worst, 1 s | today's nonce, one ground | ≥ a third | ≥ a third | ≥ a third | 0.329 | 0.290 | 0.257 |
+| worst, 1 s | today's nonce, two ground | ≥ a third | ≥ a third | ≥ a third | 0.316 | 0.281 | 0.249 |
+| worst, 1 s | a deflated inference | ≥ a third | ≥ a third | ≥ a third | ≥ a third | ≥ a third | 0.323 |
+| worst, 10 s | no grinding | ≥ a third | ≥ a third | ≥ a third | ≥ a third | 0.293 | 0.245 |
+| worst, 10 s | today's nonce, one ground | ≥ a third | ≥ a third | ≥ a third | 0.285 | 0.249 | 0.217 |
+| worst, 10 s | today's nonce, two ground | ≥ a third | 0.332 | 0.315 | 0.276 | 0.242 | 0.210 |
+| worst, 10 s | the nonce of §3.1 under its delay | ≥ a third | ≥ a third | ≥ a third | ≥ a third | 0.293 | 0.245 |
+| worst, 10 s | a deflated inference | ≥ a third | ≥ a third | ≥ a third | 0.327 | 0.289 | 0.246 |
+| worst, 20 s | no grinding | ≥ a third | ≥ a third | 0.325 | 0.276 | 0.224 | 0.166 |
+| worst, 20 s | today's nonce, one ground | 0.311 | 0.298 | 0.278 | 0.232 | 0.196 | 0.156 |
+| worst, 20 s | today's nonce, two ground | 0.292 | 0.281 | 0.265 | 0.224 | 0.189 | 0.151 |
+| worst, 20 s | a deflated inference | 0.310 | 0.301 | 0.287 | 0.244 | 0.198 | 0.146 |
+
+At 10 s, without grinding / with two ground nonces, beside K.1's bound:
+
+| k | K = ⌊k/f⌋: K.1's bound | K = ⌊k/f⌋: K.7's bound | K = 3⌊k/f⌋: K.1's bound | K = 3⌊k/f⌋: K.7's bound |
+| --- | --- | --- | --- | --- |
+| 2160 | 0.310 / 0.254 | ≥ a third / 0.298 | ≥ a third / 0.304 | ≥ a third / ≥ a third |
+| 1620 | 0.290 / 0.240 | ≥ a third / 0.286 | ≥ a third / 0.292 | ≥ a third / 0.332 |
+| 1080 | 0.257 / 0.218 | 0.327 / 0.267 | ≥ a third / 0.274 | ≥ a third / 0.315 |
+| 432 | 0.164 / 0.153 | 0.261 / 0.220 | 0.273 / 0.228 | ≥ a third / 0.276 |
+| 216 | 0.077 / 0.075 | 0.194 / 0.177 | 0.208 / 0.186 | 0.293 / 0.242 |
+| 120 | < 0.05 / < 0.05 | 0.126 / 0.120 | 0.142 / 0.135 | 0.245 / 0.210 |
+
+The wait against 30 % and a third at `1e-9` in each case, K.1's in brackets, beside the two
+candidates at `k = 2160` (`runs/k7/waits.csv`):
+
+| model | case | 30 %: wait (h), K.1's bound in brackets | a third: wait (h), K.1's bound in brackets | K = 64,800 (18 h): 30 % / a third | K = 194,400 (54 h): 30 % / a third |
+| --- | --- | --- | --- | --- | --- |
+| worst, 1 s | no grinding | 3.1 (7.9) | 4.7 (12.0) | yes / yes | yes / yes |
+| worst, 1 s | one ground nonce, lower end | 6.2 (15.5) | 11.2 (28.3) | yes / yes | yes / yes |
+| worst, 1 s | one ground nonce, upper end | 6.6 (16.7) | 11.6 (29.2) | yes / yes | yes / yes |
+| worst, 1 s | two ground nonces, lower end | 6.8 (17.0) | 13.6 (34.3) | yes / yes | yes / yes |
+| worst, 1 s | two ground nonces, upper end | 7.7 (19.5) | 15.8 (39.8) | yes / yes | yes / yes |
+| worst, 1 s | deflated | 2.3 (5.7) | 3.4 (8.4) | yes / yes | yes / yes |
+| worst, 10 s | no grinding | 5.9 (15.5) | 10.1 (26.3) | yes / yes | yes / yes |
+| worst, 10 s | one ground nonce, lower end | 13.6 (35.7) | 25.9 (67.4) | yes / no | yes / yes |
+| worst, 10 s | one ground nonce, upper end | 14.1 (36.8) | 26.7 (69.4) | yes / no | yes / yes |
+| worst, 10 s | two ground nonces, lower end | 16.1 (42.0) | 38.3 (99.5) | yes / no | yes / yes |
+| worst, 10 s | two ground nonces, upper end | 18.7 (49.0) | 42.0 (109.1) | no / no | yes / yes |
+| worst, 10 s | deflated | 6.4 (15.9) | 12.4 (29.8) | yes / yes | yes / yes |
+| worst, 10 s | nonce §3.1, two nonces at H.2's bound | 6.0 (15.6) | 10.2 (26.6) | yes / yes | yes / yes |
+| worst, 10 s | deflated, nonce §3.1 at H.2's bound at the old rates | 6.4 (16.0) | 12.5 (30.1) | yes / yes | yes / yes |
+| worst, 20 s | no grinding | 16.1 (40.4) | 33.5 (82.6) | yes / no | yes / yes |
+| worst, 20 s | one ground nonce, lower end | 40.8 (102.4) | 92.8 (229.3) | no / no | yes / no |
+| worst, 20 s | one ground nonce, upper end | 42.1 (105.5) | 95.5 (235.9) | no / no | yes / no |
+| worst, 20 s | two ground nonces, lower end | 59.6 (149.4) | 152.2 (376.1) | no / no | no / no |
+| worst, 20 s | two ground nonces, upper end | 65.7 (164.8) | 156.0 (385.4) | no / no | no / no |
+| worst, 20 s | deflated | 38.9 (83.2) | 156.2 (past the curve) | no / no | yes / no |
+
+The chance of displacement after each candidate at 10 s, and the largest grinding factor on that
+chance it absorbs (`runs/k7/absorbs.csv`):
+
+| α | K | chance after K slots | largest factor absorbed | after a deflated inference: chance / factor |
+| --- | --- | --- | --- | --- |
+| 0.30 | 64,800 | 9.4e-28 | 1.1e+18 | 7.2e-26 / 1.4e+16 |
+| 0.30 | 194,400 | < 1e-55 | > 1e46 | < 1e-55 / > 1e46 |
+| a third | 64,800 | 1.2e-16 | 8.4e+06 | 8.4e-14 / 1.2e+04 |
+| a third | 194,400 | 3.2e-48 | 3.2e+38 | 8.0e-40 / 1.2e+30 |
+
+- **`⌊k/f⌋` = 18 hours holds a third at 10 s.** Without grinding the wait is 10.1 hours, with the
+  nonce of §3.1 under its delay 10.2, and after a deflated inference 12.4, or 12.5 with that nonce.
+  The chance after 64,800 slots is 1.2e-16, a factor of 8.4e+06 to spare, and 8.4e-14 after a
+  deflation.
+- **With today's nonce 18 hours does not hold a third at 10 s.** One ground nonce needs 25.9–26.7
+  hours and two need 38.3–42.0. Against 30 % 18 hours holds up to the lower end of two ground
+  nonces, 16.1 hours, and not its upper end, 18.7.
+- **`3⌊k/f⌋` = 54 hours holds a third at 10 s in every case**, today's nonce with two ground nonces
+  included, and absorbs a factor of 3.2e+38, or 1.2e+30 after a deflation.
+- **At 20 s 54 hours holds a third only without grinding or a deflation.** The wait is 33.5 hours
+  without grinding, 92.8–156.0 with today's nonce and 156.2 after a deflated inference.
+- **Against `k` in blocks.** At 10 s `⌊k/f⌋` slots now hold what `k = 2160` blocks hold without
+  grinding, a third, and more with two ground nonces, 0.298 against 0.288 (`SETTLEMENT.md` B5, B6).
+
+**K.3 read again.** The floor at the least `K` that holds a third at 10 s without grinding, beside
+K.3's rows (`runs/k7/floor.csv`):
+
+| K | α_max | delay | floor φ | withheld-from chain, mean | nobody withholds: waits | withheld from: waits | largest side held at K | its honest part, the coalition signing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| K.7's least against a third at 10 s, 10.1 h | 0.25 | random, specification | 613 | 772 | 2e-45 | 9e-10 | 0.389 | 0.139 |
+| K.7's least against a third at 10 s, 10.1 h | 0.25 | worst, 10 s | 604 | 730 | 3e-45 | 9e-10 | 0.383 | 0.133 |
+| K.7's least against a third at 10 s, 10.1 h | 0.3 | random, specification | 568 | 721 | 1e-56 | 1e-9 | 0.357 | 0.057 |
+| K.7's least against a third at 10 s, 10.1 h | 0.3 | worst, 10 s | 567 | 691 | 8e-57 | 9e-10 | 0.356 | 0.056 |
+| K.7's least against a third at 10 s, 10.1 h | a third | random, specification | 537 | 687 | 4e-65 | 8e-10 | 0.334 | 0.001 |
+| K.7's least against a third at 10 s, 10.1 h | a third | worst, 10 s | 542 | 665 | 2e-65 | 1e-9 | 0.338 | 0.005 |
+
+- At 10.1 hours the floor against a third is 537 blocks under random delay and 542 under the worst
+  case, and a protocol takes the lower, 537. It holds back a cut-off side of at most a third, so at
+  so short a window the floor protects against an eclipse by the coalition and against no
+  partition the coalition signs on.
+
+**K.5 read again.** The block rate, against 25 %, 30 % and a third at 10 s, beside K.1's bound
+(`runs/k7/rate.csv`):
+
+| block interval | 0.25: K.7 / K.1 (h) | 0.30: K.7 / K.1 (h) | a third: K.7 / K.1 (h) |
+| --- | --- | --- | --- |
+| 30 s | 3.2 / 8.3 | 5.9 / 15.5 | 10.1 / 26.3 |
+| 20 s | 3.3 / 8.1 | 6.6 / 16.1 | 12.5 / 29.6 |
+| 15 s | 4.2 / 9.2 | 9.5 / 20.1 | 20.4 / 41.1 |
+
+A1's Blend settings at their worst-case delay, beside the random-delay wait (`runs/k7/blend.csv`):
+
+| hops | rounds | Δ | 0.30: random delay / worst, K.7 (K.1) (h) | a third: random delay / worst, K.7 (K.1) (h) |
+| --- | --- | --- | --- | --- |
+| 1 | 1 | 2 s | 2.0 / 3.3 (8.4) | 2.9 / 5.1 (13.0) |
+| 1 | 2 | 3 s | 2.0 / 3.5 (9.1) | 3.1 / 5.5 (14.1) |
+| 1 | 3 | 4 s | 2.1 / 3.8 (9.7) | 3.3 / 5.9 (15.3) |
+| 1 | 5 | 6 s | 2.3 / 4.3 (11.3) | 3.6 / 7.0 (18.2) |
+| 1 | 8 | 9 s | 2.7 / 5.5 (14.3) | 4.3 / 9.2 (23.9) |
+| 1 | 12 | 13 s | 3.4 / 7.7 (20.2) | 5.7 / 13.8 (35.7) |
+| 3 | 1 | 5 s | 2.5 / 4.0 (10.5) | 3.9 / 6.4 (16.7) |
+| 3 | 2 | 8 s | 2.9 / 5.0 (13.2) | 4.7 / 8.4 (21.8) |
+| 3 | 3 | 11 s | 3.1 / 6.5 (16.9) | 5.1 / 11.2 (29.0) |
+| 3 | 5 | 16 s | 4.4 / 10.4 (26.7) | 8.0 / 19.6 (49.9) |
+| 3 | 8 | 24 s | 5.8 / 26.7 (64.5) | 11.6 / 62.7 (147.9) |
+
+- **Faster blocks still need a longer `K` under the worst case, by less.** Against a third at 10 s
+  the wait is 10.1 hours at 30 s blocks, 12.5 at 20 s and 20.4 at 15 s, where K.1 read 26.3, 29.6
+  and 41.1.
+- **From the specification's Blend to testnet's** the worst-case wait against a third falls from
+  11.2 hours to 5.1, to 46 %, where K.1 read 29.0 to 13.0.
+
+**Verdict.** H22 holds. Against a third at 10 s and `1e-9` the bound is 10.1 hours on slots and 9.2
+in the continuous reading, under half of K.1's 26.3, and `⌊k/f⌋` = 18 hours holds a third at 10 s
+without grinding: the chance after it is 1.2e-16. H19's first part, that `⌊k/f⌋` does not hold a
+third at 10 s, held under K.1's bound and fails under this one. H18 holds by more: the wait is 0.44
+times B2's depth on its clock.
+
+Gates (`tests/test_waitbound.py`):
+
+- with LCanalysis's counts as costs and no wait, the level pass is B1's `ub_curve` within `1e-12`;
+- the covering phase's weights sum to `g + (1 − α)·D`;
+- the phases drawn in continuous time follow `PoSSlotPdf`'s law;
+- on hand-built runs the played chain freezes in the phase in which the wait passes, and the attack
+  holds two chains at the public depth until the symbols it should;
+- the continuous reading lies above its chain played with true lengths, and within a factor of
+  `1/0.7` of it;
+- per honest phase the slot lottery gives the coalition at most the wins of the reading on slots,
+  which is the continuous chain at `Δ + 1` and `λ`, and more than the continuous reading's;
+- a deflated inference is the slot lottery at `f' = 1 − (1 − f)^(1/(1 − α))`, and lengthens the wait
+  at 10 s;
+- the bound on slots lies above the paper's attack against a wait on the slot lottery, with the
+  spread of runs as its error.
+
+Each fails under a registered mutation (`scripts/check_mutations.py`).
+
+## K.8 — a capped correction
+
+`src/finality_sim/cap.py` and `scripts/k8_cap.py`, with runs in `runs/k8/`.
+
+**The rule.** The inference corrects each epoch's estimate in full from the occupied slots of the
+observation period, the first `P = 6⌊k/f⌋` slots of the epoch before
+(`cryptarchia-total-stake-inference.md`, `beta = 1`): `D' = D·N/(f·P)`. A cap `c` bounds each
+correction: `D' ≥ (1 − c)·D`. The inference reads a side cut off from the rest as stake that left,
+and stake that left as a side cut off. A cap therefore lengthens both alike: how long a side stays
+below the floor, and how long finality stalls after the active stake falls.
+
+**The reading.** The floor is K.3's, the worst case's at 10 s against a third. A side at its
+fastest holds one block per slot it occupies. Corrections take effect at an epoch's start, `E`
+slots apart. A split at a period's start is first corrected one epoch later, the earliest. A fall
+just after a period ends is first corrected `2E − P` later, 1.4 epochs, the latest. The protection
+is read at its earliest and the stall at its latest.
+
+- **The density form.** A side can fix a fork once its stake over its estimate passes `σ*`, the
+  largest share whose chain reaches the floor within `K` with chance at most `ε`, and a window after
+  the correction that takes it there. A chain whose stake fell resumes once its stake over its
+  estimate reaches `r*`, the least share whose chain reaches the floor within `K` with chance
+  `1 − ε`, and a window after.
+- **The depth form.** A side fixes a fork once it has made `φ + 1` blocks and its first is `K` slots
+  old, at a rate that steps up with each correction.
+
+| K | floor φ | σ*: the largest side it holds back | r*: the least stake that reaches it, random delay | r*, worst case at 10 s |
+| --- | --- | --- | --- | --- |
+| ⌊k/f⌋, 18 h | 1,019 | 0.385 | 0.665 | 0.666 |
+| 3⌊k/f⌋, 54 h | 3,264 | 0.449 | 0.656 | 0.667 |
+
+The days a side of share `σ` stays below the floor, at the earliest (`runs/k8/protection.csv`):
+
+K = ⌊k/f⌋, days: density form / depth form
+
+| σ | none | 20 % | 10 % | 5 % | 2 % |
+| --- | --- | --- | --- | --- | --- |
+| 0.10 | 8.25 / 3.49 | 53.25 / 3.49 | 98.25 / 3.49 | 203 / 3.49 | 503 / 3.49 |
+| 0.20 | 8.25 / 1.75 | 23.25 / 1.75 | 53.25 / 1.75 | 98.25 / 1.75 | 248 / 1.75 |
+| 0.25 | 8.25 / 1.40 | 15.75 / 1.40 | 38.25 / 1.40 | 68.25 / 1.40 | 166 / 1.40 |
+| 0.30 | 8.25 / 1.17 | 15.75 / 1.17 | 23.25 / 1.17 | 38.25 / 1.17 | 98.25 / 1.17 |
+| a third | 8.25 / 1.05 | 8.25 / 1.05 | 15.75 / 1.05 | 23.25 / 1.05 | 60.75 / 1.05 |
+| 0.40 | 0.75 / 0.88 | 0.75 / 0.88 | 0.75 / 0.88 | 0.75 / 0.88 | 0.75 / 0.88 |
+| 0.45 | 0.75 / 0.78 | 0.75 / 0.78 | 0.75 / 0.78 | 0.75 / 0.78 | 0.75 / 0.78 |
+
+K = 3⌊k/f⌋, days: density form / depth form
+
+| σ | none | 20 % | 10 % | 5 % | 2 % |
+| --- | --- | --- | --- | --- | --- |
+| 0.10 | 9.75 / 7.88 | 54.75 / 10.43 | 115 / 10.80 | 227 / 10.98 | 565 / 11.09 |
+| 0.20 | 9.75 / 5.59 | 32.25 / 5.59 | 62.25 / 5.59 | 122 / 5.59 | 310 / 5.59 |
+| 0.25 | 9.75 / 4.48 | 24.75 / 4.48 | 47.25 / 4.48 | 92.25 / 4.48 | 220 / 4.48 |
+| 0.30 | 9.75 / 3.73 | 17.25 / 3.73 | 32.25 / 3.73 | 62.25 / 3.73 | 152 / 3.73 |
+| a third | 9.75 / 3.36 | 17.25 / 3.36 | 24.75 / 3.36 | 47.25 / 3.36 | 115 / 3.36 |
+| 0.40 | 9.75 / 2.81 | 9.75 / 2.81 | 17.25 / 2.81 | 24.75 / 2.81 | 47.25 / 2.81 |
+| 0.45 | 2.25 / 2.50 | 2.25 / 2.50 | 2.25 / 2.50 | 2.25 / 2.50 | 2.25 / 2.50 |
+
+- **Under the density form a cap holds a side back for months.** At `3⌊k/f⌋` a cap of 5 % keeps a
+  side of 0.3 provisional for 62 days and one of 0.1 for 227, where without a cap every side below
+  0.449 fixes its fork after 9.75 days. At `⌊k/f⌋` the same cap gives 38 and 203 days.
+- **Under the depth form a cap buys almost nothing.** A side of 0.2 or more makes its `φ + 1` blocks
+  before its first correction: 3.4 days at a third and 5.6 at 0.2 at `3⌊k/f⌋`, whatever the cap.
+  Only a side of 0.1 gains, from 7.9 days to 11.
+- **The protection holds per window.** A side has one chance at `ε` per window of `K` slots, most
+  of them in the last epoch before it passes `σ*`.
+
+What a fall of the active stake to `r` costs, with nobody withholding, at the latest
+(`runs/k8/stall.csv`):
+
+K = ⌊k/f⌋, days: the density form's stall, random delay / worst case at 10 s
+
+| r | none | 20 % | 10 % | 5 % | 2 % |
+| --- | --- | --- | --- | --- | --- |
+| 80 % | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| 70 % | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| 60 % | 11.25 / 11.25 | 11.25 / 11.25 | 11.25 / 11.25 | 18.75 / 26.25 | 48.75 / 48.75 |
+| 50 % | 11.25 / 11.25 | 18.75 / 18.75 | 26.25 / 26.25 | 48.75 / 48.75 | 116 / 116 |
+| 40 % | 11.25 / 11.25 | 26.25 / 26.25 | 41.25 / 41.25 | 78.75 / 78.75 | 199 / 199 |
+
+K = 3⌊k/f⌋, days: the density form's stall, random delay / worst case at 10 s
+
+| r | none | 20 % | 10 % | 5 % | 2 % |
+| --- | --- | --- | --- | --- | --- |
+| 80 % | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| 70 % | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| 60 % | 12.75 / 12.75 | 12.75 / 12.75 | 12.75 / 12.75 | 20.25 / 27.75 | 42.75 / 50.25 |
+| 50 % | 12.75 / 12.75 | 20.25 / 20.25 | 27.75 / 27.75 | 50.25 / 50.25 | 110 / 118 |
+| 40 % | 12.75 / 12.75 | 27.75 / 27.75 | 42.75 / 42.75 | 80.25 / 80.25 | 193 / 200 |
+
+K = 3⌊k/f⌋, random delay: under the depth form, the days until a block made at the fall is fixed; the days until the chain fills its slots within 5 % of f
+
+| r | depth form | slow, none | slow, 20 % | slow, 10 % | slow, 5 % | slow, 2 % |
+| --- | --- | --- | --- | --- | --- | --- |
+| 80 % | 2.25 | 10.50 | 10.50 | 18.00 | 33.00 | 70.50 |
+| 70 % | 2.25 | 10.50 | 18.00 | 25.50 | 48.00 | 123 |
+| 60 % | 2.25 | 10.50 | 25.50 | 40.50 | 70.50 | 176 |
+| 50 % | 2.66 | 10.50 | 25.50 | 55.50 | 100 | 243 |
+| 40 % | 3.32 | 10.50 | 33.00 | 70.50 | 130 | 326 |
+
+- **The density form stalls whenever the active stake falls below `r*`, with a cap or without.**
+  Below about two thirds of the stake the chain no longer reaches the floor with chance `1 − ε`.
+  Without a cap finality waits for the first correction: 12.75 days at the latest at `3⌊k/f⌋`. A
+  cap of 5 % stretches a fall to half to 50 days, and a fall to 60 % to 20 days under random delay
+  and 28 under the worst case.
+- **The depth form never stalls.** A block made as the stake halves is fixed after 2.7 days instead
+  of 2.25.
+- **A capped chain stays slow.** After a fall to half the chain fills its slots within 5 % of `f`
+  again after 10.5 days without a cap, 100 at 5 % and 243 at 2 %.
+
+The protection against a side of 0.3 over the stall after a fall to half (`runs/k8/ratio.csv`):
+
+| K | cap | protection, a side of 0.3 (days) | stall after a fall to 50 %, random / worst (days) | protection over stall, random / worst |
+| --- | --- | --- | --- | --- |
+| ⌊k/f⌋ | none | 8.25 | 11.25 / 11.25 | 0.73 / 0.73 |
+| ⌊k/f⌋ | 20 % | 15.75 | 18.75 / 18.75 | 0.84 / 0.84 |
+| ⌊k/f⌋ | 10 % | 23.25 | 26.25 / 26.25 | 0.89 / 0.89 |
+| ⌊k/f⌋ | 5 % | 38.25 | 48.75 / 48.75 | 0.78 / 0.78 |
+| ⌊k/f⌋ | 2 % | 98.25 | 116 / 116 | 0.85 / 0.85 |
+| 3⌊k/f⌋ | none | 9.75 | 12.75 / 12.75 | 0.76 / 0.76 |
+| 3⌊k/f⌋ | 20 % | 17.25 | 20.25 / 20.25 | 0.85 / 0.85 |
+| 3⌊k/f⌋ | 10 % | 32.25 | 27.75 / 27.75 | 1.16 / 1.16 |
+| 3⌊k/f⌋ | 5 % | 62.25 | 50.25 / 50.25 | 1.24 / 1.24 |
+| 3⌊k/f⌋ | 2 % | 152 | 110 / 118 | 1.38 / 1.29 |
+
+- **No cap separates a split from a fall.** The protection against a side of 0.3 lasts 0.73 to 1.38
+  times the stall after a fall to half, at every cap and both `K`. Each needs the estimate to fall
+  by a set ratio, and the cap sets only how many corrections that takes.
+
+The periods of withholding a coalition needs to lower the inferred stake by its share, under each
+cap (G7; `runs/k8/deflation.csv`):
+
+| cap an epoch | α = 0.25 | α = 0.30 | α = a third |
+| --- | --- | --- | --- |
+| 20 % | 2 periods: 9.0 days withheld, 15.0 in all | 2 periods: 9.0 days withheld, 15.0 in all | 2 periods: 9.0 days withheld, 15.0 in all |
+| 10 % | 3 periods: 13.5 days withheld, 22.5 in all | 4 periods: 18.0 days withheld, 30.0 in all | 4 periods: 18.0 days withheld, 30.0 in all |
+| 5 % | 6 periods: 27.0 days withheld, 45.0 in all | 7 periods: 31.5 days withheld, 52.5 in all | 8 periods: 36.0 days withheld, 60.0 in all |
+| 2 % | 15 periods: 67.5 days withheld, 112.5 in all | 18 periods: 81.0 days withheld, 135.0 in all | 21 periods: 94.5 days withheld, 157.5 in all |
+
+- **The cap also prices G7's deflation.** At 5 % a coalition of a third withholds for 8 periods,
+  36 days, over 60 days in all; at 2 % for 94.5 days over 157.5.
+
+**The specification's target is truncated.** `total_stake_inference` computes
+`f_p = truncate(f·PRECISION)` with `PRECISION = 1e3`, so for `f = 1/30` the inference aims at 0.033
+occupied slots a slot, 1 % below `f`. Played in its own integer arithmetic with every unit of stake
+producing, it rests with the estimate 1 % above the stake and a block every 30.3 seconds
+(`runs/k8/spec.csv`):
+
+| f | f_p | occupied slots a slot at rest | estimate over the stake | block interval (s) |
+| --- | --- | --- | --- | --- |
+| 1/30 | 33 | 0.0330 | 1.0103 | 30.30 |
+| 1/20 | 50 | 0.0500 | 1.0000 | 20.00 |
+
+At `f = 1/20` the product is whole and the target is `f`.
+
+**Verdict.** H23 holds under random delay, and under the worst case at 10 s fails in its second
+part. A cap of 5 % keeps a side of 0.3 below the density floor for 62 days at `3⌊k/f⌋`. A fall to
+60 % then stalls finality for 20.25 days under random delay, within three epochs, and for 27.75
+under the worst case, past them. The protection against a side of 0.3 lasts at most 1.38 times the
+stall after a fall to half.
+
+Gates (`tests/test_cap.py`):
+
+- the estimate follows the specification's correction, played period by period with binomial counts
+  of occupied slots and the cap, within 1 %;
+- the specification's integer inference rests at 0.033 for `f = 1/30` and at `f` for `1/20`;
+- under the worst case the least share that reaches the floor at `1 − ε` is the honest share the
+  floor was sized for;
+- the protection counts corrections from the split, one an epoch, and a window after;
+- the stall and the slow chain read the first correction `2E − P` after a fall;
+- without a cap the blocks come as K.3's `after_correction` reads them, within 0.5 %;
+- with a cap of zero the earliest slot by which a side holds `n` blocks with chance `ε` lies at or
+  before the binomial's, within 0.5 %.
+
+Each fails under a registered mutation (`scripts/check_mutations.py`).

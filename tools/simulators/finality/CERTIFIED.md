@@ -358,7 +358,7 @@ of the stake, so nothing in D0–D5 reads `k`'s unit.
   against a quarter of the stake at `Δ = 10` s. Counted in slots the target must be old enough
   instead, and a certificate under that delay model still comes no sooner than the wait K.1 bounds
   at `1e-3`. Where it then makes the block final at the round's `ε`, settlement on the chain needs
-  the waits of K.1, not the depths of B2.
+  the waits of K.1 and K.7, not the depths of B2.
 - **A partition separates the two notions.** Certificates stall on both sides of a partition that
   cuts off more than 9 % of the honest stake at 25 %, while the chain continues. Counted in slots,
   each side's `B_imm` passes the split `K` slots after it, unless finality waits on density

@@ -1070,4 +1070,5 @@ retraction than a depth does: a balance that stands for ever with a positive cha
 `K`. E5's finding that a depth in layers holds only at the delay it was set for is the case for a
 `k` in slots on the DAG, and J.4's rules, which J did not run, are K.0's. Beside the chain, the
 comparison moves from B2's depths to K.1's waits: against a third at `Δ = 10` s the chain's bound
-needs 26.3 hours as a wait, where its depth takes 23.0 on the worst-case clock (`RATE.md`).
+needs 26.3 hours as a wait, where its depth takes 23.0 on the worst-case clock (`RATE.md`), and
+10.1 hours under the bound K.7 computes in GRR's own model.
