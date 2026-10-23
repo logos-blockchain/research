@@ -57,6 +57,12 @@ class EpochResult:
     parent_wait_node_share: float
     parent_wait_mean: float
     parent_wait_max: float
+    # Spent stake (PLAN.md Phase 2c): the window slots that hold a block, per slot; the window
+    # slots only the spent coalition won, per slot; and the share of those the count covers (NaN
+    # when there are none).
+    block_rate: float
+    spent_win_rate: float
+    spent_counted_share: float
 
 
 def _canonical_producer_split(
@@ -109,12 +115,14 @@ def simulate_epoch(
     inactive_mask: np.ndarray | None = None,
     coalition_ids: np.ndarray | None = None,
     reroot_mask: np.ndarray | None = None,
+    spent_mask: np.ndarray | None = None,
 ) -> EpochResult:
     """``adversary_mask`` drives BEHAVIOUR this epoch (None == honest); ``coalition_mask`` is the
     fixed coalition identity used only for reward attribution (so a rejoin epoch, mask None, still
     credits the coalition's honestly-produced blocks). Defaults to ``adversary_mask`` when unset.
     ``coalition_ids`` splits the adversary into rival selfish groups (``engine._coalition_ids``).
     ``reroot_mask`` marks the nodes that re-root (``engine._reroot_mask``; None == none).
+    ``spent_mask`` marks the nodes whose notes are spent (``engine._spent_mask``; None == none).
     """
     f, T, E = config.f, config.period_T, config.epoch_len
     lottery_ss, aux_ss = epoch_ss.spawn(2)
@@ -133,7 +141,8 @@ def simulate_epoch(
     tree, A = build_tree_pernode(active_slots, groups, path_latency, config, aux_rng,
                                  adversary_mask=adversary_mask,
                                  coalition_ids=coalition_ids,
-                                 reroot_mask=reroot_mask, reroot_rng=reroot_rng)
+                                 reroot_mask=reroot_mask, reroot_rng=reroot_rng,
+                                 spent_mask=spent_mask)
 
     # measurement: each node's own canonical chain, deduped by tip + numba-accelerated
     ms = measure(tree, A, active_slots, T, cutoff=E,
@@ -159,8 +168,9 @@ def simulate_epoch(
     lost = fork.lost_slots(tree, A, T, cutoff=E,
                            scope_refs=config.ref_scope == "window" and config.uncle_model != "old")
     occ = lost.occupied or 1
-    made = (tree.copy_slot >= 0) & (tree.copy_slot < T)
+    made = (tree.copy_of >= 0) & (tree.copy_slot >= 0) & (tree.copy_slot < T)
     lag = tree.copy_pub[made] - tree.copy_slot[made]
+    lone, lone_counted = lost.spent
     pw = fork.parent_wait(tree, A, T, cutoff=E, n_nodes=config.n_nodes)
 
     return EpochResult(
@@ -181,4 +191,6 @@ def simulate_epoch(
         reroot_lag_mean=float(lag.mean()) if lag.size else float("nan"),
         parent_wait_block_share=pw.block_share, parent_wait_node_share=pw.node_share,
         parent_wait_mean=pw.wait_mean, parent_wait_max=pw.wait_max,
+        block_rate=lost.occupied / T, spent_win_rate=lone / T,
+        spent_counted_share=lone_counted / lone if lone else float("nan"),
     )

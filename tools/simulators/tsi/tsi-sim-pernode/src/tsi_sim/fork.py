@@ -94,11 +94,13 @@ def fork_stats(tree: BlockTree, A, T: int, cutoff: int,
     mean_depth = float(branch_depths.mean()) if branch_depths.size else 0.0
 
     # p_ref: fraction of in-window orphans referenced as an uncle by a canonical block, directly
-    # or through a re-rooted copy
+    # or through a re-rooted copy (a spent win stands for no block)
     referenced = np.zeros(nb, dtype=bool)
     for b in np.nonzero(canonical)[0]:
         for u in tree.uncles[b]:
-            referenced[tree.original(u)] = True
+            o = tree.original(u)
+            if o >= 0:
+                referenced[o] = True
     ref_orphans = int((orphan_in_win & referenced).sum())
     p_ref = ref_orphans / n_orphan if n_orphan else 1.0
 
@@ -128,6 +130,8 @@ class LostSlots:
                                           # first block of its fork) is a counted uncle
     rerooted: tuple[int, int, int, int] = (0, 0, 0, 0)   # slots only counted re-rooted copies
                                           # cover, by the same depth; not lost
+    spent: tuple[int, int] = (0, 0)       # slots of [0, T) only the spent coalition won (no
+                                          # block holds them), and those the count covers
 
     @property
     def lost(self) -> int:
@@ -143,9 +147,10 @@ def lost_slots(tree: BlockTree, A, T: int, cutoff: int, scope_refs: bool = True)
     blocks (``canonical_and_depth``). ``d2_parent_ref`` marks the depth-2 lost slots a cousin rule
     could count: those with a block whose parent is a counted uncle. A counted re-rooted copy
     covers its original's slot; the slots only copies cover are filed under ``rerooted`` instead.
+    A counted spent win covers its slot too.
 
-    ``occupied - lost`` equals the slot count ``measure`` reads from the same chain (asserted in
-    tests/test_fork.py), so the depth shares sum to the estimator's own shortfall.
+    ``occupied - lost + spent[1]`` equals the slot count ``measure`` reads from the same chain
+    (asserted in tests/test_fork.py), so the depth shares sum to the estimator's own shortfall.
     """
     nb = tree.n_blocks
     if nb <= 1:
@@ -154,13 +159,18 @@ def lost_slots(tree: BlockTree, A, T: int, cutoff: int, scope_refs: bool = True)
     in_win = (tree.slot >= 0) & (tree.slot < T) & (np.arange(nb) > 0)
     counted = np.zeros(nb, dtype=bool)
     copy_slots: set[int] = set()
+    spent_slots: set[int] = set()
     for b in np.nonzero(canonical & in_win if scope_refs else canonical)[0]:
         for u in tree.uncles[b]:
             if u < nb:
                 counted[u] = True
-            else:
+            elif tree.copy_of[u - nb] >= 0:
                 copy_slots.add(int(tree.copy_slot[u - nb]))
-    covered = set(tree.slot[in_win & (canonical | counted)].tolist())
+            else:
+                spent_slots.add(int(tree.copy_slot[u - nb]))
+    occupied = set(tree.slot[in_win].tolist())
+    lone = {int(s) for s in tree.copy_slot[tree.copy_of < 0] if 0 <= s < T} - occupied
+    covered = set(tree.slot[in_win & (canonical | counted)].tolist()) | spent_slots
     shallowest: dict[int, int] = {}
     parent_ref: set[int] = set()
     for b in np.nonzero(in_win & ~canonical)[0]:
@@ -175,11 +185,12 @@ def lost_slots(tree: BlockTree, A, T: int, cutoff: int, scope_refs: bool = True)
     rerooted = [0, 0, 0, 0]
     for s, d in shallowest.items():
         (rerooted if s in copy_slots else by_depth)[min(d, 4) - 1] += 1
-    return LostSlots(occupied=len(set(tree.slot[in_win].tolist())),
+    return LostSlots(occupied=len(occupied),
                      by_depth=(by_depth[0], by_depth[1], by_depth[2], by_depth[3]),
                      d2_parent_ref=sum(1 for s in parent_ref
                                        if shallowest[s] == 2 and s not in copy_slots),
-                     rerooted=(rerooted[0], rerooted[1], rerooted[2], rerooted[3]))
+                     rerooted=(rerooted[0], rerooted[1], rerooted[2], rerooted[3]),
+                     spent=(len(lone), len(lone & spent_slots)))
 
 
 @dataclass(frozen=True)

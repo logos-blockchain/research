@@ -73,9 +73,10 @@ def _arrival_columns(config: SimConfig, peak_blocks: int) -> int:
     slots, so its width is ``~keepspan * blocks_per_slot`` regardless of how far the block count
     exploded. We don't have the graph here, so ``horizon`` is approximated generously (dominated by
     ``uncle_window``, plus the blend mix cascade); the exact buffer size is guarded in-worker.
-    Re-rooting keeps the full matrix (``build_tree_pernode``).
+    Re-rooting and spent stake keep the full matrix (``build_tree_pernode``).
     """
-    if not (config.prune_arrival and config.windowed_fork_choice) or config.reroot_share > 0.0:
+    if (not (config.prune_arrival and config.windowed_fork_choice) or config.reroot_share > 0.0
+            or config.spent_share > 0.0):
         return peak_blocks
     per_slot = peak_blocks / config.epoch_len if config.epoch_len else peak_blocks
     keepspan = float(config.effective_uncle_window)

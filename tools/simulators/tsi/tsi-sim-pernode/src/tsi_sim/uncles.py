@@ -103,7 +103,8 @@ def select_uncles_at_production(
     block ``[t-w_u, t)`` is inside the kept span, so the buffer row covers all candidates).
 
     ``extra`` holds the ids of re-rooted copies in ``v``'s view (PLAN.md Phase 2b, countable model
-    at depth 1). ``slot`` and ``parent`` cover those ids, and every rule above applies to them.
+    at depth 1), or of spent wins (Phase 2c, depth 0). ``slot`` and ``parent`` cover those ids, and
+    every rule above applies to them.
     """
     u_max = config.max_uncles
     if u_max <= 0:

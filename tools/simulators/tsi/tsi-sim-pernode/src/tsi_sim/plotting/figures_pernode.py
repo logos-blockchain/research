@@ -20,7 +20,7 @@ CONFIG_COLS = ["n_nodes", "stake_dist", "pareto_shape", "topology", "degree",
                "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
                "latency", "uncle_model", "window_absorption", "max_uncles", "uncle_strategy",
                "uncle_window", "uncle_window_anchor", "uncle_order", "uncle_depth",
-               "reroot_share", "reroot_delay", "ref_scope",
+               "reroot_share", "reroot_delay", "spent_share", "ref_scope",
                "init_dest", "init_spread", "genesis_d_factor",
                "f", "beta", "k", "fixed_point", "legacy_block_count"]
 
@@ -161,7 +161,8 @@ def equilibrium(df: pd.DataFrame, burn_frac: float = 0.5) -> pd.DataFrame:
             "lost_d2_parent_ref_share", "lost_d3_share", "lost_d4plus_share",
             "rerooted_share", "rerooted_d2_share", "rerooted_d3plus_share", "reroot_made_share",
             "reroot_lag_mean", "parent_wait_block_share", "parent_wait_node_share",
-            "parent_wait_mean")
+            "parent_wait_mean", "active_stake_frac", "block_rate", "spent_win_rate",
+            "spent_counted_share")
            if c in tail.columns}
     if "parent_wait_max" in tail.columns:
         agg["parent_wait_max"] = ("parent_wait_max", "max")

@@ -53,6 +53,15 @@ def test_rerooting_is_sized_for_the_full_matrix():
     assert sweep.estimate_worker_bytes(pruned) < sweep.estimate_worker_bytes(full)
 
 
+def test_spent_stake_is_sized_for_the_full_matrix():
+    # Spent wins are entries, which only the full arrival matrix path carries.
+    cell = dict(n_nodes=1000, k=2160, stake_dist="pareto", paired_streams=True, uncle_depth=0)
+    spent = SimConfig(**cell, spent_share=0.25)
+    assert sweep.estimate_worker_bytes(spent) == sweep.estimate_worker_bytes(SimConfig(**cell,
+                                                                                        **FULL))
+    assert sweep.estimate_worker_bytes(SimConfig(**cell)) < sweep.estimate_worker_bytes(spent)
+
+
 def test_low_gdf_caps_workers_hard(monkeypatch):
     monkeypatch.setattr(sweep, "_total_ram_bytes", lambda: 51 * 1024**3)
     lo = SimConfig(n_nodes=1000, k=2160, stake_dist="pareto", genesis_d_factor=0.01, **FULL)

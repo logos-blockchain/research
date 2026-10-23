@@ -83,6 +83,11 @@ UncleOrder = Literal["uncle", "parent"]
 # Re-rooting (PLAN.md Phase 2b, route E) changes no rule. A re-rooting leader whose own view puts
 # one of its blocks at depth >= 2 publishes a copy at the block's slot whose parent is the fork
 # point. The copy is the first block of a fork, so the depth-1 rule counts it as an uncle.
+# Spent stake (PLAN.md Phase 2c, route C): a coalition holds the keys of a share of the stake
+# whose notes are spent. A win of such a note cannot be a chain block, so the coalition publishes
+# it as an entry at its slot, naming the tip it would have extended. Route C counts an entry by
+# its lottery win alone: depth 0 with the window measured to the entry's own slot (the uncle
+# anchor).
 
 
 @dataclass(frozen=True)
@@ -189,6 +194,10 @@ class SimConfig:
     # _base_key(), so paired_streams pairs re-rooting with every depth.
     reroot_share: float = 0.0
     reroot_delay: float = 0.0
+    # See the note above SimConfig: the stake share of the spent-stake coalition (0 = none).
+    # Appended to key() only when not 0, and excluded from _base_key(), so paired_streams pairs
+    # every share with the honest arm.
+    spent_share: float = 0.0
     # DEFAULT is the spec rule (see RefScope). Deliberately NOT in key(): the reference scope is a
     # MEASUREMENT rule that consumes no RNG, so both arms of a comparison run on a bit-identical
     # block tree and their difference carries no sampling noise at all — the same reasoning that
@@ -382,6 +391,11 @@ class SimConfig:
             # Detection replays arrivals inside the deterministic horizon, so jitter is out.
             raise ValueError("re-rooting is defined for the honest countable model at depth 1, "
                              "with the oldest strategy and no jitter")
+        if self.spent_share > 0.0 and (self.uncle_depth != 0 or self.uncle_window_anchor != "uncle"
+                                       or self.adversary_frac > 0.0):
+            # Depth 0 already implies the countable model, the oldest strategy and no re-rooting.
+            raise ValueError("spent stake is defined for route C: depth 0 with the uncle anchor, "
+                             "and no adversary")
         if self.ref_scope not in ("window", "chain"):
             raise ValueError(f"ref_scope must be window|chain, got {self.ref_scope!r}")
         if self.adversary_selection not in ("random", "whale"):
@@ -418,6 +432,7 @@ class SimConfig:
             "adversary_coalitions": self.adversary_coalitions >= 1,
             "reroot_share": 0.0 <= self.reroot_share <= 1.0,
             "reroot_delay": self.reroot_delay >= 0.0,
+            "spent_share": 0.0 <= self.spent_share < 1.0,
         }
         bad = [name for name, ok in checks.items() if not ok]
         if bad:
@@ -528,6 +543,8 @@ class SimConfig:
             base = base + (("uncle_depth", self.uncle_depth),)
         if self.reroot_share > 0.0:
             base = base + (("reroot", self.reroot_share, self.reroot_delay),)
+        if self.spent_share > 0.0:
+            base = base + (("spent", self.spent_share),)
         return base
 
     def seed_key(self) -> tuple:
@@ -549,6 +566,7 @@ _SWEEP_AXES = (
     "uncle_depth",
     "reroot_share",
     "reroot_delay",
+    "spent_share",
     "ref_scope",
     "window_absorption",
     "topology", "degree", "link_latency_mean", "link_latency_dist",
@@ -571,6 +589,7 @@ class SweepConfig:
     uncle_depth: list[int] = field(default_factory=lambda: [1])
     reroot_share: list[float] = field(default_factory=lambda: [0.0])
     reroot_delay: list[float] = field(default_factory=lambda: [0.0])
+    spent_share: list[float] = field(default_factory=lambda: [0.0])
     ref_scope: list[RefScope] = field(default_factory=lambda: ["window"])
     window_absorption: list[float] = field(default_factory=lambda: [constants.W_ABS_DEFAULT])
     topology: list[Topology] = field(default_factory=lambda: ["regular"])
@@ -604,6 +623,10 @@ class SweepConfig:
                 continue
             if (overrides["reroot_share"] == 0.0
                     and overrides["reroot_delay"] != self.reroot_delay[0]):
+                continue
+            # spent stake is defined for route C only (see SimConfig)
+            if overrides["spent_share"] > 0.0 and (overrides["uncle_depth"] != 0
+                                                   or overrides["uncle_window_anchor"] != "uncle"):
                 continue
             # each uncle model reads exactly one window knob — collapse the other axis so a
             # sweep never emits duplicate cells that differ only in an ignored field.

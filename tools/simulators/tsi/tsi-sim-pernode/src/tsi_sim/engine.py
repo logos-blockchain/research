@@ -152,6 +152,19 @@ def _reroot_mask(config: SimConfig, stake: np.ndarray) -> np.ndarray | None:
     return mask
 
 
+def _spent_mask(config: SimConfig, stake: np.ndarray) -> np.ndarray | None:
+    """Nodes whose notes are spent (PLAN.md Phase 2c): a random set holding ``spent_share`` of the
+    stake, filled and seeded as the re-rooting set is. ``None`` when the share is 0."""
+    if config.spent_share <= 0.0:
+        return None
+    seed = np.random.SeedSequence([config.root_seed, config.replicate, 0x5BE27])
+    order = np.random.default_rng(seed).permutation(config.n_nodes)
+    chosen, _ = _fit_then_close(stake[order], config.spent_share * float(stake.sum()))
+    mask = np.zeros(config.n_nodes, dtype=bool)
+    mask[order[chosen]] = True
+    return mask
+
+
 def _coalition_ids(config: SimConfig, stake: np.ndarray,
                    mask: np.ndarray | None) -> np.ndarray | None:
     """Split the adversarial set into ``adversary_coalitions`` rival groups of near-equal stake.
@@ -252,8 +265,11 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
     adv_mask = _adversary_mask(config, stake)
     coal_ids = _coalition_ids(config, stake, adv_mask)
     reroot_mask = _reroot_mask(config, stake)
+    spent_mask = _spent_mask(config, stake)
     # exact stake fraction of the (integer-rounded) coalition, for the active-stake bookkeeping
     coalition_frac = float(stake[adv_mask].sum() / d_true) if adv_mask is not None else 0.0
+    # spent notes make no chain block, so their stake is not active either
+    spent_frac = float(stake[spent_mask].sum() / d_true) if spent_mask is not None else 0.0
     withholding = adv_mask is not None and config.adversary_strategy == "withhold"
     # churn RNG is standalone (drawn only when churn_amp>0) so churn=0 stays bit-identical
     churn_rng = (np.random.default_rng(np.random.SeedSequence([config.root_seed,
@@ -282,7 +298,7 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
         # suppressing coalition (or the static default) attacks every epoch.
         attacks = config.adversary_withholds(epoch) if withholding else adv_mask is not None
         behaviour_mask = adv_mask if attacks else None
-        active_stake_frac = 1.0 - coalition_frac if (withholding and attacks) else 1.0
+        active_stake_frac = 1.0 - coalition_frac if (withholding and attacks) else 1.0 - spent_frac
         # organic honest churn: deactivate a scheduled stake fraction this epoch
         inactive_mask = None
         if churn_rng is not None:
@@ -292,7 +308,8 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
         er = simulate_epoch(config, stake, d_est, path_latency, children[epoch + 3],
                             adversary_mask=behaviour_mask, coalition_mask=adv_mask,
                             coalition_ids=coal_ids,
-                            inactive_mask=inactive_mask, reroot_mask=reroot_mask)
+                            inactive_mask=inactive_mask, reroot_mask=reroot_mask,
+                            spent_mask=spent_mask)
         row = divergence_row(config, epoch, d_est, er, d_true)
         row["adversary_withholding"] = bool(withholding and attacks)
         row["active_stake_frac"] = active_stake_frac

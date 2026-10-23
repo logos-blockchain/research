@@ -37,7 +37,8 @@ class BlockTree:
     # copy_of[j], and the fork point as parent; its leader published it at copy_pub[j]. A copy is
     # only ever an uncle entry: no block builds on it, so fork choice, the chain and the fork
     # statistics never see it. Every reader of an entry id takes its slot and parent from
-    # ref_slot and ref_parent.
+    # ref_slot and ref_parent. The same arrays hold the spent coalition's wins (Phase 2c), with
+    # copy_of = -1, the tip its leader extends as parent, and the win's slot as copy_pub.
     copy_slot: np.ndarray = field(default_factory=lambda: np.empty(0, np.int64))
     copy_parent: np.ndarray = field(default_factory=lambda: np.empty(0, np.int64))
     copy_of: np.ndarray = field(default_factory=lambda: np.empty(0, np.int64))
@@ -66,7 +67,7 @@ class BlockTree:
         return np.concatenate([self.parent, self.copy_parent])
 
     def original(self, u: int) -> int:
-        """The block an entry stands for: itself, or the original of a copy."""
+        """The block an entry stands for: itself, the original of a copy, or -1 for a spent win."""
         return u if u < self.n_blocks else int(self.copy_of[u - self.n_blocks])
 
     def ancestors(self, block_id: int) -> list[int]:
@@ -451,6 +452,7 @@ def build_tree_pernode(
     coalition_ids: np.ndarray | None = None,
     reroot_mask: np.ndarray | None = None,
     reroot_rng: np.random.Generator | None = None,
+    spent_mask: np.ndarray | None = None,
 ):
     """Build the global block tree AND the per-node arrival matrix.
 
@@ -465,6 +467,11 @@ def build_tree_pernode(
     later, whose arrival column is drawn from ``reroot_rng``. Copies join the uncle candidates of
     every later block and never the fork choice, so the tree they leave behind is the one the
     same streams build without them. ``None`` re-roots nothing.
+
+    ``spent_mask[v] == True`` marks a node whose notes are spent (PLAN.md Phase 2c). Its wins make
+    no block. Each becomes an entry at its slot, whose parent is the tip the node would have
+    extended. Its arrival column is the one the block would have drawn, without the clamp to the
+    parent's arrival. Entries join the uncle candidates as copies do. ``None`` marks no node.
 
     Each winner builds on the best tip *in its own arrival-filtered view*; uncle refs are
     baked at production from the producer's view. Returns ``(BlockTree, A)`` where
@@ -500,12 +507,16 @@ def build_tree_pernode(
     from .uncles import select_uncles_at_production
 
     n = config.n_nodes
-    n_blocks = 1 + sum(int(g.shape[0]) for g in winners_per_slot)
+    # A spent win makes no block: the blocks are genesis and every other win.
+    n_spent = (sum(int(spent_mask[g].sum()) for g in winners_per_slot) if spent_mask is not None
+               else 0)
+    n_blocks = 1 + sum(int(g.shape[0]) for g in winners_per_slot) - n_spent
     E = config.epoch_len
 
-    # Copies take ids from n_blocks on, and uncle selection reads their slot and parent by id, so
-    # under re-rooting those two arrays get room for one copy per block.
-    room = n_blocks if reroot_mask is not None else 0
+    # Copies and spent wins take ids from n_blocks on, and uncle selection reads their slot and
+    # parent by id, so those two arrays get room for one copy per block under re-rooting, and for
+    # every spent win.
+    room = n_blocks if reroot_mask is not None else n_spent
     slot = np.empty(n_blocks + room, np.int64)
     parent = np.empty(n_blocks + room, np.int64)
     height = np.empty(n_blocks, np.int64)
@@ -555,10 +566,12 @@ def build_tree_pernode(
     # "finalized => arrived-everywhere" assumption, so it too forces the full matrix.
     withholding = ((adversary_mask is not None and config.adversary_frac > 0.0
                     and config.adversary_strategy == "withhold") or deep_parent)
-    # A re-rooting leader's watch replays its own arrivals, which the prune drops.
+    # A re-rooting leader's watch replays its own arrivals, which the prune drops. Spent wins are
+    # entries, as copies are, and only this path carries entries.
     reroot = reroot_mask is not None
+    spent = spent_mask is not None
     if (config.prune_arrival and windowed and config.jitter_mean == 0.0 and not withholding
-            and not reroot):
+            and not reroot and not spent):
         # (selfish already cleared `windowed`, so it never reaches the pruned path either)
         return _build_pruned(active_slots, winners_per_slot, path_latency, config, rng,
                              slot, parent, height, leader, uncles, key, c1, c2,
@@ -606,7 +619,7 @@ def build_tree_pernode(
 
     w = config.effective_uncle_window
     watches: list[_Watch] = []
-    copies = _Copies(n, n_blocks) if reroot else None
+    copies = _Copies(n, n_blocks) if reroot or spent else None
     parent_wait = np.full((n_blocks, 3), np.nan) if config.uncle_depth != 1 else None
 
     nb = 1
@@ -632,6 +645,7 @@ def build_tree_pernode(
                 cid = copies.add(x, int(slot[x]), g, t_pub, col)
                 slot[cid], parent[cid] = slot[x], g
             watches = live
+        if copies is not None:
             copies.prune(t - w)
         # --- fork choice: window [lo, nb) + fully-propagated best gb ---
         if windowed:
@@ -676,6 +690,14 @@ def build_tree_pernode(
                         break
                     anc = nxt
                 p_id = anc
+            if spent and spent_mask[v]:
+                # The column is drawn where the block's would have been, so the stream stays
+                # aligned with the honest arm. Route C reads no state of the parent, so a node
+                # need not hold it first.
+                col = arrival_column(path_latency, v, t, config, rng)
+                cid = copies.add(-1, t, p_id, float(t), col)
+                slot[cid], parent[cid] = t, p_id
+                continue
             h = int(height[p_id]) + 1
             b = nb
             slot[b], parent[b], height[b], leader[b] = t, p_id, h, v
@@ -687,7 +709,7 @@ def build_tree_pernode(
             else:
                 uncles[b] = select_uncles_at_production(
                     slot, parent, uncles, A[v], b, p_id, t, config, rng,
-                    extra=copies.in_view(v, t) if reroot else None,
+                    extra=copies.in_view(v, t) if copies is not None else None,
                 )
             col = arrival_column(path_latency, v, t, config, rng)   # (rng drawn either way)
             if hide:
@@ -758,7 +780,7 @@ def build_tree_pernode(
 
     tree = BlockTree(slot=slot[:n_blocks], parent=parent[:n_blocks], height=height, leader=leader,
                      uncles=uncles, parent_wait=parent_wait)
-    if reroot and copies.of:
+    if copies is not None and copies.of:
         tree.copy_slot = np.asarray(copies.slot, np.int64)
         tree.copy_parent = np.asarray(copies.parent, np.int64)
         tree.copy_of = np.asarray(copies.of, np.int64)
