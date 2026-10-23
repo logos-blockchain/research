@@ -58,7 +58,7 @@ validity rule built on it would depend on each node's block tree, which the spec
 | A. lag | Every PoL proves against the root of the block `L` levels above its parent. Depth up to `L + 1` is then verifiable from the referencing chain: depth 2 needs `L = 1`, depth 3 needs `L = 2`. | The circuit is unchanged (`ledger_LATEST` is a public input). The PoL input definition, header validation step 9, the leader's prover and the node's verifier change. A spent note stays eligible for `L` more blocks. Those are chain blocks, so they earn a reward and fork-choice weight. An uncle's proof reads the state of its parent's parent: one chain block beyond the window, which is anchored to the parent to bound retention (`cryptarchia-v1-protocol.md:327`). | general; needs the PoL owners (§6, question 1) |
 | A′. dual proof | Every header carries a second PoL, from the same circuit, against the state of its grandparent. The chain checks only the first proof. A cousin is checked only by its second proof. It then proves what an uncle at its slot with parent `G` proves. | +128 bytes per header. Blend pads every message to the maximum proposal (§3.3), which holds 5 headers, so every Blend message grows by 640 bytes: 19 318 → 19 958, +3.3 %. Storage grows by 128 bytes per stored header. Every block needs a second proving run. Proving is benchmarked only on a 24-core laptop (678 ms on one thread, PoL Benchmarks); Blend sizes for a Raspberry Pi 5 (`blend-protocol.md:481`). Three rules are needed. Header validation enforces the second proof: an unchecked one earns nothing (`:380`), and the node makes a fresh `P_LEAD` on every proving call (`leadership.rs:194–195`). The block-ID preimage absorbs the second proof (`:272`, `:274–288`). `sl_U < sl_C` is stated, and `U` is read from `uncle_headers` of `A`'s chain, never from the block tree. Enforcement must handle a child of genesis, and a grandparent older than the snapshot after a halt longer than an epoch. One proof over both roots would add 32 bytes per header instead, but it is a new circuit and needs a new Groth16 phase 2 (`trusted-setup-ceremony.md:66`). | sound; costs every Blend message |
 | B. unchanged parents | Verify `C`'s own PoL against the state of `U`'s parent. It verifies exactly when `U` changed no note. That holds when `U` carries no transactions (its uncles are never executed) and is not the first block of an epoch that distributes service rewards (`bedrock-service-reward-distribution.md:53`). | No PoL change. Its value is the share of such `U`, which depends on transaction load. The simulator does not model load. | narrow; price in Phase 3 |
-| C. snapshot-only references | A reference's PoL is verified against the epoch state of its slot and against a `ledger_LATEST` that the entry carries and no node checks. The count then rests only on the lottery: a note of the stake snapshot won the slot. No chain state is read, so the ancestry condition can go and every depth counts. The window can be measured to the entry's own slot: the parent anchor exists to bound the state the check reads (`cryptarchia-v1-protocol.md:327`). | The circuit is unchanged. Each entry carries its root, +32 bytes, so every Blend message grows by 128 bytes: 19 318 → 19 446, +0.66 %. A spent note keeps counting until its snapshot expires. The snapshot of epoch `ep` is the note set at the start of epoch `ep − 1` (`:220`), so that is up to two epochs after the spend: 1 296 000 slots, 15 days at 1 s per slot. Under 1.2.5 the limit is under `W·f⁻¹` = 360 slots after the spend, through a self-signed uncle whose parent precedes the spend (`:327`, `:331`). The rule cannot stay a cousin rule: a spent note's win can name any counted uncle in the window as its parent. Whoever holds the key of a spent snapshot note can add that stake's wins to the count: its former owner, or anyone the owner sells the key to. D̂ rises by that stake (β = 1). If it is a share σ of the snapshot, the block rate falls to about `f(1 − σ)`. Eligibility (`:168`) requires an unspent note, so references need their own definition. The PoL owners must accept an unchecked `ledger_LATEST` for references. Proof of quota already skips the unspent check (`proof-of-quota.md:46`, `:118`). | price it: Phase 2c, Phase 4 (§6, question 4) |
+| C. snapshot-only references | A reference's PoL is verified against the epoch state of its slot and against a `ledger_LATEST` that the entry carries and no node checks. The count then rests only on the lottery: a note of the stake snapshot won the slot. No chain state is read, so the ancestry condition can go and every depth counts. The window can be measured to the entry's own slot: the parent anchor exists to bound the state the check reads (`cryptarchia-v1-protocol.md:327`). | The circuit is unchanged. Each entry carries its root, +32 bytes, so every Blend message grows by 128 bytes: 19 318 → 19 446, +0.66 %. A spent note keeps counting until its snapshot expires. The snapshot of epoch `ep` is the note set at the start of epoch `ep − 1` (`:220`), so that is up to two epochs after the spend: 1 296 000 slots, 15 days at 1 s per slot. Under 1.2.5 the limit is under `W·f⁻¹` = 360 slots after the spend, through a self-signed uncle whose parent precedes the spend (`:327`, `:331`). The rule cannot stay a cousin rule: a spent note's win can name any counted uncle in the window as its parent. Whoever holds the key of a spent snapshot note can add that stake's wins to the count: its former owner, or anyone the owner sells the key to. D̂ rises by that stake (β = 1). If it is a share σ of the snapshot, the block rate falls to about `f(1 − σ)`. Eligibility (`:168`) requires an unspent note, so references need their own definition. The PoL owners must accept an unchecked `ledger_LATEST` for references. Proof of quota already skips the unspent check (`proof-of-quota.md:46`, `:118`). | pays over re-rooting only under overload, and spent stake slows the chain by its share (Phase 2c); needs Phase 4 and the PoL owners (§6, question 4) |
 | C′. compact entries | An entry carries only what the PoL check reads: the slot, `P_LEAD`, `ρ_LEAD` and the proof, plus the parent (1.2.5) or the root (route C). It carries no signature. | An entry shrinks from 361 to 232 bytes (8 + 32 + 32 + 32 + 128). The maximum proposal falls by 4 × 129 = 516 bytes to 17 676, and every Blend message by the same: 19 318 → 18 802, −2.7 %. This holds at depth 1 too. Anyone who has seen a proof can build an entry from it. The count is per slot, so that adds no slot (`:331`). The block ID of a referenced block can no longer be derived (`:315`). Only the not-on-the-chain rule (`:326`) and the selection tie-break (`:366`) read it. Per-slot counting makes the first redundant, and the second can order by the proof. | independent of depth; price with route C |
 | D. no PoL check | Count `C` without verifying its proof. | Fabricated headers inflate the count at will. | rejected |
 | E. re-rooting | The leader of an orphaned block `X` at depth ≥ 2 proves its win at `sl_X` again, against the state of the fork point `G`. It publishes a header at `sl_X` with parent `G`. That header is the first block of a fork, so the 1.2.5 rules accept it as an uncle (`cryptarchia-v1-protocol.md:325–329`). The spec records that a note owner can self-sign such a header later (`:331`). Header validation bounds a header's slot only by the current slot (step 6) and its height only by the latest immutable block (step 8). | No consensus, header, circuit or per-message change. Each re-rooted block costs one proving run, off the critical path, and one Blend message. On a core node that message takes the place of a cover message (`blend-protocol.md:244`). The slot's leadership quota went to the original proposal (`Q_L = β_D(1 + R_D)`, and the key nullifier binds the note key, the index and the slot, `proof-of-quota.md:197–204`). So the message needs core or proof-of-work quota. It covers every depth. Its gain is at most the Phase 2 ceiling. Two things reduce it: the delay to detect the orphaning, prove and propagate, all within `W·f⁻¹` slots of `G`; and leaders that do not re-root, since uncles earn nothing (`:380`, `:386`). | recovers the depth-2 gain when all the stake re-roots within 10 slots; the gain scales with the share that re-roots (Phase 2b) |
@@ -262,7 +262,7 @@ Every gate must be shown to fail under a mutation of the code it guards before i
     is 0.27–0.48 pp at ρ ≈ 1.76. The D̂/D gains above are net of it.
   - Residual: at ρ ≈ 1.76 and U = 4, depth 2 and the ceiling leave the same 0.27 pp of
     depth-2 slots uncounted. The window, the cap and the proposer's view bind those slots, not
-    the ancestry condition.
+    the ancestry condition. Phase 2c: the window measured to the fork point binds them.
 - **Phase 2b — re-rooting in the simulator (route E).** *Done.*
   - Model (`SimConfig.reroot_share`, `reroot_delay`):
     - Nodes holding a share of the stake re-root. The set is drawn once per replicate, so every
@@ -341,19 +341,119 @@ Every gate must be shown to fail under a mutation of the code it guards before i
     - Copies made by all the stake: 0.07–0.08 % of occupied slots at ρ ≈ 0.36, 0.30–0.32 % at
       ρ ≈ 0.56, 1.2–1.4 % at ρ ≈ 0.96 and 4.7–5.4 % at ρ ≈ 1.76 (U ≥ 2). Half the stake makes
       about half as many. Each costs one proving run and one Blend message (§3.2).
-- **Phase 2c — snapshot-only references in the simulator (route C).**
-  - Honest gain: the ceiling with the window measured to each entry's own slot
-    (`uncle_depth = 0`, `uncle_window_anchor = "uncle"`, `uncle_order = "uncle"`). It runs paired
-    with depth 1, depth 2 and the Phase 2 ceiling, on the Phase 2 grids. It shows how much of
-    the Phase 2 residual (0.27 pp of depth-2 slots at ρ ≈ 1.76, U = 4) the fork-point window
-    causes.
-  - Spent stake: a coalition holds the keys of a share σ of the snapshot's stake, whose notes
-    are spent. Its wins never become chain blocks. It publishes them as entries, and honest
-    proposers carry them. Measured over σ and U: D̂ against the active stake, and the block
-    rate against `f`. Expected while the cap and window carry every such win: D̂ reaches the
-    snapshot's stake, and the block rate falls to about `f(1 − σ)`.
-  - Gates: at σ = 0 the spent-stake arm is bit-identical to the honest arm; a hand-built tree
-    pins which entries count.
+- **Phase 2c — snapshot-only references in the simulator (route C).** *Done.*
+  - Model:
+    - Route C counts an entry by its lottery win alone: `uncle_depth = 0` (any depth, no
+      ancestry condition) with `uncle_window_anchor = "uncle"` (the window measured to the
+      entry's own slot) and `uncle_order = "uncle"`. The simulator already had every piece.
+    - Spent stake (`SimConfig.spent_share`): every holder has spent the share σ of its notes, and
+      a coalition holds their keys. Each note runs its own lottery, so the two parts of a holder
+      win independently, and together they win the slots the holder wins without spent stake
+      (`lottery.spent_codes`). A win of spent notes makes no block. It becomes an entry at its
+      slot, which names the tip the holder would have extended, travels as that block would
+      have, and joins the uncle candidates of every later block. A slot that both parts win
+      makes a block and an entry. Spent stake is defined under route C only.
+    - A spent share drawn as a set of holders failed. In the Pareto stake draws of the sweep one
+      holder held up to 92 % of the stake. 25 of the 480 sets missed their share by more than
+      0.01, and 6 of the 120 sets at σ = 0.75 took every holder, which stopped the chain.
+    - New columns: `block_rate` (window slots that hold a block, per slot), `spent_win_rate`
+      (window slots that only spent notes won, per slot) and `spent_counted_share` (the share of
+      those the count covers). The entry store is guarded like the arrival matrix.
+  - Gates (`tests/test_spent.py`):
+    - the split of a win between the two parts, at both cuts and at σ = 0;
+    - a hand-built tree pins which spent wins count, in the oracle and both kernels, under both
+      anchors; a counted spent win covers its slot in `lost_slots` and marks no block in `p_ref`;
+    - selection takes a spent win in view in age order, at any depth, and only inside the window;
+    - end to end: a win of unspent notes is a block, a win of spent notes is an entry on the tip
+      its holder extends, and a slot both parts win holds both; a block whose parent arrived as
+      in the honest arm arrives as in the honest arm, also after a slot both parts won; counting
+      rejects no entry that selection emits; the active stake is 1 − σ;
+    - `test_lost_slots_match_the_measured_count` extended to route C with and without spent
+      stake: occupied − lost + the counted slots that only spent notes won equals every node's
+      `m`;
+    - 33 mutations of the Phase 2c code each fail a gate, and the 34 of Phases 2b and 2d still
+      do. Every gate passes without them. One mutation, which sizes the arrays for every win,
+      makes a gate loop; the harness counts a run past 300 seconds as a failure.
+  - Sweeps, each paired with the runs it is compared against (`scripts/route_c_analysis.py`):
+    - route C on the three Phase 2 grids: `configs/routec-overload-paired.yaml`,
+      `configs/routec-rho-boundary-paired.yaml` and `configs/routec-fine-paired.yaml`, 1 220
+      trajectories;
+    - route C's window with entries taken by their fork point first (C/fp), as the ceiling takes
+      them: `configs/routec-order-overload-paired.yaml` and
+      `configs/routec-order-rho-boundary-paired.yaml`, 840 trajectories;
+    - spent stake: `configs/routec-spent-paired.yaml`, σ = 0 / 0.1 / 0.25 / 0.5 / 0.75 at
+      ρ ≈ 0.36 and 0.96, U = 1 / 2 / 4, 600 trajectories.
+  - Checks:
+    - In epoch 0 every arm of a replicate builds the tree that route C builds: the columns that
+      read only the tree agree in all 5 960 rows.
+    - At U = 0 route C agrees with depths 1, 2, 3 and the ceiling in every column both runs
+      record (5 476 rows).
+    - The depth arms of the Phase 2 and 2b runs agree in every column both record (12 980 rows).
+    - The σ = 0 rows reproduce route C in all 80 columns (2 191 rows).
+    - Counting rejected no entry that selection emitted (`deep_ref_share` = 0). No route C cell
+      sits above D̂/D = 1 beyond noise (largest z = 1.54 over 129 cells).
+  - Equilibrium D̂/D on the overload grid, with the paired gaps of route C (mean ± SEM;
+    * resolved, by Bonferroni over 48 gaps to the depth arms, |t| = 3.87, and over 72 gaps to
+    the re-rooting arms, |t| = 4.04):
+
+    | ρ | U | depth 1 | depth 2 | ceiling | route C | C − ceiling | C − re-rooting by all, 10 slots |
+    |---|---|---|---|---|---|---|---|
+    | 0.96 | 1 | 0.9549 | 0.9612 | 0.9617 | 0.9772 | +0.0155 ± 0.0012 * | +0.0156 ± 0.0012 * |
+    | 0.96 | 2 | 0.9861 | 0.9981 | 0.9984 | 1.0002 | +0.0018 ± 0.0005 * | +0.0015 ± 0.0004 |
+    | 0.96 | 4 | 0.9868 | 0.9993 | 0.9993 | 1.0002 | +0.0009 ± 0.0005 | +0.0011 ± 0.0005 |
+    | 1.76 | 1 | 0.5815 | 0.5835 | 0.5834 | 0.5862 | +0.0028 ± 0.0007 * | +0.0029 ± 0.0009 |
+    | 1.76 | 2 | 0.9220 | 0.9568 | 0.9586 | 0.9939 | +0.0352 ± 0.0028 * | +0.0383 ± 0.0028 * |
+    | 1.76 | 4 | 0.9492 | 0.9892 | 0.9919 | 0.9999 | +0.0080 ± 0.0009 * | +0.0124 ± 0.0012 * |
+
+  - Reading, honest stake:
+    - The window makes the difference, not the order: no gap of route C to C/fp is resolved on
+      either grid (largest |t| = 2.2).
+    - The fork-point window causes the Phase 2 residual. At ρ ≈ 1.76 and U = 4 route C leaves
+      0.00 pp of depth-2 slots lost and 0.02 pp of depth-1 slots, against 0.27 and 0.57 pp for
+      the ceiling.
+    - Under the fork-point window an entry leaves the window `W·f⁻¹` slots after its fork point.
+      Under route C it leaves `W·f⁻¹` slots after its own slot, which is later. Depth-1 loss
+      falls most: at ρ ≈ 0.96 and U = 1, from 3.43 % to 2.09 % of occupied slots. An entry that
+      waits for a free place in a block stays in the window longer.
+    - Over the ceiling, route C gains at U = 1 from ρ ≈ 0.76 to 1.36 (+0.0063 to +0.0207,
+      boundary grid) and by +0.0028 at ρ ≈ 1.76. It gains at U = 2 by +0.0018 at ρ ≈ 0.96
+      (overload grid) and by +0.0115 to +0.0644 from ρ ≈ 1.36, at U = 3 only at ρ ≈ 1.96
+      (+0.0296), and at U = 4 only at ρ ≈ 1.76 (+0.0080).
+    - In the design band it gains nothing resolved: no gap at ρ ≈ 0.21–0.41 (fine grid, largest
+      |t| = 2.8 against 3.66) or at ρ ≈ 0.36. At ρ ≈ 0.56 it gains +0.0040 over depth 1 at
+      U ≤ 2, resolved, and nothing resolved over the ceiling.
+    - Against re-rooting by all the stake within 10 slots (Phase 2b), the gain of route C passes
+      the ±0.9 % per-epoch noise at ρ ≈ 1.76 with U ≥ 2 (+0.0124 at U = 4, +0.0383 at U = 2),
+      and at ρ ≈ 0.96 only with U = 1 (+0.0156). Against half the stake within 10 slots it is
+      +0.0064 at ρ ≈ 0.96 and +0.0296 at ρ ≈ 1.76 (U = 4), both resolved. At ρ ≤ 0.56 it is at
+      most +0.0031.
+  - Spent stake at U = 4 (* the paired gap in D̂/D to σ = 0 is resolved, by Bonferroni over 24
+    gaps, |t| = 3.56):
+
+    | ρ | σ | D̂/D | D̂ / active stake | 1 / (1 − σ) | block rate / f | slots only spent notes won, counted |
+    |---|---|---|---|---|---|---|
+    | 0.36 | 0.1 | 1.0003 | 1.1115 | 1.1111 | 0.901 | 99.99 % |
+    | 0.36 | 0.25 | 1.0002 | 1.3335 | 1.3333 | 0.753 | 99.97 % |
+    | 0.36 | 0.5 | 0.9979 | 1.9958 | 2.0000 | 0.505 | 99.59 % |
+    | 0.36 | 0.75 | 0.9139 * | 3.6557 | 4.0000 | 0.277 | 88.82 % |
+    | 0.96 | 0.1 | 1.0000 | 1.1111 | 1.1111 | 0.901 | 99.98 % |
+    | 0.96 | 0.25 | 0.9998 | 1.3331 | 1.3333 | 0.753 | 99.95 % |
+    | 0.96 | 0.5 | 0.9954 * | 1.9908 | 2.0000 | 0.506 | 99.28 % |
+    | 0.96 | 0.75 | 0.8819 * | 3.5275 | 4.0000 | 0.287 | 85.18 % |
+
+  - Reading, spent stake:
+    - Where the cap carries the spent wins, route C counts the spent stake as active stake. D̂
+      stays at the snapshot's stake, so D̂ against the active stake is 1 / (1 − σ), and the block
+      rate falls to (1 − σ)f. At U = 4 that holds up to σ = 0.5 (D̂/D ≥ 0.995).
+    - At σ = 0.75 the cap binds even at U = 4: 85–89 % of the slots that only spent notes won
+      count, D̂/D is 0.88–0.91, and the block rate is 0.28–0.29 f.
+    - Smaller caps bind sooner. At U = 2, D̂ stays within 0.002 of the snapshot's stake up to
+      σ = 0.25, and falls to 0.94–0.99 of it at σ = 0.5. At U = 1 and ρ ≈ 0.36, D̂/D is 0.9986
+      at σ = 0.1, 0.9943 at σ = 0.25 and 0.83 at σ = 0.5. At U = 1 and ρ ≈ 0.96 it falls to
+      0.948 at σ = 0.1 and 0.29 at σ = 0.75, and the block rate stays at 0.86–0.95 f.
+    - Under 1.2.5 a spent note is not eligible (`cryptarchia-v1-protocol.md:168`). Its win counts
+      only through an uncle whose parent precedes the spend, so for under `W·f⁻¹` slots after
+      the spend (§3.2). Beyond that, D̂ follows the active stake and the block rate stays at f.
 - **Phase 2d — the live path of route F in the simulator.** *Done.*
   - Route F counts what depth 2 counts, so Phase 2 already measured its gain.
   - Metric (`BlockTree.parent_wait`, `fork.parent_wait`), under any deeper rule: per block, the
@@ -422,6 +522,11 @@ Every gate must be shown to fail under a mutation of the code it guards before i
     1.4–2.2 pp at ρ ≈ 1.76.
   - Route C goes to an RFC only if the PoL owners accept the unchecked root, Phase 4 bounds the
     spent stake, and Phase 2c shows a gain over re-rooting that clears the same noise.
+    - Phase 2c: over re-rooting by all the stake within 10 slots, the gain clears the noise at
+      ρ ≈ 1.76 with U ≥ 2 (+0.0124 at U = 4) and at ρ ≈ 0.96 only with U = 1. At ρ ≤ 0.56 it is
+      at most +0.0031.
+    - Phase 2c: wherever the cap carries their wins, spent notes holding a share σ of a snapshot
+      slow the chain to (1 − σ)f, up to σ = 0.5 at U = 4.
   - Route F needs no PoL change. It goes to an RFC only if depth 2 clears the same noise at the
     production ρ, and re-rooting leaves a share of that gain which clears it too.
     - Phase 2b: all the stake within 10 slots leaves no share resolved. Half the stake leaves
@@ -443,7 +548,9 @@ Every gate must be shown to fail under a mutation of the code it guards before i
    this branch. Its configs set the spec rule explicitly. Moving the defaults is a separate
    task, done together with re-pinning the report to 1.2.5 (§7).
 4. Would the PoL owners accept an unchecked `ledger_LATEST` for references (route C)? A
-   spent snapshot note would then count for up to two epochs after the spend.
+   spent snapshot note would then count for up to two epochs after the spend. In Phase 2c a
+   spent share σ counts as active stake at U = 4 up to σ = 0.5, and the block rate falls to
+   (1 − σ)f.
 5. Route F puts a cousin's inputs in the stored block but not in the proposal. A validator that
    lacks `U` waits for it, as one that lacks a transaction does. Would the Block Construction
    owners accept that? Cryptarchia 1.2.0 made uncle availability structural
