@@ -58,8 +58,8 @@ class EpochResult:
     parent_wait_mean: float
     parent_wait_max: float
     # Spent stake (PLAN.md Phase 2c): the window slots that hold a block, per slot; the window
-    # slots only the spent coalition won, per slot; and the share of those the count covers (NaN
-    # when there are none).
+    # slots only spent notes won, per slot; and the share of those the count covers (NaN when
+    # there are none).
     block_rate: float
     spent_win_rate: float
     spent_counted_share: float
@@ -115,21 +115,24 @@ def simulate_epoch(
     inactive_mask: np.ndarray | None = None,
     coalition_ids: np.ndarray | None = None,
     reroot_mask: np.ndarray | None = None,
-    spent_mask: np.ndarray | None = None,
 ) -> EpochResult:
     """``adversary_mask`` drives BEHAVIOUR this epoch (None == honest); ``coalition_mask`` is the
     fixed coalition identity used only for reward attribution (so a rejoin epoch, mask None, still
     credits the coalition's honestly-produced blocks). Defaults to ``adversary_mask`` when unset.
     ``coalition_ids`` splits the adversary into rival selfish groups (``engine._coalition_ids``).
     ``reroot_mask`` marks the nodes that re-root (``engine._reroot_mask``; None == none).
-    ``spent_mask`` marks the nodes whose notes are spent (``engine._spent_mask``; None == none).
+    ``config.spent_share`` splits every win between the holder's unspent and spent notes
+    (``lottery.spent_codes``).
     """
     f, T, E = config.f, config.period_T, config.epoch_len
     lottery_ss, aux_ss = epoch_ss.spawn(2)
     aux_rng = np.random.default_rng(aux_ss)
-    # Copies draw from a third child, so the lottery and the tree keep their streams.
+    # Copies draw from a third child, so the lottery and the tree keep their streams. So do the
+    # spent codes and the entries of slots both parts won; the two never run together.
     reroot_rng = (np.random.default_rng(epoch_ss.spawn(1)[0]) if reroot_mask is not None
                   else None)
+    spent_rng = (np.random.default_rng(epoch_ss.spawn(1)[0]) if config.spent_share > 0.0
+                 else None)
 
     # per-node lottery: d_est is a VECTOR -> per-node win prob, sparse sampler unchanged
     p = lottery.win_probs(stake, d_est, f)
@@ -137,12 +140,14 @@ def simulate_epoch(
         p = np.where(inactive_mask, 0.0, p)     # churned-out nodes win no slots this epoch
     winner_slots, winner_nodes = lottery.sample_wins(p, E, np.random.default_rng(lottery_ss))
     active_slots, groups = lottery.group_by_slot(winner_slots, winner_nodes)
+    spent = (lottery.spent_codes(stake, d_est, f, config.spent_share, groups, spent_rng)
+             if spent_rng is not None else None)
 
     tree, A = build_tree_pernode(active_slots, groups, path_latency, config, aux_rng,
                                  adversary_mask=adversary_mask,
                                  coalition_ids=coalition_ids,
                                  reroot_mask=reroot_mask, reroot_rng=reroot_rng,
-                                 spent_mask=spent_mask)
+                                 spent=spent, spent_rng=spent_rng)
 
     # measurement: each node's own canonical chain, deduped by tip + numba-accelerated
     ms = measure(tree, A, active_slots, T, cutoff=E,

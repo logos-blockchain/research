@@ -130,8 +130,8 @@ class LostSlots:
                                           # first block of its fork) is a counted uncle
     rerooted: tuple[int, int, int, int] = (0, 0, 0, 0)   # slots only counted re-rooted copies
                                           # cover, by the same depth; not lost
-    spent: tuple[int, int] = (0, 0)       # slots of [0, T) only the spent coalition won (no
-                                          # block holds them), and those the count covers
+    spent: tuple[int, int] = (0, 0)       # slots of [0, T) only spent notes won (no block
+                                          # holds them), and those the count covers
 
     @property
     def lost(self) -> int:

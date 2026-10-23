@@ -1,4 +1,4 @@
-"""Snapshot-only references (PLAN.md Phase 2c, route C) and the spent-stake coalition.
+"""Snapshot-only references (PLAN.md Phase 2c, route C) and spent stake.
 
 Counting fixture (ids in production order), window w = 10, T = 20:
 canonical 1(s0) -> 2(s2) -> 3(s5) -> 5(s8) -> 6(s12) -> 7(s14, tip).
@@ -15,9 +15,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tsi_sim.blocktree import BlockTree
+from tsi_sim.blocktree import BlockTree, _Copies
 from tsi_sim.config import SimConfig, SweepConfig
 from tsi_sim.fork import fork_stats, lost_slots
+from tsi_sim.lottery import BOTH, SPENT, UNSPENT, phi, spent_codes
 from tsi_sim.measure import measure
 from tsi_sim.tsi import countable_refs, density_m
 
@@ -102,6 +103,33 @@ def test_a_spent_win_in_view_is_a_candidate_in_age_order():
     assert _sel(4, f=0.25, window_absorption=1.0) == (6,)   # w = 4: the window starts at slot 7
 
 
+# --- the lottery -----------------------------------------------------------------------------
+class _U:
+    """A generator whose ``random`` returns the given values in order."""
+
+    def __init__(self, u):
+        self.u = list(u)
+
+    def random(self, n):
+        out, self.u = self.u[:n], self.u[n:]
+        return np.array(out)
+
+
+def test_spent_codes_split_each_win():
+    stake, d_est, f, share = np.array([2.0, 10.0]), np.array([4.0, 4.0]), 0.1, 0.25
+    cuts = []
+    for w in stake:
+        p_u, p_s, p = phi(f, 0.75 * w / 4.0), phi(f, 0.25 * w / 4.0), phi(f, w / 4.0)
+        assert p == pytest.approx(1.0 - (1.0 - p_u) * (1.0 - p_s))   # the parts make the holder
+        cuts.append((p_u * (1.0 - p_s) / p, p_u / p))
+    (a0, b0), (a1, b1) = cuts
+    u = [a0 - 1e-9, a0 + 1e-9, b0 + 1e-9, a1 - 1e-9, b1 - 1e-9, b1 + 1e-9]
+    codes = spent_codes(stake, d_est, f, share, [np.array([0, 0, 0]), np.array([1, 1, 1])], _U(u))
+    assert [c.tolist() for c in codes] == [[UNSPENT, BOTH, SPENT], [UNSPENT, BOTH, SPENT]]
+    assert spent_codes(stake, d_est, f, 0.0, [np.array([0, 1])],
+                       _U([0.999, 0.999]))[0].tolist() == [UNSPENT, UNSPENT]
+
+
 # --- end to end ------------------------------------------------------------------------------
 def _cfg(**kw):
     base = dict(n_nodes=300, stake_dist="pareto", topology="blend", degree=6,
@@ -113,22 +141,20 @@ def _cfg(**kw):
 
 
 def _capture(monkeypatch, cfg):
-    """Run ``cfg``; return its stake and, per epoch, the lottery groups, the tree and A."""
+    """Run ``cfg``; return, per epoch, the lottery groups, the spent codes, the tree and A."""
     import tsi_sim.epoch as ep
     from tsi_sim.engine import run_trajectory
-    from tsi_sim.stake import stake_for
 
     seen: list = []
     build = ep.build_tree_pernode
 
     def capture(*a, **k):
         tree, A = build(*a, **k)
-        seen.append((a[0], a[1], tree, A))
+        seen.append((a[0], a[1], k.get("spent"), tree, A))
         return tree, A
 
     monkeypatch.setattr(ep, "build_tree_pernode", capture)
-    rows = pd.DataFrame(run_trajectory(cfg))
-    return stake_for(cfg), seen, rows
+    return seen, pd.DataFrame(run_trajectory(cfg))
 
 
 def _keys(tree, cfg):
@@ -136,42 +162,45 @@ def _keys(tree, cfg):
     return tree.height * (nb + 1) * (cfg.epoch_len + 2) - tree.slot * (nb + 1) - np.arange(nb)
 
 
-def test_spent_wins_become_entries_on_the_tip_their_leader_extends(monkeypatch):
-    from tsi_sim.engine import _spent_mask
-
-    cfg = _cfg(spent_share=0.4)
-    stake, seen, _ = _capture(monkeypatch, cfg)
-    mask = _spent_mask(cfg, stake)
-    n_entries = 0
-    for active, groups, tree, A in seen:
-        wins = [(int(t), int(v)) for t, g in zip(active, groups, strict=True) for v in g]
+# f = 0.2 makes slots both parts of a holder win frequent enough to test.
+@pytest.mark.parametrize("kw", [dict(), dict(f=0.2)])
+def test_spent_wins_become_entries_on_the_tip_their_leader_extends(monkeypatch, kw):
+    cfg = _cfg(spent_share=0.4, **kw)
+    seen, _ = _capture(monkeypatch, cfg)
+    n_codes = np.zeros(3, int)
+    for active, groups, codes, tree, A in seen:
+        wins = [(int(t), int(v), int(c)) for t, g, cs in zip(active, groups, codes, strict=True)
+                for v, c in zip(g, cs, strict=True)]
         blocks = zip(tree.slot[1:].tolist(), tree.leader[1:].tolist(), strict=True)
-        assert sorted(blocks) == sorted((t, v) for t, v in wins if not mask[v])   # every other win
+        assert sorted(blocks) == sorted((t, v) for t, v, c in wins if c != SPENT)
         assert (tree.copy_of == -1).all()
-        assert sorted(tree.copy_slot.tolist()) == sorted(t for t, v in wins if mask[v])
+        assert sorted(tree.copy_slot.tolist()) == sorted(t for t, v, c in wins if c != UNSPENT)
         key = _keys(tree, cfg)
         for t, p in zip(tree.copy_slot.tolist(), tree.copy_parent.tolist(), strict=True):
             first = int(np.searchsorted(tree.slot, t, side="left"))   # blocks before slot t
             tips = set()
-            for v in (v for s, v in wins if s == t and mask[v]):
+            for v in (v for s, v, c in wins if s == t and c != UNSPENT):
                 seen_v = np.nonzero(A[v, :first] <= t)[0]
                 tips.add(int(seen_v[np.argmax(key[seen_v])]))
             assert p in tips
-        n_entries += tree.copy_slot.size
-    assert n_entries > 0
+        n_codes += np.bincount(np.concatenate(codes), minlength=3)
+    assert (n_codes[[UNSPENT, SPENT]] > 0).all()
+    assert n_codes[BOTH] > 0 or not kw
 
 
 def test_entries_keep_the_honest_streams(monkeypatch):
     """In epoch 0 both arms draw the same wins. A block with the same parent in both trees, whose
-    parent arrived at the same times, arrives at the same times too: its draw is the honest one."""
-    _, honest, _ = _capture(monkeypatch, _cfg(prune_arrival=False))
-    _, spent, _ = _capture(monkeypatch, _cfg(spent_share=0.4))
-    (_, _, t0, A0), (_, _, t1, A1) = honest[0], spent[0]
+    parent arrived at the same times, arrives at the same times too: its draw is the honest one,
+    also after a slot whose holder won it with both parts."""
+    honest, _ = _capture(monkeypatch, _cfg(f=0.2, prune_arrival=False))
+    spent, _ = _capture(monkeypatch, _cfg(f=0.2, spent_share=0.4))
+    (_, _, _, t0, A0), (active, _, codes, t1, A1) = honest[0], spent[0]
+    both = [int(t) for t, c in zip(active, codes, strict=True) if (c == BOTH).any()]
+    assert both                                        # the epoch has a slot both parts won
     idx0 = {(int(s), int(v)): b for b, (s, v) in enumerate(zip(t0.slot, t0.leader, strict=True))}
-    first_spent = int(t1.copy_slot.min())
     matched = 0
     for b1 in range(1, t1.n_blocks):
-        if t1.slot[b1] <= first_spent:
+        if t1.slot[b1] <= both[0]:
             continue
         b0 = idx0[(int(t1.slot[b1]), int(t1.leader[b1]))]
         p0, p1 = int(t0.parent[b0]), int(t1.parent[b1])
@@ -183,16 +212,25 @@ def test_entries_keep_the_honest_streams(monkeypatch):
 
 
 def test_spent_stake_rows(monkeypatch):
-    from tsi_sim.engine import _spent_mask
-
-    cfg = _cfg(spent_share=0.4)
-    stake, _, df = _capture(monkeypatch, cfg)
-    mask = _spent_mask(cfg, stake)
-    assert (df.active_stake_frac == 1.0 - stake[mask].sum() / stake.sum()).all()
+    _, df = _capture(monkeypatch, _cfg(spent_share=0.4))
+    assert (df.active_stake_frac == 1.0 - 0.4).all()
     assert (df.deep_ref_share == 0.0).all()            # counting takes every entry selected
     assert (df.spent_counted_share > 0.0).all()
     assert (df.reroot_made_share == 0.0).all() and df.reroot_lag_mean.isna().all()
     assert (df.rerooted_share == 0.0).all()
+
+
+def test_entry_columns_are_guarded(monkeypatch):
+    from tsi_sim.memguard import ArrivalMatrixTooLarge
+
+    monkeypatch.setenv("TSI_ARRIVAL_BYTES_BUDGET", str(10_000))
+    c = _Copies(n=10, base=0)                          # room for 64 columns of 10 x 8 bytes
+    for j in range(64):
+        c.add(-1, j, 0, float(j), np.zeros(10))
+    with pytest.raises(ArrivalMatrixTooLarge, match="entry arrival columns"):
+        c.add(-1, 64, 0, 64.0, np.zeros(10))          # 128 columns need 10 240 bytes
+    monkeypatch.setenv("TSI_ARRIVAL_BYTES_BUDGET", str(10_240))
+    assert c.add(-1, 64, 0, 64.0, np.zeros(10)) == 64
 
 
 # --- configuration --------------------------------------------------------------------------
@@ -217,17 +255,3 @@ def test_the_sweep_runs_spent_stake_under_route_c_only():
     arms = sorted((c.uncle_depth, c.uncle_window_anchor, c.spent_share) for c in sw.expand())
     assert arms == [(0, "parent", 0.0), (0, "uncle", 0.0), (0, "uncle", 0.5), (1, "parent", 0.0),
                     (1, "uncle", 0.0)]
-
-
-def test_the_spent_set_holds_its_stake_share():
-    from tsi_sim.engine import _spent_mask
-    from tsi_sim.stake import make_stake
-
-    cfg = SimConfig(n_nodes=500, stake_dist="pareto", uncle_depth=0, spent_share=0.5)
-    stake = make_stake(cfg, np.random.default_rng(1))
-    mask = _spent_mask(cfg, stake)
-    assert abs(stake[mask].sum() / stake.sum() - 0.5) <= stake.max() / stake.sum()
-    same = _spent_mask(dataclasses.replace(cfg, max_uncles=4, blend_delay_max=16.0), stake)
-    np.testing.assert_array_equal(mask, same)          # every arm of a replicate: the same set
-    assert not np.array_equal(mask, _spent_mask(dataclasses.replace(cfg, replicate=1), stake))
-    assert _spent_mask(dataclasses.replace(cfg, spent_share=0.0), stake) is None

@@ -37,8 +37,8 @@ class BlockTree:
     # copy_of[j], and the fork point as parent; its leader published it at copy_pub[j]. A copy is
     # only ever an uncle entry: no block builds on it, so fork choice, the chain and the fork
     # statistics never see it. Every reader of an entry id takes its slot and parent from
-    # ref_slot and ref_parent. The same arrays hold the spent coalition's wins (Phase 2c), with
-    # copy_of = -1, the tip its leader extends as parent, and the win's slot as copy_pub.
+    # ref_slot and ref_parent. The same arrays hold the entries of spent wins (Phase 2c), with
+    # copy_of = -1, the tip the winner extends as parent, and the win's slot as copy_pub.
     copy_slot: np.ndarray = field(default_factory=lambda: np.empty(0, np.int64))
     copy_parent: np.ndarray = field(default_factory=lambda: np.empty(0, np.int64))
     copy_of: np.ndarray = field(default_factory=lambda: np.empty(0, np.int64))
@@ -277,7 +277,8 @@ class _Watch:
 
 
 class _Copies:
-    """The copies re-rooting leaders publish in one epoch. Copy ``j`` has id ``base + j``."""
+    """The copies re-rooting leaders publish in one epoch, and the entries of spent wins. Entry
+    ``j`` has id ``base + j``."""
 
     def __init__(self, n: int, base: int) -> None:
         self.base = base
@@ -291,6 +292,11 @@ class _Copies:
     def add(self, x: int, slot_x: int, g: int, t_pub: float, col: np.ndarray) -> int:
         j = len(self.of)
         if j == self.arr.shape[1]:
+            # Guarded like A: entries far outnumber blocks once the estimate collapses.
+            check_alloc(2 * self.arr.nbytes,
+                        f"entry arrival columns (N={self.arr.shape[0]} x {2 * j} x 8B)",
+                        "the entries outnumber the blocks many times over, as when the "
+                        "estimate collapses")
             self.arr = np.concatenate([self.arr, np.empty_like(self.arr)], axis=1)
         self.arr[:, j] = col
         self.slot.append(slot_x)
@@ -452,7 +458,8 @@ def build_tree_pernode(
     coalition_ids: np.ndarray | None = None,
     reroot_mask: np.ndarray | None = None,
     reroot_rng: np.random.Generator | None = None,
-    spent_mask: np.ndarray | None = None,
+    spent: list[np.ndarray] | None = None,
+    spent_rng: np.random.Generator | None = None,
 ):
     """Build the global block tree AND the per-node arrival matrix.
 
@@ -468,10 +475,12 @@ def build_tree_pernode(
     every later block and never the fork choice, so the tree they leave behind is the one the
     same streams build without them. ``None`` re-roots nothing.
 
-    ``spent_mask[v] == True`` marks a node whose notes are spent (PLAN.md Phase 2c). Its wins make
-    no block. Each becomes an entry at its slot, whose parent is the tip the node would have
-    extended. Its arrival column is the one the block would have drawn, without the clamp to the
-    parent's arrival. Entries join the uncle candidates as copies do. ``None`` marks no node.
+    ``spent`` holds, per slot, which notes of each winner won it (``lottery.spent_codes``, PLAN.md
+    Phase 2c). A win of its unspent notes makes a block. A win of its spent notes makes an entry at
+    the slot, whose parent is the tip the winner would have extended. The entry's arrival column
+    is the one the block would have drawn, without the clamp to the parent's arrival; when both
+    parts won, the block keeps that draw and the entry's is drawn from ``spent_rng``. Entries join
+    the uncle candidates as copies do. ``None`` spends nothing.
 
     Each winner builds on the best tip *in its own arrival-filtered view*; uncle refs are
     baked at production from the producer's view. Returns ``(BlockTree, A)`` where
@@ -503,20 +512,21 @@ def build_tree_pernode(
     """
     import warnings
 
+    from .lottery import SPENT, UNSPENT
     from .topology import arrival_column
     from .uncles import select_uncles_at_production
 
     n = config.n_nodes
-    # A spent win makes no block: the blocks are genesis and every other win.
-    n_spent = (sum(int(spent_mask[g].sum()) for g in winners_per_slot) if spent_mask is not None
-               else 0)
-    n_blocks = 1 + sum(int(g.shape[0]) for g in winners_per_slot) - n_spent
+    # The blocks are genesis and every win of unspent notes; the entries every win of spent ones.
+    n_wins = sum(int(g.shape[0]) for g in winners_per_slot)
+    n_blocks = 1 + (n_wins if spent is None else sum(int((c != SPENT).sum()) for c in spent))
+    n_entries = 0 if spent is None else sum(int((c != UNSPENT).sum()) for c in spent)
     E = config.epoch_len
 
-    # Copies and spent wins take ids from n_blocks on, and uncle selection reads their slot and
+    # Copies and entries take ids from n_blocks on, and uncle selection reads their slot and
     # parent by id, so those two arrays get room for one copy per block under re-rooting, and for
-    # every spent win.
-    room = n_blocks if reroot_mask is not None else n_spent
+    # every entry under spent stake.
+    room = n_blocks if reroot_mask is not None else n_entries
     slot = np.empty(n_blocks + room, np.int64)
     parent = np.empty(n_blocks + room, np.int64)
     height = np.empty(n_blocks, np.int64)
@@ -569,9 +579,9 @@ def build_tree_pernode(
     # A re-rooting leader's watch replays its own arrivals, which the prune drops. Spent wins are
     # entries, as copies are, and only this path carries entries.
     reroot = reroot_mask is not None
-    spent = spent_mask is not None
+    spending = spent is not None
     if (config.prune_arrival and windowed and config.jitter_mean == 0.0 and not withholding
-            and not reroot and not spent):
+            and not reroot and not spending):
         # (selfish already cleared `windowed`, so it never reaches the pruned path either)
         return _build_pruned(active_slots, winners_per_slot, path_latency, config, rng,
                              slot, parent, height, leader, uncles, key, c1, c2,
@@ -619,7 +629,7 @@ def build_tree_pernode(
 
     w = config.effective_uncle_window
     watches: list[_Watch] = []
-    copies = _Copies(n, n_blocks) if reroot or spent else None
+    copies = _Copies(n, n_blocks) if reroot or spending else None
     parent_wait = np.full((n_blocks, 3), np.nan) if config.uncle_depth != 1 else None
 
     nb = 1
@@ -690,14 +700,17 @@ def build_tree_pernode(
                         break
                     anc = nxt
                 p_id = anc
-            if spent and spent_mask[v]:
-                # The column is drawn where the block's would have been, so the stream stays
-                # aligned with the honest arm. Route C reads no state of the parent, so a node
-                # need not hold it first.
-                col = arrival_column(path_latency, v, t, config, rng)
+            code = int(spent[si][wi]) if spending else UNSPENT
+            if code != UNSPENT:
+                # An entry alone draws where the block would have, so the stream stays aligned
+                # with the honest arm. Route C reads no state of the parent, so a node need not
+                # hold it first.
+                col = arrival_column(path_latency, v, t, config,
+                                     rng if code == SPENT else spent_rng)
                 cid = copies.add(-1, t, p_id, float(t), col)
                 slot[cid], parent[cid] = t, p_id
-                continue
+                if code == SPENT:
+                    continue
             h = int(height[p_id]) + 1
             b = nb
             slot[b], parent[b], height[b], leader[b] = t, p_id, h, v

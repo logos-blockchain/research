@@ -83,11 +83,11 @@ UncleOrder = Literal["uncle", "parent"]
 # Re-rooting (PLAN.md Phase 2b, route E) changes no rule. A re-rooting leader whose own view puts
 # one of its blocks at depth >= 2 publishes a copy at the block's slot whose parent is the fork
 # point. The copy is the first block of a fork, so the depth-1 rule counts it as an uncle.
-# Spent stake (PLAN.md Phase 2c, route C): a coalition holds the keys of a share of the stake
-# whose notes are spent. A win of such a note cannot be a chain block, so the coalition publishes
-# it as an entry at its slot, naming the tip it would have extended. Route C counts an entry by
-# its lottery win alone: depth 0 with the window measured to the entry's own slot (the uncle
-# anchor).
+# Spent stake (PLAN.md Phase 2c, route C): every holder has spent a share of its notes, and a
+# coalition holds their keys. A win of a spent note cannot be a chain block, so the coalition
+# publishes it as an entry at its slot, naming the tip the holder would have extended. Route C
+# counts an entry by its lottery win alone: depth 0 with the window measured to the entry's own
+# slot (the uncle anchor).
 
 
 @dataclass(frozen=True)
@@ -194,7 +194,7 @@ class SimConfig:
     # _base_key(), so paired_streams pairs re-rooting with every depth.
     reroot_share: float = 0.0
     reroot_delay: float = 0.0
-    # See the note above SimConfig: the stake share of the spent-stake coalition (0 = none).
+    # See the note above SimConfig: the share of every holder's stake that is spent (0 = none).
     # Appended to key() only when not 0, and excluded from _base_key(), so paired_streams pairs
     # every share with the honest arm.
     spent_share: float = 0.0
