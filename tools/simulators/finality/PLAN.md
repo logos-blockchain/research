@@ -512,6 +512,18 @@ Each hypothesis below can fail, and says what would fail it.
   models, a floor exists that no two sides of a partition both reach while the adversary signs on
   both, and that the honest chain the adversary withholds from still reaches, each at `1e-9`. At
   a third none exists at any `K`. Fails if either part does not hold (Phase K, K.3).
+- **H22.** In GRR's own model a wait costs far less than K.1 reads. B2 freezes its chain once the
+  honest successes and twice the coalition's could make the target `D` deep, about `4/3` per block
+  interval against a third, where the honest chain grows `D` blocks at its slowest, about `0.55` per
+  block interval at 10 s. Against a third at `Δ = 10` s and `1e-9`, the bound for a wait is at most
+  half of K.1's 26.3 hours, so `⌊k/f⌋` = 18 hours holds a third at 10 s without grinding. Fails if
+  longer (Phase K, K.7).
+- **H23.** A cap on the inference's correction buys the density floor time at a fixed rate in
+  stalls. With a cap of 5 % an epoch, a cut-off side of 0.3 stays below the density floor at
+  `K = 3⌊k/f⌋` for at least 45 days, and a fall of the active stake to 60 %, with nobody
+  withholding, stalls finality under that form for at most three epochs. But at every cap the
+  protection against a side of 0.3 lasts less than twice the stall after a fall to 50 %. Fails if
+  any part does not hold (Phase K, K.8).
 
 ## 3. Questions for the owner
 
@@ -1140,9 +1152,37 @@ Steps:
   in slots; what moves.
 - **K.6 — The report.** `reports/finality/` on this branch, read under the slot assumption
   throughout.
+- **K.7 — The wait in GRR's own model** (`waitbound.py`). K.1's worst case reads B2's bound at
+  the depth a wait guarantees. B2 freezes its chain at the earliest moment the target could be
+  `D` deep, and K.1 then also waits for the honest chain to grow `D` blocks at its slowest. The
+  paper's Lemma 10 settles the prefix up to a slot once the margin stays negative, so the paper's
+  chain bounds a wait directly, with a clock in place of the count.
+  1. *The bound.* LCanalysis's chain, each phase costed by its wait for the next success,
+     rounded up to a slot, and its span, at most `h·Δ` for `h` honest successes; the phase that
+     covers the target weighted by its length. The chain freezes at the phase in which the wait
+     passes. Gates: with LCanalysis's counts as costs the pass is `ub_curve`; the bound lies above
+     its own chain played with the phases' true lengths in continuous time, and within a stated
+     factor of it; it lies above the paper's attack, scored against a wait on the per-slot
+     lottery. Checks: half-slot levels, twice the states, and the spans charged at the depth they
+     add, which brackets what the `h·Δ` charge costs.
+  2. *Read again.* K.1's worst-case table, K.2's shares, waits and factors absorbed, the floor at
+     the least `K`, and K.5's block rates and Blend settings, under the bound.
+  Table: `T` at `1e-6` and `1e-9` for `α` from 5 % to a third and `Δ` from 1 to 20 s, beside K.1's
+  bound and the attack's estimate.
+- **K.8 — A capped correction.** Both forms of the floor hold only until a sparse chain's
+  inferred stake corrects. A cap `c` limits each epoch's correction: `D' ≥ (1 − c)·D`.
+  1. *What it buys.* The days a side of share `σ`, cut off from the rest, stays below each form of
+     the floor at `K = ⌊k/f⌋` and `3⌊k/f⌋`, for `c` from 2 % to 20 % and none, with the split
+     aligned so that its corrections come earliest.
+  2. *What it costs.* After a fall of the active stake to `r` with nobody withholding, the days
+     finality stalls under the density form and what it takes under the depth form, with the fall
+     aligned so that its corrections come latest; and the days the chain runs slow. G7 prices the
+     deflation under each cap.
+  Table: per cap, the protection for `σ` from 0.1 to 0.45 and the stall for `r` of 0.8, 0.6 and
+  0.5.
 
-Exit: `SLOTS.md` carries K.0–K.5, each note gains a short section on what slots change, and the
-report states every result in slots. H17–H21 get their verdicts.
+Exit: `SLOTS.md` carries K.0–K.8, each note gains a short section on what slots change, and the
+report states every result in slots. H17–H23 get their verdicts.
 
 ## 5. Measurement protocol
 
