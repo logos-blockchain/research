@@ -197,8 +197,10 @@ def _policy_rates(pc, pol, pi):
         hon_rate=float((w * rhon[pol, rows]).sum()),
         orphan_hon_blocks=float((w * oh).sum()),
         orphan_hon_runs=float((w * (oh > 0)).sum()),
+        orphan_hon_d2=float((w * np.minimum(oh, 2)).sum()),
         orphan_adv_blocks=float((w * oa).sum()),
         orphan_adv_runs=float((w * (oa > 0)).sum()),
+        orphan_adv_d2=float((w * np.minimum(oa, 2)).sum()),
     )
 
 
@@ -250,6 +252,27 @@ class OptimalPolicyStats:
     orphan_hon_runs: float         # honest orphan *chains* per event (1 countable uncle each)
     orphan_adv_blocks: float       # adversary blocks discarded per event
     orphan_adv_runs: float
+    # The first two blocks of every discarded chain, per event: what a cousin rule counts
+    # (PLAN.md Phase 4). The MDP has no window, so the rule's window is taken as never binding.
+    # Read by optimal_policy_stats only; NaN where not computed.
+    orphan_hon_d2: float = float("nan")
+    orphan_adv_d2: float = float("nan")
+
+    def counted(self, max_depth: int = 1, adv: bool = False) -> float:
+        """Discarded blocks per event that a rule counting the first ``max_depth`` blocks of every
+        discarded chain counts: 1 is the deployed rule, 2 the cousin rule. ``adv`` reads the
+        attacker's own chains instead of the honest ones."""
+        if max_depth not in (1, 2):
+            raise ValueError(f"max_depth must be 1 or 2, got {max_depth}")
+        if adv:
+            return (self.orphan_adv_runs, self.orphan_adv_d2)[max_depth - 1]
+        return (self.orphan_hon_runs, self.orphan_hon_d2)[max_depth - 1]
+
+    def recovery(self, max_depth: int = 1, adv: bool = False) -> float:
+        """Ceiling on ``eta``: :meth:`counted` over the discarded blocks. At ``max_depth = 1`` it
+        is :attr:`countable_recovery`."""
+        blocks = self.orphan_adv_blocks if adv else self.orphan_hon_blocks
+        return self.counted(max_depth, adv) / blocks if blocks > 0 else 1.0
 
     @property
     def countable_recovery(self) -> float:
@@ -270,13 +293,14 @@ class OptimalPolicyStats:
             return 1.0
         return self.orphan_adv_runs / self.orphan_adv_blocks
 
-    def dhat_ratio(self, p_ref: float = 1.0, countable: bool = True) -> float:
+    def dhat_ratio(self, p_ref: float = 1.0, countable: bool = True, max_depth: int = 1) -> float:
         """Equilibrium ``D̂/D*`` = canonical density + the referenced share of honest orphans.
 
-        ``countable=True`` counts one uncle per orphaned *chain* (the deployed rule);
-        ``countable=False`` is the unrestricted baseline that counts every orphaned block.
+        ``countable=True`` counts the first ``max_depth`` blocks of every orphaned *chain* (1, the
+        deployed rule, counts one uncle per chain; 2 is the cousin rule); ``countable=False`` is
+        the unrestricted baseline that counts every orphaned block.
         """
-        rec = self.orphan_hon_runs if countable else self.orphan_hon_blocks
+        rec = self.counted(max_depth) if countable else self.orphan_hon_blocks
         return self.density_fraction + float(np.clip(p_ref, 0.0, 1.0)) * rec
 
 
@@ -412,7 +436,7 @@ def optimal_policy_stats(alpha: float, gamma: float, cap: int = 64,
         return OptimalPolicyStats(alpha=alpha, gamma=gamma, revenue=revenue, deviates=False,
                                   density_fraction=1.0, orphan_hon_blocks=0.0,
                                   orphan_hon_runs=0.0, orphan_adv_blocks=0.0,
-                                  orphan_adv_runs=0.0)
+                                  orphan_adv_runs=0.0, orphan_hon_d2=0.0, orphan_adv_d2=0.0)
 
     # Recover V at the optimal rho, then read off the greedy policy and its stationary rates.
     reward = (1.0 - revenue) * radv - revenue * rhon
@@ -426,4 +450,6 @@ def optimal_policy_stats(alpha: float, gamma: float, cap: int = 64,
         orphan_hon_runs=rates["orphan_hon_runs"],
         orphan_adv_blocks=rates["orphan_adv_blocks"],
         orphan_adv_runs=rates["orphan_adv_runs"],
+        orphan_hon_d2=rates["orphan_hon_d2"],
+        orphan_adv_d2=rates["orphan_adv_d2"],
     )

@@ -82,7 +82,9 @@ UncleOrder = Literal["uncle", "parent"]
 #  0 — the ceiling arm: any depth, no ancestry condition.
 # Re-rooting (PLAN.md Phase 2b, route E) changes no rule. A re-rooting leader whose own view puts
 # one of its blocks at depth >= 2 publishes a copy at the block's slot whose parent is the fork
-# point. The copy is the first block of a fork, so the depth-1 rule counts it as an uncle.
+# point. The copy is the first block of a fork, so the depth-1 rule counts it as an uncle. A
+# coalition never re-roots (PLAN.md Phase 4), so under a selfish or withholding adversary the
+# re-rooting share is a share of the honest stake.
 # Spent stake (PLAN.md Phase 2c, route C): every holder has spent a share of its notes, and a
 # coalition holds their keys. A win of a spent note cannot be a chain block, so the coalition
 # publishes it as an entry at its slot, naming the tip the holder would have extended. Route C
@@ -387,10 +389,13 @@ class SimConfig:
                              "oldest strategy only")
         if self.reroot_share > 0.0 and (self.uncle_model != "countable" or self.uncle_depth != 1
                                         or self.uncle_strategy != "oldest"
-                                        or self.adversary_frac > 0.0 or self.jitter_mean > 0.0):
+                                        or self.jitter_mean > 0.0
+                                        or (self.adversary_frac > 0.0 and self.adversary_strategy
+                                            not in ("selfish", "withhold"))):
             # Detection replays arrivals inside the deterministic horizon, so jitter is out.
-            raise ValueError("re-rooting is defined for the honest countable model at depth 1, "
-                             "with the oldest strategy and no jitter")
+            raise ValueError("re-rooting is defined for the countable model at depth 1, with the "
+                             "oldest strategy, no jitter, and no adversary but a selfish or "
+                             "withholding one")
         if self.spent_share > 0.0 and (self.uncle_depth != 0 or self.uncle_window_anchor != "uncle"
                                        or self.adversary_frac > 0.0):
             # Depth 0 already implies the countable model, the oldest strategy and no re-rooting.
@@ -558,7 +563,8 @@ class SimConfig:
         return self._base_key() if self.paired_streams else self.key()
 
 
-# Axes that can be swept; every SimConfig field is legal here.
+# Axes that can be swept; every SimConfig field is legal here. An empty axis takes its value from
+# ``base``.
 _SWEEP_AXES = (
     "n_nodes", "stake_dist", "latency", "max_uncles", "uncle_strategy", "uncle_window",
     "uncle_window_anchor",
@@ -571,6 +577,7 @@ _SWEEP_AXES = (
     "window_absorption",
     "topology", "degree", "link_latency_mean", "link_latency_dist",
     "blend_hops", "blend_delay_max", "init_dest", "f",
+    "adversary_frac",
 )
 
 
@@ -600,6 +607,8 @@ class SweepConfig:
     blend_delay_max: list[float] = field(default_factory=lambda: [3.0])
     init_dest: list[InitDest] = field(default_factory=lambda: ["common"])
     f: list[float] = field(default_factory=lambda: [constants.F])
+    # Empty: the value in ``base``. A config that sets the adversary in ``base`` keeps it.
+    adversary_frac: list[float] = field(default_factory=list)
     replicates: int = 8
     base: dict[str, Any] = field(default_factory=dict)
 
@@ -607,7 +616,7 @@ class SweepConfig:
         """Materialise every ``SimConfig`` in the grid × replicates."""
         base = SimConfig(**self.base)
         cells: list[SimConfig] = []
-        axis_values = [getattr(self, ax) for ax in _SWEEP_AXES]
+        axis_values = [getattr(self, ax) or [getattr(base, ax)] for ax in _SWEEP_AXES]
         for combo in itertools.product(*axis_values):
             overrides = dict(zip(_SWEEP_AXES, combo, strict=True))
             # U=0 references no uncles, so it is independent of uncle_strategy AND the window

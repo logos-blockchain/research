@@ -76,13 +76,15 @@ def simulate_deepest_reorg(alpha_eff: float, n_events: int,
     return np.asarray(depths, dtype=np.int64)
 
 
-def countable_recovery_from_depths(depths: np.ndarray) -> float:
+def countable_recovery_from_depths(depths: np.ndarray, max_depth: int = 1) -> float:
     """Share of reorg-discarded public blocks the countable model can reference back (§6.6).
 
     A depth-``d`` reorg displaces ``d`` *consecutive* public blocks. They form one chain rooted at
     the fork point, and the countable model can reference only the block whose parent lies on the
     referencing chain — so one of the ``d`` is recoverable into the density and ``d-1`` are not.
-    Over a run of attacks that ceiling is ``attacks / blocks = len(depths) / sum(depths)``.
+    Over a run of attacks that ceiling is ``attacks / blocks = len(depths) / sum(depths)``. A rule
+    that counts the first ``max_depth`` blocks of a chain (2 = cousins, PLAN.md Phase 4) recovers
+    ``min(d, max_depth)`` of each.
 
     This is the depth-*maximising* adversary's value; the revenue-maximising one is
     :func:`tsi_sim.selfish_mdp.optimal_policy_stats`. Neither is a worst case for the estimator —
@@ -90,4 +92,4 @@ def countable_recovery_from_depths(depths: np.ndarray) -> float:
     """
     d = np.asarray(depths, dtype=np.int64)
     total = int(d.sum())
-    return (d.size / total) if total else 1.0
+    return (int(np.minimum(d, max_depth).sum()) / total) if total else 1.0

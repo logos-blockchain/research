@@ -87,5 +87,9 @@ def divergence_row(
         block_rate=er.block_rate,
         spent_win_rate=er.spent_win_rate,
         spent_counted_share=er.spent_counted_share,
+        lost_honest_d1_share=er.lost_honest_d1_share,
+        lost_honest_d2_share=er.lost_honest_d2_share,
+        lost_honest_d3plus_share=er.lost_honest_d3plus_share,
+        lost_unpublished_share=er.lost_unpublished_share,
     )
     return row

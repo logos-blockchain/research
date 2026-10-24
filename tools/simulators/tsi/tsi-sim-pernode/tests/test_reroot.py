@@ -81,6 +81,33 @@ def test_the_watch_expires_with_the_window():
                   w=360).expires == 364
 
 
+def _private_eight(w):
+    """S reaches the leader at 6 and b at 7, so the tip moves to S and stays under P. b's child
+    8 (h4) is private (PLAN.md Phase 4) until a release updates its arrival in place."""
+    arr = _arr(s=6.0, b=7.0, seven=30.0, eight=1000.0)
+    wt = _Watch(X, arr, W_PARENT, _keys(W_HEIGHT, W_SLOT), W_SLOT, t=4, horizon=10.0, w=w)
+    for b in (7, 8):
+        wt.observe(b, W_PARENT)
+    return arr, wt
+
+
+def test_a_released_block_reaches_the_watch():
+    arr, wt = _private_eight(360)
+    assert wt.check(25.0) is None
+    arr[8] = 9.0
+    wt.renote(8)
+    assert wt.armed and wt.check(26.0) == 8
+    assert _fork_point(W_PARENT, W_HEIGHT, X, 8) == 1
+
+
+def test_a_release_after_the_watch_expires_is_never_replayed():
+    arr, wt = _private_eight(20)                       # expires at slot 24
+    assert wt.check(24.0) is None
+    arr[8] = 25.0
+    wt.renote(8)
+    assert not wt.armed
+
+
 def test_copies_in_view_and_pruning():
     c = _Copies(n=2, base=100)
     for j, (slot_x, arr) in enumerate([(5, [3.0, 9.0]), (8, [7.0, 7.0])]):

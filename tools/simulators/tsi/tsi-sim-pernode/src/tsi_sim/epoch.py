@@ -63,6 +63,14 @@ class EpochResult:
     block_rate: float
     spent_win_rate: float
     spent_counted_share: float
+    # Adversaries (PLAN.md Phase 4), as shares of the occupied window slots: the lost slots that
+    # hold an honest block, by the depth of the shallowest one (fork.lost_slots; every block is
+    # honest without a coalition), and the lost slots whose blocks reached no node outside the
+    # coalition.
+    lost_honest_d1_share: float
+    lost_honest_d2_share: float
+    lost_honest_d3plus_share: float
+    lost_unpublished_share: float
 
 
 def _canonical_producer_split(
@@ -171,7 +179,8 @@ def simulate_epoch(
     deep_ref_share = (int(ms.ref_deep.sum()) / ref_total) if ref_total else 0.0
     # measure() scopes references to the window under the countable model only.
     lost = fork.lost_slots(tree, A, T, cutoff=E,
-                           scope_refs=config.ref_scope == "window" and config.uncle_model != "old")
+                           scope_refs=config.ref_scope == "window" and config.uncle_model != "old",
+                           coalition_mask=attribution)
     occ = lost.occupied or 1
     made = (tree.copy_of >= 0) & (tree.copy_slot >= 0) & (tree.copy_slot < T)
     lag = tree.copy_pub[made] - tree.copy_slot[made]
@@ -198,4 +207,7 @@ def simulate_epoch(
         parent_wait_mean=pw.wait_mean, parent_wait_max=pw.wait_max,
         block_rate=lost.occupied / T, spent_win_rate=lone / T,
         spent_counted_share=lone_counted / lone if lone else float("nan"),
+        lost_honest_d1_share=lost.honest[0] / occ, lost_honest_d2_share=lost.honest[1] / occ,
+        lost_honest_d3plus_share=(lost.honest[2] + lost.honest[3]) / occ,
+        lost_unpublished_share=lost.unpublished / occ,
     )

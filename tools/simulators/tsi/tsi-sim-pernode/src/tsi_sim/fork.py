@@ -132,13 +132,18 @@ class LostSlots:
                                           # cover, by the same depth; not lost
     spent: tuple[int, int] = (0, 0)       # slots of [0, T) only spent notes won (no block
                                           # holds them), and those the count covers
+    honest: tuple[int, int, int, int] = (0, 0, 0, 0)   # lost slots holding a block from outside
+                                          # the coalition, by the shallowest such block's depth
+    unpublished: int = 0                  # lost slots none of whose blocks reached a node
+                                          # outside the coalition
 
     @property
     def lost(self) -> int:
         return sum(self.by_depth)
 
 
-def lost_slots(tree: BlockTree, A, T: int, cutoff: int, scope_refs: bool = True) -> LostSlots:
+def lost_slots(tree: BlockTree, A, T: int, cutoff: int, scope_refs: bool = True,
+               coalition_mask=None) -> LostSlots:
     """Classify the occupied slots of ``[0, T)`` against the final canonical chain.
 
     A slot is covered when it holds a canonical block or an uncle the chain counts: one carried
@@ -149,6 +154,11 @@ def lost_slots(tree: BlockTree, A, T: int, cutoff: int, scope_refs: bool = True)
     covers its original's slot; the slots only copies cover are filed under ``rerooted`` instead.
     A counted spent win covers its slot too.
 
+    ``honest`` files the lost slots that hold a block of a node outside ``coalition_mask`` (every
+    block without one) under the smallest depth among those blocks. ``unpublished`` counts the lost
+    slots whose blocks reached no node outside the coalition: an adversary's withheld blocks and
+    the private blocks it never released (PLAN.md Phase 4).
+
     ``occupied - lost + spent[1]`` equals the slot count ``measure`` reads from the same chain
     (asserted in tests/test_fork.py), so the depth shares sum to the estimator's own shortfall.
     """
@@ -157,6 +167,13 @@ def lost_slots(tree: BlockTree, A, T: int, cutoff: int, scope_refs: bool = True)
         return LostSlots(0, (0, 0, 0, 0), 0)
     canonical, depth = canonical_and_depth(tree, A, cutoff)
     in_win = (tree.slot >= 0) & (tree.slot < T) & (np.arange(nb) > 0)
+    honest_node = (None if coalition_mask is None else ~np.asarray(coalition_mask))
+    honest_block = (np.ones(nb, bool) if honest_node is None
+                    else honest_node[np.maximum(tree.leader, 0)])
+    if not isinstance(A, np.ndarray):
+        public = np.ones(nb, bool)
+    else:
+        public = ((A if honest_node is None else A[honest_node]) <= cutoff).any(axis=0)
     counted = np.zeros(nb, dtype=bool)
     copy_slots: set[int] = set()
     spent_slots: set[int] = set()
@@ -172,25 +189,38 @@ def lost_slots(tree: BlockTree, A, T: int, cutoff: int, scope_refs: bool = True)
     lone = {int(s) for s in tree.copy_slot[tree.copy_of < 0] if 0 <= s < T} - occupied
     covered = set(tree.slot[in_win & (canonical | counted)].tolist()) | spent_slots
     shallowest: dict[int, int] = {}
+    shallowest_honest: dict[int, int] = {}
     parent_ref: set[int] = set()
+    published: set[int] = set()
     for b in np.nonzero(in_win & ~canonical)[0]:
         s = int(tree.slot[b])
         if s in covered:
             continue
         d = int(depth[b])
         shallowest[s] = min(shallowest.get(s, d), d)
+        if honest_block[b]:
+            shallowest_honest[s] = min(shallowest_honest.get(s, d), d)
+        if public[b]:
+            published.add(s)
         if d == 2 and counted[int(tree.parent[b])]:
             parent_ref.add(s)
     by_depth = [0, 0, 0, 0]
     rerooted = [0, 0, 0, 0]
     for s, d in shallowest.items():
         (rerooted if s in copy_slots else by_depth)[min(d, 4) - 1] += 1
+    honest = [0, 0, 0, 0]
+    for s, d in shallowest_honest.items():
+        if s not in copy_slots:
+            honest[min(d, 4) - 1] += 1
     return LostSlots(occupied=len(occupied),
                      by_depth=(by_depth[0], by_depth[1], by_depth[2], by_depth[3]),
                      d2_parent_ref=sum(1 for s in parent_ref
                                        if shallowest[s] == 2 and s not in copy_slots),
                      rerooted=(rerooted[0], rerooted[1], rerooted[2], rerooted[3]),
-                     spent=(len(lone), len(lone & spent_slots)))
+                     spent=(len(lone), len(lone & spent_slots)),
+                     honest=(honest[0], honest[1], honest[2], honest[3]),
+                     unpublished=sum(1 for s in shallowest
+                                     if s not in published and s not in copy_slots))
 
 
 @dataclass(frozen=True)

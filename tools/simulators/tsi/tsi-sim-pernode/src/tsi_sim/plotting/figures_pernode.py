@@ -22,7 +22,8 @@ CONFIG_COLS = ["n_nodes", "stake_dist", "pareto_shape", "topology", "degree",
                "uncle_window", "uncle_window_anchor", "uncle_order", "uncle_depth",
                "reroot_share", "reroot_delay", "spent_share", "ref_scope",
                "init_dest", "init_spread", "genesis_d_factor",
-               "f", "beta", "k", "fixed_point", "legacy_block_count"]
+               "f", "beta", "k", "fixed_point", "legacy_block_count",
+               "adversary_frac", "adversary_strategy"]
 
 # Graph topologies (as opposed to the full_mesh baseline) and the dominant latency knob each
 # is plotted against: regular varies the per-link latency, blend varies the per-hop mix delay.
@@ -162,7 +163,9 @@ def equilibrium(df: pd.DataFrame, burn_frac: float = 0.5) -> pd.DataFrame:
             "rerooted_share", "rerooted_d2_share", "rerooted_d3plus_share", "reroot_made_share",
             "reroot_lag_mean", "parent_wait_block_share", "parent_wait_node_share",
             "parent_wait_mean", "active_stake_frac", "block_rate", "spent_win_rate",
-            "spent_counted_share")
+            "spent_counted_share", "lost_honest_d1_share", "lost_honest_d2_share",
+            "lost_honest_d3plus_share", "lost_unpublished_share", "adv_block_share",
+            "p_ref_honest", "adv_blocks", "honest_blocks")
            if c in tail.columns}
     if "parent_wait_max" in tail.columns:
         agg["parent_wait_max"] = ("parent_wait_max", "max")

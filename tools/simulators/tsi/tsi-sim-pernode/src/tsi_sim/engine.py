@@ -133,20 +133,24 @@ def _fit_then_close(st: np.ndarray, target: float) -> tuple[np.ndarray, float]:
     return chosen, cum
 
 
-def _reroot_mask(config: SimConfig, stake: np.ndarray) -> np.ndarray | None:
+def _reroot_mask(config: SimConfig, stake: np.ndarray,
+                 adv_mask: np.ndarray | None = None) -> np.ndarray | None:
     """Nodes that re-root their blocks (PLAN.md Phase 2b): a random set holding ``reroot_share``
-    of the stake, filled as the adversary's coalition is. ``None`` when the share is 0.
+    of the honest stake, filled as the adversary's coalition is. The coalition ``adv_mask`` never
+    re-roots (Phase 4). ``None`` when the share is 0.
 
     Seeded standalone, like the coalition, so every arm of a replicate draws the same set and the
     main spawn hierarchy is untouched.
     """
     if config.reroot_share <= 0.0:
         return None
+    honest = np.ones(config.n_nodes, dtype=bool) if adv_mask is None else ~adv_mask
     if config.reroot_share >= 1.0:
-        return np.ones(config.n_nodes, dtype=bool)
+        return honest
     seed = np.random.SeedSequence([config.root_seed, config.replicate, 0x5E2007])
     order = np.random.default_rng(seed).permutation(config.n_nodes)
-    chosen, _ = _fit_then_close(stake[order], config.reroot_share * float(stake.sum()))
+    order = order[honest[order]]
+    chosen, _ = _fit_then_close(stake[order], config.reroot_share * float(stake[honest].sum()))
     mask = np.zeros(config.n_nodes, dtype=bool)
     mask[order[chosen]] = True
     return mask
@@ -251,7 +255,7 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
     d_est = _initial_d_est(config, d_true, np.random.default_rng(children[2]))
     adv_mask = _adversary_mask(config, stake)
     coal_ids = _coalition_ids(config, stake, adv_mask)
-    reroot_mask = _reroot_mask(config, stake)
+    reroot_mask = _reroot_mask(config, stake, adv_mask)
     # exact stake fraction of the (integer-rounded) coalition, for the active-stake bookkeeping
     coalition_frac = float(stake[adv_mask].sum() / d_true) if adv_mask is not None else 0.0
     withholding = adv_mask is not None and config.adversary_strategy == "withhold"

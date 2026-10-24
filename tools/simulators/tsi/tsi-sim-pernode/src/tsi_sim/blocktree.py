@@ -225,7 +225,9 @@ class _Watch:
     The leader's view puts ``x`` at depth >= 2 from the moment its best tip leaves the subtree of
     ``x``'s parent. Only a block outside that subtree that ranks above ``x`` can cause that, so the
     watch replays the leader's arrivals only once such a block exists. The replay runs in arrival
-    order, ties by rank, so the detection time is exact.
+    order, ties by rank, so the detection time is exact. A block that reaches the leader after the
+    watch expires is never replayed. A private block reaches it only on release (PLAN.md Phase 4),
+    which ``renote`` reports.
     """
 
     __slots__ = ("x", "arr", "key", "best", "members", "events", "armed", "expires")
@@ -243,11 +245,12 @@ class _Watch:
         self.events: list[tuple[float, int, int, bool]] = []
         self.armed = False
         lo = int(np.searchsorted(slot[:x], t - horizon, side="right"))
-        for b in range(lo, x):             # earlier blocks still on their way to the leader
-            if arr_v[b] > t:
-                self._note(b)
+        for b in (np.nonzero(arr_v[lo:x] > t)[0] + lo).tolist():   # still on their way to it
+            self._note(b)
 
     def _note(self, b: int) -> None:
+        if float(self.arr[b]) > self.expires:
+            return
         member = b in self.members
         if member or self.key[b] > self.key[self.x]:
             self.events.append((float(self.arr[b]), -int(self.key[b]), b, member))
@@ -257,6 +260,11 @@ class _Watch:
         """Block ``b`` was produced after ``x``, and its arrival column is set."""
         if int(parent[b]) in self.members:
             self.members.add(b)
+        self._note(b)
+
+    def renote(self, b: int) -> None:
+        """Block ``b`` was released, so its arrival column changed."""
+        self.events = [e for e in self.events if e[2] != b]
         self._note(b)
 
     def check(self, t: float) -> int | None:
@@ -777,6 +785,8 @@ def build_tree_pernode(
                 for other in coalitions:
                     if other is not c:
                         other.note_block(rb, float(A[other.coal, rb].min()))
+                for wt in watches:                           # ...and every re-rooting leader
+                    wt.renote(rb)
 
     for c in coalitions:
         if not c.priv:
