@@ -23,8 +23,10 @@ rho from ``rho_for``:
 prints one row per (delay, U, σ), where σ is the stake share whose notes are spent and whose
 holder publishes its wins as entries: the realised σ; D̂/D against the snapshot's stake, and
 against the active stake 1 − σ next to 1 / (1 − σ); the block rate (window slots that hold a
-block, per slot) against f, next to 1 − σ; the share of the slots only the coalition won that
-count; and the paired gap in D̂/D to σ = 0.
+block, per slot) against f, next to 1 − σ; the chain's growth (canonical window blocks per slot)
+against f, and the blocks it adds over the s = 3⌊k/f⌋ slots of the stake snapshot phase, in units
+of k (PLAN.md Phase 4); the share of the slots only the coalition won that count; and the paired
+gap in D̂/D to σ = 0.
 
 The gaps of each table form one family. Its Bonferroni |t| threshold at 5 % (two-sided, Student t
 with pairs − 1 degrees of freedom) is printed under it.
@@ -186,6 +188,9 @@ def spent(run_s: Path, run_c: Path) -> None:
     n_same = _same(zero, ref, KEYS + ["epoch"], shared)
     eq = equilibrium(s)
     f = float(s.f.iloc[0])
+    geometry = SimConfig(k=int(s.k.iloc[0]), f=f)
+    eq["chain_rate"] = (eq.adv_blocks + eq.honest_blocks) / geometry.period_T
+    phase = 3 * (geometry.period_T // 6)                 # s = 3⌊k/f⌋ slots
     delays = sorted(eq[DELAY].unique())
     rho = dict(zip(delays, rho_for(s, delays), strict=True))
     rows = []
@@ -201,6 +206,8 @@ def spent(run_s: Path, run_c: Path) -> None:
                    "D̂/D act": (arm.mean_ratio / arm.active_stake_frac).mean(),
                    "1/(1-σ)": (1.0 / arm.active_stake_frac).mean(),
                    "rate/f": arm.block_rate.mean() / f, "1-σ": arm.active_stake_frac.mean(),
+                   "chain/f": arm.chain_rate.mean() / f,
+                   "phase/k": arm.chain_rate.mean() * phase / geometry.k,
                    "lone counted %": (f"{100 * arm.spent_counted_share.mean():.2f}"
                                       if share > 0 else "")}
             if share > 0:
@@ -211,8 +218,8 @@ def spent(run_s: Path, run_c: Path) -> None:
     assert len(n_pairs) == 1, "every share must have the same replicates"
     table = pd.DataFrame(rows)
     print(f"checks: {n_same} σ = 0 rows equal the route C rows in {len(shared)} columns")
-    _print("spent stake: D̂ against the snapshot and the active stake, block rate against f",
-           table, int((table.share > 0).sum()), n_pairs.pop())
+    _print("spent stake: D̂ against the snapshot and the active stake, block rate and chain "
+           "growth against f", table, int((table.share > 0).sum()), n_pairs.pop())
 
 
 def _print(title: str, table: pd.DataFrame, n_tests: int = 0, n: int = 0) -> None:
