@@ -534,6 +534,13 @@ Each hypothesis below can fail, and says what would fail it.
   withholding, stalls finality under that form for at most three epochs. But at every cap the
   protection against a side of 0.3 lasts less than twice the stall after a fall to 50 %. Fails if
   any part does not hold (Phase K, K.8).
+- **H24.** The floor gains from counting what the stake inference counts. Counted as occupied
+  slots, canonical or referenced as uncles, the honest chain the coalition withholds from reads its
+  stake's full occupancy under random delay, where blocks lose the orphans. At 18 hours against a
+  third that floor lies at least a sixth above the floor on blocks, and under random delay a floor
+  on occupied slots separates the sides of a partition against a quarter within a week. Under the
+  worst case the count never falls below the canonical one, so the floor of 1,019 keeps its
+  liveness. Fails if any part does not hold (Phase K, K.9).
 
 ## 3. Questions for the owner
 
@@ -1200,9 +1207,19 @@ Steps:
      deflation under each cap.
   Table: per cap, the protection for `σ` from 0.1 to 0.45 and the stall for `r` of 0.8, 0.6 and
   0.5.
+- **K.9 — The floor counted as the stake inference counts.** The inference counts occupied
+  slots, a slot holding a canonical block or an uncle the chain references, and recovers the
+  honest stake at 0.998–1.001 under Blend with one uncle a block (`reports/tsi/README.md` §3.2a).
+  The floor of K.3 counts canonical blocks, which lose the orphans. Read the floor on occupied
+  slots: its size under random delay, where the honest chain reads its full occupancy; the
+  protection it gives a cut-off side at its fastest, which counts the same either way; the stake
+  below which finality stalls or slows; and the floor as a quorum under random delay with both
+  sides counted alike. Under the worst case the count is at least the canonical one, pathwise, and
+  an adversary that orphans a run of honest blocks leaves one countable uncle (TSI report §6.6), so
+  no larger worst-case floor is read.
 
-Exit: `SLOTS.md` carries K.0–K.8, each note gains a short section on what slots change, and the
-report states every result in slots. H17–H23 get their verdicts.
+Exit: `SLOTS.md` carries K.0–K.9, each note gains a short section on what slots change, and the
+report states every result in slots. H17–H24 get their verdicts.
 
 ## 5. Measurement protocol
 
