@@ -63,6 +63,9 @@ and 12.5 after a period of withholding has deflated the inferred stake ([§6](#s
 | `⌊k/f⌋` = 64,800 slots, the time 2,160 blocks take at the full rate | 18 | holds, with a grinding factor of 1.1e18 to spare | holds, with a factor of 8.4e6 to spare; not with today's nonce, which needs 26 to 42 hours |
 | `s = 3⌊k/f⌋` = 194,400 slots, the specification's own slot parameter | 54 | holds, also with today's nonce | holds, also with today's nonce |
 
+`K = ⌊k/f⌋`, 18 hours, is recommended, with the nonce of route 1 and a floor in its depth form
+([§3.3](#s33)).
+
 **What counting in slots changes in kind.**
 
 - **Without a floor, an eclipse or a split fixes a fork after `K` slots, whatever its stake.** A
@@ -91,13 +94,14 @@ and 12.5 after a period of withholding has deflated the inferred stake ([§6](#s
 | --- | --- | --- | --- | --- |
 | a nonce that resists grinding ([§5](#s5)) | the epoch nonce taken from the smallest contributions of 25 sub-windows and passed through a sequential delay that spans the last one, each contribution bound to its parent's ([§12](#s12), G1; [§13](#s13), H.2) | guaranteed at 10 s: a wait of 6.0 / 10.2 hours, within 0.1 hours of a nonce that is not ground; with today's nonce 14 to 19 / 26 to 42 hours | a hard fork; a window before the cut-off of at least 54 hours; a sequential computation of about a day once an epoch | recommended, with the delay; every `K` below 42 hours that holds a third at 10 s depends on it |
 | settled level ([§4](#s4)) | a client rule; nothing in consensus | random delay: a wait of 3.1 / 5.1 h, a depth of 2.3 / 4.1 h, 1.5 / 2.4 h reading elapsed time; guaranteed at 10 s: a wait of 6.0 / 10.2 h, a depth of 13.1 / 23.2 h, 3.3 / 6.2 h counting the forks seen | nothing | recommended |
-| finality counted in slots ([§6](#s6)) | `K` slots, and a density floor | `K` of 6.4 / 12.5 hours at 10 s with route 1's nonce, a deflated inference included; 18 hours holds both, and 54 hours holds both with today's nonce too | a floor, without which eclipses and splits fix forks after `K`; at 18 hours the floor against a third is 1,019 blocks, below today's 2,160, and holds back a cut-off side up to 0.385 of the stake; no floor separates a partition at a third | sound at `K` of at least 12.5 hours against a third at 10 s, with route 1's nonce and a floor; 18 hours holds it with a factor of `8.4·10^6` to spare, and `s`, 54 hours, holds it with today's nonce and gives the floor more blocks than `k = 2160` |
+| finality counted in slots ([§6](#s6)) | `K` slots, and a density floor | `K` of 6.4 / 12.5 hours at 10 s with route 1's nonce, a deflated inference included; 18 hours holds both, and 54 hours holds both with today's nonce too | a floor, without which eclipses and splits fix forks after `K`; at 18 hours the floor against a third is 1,019 blocks, below today's 2,160, and holds back a cut-off side up to 0.385 of the stake; no floor separates a partition at a third | recommended at `K = ⌊k/f⌋`, 18 hours, with route 1's nonce and the floor in its depth form, 1,019 blocks: a third at 10 s holds with a factor of `8.4·10^6` to spare, `1.2·10^4` after a deflation |
 | faster blocks ([§7](#s7)) | `f` | random delay: a wait of 3.0 / 6.2 h at 15 s blocks; worst case at 10 s: 9.5 / 20.4 h | ×2.0 the blocks at 15 s | not recommended: under the worst case a faster rate needs a longer `K` |
 | regular block intervals ([§7](#s7)) | the lottery becomes a curve of the slots since the parent | against a third Topl's shape needs more than 60 blocks at `1e-3`, today's lottery 58 | a third more blocks; a new stake inference | not recommended |
 | certificates ([§8](#s8)) | anonymous-seat votes through Blend | no committee against a third; against 30 %, 33,473 seats while every honest vote counts | ×1,675 Blend cover at 10-minute rounds | not recommended |
 | multi-proposer DAG ([§9](#s9)) | replaces the chain and its fork choice | random delay, at today's block rate, against a third: 106 minutes, the chain 160 by the same fit | as the chain at that rate | not recommended: a balancing attack that retracts its wins holds a third for ever at every delay, so no `K` exists |
 
-Two routes are recommended, and the slot rule is sound under three conditions:
+Two routes are recommended, and finality counted in slots is recommended at 18 hours under three
+conditions:
 
 1. **A nonce that resists grinding.** With today's hash-chain nonce, an adversary that withholds
    its wins picks the next epoch's leader schedule among many. Counted in slots, no `K` below 26
@@ -105,27 +109,27 @@ Two routes are recommended, and the slot rule is sound under three conditions:
    38 to 42, and at 20 s one needs 93 to 96. The nonce taken from the smallest contribution of
    each of 25 sub-windows and passed through a sequential delay that spans the last sub-window,
    with each contribution bound to its parent's, leaves the adversary few values it can see while
-   it can still choose between them.
-   Against a third under the worst case the guaranteed wait is then 10.2 hours, against 10.1 with a
-   nonce that cannot be ground. Counted in blocks the depth is 1,523 blocks as a bound within the
-   model, 13 more than a nonce that is not ground.
+   it can still choose between them. Against a third under the worst case the guaranteed wait is
+   then 10.2 hours, against 10.1 with a nonce that cannot be ground. Counted in blocks the depth is
+   1,523 blocks as a bound within the model, 13 more than a nonce that is not ground.
 2. **A settled level in the node's API.** A client accepts a block after a wait, or a depth, from a
    table for its share `α`, failure probability `ε` and delay model. A wait reads the clock alone;
    a depth also reads the blocks, and a client may read both. With the nonce of route 1, against a
    third, the wait is 5.1 hours under random delay and 10.2 guaranteed at 10 s; a depth takes 4.1
    and 23.2 hours on the clocks of [§2](#s2), and reading elapsed time 2.4 hours under random
    delay.
-3. **Finality counted in slots, with a floor.** `K` must hold the worst case for the share, with
-   the nonce of route 1 and a deflated inference counted: about 12.5 hours against a third at 10 s
-   and about 6.4 against 30 %. 18 hours holds a third with a factor of `1.2·10^4` to spare after a
-   deflation, and the specification's slot parameter, 54 hours, with `1.2·10^30`. A floor keeps an
-   eclipse or a minority split from fixing a fork after `K` slots. At 54 hours it needs 3,264
-   blocks against a third, more than `k = 2160` blocks, and at 18 hours 1,019. Under its density
-   form a side too sparse over `K` stays provisional and rejoins when the split ends, until its
-   inferred stake corrects, 3 to 15 days after the split; a cap on the correction lengthens that
-   to months, and stalls finality as long after stake genuinely leaves.
-   No floor separates a partition at a third, where splits still wait for operators, as they do
-   counted in blocks.
+3. **Finality counted in slots at 18 hours, with a floor in its depth form.** `K` must hold the
+   worst case for the share, with the nonce of route 1 and a deflated inference counted: about
+   12.5 hours against a third at 10 s and about 6.4 against 30 %. `K = ⌊k/f⌋`, 18 hours, holds a
+   third with a factor of `1.2·10^4` to spare after a deflation. It rests on the nonce of route 1:
+   with today's nonce a third needs 26 to 42 hours. A floor keeps an eclipse or a minority split
+   from fixing a fork after `K` slots. In its depth form `B_imm` passes a block once 1,019 blocks
+   follow it, which never stalls finality and needs no cap on the inference's correction. A side
+   cut off from the rest then fixes its fork once it has made those blocks: 1.05 days with a third
+   of the stake and 3.5 with a tenth, where 2,160 blocks give 2.2 and 7.4. The density form holds
+   a sparse side back longer, until its inferred stake corrects, and stalls finality whenever the
+   active stake falls below about two thirds. No floor separates a partition at a third, where
+   splits still wait for operators, as they do counted in blocks.
 
 Specification candidates follow from them:
 
@@ -136,12 +140,11 @@ Specification candidates follow from them:
    open.
 2. **A settled level** beside the tip and `B_imm`: the table of waits, the depth table, and the
    elapsed-time rule under random delay ([§3.2](#s32)).
-3. **`B_imm` counted in slots, with a floor** ([§3.3](#s33)): `B_imm` passes a block once it is `K`
-   slots old and `φ` blocks follow it, `K` at least the guaranteed wait for the share with the
-   nonce of route 1 and a deflated inference counted, and `φ` the `ε` lower tail of the blocks the
-   honest chain makes in `K` while the adversary withholds. This depth form never stalls finality
-   and needs no cap on the inference's correction; the density form protects longer through a split
-   and stalls when stake leaves ([§3.3](#s33)).
+3. **`B_imm` counted in slots, with a floor** ([§3.3](#s33)): `B_imm` passes a block once it is
+   `K = ⌊k/f⌋` = 64,800 slots old and `φ` = 1,019 blocks follow it. `K` holds a third at 10 s with
+   the nonce of route 1, a deflated inference counted, and `φ` is the `ε` lower tail of the blocks
+   the honest chain makes in `K` while a third withholds, under the worst case at 10 s. The
+   inference's correction stays uncapped.
 4. **The Bootstrap rule's density window** sized for `(α, ε)` rather than tied to `k`
    ([§10](#s10)). Counted in slots its depth test reads one divergence age on both branches and
    needs no correction. The window bears on testnet, which runs `k = 120`.
@@ -474,6 +477,18 @@ alike. At 54 hours, the protection at its earliest and the stall at its latest, 
   1.38 times the stall after a fall to half, at every cap and both candidate windows.
 - **The depth form needs no cap and never stalls.** A side of a fifth or more makes its `φ + 1`
   blocks before its first correction.
+
+**What is recommended.** `K = ⌊k/f⌋`, 18 hours, with the nonce of [§3.1](#s31) under its delay,
+and the floor in its depth form at 1,019 blocks, with the inference's correction uncapped.
+
+- **It holds a third at 10 s with a margin.** The wait that holds `ε` is 10.2 hours with that nonce
+  and 12.5 after a deflated inference as well. After a deflation the chance at 18 hours is
+  `8.4·10^-14`, about `10^4` times below `ε` with the nonce's factor counted.
+- **It rests on the nonce and on the delay bound.** With today's nonce a third needs 26 to 42
+  hours. Without grinding a third needs 17.4 hours at 15 s and 33.5 at 20 s (`SLOTS.md` K.7).
+- **Its floor never stalls finality**, and keeps a node cut off with a third of the stake from
+  fixing the fork it is shown for 1.05 days, about half of what 2,160 blocks give. The floor holds
+  back a cut-off side up to 0.385 of the stake (`SLOTS.md` K.3, K.8).
 
 **What is shown, and what is not.** The worst-case wait is the bound of Gaži, Ren and Russell's
 chain frozen at the phase in which the wait passes, each phase's span charged at its longest and
@@ -995,7 +1010,8 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
   deflation by a third takes 36 days of withholding, a side of 0.3 stays provisional for 62 days,
   and finality under the density form stalls for 50 days after the active stake halves. No cap
   separates a split from a fall, since the inference reads them alike ([§3.3](#s33); `SLOTS.md`
-  K.8). Whether to cap, and at what rate, is the owner's choice.
+  K.8). The recommended depth form gains almost nothing from a cap, and at 18 hours it holds a
+  third after a deflation.
 - **The nonce rule's other channels.** The inferred stake moves without changing the nonce, by
   one lottery threshold step per block the adversary withholds. Choosing the level is worth under
   half a percent of the adversary's wins, and under the delay the choice is blind; the deflation
@@ -1019,18 +1035,12 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
 - **A safety proof for a weight of every honest block** below the balancing attack's edge, which
   retraction puts below a third at today's block rate; the bound from convergence opportunities
   covers up to 0.223 of the stake at 10 s ([§9](#s9)).
-- **The floor's form.** The depth form keeps `B_imm` moving on a dense chain, never stalls, and
-  holds a cut-off side back for as long as the side takes to make `φ + 1` blocks: 3.4 days for a
-  third and 5.6 for a fifth at 54 hours, whatever the cap. The density form keeps a sparse side
-  provisional until its inferred stake corrects, 9.75 days without a cap and months with one, and
-  stalls finality whenever the active stake falls below about two thirds, 12.75 days without a cap
-  ([§3.3](#s33); `SLOTS.md` K.8).
-- **The value of `K`.** Against a third at 10 s with the nonce of [§3.1](#s31) and a deflated
-  inference it must be at least 12.5 hours. `⌊k/f⌋`, 18 hours, holds it with a factor of
-  `1.2·10^4` to spare and a floor of 1,019 blocks, which holds back a cut-off side up to 0.385 of
-  the stake. The specification's `s`, 54 hours, holds it with today's nonce too and gives the
-  floor 3,264 blocks, more than `k = 2160`, holding back a side up to 0.449. Between them the
-  choice trades finality's time against the floor's reach and the margin for grinding and delay.
+- **An eclipse of a day.** Under the recommended floor a node cut off with a third of the stake
+  fixes the fork it is shown after 1.05 days, and one cut off with a tenth after 3.5; counted in
+  blocks, 2.2 and 7.4 days. How long an eclipse an adversary can hold against a node is open.
+- **Delay past 15 s.** At 18 hours `K` holds a third without grinding up to 15 s of worst-case
+  delay, 17.4 hours, and not at 20 s, 33.5 hours. Delivery later than `Δ`, under honest mixing one
+  block in a hundred at the specification's Blend, lies outside the bound.
 - **The depth bound's count.** LCanalysis freezes its upper bound at half the count the paper's
   argument needs. Whether the depths in blocks should take the paper's count, which halves them,
   rests on that argument; the study keeps the code's (`SLOTS.md` K.7).

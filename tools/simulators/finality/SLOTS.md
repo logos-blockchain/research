@@ -38,6 +38,10 @@ parameter. And the least `K` that holds each `(α, ε, Δ)`.
 **Taken without the owner's answer.** These rules; the floor measured as a variant beside them;
 the epoch at today's length, `10⌊k/f⌋` slots at `k = 2160` (G2).
 
+**The owner's answer, after K.7 and K.8.** `K = ⌊k/f⌋`, 64,800 slots, with the floor in its depth
+form at `φ` = 1,019 blocks, the worst case's at 10 s against a third, and no cap on the
+inference's correction (`PLAN.md` Q10, Q11).
+
 ## K.1 — settlement after a wait of `T` slots
 
 `src/finality_sim/slots.py` and `scripts/k1_settle.py`, with runs in `runs/k1/`.

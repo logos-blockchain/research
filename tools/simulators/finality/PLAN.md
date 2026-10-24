@@ -537,8 +537,8 @@ Each hypothesis below can fail, and says what would fail it.
 
 ## 3. Questions for the owner
 
-All nine were settled by the owner on 2026-10-05, one at a time. Each entry records the
-decision and what it changes.
+The first nine were settled by the owner on 2026-10-05, and Q10 and Q11 on 2026-10-24, one at a
+time. Each entry records the decision and what it changes.
 
 - **Q1 — Which notion is the target?** *Settled 2026-10-05 by the owner:* this is exploratory
   work, so every notion is explored: settlement (L1), a smaller `k` (L2), certified finality
@@ -588,6 +588,16 @@ decision and what it changes.
   `pulp`, `numpy`, `joblib`, `psutil`, `matplotlib` and `pyvis`. Its own note puts a full run at
   up to 48 h on an M3 Pro with 48 GB. The owner warns it may not be correct, so E0 audits it
   before E1 relies on it.
+- **Q10 — Which finality window `K`?** *Settled 2026-10-24 by the owner, after K.7:* `K = ⌊k/f⌋`,
+  64,800 slots, 18 hours at `k = 2160`. Against a third at 10 s and `1e-9` it holds with the nonce
+  of §3.1 under its delay, also after a deflated inference, with a factor of `1.2·10^4` to spare.
+  With today's nonce it does not, so it rests on that nonce; at 20 s it does not either
+  (`SLOTS.md` K.7).
+- **Q11 — Which form of the floor?** *Settled 2026-10-24 by the owner, after K.8:* the depth form,
+  with no cap on the inference's correction. `B_imm` passes a block once it is `K` slots old and
+  `φ` = 1,019 blocks follow it, the worst case's floor at 10 s against a third. It never stalls
+  finality. It holds a cut-off side back while the side makes `φ + 1` blocks: 1.05 days for a third
+  and 3.5 for a tenth, where 2,160 blocks give 2.2 and 7.4 (`SLOTS.md` K.3, K.8).
 
 ## 4. Work plan
 
