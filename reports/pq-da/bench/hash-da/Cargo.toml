@@ -1,0 +1,19 @@
+[package]
+name    = "hash-da"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+p3-field      = "0.7.0"
+p3-goldilocks = "0.7.0"
+p3-dft        = { version = "0.7.0", features = ["parallel"] }
+p3-matrix     = "0.7.0"
+p3-maybe-rayon = { version = "0.7.0", features = ["parallel"] }
+blake2        = "0.10.6"
+rand          = "0.8.5"
+
+[profile.release]
+opt-level = 3
+lto = "thin"

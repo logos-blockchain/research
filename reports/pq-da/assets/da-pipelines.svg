@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 780" role="img" aria-label="Side by side data flow of the first, KZG-based design and the proposed hash-based design through encoding, proof generation, per-column verification and sampling, with measured times for a 1 MiB blob" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12" fill="currentColor">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <!-- column headers -->
+  <text x="225" y="24" text-anchor="middle" font-weight="600" font-size="13">Executor: encode and produce proofs</text>
+  <text x="615" y="24" text-anchor="middle" font-weight="600" font-size="13">DA node, subnetwork j: verify, store, serve</text>
+  <text x="980" y="24" text-anchor="middle" font-weight="600" font-size="13">Validator or light client: sample</text>
+  <line x1="20" y1="34" x2="1160" y2="34" stroke="currentColor" stroke-opacity="0.25"/>
+
+  <!-- ===== lane 1: KZG ===== -->
+  <rect x="20" y="50" width="1140" height="340" rx="6" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <text x="32" y="70" font-weight="600" font-size="13">First design (spec 148): BLS12-381, KZG row commitments, FK20 column proofs</text>
+  <text x="1148" y="70" text-anchor="end" font-size="11" fill-opacity="0.75">1 MiB blob, 33 rows × 1 024 chunks of 31 B, 1 thread</text>
+
+  <!-- executor stages -->
+  <rect x="36" y="92" width="380" height="42" rx="4" fill="none" stroke="currentColor"/>
+  <text x="46" y="109">1. rows → polynomials f_i, RS-extend to 2 048 columns</text>
+  <text x="46" y="125" fill-opacity="0.75">interpolate + NTT per row · 16 ms</text>
+
+  <rect x="36" y="146" width="380" height="42" rx="4" fill="none" stroke="currentColor"/>
+  <text x="46" y="163">2. row commitments com_i = KZG(f_i), 33 MSMs of 1 024 points</text>
+  <text x="46" y="179" fill-opacity="0.75">784 ms · needs SRS (trusted setup)</text>
+
+  <rect x="36" y="200" width="380" height="42" rx="4" fill="none" stroke="currentColor"/>
+  <text x="46" y="217">3. h = BLAKE2b(com_1 ‖ … ‖ com_33), f_C = Σ h^i f_i</text>
+  <text x="46" y="233" fill-opacity="0.75">field ops only · &lt; 1 ms</text>
+
+  <rect x="36" y="254" width="380" height="42" rx="4" fill="none" stroke="#d9534f" stroke-width="2"/>
+  <text x="46" y="271" fill="#d9534f" font-weight="600">4. proof generation: FK20 opens f_C at all 2 048 columns</text>
+  <text x="46" y="287" fill="#d9534f">three G1 FFTs of size 4 096 · 7 384 ms, independent of blob size</text>
+
+  <text x="46" y="322" fill-opacity="0.75">on chain: hash of (com_1 … com_33)</text>
+  <text x="46" y="340" fill-opacity="0.75">encode total 8 183 ms (2 486 ms on 8 cores)</text>
+
+  <!-- arrow executor -> DA node -->
+  <line x1="420" y1="170" x2="466" y2="170" stroke="currentColor" marker-end="url(#arr)"/>
+  <text x="443" y="150" text-anchor="middle" font-size="11">disperse</text>
+  <text x="443" y="192" text-anchor="middle" font-size="11">2.6 KiB</text>
+
+  <!-- DA node -->
+  <rect x="470" y="92" width="290" height="140" rx="4" fill="none" stroke="currentColor"/>
+  <text x="480" y="110" font-weight="600">receives per blob</text>
+  <text x="480" y="128">column j: 33 chunks, 1 023 B</text>
+  <text x="480" y="144">proof π_j: 48 B</text>
+  <text x="480" y="160">com_1 … com_33: 1.5 KiB</text>
+  <text x="480" y="184" font-weight="600">verifies</text>
+  <text x="480" y="200">com_C = Σ h^i com_i (MSM of 33), v_j = Σ h^i data_i^j</text>
+  <text x="480" y="216" fill="#d9534f">pairing check e(π_j, …) · 3.6 ms per column</text>
+
+  <text x="480" y="262" fill-opacity="0.75">replicates the same 2.6 KiB to 4 peers</text>
+  <text x="480" y="280" fill-opacity="0.75">serves column + π_j on request; no computation</text>
+
+  <!-- arrow DA node -> sampler -->
+  <line x1="762" y1="170" x2="796" y2="170" stroke="currentColor" marker-end="url(#arr)"/>
+  <text x="779" y="150" text-anchor="middle" font-size="11">serve</text>
+  <text x="779" y="192" text-anchor="middle" font-size="11">1.07 KiB</text>
+
+  <!-- sampler -->
+  <rect x="800" y="92" width="350" height="140" rx="4" fill="none" stroke="currentColor"/>
+  <text x="810" y="110" font-weight="600">once per blob</text>
+  <text x="810" y="128">fetch com_1 … com_33 (1.5 KiB), check hash against chain</text>
+  <text x="810" y="152" font-weight="600">per sampled column, S = 20 per round</text>
+  <text x="810" y="170">column + π_j (1.07 KiB)</text>
+  <text x="810" y="186">same MSM + pairing as the DA node · 3.6 ms</text>
+  <text x="810" y="210" fill-opacity="0.75">per blob: 23 KiB, 72 ms of verification</text>
+
+  <text x="810" y="262" fill-opacity="0.75">guarantee: KZG binding (discrete log) →</text>
+  <text x="810" y="280" fill-opacity="0.75">a column that verifies belongs to a unique blob</text>
+
+  <!-- ===== lane 2: proposal ===== -->
+  <rect x="20" y="410" width="1140" height="350" rx="6" fill="none" stroke="currentColor" stroke-opacity="0.35"/>
+  <text x="32" y="430" font-weight="600" font-size="13">Recommended design: Goldilocks, BLAKE2b Merkle root over columns, published check row</text>
+  <text x="1148" y="430" text-anchor="end" font-size="11" fill-opacity="0.75">1 MiB blob, 128 rows × 1 024 chunks of 8 B, 1 thread</text>
+
+  <rect x="36" y="452" width="380" height="42" rx="4" fill="none" stroke="currentColor"/>
+  <text x="46" y="469">1. rows RS-extended to 2 048 columns, NTT over Goldilocks</text>
+  <text x="46" y="485" fill-opacity="0.75">4.3 ms</text>
+
+  <rect x="36" y="506" width="380" height="42" rx="4" fill="none" stroke="currentColor"/>
+  <text x="46" y="523">2. hash each column, Merkle tree → root R_cols</text>
+  <text x="46" y="539" fill-opacity="0.75">2 048 BLAKE2b + 2 047 node hashes · 3.1 ms</text>
+
+  <rect x="36" y="560" width="380" height="42" rx="4" fill="none" stroke="#2b7de9" stroke-width="2"/>
+  <text x="46" y="577" fill="#2b7de9" font-weight="600">3. h = H(R_cols) in F_p², check row c_j = Σ h^i data_i^j</text>
+  <text x="46" y="593" fill="#2b7de9">128 × 2 048 mult-adds · 0.6 ms · c is itself an RS codeword</text>
+
+  <rect x="36" y="614" width="380" height="42" rx="4" fill="none" stroke="currentColor" stroke-dasharray="5 3"/>
+  <text x="46" y="631">4. proof generation: none</text>
+  <text x="46" y="647" fill-opacity="0.75">proof_j = Merkle path of column j (11 hashes) + c_j, read from memory</text>
+
+  <text x="46" y="682" fill-opacity="0.75">on chain: R_cols ‖ H(c), 64 B · no trusted setup</text>
+  <text x="46" y="700" fill-opacity="0.75">encode total 8 ms (33 ms at 4 MiB)</text>
+
+  <line x1="420" y1="530" x2="466" y2="530" stroke="currentColor" marker-end="url(#arr)"/>
+  <text x="443" y="510" text-anchor="middle" font-size="11">disperse</text>
+  <text x="443" y="552" text-anchor="middle" font-size="11">1.7 KiB</text>
+
+  <rect x="470" y="452" width="290" height="140" rx="4" fill="none" stroke="currentColor"/>
+  <text x="480" y="470" font-weight="600">receives per blob</text>
+  <text x="480" y="488">column j: 128 chunks, 1 024 B</text>
+  <text x="480" y="504">Merkle path: 11 × 32 B = 352 B</text>
+  <text x="480" y="520" fill="#2b7de9">c_j (16 B) + path in the check-row tree (352 B)</text>
+  <text x="480" y="544" font-weight="600">verifies</text>
+  <text x="480" y="560">path → R_cols, then Σ h^i data_i^j = c_j</text>
+  <text x="480" y="576">12 hashes + 256 field mults · 3.8 µs per column</text>
+
+  <text x="480" y="622" fill-opacity="0.75">replicates the same 1.7 KiB to 4 peers</text>
+  <text x="480" y="640" fill-opacity="0.75">serves column + paths + c_j; no codeword check needed here</text>
+
+  <line x1="762" y1="530" x2="796" y2="530" stroke="currentColor" marker-end="url(#arr)"/>
+  <text x="779" y="510" text-anchor="middle" font-size="11">serve</text>
+  <text x="779" y="552" text-anchor="middle" font-size="11">1.4 KiB</text>
+
+  <rect x="800" y="452" width="350" height="140" rx="4" fill="none" stroke="currentColor"/>
+  <text x="810" y="470" font-weight="600">once per blob</text>
+  <text x="810" y="488" fill="#2b7de9">fetch check row c (32 KiB), check H(c) against chain,</text>
+  <text x="810" y="504" fill="#2b7de9">check c is an RS codeword: one 2 048-point iNTT · 0.09 ms</text>
+  <text x="810" y="528" font-weight="600">per sampled column, S = 20 per round</text>
+  <text x="810" y="546">column + path + c_j (1.4 KiB) · same check as the DA node · 3.8 µs</text>
+  <text x="810" y="570" fill-opacity="0.75">per blob: 59 KiB, 0.2 ms of verification</text>
+
+  <text x="810" y="622" fill-opacity="0.75">guarantee: once S random columns of its own agree with c,</text>
+  <text x="810" y="640" fill-opacity="0.75">a column that matches c belongs to a unique blob, error ≈ (3/4)^S per validator</text>
+</svg>
