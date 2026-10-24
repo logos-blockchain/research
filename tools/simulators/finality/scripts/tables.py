@@ -1307,10 +1307,10 @@ def j2() -> None:
 
 
 def _phase_k(name: str):
-    """Phase K's tables live in tables_k1.py, tables_k3.py, tables_k5.py, tables_k7.py and
-    tables_k8.py, one per part."""
+    """Phase K's tables live in tables_k1.py, tables_k3.py, tables_k5.py, tables_k7.py,
+    tables_k8.py and tables_k9.py, one per part."""
     import importlib
-    for mod in ("tables_k1", "tables_k3", "tables_k5", "tables_k7", "tables_k8"):
+    for mod in ("tables_k1", "tables_k3", "tables_k5", "tables_k7", "tables_k8", "tables_k9"):
         try:
             m = importlib.import_module(mod)
         except ModuleNotFoundError:

@@ -1094,10 +1094,16 @@ Each fails under a registered mutation (`scripts/check_mutations.py`).
 
 **The rule.** The inference corrects each epoch's estimate in full from the occupied slots of the
 observation period, the first `P = 6⌊k/f⌋` slots of the epoch before
-(`cryptarchia-total-stake-inference.md`, `beta = 1`): `D' = D·N/(f·P)`. A cap `c` bounds each
-correction: `D' ≥ (1 − c)·D`. The inference reads a side cut off from the rest as stake that left,
-and stake that left as a side cut off. A cap therefore lengthens both alike: how long a side stays
-below the floor, and how long finality stalls after the active stake falls.
+(`cryptarchia-total-stake-inference.md`, `beta = 1`): `D' = D·N/(f·P)`. It counts occupied slots,
+a slot holding a canonical block or an uncle the chain references, so it reads every win of the
+stake that makes the chain: with one uncle a block it recovers the honest stake at 0.998–1.001
+under Blend (`reports/tsi/README.md` §3.2a), and each correction here reads a chain's full
+occupancy. A cap `c` bounds each correction: `D' ≥ (1 − c)·D`. The inference reads a side cut off
+from the rest as stake that left, and stake that left as a side cut off: both are stake that is not
+participating, which the TSI report reads as the inference measuring correctly (§6.4). A cap
+therefore lengthens both alike: how long a side stays below the floor, and how long finality stalls
+after the active stake falls. The TSI report finds the deployed learning rate `β = 1` best against
+withholding, since a slower one deepens the standing deflation (§6.5); a cap slows only the falls.
 
 **The reading.** The floor is K.3's, the worst case's at 10 s against a third. A side at its
 fastest holds one block per slot it occupies. Corrections take effect at an epoch's start, `E`
@@ -1228,18 +1234,21 @@ cap (G7; `runs/k8/deflation.csv`):
 - **The cap also prices G7's deflation.** At 5 % a coalition of a third withholds for 8 periods,
   36 days, over 60 days in all; at 2 % for 94.5 days over 157.5.
 
-**The specification's target is truncated.** `total_stake_inference` computes
-`f_p = truncate(f·PRECISION)` with `PRECISION = 1e3`, so for `f = 1/30` the inference aims at 0.033
-occupied slots a slot, 1 % below `f`. Played in its own integer arithmetic with every unit of stake
-producing, it rests with the estimate 1 % above the stake and a block every 30.3 seconds
+**The specification's target is rounded, as the TSI report records.** `total_stake_inference`
+computes `f_p = truncate(f·PRECISION)` with `PRECISION = 1e3`, so for `f = 1/30` the inference holds
+the occupied slots, canonical or referenced, at 0.033 a slot, 1 % below `f`. Played in its own
+integer arithmetic with every unit of stake producing, it rests with the estimate 1 % above the
+stake and an occupied slot every 30.3 slots; canonical blocks come at the chain's growth times that
 (`runs/k8/spec.csv`):
 
-| f | f_p | occupied slots a slot at rest | estimate over the stake | block interval (s) |
+| f | f_p | occupied slots a slot at rest | estimate over the stake | slots per occupied slot |
 | --- | --- | --- | --- | --- |
 | 1/30 | 33 | 0.0330 | 1.0103 | 30.30 |
 | 1/20 | 50 | 0.0500 | 1.0000 | 20.00 |
 
-At `f = 1/20` the product is whole and the target is `f`.
+At `f = 1/20` the product is whole and the target is `f`. The TSI report derives the same residual,
+`f/f_p ≈ 1.010`, and sizes the one-constant change that removes it (`reports/tsi/README.md` §2.2,
+Appendix A, §8).
 
 **Verdict.** H23 holds under random delay, and under the worst case at 10 s fails in its second
 part. A cap of 5 % keeps a side of 0.3 below the density floor for 62 days at `3⌊k/f⌋`. A fall to
@@ -1261,3 +1270,109 @@ Gates (`tests/test_cap.py`):
   before the binomial's, within 0.5 %.
 
 Each fails under a registered mutation (`scripts/check_mutations.py`).
+
+## K.9 — the floor counted as the stake inference counts
+
+`scripts/k9_occupancy.py`, with runs in `runs/k9/`, on K.3's and K.8's functions.
+
+**The count.** The stake inference counts occupied slots: a slot holding a canonical block or an
+uncle the chain references, each slot once. With one uncle a block it recovers the honest stake at
+0.998–1.001 under Blend, the first-fork rule costing nothing measurable up to three rounds a hop
+(`reports/tsi/README.md` §3.2a). K.3's floor counts canonical blocks, which lose the orphans: on the
+specification's Blend the honest chain keeps 0.845 of its wins. A floor on occupied slots reads the
+honest chain at its stake's occupancy, here at 0.998 of it, the least completeness the TSI report
+measured in its design band. A side at its fastest holds one block per slot it occupies, so it
+counts the same on either.
+
+**The worst case.** Every canonical block occupies its own slot, so on every path the count of
+occupied slots is at least the count of canonical blocks, and a floor sized on blocks keeps its
+liveness on occupied slots. No larger worst-case floor is read. An adversary that orphans a run of
+honest blocks at once leaves one countable uncle, the run's first block (TSI report §6.6), and the
+worst-case count of occupied slots is not bounded here.
+
+The floor on each count against 25 %, 30 % and a third (`runs/k9/floor.csv`):
+
+| K | α_max | count | floor φ | withheld-from chain, mean | nobody withholds: waits | withheld from: waits | largest side held at K |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ⌊k/f⌋ | 0.25 | blocks, random delay | 1,161 | 1,375 | 2e-64 | 9e-10 | 0.445 |
+| ⌊k/f⌋ | 0.25 | blocks, worst 10 s | 1,131 | 1,300 | 9e-64 | 8e-10 | 0.432 |
+| ⌊k/f⌋ | 0.25 | occupied slots, random delay | 1,391 | 1,624 | 6e-72 | 1e-9 | 0.542 |
+| ⌊k/f⌋ | 0.3 | blocks, random delay | 1,078 | 1,285 | 2e-82 | 1e-9 | 0.410 |
+| ⌊k/f⌋ | 0.3 | blocks, worst 10 s | 1,064 | 1,231 | 2e-82 | 8e-10 | 0.404 |
+| ⌊k/f⌋ | 0.3 | occupied slots, random delay | 1,291 | 1,517 | 4e-93 | 9e-10 | 0.500 |
+| ⌊k/f⌋ | a third | blocks, random delay | 1,022 | 1,224 | 2e-96 | 9e-10 | 0.386 |
+| ⌊k/f⌋ | a third | blocks, worst 10 s | 1,019 | 1,184 | 2e-96 | 9e-10 | 0.385 |
+| ⌊k/f⌋ | a third | occupied slots, random delay | 1,225 | 1,445 | < 1e-99 | 9e-10 | 0.472 |
+| 3⌊k/f⌋ | 0.25 | blocks, random delay | 3,750 | 4,126 | < 1e-99 | 9e-10 | 0.520 |
+| 3⌊k/f⌋ | 0.25 | blocks, worst 10 s | 3,607 | 3,901 | < 1e-99 | 9e-10 | 0.499 |
+| 3⌊k/f⌋ | 0.25 | occupied slots, random delay | 4,463 | 4,871 | < 1e-99 | 1e-9 | 0.625 |
+| 3⌊k/f⌋ | 0.3 | blocks, random delay | 3,491 | 3,854 | < 1e-99 | 9e-10 | 0.482 |
+| 3⌊k/f⌋ | 0.3 | blocks, worst 10 s | 3,403 | 3,693 | < 1e-99 | 9e-10 | 0.469 |
+| 3⌊k/f⌋ | 0.3 | occupied slots, random delay | 4,156 | 4,550 | < 1e-99 | 1e-9 | 0.580 |
+| 3⌊k/f⌋ | a third | blocks, random delay | 3,318 | 3,673 | < 1e-99 | 9e-10 | 0.457 |
+| 3⌊k/f⌋ | a third | blocks, worst 10 s | 3,264 | 3,551 | < 1e-99 | 9e-10 | 0.449 |
+| 3⌊k/f⌋ | a third | occupied slots, random delay | 3,951 | 4,336 | < 1e-99 | 1e-9 | 0.550 |
+
+- **On occupied slots the floor under random delay rises by a fifth.** Against a third it is 1,225
+  at 18 hours where blocks give 1,022, and 3,951 at 54 hours where blocks give 3,318. The largest
+  side it holds back rises from 0.386 to 0.472 at 18 hours, and from 0.457 to 0.550 at 54.
+
+The days a side at its fastest takes to fix a fork under the depth form, on average / at the
+earliest with chance `ε`, at the worst case's floor on blocks and at the floor on occupied slots
+sized under random delay (`runs/k9/protection.csv`):
+
+| K | floor | σ = 0.1 | σ = 0.2 | σ = 0.25 | σ = 0.3 | σ = a third |
+| --- | --- | --- | --- | --- | --- | --- |
+| ⌊k/f⌋ | 1,019, blocks, worst 10 s | 3.49 / 2.87 | 1.75 / 1.44 | 1.40 / 1.15 | 1.17 / 0.96 | 1.05 / 0.87 |
+| ⌊k/f⌋ | 1,225, occupied slots, random delay | 4.19 / 3.52 | 2.10 / 1.76 | 1.68 / 1.41 | 1.40 / 1.18 | 1.26 / 1.06 |
+| 3⌊k/f⌋ | 3,264, blocks, worst 10 s | 11.17 / 10.04 | 5.59 / 5.03 | 4.48 / 4.03 | 3.73 / 3.36 | 3.36 / 3.02 |
+| 3⌊k/f⌋ | 3,951, occupied slots, random delay | 13.52 / 12.27 | 6.77 / 6.15 | 5.42 / 4.92 | 4.52 / 4.10 | 4.07 / 3.70 |
+
+- **At the protocol's floor the protection does not move.** A side counts the same on either, so at
+  1,019 a third still fixes after 1.05 days. A floor sized on occupied slots under random delay,
+  1,225, would hold it 1.26 days, and the worst case gives no such floor.
+
+The least share whose chain reaches the protocol's floor within `K` with chance `1 − ε`, `r*`, under
+random delay; and the days until a block made as the active stake falls to `r` is fixed under the
+depth form with no cap, on blocks / on occupied slots (`runs/k9/stall.csv`):
+
+| K | floor | r*: blocks / occupied slots | depth form, fall to 70 % | depth form, fall to 60 % | depth form, fall to 50 % | depth form, fall to 40 % |
+| --- | --- | --- | --- | --- | --- | --- |
+| ⌊k/f⌋ | 1,019 | 0.665 / 0.562 | 0.75 / 0.75 | 0.75 / 0.75 | 0.83 / 0.75 | 1.04 / 0.88 |
+| 3⌊k/f⌋ | 3,264 | 0.656 / 0.555 | 2.25 / 2.25 | 2.25 / 2.25 | 2.66 / 2.25 | 3.32 / 2.81 |
+
+- **On occupied slots finality is more robust to stake that leaves.** The density form stalls only
+  below 0.562 of the stake at 18 hours, where on blocks it stalls below 0.665. Under the depth form
+  a block made as the stake halves is fixed at 18 hours, where on blocks it waits 0.83 days.
+
+The floor as a quorum under random delay, beside K.3's on blocks with the side at its fastest
+(`runs/k9/quorum.csv`):
+
+| α | count | honest chain withheld from, per 1,000 slots | side of (1 + α)/2, per 1,000 slots | least K (days) | floor at it |
+| --- | --- | --- | --- | --- | --- |
+| 0.2 | blocks, the side at one block per occupied slot | 22.62 | 20.14 | 5.65 | 10,417 |
+| 0.2 | occupied slots, both | 26.70 | 20.14 | 0.88 | 1,773 |
+| 0.25 | blocks, the side at one block per occupied slot | 21.22 | 20.97 | 516 | 940,407 |
+| 0.25 | occupied slots, both | 25.06 | 20.97 | 2.24 | 4,437 |
+| 0.3 | blocks, the side at one block per occupied slot | 19.83 | 21.79 | none | – |
+| 0.3 | occupied slots, both | 23.40 | 21.79 | 14.20 | 27,714 |
+| a third | blocks, the side at one block per occupied slot | 18.89 | 22.35 | none | – |
+| a third | occupied slots, both | 22.30 | 22.35 | none | – |
+
+- **Counted alike, the two sides separate below a third.** Under random delay a floor on occupied
+  slots separates the sides of every partition against a quarter from 2.24 days, where on blocks it
+  takes 516, and against 30 % from 14.2 days, where on blocks none does. At a third none exists, as
+  K.3 found: the honest chain the coalition withholds from and a side of `(1 + α)/2` occupy slots at
+  the same rate.
+- **Under the worst case nothing moves.** The honest chain's count of occupied slots there is at
+  least its canonical blocks, which K.3 reads, and no larger lower bound is derived.
+
+**Verdict.** H24 holds. Under random delay the floor on occupied slots lies a fifth above the floor
+on blocks at 18 hours against a third, 1,225 against 1,022, and separates partitions against a
+quarter from 2.24 days. Under the worst case the count of occupied slots is at least the count of
+blocks on every path, so the floor of 1,019 keeps its liveness. H21's first part, which failed with
+both sides read on blocks, holds under random delay on occupied slots: a floor separates a quarter
+from 2.24 days, within 54 hours. Under the worst case it still fails.
+
+The figures come from K.3's and K.8's gated functions at the honest chain's occupancy; no new
+function enters.

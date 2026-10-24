@@ -121,4 +121,4 @@ def k8spec() -> None:
         "f": [f"1/{int(i)}" for i in s.interval_s], "f_p": s.f_p,
         "occupied slots a slot at rest": s.rests_at.map(lambda v: f"{v:.4f}"),
         "estimate over the stake": s.estimate_over_stake.map(lambda v: f"{v:.4f}"),
-        "block interval (s)": s.block_interval_s.map(lambda v: f"{v:.2f}")})))
+        "slots per occupied slot": s.block_interval_s.map(lambda v: f"{v:.2f}")})))

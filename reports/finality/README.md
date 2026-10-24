@@ -75,12 +75,14 @@ and 12.5 after a period of withholding has deflated the inferred stake ([§6](#s
   passes a block only once `φ` blocks follow it, or once the `K` slots after it hold `φ` blocks.
   At 54 hours the floor against a third is 3,264 blocks, more than 2,160, and a chain nobody
   withholds from falls below it with chance below `1e-99` ([§6](#s6)).
-- **A floor is a quorum of blocks, and it separates partitions only below a third.** The adversary
-  signs on both sides of a partition. The floor must then lie above what a side of `(1 + α)/2` of
-  the stake makes and below what the honest chain makes while the adversary withholds. At a third
-  the two are equal, and no window separates the sides. Against a quarter it takes windows of 3 to
-  18 days where one exists, and none exists under the worst case at 10 s ([§6](#s6),
-  [§13](#s13)).
+- **A floor is a quorum, and it separates partitions only below a third.** The adversary signs on
+  both sides of a partition. The floor must then lie above what a side of `(1 + α)/2` of the stake
+  makes and below what the honest chain makes while the adversary withholds. At a third the two
+  are equal, and no window separates the sides. Counted as the stake inference counts, on occupied
+  slots with the uncles the chain references, the honest chain keeps the wins it loses to orphans:
+  under random delay a floor separates a quarter from 2.2 days and 30 % from 14 days. Counted on
+  blocks it takes 516 days against a quarter, and under the worst case at 10 s no window exists
+  on either count ([§3.3](#s33), [§6](#s6), [§13](#s13)).
 - **Three findings in blocks disappear or shrink.** Both branches of a fork have one divergence
   age, so the Bootstrap rule can no longer split the nodes after a split ([§10](#s10)). A race
   lasts at most `K`, so every target stays inside the grinding bound while `K` is at most 72 hours
@@ -444,9 +446,31 @@ above what a side of `(1 + α)/2` of the stake makes and below what the honest c
 adversary withholds. At a third the two are equal, and no `K` separates a partition. Against a
 quarter a window separates the sides from 2.9 days under the worst case at 1 s and 17.5 days at
 5 s, and none does at 10 s. Under random delay one does from 3.3 days with a side at the engine's
-growth. At 54 hours no floor separates a partition against a quarter in either model. H.1's
-attestation round, 2,271 seats against a quarter, separates them while Blend's relays deliver the
-votes ([§13](#s13)).
+growth. Counted on blocks, at 54 hours no floor separates a partition against a quarter in either
+model. Counted on occupied slots, as the stake inference counts, the honest chain keeps the wins it
+loses to orphans, and under random delay a floor separates a quarter from 2.24 days and 30 % from
+14.2 (`SLOTS.md` K.9). Under the worst case the honest chain's count of occupied slots is at least
+its canonical blocks, and no larger bound is derived. H.1's attestation round, 2,271 seats against a
+quarter, separates them while Blend's relays deliver the votes ([§13](#s13)).
+
+**Counted as the stake inference counts.** The stake inference counts occupied slots, a canonical
+block's or a referenced uncle's, and recovers the honest stake at 0.998–1.001 under Blend
+(`reports/tsi/README.md` §3.2a). A floor on that count reads the honest chain at its stake's
+occupancy, where a floor on blocks reads it at the 0.845 its orphans leave. A side at its fastest
+counts the same either way. Against a third, at 18 hours (`SLOTS.md` K.9):
+
+| a floor counted on | floor under random delay | largest cut-off side that floor holds back | stake below which the density form stalls, at the protocol's 1,019 | a block made as the stake halves is fixed after, depth form at 1,019 |
+| --- | --- | --- | --- | --- |
+| canonical blocks | 1,022 | 0.386 | 0.665 | 0.83 days |
+| occupied slots, uncles included | 1,225 | 0.472 | 0.562 | 0.75 days |
+
+- **At the protocol's floor the protection does not move,** since a side counts the same either way.
+  A third still fixes a fork after 1.05 days.
+- **The count gives liveness.** Every canonical block occupies its own slot, so the count of
+  occupied slots is at least the count of blocks on every path, and finality survives a larger fall
+  of the active stake.
+- **Only a worst-case bound would raise the floor itself.** An adversary that orphans a run of
+  honest blocks at once leaves one countable uncle, the run's first block (TSI report §6.6).
 
 **What it fixes.** Both branches of a fork have one divergence age, so every node holding both
 decides alike, and the Bootstrap rule's split of [§10](#s10) cannot occur. A race lasts at most
@@ -971,10 +995,11 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
   period prices the deflation at 36 days of withholding ([§12](#s12), G7). Counted in slots it
   lengthens the guaranteed wait against a third at 10 s by 23 %, 10.1 to 12.4 hours, and shortens
   the wait under random delay, 5.1 to 3.4 hours in the convention's model (`SLOTS.md` K.2, K.7).
-- **The total-stake inference aims 1 % below `f`.** `total_stake_inference` computes
-  `f_p = truncate(f·PRECISION)` with `PRECISION = 1e3`, so for `f = 1/30` its target is 0.033
-  occupied slots a slot. Played in its own integer arithmetic, it rests with the estimate 1 % above
-  the stake and a block every 30.3 seconds, not 30 (`SLOTS.md` K.8).
+- **The total-stake inference rounds its target,** as the TSI report records
+  (`reports/tsi/README.md` §2.2, Appendix A). `total_stake_inference` computes
+  `f_p = truncate(f·PRECISION)` with `PRECISION = 1e3`, so for `f = 1/30` it holds the occupied
+  slots, canonical or referenced, at 0.033 a slot. Its estimate then rests 1 % above the stake, the
+  one residual uncle references leave (`SLOTS.md` K.8).
 - **Counted in slots, finality needs a floor.** A node fixes its chain once a block the rest of the
   network lacks is `K` slots old, whatever stake made it, its own blocks included. An eclipse then
   fixes a fork in `K` slots and one block, 2.25 days at `K = 54` hours, where `k = 2160` blocks need
@@ -1044,6 +1069,10 @@ extrapolated to `1e-9` as the paper's §5.6 does for both structures:
 - **The depth bound's count.** LCanalysis freezes its upper bound at half the count the paper's
   argument needs. Whether the depths in blocks should take the paper's count, which halves them,
   rests on that argument; the study keeps the code's (`SLOTS.md` K.7).
+- **A worst-case bound for the count of occupied slots.** Under the worst case the floor stays at
+  the canonical count, since no larger lower bound on the honest chain's occupied slots is derived.
+  Such a bound would raise the floor by up to a fifth and let it separate partitions under the
+  worst case as it does under random delay ([§3.3](#s33); `SLOTS.md` K.9).
 - **Proving on the reference node.** The proving time on a Raspberry Pi 5, which
   `tools/benchmarks/pol-proving` measures.
 
@@ -1250,7 +1279,8 @@ each `K` holds with grinding and a deflated inference, `make k3` eclipses, split
 (`finality_sim.floor`), and `make k5` the nonce's coverage and the other notes read in slots
 (`finality_sim.slotmap`). `make k7` bounds a wait in the model of Gaži, Ren and Russell on the slot
 lottery and reads K.2 to K.5 again under it (`finality_sim.waitbound`; it needs `make k1`, `make k2`
-and `make k5`), and `make k8` caps the inference's correction (`finality_sim.cap`).
+and `make k5`), `make k8` caps the inference's correction (`finality_sim.cap`), and `make k9` reads
+the floor on occupied slots, as the stake inference counts.
 
 Proving is timed apart, on the machine at hand: `make run` in
 [`tools/benchmarks/pol-proving`](../../tools/benchmarks/pol-proving) writes to
