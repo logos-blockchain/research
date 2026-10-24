@@ -38,9 +38,10 @@ parameter. And the least `K` that holds each `(α, ε, Δ)`.
 **Taken without the owner's answer.** These rules; the floor measured as a variant beside them;
 the epoch at today's length, `10⌊k/f⌋` slots at `k = 2160` (G2).
 
-**The owner's answer, after K.7 and K.8.** `K = ⌊k/f⌋`, 64,800 slots, with the floor in its depth
-form at `φ` = 1,019 blocks, the worst case's at 10 s against a third, and no cap on the
-inference's correction (`PLAN.md` Q10, Q11).
+**The owner's answer, after K.7 to K.9.** `K = ⌊k/f⌋`, 64,800 slots, with the floor in its depth
+form at `φ` = 1,019, the worst case's at 10 s against a third, counted on occupied slots, a canonical
+block's or a referenced uncle's, as the stake inference counts them, and no cap on the inference's
+correction (`PLAN.md` Q10, Q11).
 
 ## K.1 — settlement after a wait of `T` slots
 
@@ -1343,7 +1344,8 @@ depth form with no cap, on blocks / on occupied slots (`runs/k9/stall.csv`):
 
 - **On occupied slots finality is more robust to stake that leaves.** The density form stalls only
   below 0.562 of the stake at 18 hours, where on blocks it stalls below 0.665. Under the depth form
-  a block made as the stake halves is fixed at 18 hours, where on blocks it waits 0.83 days.
+  a block made as the stake halves is fixed at 18 hours on average, where on blocks it waits 0.83
+  days.
 
 The floor as a quorum under random delay, beside K.3's on blocks with the side at its fastest
 (`runs/k9/quorum.csv`):

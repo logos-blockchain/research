@@ -605,7 +605,10 @@ time. Each entry records the decision and what it changes.
   with no cap on the inference's correction. `B_imm` passes a block once it is `K` slots old and
   `φ` = 1,019 blocks follow it, the worst case's floor at 10 s against a third. It never stalls
   finality. It holds a cut-off side back while the side makes `φ + 1` blocks: 1.05 days for a third
-  and 3.5 for a tenth, where 2,160 blocks give 2.2 and 7.4 (`SLOTS.md` K.3, K.8).
+  and 3.5 for a tenth, where 2,160 blocks give 2.2 and 7.4 (`SLOTS.md` K.3, K.8). *2026-10-24, the
+  owner, after K.9:* the floor counts occupied slots, a canonical block's or a referenced uncle's,
+  as the stake inference counts them, at `φ` = 1,019. The protection does not move, and finality
+  survives a larger fall of the active stake (`SLOTS.md` K.9).
 
 ## 4. Work plan
 
