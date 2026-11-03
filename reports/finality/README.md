@@ -22,7 +22,7 @@ cite. Specifications are read at `logos-lips` `47a73cdc`, the node at `logos-blo
 - **[5. The epoch nonce](#s5)** — grinding, and two ways to stop it
 - **[6. The window `K`, and recovery from a split](#s6)** — what each `K` holds, eclipses, splits and the floor
 - **[7. Block rate, orphans and fork choice](#s7)**
-- **[8. Certified finality](#s8)** — anonymous votes
+- **[8. Certified finality](#s8)** — anonymous votes, and certificates of Blend's declared nodes
 - **[9. The multi-proposer DAG](#s9)** — Areon
 - **[10. Findings about the protocol as it stands](#s10)**
 - **[11. Open questions](#s11)**
@@ -100,6 +100,7 @@ and 12.5 after a period of withholding has deflated the inferred stake ([§6](#s
 | faster blocks ([§7](#s7)) | `f` | random delay: a wait of 3.0 / 6.2 h at 15 s blocks; worst case at 10 s: 9.5 / 20.4 h | ×2.0 the blocks at 15 s | not recommended: under the worst case a faster rate needs a longer `K` |
 | regular block intervals ([§7](#s7)) | the lottery becomes a curve of the slots since the parent | against a third Topl's shape needs more than 60 blocks at `1e-3`, today's lottery 58 | a third more blocks; a new stake inference | not recommended |
 | certificates ([§8](#s8)) | anonymous-seat votes through Blend | no committee against a third; against 30 %, 33,473 seats while every honest vote counts | ×1,675 Blend cover at 10-minute rounds | not recommended |
+| certificates from the network ([§8](#s8)) | Casper FFG signed by the nodes SDP declares for Blend | 120 s on average, 147 s at the 95th percentile, with rounds of 60 slots and a lag of 30 on the specification's Blend; safe while the coalition holds less than a third of the declared weight | 6.0 % of a Pi 5 core at 20,000 declared nodes with 60-slot rounds | not recommended at today's minimum stake: 1.67 % of the active stake holds a third of a network of 1,000 declarations, and holding 30 % needs honest declarations that lock more than 60 % of the active stake at full uptime |
 | multi-proposer DAG ([§9](#s9)) | replaces the chain and its fork choice | random delay, at today's block rate, against a third: 106 minutes, the chain 160 by the same fit | as the chain at that rate | not recommended: a balancing attack that retracts its wins holds a third for ever at every delay, so no `K` exists |
 
 Two routes are recommended, and finality counted in slots is recommended at 18 hours under three
@@ -892,6 +893,23 @@ quota ceiling, below which a node's emission count does not identify it (`report
 Proving a vote reuses the node's proof of leadership: 72.5 ms on an Apple M4 Pro, and a holder of
 share `s` proves `s·n` times a round. The Raspberry Pi 5 is not measured.
 
+**Certificates from the network.** The nodes SDP declares for Blend are a public set already, so
+they can sign blocks under their keys with no seats and no Blend emissions: Casper FFG with two
+thirds of the declarations as the quorum ([`network.md`](network.md); `NETWORK.md`).
+
+- **Finality in about two minutes.** With rounds of 60 slots and a lag of 30, a block is final 120 s
+  after its slot on average and 147 s at the 95th-percentile node on the specification's Blend. The
+  lag must outlast Blend's delays: 60 slots at the heavy point.
+- **Safety moves to the declared set.** Two conflicting finalized checkpoints need a third of the
+  declared weight to sign both. A coalition locks its stake in service notes of the minimum stake,
+  one declaration each, so at today's minimum 500 declarations, 1.67 % of the active stake, hold a
+  third of a network of 1,000. Holding 30 % needs honest declarations that lock more than 60 % of
+  the active stake, every one always online; a third cannot be held.
+- **One side of a partition at most certifies** while the coalition holds less than a third of the
+  declared weight, on the engine in every run, where no floor separates a partition at a third.
+- **Little cost**: with rounds of 60 slots, 6.0 % of one Pi 5 core at 20,000 declared nodes with
+  the node's Ed25519 library.
+
 ---
 
 <a id="s9"></a>
@@ -1290,6 +1308,11 @@ lottery and reads K.2 to K.5 again under it (`finality_sim.waitbound`; it needs 
 and `make k5`), `make k8` caps the inference's correction (`finality_sim.cap`), and `make k9` reads
 the floor on occupied slots, as the stake inference counts.
 
+Phase L sizes certificates of Blend's declared nodes: `make l1` what the declared set holds
+(`finality_sim.netcert`), `make l2` the gadget on the engine's chains and `make l3` a partition
+(`finality_sim.gadget`), `make l4` the lag at which the chain's settlement holds (it needs `make a1`
+and `make k7`), and `make l5` the cost on a Raspberry Pi 5 from `reports/pqc`.
+
 Proving is timed apart, on the machine at hand: `make run` in
 [`tools/benchmarks/pol-proving`](../../tools/benchmarks/pol-proving) writes to
 [`pol-proving/`](pol-proving).
@@ -1297,5 +1320,6 @@ Proving is timed apart, on the machine at hand: `make run` in
 The notes carry each result with its gate: `MAPPING.md` (what depends on `k`), `RATE.md` (block
 rate and orphans), `SETTLEMENT.md` (bounds, races, a smaller `k`, recovery, grinding, the nonce),
 `CERTIFIED.md` (votes), `DAG.md` (Areon), `FURTHER.md` (the routes of [§12](#s12)) and
-`DESIGNS.md` (the designs of [§13](#s13)) and `SLOTS.md` (finality counted in slots). `PLAN.md` records the questions the study was asked to
+`DESIGNS.md` (the designs of [§13](#s13)), `SLOTS.md` (finality counted in slots) and `NETWORK.md`
+(certificates from the network). `PLAN.md` records the questions the study was asked to
 answer, its hypotheses and the verdict on each.

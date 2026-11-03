@@ -3,7 +3,8 @@
 # targets; `make tables` prints the notes' tables from runs/, and `make check-tables` checks that
 # each appears verbatim in a note.
 .PHONY: install test mutations firstlook mapping a1 b2 b3 b4 b5 b6 b7 recovery c1 c3 c4 d0 d1b d5 d6 e2 \
-        e5 further designs j1 j2 j3 k1 k2 k3 k5 k7 k8 k9 all tables check-tables octave-reference clean
+        e5 further designs j1 j2 j3 k1 k2 k3 k5 k7 k8 k9 l1 l2 l3 l4 l5 all tables check-tables \
+        octave-reference clean
 
 VENV   ?= .venv
 PYTHON ?= $(HOME)/.pyenv/versions/3.13.7/bin/python
@@ -142,14 +143,31 @@ k8: install                   # SLOTS.md K.8 (under a minute; needs a1)
 k9: install                   # SLOTS.md K.9 (under a minute; needs a1)
 	$(PY) scripts/k9_occupancy.py
 
-all: a1 c1 c3 c4 b2 b3 b4 b5 recovery d0 d1b d5 d6 e2 e5 b6 b7 further designs j2 j3 k1 k2 k3 k5 k7 k8 k9
+l1: install                   # NETWORK.md L.1 (seconds)
+	$(PY) scripts/l1_declared.py
+
+l2: install                   # NETWORK.md L.2 (about 5 minutes on 14 cores)
+	$(PY) scripts/l2_gadget.py
+
+l3: install                   # NETWORK.md L.3 (about 2 minutes on 14 cores)
+	$(PY) scripts/l3_partition.py
+
+l4: install                   # NETWORK.md L.4 (minutes; needs a1, k7)
+	$(PY) scripts/l4_hedge.py
+
+l5: install                   # NETWORK.md L.5 (seconds; reads reports/pqc)
+	$(PY) scripts/l5_cost.py
+
+all: a1 c1 c3 c4 b2 b3 b4 b5 recovery d0 d1b d5 d6 e2 e5 b6 b7 further designs j2 j3 k1 k2 k3 k5 k7 k8 k9 \
+     l1 l2 l3 l4 l5
 
 tables: install
 	for t in a1 a1release a1conv c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b5part b6 b7 d0 d1b d3 d5 d6 e2 e5 e5balance g1 g3 g4 g6 g7 h1 h2 h3 b5eng i2 j1 j2 j3 j3bound \
 	         k1 k1worst k1ratio k1played k2 k2compare k2waits k2absorbs k3horizon k3eclipse k3early k3floor \
 	         k3quorum k3detector k3bootstrap k5mapping k5rate k5blend k5relays k7worst k7ratio k7slots k7checks \
 	         k7played k7holds k7compare k7waits k7absorbs k7rate k7blend k7floor k8params k8protection \
-	         k8stall k8ratio k8deflation k8spec k9floor k9protection k9stall k9quorum; do \
+	         k8stall k8ratio k8deflation k8spec k9floor k9protection k9stall k9quorum \
+	         l1today l1frontier l1convention l2departs l2time l3partition l4hedge l5cost; do \
 		$(PY) scripts/tables.py $$t; done
 
 check-tables: install

@@ -14,7 +14,9 @@ NAMES = ("a1", "a1release", "a1conv", "c1", "c1settle", "c3", "c4", "b3", "b3del
          "k1", "k1worst", "k1ratio", "k1played", "k2", "k2compare", "k2waits", "k2absorbs", "k3horizon", "k3eclipse", "k3early", "k3floor", "k3quorum", "k3detector", "k3bootstrap", "k5mapping", "k5rate", "k5blend", "k5relays",
          "k7worst", "k7ratio", "k7slots", "k7checks", "k7played", "k7holds", "k7compare", "k7waits", "k7absorbs", "k7rate",
          "k7blend", "k7floor", "k8params", "k8protection", "k8stall", "k8ratio", "k8deflation", "k8spec",
-         "k9floor", "k9protection", "k9stall", "k9quorum")
+         "k9floor", "k9protection", "k9stall", "k9quorum",
+         "l1today", "l1frontier", "l1convention", "l2departs", "l2time", "l3partition", "l4hedge",
+         "l5cost")
 
 
 def tables(text: str) -> list[str]:

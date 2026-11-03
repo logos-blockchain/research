@@ -365,3 +365,18 @@ of the stake, so nothing in D0–D5 reads `k`'s unit.
   (`SLOTS.md` K.3). Certificates keep safety where a window in slots without a floor does not.
 - **Forward security does not move.** Whoever gathers past voters' keys forges past certificates
   whatever unit `k` takes (D4).
+
+## Blend's declared nodes (Phase L)
+
+Phase L signs certificates with the nodes SDP declares for Blend instead of anonymous seats
+(`NETWORK.md`). The set exists already and is public, so votes need no seats, no sampling margin
+and no Blend emissions.
+
+- **D1b is its value-weighted case.** With weight by a service note's value, Blend's operators are
+  D1b's volunteers, and the share of the honest stake that must declare is D1b's frontier (L.1).
+- **With one weight per declaration the minimum stake prices a declaration, not a share.** At
+  today's minimum, 500 declarations, 1.67 % of the active stake, hold a third of a network of 1,000
+  (L.1).
+- **At the heavy point D6's lag is too short for finality.** Votes on a block 30 slots back agree at
+  every Blend (D6), but at the heavy point the agreed block later leaves the longest chain in 18 of
+  36 runs, where FFG's fork choice would have kept nodes on it. A lag of 60 never does (L.2).
