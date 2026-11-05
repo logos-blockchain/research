@@ -380,3 +380,30 @@ and no Blend emissions.
 - **At the heavy point D6's lag is too short for finality.** Votes on a block 30 slots back agree at
   every Blend (D6), but at the heavy point the agreed block later leaves the longest chain in 18 of
   36 runs, where FFG's fork choice would have kept nodes on it. A lag of 60 never does (L.2).
+
+## Other signers (Phase M)
+
+Phase M reads every signer set against the chain's own wait against the same coalition
+(`SIGNERS.md`).
+
+- **D0's committees take Blend's budget as rounds.** A vote takes its node's next scheduled cover
+  message, as a won slot does, and the votes beyond each node's cover fill the headroom to `r_1`,
+  4/3 messages a second, which kept for a backlog to drain comes out of the transactions: 30.8 % of
+  them. The budget is 1.33 to 2.27 votes a second, by how evenly the stake is spread. With none in a
+  node's cover, D0's committees vote in rounds of 8.3 minutes against 10 %, 1.1 hours against a
+  quarter and 7.0 hours against 30 %, and the quorum's votes take most of a round to send. Under
+  random delay the gadget finalizes in 0.33, 2.70 and 17.17 hours, where the chain waits 0.45, 1.70
+  and 3.09. With the cover raised to keep today's ceiling, every set through Blend is slower than
+  the chain (M.2).
+- **D6's lag holds under random delay only.** Under a delay an adversary chooses, a target 30 slots
+  back can be split, so the times are set against the chain's wait under random delay (M.2).
+- **At the budget D5's leak does not depend on the coalition**, for stake in many small notes. With
+  no vote in a node's cover a 0.1 % holder is sized in 103 days whether the committee is sized
+  against 10 % or a quarter, and the quota ceiling falls 41-fold (M.3).
+- **The chain's own leaders are a counted committee.** Each block's one-time key `P_LEAD` signs its
+  leader's votes, one weight a win by its tag `ρ_LEAD`, counted on the finalized chain. Every node
+  counts the wins, so the quorum needs neither D0's Poisson margin nor D2's inference margin: 1,030
+  wins against a quarter with every honest leader online, where seats need 5,355. On top of today's
+  cover their votes tie a win to its leader's node with chance 0.286 to 0.430 (M.1, M.3).
+- **D1b at `v = 1` is every leading note declared**, and delegated weight is D1b with the honest
+  stake's choices of operator on top (M.1).

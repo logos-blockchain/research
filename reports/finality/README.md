@@ -22,7 +22,7 @@ cite. Specifications are read at `logos-lips` `47a73cdc`, the node at `logos-blo
 - **[5. The epoch nonce](#s5)** — grinding, and two ways to stop it
 - **[6. The window `K`, and recovery from a split](#s6)** — what each `K` holds, eclipses, splits and the floor
 - **[7. Block rate, orphans and fork choice](#s7)**
-- **[8. Certified finality](#s8)** — anonymous votes, and certificates of Blend's declared nodes
+- **[8. Certified finality](#s8)** — anonymous votes, certificates of Blend's declared nodes, and the other signer sets
 - **[9. The multi-proposer DAG](#s9)** — Areon
 - **[10. Findings about the protocol as it stands](#s10)**
 - **[11. Open questions](#s11)**
@@ -101,6 +101,7 @@ and 12.5 after a period of withholding has deflated the inferred stake ([§6](#s
 | regular block intervals ([§7](#s7)) | the lottery becomes a curve of the slots since the parent | against a third Topl's shape needs more than 60 blocks at `1e-3`, today's lottery 58 | a third more blocks; a new stake inference | not recommended |
 | certificates ([§8](#s8)) | anonymous-seat votes through Blend | no committee against a third; against 30 %, 33,473 seats while every honest vote counts | ×1,675 Blend cover at 10-minute rounds | not recommended |
 | certificates from the network ([§8](#s8)) | Casper FFG signed by the nodes SDP declares for Blend | 120 s on average, 147 s at the 95th percentile, with rounds of 60 slots and a lag of 30 on the specification's Blend; safe while the coalition holds less than a third of the declared weight | 6.0 % of a Pi 5 core at 20,000 declared nodes with 60-slot rounds | not recommended at today's minimum stake: 1.67 % of the active stake holds a third of a network of 1,000 declarations, and holding 30 % needs honest declarations that lock more than 60 % of the active stake at full uptime |
+| certificates from other signers ([§8](#s8)) | every leading note declared, weight delegated to operators, or the chain's own leaders signing with the one-time keys their headers carry | every leading note declared: 120 s on average, holding 30 % from 95.24 % of the honest stake online and a third never; the chain's own leaders through Blend, under random delay against 30 %: 2.09 to 3.55 h with every honest leader online, where the chain waits 3.09, and 24.06 to 40.90 h with 95 % online; none against a third | every leading note declared: every holder's stake and node public; votes through Blend: 30.8 % of Blend's transaction messages and a quota ceiling 41 to 69 times lower | not recommended within C1–C5; every leading note declared is a candidate only if C1 and C3 are relaxed for every holder |
 | multi-proposer DAG ([§9](#s9)) | replaces the chain and its fork choice | random delay, at today's block rate, against a third: 106 minutes, the chain 160 by the same fit | as the chain at that rate | not recommended: a balancing attack that retracts its wins holds a third for ever at every delay, so no `K` exists |
 
 Two routes are recommended, and finality counted in slots is recommended at 18 hours under three
@@ -910,6 +911,34 @@ thirds of the declarations as the quorum ([`network.md`](network.md); `NETWORK.m
 - **Little cost**: with rounds of 60 slots, 6.0 % of one Pi 5 core at 20,000 declared nodes with
   the node's Ed25519 library.
 
+**Certificates from other signers.** Every other set that could sign is read against the chain's
+own wait against the same coalition, under the same delay model, which a certificate must beat to
+shorten finality ([`signers.md`](signers.md); `SIGNERS.md`).
+
+- **Votes that keep the stake private have little room in Blend.** A vote takes its node's next
+  scheduled cover message, as a won slot does, and the votes beyond each node's cover fit only in the
+  headroom kept for a backlog to drain, or in place of 30.8 % of the transaction messages: 1.33 to
+  2.27 votes a second, by how evenly the stake is spread. A round's votes then take hours to send
+  against 30 %, and the quota ceiling falls 41 to 69-fold.
+- **With today's quota ceiling kept, no set through Blend beats the chain at any share.** On top of
+  today's cover, under random delay, anonymous seats take 10.11 to 17.17 hours against 30 %, where
+  the chain waits 3.09. Under a delay an adversary chooses, a target 30 slots back can be split.
+- **The chain's own leaders come closest.** They sign with the one-time key `P_LEAD` their headers
+  already carry, one weight a lottery win counted on the finalized chain, so against a quarter they
+  need 1,030 wins where anonymous seats need 5,355. Against 30 % they beat the chain's 3.09 hours
+  only with every honest leader online through a window of 2.4 days, 2.09 to 2.92 hours; with 95 %
+  online they take 24.06 to 40.90. Their votes tie 29 % to 43 % of wins to their leaders' nodes.
+- **Every leading note declared** is the one set that rests on the stake share and finalizes in
+  two minutes. It holds 30 % from 95.24 % of the honest stake online, if every honest holder can
+  declare, and never a third, and it makes every holder's stake and node public, against C1 and C3.
+- **Delegated weight** hides which note delegates, but its safety rests on where the delegation
+  goes: against 30 % it fails once the coalition's operators hold 4.76 % of the honest stake at full
+  uptime, what Cardano's 15 largest pools hold, and with none attracted at 95.24 % online.
+- **Peras's quorum of three quarters** stalls once the coalition withholds a quarter of the
+  weight, so against 30 % it settles nothing fast.
+- **Phase D's times at 10-minute rounds** above assume votes Blend cannot carry (D3). At the rates
+  it admits, the anonymous seats' times are those of `SIGNERS.md` M.2.
+
 ---
 
 <a id="s9"></a>
@@ -1313,6 +1342,11 @@ Phase L sizes certificates of Blend's declared nodes: `make l1` what the declare
 (`finality_sim.gadget`), `make l4` the lag at which the chain's settlement holds (it needs `make a1`
 and `make k7`), and `make l5` the cost on a Raspberry Pi 5 from `reports/pqc`.
 
+Phase M sets the other signer sets beside them (`finality_sim.signers`): `make m1` what each set
+holds (it needs `make d0`), `make m2` how fast against the chain's own wait (it needs `make d0`,
+`make d6`, `make l2` and `make l4`), `make m3` what votes through Blend leak, `make m4` the cost,
+and `make m5` what a quorum withstands.
+
 Proving is timed apart, on the machine at hand: `make run` in
 [`tools/benchmarks/pol-proving`](../../tools/benchmarks/pol-proving) writes to
 [`pol-proving/`](pol-proving).
@@ -1320,6 +1354,6 @@ Proving is timed apart, on the machine at hand: `make run` in
 The notes carry each result with its gate: `MAPPING.md` (what depends on `k`), `RATE.md` (block
 rate and orphans), `SETTLEMENT.md` (bounds, races, a smaller `k`, recovery, grinding, the nonce),
 `CERTIFIED.md` (votes), `DAG.md` (Areon), `FURTHER.md` (the routes of [§12](#s12)) and
-`DESIGNS.md` (the designs of [§13](#s13)), `SLOTS.md` (finality counted in slots) and `NETWORK.md`
-(certificates from the network). `PLAN.md` records the questions the study was asked to
+`DESIGNS.md` (the designs of [§13](#s13)), `SLOTS.md` (finality counted in slots), `NETWORK.md`
+(certificates from the network) and `SIGNERS.md` (certificates from other signers). `PLAN.md` records the questions the study was asked to
 answer, its hypotheses and the verdict on each.
