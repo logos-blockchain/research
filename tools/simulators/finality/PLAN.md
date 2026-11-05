@@ -5,8 +5,8 @@ relied on can be shortened. It sizes every route by number before any design is 
 changes no specification.
 
 Branch `fast-finalization-slots`, from `fast-finalization` at `bd90263`, reads the study again
-with `k` counted in slots (Phase K), and sizes certificates signed by Blend's declared nodes
-(Phase L). Branch `fast-finalization`, based on `origin/master` at
+with `k` counted in slots (Phase K), sizes certificates signed by Blend's declared nodes
+(Phase L), and sets the other signer sets beside them (Phase M). Branch `fast-finalization`, based on `origin/master` at
 `272fd9a`, counts it in blocks. The TSI per-node engine
 (`../tsi/tsi-sim-pernode`) is consumed as a library for fork structure, delay and attacks.
 Specifications are read at `logos-lips` `47a73cdc`. The node is read at `logos-blockchain`
@@ -24,7 +24,7 @@ and the order of work. The finished story is `../../../reports/finality/`.*
 | §1 | a first look: where the time goes, what `k` buys, what each lever is worth (numbers from `firstlook.py`) |
 | §2 | the levers, each with a hypothesis that can fail |
 | §3 | the owner's decisions on the questions that shape the study |
-| §4 | the work plan, phases A–L |
+| §4 | the work plan, phases A–M |
 | §5 | the measurement protocol |
 | §6 | what depends on `k` today, in the specifications and in the node |
 | §7 | literature to reproduce before it is relied on |
@@ -85,6 +85,7 @@ Phase by phase:
 | K finality counted in slots | done, on the branch `fast-finalization-slots` (`SLOTS.md`). K.0: Praos, Genesis and the specification count `k` in blocks, and Crypsinous reads it as slots only where it evolves its encryption keys; the rules for a window of `K` slots, with a density floor in a depth form and a density form. K.1: a wait under random delay, B4's chance averaged over the wait, 5.10 hours against a third at `1e-9`, 1.25 times the depth rule's time; under the worst case B2's bound at the depth the wait guarantees, 26.3 hours at 10 s, 1.15 times B2 on its clock. K.2: `⌊k/f⌋` slots hold 0.310 at 10 s where 2,160 blocks hold a third; `3⌊k/f⌋` holds a third with the nonce of §3.1 (26.6 hours) and after a deflated inference (29.8), not with today's nonce (67–109 hours); a deflation costs 13 % in slots against 61 % in blocks. K.3: without a floor an eclipse or a split fixes a fork after `K` slots whatever its stake; a floor of 3,264 blocks at `3⌊k/f⌋` restores more than `k = 2160` gave; as a quorum it separates a quarter only at windows of days to weeks and a third at none. K.4: a race lasts at most `K`, so every target stays inside B6's bound while `K ≤ 4⌊k/f⌋`. K.5: under the worst case a faster block rate needs a longer `K`; relays that drop cost 56 % as a wait. K.7: a bound for a wait in GRR's own model, their chain frozen at the phase in which the wait passes and run on the slot lottery at `Δ + 1` slots, gives 10.1 hours against a third at 10 s where K.1 read 26.3, so `⌊k/f⌋` holds a third at 10 s without grinding, with the nonce of §3.1 (10.2 hours) and after a deflation (12.5), not with today's nonce (25.9–42.0); `3⌊k/f⌋` holds it in every case at 10 s; B2's code freezes at half the count the paper's argument needs. K.8: a cap on the inference's correction an epoch lengthens the density floor's protection and its stall after a genuine fall alike, 0.73–1.38 of each other at every cap, and buys the depth form almost nothing; the specification's inference rounds its target to 0.033 occupied slots a slot, the residual the TSI report records. K.9: counted as the inference counts, on occupied slots with referenced uncles, the floor under random delay rises by a fifth, 1,225 at 18 hours against a third, the stake below which finality stalls falls from 0.665 to 0.562, and a floor separates partitions against a quarter from 2.24 days; under the worst case the count is at least the canonical one, so the floor of 1,019 holds |
 | J a fork choice that tolerates delay | J.0–J.3 done (`DAG.md`), and the phase stops at J.2 on its stop condition. J.0: the readings without the owner's answer are E1's, with `k` in slots. J.1: one weight per win under the win tag `ρ_LEAD`; a nonce contribution every node derives from the parent's contribution, at no cost to the proof (3.5–5.9 % if proved); ties broken by each side's first block. J.2: with one move per win the strongest attack within `Δ` against a third needs 2.8 hours at 1 s and 5.0 at 10 s, against the chain's 3.5 and 6.8; but a tag found on both sides weighs on neither, so a coalition retracts a placed win with a second copy on the other side and one win moves the balance twice, and no rule every node applies alike blocks it; the balancing edges then fall below a third at every delay, 0.318 / 0.326 at 1 s and 0.235 / 0.279 at 10 s with ties steered / fixed, so no attack depth exists against a third and no variant beats the chain. J.3, computed anyway: neither Kiffer, Rajaraman and shelat nor Gaži, Motaqy and Russell gives an error against depth; the opportunity bound is finite only up to 0.223 at 10 s and needs 14.2 hours against 25 % at 1 s, where the chain's bound needs 3.3. J.4–J.6 not run, moot against a third. J.7 is this verdict: a fork choice that weighs every honest block gives no smaller `k` |
 | L certificates from the network | done, on the branch `fast-finalization-slots` (`NETWORK.md`). L.0: SDP's declarations, Mantle's service notes, the minimum-stake analysis and Casper FFG pinned; the gadget on Cryptarchia's clock, and three compositions with the slot rule: certificates only, a fast path, both required. L.1: safety needs the coalition below a third of the declared weight, liveness `u(1 − a) ≥ 2/3`; under the study's convention the set holds every coalition below a third at full uptime; under SDP's economics the honest declared stake must exceed `2α/(3u − 2)` of the active stake whatever the minimum stake, so at today's minimum 500 declarations, 1.67 % of the active stake, hold a third of a network of 1,000, 30 % needs 60 % declared and online without a gap, and a third none. L.2: with rounds of 60 slots a block is final in 120 s on average and 147 s at the 95th percentile on the specification's Blend at a lag of 30; the lag must outlast Blend's delays, 60 slots at the heavy point (177 s), else justified checkpoints leave the longest chain. L.3: below a third of the declared weight one side at most certifies, in the closed form and in every engine run; at 0.34 an even split finalizes both; an eclipsed node finalizes nothing while the coalition holds less than two thirds. L.4: the lag sets which assumption carries safety; with FFG's fork choice two thirds of the declared weight, 6.67 % of the active stake today, finalize at any lag; a variant that votes only on its own chain is safe at the chain's settlement at the lag, 12.5 hours against a third, while every honest block reaches every honest node; an eclipse or a split still rests on the declared set unless a floor covers the lag; its liveness not derived. L.5: 6.0 % of one Pi 5 core at 20,000 declarations with ed25519-dalek; ML-DSA-44 certificates 36 times larger. L.6: pruning must keep the uncle window, slashing needs a Mantle operation, a released note frees its key one epoch after its node stops signing. Not recommended at today's minimum stake |
+| M certificates from other signers | planned, on the branch `fast-finalization-slots` (`SIGNERS.md`) |
 
 Before review, in this order:
 
@@ -565,6 +566,28 @@ Each hypothesis below can fail, and says what would fail it.
 - **H28.** Votes cost little at the Raspberry Pi 5. With 60-slot rounds, verifying a round's
   votes from 20,000 declared nodes takes under a tenth of one core with the node's Ed25519
   library, as the repository measured it. Fails if more (Phase L, L.5).
+- **H29.** Within C1–C5 certificates do not beat the chain against 30 %. Votes through Blend, with
+  D0's committee at `1e-9` and the shortest rounds Blend's read limit admits on top of today's
+  cover, finalize a block later than the chain's own wait against 30 % under the worst case at
+  10 s. With the cover raised to keep today's quota ceiling they finalize later than the chain's
+  own wait at every share from 10 % up. Fails if either does not hold (Phase M, M.2).
+- **H30.** The chain's own leaders sign no sooner than seats. A committee of the leaders of
+  recorded blocks needs D0's committee in blocks, a window of more than 40 hours against a
+  quarter, and its votes take Blend's budget as seats' do. Fails if its window is shorter or its
+  rounds shorter than seats' (Phase M, M.1, M.2).
+- **H31.** Only mandatory participation rests a certificate on the stake. Every opt-in set,
+  whatever service it serves or minimum stake it asks, holds a coalition only while the honest
+  stake declared exceeds D1b's frontier. With every leading note declared, the coalition holds
+  exactly its stake share of the weight, and the set holds 30 % while at least 95.2 % of the honest
+  stake is online. Fails if any part does not hold (Phase M, M.1).
+- **H32.** Delegated weight rests on where the delegation goes. With every note delegating, the
+  coalition's operators break the set once they attract `(1/3 − α)/(1 − α)` of the honest stake,
+  under 5 % against 30 %, which fewer than 30 of Cardano's largest pools hold. Fails if the edge
+  differs or more pools are needed (Phase M, M.1).
+- **H33.** At Blend's budget, votes make stake learnable at a rate that does not depend on the
+  coalition the committee is sized for. A holder's attributed votes then come about 20 times as
+  often as its attributed blocks, so a holder of 0.1 % is sized to ±10 % within 120 days instead
+  of 2,179. Fails if slower (Phase M, M.3).
 
 ## 3. Questions for the owner
 
@@ -1337,6 +1360,77 @@ Steps:
 
 Exit: `NETWORK.md` carries L.0–L.6, and H25–H28 get their verdicts.
 
+### Phase M — certificates from other signers (`SIGNERS.md`)
+
+The owner's direction, 2026-11-05: certificates from the network again, with signers other than
+Blend's declared nodes. Phases D and L sized three signer sets: anonymous seats a private lottery
+draws (D0–D6), an opt-in public committee (D1b), and Blend's declared nodes (L). This phase adds the
+sets the study has not sized, reads every set against one yardstick, and reads two compositions
+side by side.
+
+The yardstick. A certificate shortens finality only where it finalizes a block sooner than the
+chain settles it against the same coalition. Against a share `α`, that is the chain's own wait at
+`1e-9`, which L.4 reads under random delay on the specification's Blend and under the worst case
+at 10 s (`runs/l4/hedge.csv`). The slot rule's 18 hours holds a third.
+
+The signer sets, each with the constraints C1–C5 it keeps (M.0):
+
+1. *Anonymous seats* (Phase D). Every note can win a seat a round in a private lottery. A vote
+   carries a proof of the win and travels through Blend.
+2. *The chain's own leaders.* The leaders of the blocks the chain records in a window, canonical
+   or referenced as uncles, sign with the one-time key `P_LEAD` that each header already carries.
+   One weight per block. A vote names the block its sender led, so it travels through Blend (C4).
+3. *Opt-in public sets*: D1b's committee, Blend's declared nodes (L), or a service of its own.
+   Holders declare and vote under their identity.
+4. *Every leading note declared.* Only declared notes enter the leader lottery, so the declared
+   weight is the active stake. C1 and C3 break for every holder. Which note leads stays hidden by
+   the proof of leadership.
+5. *Delegated weight.* Every note delegates its voting weight to a declared operator, once an
+   epoch, by a proof that hides which note delegates. Operators sign with the weight delegated to
+   them. C3 breaks for the operators, and delegators stay private.
+6. *Outside the network.* A checkpoint anchored on another chain rests on that chain; out of
+   scope (G5 reads anchoring).
+
+The compositions: Casper FFG's checkpoints, which finalize (Phase L), and Ouroboros Peras's boost,
+which weighs a certified block in the fork choice and falls back to the chain when quorums fail
+(D1 (a)).
+
+Steps:
+
+- **M.0 — The reading.** Quote at `logos-lips` `bd1ca2c8`: `P_LEAD` and the header's signature;
+  uncles carried with their signatures; Blend's round of one second, `r_1`, `β_max`, `F_C`, `F_D`,
+  `F_T` and `F_1 = 16`; C1's sentence. Quote CIP-0140 at its commit `86b89208`: the quorum
+  `τ > 3n/4` and its reason, fast settlement up to a quarter, the cool-down and the parameters.
+  Record each set's eligibility, weight, identity and transport.
+- **M.1 — What each set holds** (`signers.py`). The coalition's share `a` of the certificate
+  weight from its share `α` of the active stake. Seats and leaders: D0 and D2's committees at
+  `1e-9`, and for leaders the window those blocks take. Opt-in sets: D1b's frontier and L.1. Every
+  leading note declared: `a = α`, live while `u(1 − α) ≥ 2/3`. Delegated weight:
+  `a = (α + (1 − α)c)/(α + (1 − α)v)` for honest delegation `v` and the share `c` of the honest
+  stake the coalition's operators attract; the largest `c` that keeps safety and liveness at
+  uptimes 1, 0.95 and 0.9, and how many of Cardano's largest pools hold it (D1b's data). Gates:
+  the delegated share against a count over holders' choices; D1b's frontier at `c = 0`; the largest
+  `c` as an edge, held just below and lost just above. Each with a mutation.
+- **M.2 — How fast.** The mean time from a block's slot until final: `L + (R − 1)/2 + R` for
+  the checkpoint gadget, `L + (R − 1)/2` for a single certificate, plus the votes' delivery. Gate:
+  the formula against L.2's engine means, with a mutation. Votes through Blend take `R` from
+  Blend's budget: on top of today's cover a core connection's read limit admits `4/3` votes a
+  second network-wide, so `R ≥ 3n/4` seconds; with the cover raised to keep today's quota ceiling,
+  `R ≥ 3n/(4f)` (D3). Gate: at those rounds D0's `blend_load` gives `F_1 = r_1`, with a mutation.
+  Public votes take L.2's rounds of 60 slots. Read at 10 %, 25 %, 30 % and a third, against the
+  yardstick.
+- **M.3 — Privacy.** What a vote reveals in each set. For votes through Blend at M.2's rounds, the
+  time to identify and to size a holder in D5's model.
+- **M.4 — Cost.** Verification and proving in each set: L.5's signatures at 1,000, 20,000 and
+  100,000 signers, a proof a vote for seats, a signature a vote for leaders, a delegation proof a
+  note an epoch.
+- **M.5 — Composition.** FFG's finality against Peras's boost: what each does when the signers
+  stall and when they are captured, and the fast path to the slot rule.
+- **M.6 — What else changes**, and the verdict on each set.
+- **M.7 — The report.** `reports/finality/signers.md`, and the study's report.
+
+Exit: `SIGNERS.md` carries M.0–M.6, and H29–H33 get their verdicts.
+
 ## 5. Measurement protocol
 
 - **Time to finality** is measured from the target block's publication. Report p50 and p95: for
@@ -1472,7 +1566,9 @@ In the node:
   2026-09-11 (PDF SHA-1 `93a92b8a…`). GHOST's safe region is inferior to the longest-chain rule's;
   C3. Phase J quotes revision 2025-02-20 (archive snapshot `20260421005417`, SHA-1 `b1e3648d`),
   since the 2026-09-11 PDF could not be fetched again (`DAG.md` J.3).
-- CIP-0140, "Ouroboros Peras – Faster Settlement", status Proposed. Committee `n = 900`, quorum
+- CIP-0140, "Ouroboros Peras – Faster Settlement", status Proposed; read at
+  `cardano-foundation/CIPs` commit `86b89208` (`CIP-0140/README.md`, SHA-1 `3048a9df`) in Phase M.
+  Committee `n = 900`, quorum
   `τ = 675`, round `U = 90` slots, boost `B = 15` blocks, cool-down `K = 780` rounds. Fast
   settlement against up to a quarter of the stake, Praos-like behaviour above it. Settlement
   known "after as little as two minutes". Voters drawn by VRF sortition among stake-pool
