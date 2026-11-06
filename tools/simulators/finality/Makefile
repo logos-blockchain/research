@@ -3,7 +3,7 @@
 # targets; `make tables` prints the notes' tables from runs/, and `make check-tables` checks that
 # each appears verbatim in a note.
 .PHONY: install test mutations firstlook mapping a1 b2 b3 b4 b5 b6 b7 recovery c1 c3 c4 d0 d1b d5 d6 e2 \
-        e5 further designs j1 j2 j3 k1 k2 k3 k5 k7 k8 k9 l1 l2 l3 l4 l5 m1 m2 m3 m4 m5 all tables \
+        e5 further designs j1 j2 j3 k1 k2 k3 k5 k7 k8 k9 l1 l2 l3 l4 l5 m1 m2 m3 m4 m5 m7 all tables \
         check-tables \
         octave-reference clean
 
@@ -174,8 +174,11 @@ m4: install                   # SIGNERS.md M.4 (seconds; reads reports/pqc)
 m5: install                   # SIGNERS.md M.5 (seconds)
 	$(PY) scripts/m5_quorum.py
 
+m7: install                   # SIGNERS.md M.7 (about 15 minutes on 12 cores; reads reports/pqc)
+	$(PY) scripts/m7_active.py
+
 all: a1 c1 c3 c4 b2 b3 b4 b5 recovery d0 d1b d5 d6 e2 e5 b6 b7 further designs j2 j3 k1 k2 k3 k5 k7 k8 k9 \
-     l1 l2 l3 l4 l5 m1 m2 m3 m4 m5
+     l1 l2 l3 l4 l5 m1 m2 m3 m4 m5 m7
 
 tables: install
 	for t in a1 a1release a1conv c1 c1settle c3 c4 b3 b3delay b2 b4 b5 b5rec b5sweep b5part b6 b7 d0 d1b d3 d5 d6 e2 e5 e5balance g1 g3 g4 g6 g7 h1 h2 h3 b5eng i2 j1 j2 j3 j3bound \
@@ -185,7 +188,7 @@ tables: install
 	         k8stall k8ratio k8deflation k8spec k9floor k9protection k9stall k9quorum \
 	         l1today l1frontier l1convention l2departs l2time l3partition l4hedge l5cost \
 	         m1anon m1public m1delegation m2budget m2blend m2compare m3privacy m4cost m4blend \
-	         m5quorum; do \
+	         m5quorum m7supply m7seats m7wait m7edge m7declared; do \
 		$(PY) scripts/tables.py $$t; done
 
 check-tables: install

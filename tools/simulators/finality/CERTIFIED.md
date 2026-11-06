@@ -72,6 +72,11 @@ round at `ε = 1e-9`:
 - A sudden loss of stake acts as offline stake until the inference reads it. The inference reads
   the first `6⌊k/f⌋` slots of each epoch (`cryptarchia-total-stake-inference.md`, `PERIOD`), so a
   loss just after them lasts about 1.4 epochs.
+- A sudden gain is not covered. The quorums above hold safety only up to `D/D̂ = 1.05`, the
+  inference's noise. A coalition whose stake joins from outside the active stake, or that deflates
+  the inference (`FURTHER.md` G7), makes `D/D̂ = 1/(1 − α)`, and no committee exists from 21.9 %.
+  Honest stake joining breaks the committees sized for 1.05 once it reaches 5.6 % to 6.5 % of the
+  active stake, against 10 % to 30 % (`SIGNERS.md` M.7).
 
 Gates (`tests/test_committee.py`): the safety tail equals a direct convolution, with and without
 inflation; liveness counts only the votes that count; the committee is the smallest that holds

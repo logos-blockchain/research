@@ -1,7 +1,8 @@
-"""SIGNERS.md's tables, read from runs/m1 to runs/m5; tables.py dispatches m* here.
+"""SIGNERS.md's tables, read from runs/m1 to runs/m7; tables.py dispatches m* here.
 
     python scripts/tables.py m1anon | m1public | m1delegation | m2budget | m2blend | m2compare |
-                             m3privacy | m4cost | m4blend | m5quorum
+                             m3privacy | m4cost | m4blend | m5quorum | m7supply | m7seats |
+                             m7wait | m7edge | m7declared
 """
 
 from __future__ import annotations
@@ -213,3 +214,73 @@ def m5quorum() -> None:
             "certificates stall above, uptime 1 / 0.95 / 0.9": " / ".join(
                 _pct(g.loc[u].stalls_above) for u in (1.0, 0.95, 0.9))})
     print(md(pd.DataFrame(rows)))
+
+
+def m7supply() -> None:
+    t = pd.read_csv(RUNS / "m7" / "supply.csv")
+    print(md(pd.DataFrame({
+        "coalition, share of the active stake": t.alpha.map(_share),
+        "share of the supply, at most, with the active stake at 30 % of it": t.supply_share.map(
+            lambda v: _pct(v, 1))})))
+
+
+def m7seats() -> None:
+    t = pd.read_csv(RUNS / "m7" / "seats.csv")
+
+    def broken(active, supply):
+        return "–" if not math.isfinite(active) else f"{_pct(active)} / {_pct(supply)}"
+
+    print(md(pd.DataFrame({
+        "coalition": t.alpha.map(_share),
+        "anonymous seats a round, sized for the inference's error up to 1.05": t.sized_seats.map(
+            _count),
+        "the true over the inferred active stake once the coalition's stake enters": t.entering.map(
+            lambda v: f"{v:.2f}"),
+        "anonymous seats a round, sized for that": t.entered_seats.map(_count),
+        "honest stake entering that breaks the seats sized for 1.05: share of the active stake / of the supply": [
+            broken(a, s) for a, s in zip(t.break_active, t.break_supply)]})))
+
+
+def m7wait() -> None:
+    t = pd.read_csv(RUNS / "m7" / "wait.csv")
+    named = {1.0: "the inference at the true stake", round(1 / 0.7, 6): "a coalition of 30 % entering",
+             1.5: "a coalition of a third entering"}
+    rows = []
+    for x, g in t.groupby("x", sort=True):
+        g = g.set_index(g.alpha.round(6))
+        label = f"{x:.2f}"
+        if round(x, 6) in named:
+            label += f", {named[round(x, 6)]}"
+
+        def h(a):
+            v = g.loc[round(a, 6)].wait_h
+            return f"{v:.2f}" if math.isfinite(v) else "more than 416"
+
+        rows.append({
+            "the true over the inferred active stake": label,
+            "a block every": f"{g.interval_s.iloc[0]:.1f} s",
+            "the wait against 30 % (h)": h(0.30),
+            "the wait against a third (h)": h(1 / 3)})
+    print(md(pd.DataFrame(rows)))
+
+
+def m7edge() -> None:
+    # the edge rounds down and the least inferred stake up, so neither reads past what holds
+    t = pd.read_csv(RUNS / "m7" / "edge.csv")
+    print(md(pd.DataFrame({
+        "coalition": t.alpha.map(_share),
+        "the true over the inferred active stake up to which the wait stays within 18 hours": t.edge.map(
+            lambda v: f"{math.floor(1000 * v) / 1000:.3f}"),
+        "the least inferred active stake that keeps the true within it, the active stake at most 30 % of the supply": t.least_inferred.map(
+            lambda v: f"{math.ceil(1000 * v) / 10:.1f} %")})))
+
+
+def m7declared() -> None:
+    t = pd.read_csv(RUNS / "m7" / "declared.csv")
+    print(md(pd.DataFrame({
+        "active stake, share of the supply": t.active.map(lambda v: _pct(v, 0)),
+        "the minimum stake, share of the supply": t.minimum.map(lambda v: _pct(v, 3)),
+        "declarations, at most": t.declarations.map(lambda v: f"{v:,}"),
+        "votes a second, rounds of 60 slots": t.votes_per_s.map(lambda v: f"{v:,.2f}"),
+        "one Pi 5 core, verifying": t.core_share.map(lambda v: f"{100 * v:.2f} %"),
+        "received (KB/s)": t.kb_per_s.map(lambda v: f"{v:.1f}")})))

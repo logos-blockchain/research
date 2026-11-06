@@ -15,7 +15,7 @@ Specifications are read at `logos-lips` `bd1ca2c8`, and Ouroboros Peras at
 A certificate shortens finality only where it makes a block final sooner than the chain itself
 settles it against the same coalition, under the same delay model. Every signer set is read against
 that yardstick. Against the study's 30 % to a third, only one set rests on the stake share and
-finalizes in about two minutes, and it makes every holder's stake public.
+finalizes in about two minutes, and it makes public the stake of every holder that stakes.
 
 | signers | against 30 %: time until final | safety rests on | what a vote shows |
 | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ finalizes in about two minutes, and it makes every holder's stake public.
 | anonymous seats through Blend (Phase D) | 10.1 to 17.2 hours on average under random delay, every honest seat counting; 3.7 to 6.3 days with the inference's error | a sampled committee of 33,473 seats a round; a third never | a seat won; the quota ceiling falls 41 to 69-fold |
 | the chain's own leaders through Blend | 2.1 to 3.5 hours on average under random delay, every honest leader online; 24 to 41 hours with 95 % online | a counted committee of 6,922 lottery wins, if the coalition keeps no honest win out of the record; a third never | the win its sender led, tied to its leader's node with chance 0.286 to 0.430 |
 | Blend's declared nodes, or another opt-in set | 120 s on average | the volunteers: at today's minimum stake, 1.67 % of the active stake holds a third of Blend's declarations | the volunteers' declarations |
-| every leading note declared | 120 s on average | the stake, while at least 95.24 % of the honest stake is online and every honest holder can declare; a third never | every holder's stake and node |
+| every leading note declared | 120 s on average | the stake, while at least 95.24 % of the honest stake is online and every honest holder can declare; a third never | the stake and node of every holder that stakes |
 | weight delegated to declared operators | 120 s on average | where the delegation goes: it fails once the coalition's operators hold 4.76 % of the honest stake at full uptime, and with none attracted at 95.24 % online | each operator's total |
 
 The public sets' 120 s are L.2's mean with rounds of 60 slots and a lag of 30 on the
@@ -49,10 +49,16 @@ fitting its node's cover to equal stakes, where every vote first takes its node'
 - **The quorum matters at 30 %.** Ouroboros Peras's three quarters stall once a quarter of the
   weight withholds its votes; of the two quorums compared, only Casper FFG's two thirds can hold
   30 % (§7).
+- **Reading the active stake as 30 % of the supply moves none of these figures.** A coalition of
+  30 % then holds 9.0 % of the supply. Stake outside the active stake can join the lottery without
+  notice, which leaves the anonymous seats no committee from 21.9 %, and holds the slot rule's 18
+  hours against a third only while the true active stake stays within 1.925 times the inferred
+  (§9).
 
 **Verdict.** No signer set within the study's constraints C1–C5 finalizes a block in minutes
 against 30 %. Every leading note declared does it in two minutes at the stake's own share, and is a
-candidate only if the owner relaxes C1 and C3 for every holder (§2). Delegated weight does it only
+candidate only if the owner relaxes C1 and C3 for every holder that stakes (§2, §9). Delegated
+weight does it only
 while at least 95.24 % of the honest weight is online and the coalition's operators hold less than
 4.76 % of the honest stake, so it is not recommended. Otherwise the slot rule's 18 hours stand.
 
@@ -73,7 +79,7 @@ proposals should not be linkable to a leader".
 | anonymous seats (Phase D) | a note that wins a seat that round in a private lottery | one a seat | a seat won, by a proof | through Blend | C1: on top of today's cover the quota ceiling falls 41 to 69-fold; with the cover raised stake is sized 1.7 times as fast (M.3) |
 | the chain's own leaders | the leaders of the latest wins recorded on the finalized chain, canonical or uncle | one a win, by its tag `ρ_LEAD` | the win its sender led | through Blend | C1: on top of today's cover a win is tied to its leader's node with chance 0.286 to 0.430, against 0.016; with the cover raised 0.026 (M.3) |
 | an opt-in public set (D1b; Blend's declared nodes, Phase L) | holders who declare | by value, or one a declaration | the declaration | directly | C3; with weight by value, also C1 for the declared |
-| every leading note declared | every note that may lead | by value | the declaration | directly | C1 and C3, for every holder |
+| every leading note declared | every note that may lead | by value | the declaration | directly | C1 and C3, for every holder that stakes |
 | delegated weight | operators, with the weight notes delegate to them | by the value delegated | the operator's total | directly | C3, for the operators; C1 open, through the value each delegation moves |
 
 - **The chain's own leaders need no new key.** Each block's proof of leadership is bound to a
@@ -101,7 +107,7 @@ third of it, and liveness needs the honest weight online to reach two thirds on 
 committee of seats or wins needs a quorum sized for its sampling. Anonymous seats are a Poisson
 number nobody counts, so their quorum also carries the stake inference's error: *the inference's
 error up to 1.05* holds while the true stake exceeds the inferred by up to 5 %, about six standard
-deviations. *Every honest seat counting* means every honest seat votes and every vote arrives. The
+deviations. Stake joining from outside the active stake raises it further (§9). *Every honest seat counting* means every honest seat votes and every vote arrives. The
 chain's own leaders are counted, so neither margin applies.
 
 The anonymous sets:
@@ -260,8 +266,8 @@ whose stake lies in many small notes, and until it knows the stake to ±10 %:
   adversarial peer, against 0.016 for a proposal alone, against the specification's own
   requirement. Stake is sized 18 to 27 times as fast, and the tied wins name the online leaders the
   committee needs.
-- **Public sets show what they declare.** With every leading note declared that is each holder's
-  stake and node, the targeting C1 names, and targeting bears on liveness as well: the set holds
+- **Public sets show what they declare.** With every leading note declared that is the stake
+  and node of each holder that stakes, the targeting C1 names, and targeting bears on liveness as well: the set holds
   30 % only while 95.24 % of the honest stake stays online. Delegated weight shows each operator's
   total, and the value each delegation moves.
 
@@ -290,7 +296,9 @@ second on one Pi 5 core:
 
 - **Every leading note declared is the costliest public set**: one signer a declaration, 30 % of a
   Pi 5 core at 100,000 declarations. A minimum stake low enough for every holder lets the coalition
-  set that load by splitting into declarations, unless signatures aggregate. Delegated weight signs
+  set that load by splitting into declarations, unless signatures aggregate. With the active stake
+  at 30 % of the supply, today's minimum stake caps them at 30,000 declarations, 9.05 % of a Pi 5
+  core (§9). Delegated weight signs
   with its operators only.
 - **Votes through Blend cost Blend more than their own checks**: 2.56 % of a Pi 5 core in headers
   and 77 KB/s more on every core connection, or, with the backlog's headroom kept, 30.8 % of the
@@ -344,8 +352,8 @@ second on one Pi 5 core:
 - **Delegated weight** needs a Mantle operation and a circuit for private delegation, the
   operators' totals tallied each epoch, and slashing for operators.
 
-None is recommended within C1–C5. If the owner relaxes C1 and C3 for every holder, every leading
-note declared needs:
+None is recommended within C1–C5. If the owner relaxes C1 and C3 for every holder that stakes,
+every leading note declared needs:
 
 - **SDP**: a declaration for every note that leads, with a vote key.
 - **Cryptarchia**: the proof of leadership over declared notes only; the votes, rounds of `R` slots
@@ -357,10 +365,88 @@ note declared needs:
 
 ---
 
-## 9. Open questions
+## 9. The active stake at 30 % of the supply
 
-- Whether C1 and C3 may be relaxed for every holder. That is the owner's decision, and the only
-  route here to finality in minutes that rests on the stake.
+The lottery weighs each note against the total active stake, which every node infers from the
+chain's growth: "the probability that an eligible Cryptarchia participant wins the right to propose
+a block depends on that participant’s stake relative to the total active stake". Every share in this
+report is a share of the active stake, and certificates from Blend's declared nodes were already
+read with the active stake at the block rewards' target of 30 % of the supply
+([`network.md`](network.md) §4). Reading the active stake as at most 30 % of the supply moves no
+figure above. It changes three readings.
+
+**A coalition holds less of the supply:**
+
+| coalition, share of the active stake | share of the supply, at most, with the active stake at 30 % of it |
+| --- | --- |
+| 10 % | 3.0 % |
+| 25 % | 7.5 % |
+| 30 % | 9.0 % |
+| a third | 10.0 % |
+
+**Stake from outside the active stake joins without notice.** A note joins the lottery by proving a
+win, with no declaration, and the inference reads the new stake only at its next correction, up to
+1.4 epochs or 10.5 days later. Until then the true active stake exceeds the inferred. Only the sets
+whose quorum reads the inference are affected: the anonymous seats and the slot rule's lottery. The
+chain's own leaders are counted, a public set's weight is declared, and delegated weight is tallied
+each epoch.
+
+The anonymous seats were sized for the inference's noise, a true stake up to 1.05 times the
+inferred. A coalition whose stake joins from outside raises it to `1/(1 − α)`, the state a deflation
+leaves without the assumption, and no committee exists from a coalition of 21.9 %. Honest stake
+joining breaks them too:
+
+| coalition | anonymous seats a round, sized for the inference's error up to 1.05 | the true over the inferred active stake once the coalition's stake enters | anonymous seats a round, sized for that | honest stake entering that breaks the seats sized for 1.05: share of the active stake / of the supply |
+| --- | --- | --- | --- | --- |
+| 10 % | 801 | 1.11 | 1,025 | 5.6 % / 1.7 % |
+| 25 % | 9,728 | 1.33 | none | 6.3 % / 1.9 % |
+| 30 % | 279,488 | 1.43 | none | 6.5 % / 2.0 % |
+| a third | none | 1.50 | none | – |
+
+A coalition's own stake joining is the deflated case the chain's wait in §4 already reads. A larger
+rise makes blocks come faster until the inference corrects, and under the worst case faster blocks
+need a longer wait. At 10 s, without grinding:
+
+| the true over the inferred active stake | a block every | the wait against 30 % (h) | the wait against a third (h) |
+| --- | --- | --- | --- |
+| 1.00, the inference at the true stake | 30.0 s | 5.93 | 10.11 |
+| 1.43, a coalition of 30 % entering | 21.2 s | 6.41 | 11.81 |
+| 1.50, a coalition of a third entering | 20.2 s | 6.60 | 12.36 |
+| 1.90 | 16.0 s | 8.46 | 17.52 |
+| 2.00 | 15.3 s | 9.18 | 19.58 |
+| 2.50 | 12.3 s | 15.32 | 40.07 |
+| 3.00 | 10.3 s | 30.81 | 114.18 |
+
+| coalition | the true over the inferred active stake up to which the wait stays within 18 hours | the least inferred active stake that keeps the true within it, the active stake at most 30 % of the supply |
+| --- | --- | --- |
+| 30 % | 2.627 | 11.5 % |
+| a third | 1.925 | 15.6 % |
+
+With the active stake at most 30 % of the supply, the slot rule's 18 hours hold a third whenever the
+inferred active stake is at least 15.6 % of the supply, and a rise from 15 % to 30 % of the supply
+within one inference period breaks them, at 19.58 hours. Against 30 % they hold from 11.5 %. The
+new nonce adds less than 1 % where both are read.
+
+**Every leading note declared costs only the holders that stake.** The declared stake is the active
+stake, so a holder outside it leads and signs nothing, and no set shows its stake. At today's minimum
+stake the active stake makes at most 30,000 declarations, however the coalition splits its stake:
+
+| active stake, share of the supply | the minimum stake, share of the supply | declarations, at most | votes a second, rounds of 60 slots | one Pi 5 core, verifying | received (KB/s) |
+| --- | --- | --- | --- | --- | --- |
+| 30 % | 0.001 % | 30,000 | 500.00 | 9.05 % | 74.0 |
+
+New stake joins only through a declaration on the ledger, so the quorum never lags the stake. What
+the set holds is §3's.
+
+---
+
+## 10. Open questions
+
+- Whether C1 and C3 may be relaxed for every holder that stakes. That is the owner's decision, and
+  the only route here to finality in minutes that rests on the stake.
+- How fast the active stake can grow within one inference period. Against a third the slot rule's
+  18 hours hold while the true active stake stays within 1.925 times the inferred, against 30 %
+  within 2.627 (§9).
 - How far a coalition can keep honest wins out of a window's record, which the leaders' committee
   assumes it cannot.
 - A Blend quota for votes beyond a node's cover, and how much of Blend's transaction share they may
@@ -372,16 +458,18 @@ note declared needs:
 
 ---
 
-## 10. Reproducing the figures
+## 11. Reproducing the figures
 
 ```
 cd tools/simulators/finality
 make install
 make d0 d6 l1 l2 l4       # the committees, Blend's delivery, the declared set, public signers' time, the chain's waits
 make m1 m2 m3 m4 m5       # what each set holds, how fast, privacy, cost, quorums
+make m7                   # the active stake at 30 % of the supply
 make tables check-tables
 ```
 
-`make l4` needs `make a1` and `make k7`. The gates are `tests/test_signers.py`; every gate but the
-check that no counted committee holds a third fails under a registered mutation
+`make l4` needs `make a1` and `make k7`. The gates are `tests/test_signers.py` and
+`tests/test_active.py`; every gate but the check that no counted committee holds a third fails under
+a registered mutation
 (`make mutations`). The study's report reads every route: [`README.md`](README.md).

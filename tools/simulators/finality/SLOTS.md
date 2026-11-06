@@ -1272,6 +1272,10 @@ Gates (`tests/test_cap.py`):
 
 Each fails under a registered mutation (`scripts/check_mutations.py`).
 
+**A rise of the active stake** is read at the next correction as well, and until then blocks come
+faster than `f`. Against a third at 10 s, `⌊k/f⌋` holds while the true active stake stays within
+1.925 times the inferred, against 30 % within 2.627 (`SIGNERS.md` M.7).
+
 ## K.9 — the floor counted as the stake inference counts
 
 `scripts/k9_occupancy.py`, with runs in `runs/k9/`, on K.3's and K.8's functions.

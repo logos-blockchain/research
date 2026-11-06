@@ -1,8 +1,8 @@
 # Certificates from other signers
 
 Phase M of `PLAN.md`. Tables come from `scripts/m1_holds.py`, `scripts/m2_time.py`,
-`scripts/m3_privacy.py`, `scripts/m4_cost.py` and `scripts/m5_quorum.py` through
-`scripts/tables.py`. Specifications are read at `logos-lips` `bd1ca2c8`, and Ouroboros Peras at
+`scripts/m3_privacy.py`, `scripts/m4_cost.py`, `scripts/m5_quorum.py` and `scripts/m7_active.py`
+through `scripts/tables.py`. Specifications are read at `logos-lips` `bd1ca2c8`, and Ouroboros Peras at
 `cardano-foundation/CIPs` `86b89208` (`CIP-0140/README.md`, SHA-1 `3048a9df`). One slot is one
 second and `f = 1/30`. Every committee is held at `ε = 1e-9` a round, as in D0.
 
@@ -21,7 +21,7 @@ hold a third under the worst case at 10 s, with the new nonce of `slots.md` §4 
 | anonymous seats (Phase D) | a note that wins a seat that round in a private lottery | one a seat | a seat won, by a proof | through Blend | C1: on top of today's cover the quota ceiling falls 41 to 69-fold; with the cover raised stake is sized 1.7 times as fast (M.3) |
 | the chain's own leaders | the leaders of the latest wins recorded on the finalized chain, canonical or uncle | one a win, by its tag `ρ_LEAD` | the win its sender led | through Blend | C1: on top of today's cover a win is tied to its leader's node with chance 0.286 to 0.430, against 0.016; with the cover raised 0.026 (M.3) |
 | an opt-in public set (D1b; Blend's declared nodes, Phase L) | holders who declare | by value, or one a declaration | the declaration | directly | C3; with weight by value, also C1 for the declared |
-| every leading note declared | every note that may lead | by value | the declaration | directly | C1 and C3, for every holder |
+| every leading note declared | every note that may lead | by value | the declaration | directly | C1 and C3, for every holder that stakes |
 | delegated weight | operators, with the weight notes delegate to them | by the value delegated | the operator's total | directly | C3, for the operators; C1 open, through the value each delegation moves |
 
 - **The chain's own leaders need no new key.** A block's proof of leadership is bound to a
@@ -325,7 +325,7 @@ lies in many small notes is identified, and until its stake is known to ±10 %:
   leader". Stake is sized 18 to 27 times as fast as from blocks alone. Tied wins name online
   leaders, who must stay online through the window for the committee to hold.
 - **Every public set shows what it declares**: each signer's stake and node, and with every leading
-  note declared, each holder's. That is the targeting C1 names, and it bears on liveness too: the
+  note declared, each staking holder's. That is the targeting C1 names, and it bears on liveness too: the
   set holds 30 % only while 95.24 % of the honest stake stays online.
 - **Delegated weight shows each operator's total**, and the value each delegation moves. On a
   transparent ledger that value may narrow which note delegated (open).
@@ -412,6 +412,107 @@ a second, one core of a Raspberry Pi 5 (D3); a Blend message is 19,318 bytes:
   operators' totals tallied each epoch, and slashing for operators.
 - **Anonymous seats** keep D1, D3 and D4's open questions, and need a proof of quota for votes.
 
+## M.7 — the active stake at 30 % of the supply
+
+The owner's question, 2026-11-06: what changes if the active stake is at most 30 % of the supply,
+and that stake governs consensus.
+
+**The reading.** The lottery already weighs each note against the active stake: "the probability
+that an eligible Cryptarchia participant wins the right to propose a block depends on that
+participant’s stake relative to the total active stake. Because leader selection in Cryptarchia is
+private, the total active stake is not directly observable. Instead, nodes must infer it from
+observable chain growth" (`cryptarchia-total-stake-inference.md`). Every share `α` in the study is
+therefore a share of the active stake, and L.1 already set the active stake at the block rewards'
+target of 30 % of the supply (L.0). No figure of M.1 to M.6 moves. Three readings change
+(`src/finality_sim/active.py`, `scripts/m7_active.py`):
+
+- **A coalition holds at most `0.3α` of the supply.**
+- **Stake outside the active stake joins the lottery without notice.** A note joins by proving a
+  win, with no declaration (C3). The inference reads the first `6⌊k/f⌋` slots of each epoch, so a
+  change just after them lasts about 1.4 epochs (D2), 10.5 days at `k = 2160`; it corrects a rise
+  in full at its next correction (`beta = 1`, K.8). Until then the true active stake exceeds the
+  inferred by a factor `x`, and a slot is won with chance `1 − (1 − f)^x`.
+- **Only the sets whose quorum reads the inference see `x`**: the anonymous seats, whose threshold
+  D1 sets from the inferred stake so that all stake together expects `n` seats, and the slot rule's
+  lottery. The chain's own leaders are counted (M.1), a public set's weight is declared, and
+  delegated weight is tallied each epoch.
+
+| coalition, share of the active stake | share of the supply, at most, with the active stake at 30 % of it |
+| --- | --- |
+| 10 % | 3.0 % |
+| 25 % | 7.5 % |
+| 30 % | 9.0 % |
+| a third | 10.0 % |
+
+**Anonymous seats.** A coalition whose stake joins from outside the active stake makes
+`x = 1/(1 − α)`, the state a deflation leaves (`FURTHER.md` G7), without withholding a block. D2
+sized the seats for `x` up to 1.05, the inference's noise. Once the coalition's stake joins, no
+committee exists from a coalition of 21.9 %, where `2α² − 5α + 1` reaches zero. Honest stake joining
+breaks the committees sized for 1.05 too, under D2's count, where honest votes split between two
+forks fill both certificates:
+
+| coalition | anonymous seats a round, sized for the inference's error up to 1.05 | the true over the inferred active stake once the coalition's stake enters | anonymous seats a round, sized for that | honest stake entering that breaks the seats sized for 1.05: share of the active stake / of the supply |
+| --- | --- | --- | --- | --- |
+| 10 % | 801 | 1.11 | 1,025 | 5.6 % / 1.7 % |
+| 25 % | 9,728 | 1.33 | none | 6.3 % / 1.9 % |
+| 30 % | 279,488 | 1.43 | none | 6.5 % / 2.0 % |
+| a third | none | 1.50 | none | – |
+
+- **The gap does not need the assumption.** A coalition that withholds its blocks for one period
+  deflates the inference to the same `x` (G7), so anonymous seats hold no coalition from 21.9 %
+  whatever share of the supply is active. Their verdict stands, more firmly.
+
+**The slot rule.** A coalition's stake joining is the deflated case M.2's yardstick reads. A larger
+`x` makes blocks come faster until the inference corrects, and under the worst case faster blocks
+need a longer wait (K.5, K.7). K.7's bound at `1e-9` under the worst case at 10 s, without grinding,
+with both shares' rates scaled by `x`:
+
+| the true over the inferred active stake | a block every | the wait against 30 % (h) | the wait against a third (h) |
+| --- | --- | --- | --- |
+| 1.00, the inference at the true stake | 30.0 s | 5.93 | 10.11 |
+| 1.43, a coalition of 30 % entering | 21.2 s | 6.41 | 11.81 |
+| 1.50, a coalition of a third entering | 20.2 s | 6.60 | 12.36 |
+| 1.90 | 16.0 s | 8.46 | 17.52 |
+| 2.00 | 15.3 s | 9.18 | 19.58 |
+| 2.50 | 12.3 s | 15.32 | 40.07 |
+| 3.00 | 10.3 s | 30.81 | 114.18 |
+
+| coalition | the true over the inferred active stake up to which the wait stays within 18 hours | the least inferred active stake that keeps the true within it, the active stake at most 30 % of the supply |
+| --- | --- | --- |
+| 30 % | 2.627 | 11.5 % |
+| a third | 1.925 | 15.6 % |
+
+- **Against a third, `⌊k/f⌋` = 18 hours hold while the true active stake stays within 1.925 times
+  the inferred.** A coalition's own stake joining makes 1.5. With the active stake at most 30 % of
+  the supply, that holds whenever the inferred active stake is at least 15.6 % of the supply, and a
+  rise from 15 % of the supply to 30 % within one inference period breaks it: 19.58 hours.
+- **Against 30 %, 18 hours hold up to 2.627 times**, so whenever the inferred active stake is at
+  least 11.5 % of the supply.
+- **The new nonce of `slots.md` §4 adds less than 1 %** where M.2 reads both, after a deflation:
+  6.43 hours against 6.41 at 30 %, and 12.47 against 12.36 at a third.
+
+**Every leading note declared.** The declared stake is the active stake, so only holders that stake
+give up C1 and C3. A holder outside the active stake leads and signs nothing, and no set shows its
+stake. The minimum stake caps the declarations the active stake can make, however the coalition
+splits its stake:
+
+| active stake, share of the supply | the minimum stake, share of the supply | declarations, at most | votes a second, rounds of 60 slots | one Pi 5 core, verifying | received (KB/s) |
+| --- | --- | --- | --- | --- | --- |
+| 30 % | 0.001 % | 30,000 | 500.00 | 9.05 % | 74.0 |
+
+- **That caps the load M.4 left to the coalition** at 9.05 % of a Pi 5 core, with rounds of 60
+  slots.
+- **Stake outside the active stake joins only by a declaration on the ledger**, so the quorum never
+  lags the stake. What the set holds is M.1's.
+
+Gates (`tests/test_active.py`): a coalition whose stake joins holds `α` of the true stake at
+`x = 1/(1 − α)`, over 200 random stakes; the supply share; D2's committee exists just below the
+seats' edge and not from it, both read from `committee.smallest_committee`; the honest stake joining
+that breaks the committee sized for 1.05 is an edge, held just below and lost at it, with the
+coalition diluted to `α/x`; notes holding `x` times the inferred stake, split at random, win a slot
+with chance `1 − (1 − f)^x`, and K.7's bound at that chance equals the bound with both rates scaled
+by `x`; the least inferred stake; the cap on declarations. Nine registered mutations fail them.
+
 ## Verdicts
 
 - **H29 holds.** Against 30 %, anonymous seats on top of today's cover finalize in 10.11 to 17.17
@@ -436,7 +537,8 @@ By set, against the study's 30 % to a third:
 
 - **Anonymous seats: not recommended.** Under random delay they finalize sooner than the chain
   against 10 %, and against a quarter only with equal stakes, always with the quota ceiling lowered
-  41 to 69-fold. With the ceiling kept they are slower at every share.
+  41 to 69-fold. With the ceiling kept they are slower at every share. Once a coalition's stake
+  joins from outside the active stake, or after a deflation, none exists from 21.9 % (M.7).
 - **The chain's own leaders: not recommended against 30 % to a third**, and the anonymous set that
   comes closest. Under random delay, on top of today's cover, they finalize sooner than the chain
   against 10 % and a quarter. Against 30 % they do so only with every honest leader online through
@@ -448,9 +550,9 @@ By set, against the study's 30 % to a third:
 - **Opt-in public sets, Blend's declared nodes among them: not recommended** (D1b, L).
 - **Every leading note declared: the one set that rests on the stake and finalizes in two
   minutes.** It holds 30 % from 95.24 % of the honest stake online, if every honest holder can
-  declare, and never a third. It makes every holder's stake and node public, against C1 and C3, and
-  locks every note that leads. It is a candidate only if the owner relaxes C1 and C3 for every
-  holder.
+  declare, and never a third. It makes the stake and node of every holder that stakes public, against
+  C1 and C3, and locks every note that leads. It is a candidate only if the owner relaxes C1 and C3
+  for every holder that stakes; a holder outside the active stake shows nothing (M.7).
 - **Delegated weight: not recommended against 30 %.** It finalizes in two minutes and hides which
   note delegates, but holds 30 % only while at least 95.24 % of the honest weight is online and the
   coalition's operators hold less than 4.76 % of the honest stake at full uptime, and less at lower
@@ -458,8 +560,11 @@ By set, against the study's 30 % to a third:
 
 ## What the phase leaves open
 
-- Whether C1 and C3 may be relaxed for every holder. That is the owner's decision, and the only
-  route here to finality in minutes that rests on the stake.
+- Whether C1 and C3 may be relaxed for every holder that stakes. That is the owner's decision, and
+  the only route here to finality in minutes that rests on the stake.
+- How fast the active stake can grow within one inference period. Against a third the slot rule's
+  18 hours hold while the true active stake stays within 1.925 times the inferred, against 30 %
+  within 2.627 (M.7).
 - How far a coalition can keep honest wins out of a window's record, which the leaders' committee
   assumes it cannot.
 - A Blend quota for votes beyond a node's cover, and how much of Blend's transaction share they may

@@ -101,7 +101,7 @@ and 12.5 after a period of withholding has deflated the inferred stake ([§6](#s
 | regular block intervals ([§7](#s7)) | the lottery becomes a curve of the slots since the parent | against a third Topl's shape needs more than 60 blocks at `1e-3`, today's lottery 58 | a third more blocks; a new stake inference | not recommended |
 | certificates ([§8](#s8)) | anonymous-seat votes through Blend | no committee against a third; against 30 %, 33,473 seats while every honest vote counts | ×1,675 Blend cover at 10-minute rounds | not recommended |
 | certificates from the network ([§8](#s8)) | Casper FFG signed by the nodes SDP declares for Blend | 120 s on average, 147 s at the 95th percentile, with rounds of 60 slots and a lag of 30 on the specification's Blend; safe while the coalition holds less than a third of the declared weight | 6.0 % of a Pi 5 core at 20,000 declared nodes with 60-slot rounds | not recommended at today's minimum stake: 1.67 % of the active stake holds a third of a network of 1,000 declarations, and holding 30 % needs honest declarations that lock more than 60 % of the active stake at full uptime |
-| certificates from other signers ([§8](#s8)) | every leading note declared, weight delegated to operators, or the chain's own leaders signing with the one-time keys their headers carry | every leading note declared: 120 s on average, holding 30 % from 95.24 % of the honest stake online and a third never; the chain's own leaders through Blend, under random delay against 30 %: 2.09 to 3.55 h with every honest leader online, where the chain waits 3.09, and 24.06 to 40.90 h with 95 % online; none against a third | every leading note declared: every holder's stake and node public; votes through Blend: 30.8 % of Blend's transaction messages and a quota ceiling 41 to 69 times lower | not recommended within C1–C5; every leading note declared is a candidate only if C1 and C3 are relaxed for every holder |
+| certificates from other signers ([§8](#s8)) | every leading note declared, weight delegated to operators, or the chain's own leaders signing with the one-time keys their headers carry | every leading note declared: 120 s on average, holding 30 % from 95.24 % of the honest stake online and a third never; the chain's own leaders through Blend, under random delay against 30 %: 2.09 to 3.55 h with every honest leader online, where the chain waits 3.09, and 24.06 to 40.90 h with 95 % online; none against a third | every leading note declared: the stake and node of every holder that stakes public; votes through Blend: 30.8 % of Blend's transaction messages and a quota ceiling 41 to 69 times lower | not recommended within C1–C5; every leading note declared is a candidate only if C1 and C3 are relaxed for every holder that stakes |
 | multi-proposer DAG ([§9](#s9)) | replaces the chain and its fork choice | random delay, at today's block rate, against a third: 106 minutes, the chain 160 by the same fit | as the chain at that rate | not recommended: a balancing attack that retracts its wins holds a third for ever at every delay, so no `K` exists |
 
 Two routes are recommended, and finality counted in slots is recommended at 18 hours under three
@@ -930,7 +930,8 @@ shorten finality ([`signers.md`](signers.md); `SIGNERS.md`).
   online they take 24.06 to 40.90. Their votes tie 29 % to 43 % of wins to their leaders' nodes.
 - **Every leading note declared** is the one set that rests on the stake share and finalizes in
   two minutes. It holds 30 % from 95.24 % of the honest stake online, if every honest holder can
-  declare, and never a third, and it makes every holder's stake and node public, against C1 and C3.
+  declare, and never a third, and it makes the stake and node of every holder that stakes public,
+  against C1 and C3.
 - **Delegated weight** hides which note delegates, but its safety rests on where the delegation
   goes: against 30 % it fails once the coalition's operators hold 4.76 % of the honest stake at full
   uptime, what Cardano's 15 largest pools hold, and with none attracted at 95.24 % online.
@@ -938,6 +939,13 @@ shorten finality ([`signers.md`](signers.md); `SIGNERS.md`).
   weight, so against 30 % it settles nothing fast.
 - **Phase D's times at 10-minute rounds** above assume votes Blend cannot carry (D3). At the rates
   it admits, the anonymous seats' times are those of `SIGNERS.md` M.2.
+- **With the active stake at 30 % of the supply**, the block rewards' target, no figure above
+  moves, since the lottery already weighs every note against the active stake. Stake outside it
+  joins the lottery without notice until the inference's next correction: anonymous seats then
+  hold no coalition from 21.9 %, as after a deflation, and the slot rule's 18 hours hold a third
+  only while the true active stake stays within 1.925 times the inferred. Every leading note
+  declared costs only the holders that stake, at most 30,000 declarations at today's minimum
+  stake ([`signers.md`](signers.md) §9).
 
 ---
 
