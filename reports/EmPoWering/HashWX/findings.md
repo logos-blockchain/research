@@ -54,11 +54,11 @@ These come from the M4 Pro and Equi-X's per-core ratios between the two machines
 
 ## 4. The door, priced in HashWX
 
-`equix_bench.blend_admission` runs the door's exact rules. It now prices a nonce at `d` hashes. The bounds derive as the specification states them: twenty fastest cores fill the edge share at the floor, `d_edge^Min = 20 * R_F // r_E`, and three solves on a whole Pi 5 take half of the message traversal time on average at the ceiling, `d_edge^Max = T_M * R_M // 6`. A check costs 80 µs, the upper estimate. The fastest core is taken at 4·10⁵ hashes/s from the M4 Pro. Results are given at both ends of the Pi 5 estimate. Studies 3 and 5 read the load, not the door, and are not repeated. The Equi-X column is from [the earlier study](../blend-admission/simulation.md).
+`equix_bench.blend_admission` runs the door's exact rules. It now prices a nonce at `d` hashes. The bounds derive as the specification states them: twenty fastest cores fill the edge share at the floor, `price^Min = 20 * R_F // r_E`, and three solves on a whole Pi 5 take half of the message traversal time on average at the ceiling, `price^Max = T_M * HASHWX_MACHINE_RATE // 6`. The code still calls them `D_EDGE_MIN` and `D_EDGE_MAX`. A check costs 80 µs, the upper estimate. The fastest core is taken at 4·10⁵ hashes/s from the M4 Pro. Results are given at both ends of the Pi 5 estimate. Studies 3 and 5 read the load, not the door, and are not repeated. The Equi-X column is from [the earlier study](../blend-admission/simulation.md).
 
 | Result | Equi-X | HashWX, Pi 5 at 4.3·10⁵ | HashWX, Pi 5 at 8.5·10⁵ |
 | --- | --- | --- | --- |
-| `d_edge^Min`, `d_edge^Max` | 300, 1,000 | 333,333, 1,065,000 | 333,333, 2,117,500 |
+| `price^Min`, `price^Max` | 300, 1,000 | 333,333, 1,065,000 | 333,333, 2,117,500 |
 | Cores to fill the share, to trip a raise, to hold the ceiling | 19, 38, 124 | 20, 40, 128 | 20, 40, 254 |
 | 200-core flood: rounds to the ceiling, rounds home | 60, 150 | 60, 150 | 90, 210 |
 | 200-core flood: peak CPU of one Pi 5 core | 33% | 34% | 35% |
