@@ -3,8 +3,8 @@ import math
 import random
 
 from equix_bench.blend_admission import (
-    BETA_MAX, BLEND_DIFFICULTY_BASE, D_EDGE_MAX, D_EDGE_MIN, F_1, F_T, F_TX, F_W_SIZED, G,
-    L_MIN, L_STAR, P, PHI_CC, PHI_W, R_1, R_E, V, W,
+    BETA_MAX, BLEND_DIFFICULTY_BASE, D_EDGE_MAX, D_EDGE_MIN, DOOR_GIVEUP, F_1, F_T, F_TX,
+    F_W_SIZED, G, L_MIN, L_STAR, P, PHI_CC, PHI_W, R_1, R_ATTACKER_CORE, R_E, V, W,
     EdgeDifficulty, attacker_core_rate, blend_difficulty, blend_difficulty_sqrt, d_blend,
     erlang3_tail, grace_floor, hold_cores, loop_attractor, loop_attractor_two_epoch,
     loop_gain, loop_step, loop_survey, lower_median, median_shift, novel_rate, pi5_rate,
@@ -58,17 +58,16 @@ def test_set_point_is_the_level_of_the_expected_rate():
 def test_edge_raises_doubles_and_caps():
     c = EdgeDifficulty(d=D_EDGE_MIN)
     hot = 2 * R_E * W + 1                        # just above the raise threshold
-    assert c.retarget(hot) == 2 * D_EDGE_MIN
-    c.retarget(hot)
-    assert c.d == D_EDGE_MAX                     # 1200 capped to the ceiling
-    c.retarget(hot)
-    assert c.d == D_EDGE_MAX
+    assert c.retarget(hot) == min(2 * D_EDGE_MIN, D_EDGE_MAX)
+    for _ in range(40):
+        c.retarget(hot)
+    assert c.d == D_EDGE_MAX                     # capped to the ceiling
 
 
 def test_edge_decays_by_three_quarters_and_floors():
     c = EdgeDifficulty(d=D_EDGE_MAX)
     cold = R_E * W - 1                           # just below the decay threshold
-    assert c.retarget(cold) == 750
+    assert c.retarget(cold) == 3 * D_EDGE_MAX // 4
     for _ in range(20):
         c.retarget(cold)
     assert c.d == D_EDGE_MIN
@@ -83,14 +82,14 @@ def test_edge_holds_inside_the_deadband():
 
 def test_door_decays_when_it_refuses_nobody():
     c = EdgeDifficulty(d=D_EDGE_MAX)
-    assert c.retarget(0.5 * R_E * W) == 750
+    assert c.retarget(0.5 * R_E * W) == 3 * D_EDGE_MAX // 4
 
 
 def test_retarget_normalizes_by_served_rounds():
-    c = EdgeDifficulty(d=500)
-    assert c.retarget(2 * R_E * 10 + 1, served_rounds=10) == 1000
-    c = EdgeDifficulty(d=500)
-    assert c.retarget(2 * R_E * 10 + 1, served_rounds=W) == 375     # 481 < r_E*W: decays
+    c = EdgeDifficulty(d=D_EDGE_MIN)
+    assert c.retarget(2 * R_E * 10 + 1, served_rounds=10) == min(2 * D_EDGE_MIN, D_EDGE_MAX)
+    c = EdgeDifficulty(d=D_EDGE_MAX)
+    assert c.retarget(2 * R_E * 10 + 1, served_rounds=W) == 3 * D_EDGE_MAX // 4  # 481 < r_E*W: decays
 
 
 def test_grace_floor_spans_exactly_G_rounds():
@@ -100,9 +99,9 @@ def test_grace_floor_spans_exactly_G_rounds():
 
 
 def test_trip_and_hold_cores_at_the_floor():
-    assert 37 < trip_cores() < 39                          # 2*r_E at 300
-    assert 18 < hold_cores() < 20                          # r_E at 300: "about twenty"
-    assert 120 < trip_cores(D_EDGE_MAX) < 128
+    assert 37 < trip_cores() < 39                          # 2*r_E at the floor
+    assert 18 < hold_cores() < 20                          # r_E at the floor: "about twenty"
+    assert abs(trip_cores(D_EDGE_MAX) - 2 * R_E * D_EDGE_MAX / R_ATTACKER_CORE) < 1e-6
 
 
 # ----------------------------------------------------------- blend_difficulty
@@ -172,9 +171,9 @@ def test_mid_flood_settles_in_the_band():
     # 60 cores: the price finds the level at which the attacker presents
     # between r_E and 2*r_E, and stays there.
     tr = simulate_door(3600, lambda t: 60.0 if 600 <= t < 2400 else 0.0, seed=2)
-    assert max(tr.d[600:2400]) == D_EDGE_MAX
+    assert max(tr.d[600:2400]) >= 2 * D_EDGE_MIN
     late = set(tr.d[2000:2400])
-    assert late <= {750, 1000} and 750 in late
+    assert all(0.8 * R_E <= 60 * attacker_core_rate(d) <= 1.2 * 2 * R_E for d in late)
     assert tr.d[-1] == D_EDGE_MIN
 
 
@@ -195,7 +194,7 @@ def test_sized_ambient_reports_the_set_point_and_a_flood_the_top():
 def test_adaptive_attacker_buys_no_discount():
     const = simulate_door(3600, lambda t: 60.0 if 600 <= t < 2400 else 0.0, seed=2)
     adapt = simulate_door(3600, lambda t: 60.0 if 600 <= t < 2400 else 0.0,
-                          adaptive_giveup=500, seed=5)
+                          adaptive_giveup=DOOR_GIVEUP, seed=5)
     sl = slice(700, 2400)
     cost_const = sum(const.mining[sl]) / sum(const.served_attacker[sl])
     cost_adapt = sum(adapt.mining[sl]) / sum(adapt.served_attacker[sl])

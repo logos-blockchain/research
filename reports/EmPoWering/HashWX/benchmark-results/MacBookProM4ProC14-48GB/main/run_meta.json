@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-11-06T22:13:19+00:00",
+  "config": "configs/hashwx.toml",
+  "cpu": "Apple M4 Pro",
+  "nproc": 14,
+  "devices": [
+    "apple-m4-pro-27-2-0"
+  ],
+  "device_records": {
+    "apple-m4-pro-27-2-0": {
+      "type": "cpu",
+      "name": "Apple M4 Pro",
+      "arch": "aarch64"
+    }
+  }
+}

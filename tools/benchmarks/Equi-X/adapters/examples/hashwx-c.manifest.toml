@@ -1,0 +1,8 @@
+# Adapter manifest for the reference C implementation of HashWX (tevador/hashwx).
+# Built by scripts/setup_hashwx.sh. See the header of runners/hashwx-c/hashwx_runner.c
+# for how the protocol's operations map onto HashWX.
+name = "hashwx-c"
+exec = "build/runners/hashwx-c/hashwx_runner"
+protocol_version = 1
+capabilities = ["solve", "verify", "effort", "hashx_compile"]
+runtimes = ["interpret", "try-compile", "must-compile"]

@@ -1,0 +1,65 @@
+# HashWX sweep, run with: make hashwx
+#
+# "solve" here is one function's work, one make and 463 hashes, so
+# hashes/s = 463 * solves/s. The hashes_per_sec column assumes Equi-X and does not
+# apply. "effort" is the expected number of hashes per nonce, so these targets are
+# about 1,000 times the Equi-X efforts. Takes about 3 minutes on an Apple M4 Pro.
+[run]
+warmup = 8
+repetitions = 200
+impls = ["hashwx-c"]
+
+[[jobs]]
+operation = "solve"
+runtimes = ["interpret", "try-compile", "must-compile"]
+challenges = ["deadbeef", "0000000000000002", "cafe"]
+vary_challenge = true
+
+# Each rep checks one ticket of a fresh function. This is what the Equi-X findings
+# call a cold verification.
+[[jobs]]
+operation = "verify"
+runtimes = ["interpret", "try-compile", "must-compile"]
+challenges = ["deadbeef", "0000000000000002", "cafe"]
+vary_challenge = true
+repetitions = 5000
+
+[[jobs]]
+operation = "hashx_compile"
+runtimes = ["interpret", "must-compile"]
+challenges = ["deadbeef", "0102030405060708"]
+repetitions = 2000
+
+[[jobs]]
+operation = "effort"
+runtimes = ["try-compile"]
+bases = ["abcd"]
+targets = [100000, 1000000]
+nonce_bytes = 8
+nonce_start = 0
+max_attempts = 200000000
+repetitions = 3
+
+[crosscheck]
+enabled = false
+
+[concurrency]
+enabled = true
+operations = ["solve", "verify"]
+challenge = "deadbeef"
+reps = 200
+warmup = 5
+max_workers = 0
+levels = []
+
+[mining]
+enabled = true
+impls = ["hashwx-c"]
+challenge_base = "abcd"
+efforts = [30000, 100000, 300000, 1000000]
+samples = 30
+workers = 0
+tokens_per_worker = 5
+nonce_bytes = 8
+max_attempts = 20000000
+stride = 1000000000

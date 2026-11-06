@@ -11,6 +11,10 @@ and measures **execution time and cost** (solve/verify throughput, peak memory,
 JIT-compile overhead, and difficulty/effort cost). It is extensible to any other
 implementation via a small language-agnostic plugin protocol.
 
+The same harness also measures **HashWX**, Equi-X's successor, through its own runner
+(`runners/hashwx-c`) with `make hashwx`. See
+[`reports/EmPoWering/HashWX/findings.md`](../../../reports/EmPoWering/HashWX/findings.md).
+
 ## What it measures
 
 - **Solve & verify time + throughput** — the asymmetric core of the PoW.

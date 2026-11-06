@@ -8,6 +8,7 @@
 #   make compiler-flags   build the gcc/clang -O matrix and compare (depends: setup)
 #   make mining           standalone mining sweep, idle-gated       (depends: setup)
 #   make control          difficulty-controller simulation demo
+#   make hashwx           HashWX sweep through its own runner (needs a compiler, cmake, python3)
 #   make combine          merge per-device runs under ROOT into one faceted report
 #   make everything       full pipeline via scripts/run_all.sh --full
 #   make clean            remove C build trees + generated variant manifests
@@ -26,7 +27,7 @@ PY      := $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 export PYTHONPATH := $(CURDIR)/harness$(if $(PYTHONPATH),:$(PYTHONPATH),)
 
 .PHONY: all help setup check test benchmark benchmark-full compiler-flags \
-        mining control combine everything clean distclean
+        mining control hashwx combine everything clean distclean
 
 all: benchmark
 
@@ -65,6 +66,10 @@ mining: setup
 
 control:
 	$(PY) -m equix_bench.difficulty_control --out $(OUT)/control
+
+hashwx:
+	./scripts/setup_hashwx.sh
+	$(PY) -m equix_bench run --config configs/hashwx.toml --out $(OUT)/hashwx
 
 # Merge every run found under ROOT (each device's results, in any layout) into
 # one faceted, per-device report. ROOT defaults to OUT; OUT names the report dir.

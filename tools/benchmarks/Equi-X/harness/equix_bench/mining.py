@@ -231,9 +231,12 @@ def run_mining(cfg: dict[str, Any], adapters: dict[str, Adapter], repo_root: Pat
     cfg keys (optional): impls ([] = all given), challenge_base ("abcd"),
     efforts ([100,300,1000,3000,10000]), samples (12, 1-core mints per effort),
     workers (0 = cpu count), tokens_per_worker (6, streamed per concurrent
-    worker), nonce_bytes (8), max_attempts (1_500_000)."""
+    worker), nonce_bytes (8), max_attempts (1_500_000), stride (STRIDE, the nonce
+    range reserved per search, which an implementation with cheap attempts must raise)."""
     import os
 
+    global STRIDE
+    STRIDE = int(cfg.get("stride", STRIDE))
     base = str(cfg.get("challenge_base", "abcd"))
     efforts = [int(e) for e in cfg.get("efforts", [100, 300, 1000, 3000, 10000])]
     samples = int(cfg.get("samples", 12))

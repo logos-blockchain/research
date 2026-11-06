@@ -1,0 +1,11 @@
+device,impl,operation,workers,ok_workers,per_worker_median_s,aggregate_ops_per_sec,per_worker_ops_per_sec,scaling_efficiency,total_peak_rss_kb
+apple-m4-pro-27-2-0,hashwx-c,solve,1,1,0.000950187,1052.424,1052.424,1.0000,1872
+apple-m4-pro-27-2-0,hashwx-c,solve,2,2,0.000944073,2118.482,1059.241,1.0065,3728
+apple-m4-pro-27-2-0,hashwx-c,solve,4,4,0.000949386,4240.500,1060.125,1.0073,7472
+apple-m4-pro-27-2-0,hashwx-c,solve,8,8,0.000982802,8150.095,1018.762,0.9680,14992
+apple-m4-pro-27-2-0,hashwx-c,solve,14,14,0.000964198,14526.436,1037.603,0.9859,26176
+apple-m4-pro-27-2-0,hashwx-c,verify,1,1,0.000010500,95238.095,95238.095,1.0000,4080
+apple-m4-pro-27-2-0,hashwx-c,verify,2,2,0.000010541,189735.319,94867.660,0.9961,8160
+apple-m4-pro-27-2-0,hashwx-c,verify,4,4,0.000011208,360027.439,90006.860,0.9451,16352
+apple-m4-pro-27-2-0,hashwx-c,verify,8,8,0.000010896,733233.661,91654.208,0.9624,32704
+apple-m4-pro-27-2-0,hashwx-c,verify,14,14,0.000010542,1330713.073,95050.934,0.9980,57152

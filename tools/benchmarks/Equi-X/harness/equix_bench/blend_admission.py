@@ -2,7 +2,7 @@
 
 Simulates the exact rules of `blend-protocol.md` 1.7.0 (logos-lips branch
 `docs/blend-load-driven-admission`, on the per-connection shares of #421)
-against the measured Equi-X curves:
+with the door priced in HashWX, where a nonce costs d hashes in expectation:
 
   * quantize_report  — the Load rule: novel arrivals against a core connection's
     share r_1, sixteen levels, rounded to nearest; exact integers.
@@ -29,29 +29,29 @@ Run:  python -m equix_bench.blend_admission --out results/blend-admission
 from __future__ import annotations
 
 import math
+import os
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .difficulty_control import mint_rate_per_machine
-
 # ----------------------------------------------------------------- calibration
-# Pooled measured mint rates (results */main/mining.csv, tokens_per_sec_machine).
-# Pi 5: the target machine, whole machine (4 workers) — RPi5-16GB, the slower of
-# the two measured boards; RPi5-8GB agrees within 0.5% on every point. 285HX:
-# the fastest measured solver, per core (machine / 24 workers) — the marginal
-# attacker.
-PI5_MINT: list[tuple[int, float]] = [(100, 4.4530), (300, 1.3950), (1000, 0.4243), (3000, 0.1715)]
-ATTACKER_CORE_MINT: list[tuple[int, float]] = [(100, 3.5514), (300, 1.2694), (1000, 0.3868), (3000, 0.1114)]
+# HashWX rates in hashes per second. These are ESTIMATES until the Pi 5 and the
+# 285HX are measured with `make hashwx`, and each can be set from the environment.
+# The Pi 5 machine rate is the M4 Pro's measured 487,000 hashes/s per core, scaled
+# by Equi-X's per-core M4-to-Pi ratios of 2.3 (verify) and 4.6 (solve), which gives
+# 4.3 to 8.5e5 for four cores. The attacker core is the M4 Pro's whole-machine rate
+# per core, as the Equi-X study took the 285HX's; the two were within 10% on Equi-X.
+R_PI5_MACHINE = float(os.environ.get("HASHWX_R_PI5_MACHINE", 6.0e5))
+R_ATTACKER_CORE = float(os.environ.get("HASHWX_R_ATTACKER_CORE", 4.0e5))
 
 # Public header verification rate, one Pi 5 core: 6.388 ms median, 3.99x to
 # four threads. Primary record: reports/blend/header-verification/
 # console-RPi5.txt, measured at logos-blockchain 87138d2 (three-branch
 # circuit), performance governor.
 V_HEADER = 157.0
-# Equi-X verify, cold challenge, Pi 5, C implementation (findings.md section 3;
-# results.csv medians 54.9-55.2 us across both Pi boards).
-T_TOKEN_VERIFY = 54.7e-6
+# One check of a nonce on a Pi 5, an ESTIMATE: the M4 Pro's 17.5 us interpreted,
+# scaled by the upper ratio of 4.6. Interpreted is the slower of the two modes.
+T_TOKEN_VERIFY = float(os.environ.get("HASHWX_T_VERIFY", 80e-6))
 
 # ------------------------------------------------- spec constants (1.7.0)
 ROUND = 1.0          # seconds per round
@@ -76,8 +76,12 @@ F_W_SIZED = PHI_W * F_T                                            # 1.083
 F_TX = (1 - PHI_W) * F_T                                           # the rest of F_T: 3.25
 L_STAR = min(15, int(math.floor((16 * F_1 + R_1) / (2 * R_1))))    # the load set point: level of F_1 = 6
 L_MIN = math.ceil(L_STAR * PHI_W)                                  # the loosening floor: 2
-D_EDGE_MIN = 300
-D_EDGE_MAX = 1000
+# The Equi-X study's time budgets, held: 0.79 s a nonce on a fastest core at the
+# floor, and 2.36 s a nonce on a whole Pi 5 at the ceiling.
+D_EDGE_MIN = int(0.79 * R_ATTACKER_CORE)
+D_EDGE_MAX = int(2.36 * R_PI5_MACHINE)
+assert D_EDGE_MIN < D_EDGE_MAX
+DOOR_GIVEUP = D_EDGE_MIN * 5 // 3    # the adaptive attacker of study 1b mines only below this
 T_R = 600            # challenge rotation, rounds
 G = 60               # price grace window, rounds
 
@@ -87,13 +91,13 @@ BLEND_DIFFICULTY_BASE = P // 2**19
 
 
 def pi5_rate(d: float) -> float:
-    """Tokens/s a whole Pi 5 mints at effort d (pooled, measured)."""
-    return mint_rate_per_machine(d, PI5_MINT)
+    """Nonces per second a whole Pi 5 finds at price d."""
+    return R_PI5_MACHINE / d
 
 
 def attacker_core_rate(d: float) -> float:
-    """Tokens/s one fastest-measured core mints at effort d."""
-    return mint_rate_per_machine(d, ATTACKER_CORE_MINT)
+    """Nonces per second one fastest core finds at price d."""
+    return R_ATTACKER_CORE / d
 
 
 # --------------------------------------------------------------------- the load
@@ -596,18 +600,18 @@ def main(argv=None) -> int:
         f"flooded door reports the top level.",
     ]
 
-    # Study 1b: adaptive attackers, give-up at 500.
+    # Study 1b: adaptive attackers, giving up at DOOR_GIVEUP.
     adaptive = simulate_door(args.rounds, lambda t: 60.0 if 600 <= t < 2400 else 0.0,
-                             adaptive_giveup=500, seed=5)
+                             adaptive_giveup=DOOR_GIVEUP, seed=5)
     _plot_door(adaptive, out / "door_adaptive.png",
-               "Door vs an adaptive attacker (60 cores, mines only while d < 500)")
+               f"Door vs an adaptive attacker (60 cores, mines only while d < {DOOR_GIVEUP})")
     core_s = sum(adaptive.mining[attack]); core_s_const = sum(mid.mining[attack])
     acc_a2 = sum(adaptive.served_attacker[attack]); acc_h2 = sum(adaptive.served_honest[attack])
     prices = sorted(set(adaptive.d[attack]))
     sa, na = simulate_stranded(adaptive, lambda d: pi5_rate(d) / 4.0, seed=2)
     lines += [
-        "## 1b. Adaptive attackers (give-up 500)",
-        f"- 60 cores mining only below 500: a sawtooth over {prices[0]}–{prices[-1]} "
+        f"## 1b. Adaptive attackers (give-up {DOOR_GIVEUP})",
+        f"- 60 cores mining only below {DOOR_GIVEUP}: a sawtooth over {prices[0]}–{prices[-1]} "
         f"({len(prices)} distinct prices; ×2 from wherever the decay re-admits the attacker, "
         f"×3/4 steps down while it waits). Mining duty {core_s / core_s_const * 100:.0f}%, "
         f"{acc_a2 / max(1, acc_a2 + acc_h2) * 100:.0f}% of served edge connections.",
