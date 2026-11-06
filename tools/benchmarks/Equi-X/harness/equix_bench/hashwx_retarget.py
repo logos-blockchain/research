@@ -22,13 +22,13 @@ R_PI5_MACHINE = float(os.environ.get("HASHWX_R_PI5_MACHINE", 6.0e5))
 
 # Seconds of a whole Pi 5 per claim at the easiest target: the time the `zkhash`
 # caps give at 41,391 claim tickets a second.
-SECONDS_AT_CAP_515 = 1_621           # p // 2**26
-SECONDS_AT_CAP_521_AFTER = 9_728     # p // (3 * 2**27)
-SECONDS_AT_CAP_521_BOOTSTRAP = 259_114   # p // 10_725_000_000
+SECONDS_AT_CAP_515 = 1_620           # about p // 2**26
+SECONDS_AT_CAP_521_AFTER = 9_720     # about p // (3 * 2**27)
+SECONDS_AT_CAP_521_BOOTSTRAP = 77_760    # about p // (3 * 2**30)
 
 LEPTA = 10**9
 POOL_SEED = 200_000_000 * LEPTA      # 2/100 of S_cap
-BOOTSTRAP_REWARD = 334 * LEPTA
+BOOTSTRAP_REWARD = 100 * LEPTA
 BOOTSTRAP_EPOCHS = 98
 BLOCKS_PER_EPOCH = 21_600
 
@@ -79,9 +79,9 @@ def rules(r_board: float = R_PI5_MACHINE) -> list[Rule]:
     return [
         Rule("#515, 10 claims a block", 9, 10, 10, 1, cap(SECONDS_AT_CAP_515)),
         Rule("#521 bootstrap", 999, 1000, POOL_SEED,
-             BOOTSTRAP_REWARD * BOOTSTRAP_EPOCHS * BLOCKS_PER_EPOCH, cap(SECONDS_AT_CAP_521_BOOTSTRAP)),
+             BOOTSTRAP_REWARD * (BOOTSTRAP_EPOCHS + 1) * BLOCKS_PER_EPOCH, cap(SECONDS_AT_CAP_521_BOOTSTRAP)),
         Rule("#521 after, 1M LOGOS in the pool", 999, 1000, pool_after,
-             reward_after * BOOTSTRAP_EPOCHS * BLOCKS_PER_EPOCH, cap(SECONDS_AT_CAP_521_AFTER)),
+             reward_after * (BOOTSTRAP_EPOCHS + 1) * BLOCKS_PER_EPOCH, cap(SECONDS_AT_CAP_521_AFTER)),
     ]
 
 

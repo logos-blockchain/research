@@ -76,10 +76,11 @@ F_W_SIZED = PHI_W * F_T                                            # 1.083
 F_TX = (1 - PHI_W) * F_T                                           # the rest of F_T: 3.25
 L_STAR = min(15, int(math.floor((16 * F_1 + R_1) / (2 * R_1))))    # the load set point: level of F_1 = 6
 L_MIN = math.ceil(L_STAR * PHI_W)                                  # the loosening floor: 2
-# The Equi-X study's time budgets, held: 0.79 s a nonce on a fastest core at the
-# floor, and 2.36 s a nonce on a whole Pi 5 at the ceiling.
-D_EDGE_MIN = int(0.79 * R_ATTACKER_CORE)
-D_EDGE_MAX = int(2.36 * R_PI5_MACHINE)
+T_M = BETA_MAX * (DELTA_MAX + ETA)   # message traversal time, rounds: 15
+# As blend-protocol.md derives them: twenty fastest cores fill the edge share at the
+# floor, and three solves on a whole Pi 5 take half of T_M on average at the ceiling.
+D_EDGE_MIN = int(20 * R_ATTACKER_CORE) // R_E
+D_EDGE_MAX = int(T_M * R_PI5_MACHINE) // 6
 assert D_EDGE_MIN < D_EDGE_MAX
 DOOR_GIVEUP = D_EDGE_MIN * 5 // 3    # the adaptive attacker of study 1b mines only below this
 T_R = 600            # challenge rotation, rounds

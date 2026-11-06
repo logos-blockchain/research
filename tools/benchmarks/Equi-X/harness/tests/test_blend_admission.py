@@ -99,8 +99,8 @@ def test_grace_floor_spans_exactly_G_rounds():
 
 
 def test_trip_and_hold_cores_at_the_floor():
-    assert 37 < trip_cores() < 39                          # 2*r_E at the floor
-    assert 18 < hold_cores() < 20                          # r_E at the floor: "about twenty"
+    assert 39 < trip_cores() < 41                          # 2*r_E at the floor
+    assert 19 < hold_cores() < 21                          # r_E at the floor: twenty
     assert abs(trip_cores(D_EDGE_MAX) - 2 * R_E * D_EDGE_MAX / R_ATTACKER_CORE) < 1e-6
 
 
@@ -212,7 +212,7 @@ def test_attacker_offers_track_its_hashpower():
 
 def test_stranded_rate_is_small_at_the_chosen_grace():
     assert stranded_probability(1 / pi5_rate(D_EDGE_MAX)) < 1e-9  # 4 cores
-    assert stranded_probability(4 / pi5_rate(D_EDGE_MAX)) < 0.002 # 1 core
+    assert stranded_probability(4 / pi5_rate(D_EDGE_MAX)) < 0.003 # 1 core
     tr = simulate_door(3600, lambda t: 200.0 if 600 <= t < 2400 else 0.0, seed=0)
     s, n = simulate_stranded(tr, lambda d: pi5_rate(d) / 4.0, seed=2)
     assert n > 0 and s / n < 0.02

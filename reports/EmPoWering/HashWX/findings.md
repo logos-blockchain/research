@@ -54,24 +54,24 @@ These come from the M4 Pro and Equi-X's per-core ratios between the two machines
 
 ## 4. The door, priced in HashWX
 
-`equix_bench.blend_admission` runs the door's exact rules. It now prices a nonce at `d` hashes, with the Equi-X study's time budgets held: 0.79 s on a fastest core at the floor, and 2.36 s on a whole Pi 5 at the ceiling. A check costs 80 µs, the upper estimate. The fastest core is taken at 4·10⁵ hashes/s from the M4 Pro. Results are given at both ends of the Pi 5 estimate. Studies 3 and 5 read the load, not the door, and are not repeated. The Equi-X column is from [the earlier study](../blend-admission/simulation.md).
+`equix_bench.blend_admission` runs the door's exact rules. It now prices a nonce at `d` hashes. The bounds derive as the specification states them: twenty fastest cores fill the edge share at the floor, `d_edge^Min = 20 * R_F // r_E`, and three solves on a whole Pi 5 take half of the message traversal time on average at the ceiling, `d_edge^Max = T_M * R_M // 6`. A check costs 80 µs, the upper estimate. The fastest core is taken at 4·10⁵ hashes/s from the M4 Pro. Results are given at both ends of the Pi 5 estimate. Studies 3 and 5 read the load, not the door, and are not repeated. The Equi-X column is from [the earlier study](../blend-admission/simulation.md).
 
 | Result | Equi-X | HashWX, Pi 5 at 4.3·10⁵ | HashWX, Pi 5 at 8.5·10⁵ |
 | --- | --- | --- | --- |
-| `d_edge^Min`, `d_edge^Max` | 300, 1,000 | 316,000, 1,005,360 | 316,000, 1,998,920 |
-| Cores to fill the share, to trip a raise, to hold the ceiling | 19, 38, 124 | 19, 38, 121 | 19, 38, 240 |
+| `d_edge^Min`, `d_edge^Max` | 300, 1,000 | 333,333, 1,065,000 | 333,333, 2,117,500 |
+| Cores to fill the share, to trip a raise, to hold the ceiling | 19, 38, 124 | 20, 40, 128 | 20, 40, 254 |
 | 200-core flood: rounds to the ceiling, rounds home | 60, 150 | 60, 150 | 90, 210 |
 | 200-core flood: peak CPU of one Pi 5 core | 33% | 34% | 35% |
-| 60-core flood: share the attacker holds, honest offers refused | 93%, 19% | 94%, 27% | 93%, 20% |
-| Adaptive attacker: core-seconds per message, against a constant flood | 2.6, 2.8 | 2.6, 2.7 | 2.6, 2.7 |
+| 60-core flood: share the attacker holds, honest offers refused | 93%, 19% | 93%, 25% | 93%, 18% |
+| Adaptive attacker: core-seconds per message, against a constant flood | 2.6, 2.8 | 2.6, 2.7 | 2.6, 2.8 |
 | Solvers stranded through the floods | 0 | 0 | 0 |
-| One core at the ceiling, worst case stranded | 0.17% | 0.17% | 0.17% |
-| Pre-mining duty at the ceiling | 1.18% | 1.18% | 1.18% |
-| Three solves at slot time miss 15 s, at the ceiling | 4.8% | 4.8% | 4.8% |
+| One core at the ceiling, worst case stranded | 0.17% | 0.25% | 0.25% |
+| Pre-mining duty at the ceiling | 1.18% | 1.25% | 1.25% |
+| Three solves at slot time miss 15 s, at the ceiling | 4.8% | 6.2% | 6.2% |
 
-The door behaves as it did. Its behaviour is set by the time budgets, and those are held by construction, so the rates only move its range. `G = 60` still clears its constraint: the p95 solve at the ceiling on one core is 28 s.
+The door behaves as it did. Its time budgets set its behaviour, and the rates only move its range. `G = 60` still clears its constraint: the 95th percentile of a solve at the ceiling on one core is 30 s.
 
-With the author's GPU figure, a floor-price share takes about 1.4 such GPUs per node and a raise about 2.7.
+With the author's GPU figure, a floor-price share takes about 1.4 such GPUs per node and a raise about 2.9.
 
 To rerun:
 
@@ -82,18 +82,18 @@ HASHWX_R_PI5_MACHINE=<measured> HASHWX_R_ATTACKER_CORE=<measured> HASHWX_T_VERIF
 
 ## 5. The reward retarget, in target form
 
-`equix_bench.hashwx_retarget` runs the retarget of `proof-of-work.md`, with `ticket < T` and `T` a 64-bit integer, at three settings. The caps hold the time on a whole Pi 5 that the `zkhash` caps give. Results are at a Pi 5 of 4.3·10⁵ hashes/s.
+`equix_bench.hashwx_retarget` runs the retarget of `proof-of-work.md`, with `ticket < T` and `T` a 64-bit integer, at three settings. The caps keep the time on a whole Pi 5 that the `zkhash` caps give. Results are at a Pi 5 of 4.3·10⁵ hashes/s.
 
 | Setting | Target rate, claims a block | Cap | Widest value | Steady rate | Tenfold jump settles in |
 | --- | --- | --- | --- | --- | --- |
 | Smoothing 9/10, 10 claims a block | 10 | 2^34.6 | 42 bits | 10.58 | 96 blocks |
-| Bootstrap, smoothing 999/1000 | 0.2829 | 2^27.3 | 95 bits | 0.2835 | 1,440 blocks |
-| After the bootstrap, 1M LOGOS in the pool | 0.6543 | 2^32.1 | 92 bits | 0.6552 | 1,868 blocks |
+| Bootstrap, reward 100 LOGOS, smoothing 999/1000 | 0.9353 | 2^29.1 | 97 bits | 0.936 | 1,675 blocks |
+| After the bootstrap, 1M LOGOS in the pool | 0.6477 | 2^32.1 | 92 bits | 0.6488 | 1,880 blocks |
 
 - An effort form, as the Equi-X RFC used, behaves the same within noise and reaches 133 bits or more at its hardest end during the bootstrap.
-- The product fits 128 bits while the cap stays below 2⁵⁴, because the pool can be 64 bits and `P` is about 2¹⁰.
+- The product fits 128 bits while the caps stay below 2⁵⁴, because the pool can be 64 bits and `P` is about 2¹⁰.
 - The floor derivation holds. A block without claims leaves 8 at 8 and raises 9 to 10 at smoothing 9/10, and leaves 998 at 998 and raises 999 to 1000 at 999/1000.
-- The steady error in the claim rate from integer rounding is about 500/T at smoothing 999/1000. It is 0.07% at the 409,000 boards of the largest case in RFC-521, and stays below 1% until about 4.4 million boards.
+- The steady error in the claim rate from integer rounding is about 500/T at smoothing 999/1000. That is 0.1% at T = 500,000, about 1.9 million boards at the bootstrap's rate, and 1% at T = 50,000, about 19 million boards.
 - At smoothing 9/10 the retarget settles 6% above its target rate in either form. This comes from the update rule with exponential block gaps, not from the puzzle.
 
 ## 6. Implementing it from the specification
