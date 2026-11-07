@@ -6,7 +6,8 @@ changes no specification.
 
 Branch `fast-finalization-slots`, from `fast-finalization` at `bd90263`, reads the study again
 with `k` counted in slots (Phase K), sizes certificates signed by Blend's declared nodes
-(Phase L), and sets the other signer sets beside them (Phase M). Branch `fast-finalization`, based on `origin/master` at
+(Phase L), sets the other signer sets beside them (Phase M), and counts the stake in anonymous
+units (Phase N). Branch `fast-finalization`, based on `origin/master` at
 `272fd9a`, counts it in blocks. The TSI per-node engine
 (`../tsi/tsi-sim-pernode`) is consumed as a library for fork structure, delay and attacks.
 Specifications are read at `logos-lips` `47a73cdc`. The node is read at `logos-blockchain`
@@ -24,7 +25,7 @@ and the order of work. The finished story is `../../../reports/finality/`.*
 | §1 | a first look: where the time goes, what `k` buys, what each lever is worth (numbers from `firstlook.py`) |
 | §2 | the levers, each with a hypothesis that can fail |
 | §3 | the owner's decisions on the questions that shape the study |
-| §4 | the work plan, phases A–M |
+| §4 | the work plan, phases A–N |
 | §5 | the measurement protocol |
 | §6 | what depends on `k` today, in the specifications and in the node |
 | §7 | literature to reproduce before it is relied on |
@@ -87,6 +88,7 @@ Phase by phase:
 | J a fork choice that tolerates delay | J.0–J.3 done (`DAG.md`), and the phase stops at J.2 on its stop condition. J.0: the readings without the owner's answer are E1's, with `k` in slots. J.1: one weight per win under the win tag `ρ_LEAD`; a nonce contribution every node derives from the parent's contribution, at no cost to the proof (3.5–5.9 % if proved); ties broken by each side's first block. J.2: with one move per win the strongest attack within `Δ` against a third needs 2.8 hours at 1 s and 5.0 at 10 s, against the chain's 3.5 and 6.8; but a tag found on both sides weighs on neither, so a coalition retracts a placed win with a second copy on the other side and one win moves the balance twice, and no rule every node applies alike blocks it; the balancing edges then fall below a third at every delay, 0.318 / 0.326 at 1 s and 0.235 / 0.279 at 10 s with ties steered / fixed, so no attack depth exists against a third and no variant beats the chain. J.3, computed anyway: neither Kiffer, Rajaraman and shelat nor Gaži, Motaqy and Russell gives an error against depth; the opportunity bound is finite only up to 0.223 at 10 s and needs 14.2 hours against 25 % at 1 s, where the chain's bound needs 3.3. J.4–J.6 not run, moot against a third. J.7 is this verdict: a fork choice that weighs every honest block gives no smaller `k` |
 | L certificates from the network | done, on the branch `fast-finalization-slots` (`NETWORK.md`). L.0: SDP's declarations, Mantle's service notes, the minimum-stake analysis and Casper FFG pinned; the gadget on Cryptarchia's clock, and three compositions with the slot rule: certificates only, a fast path, both required. L.1: safety needs the coalition below a third of the declared weight, liveness `u(1 − a) ≥ 2/3`; under the study's convention the set holds every coalition below a third at full uptime; under SDP's economics the honest declared stake must exceed `2α/(3u − 2)` of the active stake whatever the minimum stake, so at today's minimum 500 declarations, 1.67 % of the active stake, hold a third of a network of 1,000, 30 % needs 60 % declared and online without a gap, and a third none. L.2: with rounds of 60 slots a block is final in 120 s on average and 147 s at the 95th percentile on the specification's Blend at a lag of 30; the lag must outlast Blend's delays, 60 slots at the heavy point (177 s), else justified checkpoints leave the longest chain. L.3: below a third of the declared weight one side at most certifies, in the closed form and in every engine run; at 0.34 an even split finalizes both; an eclipsed node finalizes nothing while the coalition holds less than two thirds. L.4: the lag sets which assumption carries safety; with FFG's fork choice two thirds of the declared weight, 6.67 % of the active stake today, finalize at any lag; a variant that votes only on its own chain is safe at the chain's settlement at the lag, 12.5 hours against a third, while every honest block reaches every honest node; an eclipse or a split still rests on the declared set unless a floor covers the lag; its liveness not derived. L.5: 6.0 % of one Pi 5 core at 20,000 declarations with ed25519-dalek; ML-DSA-44 certificates 36 times larger. L.6: pruning must keep the uncle window, slashing needs a Mantle operation, a released note frees its key one epoch after its node stops signing. Not recommended at today's minimum stake |
 | M certificates from other signers | done, on the branch `fast-finalization-slots` (`SIGNERS.md`). M.0: the sets read with the constraints each breaks; each block's one-time key `P_LEAD` already signs its header, so the chain's own leaders need no new key, and they are counted one weight a lottery win by its tag `ρ_LEAD`, since a winner may self-sign further headers for the same win; a vote takes its node's scheduled cover as a won slot does, and the votes beyond each node's cover fit only in Blend's headroom kept for a backlog, 4/3 messages a second, or in place of 30.8 % of its transaction messages, a budget of 1.33 to 2.27 votes a second by how evenly the stake is spread; CIP-0140 pinned. M.1: the leaders' committee is counted on the finalized chain, 1,030 wins against a quarter with every honest leader online where seats need 5,355, and 78,979 against 30 % with 95 % online; opt-in sets hold only above D1b's frontier; every leading note declared weighs the coalition at its stake share and holds 30 % from 95.24 % of the honest stake online if every honest holder can declare, a third never; delegated weight fails against 30 % once the coalition's operators hold 4.76 % of the honest stake at full uptime, what Cardano's 15 largest pools hold. M.2: with the quorum's votes sent at Blend's budget and compared under random delay, anonymous seats gain against 10 %, and against a quarter only with equal stakes; the counted leaders gain against 10 % and a quarter, and against 30 % only with every honest leader online, 2.09 to 2.92 hours where the chain waits 3.09, and take 24.06 to 40.90 hours with 95 % online; with the cover raised every set through Blend is slower than the chain; a target 30 slots back can be split under the worst case; public signers 120 s at any share. M.3: a 0.1 % holder is sized in 103 days at 4/3 votes a second whatever the coalition, against 2,179; the quota ceiling falls 41 to 69-fold; leaders tie 29 % to 43 % of wins to their nodes. M.4: 30 % of a Pi 5 core at 100,000 public signers; votes through Blend need a quota 20 to 34 times today's a win. M.5: Peras's three quarters stall from a quarter withheld; of the two quorums only two thirds can hold 30 %. Not recommended within C1–C5; every leading note declared is a candidate only if C1 and C3 are relaxed for every holder that stakes. M.7, 2026-11-06: with the active stake at most 30 % of the supply no figure moves, and a coalition of 30 % holds 9.0 % of the supply; stake outside the active stake joins the lottery without notice, so anonymous seats hold no coalition from 21.9 % once its stake joins, as after a deflation, and honest stake joining breaks those sized for 1.05 from 5.6 % to 6.5 % of the active stake; the slot rule's 18 hours hold a third while the true active stake stays within 1.925 times the inferred, 30 % within 2.627; every leading note declared costs only the holders that stake, at most 30,000 declarations at today's minimum stake, 9.05 % of a Pi 5 core |
+| N stake counted in anonymous units | planned, on the branch `fast-finalization-slots` (`UNITS.md`) |
 
 Before review, in this order:
 
@@ -594,6 +596,34 @@ Each hypothesis below can fail, and says what would fail it.
   coalition the committee is sized for. A holder's attributed votes then come about 20 times as
   often as its attributed blocks, so a holder of 0.1 % is sized to ±10 % within 120 days instead
   of 2,179. Fails if slower (Phase M, M.3).
+- **H34.** Counting the stake shrinks the committee. Drawn publicly without replacement from
+  30,000 registered units, a committee against 30 % at `1e-9` needs at most 6,000 units a round
+  with every honest unit online, where seats need 33,473, and 279,488 sized for the inference's
+  error. Every unit voting holds 30 % with 95 % of the honest units online, where M.1's count needs
+  78,979. Fails if more units are needed, or 95 % does not suffice (Phase N, N.1).
+- **H35.** A lottery that divides by the registered stake cannot be surged. The true over the
+  counted stake stays at most one, so the slot rule's 18 hours hold a third at 10 s whatever stake
+  joins, and still hold with 95 % of the honest registered stake online. Fails if either does not
+  hold (Phase N, N.2).
+- **H36.** Blend's flooding makes the cost of carrying votes grow with the network. With every
+  core node sending one vote message a round at 8 layers, rounds of 10 minutes take under a third
+  of one Pi 5 core's verifications at 1,000 core nodes, and more than one core at 20,000. Fails if
+  either does not hold (Phase N, N.3).
+- **H37.** Layers, not committees, keep the stake private. At 3 layers the votes of a committee
+  against 30 % in rounds of 10 minutes size a holder of 0.1 % within 30 days, against 2,179 from
+  its blocks alone. At 8 layers it takes at least 2,000 days. Fails if either does not hold
+  (Phase N, N.4).
+- **H38.** Votes must be unlinkable across rounds. With unit keys that sign every vote of an
+  epoch, a holder of 0.1 % is sized at 8 layers in less than 0.9 times the time unlinkable votes
+  take. Fails if not sooner (Phase N, N.4).
+- **H39.** Proofs fit a Pi 5. With one proof a unit, verifying a round's votes against 30 % in
+  rounds of 10 minutes takes under a tenth of one Pi 5 core at Blend's measured rate. Fails if more
+  (Phase N, N.5).
+- **H40.** With privacy kept, certificates beat the chain only on a small network. With a holder
+  of 0.1 % sized no sooner than 0.9 times its blocks alone take today, at 8 layers and a fifth of
+  one Pi 5 core, a counted committee finalizes a block against 30 % within 30 minutes on average at
+  1,000 core nodes, and no sooner than the chain's 3.09 hours under random delay at 20,000. Fails
+  if either does not hold (Phase N, N.6).
 
 ## 3. Questions for the owner
 
@@ -1446,6 +1476,118 @@ Steps:
 - **M.8 — The report.** `reports/finality/signers.md`, and the study's report.
 
 Exit: `SIGNERS.md` carries M.0–M.7, and H29–H33 get their verdicts.
+
+### Phase N — stake counted in anonymous units (`UNITS.md`)
+
+The owner's direction, 2026-11-06: "a possibility of having public stake value that is unlinked
+from the owner. Privacy is paramount!", sized as a phase on 2026-11-07. Within C1–C5, certificates
+meet two walls in Phases D and M. Nobody counts the stake a private lottery draws from, so its
+committees carry margins for the inference's error, and from a coalition of 21.9 % none exists
+once its stake joins (M.7). Every vote is an emission, which Blend's budget caps and its
+attribution turns into stake learned (M.2, M.3). This phase counts the stake in equal units that no
+holder can be linked to, and sizes the committees the count allows and the transport their votes
+need.
+
+Privacy comes first. Each design is read first by how soon it lets a holder's stake be known,
+against what the holder's blocks alone reveal today: 2,179 days to size a holder of 0.1 % to ±10 %
+(M.3). Its time to finality is read second, against Phase M's yardstick.
+
+The design (N.0 records it):
+
+- *A unit* is a fixed amount `μ` of stake, by default today's minimum stake, 0.001 % of the
+  supply. The active stake at 30 % of the supply then makes `U` = 30,000 units (M.7).
+- *Registration.* Once an epoch a holder registers each unit its notes hold. A registration carries
+  a fresh unit key and a zero-knowledge proof, built like the proof of leadership, that a note in
+  the epoch's snapshot holds at least `(j + 1)μ`. A tag derived from the note's secret, the epoch
+  and `j` stops a unit from being registered twice. The proof hides the note and `j`.
+- *The registry* is the epoch's unit keys. Every node counts them, so the registered stake `Uμ` is
+  public and exact, and no key names its holder. It closes before the randomness that draws its
+  committees is fixed; otherwise a coalition grinds its keys into one round.
+- *Committees* come from the registry each round in one of three ways. A public draw picks each key
+  by a function of the key and the round's randomness, so every node counts the drawn units. A
+  private draw lets each unit draw by its secret, as seats do. Or every unit votes.
+- *A vote* proves that its sender holds the secret of a drawn unit, without showing which unit. It
+  carries a tag derived from that secret and the round, so a second vote in a round shows. RLN's
+  secret share makes the second vote reveal the unit's secret (`rln-v1.md`).
+- *Optionally,* the leader lottery divides by the registered stake instead of the inferred.
+
+Blend relays every message to all core nodes at every layer, and every node verifies the proof of
+quota of each layer's message (`blend-protocol.md`, Relaying and Processing). A vote therefore
+costs `β_max` messages on every core connection, wherever its payload is finally delivered, and
+Blend's budget does not grow with the network. Delivering votes to a few collectors instead of
+broadcasting them saves only the final broadcast, which that budget does not count.
+
+The transports N.3 sizes:
+
+1. *Blend as specified.* One vote a message, at M's budget of 4/3 to 2.27 votes a second.
+2. *A vote schedule.* Every core node sends exactly one vote message a round, empty when none of
+   its units is drawn, carrying up to `k_max` of its drawn units' votes. The count of messages then
+   says nothing of stake up to `k_max`. The messages take `h` layers, and `r_1` is raised to fit.
+3. *Blend's read limit raised* towards `V`, for one vote a message at `h` layers.
+4. *Point-to-point forwarding*, as the libp2p mix forwards its packets hop by hop (`mix.md`),
+   carries a message `h` times in all rather than `h` times on every connection. Its exposure to an
+   observer of links lies outside Blend's analysis, and C4 binds (Q4), so it is described with its
+   load only.
+
+Steps:
+
+- **N.0 — The reading.** Quote at `logos-lips` `bd1ca2c8`: the proof of leadership's statement,
+  snapshot and tag; Mantle's notes and their public values; Blend's relaying, processing and
+  release, its delay a layer, its payload, `β_max`, `r_1` and `V`; RLN's secret share and slashing
+  (`rln-v1.md`); the stake units of the stake-weighted mix RLN
+  (`mix-dos-protection-rln-stake-weighted.md`); the libp2p mix's forwarding (`mix.md`); C1's and
+  C3's sentences. Record the design, and for each variant its eligibility, count, transport and the
+  constraints it keeps.
+- **N.1 — What a counted committee holds** (`units.py`). The coalition holds `αU` of the `U`
+  units. The public draw takes `n` units without replacement, so the coalition's drawn units are
+  hypergeometric, and the quorum is set from the drawn count. The private draw makes each unit a
+  seat with chance `p`: D0's rule on a binomial count whose mean every node knows, without D2's
+  margin. Every unit voting needs no draw, and holds while `u(1 − α) ≥ q > (1 + α)/2` for the
+  quorum share `q`. Read the fewest units a round at `1e-9` against 10 %, 25 %, 30 % and a third,
+  at uptimes 1, 0.95 and 0.9, with units of 0.0001 % to 0.01 % of the supply, beside D0's and D2's
+  seats and M.1's count. Read the honest stake left below whole units, at most a unit a note, and
+  the coalition's share of the units it leaves. Gates: the public draw against M.1's binomial count
+  as `U` grows; every unit voting against its closed form; each edge held below and lost above;
+  the rounding against a count over sampled notes. Each with a mutation.
+- **N.2 — The registry and the lottery** (`units.py`). Registrations an epoch, network-wide and for
+  a holder of each share, with their bytes. When the registry must close against the epoch's
+  nonce. The lottery divided by the registered stake: the true over the counted stake is the share
+  of the registered stake online, at most one, so M.7's rise cannot occur. Read K.7's wait at 10 s
+  against 30 % and a third with the honest registered stake online at 1, 0.95, 0.9 and 2/3, the
+  block rate, and how long registered stake that went offline slows the chain. Gates: K.7's bound
+  at separate honest and coalition rates against M.7's where both scale alike; the rate against
+  the lottery's chance. Each with a mutation.
+- **N.3 — Transport** (`unitnet.py`). For each transport, at 1,000 and 20,000 core nodes, `h` of 3,
+  5 and 8, and rounds of 60 s to 6 hours: the verifications a second each core node makes, against
+  `V = 156`, one core of a Raspberry Pi 5; the bytes it receives; the `r_1` it needs. Gates: the
+  load against `committee.blend_load` where they coincide; in a simulated round, the schedule's
+  count of messages a node is the same at every stake up to `k_max`. Each with a mutation.
+- **N.4 — Privacy.** D5's model, extended to a message that carries a node's drawn units: the
+  message is attributed with `f_adv^h`, and then reveals how many units it carries, a draw from the
+  node's units. Read the time to identify and to size holders of 1 %, 0.1 % and 0.01 % from their
+  blocks, registrations and votes, at each `h`, committee and round, as a multiple of today's.
+  Read unit keys that sign every vote of an epoch, which allow one aggregate signature a round,
+  against votes unlinkable across rounds: one attributed message then ties the node's units for
+  the epoch. Read the quota ceiling that `k_max` sets. Gates: the extended model against
+  `privacy.attribution_days` at one unit a message; the time to size against a simulation of the
+  observer's estimate. Each with a mutation.
+- **N.5 — Cost.** Proving a registration a unit an epoch and a vote message a round, from
+  `tools/benchmarks/pol-proving` and the specification's benchmark for the proof of leadership.
+  Verifying a round's votes, one proof a message or a unit, at the 157 message headers a second
+  that Blend measured on one Pi 5 core. The aggregate signature of linkable keys, described. The
+  bytes a round.
+- **N.6 — How fast.** M.2's mean time to finality, with the delivery through `h` layers at the
+  specification's delay, at the shortest rounds each transport admits within a fifth, a half and
+  all of one Pi 5 core. Read against the yardstick, beside N.4's multiple of today's privacy.
+- **N.7 — What else changes.** C3: every node can compute a public draw a round ahead, so a key
+  once tied to a node can be targeted, where the private draw names nobody. What a revealed unit
+  secret can punish: the unit for the epoch, and its note only if the registration carries the
+  note under a key that the secret opens. Bootstrapping the registry and the certificates. The
+  verdict on each variant.
+- **N.8 — The report.** `reports/finality/units.md`, the study's report, and a tab in the doc of
+  certificates from the network.
+
+Exit: `UNITS.md` carries N.0–N.7, and H34–H40 get their verdicts.
 
 ## 5. Measurement protocol
 
