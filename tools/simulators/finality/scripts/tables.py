@@ -1332,6 +1332,10 @@ if __name__ == "__main__":
         import tables_m
         getattr(tables_m, sys.argv[1])()
         raise SystemExit
+    if sys.argv[1].startswith("n"):
+        import tables_n
+        getattr(tables_n, sys.argv[1])()
+        raise SystemExit
     {"j1": j1, "j2": j2, "j3": j3, "j3bound": j3bound,"a1": a1, "c1": c1, "c1settle": c1settle, "c3": c3, "c4": c4, "b3": b3, "b3delay": b3delay, "b2": b2, "b4": b4, "b5": b5,
      "b5rec": b5rec, "b5sweep": b5sweep, "b5part": b5part, "b6": b6, "b7": b7, "d0": d0, "d1b": d1b, "d3": d3, "d5": d5, "d6": d6,
      "e2": e2, "e5": e5, "e5balance": e5balance, "g1": g1, "g3": g3, "g4": g4, "g6": g6,

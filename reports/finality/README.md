@@ -102,6 +102,7 @@ and 12.5 after a period of withholding has deflated the inferred stake ([§6](#s
 | certificates ([§8](#s8)) | anonymous-seat votes through Blend | no committee against a third; against 30 %, 33,473 seats while every honest vote counts | ×1,675 Blend cover at 10-minute rounds | not recommended |
 | certificates from the network ([§8](#s8)) | Casper FFG signed by the nodes SDP declares for Blend | 120 s on average, 147 s at the 95th percentile, with rounds of 60 slots and a lag of 30 on the specification's Blend; safe while the coalition holds less than a third of the declared weight | 6.0 % of a Pi 5 core at 20,000 declared nodes with 60-slot rounds | not recommended at today's minimum stake: 1.67 % of the active stake holds a third of a network of 1,000 declarations, and holding 30 % needs honest declarations that lock more than 60 % of the active stake at full uptime |
 | certificates from other signers ([§8](#s8)) | every leading note declared, weight delegated to operators, or the chain's own leaders signing with the one-time keys their headers carry | every leading note declared: 120 s on average, holding 30 % from 95.24 % of the honest stake online and a third never; the chain's own leaders through Blend, under random delay against 30 %: 2.09 to 3.55 h with every honest leader online, where the chain waits 3.09, and 24.06 to 40.90 h with 95 % online; none against a third | every leading note declared: the stake and node of every holder that stakes public; votes through Blend: 30.8 % of Blend's transaction messages and a quota ceiling 41 to 69 times lower | not recommended within C1–C5; every leading note declared is a candidate only if C1 and C3 are relaxed for every holder that stakes |
+| certificates from counted units ([§8](#s8)) | a registry of equal anonymous units, a public draw a round, and a vote schedule of one Blend message a core node a round at eight layers | against 30 % with every honest unit online: 18.7 min on average on 1,000 core nodes with votes adding a fifth of a Pi 5 core, keeping 0.94 of today's time to size a holder of 0.1 %; 3.61 h on 20,000; none against a third | Blend at eight layers, its node budget at 2.10 Pi 5 cores or more; C3's letter, a committee drawn by a private lottery | a candidate only if C3's letter yields and Blend's node class doubles; a lottery divided by the registered stake stands alone |
 | multi-proposer DAG ([§9](#s9)) | replaces the chain and its fork choice | random delay, at today's block rate, against a third: 106 minutes, the chain 160 by the same fit | as the chain at that rate | not recommended: a balancing attack that retracts its wins holds a third for ever at every delay, so no `K` exists |
 
 Two routes are recommended, and finality counted in slots is recommended at 18 hours under three
@@ -946,6 +947,26 @@ shorten finality ([`signers.md`](signers.md); `SIGNERS.md`).
   only while the true active stake stays within 1.925 times the inferred. Every leading note
   declared costs only the holders that stake, at most 30,000 declarations at today's minimum
   stake ([`signers.md`](signers.md) §9).
+
+**Stake counted in anonymous units.** The owner's direction: a public stake value unlinked from its
+owner, with privacy first ([`units.md`](units.md); `UNITS.md`).
+
+- **Only equal units hide their holders.** Each epoch a holder registers its units under fresh keys,
+  by a proof that hides the note, and every node counts them. Against 30 % with every honest unit
+  online a public draw from 30,000 units needs 5,602 a round, where anonymous seats need 33,473; with
+  95 % online every unit voting holds. Nothing holds a third.
+- **Blend floods every layer to every core node**, so a vote costs its layers on every connection,
+  wherever its payload is delivered. A vote schedule, one message a core node a round, keeps a
+  node's count of messages from showing its stake up to 3.62 % with one proof a message, 0.93 %
+  with a proof a unit; one vote a message lets counting size every holder above 0.0105 %.
+- **The layers decide privacy.** A holder of 0.1 % is sized within 16 days at three layers, and at
+  0.95 to 0.96 of today's 2,179 days at eight.
+- **At eight layers** the schedule finalizes against 30 % in 18.7 minutes on 1,000 core nodes with
+  votes adding a fifth of a Pi 5 core, at 0.94 of today's time to size a holder, with Blend's node
+  budget at 2.10 Pi 5 cores. On 20,000 core nodes it gains on the chain only with most of a core,
+  44.0 minutes with all of it. It gives up C3's letter, a committee drawn by a private lottery.
+- **A lottery that divides by the registered stake** cannot be surged, and moves the wait by less
+  than 2 % from 90 % online up.
 
 ---
 

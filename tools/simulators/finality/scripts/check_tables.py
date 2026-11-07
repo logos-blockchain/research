@@ -18,7 +18,10 @@ NAMES = ("a1", "a1release", "a1conv", "c1", "c1settle", "c3", "c4", "b3", "b3del
          "l1today", "l1frontier", "l1convention", "l2departs", "l2time", "l3partition", "l4hedge",
          "l5cost", "m1anon", "m1public", "m1delegation", "m2budget", "m2blend", "m2compare",
          "m3privacy", "m4cost", "m4blend", "m5quorum", "m7supply", "m7seats",
-         "m7wait", "m7edge", "m7declared")
+         "m7wait", "m7edge", "m7declared",
+         "n1committee", "n1units", "n1rounding", "n2registry", "n2lottery", "n3budget", "n3load",
+         "n3p2p", "n4privacy", "n4holders", "n4ceilings", "n5bytes", "n5verify", "n5prove",
+         "n6time", "n6layers", "n6online")
 
 
 def tables(text: str) -> list[str]:
