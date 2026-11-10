@@ -1,0 +1,41 @@
+./scripts/setup_hashwx.sh
+All tests were successful
+built build/runners/hashwx-c/hashwx_runner at v1.0.0
+python3 -m equix_bench run --config configs/hashwx.toml --out results/hashwx
+warning: adapter 'equix-c' runner not found; skipping
+warning: adapter 'equix-rust' runner not found; skipping
+Running 24 cells across 1 implementations...
+  [1/24] hashwx-c/solve/interpret {'challenge': 'deadbeef', 'varied': True}: median 9.059 ms
+  [2/24] hashwx-c/solve/interpret {'challenge': '0000000000000002', 'varied': True}: median 9.060 ms
+  [3/24] hashwx-c/solve/interpret {'challenge': 'cafe', 'varied': True}: median 9.062 ms
+  [4/24] hashwx-c/solve/try-compile {'challenge': 'deadbeef', 'varied': True}: median 1.899 ms
+  [5/24] hashwx-c/solve/try-compile {'challenge': '0000000000000002', 'varied': True}: median 1.895 ms
+  [6/24] hashwx-c/solve/try-compile {'challenge': 'cafe', 'varied': True}: median 1.896 ms
+  [7/24] hashwx-c/solve/must-compile {'challenge': 'deadbeef', 'varied': True}: median 1.895 ms
+  [8/24] hashwx-c/solve/must-compile {'challenge': '0000000000000002', 'varied': True}: median 1.898 ms
+  [9/24] hashwx-c/solve/must-compile {'challenge': 'cafe', 'varied': True}: median 1.899 ms
+  [10/24] hashwx-c/verify/interpret {'challenge': 'deadbeef', 'varied': True}: median 0.034 ms
+  [11/24] hashwx-c/verify/interpret {'challenge': '0000000000000002', 'varied': True}: median 0.034 ms
+  [12/24] hashwx-c/verify/interpret {'challenge': 'cafe', 'varied': True}: median 0.034 ms
+  [13/24] hashwx-c/verify/try-compile {'challenge': 'deadbeef', 'varied': True}: median 0.019 ms
+  [14/24] hashwx-c/verify/try-compile {'challenge': '0000000000000002', 'varied': True}: median 0.019 ms
+  [15/24] hashwx-c/verify/try-compile {'challenge': 'cafe', 'varied': True}: median 0.019 ms
+  [16/24] hashwx-c/verify/must-compile {'challenge': 'deadbeef', 'varied': True}: median 0.019 ms
+  [17/24] hashwx-c/verify/must-compile {'challenge': '0000000000000002', 'varied': True}: median 0.019 ms
+  [18/24] hashwx-c/verify/must-compile {'challenge': 'cafe', 'varied': True}: median 0.019 ms
+  [19/24] hashwx-c/hashx_compile/interpret {'challenge': 'deadbeef'}: median 0.029 ms
+  [20/24] hashwx-c/hashx_compile/interpret {'challenge': '0102030405060708'}: median 0.029 ms
+  [21/24] hashwx-c/hashx_compile/must-compile {'challenge': 'deadbeef'}: median 0.004 ms
+  [22/24] hashwx-c/hashx_compile/must-compile {'challenge': '0102030405060708'}: median 0.004 ms
+  [23/24] hashwx-c/effort/try-compile {'base': 'abcd', 'target_effort': 100000}: median 404.282 ms
+  [24/24] hashwx-c/effort/try-compile {'base': 'abcd', 'target_effort': 1000000}: median 7631.012 ms
+Running concurrency / saturation ladder...
+  concurrency hashwx-c/solve: peak 2,110 ops/s at 4 workers
+  concurrency hashwx-c/verify: peak 193,314 ops/s at 4 workers
+Running mining-rate / difficulty ladder...
+  mining hashwx-c E=30000: 10.10 tok/s/core, 48.31 tok/s machine (4 workers)
+  mining hashwx-c E=100000: 2.97 tok/s/core, 8.14 tok/s machine (4 workers)
+  mining hashwx-c E=300000: 0.81 tok/s/core, 2.71 tok/s machine (4 workers)
+  mining hashwx-c E=1000000: 0.30 tok/s/core, 0.71 tok/s machine (4 workers)
+
+Report written to results/hashwx/report.md (plots in results/hashwx/plots)

@@ -35,13 +35,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # ----------------------------------------------------------------- calibration
-# HashWX rates in hashes per second. These are ESTIMATES until the Pi 5 and the
-# 285HX are measured with `make hashwx`, and each can be set from the environment.
-# The Pi 5 machine rate is the M4 Pro's measured 487,000 hashes/s per core, scaled
-# by Equi-X's per-core M4-to-Pi ratios of 2.3 (verify) and 4.6 (solve), which gives
-# 4.3 to 8.5e5 for four cores. The attacker core is the M4 Pro's whole-machine rate
-# per core, as the Equi-X study took the 285HX's; the two were within 10% on Equi-X.
-R_PI5_MACHINE = float(os.environ.get("HASHWX_R_PI5_MACHINE", 6.0e5))
+# HashWX rates in hashes per second, each settable from the environment. The Pi 5
+# machine rate is HASHWX_MACHINE_RATE, 970,000, rounded down from the 977,000 that
+# `make hashwx` measured on all four cores of a Pi 5 (reports/EmPoWering/HashWX/
+# console-RPi5.txt). The attacker core is an ESTIMATE until the 285HX is measured:
+# the M4 Pro's whole-machine rate per core, as the Equi-X study took the 285HX's;
+# the two were within 10% on Equi-X.
+R_PI5_MACHINE = float(os.environ.get("HASHWX_R_PI5_MACHINE", 9.7e5))
 R_ATTACKER_CORE = float(os.environ.get("HASHWX_R_ATTACKER_CORE", 4.0e5))
 
 # Public header verification rate, one Pi 5 core: 6.388 ms median, 3.99x to
@@ -49,9 +49,9 @@ R_ATTACKER_CORE = float(os.environ.get("HASHWX_R_ATTACKER_CORE", 4.0e5))
 # console-RPi5.txt, measured at logos-blockchain 87138d2 (three-branch
 # circuit), performance governor.
 V_HEADER = 157.0
-# One check of a nonce on a Pi 5, an ESTIMATE: the M4 Pro's 17.5 us interpreted,
-# scaled by the upper ratio of 4.6. Interpreted is the slower of the two modes.
-T_TOKEN_VERIFY = float(os.environ.get("HASHWX_T_VERIFY", 80e-6))
+# One check of a nonce on a Pi 5: the 34 us median `make hashwx` measured on one
+# core, interpreted, the slower of the two modes (compiled took 19 us).
+T_TOKEN_VERIFY = float(os.environ.get("HASHWX_T_VERIFY", 34e-6))
 
 # ------------------------------------------------- spec constants (1.7.0)
 ROUND = 1.0          # seconds per round

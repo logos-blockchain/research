@@ -4,7 +4,7 @@ A hash satisfies a target T with probability T / 2^64. The update is the one in
 proof-of-work.md with its types changed, so this checks three things before the
 specification relies on them: that it steers to its target rate, that integer
 rounding does not bias it at the scale of a 64-bit target, and how wide its
-intermediates get. Rates are ESTIMATES until the Pi 5 is measured with `make hashwx`.
+intermediates get. The Pi 5 rate is HASHWX_MACHINE_RATE, from `make hashwx` on a Pi 5.
 
 Run:  python -m equix_bench.hashwx_retarget
 """
@@ -18,7 +18,7 @@ from dataclasses import dataclass
 
 TWO64 = 1 << 64
 SLOTS_PER_BLOCK = 30                 # 1 / f
-R_PI5_MACHINE = float(os.environ.get("HASHWX_R_PI5_MACHINE", 6.0e5))
+R_PI5_MACHINE = float(os.environ.get("HASHWX_R_PI5_MACHINE", 9.7e5))
 
 # Seconds of a whole Pi 5 per claim at the easiest target: the time the `zkhash`
 # caps give at 41,391 claim tickets a second.
@@ -139,7 +139,7 @@ def rounding_bias(rule: Rule, start: int, blocks: int, seed: int) -> float:
 
 
 def main() -> int:
-    print(f"Whole Pi 5 assumed at {R_PI5_MACHINE:.3g} hashes a second, which is not measured.\n")
+    print(f"Whole Pi 5 at {R_PI5_MACHINE:.3g} hashes a second.\n")
     print("| rule | target rate | cap | floor | widest value | steady claims a block | x10 jump settles | back |")
     print("|---|---|---|---|---|---|---|---|")
     for rule in rules():
