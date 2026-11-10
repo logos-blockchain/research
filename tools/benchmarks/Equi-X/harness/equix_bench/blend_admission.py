@@ -38,11 +38,11 @@ from pathlib import Path
 # HashWX rates in hashes per second, each settable from the environment. The Pi 5
 # machine rate is HASHWX_MACHINE_RATE, 970,000, rounded down from the 977,000 that
 # `make hashwx` measured on all four cores of a Pi 5 (reports/EmPoWering/HashWX/
-# console-RPi5.txt). The attacker core is an ESTIMATE until the 285HX is measured:
-# the M4 Pro's whole-machine rate per core, as the Equi-X study took the 285HX's;
-# the two were within 10% on Equi-X.
+# console-RPi5.txt). The attacker core is R_F, 430,000, rounded down from the
+# 431,000 a core that `make hashwx` measured on all 24 cores of an Intel 285HX
+# (console-285HX.txt beside it).
 R_PI5_MACHINE = float(os.environ.get("HASHWX_R_PI5_MACHINE", 9.7e5))
-R_ATTACKER_CORE = float(os.environ.get("HASHWX_R_ATTACKER_CORE", 4.0e5))
+R_ATTACKER_CORE = float(os.environ.get("HASHWX_R_ATTACKER_CORE", 4.3e5))
 
 # Public header verification rate, one Pi 5 core: 6.388 ms median, 3.99x to
 # four threads. Primary record: reports/blend/header-verification/

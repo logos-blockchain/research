@@ -1,10 +1,10 @@
 # HashWX: measurements and studies for the move off Equi-X
 
-HashWX v1.0.0, commit `74b567a3`, run on an Apple M4 Pro on 2026-11-06 and on a Raspberry Pi 5 on 2026-11-10.
+HashWX v1.0.0, commit `74b567a3`, run on an Apple M4 Pro on 2026-11-06, and on a Raspberry Pi 5 and an Intel Core Ultra 9 285HX on 2026-11-10.
 
 Equi-X's author deprecated it on 2026-10-15 in favour of HashWX. This report holds what the Logos specifications need to make that move: what HashWX costs, whether the Blend edge door still works when priced in it, and whether the reward retarget works at its scale.
 
-**Status.** The Apple M4 Pro and the Raspberry Pi 5 have been measured. The Intel 285HX, which sets the fastest core, is still to run, so the studies take the M4 Pro's core in its place.
+**Status.** All three machines have been measured: the Apple M4 Pro, the Raspberry Pi 5, which sets `HASHWX_MACHINE_RATE`, and the Intel 285HX, which sets `R_F`.
 
 To measure a machine, from `tools/benchmarks/Equi-X`:
 
@@ -58,17 +58,30 @@ From the console output of `make hashwx` on a Pi 5, kept as [`console-RPi5.txt`]
 - The Pi 5 solves at half the M4 Pro's rate per core, where on Equi-X it solved at a 4.6th. Equi-X's solver works through about 2 MB of memory, and a HashWX function through 16 KB.
 - Every figure is at or past the favourable end of the earlier estimates, which scaled the M4 Pro by Equi-X's ratios: 1.1 to 2.1·10⁵ hashes/s a core, 4.3 to 8.5·10⁵ a machine, and 25 to 80 µs a check.
 
-## 4. The door, priced in HashWX
+## 4. Cost, Intel Core Ultra 9 285HX
 
-`equix_bench.blend_admission` runs the door's exact rules. It now prices a nonce at `d` hashes. The bounds derive as the specification states them: twenty fastest cores fill the edge share at the floor, `price^Min = 20 * R_F // r_E`, and three solves on a whole Pi 5 take half of the message traversal time on average at the ceiling, `price^Max = T_M * HASHWX_MACHINE_RATE // 6`. The code still calls them `D_EDGE_MIN` and `D_EDGE_MAX`. The Pi 5 mines at `HASHWX_MACHINE_RATE`, 970,000 hashes/s, and a check costs 34 µs, its interpreted median. The fastest core is taken at 4·10⁵ hashes/s from the M4 Pro until the 285HX is measured. Studies 3 and 5 read the load, not the door, and are not repeated. The Equi-X column is from [the earlier study](../blend-admission/simulation.md).
+From the console output of `make hashwx` on a 285HX, kept as [`console-285HX.txt`](console-285HX.txt). Its ladders peak at 24 workers, which identifies the machine. The one-core figures come from one worker, which the scheduler may place on a performance core or an efficiency core.
+
+| Measure | Compiled | Interpreted |
+| --- | --- | --- |
+| One check: seed hash, build, one hash, comparison. Median | 9 µs | 16 µs |
+| Mining rate, one core, 463 nonces per seed | 558,000 hashes/s | 98,000 hashes/s |
+
+- The whole machine mines 10.34 MH/s. The concurrency ladder's 24 workers solve 22,335 functions a second, which averages 431,000 hashes/s over its 8 performance and 16 efficiency cores. `R_F` is this average rounded down, 430,000.
+- The mining ladder's whole-machine figures fall from 10.6 to 8.5 MH/s as its runs lengthen from under a second to about 14 seconds. Each rests on 120 tokens, about ±9%, so the fall is larger than the noise. The laptop's power limit may cause it. A lower sustained rate means that filling the edge share at the floor takes more than twenty of its cores, not fewer.
+- A whole 285HX mines as fast as 10.7 whole Pi 5s.
+
+## 5. The door, priced in HashWX
+
+`equix_bench.blend_admission` runs the door's exact rules. It now prices a nonce at `d` hashes. The bounds derive as the specification states them: twenty fastest cores fill the edge share at the floor, `price^Min = 20 * R_F // r_E`, and three solves on a whole Pi 5 take half of the message traversal time on average at the ceiling, `price^Max = T_M * HASHWX_MACHINE_RATE // 6`. The code still calls them `D_EDGE_MIN` and `D_EDGE_MAX`. The Pi 5 mines at `HASHWX_MACHINE_RATE`, 970,000 hashes/s, and a check costs 34 µs, its interpreted median. The fastest core is `R_F`, 430,000 hashes/s. Studies 3 and 5 read the load, not the door, and are not repeated. The Equi-X column is from [the earlier study](../blend-admission/simulation.md).
 
 | Result | Equi-X | HashWX |
 | --- | --- | --- |
-| `price^Min`, `price^Max` | 300, 1,000 | 333,333, 2,425,000 |
-| Cores to fill the share, to trip a raise, to hold the ceiling | 19, 38, 124 | 20, 40, 291 |
+| `price^Min`, `price^Max` | 300, 1,000 | 358,333, 2,425,000 |
+| Cores to fill the share, to trip a raise, to hold the ceiling | 19, 38, 124 | 20, 40, 271 |
 | 200-core flood: rounds to the ceiling, rounds home | 60, 150 | 90, 210 |
-| 200-core flood: peak CPU of one Pi 5 core | 33% | 34% |
-| 60-core flood: share the attacker holds, honest offers refused | 93%, 19% | 93%, 19% |
+| 200-core flood: peak CPU of one Pi 5 core | 33% | 32% |
+| 60-core flood: share the attacker holds, honest offers refused | 93%, 19% | 93%, 13% |
 | Adaptive attacker: core-seconds per message, against a constant flood | 2.6, 2.8 | 2.6, 2.8 |
 | Solvers stranded through the floods | 0 | 0 |
 | One core at the ceiling, worst case stranded | 0.17% | 0.25% |
@@ -77,7 +90,7 @@ From the console output of `make hashwx` on a Pi 5, kept as [`console-RPi5.txt`]
 
 The door behaves as it did. Its time budgets set its behaviour, and the rates only move its range. `G = 60` still clears its constraint: the 95th percentile of a solve at the ceiling on one core is 30 s.
 
-With the author's GPU figure, a floor-price share takes about 1.4 such GPUs per node and a raise about 2.9.
+With the author's GPU figure, a floor-price share takes about 1.5 such GPUs per node and a raise about 3.1.
 
 To rerun, from `tools/benchmarks/Equi-X`. The defaults are the values above, and `HASHWX_R_PI5_MACHINE`, `HASHWX_R_ATTACKER_CORE` and `HASHWX_T_VERIFY` set them from the environment:
 
@@ -85,7 +98,7 @@ To rerun, from `tools/benchmarks/Equi-X`. The defaults are the values above, and
 PYTHONPATH=harness python3 -m equix_bench.blend_admission --out results/door
 ```
 
-## 5. The reward retarget, in target form
+## 6. The reward retarget, in target form
 
 `equix_bench.hashwx_retarget` runs the retarget of `proof-of-work.md`, with `ticket < T` and `T` a 64-bit integer, at three settings. The caps keep the time on a whole Pi 5 that the `zkhash` caps give. Results are at `HASHWX_MACHINE_RATE`, 970,000 hashes/s.
 
@@ -101,13 +114,12 @@ PYTHONPATH=harness python3 -m equix_bench.blend_admission --out results/door
 - The steady error in the claim rate from integer rounding is about 500/T at smoothing 999/1000. That is 0.1% at T = 500,000, about 1.2 million boards at the bootstrap's rate, and 1% at T = 50,000, about 12 million boards.
 - At smoothing 9/10 the retarget settles 6% above its target rate in either form. This comes from the update rule with exponential block gaps, not from the puzzle.
 
-## 6. Implementing it from the specification
+## 7. Implementing it from the specification
 
 `equix_bench/hashwx_ref.py` is HashWX written from `doc/specification.md`. It reproduced upstream's four vectors on its first run, and it matches the library in both modes at nonces 0, 462, 463, 2³² + 7 and 2⁶⁴ − 1. So the specification is enough to write an independent implementation, which bears on the node's licence policy: `.cargo-deny.toml` allows no LGPL licence, and the two implementations found are LGPL. This one is not a clean-room implementation, because its author had read parts of the library's `src/hashwx.c`. Whether a permissive implementation is possible is a legal question this does not answer.
 
-## 7. Not measured
+## 8. Not measured
 
-- The 285HX.
 - A sustained whole-machine run on the Pi 5. The concurrency ladder runs each level for under a second, and the mining ladder's 20 tokens a point are too few to show throttling.
 - A rented vCPU. HashWX is built to run two threads per core, so the assumption that a vCPU is worth 1.5 Pi 5 cores needs checking.
 - Any GPU. The author's solver is private.
