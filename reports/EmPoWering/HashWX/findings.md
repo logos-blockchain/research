@@ -12,7 +12,7 @@ To measure a machine, from `tools/benchmarks/Equi-X`:
 make hashwx OUT=results
 ```
 
-It needs a C compiler, CMake and Python 3.11 or later. It takes about 3 minutes on the M4 Pro, and I expect 10 to 20 on a Pi 5. Results land in `results/hashwx`. The runner is `runners/hashwx-c`, and its header gives how the harness's operations map onto HashWX. In `results.csv`, a `solve` is one function's work, one build and 463 hashes, so hashes per second is 463 times `solves_per_sec`. The `hashes_per_sec` column assumes Equi-X and does not apply. `report.md` keeps Equi-X's wording.
+It needs a C compiler, CMake, and Python 3.11 or later with `matplotlib` and `numpy`. A machine that has run `make setup` has them in `.venv`. Elsewhere, `python3 -m venv .venv && .venv/bin/pip install -e harness` installs them there. It takes about 3 minutes on the M4 Pro, and I expect 10 to 20 on a Pi 5. Results land in `results/hashwx`. The runner is `runners/hashwx-c`, and its header gives how the harness's operations map onto HashWX. In `results.csv`, a `solve` is one function's work, one build and 463 hashes, so hashes per second is 463 times `solves_per_sec`. The `hashes_per_sec` column assumes Equi-X and does not apply. `report.md` keeps Equi-X's wording.
 
 ## 1. What HashWX is
 
