@@ -1,0 +1,23 @@
+case                                               need single need double at 2160 single   double | wait need h  at 18 h  at 10 h
+third, 10 s                                               1678         839        2.8e-12   <1e-14 |       10.11   <1e-14  1.2e-09
+third, 12 s                                               2030        1015        2.7e-10   <1e-14 |       12.40  9.6e-14  5.2e-08
+third, 13 s                                               2245        1123        2.2e-09   <1e-14 |       13.81  2.0e-12  2.9e-07
+third, 14 s                                               2492        1246        1.5e-08   <1e-14 |       15.45  3.4e-11  1.4e-06
+third, 15 s                                               2776        1388        9.4e-08  1.1e-14 |       17.37  4.7e-10  6.1e-06
+third, 20 s                                               5097        2549        1.4e-04  2.3e-08 |       33.47  1.4e-05  2.0e-03
+third, 10 s, deflated inference                           2935        1468        2.2e-07  6.2e-14 |       12.36  8.4e-14  5.1e-08
+third, 10 s, 90% of honest online, corrected              2712        1356        6.4e-08   <1e-14 |       16.23  1.1e-10  2.6e-06
+third, 10 s, 90% of honest online, not corrected          2506        1253        1.7e-08   <1e-14 |       15.99  7.6e-11  2.1e-06
+third, 10 s, 80% of honest online, corrected              5503        2752        2.6e-04  8.2e-08 |       32.72  1.0e-05  1.5e-03
+third, 10 s, lottery 1.25 times fast                      2189        1095        1.3e-09   <1e-14 |       10.78   <1e-14  4.4e-09
+third, 10 s, lottery 1.925 times fast                     5218        2609        1.8e-04  3.5e-08 |       18.00  1.0e-09  9.8e-06
+30 %, 15 s                                                1481         741        8.2e-14   <1e-14 |        9.37   <1e-14  2.5e-10
+30 %, 20 s                                                2419        1210        9.0e-09   <1e-14 |       16.13  9.1e-11  2.6e-06
+30 %, 15 s, deflated inference                            2966        1483        2.7e-07  8.2e-14 |       14.20  3.9e-12  4.6e-07
+largest share held at 10 s (31 grid points; negative = below the grid): depth_slot_at_k_code=0.347  depth_slot_at_k_paper=0.376  depth_cont_at_k_code=0.352  depth_cont_at_k_paper=0.382  wait_at_K18=0.362  wait_at_K10=0.333
+largest share held at 15 s (31 grid points; negative = below the grid): depth_slot_at_k_code=0.321  depth_slot_at_k_paper=0.352  depth_cont_at_k_code=0.328  depth_cont_at_k_paper=0.358  wait_at_K18=0.335  wait_at_K10=0.304
+largest share held at 20 s (26 grid points; negative = below the grid): depth_slot_at_k_code=0.294  depth_slot_at_k_paper=0.327  depth_cont_at_k_code=0.301  depth_cont_at_k_paper=0.334  wait_at_K18=0.306  wait_at_K10=0.271
+third, 16 s, slot reading: need single 3106, double 1553; at 2,160 single 5.2e-07, double 3.2e-13
+third, 17 s, slot reading: need single 3490, double 1745; at 2,160 single 2.5e-06, double 7.5e-12
+third, 18 s, slot reading: need single 3939, double 1970; at 2,160 single 1.1e-05, double 1.4e-10
+third, 19 s, slot reading: need single 4469, double 2235; at 2,160 single 4.2e-05, double 2.0e-09

@@ -1,0 +1,26 @@
+
+K = 64800, floor 1291, every block 15 s late, all stake building
+  f = 1/30, estimate exact           p = 0.033333  mean blocks  1440.0  P(N < 1291) = 9.93e-10   floor by the same derivation at this rate: 1291
+  rate 0.033 a slot                  p = 0.033000  mean blocks  1430.4  P(N < 1291) = 1.00e-08   floor by the same derivation at this rate: 1281
+  f = 1/30, estimate 1 % high        p = 0.033009  mean blocks  1430.6  P(N < 1291) = 9.44e-09   floor by the same derivation at this rate: 1281
+  rate 0.033, estimate 1 % high      p = 0.032679  mean blocks  1421.0  P(N < 1291) = 8.21e-08   floor by the same derivation at this rate: 1272
+  f = 1/30, estimate 2 % high        p = 0.032691  mean blocks  1421.4  P(N < 1291) = 7.61e-08   floor by the same derivation at this rate: 1272
+  rate 0.033, estimate 2 % high      p = 0.032364  mean blocks  1411.8  P(N < 1291) = 5.72e-07   floor by the same derivation at this rate: 1262
+  f = 1/30, estimate 3 % high        p = 0.032378  mean blocks  1412.2  P(N < 1291) = 5.23e-07   floor by the same derivation at this rate: 1263
+  rate 0.033, estimate 3 % high      p = 0.032054  mean blocks  1402.7  P(N < 1291) = 3.41e-06   floor by the same derivation at this rate: 1253
+  f = 1/30, estimate 5 % high        p = 0.031772  mean blocks  1394.3  P(N < 1291) = 1.57e-05   floor by the same derivation at this rate: 1245
+  rate 0.033, estimate 5 % high      p = 0.031454  mean blocks  1384.8  P(N < 1291) = 7.79e-05   floor by the same derivation at this rate: 1235
+  at 10 s per block: rate 0.033: P = 1.3e-27; estimate 2 % high: P = 7.7e-26
+
+K = 36000, floor 689, every block 15 s late, all stake building
+  f = 1/30, estimate exact           p = 0.033333  mean blocks   800.0  P(N < 689) = 9.82e-10   floor by the same derivation at this rate: 689
+  rate 0.033 a slot                  p = 0.033000  mean blocks   794.6  P(N < 689) = 5.57e-09   floor by the same derivation at this rate: 683
+  f = 1/30, estimate 1 % high        p = 0.033009  mean blocks   794.8  P(N < 689) = 5.33e-09   floor by the same derivation at this rate: 683
+  rate 0.033, estimate 1 % high      p = 0.032679  mean blocks   789.5  P(N < 689) = 2.78e-08   floor by the same derivation at this rate: 678
+  f = 1/30, estimate 2 % high        p = 0.032691  mean blocks   789.6  P(N < 689) = 2.62e-08   floor by the same derivation at this rate: 678
+  rate 0.033, estimate 2 % high      p = 0.032364  mean blocks   784.3  P(N < 689) = 1.26e-07   floor by the same derivation at this rate: 673
+  f = 1/30, estimate 3 % high        p = 0.032378  mean blocks   784.6  P(N < 689) = 1.18e-07   floor by the same derivation at this rate: 673
+  rate 0.033, estimate 3 % high      p = 0.032054  mean blocks   779.3  P(N < 689) = 5.21e-07   floor by the same derivation at this rate: 668
+  f = 1/30, estimate 5 % high        p = 0.031772  mean blocks   774.6  P(N < 689) = 1.81e-06   floor by the same derivation at this rate: 663
+  rate 0.033, estimate 5 % high      p = 0.031454  mean blocks   769.3  P(N < 689) = 6.84e-06   floor by the same derivation at this rate: 658
+  at 10 s per block: rate 0.033: P = 3.1e-21; estimate 2 % high: P = 4.3e-20

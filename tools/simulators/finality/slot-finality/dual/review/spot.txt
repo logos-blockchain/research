@@ -1,0 +1,6 @@
+third 10 s             cont need 1510 at2160 1.537e-13 at4320 0.000e+00 | slot need 1678 at2160 2.824e-12 at4320 0.000e+00  (26s)
+third 13 s             cont need 1987 at2160 1.684e-10 at4320 0.000e+00 | slot need 2245 at2160 2.162e-09 at4320 0.000e+00  (44s)
+third 10 s deflated    cont need 2426 at2160 9.434e-09 at4320 0.000e+00 | slot need 2935 at2160 2.246e-07 at4320 6.174e-14  (76s)
+third 20 s             cont need 4282 at2160 2.680e-05 at4320 8.298e-10 | slot need 5097 at2160 1.428e-04 at4320 2.306e-08  (186s)
+wait third 10 s need 36382 at 36000 1.2386350056201718e-09 (49s)
+wait third 10 s deflated need 44506 at 64800 8.416443841019497e-14 (106s)

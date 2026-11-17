@@ -1,0 +1,40 @@
+== 30 %, worst case 10 s, 2000000 cut-offs
+   quantile            : 0.5 / 0.9 / 0.99 / 0.999 / 0.9999
+   log2 choices, today : 1.6 / 7.0 / 15.2 / 23.6 / 32.3
+   log2 choices, D2    : 0.0 / 1.1 / 8.6 / 17.1 / 25.9
+   mean choices, D2 (cut at 2^40): 4.55e+06; share of cut-offs with more than 2 choices: today 0.514, D2 0.106
+   shift log2(today / D2) in the top 1 % of cut-offs: median 6.66, 10 % 5.67, 90 % 7.37
+   P(choices >= 2^8): today 7.460e-02   D2 1.190e-02
+   P(choices >= 2^16): today 7.981e-03   D2 1.373e-03
+   P(choices >= 2^24): today 8.880e-04   D2 1.635e-04
+   P(choices >= 2^32): today 1.080e-04   D2 2.100e-05
+== 30 %, worst case 15 s, 2000000 cut-offs
+   quantile            : 0.5 / 0.9 / 0.99 / 0.999 / 0.9999
+   log2 choices, today : 2.0 / 8.4 / 18.2 / 28.2 / 38.2
+   log2 choices, D2    : 0.0 / 2.3 / 11.9 / 22.1 / 32.1
+   mean choices, D2 (cut at 2^40): 2.71e+07; share of cut-offs with more than 2 choices: today 0.572, D2 0.158
+   shift log2(today / D2) in the top 1 % of cut-offs: median 6.33, 10 % 5.30, 90 % 7.11
+   P(choices >= 2^8): today 1.112e-01   D2 2.476e-02
+   P(choices >= 2^16): today 1.670e-02   D2 3.905e-03
+   P(choices >= 2^24): today 2.556e-03   D2 6.395e-04
+   P(choices >= 2^32): today 4.130e-04   D2 1.025e-04
+== a third, worst case 10 s, 2000000 cut-offs
+   quantile            : 0.5 / 0.9 / 0.99 / 0.999 / 0.9999
+   log2 choices, today : 2.6 / 10.7 / 22.8 / 35.1 / 46.9
+   log2 choices, D2    : 0.1 / 4.3 / 16.6 / 29.1 / 41.0
+   mean choices, D2 (cut at 2^40): 1.93e+08; share of cut-offs with more than 2 choices: today 0.642, D2 0.223
+   shift log2(today / D2) in the top 1 % of cut-offs: median 6.24, 10 % 5.17, 90 % 7.07
+   P(choices >= 2^8): today 1.693e-01   D2 4.961e-02
+   P(choices >= 2^16): today 3.624e-02   D2 1.113e-02
+   P(choices >= 2^24): today 7.938e-03   D2 2.567e-03
+   P(choices >= 2^32): today 1.778e-03   D2 5.920e-04
+== a third, worst case 15 s, 2000000 cut-offs
+   quantile            : 0.5 / 0.9 / 0.99 / 0.999 / 0.9999
+   log2 choices, today : 3.6 / 13.8 / 29.0 / 44.5 / 59.4
+   log2 choices, D2    : 0.2 / 7.7 / 23.3 / 39.0 / 54.3
+   mean choices, D2 (cut at 2^40): 1.19e+09; share of cut-offs with more than 2 choices: today 0.708, D2 0.317
+   shift log2(today / D2) in the top 1 % of cut-offs: median 5.80, 10 % 4.59, 90 % 6.70
+   P(choices >= 2^8): today 2.457e-01   D2 9.574e-02
+   P(choices >= 2^16): today 7.163e-02   D2 2.918e-02
+   P(choices >= 2^24): today 2.129e-02   D2 8.934e-03
+   P(choices >= 2^32): today 6.364e-03   D2 2.770e-03

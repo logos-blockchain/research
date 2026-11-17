@@ -1,0 +1,7 @@
+
+floor 1291, K = 64800
+  cost [blocks, 15 s     ] missing before late (1e-9 / 1e-3 / half): 0.0 % / 7.5 % / 15.0 %; median / latest h -> 0.10: 18.0 / 19.4; 0.20: 18.8 / 21.1; 0.30: 20.7 / 23.3; 0.33: 21.4 / 24.2; 54/72 h phase 25.7 % / 18.7 %
+  cost [blocks, 10 s     ] missing before late (1e-9 / 1e-3 / half): 12.6 % / 19.1 % / 25.7 %; median / latest h -> 0.10: 18.0 / 18.0; 0.20: 18.0 / 19.3; 0.30: 18.9 / 21.5; 0.33: 19.6 / 22.4; 54/72 h phase 24.8 % / 18.2 %
+  cost [blocks, Blend fit] missing before late (1e-9 / 1e-3 / half): 21.5 % / 27.4 % / 33.3 %; median / latest h -> 0.10: 18.0 / 18.0; 0.20: 18.0 / 18.0; 0.30: 18.0 / 19.9; 0.33: 18.0 / 20.8; 54/72 h phase 24.0 % / 17.8 %
+  cost [wins             ] missing before late (1e-9 / 1e-3 / half): 30.2 % / 35.4 % / 40.7 %; median / latest h -> 0.10: 18.0 / 18.0; 0.20: 18.0 / 18.0; 0.30: 18.0 / 18.0; 0.33: 18.0 / 18.8; 54/72 h phase 23.1 % / 17.3 %
+  gain: side held back up to 0.500; honest with a third on both 0.167; split halves median 26.7 / 24.9 / 21.3 h (15 s / 10 s / none)

@@ -1,0 +1,16 @@
+1 %      | epoch, 648,000 slots   | mean wins    219.6 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +9.7 %, +19.6 %, +30.2 %, +38.5 %, +51.7 %
+1 %      | one hour, 3,600 slots  | mean wins      1.2 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +142.0 %, +334.5 %, +578.9 %, +787.7 %, +1157.8 %
+5 %      | epoch, 648,000 slots   | mean wins   1097.5 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +4.3 %, +8.6 %, +13.2 %, +16.7 %, +22.2 %
+5 %      | one hour, 3,600 slots  | mean wins      6.1 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +60.8 %, +131.7 %, +215.5 %, +284.7 %, +402.9 %
+10 %     | epoch, 648,000 slots   | mean wins   2193.1 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +3.0 %, +6.1 %, +9.3 %, +11.7 %, +15.6 %
+10 %     | one hour, 3,600 slots  | mean wins     12.2 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +42.4 %, +89.8 %, +144.3 %, +188.5 %, +263.1 %
+15 %     | epoch, 648,000 slots   | mean wins   3286.9 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +2.5 %, +5.0 %, +7.6 %, +9.5 %, +12.6 %
+15 %     | one hour, 3,600 slots  | mean wins     18.3 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +34.4 %, +72.0 %, +114.7 %, +149.0 %, +206.5 %
+20 %     | epoch, 648,000 slots   | mean wins   4378.8 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +2.1 %, +4.3 %, +6.5 %, +8.2 %, +10.9 %
+20 %     | one hour, 3,600 slots  | mean wins     24.3 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +29.6 %, +61.6 %, +97.7 %, +126.5 %, +174.3 %
+25 %     | epoch, 648,000 slots   | mean wins   5468.8 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +1.9 %, +3.8 %, +5.8 %, +7.3 %, +9.7 %
+25 %     | one hour, 3,600 slots  | mean wins     30.4 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: -0.0 %, +26.4 %, +54.7 %, +86.3 %, +111.5 %, +153.2 %
+30 %     | epoch, 648,000 slots   | mean wins   6557.1 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +1.8 %, +3.5 %, +5.3 %, +6.7 %, +8.9 %
+30 %     | one hour, 3,600 slots  | mean wins     36.4 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +24.1 %, +49.6 %, +78.1 %, +100.7 %, +137.9 %
+a third  | epoch, 648,000 slots   | mean wins   7281.5 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: -0.0 %, +1.7 %, +3.3 %, +5.0 %, +6.3 %, +8.4 %
+a third  | one hour, 3,600 slots  | mean wins     40.5 | gain with the best of 1, 8, 2^8, 2^16, 2^24, 2^40 nonces: +0.0 %, +22.8 %, +46.9 %, +73.7 %, +94.9 %, +129.8 %

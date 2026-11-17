@@ -1,0 +1,20 @@
+check 4: P(2160 gaps <= T), by exact convolution-free identity and by sampling
+alpha 0.333 delta 10 18 h: nbinom.cdf 1.406e-246 | binomial identity 1.406e-246
+alpha 0.333 delta 10 10 h: nbinom.cdf 0.000e+00 | binomial identity 0.000e+00
+alpha 0.010 delta 10 18 h: nbinom.cdf 6.223e-76 | binomial identity 6.223e-76
+alpha 0.010 delta 10 10 h: nbinom.cdf 0.000e+00 | binomial identity 0.000e+00
+alpha 0.010 delta  0 18 h: nbinom.cdf 3.232e-01 | binomial identity 3.232e-01
+alpha 0.010 delta  0 10 h: nbinom.cdf 5.262e-147 | binomial identity 5.262e-147
+alpha 0.010 delta  2 18 h: nbinom.cdf 1.196e-04 | binomial identity 1.196e-04
+alpha 0.010 delta  2 10 h: nbinom.cdf 5.069e-208 | binomial identity 5.069e-208
+alpha 0.000 delta  0 18 h: nbinom.cdf 5.030e-01 | binomial identity 5.030e-01
+alpha 0.000 delta  0 10 h: nbinom.cdf 1.032e-142 | binomial identity 1.032e-142
+sampled P(tau <= 18 h), 1 %, delta 2: 0.000121 formula 0.00011961315196505266
+
+check 6: largest single term (a lower estimate, log10)
+DEPTH alpha 0.333 delta 10: max term -69.64 at tau = 140286 slots (39.0 h); sum over tau -65.96
+SLOT 18 h alpha 0.333 delta 10: max term -31.89 at 971 blocks; sum -30.18
+SLOT 10 h alpha 0.333 delta 10: max term -18.64 at 540 blocks; sum -17.06
+DEPTH alpha 0.250 delta 10: max term -202.86 at tau = 140247 slots (39.0 h); sum over tau -199.18
+SLOT 18 h alpha 0.250 delta 10: max term -90.33 at 915 blocks; sum -88.64
+SLOT 10 h alpha 0.250 delta 10: max term -51.31 at 509 blocks; sum -49.75

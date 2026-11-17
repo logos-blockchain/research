@@ -1,0 +1,18 @@
+lag, f = 1/30: per block, slots from the clock rule's move to the tip rule's: 28.9; sampled, slot(B_imm clock) - slot(B_imm tip): 29.0   [RFC before: about 29, about 44]
+lag, a third withholds, p_h: per block, slots from the clock rule's move to the tip rule's: 43.5; sampled, slot(B_imm clock) - slot(B_imm tip): 44.0   [RFC before: about 29, about 44]
+clock step of +K: age_before_h: mean 18.01
+clock step of +K: depth_before: mean 2155.85
+clock step of +K: tip_age_h: mean 18.02
+clock step of +K: tip_depth: mean 2157.10
+clock step of +K: clock_age_after_h: mean 10.81
+clock step of +K: clock_depth_after: mean 1291.00
+  tip rule, one block 38700 slots before the end of the shifted range: B_imm 10.88 h old, 1301 occupied slots below the new tip (1300 below the old tip)
+  tip rule, one block 38000 slots before the end of the shifted range: B_imm 10.83 h old, 1294 occupied slots below the new tip (1292 below the old tip)
+  tip rule, one block 30000 slots before the end of the shifted range: B_imm 10.81 h old, 1291 occupied slots below the new tip (1290 below the old tip)
+  tip rule, one block 20000 slots before the end of the shifted range: B_imm 10.81 h old, 1291 occupied slots below the new tip (1290 below the old tip)
+  tip rule, one block 10000 slots before the end of the shifted range: B_imm 10.81 h old, 1291 occupied slots below the new tip (1290 below the old tip)
+  tip rule, one block 1 slots before the end of the shifted range: B_imm 10.81 h old, 1291 occupied slots below the new tip (1290 below the old tip)
+  tip rule, one block 39500 slots before the end of the shifted range: B_imm 11.02 h old, 1315 occupied slots below the new tip (1314 below the old tip)
+  tip rule, one block 45000 slots before the end of the shifted range: B_imm 12.51 h old, 1498 occupied slots below the new tip (1497 below the old tip)
+  tip rule, one block 64000 slots before the end of the shifted range: B_imm 17.78 h old, 2129 occupied slots below the new tip (2128 below the old tip)
+no block for K slots: clock rule 1291 below the stale tip, tip rule 2157; after the next block the tip rule stands 1291 occupied slots below the new tip

@@ -1,0 +1,12 @@
+delay 10 s, 18 h: holds a third up to a lottery 1.6 times fast; first failure at above 1.60
+delay 10 s, 36 h: holds a third up to a lottery 1.6 times fast; first failure at above 1.60
+delay 11 s, 18 h: holds a third up to a lottery 1.6 times fast; first failure at above 1.60
+delay 11 s, 36 h: holds a third up to a lottery 1.6 times fast; first failure at above 1.60
+delay 12 s, 18 h: holds a third up to a lottery 1.49 times fast; first failure at 1.5
+delay 12 s, 36 h: holds a third up to a lottery 1.6 times fast; first failure at above 1.60
+delay 13 s, 18 h: holds a third up to a lottery 1.32 times fast; first failure at 1.33
+delay 13 s, 36 h: holds a third up to a lottery 1.6 times fast; first failure at above 1.60
+delay 14 s, 18 h: holds a third up to a lottery 1.17 times fast; first failure at 1.18
+delay 14 s, 36 h: holds a third up to a lottery 1.6 times fast; first failure at above 1.60
+delay 15 s, 18 h: holds a third up to a lottery 1.03 times fast; first failure at 1.04
+delay 15 s, 36 h: holds a third up to a lottery 1.5 times fast; first failure at 1.51

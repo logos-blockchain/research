@@ -1,0 +1,66 @@
+Rule: age >= K (18 h) and n blocks of the chain follow
+
+ n = 1019
+   normal (all build, Blend fit)       18.00  18.00  18.00   P(not final at K) 0.0e+00
+   a third withholds, Blend fit        18.00  18.00  18.00   P(not final at K) 0.0e+00
+   a third withholds, 10 s             18.00  18.00  18.00   P(not final at K) 9.3e-10
+   a third withholds, 15 s             18.00  18.00  19.41   P(not final at K) 3.4e-03
+   90 % online, Blend fit              18.00  18.00  18.00   P(not final at K) 0.0e+00
+   split in halves, Blend fit          18.00  18.39  21.73   P(not final at K) 7.8e-01
+   eclipse a third's prepared fork needs (mean rates, no delay):  12.5 h; a side of a third fixes its own fork after 1.05 days (mean), 0.87 at the earliest
+   54 h phase: 18.6 % of the inferred stake must build (chance 1 - 1e-9)
+   72 h phase: 13.9 % of the inferred stake must build (chance 1 - 1e-9)
+
+ n = 1250
+   normal (all build, Blend fit)       18.00  18.00  18.00   P(not final at K) 0.0e+00
+   a third withholds, Blend fit        18.00  18.00  20.20   P(not final at K) 1.0e-01
+   a third withholds, 10 s             18.00  19.01  21.76   P(not final at K) 9.9e-01
+   a third withholds, 15 s             18.28  20.74  23.50   P(not final at K) 1.0e+00
+   90 % online, Blend fit              18.00  18.00  18.00   P(not final at K) 0.0e+00
+   split in halves, Blend fit          19.28  22.57  26.24   P(not final at K) 1.0e+00
+   eclipse a third's prepared fork needs (mean rates, no delay):  15.4 h; a side of a third fixes its own fork after 1.29 days (mean), 1.08 at the earliest
+   54 h phase: 22.4 % of the inferred stake must build (chance 1 - 1e-9)
+   72 h phase: 16.8 % of the inferred stake must build (chance 1 - 1e-9)
+
+ n = 1510
+   normal (all build, Blend fit)       18.00  18.00  18.00   P(not final at K) 0.0e+00
+   a third withholds, Blend fit        18.36  21.07  24.09   P(not final at K) 1.0e+00
+   a third withholds, 10 s             20.24  22.96  25.97   P(not final at K) 1.0e+00
+   a third withholds, 15 s             22.34  25.06  28.07   P(not final at K) 1.0e+00
+   90 % online, Blend fit              18.00  18.00  18.50   P(not final at K) 1.2e-06
+   split in halves, Blend fit          23.63  27.26  31.28   P(not final at K) 1.0e+00
+   eclipse a third's prepared fork needs (mean rates, no delay):  18.6 h; a side of a third fixes its own fork after 1.56 days (mean), 1.33 at the earliest
+   54 h phase: 26.7 % of the inferred stake must build (chance 1 - 1e-9)
+   72 h phase: 20.0 % of the inferred stake must build (chance 1 - 1e-9)
+
+ n = 1825
+   normal (all build, Blend fit)       18.00  18.00  20.20   P(not final at K) 5.0e-01
+   a third withholds, Blend fit        22.47  25.47  28.77   P(not final at K) 1.0e+00
+   a third withholds, 10 s             24.75  27.75  31.05   P(not final at K) 1.0e+00
+   a third withholds, 15 s             27.28  30.28  33.58   P(not final at K) 1.0e+00
+   90 % online, Blend fit              18.00  19.66  22.10   P(not final at K) 1.0e+00
+   split in halves, Blend fit          28.94  32.95  37.34   P(not final at K) 1.0e+00
+   eclipse a third's prepared fork needs (mean rates, no delay):  22.5 h; a side of a third fixes its own fork after 1.88 days (mean), 1.63 at the earliest
+   54 h phase: 31.9 % of the inferred stake must build (chance 1 - 1e-9)
+   72 h phase: 23.9 % of the inferred stake must build (chance 1 - 1e-9)
+
+ n = 2160
+   normal (all build, Blend fit)       19.11  21.30  23.68   P(not final at K) 1.0e+00
+   a third withholds, Blend fit        26.87  30.15  33.72   P(not final at K) 1.0e+00
+   a third withholds, 10 s             29.56  32.84  36.42   P(not final at K) 1.0e+00
+   a third withholds, 15 s             32.56  35.84  39.42   P(not final at K) 1.0e+00
+   90 % online, Blend fit              20.84  23.27  25.92   P(not final at K) 1.0e+00
+   split in halves, Blend fit          34.62  39.00  43.76   P(not final at K) 1.0e+00
+   eclipse a third's prepared fork needs (mean rates, no delay):  26.6 h; a side of a third fixes its own fork after 2.23 days (mean), 1.95 at the earliest
+   54 h phase: 37.4 % of the inferred stake must build (chance 1 - 1e-9)
+   72 h phase: 28.0 % of the inferred stake must build (chance 1 - 1e-9)
+
+C: k blocks, or age >= K_cap and phi blocks.   D: k blocks and age >= K_min
+  normal (all build, Blend fit)            C(36 h):  19.11  21.30  23.68 | C(54 h):  19.11  21.30  23.68 | D(10 h):  19.11  21.30  23.68 | D(12.5 h):  19.11  21.30  23.68
+  a third withholds, Blend fit             C(36 h):  26.87  30.15  33.72 | C(54 h):  26.87  30.15  33.72 | D(10 h):  26.87  30.15  33.72 | D(12.5 h):  26.87  30.15  33.72
+  a third withholds, 10 s                  C(36 h):  29.56  32.84  36.00 | C(54 h):  29.56  32.84  36.42 | D(10 h):  29.56  32.84  36.42 | D(12.5 h):  29.56  32.84  36.42
+  a third withholds, 15 s                  C(36 h):  32.56  35.84  36.00 | C(54 h):  32.56  35.84  39.42 | D(10 h):  32.56  35.84  39.42 | D(12.5 h):  32.56  35.84  39.42
+  90 % online, Blend fit                   C(36 h):  20.84  23.27  25.92 | C(54 h):  20.84  23.27  25.92 | D(10 h):  20.84  23.27  25.92 | D(12.5 h):  20.84  23.27  25.92
+  split in halves, Blend fit               C(36 h):  34.62  36.00  36.00 | C(54 h):  34.62  39.00  43.76 | D(10 h):  34.62  39.00  43.76 | D(12.5 h):  34.62  39.00  43.76
+  lottery 1.5 fast, all build, Blend fit   C(36 h):  13.95  15.40  16.99 | C(54 h):  13.95  15.40  16.99 | D(10 h):  13.95  15.40  16.99 | D(12.5 h):  13.95  15.40  16.99
+  lottery 1.925 fast, all build, Blend fit C(36 h):  11.66  12.80  14.04 | C(54 h):  11.66  12.80  14.04 | D(10 h):  11.66  12.80  14.04 | D(12.5 h):  12.50  12.80  14.04

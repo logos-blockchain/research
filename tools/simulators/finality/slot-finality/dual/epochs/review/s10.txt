@@ -1,0 +1,69 @@
+==== third blocks 15  K=36000
+ top extra:
+   extra   39.2 min cost 70.0% eff   56.1 longest  7.35 d late 49.0% max 11.37 h | alt A[6,+4) B[0,+10) D 0.670,0.992
+   extra   39.2 min cost 70.0% eff   56.1 longest  7.35 d late 49.0% max 11.37 h | alt A[6,+4) B[1,+10) D 0.670,0.992
+   extra   39.2 min cost 70.0% eff   56.1 longest  7.35 d late 49.0% max 11.37 h | alt A[6,+4) B[2,+10) D 0.670,0.992
+   extra   39.2 min cost 70.0% eff   56.1 longest  7.35 d late 49.0% max 11.37 h | alt A[6,+4) B[3,+10) D 0.670,0.992
+   extra   39.2 min cost 70.0% eff   56.1 longest  7.35 d late 49.0% max 11.37 h | alt A[6,+4) B[4,+10) D 0.670,0.992
+   extra   39.2 min cost 70.0% eff   56.1 longest  7.35 d late 49.0% max 11.37 h | alt A[6,+4) B[5,+10) D 0.670,0.992
+ top efficiency (extra per withheld share), extra>=5min:
+   extra   27.9 min cost 35.0% eff   79.7 longest  5.13 d late 34.2% | alt A[0,+0) B[3,+7) D 0.835,0.997
+   extra   27.9 min cost 35.0% eff   79.7 longest  5.13 d late 34.2% | alt A[3,+7) B[0,+0) D 0.997,0.835
+   extra   23.9 min cost 30.0% eff   79.6 longest  4.40 d late 29.3% | alt A[0,+0) B[4,+6) D 0.890,0.998
+   extra   23.9 min cost 30.0% eff   79.6 longest  4.40 d late 29.3% | alt A[4,+6) B[0,+0) D 0.998,0.890
+   extra   31.8 min cost 40.0% eff   79.5 longest  5.87 d late 39.1% | alt A[0,+0) B[2,+8) D 0.780,0.995
+   extra   31.8 min cost 40.0% eff   79.5 longest  5.87 d late 39.1% | alt A[2,+8) B[0,+0) D 0.995,0.780
+ top longest:
+   extra   26.1 min cost 75.0% longest  7.37 d late 49.1% | alt A[0,+10) B[6,+5) D 0.938,0.670
+   extra   26.1 min cost 70.0% longest  7.37 d late 49.1% | alt A[0,+10) B[7,+4) D 0.938,0.670
+   extra   26.1 min cost 65.0% longest  7.37 d late 49.1% | alt A[0,+10) B[8,+3) D 0.938,0.670
+   extra   26.1 min cost 60.0% longest  7.37 d late 49.1% | alt A[0,+10) B[9,+2) D 0.938,0.670
+   extra   26.1 min cost 75.0% longest  7.37 d late 49.1% | alt A[1,+10) B[6,+5) D 0.938,0.670
+   extra   26.1 min cost 70.0% longest  7.37 d late 49.1% | alt A[1,+10) B[7,+4) D 0.938,0.670
+ top late share:
+   extra    0.7 min cost 70.0% longest  4.84 d late 64.5% | one q=1.0 from 3.0 len 7.0 D 0.833,0.833
+   extra    0.7 min cost 70.0% longest  4.84 d late 64.5% | one q=1.0 from 3.25 len 7.0 D 0.833,0.833
+   extra    0.7 min cost 70.0% longest  4.84 d late 64.5% | one q=1.0 from 3.5 len 7.0 D 0.833,0.833
+   extra    0.7 min cost 70.0% longest  4.84 d late 64.5% | one q=1.0 from 3.75 len 7.0 D 0.833,0.833
+==== third blocks 6  K=36000
+ top extra:
+   extra    0.0 min cost  0.6% eff    0.0 longest  0.00 d late  0.0% max 10.00 h | one q=0.25 from 0.0 len 0.25 D 0.997,0.997
+   extra    0.0 min cost  1.2% eff    0.0 longest  0.00 d late  0.0% max 10.00 h | one q=0.25 from 0.0 len 0.5 D 0.993,0.993
+   extra    0.0 min cost  1.9% eff    0.0 longest  0.00 d late  0.0% max 10.00 h | one q=0.25 from 0.0 len 0.75 D 0.990,0.990
+   extra    0.0 min cost  2.5% eff    0.0 longest  0.00 d late  0.0% max 10.00 h | one q=0.25 from 0.0 len 1.0 D 0.986,0.986
+   extra    0.0 min cost  3.1% eff    0.0 longest  0.00 d late  0.0% max 10.00 h | one q=0.25 from 0.0 len 1.25 D 0.983,0.983
+   extra    0.0 min cost  3.8% eff    0.0 longest  0.00 d late  0.0% max 10.00 h | one q=0.25 from 0.0 len 1.5 D 0.979,0.979
+ top efficiency (extra per withheld share), extra>=5min:
+ top longest:
+   extra    0.0 min cost  0.6% longest  0.00 d late  0.0% | one q=0.25 from 0.0 len 0.25 D 0.997,0.997
+   extra    0.0 min cost  1.2% longest  0.00 d late  0.0% | one q=0.25 from 0.0 len 0.5 D 0.993,0.993
+   extra    0.0 min cost  1.9% longest  0.00 d late  0.0% | one q=0.25 from 0.0 len 0.75 D 0.990,0.990
+   extra    0.0 min cost  2.5% longest  0.00 d late  0.0% | one q=0.25 from 0.0 len 1.0 D 0.986,0.986
+   extra    0.0 min cost  3.1% longest  0.00 d late  0.0% | one q=0.25 from 0.0 len 1.25 D 0.983,0.983
+   extra    0.0 min cost  3.8% longest  0.00 d late  0.0% | one q=0.25 from 0.0 len 1.5 D 0.979,0.979
+ top late share:
+   extra    0.0 min cost  0.6% longest  0.00 d late  0.0% | one q=0.25 from 0.0 len 0.25 D 0.997,0.997
+   extra    0.0 min cost  1.2% longest  0.00 d late  0.0% | one q=0.25 from 0.0 len 0.5 D 0.993,0.993
+   extra    0.0 min cost  1.9% longest  0.00 d late  0.0% | one q=0.25 from 0.0 len 0.75 D 0.990,0.990
+   extra    0.0 min cost  2.5% longest  0.00 d late  0.0% | one q=0.25 from 0.0 len 1.0 D 0.986,0.986
+==== fifth blocks 15  K=36000
+ top extra:
+   extra    0.5 min cost 40.0% eff    1.2 longest  2.60 d late 34.6% max 10.02 h | one q=1.0 from 6.0 len 4.0 D 1.000,1.000
+   extra    0.5 min cost 40.0% eff    1.2 longest  2.60 d late 34.6% max 10.02 h | alt A[6,+4) B[6,+4) D 1.000,1.000
+   extra    0.5 min cost 37.5% eff    1.2 longest  2.41 d late 32.1% max 10.02 h | one q=1.0 from 6.0 len 3.75 D 1.000,1.000
+   extra    0.5 min cost 37.5% eff    1.2 longest  2.41 d late 32.1% max 10.02 h | one q=1.0 from 6.25 len 3.75 D 1.000,1.000
+   extra    0.4 min cost 35.0% eff    1.2 longest  2.22 d late 29.6% max 10.02 h | one q=1.0 from 6.0 len 3.5 D 1.000,1.000
+   extra    0.4 min cost 35.0% eff    1.2 longest  2.22 d late 29.6% max 10.02 h | one q=1.0 from 6.25 len 3.5 D 1.000,1.000
+ top efficiency (extra per withheld share), extra>=5min:
+ top longest:
+   extra    0.0 min cost 45.0% longest  6.33 d late 42.2% | alt A[0,+0) B[1,+9) D 0.836,0.997
+   extra    0.0 min cost 45.0% longest  6.33 d late 42.2% | alt A[1,+9) B[0,+0) D 0.997,0.836
+   extra    0.0 min cost 50.0% longest  6.33 d late 42.2% | alt A[1,+9) B[6,+1) D 0.997,0.836
+   extra    0.0 min cost 55.0% longest  6.33 d late 42.2% | alt A[1,+9) B[6,+2) D 0.997,0.836
+   extra    0.0 min cost 60.0% longest  6.33 d late 42.2% | alt A[1,+9) B[6,+3) D 0.997,0.836
+   extra    0.0 min cost 65.0% longest  6.33 d late 42.2% | alt A[1,+9) B[6,+4) D 0.997,0.836
+ top late share:
+   extra    0.0 min cost 45.0% longest  6.33 d late 42.2% | alt A[0,+0) B[1,+9) D 0.836,0.997
+   extra    0.0 min cost 45.0% longest  6.33 d late 42.2% | alt A[1,+9) B[0,+0) D 0.997,0.836
+   extra    0.0 min cost 50.0% longest  6.33 d late 42.2% | alt A[1,+9) B[6,+1) D 0.997,0.836
+   extra    0.0 min cost 55.0% longest  6.33 d late 42.2% | alt A[1,+9) B[6,+2) D 0.997,0.836

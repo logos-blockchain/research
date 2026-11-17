@@ -1,0 +1,24 @@
+01 % | 10 s | a choice complete at the cut-off 0.0103, with hindsight 0.0106 | log2 choices at 50/90/99/99.9/99.99 %: 0.0 / 0.0 / 1.0 / 1.0 / 2.3 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 0.00e+00, 0.00e+00, 0.00e+00
+01 % | 15 s | a choice complete at the cut-off 0.0108, with hindsight 0.0110 | log2 choices at 50/90/99/99.9/99.99 %: 0.0 / 0.0 / 1.0 / 1.0 / 2.3 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 0.00e+00, 0.00e+00, 0.00e+00
+05 % | 10 s | a choice complete at the cut-off 0.0548, with hindsight 0.0609 | log2 choices at 50/90/99/99.9/99.99 %: 0.0 / 0.0 / 1.0 / 2.6 / 3.8 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 0.00e+00, 0.00e+00, 0.00e+00
+05 % | 15 s | a choice complete at the cut-off 0.0575, with hindsight 0.0643 | log2 choices at 50/90/99/99.9/99.99 %: 0.0 / 0.0 / 1.6 / 2.6 / 3.9 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 0.00e+00, 0.00e+00, 0.00e+00
+10 % | 10 s | a choice complete at the cut-off 0.1178, with hindsight 0.1419 | log2 choices at 50/90/99/99.9/99.99 %: 0.0 / 1.0 / 2.6 / 4.3 / 6.3 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 1.00e-06, 0.00e+00, 0.00e+00
+10 % | 15 s | a choice complete at the cut-off 0.1241, with hindsight 0.1511 | log2 choices at 50/90/99/99.9/99.99 %: 0.0 / 1.0 / 2.6 / 4.6 / 6.4 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 2.25e-06, 0.00e+00, 0.00e+00
+15 % | 10 s | a choice complete at the cut-off 0.1902, with hindsight 0.2433 | log2 choices at 50/90/99/99.9/99.99 %: 0.0 / 1.6 / 3.9 / 6.5 / 9.1 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 5.65e-05, 0.00e+00, 0.00e+00
+15 % | 15 s | a choice complete at the cut-off 0.2014, with hindsight 0.2606 | log2 choices at 50/90/99/99.9/99.99 %: 0.0 / 1.6 / 4.2 / 6.9 / 9.5 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 9.02e-05, 0.00e+00, 0.00e+00
+20 % | 10 s | a choice complete at the cut-off 0.2735, with hindsight 0.3642 | log2 choices at 50/90/99/99.9/99.99 %: 0.0 / 2.3 / 6.0 / 9.6 / 13.2 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 7.50e-04, 4.50e-06, 0.00e+00
+20 % | 15 s | a choice complete at the cut-off 0.2911, with hindsight 0.3914 | log2 choices at 50/90/99/99.9/99.99 %: 0.0 / 2.8 / 6.5 / 10.4 / 14.3 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 1.17e-03, 9.50e-06, 0.00e+00
+25 % | 10 s | a choice complete at the cut-off 0.3701, with hindsight 0.5020 | log2 choices at 50/90/99/99.9/99.99 %: 1.0 / 4.1 / 9.2 / 14.5 / 19.9 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 5.59e-03, 1.56e-04, 4.75e-06
+25 % | 15 s | a choice complete at the cut-off 0.3961, with hindsight 0.5397 | log2 choices at 50/90/99/99.9/99.99 %: 1.0 / 4.6 / 10.4 / 16.4 / 22.4 | P(choices complete at the cut-off >= 2^8, 2^16, 2^24): 8.77e-03, 3.67e-04, 1.68e-05
+01 % | 10 s | attack rows saved: 76
+01 % | 15 s | attack rows saved: 76
+05 % | 10 s | attack rows saved: 76
+05 % | 15 s | attack rows saved: 76
+10 % | 10 s | attack rows saved: 76
+10 % | 15 s | attack rows saved: 76
+15 % | 10 s | attack rows saved: 76
+15 % | 15 s | attack rows saved: 76
+20 % | 10 s | attack rows saved: 76
+20 % | 15 s | attack rows saved: 76
+25 % | 10 s | attack rows saved: 76
+25 % | 15 s | attack rows saved: 76

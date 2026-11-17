@@ -1,0 +1,155 @@
+# Runs for finality counted in slots
+
+Scripts and their stored outputs. They were run after the study's notes were written, so the
+notes do not cite them. The specification pull requests logos-lips #532 and #533 cite these
+figures.
+
+| Folder | Subject |
+| --- | --- |
+| `floor/` | The finality floor, and what a finality window holds. |
+| `nonce/` | The epoch nonce: what grinding gives a coalition, and designs that delay the nonce. |
+| `dual/` | A depth rule kept beside the slot rule. Also the floor, the delivery delay, the deflated inference and several epochs, each on its own. |
+
+The stored runs used the study's code at commit `741dc0b`.
+
+## How to run
+
+Install the study's environment once: `make install` in `tools/simulators/finality`. Then:
+
+    cd tools/simulators/finality
+    .venv/bin/python slot-finality/floor/floor_c.py
+
+- A script finds the study's `src` from its own location.
+- `<jobs>` is the number of worker processes. A script without it sets its own number.
+- `floor/`: run from any folder. A script prints its result or writes it beside itself.
+- `nonce/`: run in `slot-finality/nonce` and redirect the output, for example
+  `../../.venv/bin/python online_limit.py > online_limit.out`. These scripts read and write
+  arrays in the working folder. The scripts of `nonce/repro/` and `nonce/data/` run from any
+  folder.
+- `dual/`: run each script in the folder that holds it. It prints its result or writes it to
+  `out/` below that folder.
+- Caches go to `.cache` beside the script.
+- Arrays (`*.npy`, `*.npz`) are not stored here. The tables name the script that writes each.
+- Times are rough. Each is that of one run on a machine with 14 cores.
+
+## floor/
+
+| Script | What it computes | Stored output | Time |
+| --- | --- | --- | --- |
+| `floor_c.py` | The floor at windows of 18, 36, 10 and 15 hours, in whole numbers and in floating point, and what follows from it. | none | 7 s |
+| `a_vs_c.py <jobs>` | The wait at 1e-9 and the chance after 10, 15, 18 and 36 hours, by state: share, delay, honest stake online, inference deflated or not. | `out_a_vs_c.txt` | |
+| `limits.py <jobs> [stage]` | Stage 1: the lottery's factor each window holds at 15 s. Stage 2: how far each disturbance reaches against 30 % under 18 hours. A stage `<share>:<delay>:<k1>,<k2>,...` refines a factor. | `out_limits_1.txt`, `out_limits_2.txt`, `out_limits_refine_*.txt` | stage 2: 3 min, 6 workers |
+| `share_held.py <jobs>` | The share a window holds at 15 s after that share deflated the inference. | `out_share_held.txt` | 3 min, 6 workers |
+| `share_held_pairs.py <jobs>` | The share a window holds through two and through three disturbances at once. | `out_share_held_pairs.txt` | |
+| `third_keeps.py` | The chance that a third displaces a block after 10 and after 18 hours, with an unbiased nonce. | `out_third_keeps.txt` | 1 min |
+| `caps_check.py` | The waits when a coalition holds 2^8, 2^16 or 2^24 nonces at both cut-offs. | `out_caps_check.txt` | 2.5 min |
+| `commit_sim.py` | The clock rule beside the tip rule: the lag, a clock step of K, and K slots with no block. | `out_commit_sim.txt` | 1 s |
+| `floor_figures.py` | The eclipse a prepared fork needs, the depth rule's medians, the days a smaller side needs, the wins of a 1 % attacker, the floor in blocks on Blend. | `out_floor_figures.txt` | 1 s |
+| `multi_epoch.py` | How long a race lasts under the floor when stake does not build, the building stake the floor needs within 72 hours, and a union bound over an epoch and a year. | none | 1 s |
+| `inference_offset.py` | The floor against the rate the stake inference steers to. | none | 2 s |
+| `miss_by_delay.py` | The chance that the whole stake misses the floor at K, by the delay of every block. | none | 1 s |
+| `alt_floor_10s.py` | A floor sized at 10 s: how often the whole stake misses it at 15 s. | none | 1 s |
+| `run_printed_floor.py <spec> <K> <floor>` | Runs the floor's code as `cryptarchia-v1-protocol.md` prints it. `<spec>` is a checkout of the specification repository. | none | 1 s |
+| `refcode/test_reference.py` | Tests of the reference code of the rules (`refcode/reference.py`) at K = 64,800 and a floor of 1,291: 49 tests, and 33 mutations that the tests must catch. | `refcode/run-floor-1291.txt` | 12 to 40 min |
+| `refcode/check_spec_code.py <spec>` | Runs the code that the specifications print against the same tests. | `refcode/check-spec-code-1291.txt` | 1 min |
+| `make_refcode_10h.py` | Builds `refcode-10h/` from `refcode/`: the same code, tests and check at K = 36,000 and a floor of 689. | `refcode-10h/` | |
+| `refcode-10h/test_reference.py` | The same tests and mutations at K = 36,000 and a floor of 689. | `refcode-10h/run-floor-689.txt` | 12 to 40 min |
+| `refcode-10h/check_spec_code.py <spec>` | The same check against the specifications of the ten-hour window. | `refcode-10h/check-spec-code-689.txt` | 1 min |
+
+## nonce/
+
+`model.py` is the model that most scripts here import. Run alone it prints a self-check against
+sampling. Scripts marked "study" import the study's `src`.
+
+| Script | What it computes | Stored output | Arrays | Time |
+| --- | --- | --- | --- | --- |
+| `wait_curves.py` (study) | The study's wait bound, once per share (30 %, a third) and delay (10 s, 15 s), down to 1e-42. | `wait_curves.out` | writes `wait_curve_*.npy` | 5 min |
+| `survival_table.py` (study) | Branch survival and the chance that a choice is still open, beside the study's own survival. | `survival_table.out` | writes `survival_*.npy` | 2 min |
+| `today_choices.py` (study) | The number of nonces a coalition of 30 % or a third can choose among at one cut-off, sampled. | `today_choices.out` | writes `today_log2G_*.npy`, `today_log2M0_*.npy` | 3 min |
+| `attack_today.py` | One concrete attack with the best of n nonces: the least wait whose chance is at most 1e-9. | `attack_today.out` | reads the arrays of `today_choices.py`, writes `attack_today_*.npy` | |
+| `by_share.py` | The same two sets of arrays for coalitions of 1 to 25 %. | `by_share.out` | writes `today_log2*.npy`, `attack_today_*.npy` | 9 min |
+| `attack_rules.py` | The chance of each grinding attack by finality rule: depth, slot, first met, both. | `attack_rules.out` | reads `today_log2M0_*.npy`, and `review3/slot_fixed_*.npy` if present | |
+| `attack_rules_v1.py` | The first version of `attack_rules.py`. | `attack_rules_v1.out` | reads `today_log2M0_*.npy`, `attack_today_*.npy` | |
+| `candidate.py` (study) | The study's candidate nonce, measured with the study's functions at 10 s and at 15 s. | `candidate.out` | writes `candidate.npy` | 1 min |
+| `delayed_chain.py` | Design D1, one sequential delay on today's hash-chain value: the factor per nonce and the wait, by delay and by the coalition's delay machines. | `delayed_chain.out` | reads `wait_curve_*.npy`, writes `delayed_chain_curves.npz` | 20 s |
+| `delay_sizing.py` | The shortest delay of D1 whose factor a window still absorbs. | `delay_sizing.out` | reads `wait_curve_*.npy` | 25 s |
+| `factor_by_delay.py` | The two-nonce factor of D1 by worst-case delay, 5 to 15 s. | `factor_by_delay.out` | | 15 s |
+| `d2_fallback.py` | What the delayed chained minima (D2) fall back to when the delay gives no protection. | `d2_fallback.out` | | 2.5 min |
+| `d2_fallback_windows.py` (study) | The window D2 needs in that case. | `d2_fallback_windows.out` | reads `wait_curve_*.npy` | 15 s |
+| `today_states.py` (study) | Today's nonce in each disturbance and each pair: the pair factor, the wait, and the largest share that 18 and 10 hours prove. | `today_states.out` | | 22 min |
+| `deflated_states.py` (study) | The two-epoch attack with an unbiased nonce: the chance after 18 and 10 hours, by delay. | `deflated_states.out` | | 8 min |
+| `deflated_delay.py` (study) | The single delay after a deflated inference, at 15 s. | `deflated_delay.out` | | 4 min |
+| `single_delay_cases.py` (study) | The single delay of 9 hours in each case named with "a nonce that resists grinding". | `single_delay_cases.out` | | 1.5 min |
+| `online_limit.py` (study) | The least share of the honest stake online at which the window still holds, with an unbiased nonce at 10 s. | `online_limit.out` | | 25 s |
+| `practice.py` | The expected gain in a coalition's own wins when it keeps the best of n nonces. | `practice.out` | | 1 s |
+| `mean_gain.py` | The mean gain in blocks over all epochs. | `mean_gain.out` | | 5 min |
+| `compound.py` | Grinding over several epochs: whether a ground nonce gives more nonces at the next cut-off. | `compound.out` | | |
+| `stake_growth.py` | How grinding moves a coalition's share of the stake over time. | `stake_growth.out` | | 1 s |
+| `choices_plot_data.py` | The share of epochs in which a coalition holds at least 2^x nonces, by coalition size and delay. | `choices_plot_data.out` | writes `choices_plot_data.npy` | 13 min |
+| `data/ks_curves.py` (study) | The study's wait bound on a grid of shares at 10 s, 10 s deflated, 12 s and 15 s, for waits up to 64,800 slots. Also the grinding factors per share at 10 s. | `data/ks_factors.csv` | writes `data/ks_curves.npy` | 6 min |
+| `repro/k_by_nonce.py` (study) | The least window that holds 30 % and a third under each epoch-nonce design. | `repro/k_by_nonce.out` | | 7 min |
+| `repro/recheck.py` (study) | Waits for today's hash chain with the pair factor taken at the wait's own delay, and the shares held at 15 s. | `repro/recheck.out` | part 3 reads `data/ks_curves.npy` | 6 min |
+| `repro/accept_bias.py` (study) | The largest share a window holds with today's nonce, with the delayed nonce and with no grinding. The wait when a race meets n nonces. | `repro/accept_bias.out` | part 1 reads `data/ks_curves.npy` | 1.5 min |
+| `repro/k_short_windows.py` (study) | The least window for the delayed nonce when its sub-windows shrink. | `repro/k_short_windows.out` | | 3 min |
+| `repro/single_delay.py` (study) | An estimate of how long one sequential delay would have to be. | `repro/single_delay.out` | | 10 s |
+
+`data/ks_common.py` holds the settings of `data/ks_curves.py`, `repro/recheck.py` and
+`repro/accept_bias.py`.
+`data/ks_factors.csv` holds the grinding factors per share at 10 s. `repro/k_by_nonce.py`,
+`repro/accept_bias.py` and `../dual/nonce_shares.py` read it.
+`data/ks_curves.npy` is not stored. `data/ks_curves.py` writes both files beside itself.
+
+## dual/
+
+`env.py` sets the path to the study and the caches. Scripts marked "study" import it first.
+
+| Script | What it computes | Stored output | Time |
+| --- | --- | --- | --- |
+| `timing.py` | The time to finality under each rule (depth, slot, both, first met), as a distribution. | `out/timing.txt` | 1 s |
+| `dial.py` | The rule "age at least K and n blocks follow" for n from the floor to k, and the variants C and D. | `out/dial.txt` | 1 s |
+| `bounds.py <jobs> cases` (study) | The study's depth bound and wait bound side by side, for a list of cases. | `out/bounds_cases.csv` | 14 min |
+| `bounds.py <jobs> grid` (study) | The same on a grid of shares at 10, 15 and 20 s. | `out/bounds_grid.csv` | 48 min |
+| `table.py [extra]` (study) | The safety table in one reading for both legs, from the two files above. The stored run used `extra`. It read the grid when 26 of its 31 points at 20 s were written. With all 31 the values are the same. | `out/table.txt` | 30 s |
+| `curves.py <jobs>` (study) | The wait-bound curves that `b_bound.py` reads. | none; writes `out/wait_*.npy` | |
+| `b_bound.py` | A bound on rule B (first met) and on rule D (depth with a minimum age), from the wait bound alone. | `out/b_bound.txt` | 1 s |
+| `nonce_shares.py <jobs>` (study) | The largest share each leg holds at 1e-9 with today's epoch nonce, at 10 s. Reads `../nonce/data/ks_factors.csv`. | `out/nonce_shares.txt`, `out/nonce_legs.csv` | |
+| `cap/race.py` | The deflation attack at mean rates. | `cap/out/race.txt` | 1 s |
+| `cap/speed_limit.py <jobs>` (study) | How fast the lottery may run before a window stops holding a third, by delay. | `cap/out/speed_limit.csv`, `cap/out/speed_limit.txt` | |
+| `cap/cap.py` | A cap on how far the inferred stake may fall from one epoch to the next. Reads `out/speed_limit.csv`. | `cap/out/cap.txt` | 1 s |
+| `cap/depth_fast.py <jobs>` (study) | The depth bound and the wait bound at a lottery 1.5 times fast, against a third, by delay. | `cap/out/depth_fast.txt` | |
+| `cap/depth_fast30.py <jobs>` (study) | The same against 30 %. | `cap/out/depth_fast30.txt` | |
+| `cap/b_fast.py` (study) | Rule B after a deflation. | `cap/out/b_fast.txt` | 1.5 min |
+| `delay/delay_range.py <jobs>` (study) | The wait a window must cover, for a worst-case delay from 5 to 15 slots. | `delay/out/delay_range.csv` | |
+| `delay/delay_table.py` | Per delay: the wait needed, the window in whole hours, and the floor. | `delay/out/delay_table.txt` | 3 s |
+| `delay/delay_nonce.py <jobs>` (study) | The window by delay with the two-nonce factor of the single delay. Reads `../../nonce/factor_by_delay.out`. | `delay/out/delay_nonce.txt` | |
+| `delay/typical_delay.py` | The floor when the mean delay per block is below 15 s. | `delay/out/typical_delay.txt` | 1 s |
+| `epochs/epochs.py [K floor]` | The floor and the time to finality over several epochs, at mean rates. | `epochs/out/epochs_18h.txt`, `epochs/out/epochs_10h.txt` | 30 s |
+| `epochs/phase_waits.py` | The building stake below which a value is not final when its phase ends. | `epochs/out/phase_waits.txt` | 1 s |
+| `epochs/rate_miss.py` | The chance that the whole stake misses the floor when the lottery does not run at exactly f. | `epochs/out/rate_miss.txt` | 4 s |
+| `epochs/scale_wait.py <jobs>` (study) | The wait a window must cover when the lottery runs fast by a factor, by delay. | `epochs/out/scale_wait.txt` | |
+| `floor/floor.py [K]` | The slot rule with a higher floor: the floor by its targets, its cost and its benefit. | `floor/out_floor_18h.txt`, `floor/out_floor_10h.txt` | 2 s |
+| `floor/floor_table.py [K]` | A summary at the floors the derivation gives for each share that withholds. | `floor/out_table_18h.txt`, `floor/out_table_10h.txt` | 1 s |
+| `floor/floor_n.py K n [n ...]` | The same rows for given floors. | `floor/out_floor_1291.txt`, `floor/out_floor_689.txt` | 1 s |
+| `floor/change_floor.py [delay]` | Figures for a floor sized with no stake withholding. The stored run is at 15 s. | `floor/out_change_15s.txt` | 3 s |
+| `floor/change_1443.py` | The same at 10 s. | `floor/out_change_1443.txt` | 3 s |
+
+## Rechecks
+
+| Recheck | What it rechecks | Stored results |
+| --- | --- | --- |
+| `floor/recheck/delay-limits/recheck.py` | `floor/limits.py`, stage 2. | `results.txt` (18 min, 8 workers) |
+| `floor/recheck/todays-nonce/` | `nonce/today_states.py`. `main.py [jobs]` fills the cache (10 min, 8 workers). `report.py [variant ...]`, `extra.py` and `timing.py` read it. | `out_main.txt`, `out_report_main.txt`, `out_report_alt.txt`, `out_extra.txt`, `out_timing.txt` |
+| `dual/a-vs-c/recheck.py <jobs>` | Rows of `floor/a_vs_c.py`, `floor/share_held.py`, `floor/share_held_pairs.py` and `floor/floor_c.py`. | `out/recheck.txt` (2 min, 6 workers) |
+| `dual/blind/blind.py <jobs>` | The same scripts' rows with two and three disturbances, and the factors of `floor/limits.py`. It did not read their outputs. | `out/blind.txt` |
+| `nonce/repro/` | Five scripts from before these runs, run again. `recheck.py` recomputes the waits with the grinding factor taken at the wait's own delay. | the five `.out` files |
+| `nonce/review/` | `model.py`, `delayed_chain.py`, the wait curves and `attack_today.py`. Run `check2.py`, `check3.py` and `check5*.py` in `nonce`, as `python review/check2.py`. They read the arrays those scripts write. | `check5b.out` |
+| `nonce/review2/` | `d2_fallback.py`, `d2_fallback_windows.py` and `practice.py`. Run in `review2`. `gen.py` writes `pair_*.npy`. `shift.py` reads them: run it in `nonce` with `PYTHONPATH=.`. | `gen.out`, `shift.out` |
+| `nonce/review3/` | `attack_rules.py`. Run in `nonce`, as `python review3/slot_check.py`. `slot_check.py` writes `review3/slot_fixed_*.npy`. | `depth_A.out`, `depth_B.out`, `slot_check.out`, `stretch_check.out`, `misc_check.out` |
+| `nonce/review4/` | `compound.py`. | `indep.out`, `brute_full.out`, `orig_cap6.out` |
+| `nonce/review5/recheck.py` | `mean_gain.py`. | none |
+| `nonce/review6/recheck.py` | `stake_growth.py`. | none |
+| `dual/review/` | `bounds.py` (`spot.py`), `b_bound.py` (`bbound_check.py`), `timing.py` and `dial.py` (`timing_check.py`), and the count of the depth bound (`count_check.py`, `count_check2.py`, `small_k.py`, `stored_check.py`). `renv.py` sets the path to the study. `bbound_check.py` reads `out/wait_*.npy`. `stored_check.py` reads the study's `runs/b2/curves.csv`, which `make b2` writes. | `spot.txt`, `bbound_check.txt`, `timing_check.txt`, `count_check.txt`, `count_check2.txt` |
+| `dual/cap/review/` | The scripts of `dual/cap/`. `waits.py <jobs>` writes `curve_*.npy`, which `bcheck.py` reads. | `arith.txt`, `waits.txt`, `depth.txt` |
+| `dual/epochs/review/` | `dual/epochs/epochs.py`. `rv.py` is a second model. `check.py [K floor]` and `search.py [K floor]` use it. | `c18.txt`, `c10.txt`, `s18.txt`, `s10.txt` |
+| `dual/floor/review/` | `dual/floor/floor.py`. | `check_out.txt`, `occ_out.txt` |
+| `dual/floor/review-1291/rc.py` | The floors 1,291 and 689, and the figures of `dual/floor/change_floor.py` and `dual/floor/floor_n.py`. | `out.txt` |

@@ -1,0 +1,11 @@
+30_pct_10_s                      scale 1.000 size 64800 mono_tail True (#increases 0, first vals 0.93 0.84)  w(K) 9.38e-28  best 1.84e-22 at 14.49 h   e(K)=5.03e-01
+30_pct_10_s_deflated_(1-0.7)     scale 1.429 size 64800 mono_tail True (#increases 0, first vals 0.99 0.9)  w(K) 7.16e-26  best 1.43e-15 at 10.63 h   e(K)=1.00e+00
+30_pct_15_s                      scale 1.000 size 64800 mono_tail True (#increases 0, first vals 1 0.94)  w(K) 6.01e-18  best 3.83e-15 at 15.10 h   e(K)=5.03e-01
+third_10_s                       scale 1.000 size 64800 mono_tail True (#increases 0, first vals 0.96 0.9)  w(K) 1.19e-16  best 3.77e-14 at 15.19 h   e(K)=5.03e-01
+third_10_s_deflated_(1.5)        scale 1.500 size 64800 mono_tail True (#increases 0, first vals 1 0.97)  w(K) 8.42e-14  best 1.85e-08 at 10.65 h   e(K)=1.00e+00
+third_10_s_lottery_1.25          scale 1.250 size 64800 mono_tail True (#increases 0, first vals 0.99 0.93)  w(K) 1.11e-15  best 4.40e-11 at 12.47 h   e(K)=1.00e+00
+third_10_s_lottery_1.925         scale 1.925 size 64800 mono_tail True (#increases 0, first vals 1 1)  w(K) 9.97e-10  best 5.05e-05 at 8.62 h   e(K)=1.00e+00
+third_12_s                       scale 1.000 size 64800 mono_tail True (#increases 0, first vals 0.98 0.94)  w(K) 9.60e-14  best 7.31e-12 at 15.42 h   e(K)=5.03e-01
+third_13_s                       scale 1.000 size 64800 mono_tail True (#increases 0, first vals 1 0.95)  w(K) 2.00e-12  best 8.31e-11 at 15.54 h   e(K)=5.03e-01
+third_14_s                       scale 1.000 size 64800 mono_tail True (#increases 0, first vals 1 0.97)  w(K) 3.40e-11  best 8.23e-10 at 15.65 h   e(K)=5.03e-01
+third_15_s                       scale 1.000 size 64800 mono_tail True (#increases 0, first vals 1 0.99)  w(K) 4.72e-10  best 7.10e-09 at 15.76 h   e(K)=5.03e-01

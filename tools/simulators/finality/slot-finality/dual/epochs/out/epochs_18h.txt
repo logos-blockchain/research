@@ -1,0 +1,289 @@
+K = 64800, floor 1291. Thresholds (building stake / D below which the floor is missed at mean rates): wins: 0.594, blocks 6: 0.675, blocks 15: 0.850
+
+===== coalition of a tenth =====
+S1 withholds for good, from the end of an observation window
+    D by epoch 3..9: 1.000 1.000 0.902 0.900 0.900 0.900 0.900   fastest lottery 1.111 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 21.6 to 23.6 h; blocks 15: 27.0 to 29.0 h
+S1b withholds for good, from the start of an epoch
+    D by epoch 3..9: 1.000 0.902 0.900 0.900 0.900 0.900 0.900   fastest lottery 1.111 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 21.6 to 23.6 h; blocks 15: 27.0 to 29.0 h
+S2 withholds outside the observation windows only (last 4 U of each epoch) | withheld 40 % of the time
+    D by epoch 3..12: 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000   fastest lottery 1.000 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 21.6 to 23.6 h; blocks 15: 27.0 to 29.0 h
+S3 withholds every second epoch | withheld 50 % of the time
+    D by epoch 3..12: 0.998 0.901 0.998 0.901 0.998 0.901 0.998 0.901 0.998 0.901   fastest lottery 1.109 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 19.9 to 23.5 h; blocks 15: 25.3 to 28.9 h
+S5 withholds in every observation window, builds outside | withheld 60 % of the time
+    D by epoch 3..12: 0.900 0.900 0.900 0.900 0.900 0.900 0.900 0.900 0.900 0.900   fastest lottery 1.111 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 19.8 to 21.6 h; blocks 15: 25.2 to 27.0 h
+most delay from one interval per epoch [wins]: withhold from 0.0 U for 0.5 U -> extra wait averaged over all time 0.0 min, late 0.0 % of the time, max 18.0 h, cost 5 % of the coalition's blocks, fastest lottery 1.008 x f
+most delay from one interval per epoch [blocks 6]: withhold from 0.0 U for 0.5 U -> extra wait averaged over all time 0.0 min, late 0.0 % of the time, max 18.0 h, cost 5 % of the coalition's blocks, fastest lottery 1.008 x f
+most delay from one interval per epoch [blocks 15]: withhold from 0.0 U for 0.5 U -> extra wait averaged over all time 0.0 min, late 0.0 % of the time, max 18.0 h, cost 5 % of the coalition's blocks, fastest lottery 1.008 x f
+
+===== coalition of a fifth =====
+S1 withholds for good, from the end of an observation window
+    D by epoch 3..9: 1.000 1.000 0.803 0.800 0.800 0.800 0.800   fastest lottery 1.250 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 27.0 % of the time, longest 10.14 d, mean when late  18.8 h, max  18.8 h, extra wait averaged over all time  12.5 min
+    depth 2,160: blocks 6: 21.6 to 26.0 h; blocks 15: 27.0 to 31.4 h
+S1b withholds for good, from the start of an epoch
+    D by epoch 3..9: 1.000 0.803 0.800 0.800 0.800 0.800 0.800   fastest lottery 1.250 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 18.5 % of the time, longest  6.95 d, mean when late  18.8 h, max  18.8 h, extra wait averaged over all time   8.6 min
+    depth 2,160: blocks 6: 21.6 to 26.0 h; blocks 15: 27.0 to 31.4 h
+S2 withholds outside the observation windows only (last 4 U of each epoch) | withheld 40 % of the time
+    D by epoch 3..12: 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000   fastest lottery 1.000 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 35.2 % of the time, longest  2.64 d, mean when late  18.7 h, max  18.8 h, extra wait averaged over all time  15.3 min
+    depth 2,160: blocks 6: 21.6 to 26.0 h; blocks 15: 27.0 to 31.4 h
+S3 withholds every second epoch | withheld 50 % of the time
+    D by epoch 3..12: 0.996 0.803 0.996 0.803 0.996 0.803 0.996 0.803 0.996 0.803   fastest lottery 1.246 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 46.2 % of the time, longest  6.93 d, mean when late  18.7 h, max  18.7 h, extra wait averaged over all time  20.0 min
+    depth 2,160: blocks 6: 18.1 to 25.9 h; blocks 15: 23.5 to 31.3 h
+S5 withholds in every observation window, builds outside | withheld 60 % of the time
+    D by epoch 3..12: 0.800 0.800 0.800 0.800 0.800 0.800 0.800 0.800 0.800 0.800   fastest lottery 1.250 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 18.1 to 21.6 h; blocks 15: 23.5 to 27.0 h
+most delay from one interval per epoch [wins]: withhold from 0.0 U for 0.5 U -> extra wait averaged over all time 0.0 min, late 0.0 % of the time, max 18.0 h, cost 5 % of the coalition's blocks, fastest lottery 1.017 x f
+most delay from one interval per epoch [blocks 6]: withhold from 0.0 U for 0.5 U -> extra wait averaged over all time 0.0 min, late 0.0 % of the time, max 18.0 h, cost 5 % of the coalition's blocks, fastest lottery 1.017 x f
+most delay from one interval per epoch [blocks 15]: withhold from 6.0 U for 4.0 U -> extra wait averaged over all time 15.3 min, late 35.2 % of the time, max 18.8 h, cost 40 % of the coalition's blocks, fastest lottery 1.000 x f
+
+===== coalition of 30 % =====
+S1 withholds for good, from the end of an observation window
+    D by epoch 3..9: 1.000 1.000 0.704 0.700 0.700 0.700 0.700   fastest lottery 1.429 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 28.1 % of the time, longest 10.54 d, mean when late  20.6 h, max  20.7 h, extra wait averaged over all time  43.3 min
+    depth 2,160: blocks 6: 21.6 to 29.2 h; blocks 15: 27.0 to 34.6 h
+S1b withholds for good, from the start of an epoch
+    D by epoch 3..9: 1.000 0.704 0.700 0.700 0.700 0.700 0.700   fastest lottery 1.429 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 19.1 % of the time, longest  7.15 d, mean when late  20.6 h, max  20.7 h, extra wait averaged over all time  29.6 min
+    depth 2,160: blocks 6: 21.6 to 29.2 h; blocks 15: 27.0 to 34.6 h
+S2 withholds outside the observation windows only (last 4 U of each epoch) | withheld 40 % of the time
+    D by epoch 3..12: 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000   fastest lottery 1.000 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 40.5 % of the time, longest  3.04 d, mean when late  20.3 h, max  20.7 h, extra wait averaged over all time  55.6 min
+    depth 2,160: blocks 6: 21.6 to 29.2 h; blocks 15: 27.0 to 34.6 h
+S3 withholds every second epoch | withheld 50 % of the time
+    D by epoch 3..12: 0.993 0.703 0.993 0.703 0.993 0.703 0.993 0.703 0.993 0.703   fastest lottery 1.421 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 47.4 % of the time, longest  7.11 d, mean when late  20.5 h, max  20.6 h, extra wait averaged over all time  70.7 min
+    depth 2,160: blocks 6: 16.4 to 29.0 h; blocks 15: 21.8 to 34.4 h
+S5 withholds in every observation window, builds outside | withheld 60 % of the time
+    D by epoch 3..12: 0.700 0.700 0.700 0.700 0.700 0.700 0.700 0.700 0.700 0.700   fastest lottery 1.429 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 16.3 to 21.6 h; blocks 15: 21.7 to 27.0 h
+most delay from one interval per epoch [wins]: withhold from 0.0 U for 0.5 U -> extra wait averaged over all time 0.0 min, late 0.0 % of the time, max 18.0 h, cost 5 % of the coalition's blocks, fastest lottery 1.026 x f
+most delay from one interval per epoch [blocks 6]: withhold from 0.0 U for 0.5 U -> extra wait averaged over all time 0.0 min, late 0.0 % of the time, max 18.0 h, cost 5 % of the coalition's blocks, fastest lottery 1.026 x f
+most delay from one interval per epoch [blocks 15]: withhold from 6.0 U for 4.0 U -> extra wait averaged over all time 55.6 min, late 40.5 % of the time, max 20.7 h, cost 40 % of the coalition's blocks, fastest lottery 1.000 x f
+
+===== coalition of a third =====
+S1 withholds for good, from the end of an observation window
+    D by epoch 3..9: 1.000 1.000 0.670 0.667 0.667 0.667 0.667   fastest lottery 1.500 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late 26.1 % of the time, longest  9.79 d, mean when late  18.2 h, max  18.2 h, extra wait averaged over all time   3.1 min
+    floor blocks 15: late 28.3 % of the time, longest 10.62 d, mean when late  21.3 h, max  21.4 h, extra wait averaged over all time  55.6 min
+    depth 2,160: blocks 6: 21.6 to 30.4 h; blocks 15: 27.0 to 35.9 h
+S1b withholds for good, from the start of an epoch
+    D by epoch 3..9: 1.000 0.670 0.667 0.667 0.667 0.667 0.667   fastest lottery 1.500 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late 18.1 % of the time, longest  6.77 d, mean when late  18.2 h, max  18.2 h, extra wait averaged over all time   2.2 min
+    floor blocks 15: late 19.2 % of the time, longest  7.19 d, mean when late  21.3 h, max  21.4 h, extra wait averaged over all time  37.9 min
+    depth 2,160: blocks 6: 21.6 to 30.4 h; blocks 15: 27.0 to 35.9 h
+S2 withholds outside the observation windows only (last 4 U of each epoch) | withheld 40 % of the time
+    D by epoch 3..12: 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000   fastest lottery 1.000 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late 30.5 % of the time, longest  2.29 d, mean when late  18.2 h, max  18.2 h, extra wait averaged over all time   3.6 min
+    floor blocks 15: late 41.6 % of the time, longest  3.12 d, mean when late  20.9 h, max  21.4 h, extra wait averaged over all time  71.8 min
+    depth 2,160: blocks 6: 21.6 to 30.4 h; blocks 15: 27.0 to 35.9 h
+S3 withholds every second epoch | withheld 50 % of the time
+    D by epoch 3..12: 0.992 0.670 0.992 0.670 0.992 0.670 0.992 0.670 0.992 0.670   fastest lottery 1.492 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late 45.0 % of the time, longest  6.75 d, mean when late  18.1 h, max  18.1 h, extra wait averaged over all time   2.3 min
+    floor blocks 15: late 47.7 % of the time, longest  7.15 d, mean when late  21.2 h, max  21.3 h, extra wait averaged over all time  90.9 min
+    depth 2,160: blocks 6: 15.8 to 30.2 h; blocks 15: 21.2 to 35.6 h
+S5 withholds in every observation window, builds outside | withheld 60 % of the time
+    D by epoch 3..12: 0.667 0.667 0.667 0.667 0.667 0.667 0.667 0.667 0.667 0.667   fastest lottery 1.500 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 15.7 to 21.6 h; blocks 15: 21.1 to 27.0 h
+most delay from one interval per epoch [wins]: withhold from 0.0 U for 0.5 U -> extra wait averaged over all time 0.0 min, late 0.0 % of the time, max 18.0 h, cost 5 % of the coalition's blocks, fastest lottery 1.029 x f
+most delay from one interval per epoch [blocks 6]: withhold from 6.0 U for 4.0 U -> extra wait averaged over all time 3.6 min, late 30.5 % of the time, max 18.2 h, cost 40 % of the coalition's blocks, fastest lottery 1.000 x f
+most delay from one interval per epoch [blocks 15]: withhold from 6.0 U for 4.0 U -> extra wait averaged over all time 71.8 min, late 41.6 % of the time, max 21.4 h, cost 40 % of the coalition's blocks, fastest lottery 1.000 x f
+
+===== stake that leaves for good (honest, no coalition) =====
+L 10% leaves at the start of an epoch
+    D by epoch 3..9: 1.000 0.902 0.900 0.900 0.900 0.900 0.900   fastest lottery 1.111 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 21.6 to 23.6 h; blocks 15: 27.0 to 29.0 h
+L 10% leaves in the middle of an observation window
+    D by epoch 3..9: 1.000 0.951 0.901 0.900 0.900 0.900 0.900   fastest lottery 1.111 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 21.6 to 23.6 h; blocks 15: 27.0 to 29.0 h
+L 10% leaves at the end of an observation window
+    D by epoch 3..9: 1.000 1.000 0.902 0.900 0.900 0.900 0.900   fastest lottery 1.111 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 21.6 to 23.6 h; blocks 15: 27.0 to 29.0 h
+L 20% leaves at the start of an epoch
+    D by epoch 3..9: 1.000 0.803 0.800 0.800 0.800 0.800 0.800   fastest lottery 1.250 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 18.5 % of the time, longest  6.95 d, mean when late  18.8 h, max  18.8 h, extra wait averaged over all time   8.6 min
+    depth 2,160: blocks 6: 21.6 to 26.0 h; blocks 15: 27.0 to 31.4 h
+L 20% leaves in the middle of an observation window
+    D by epoch 3..9: 1.000 0.901 0.802 0.800 0.800 0.800 0.800   fastest lottery 1.250 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 13.7 % of the time, longest  5.12 d, mean when late  18.7 h, max  18.8 h, extra wait averaged over all time   6.0 min
+    depth 2,160: blocks 6: 21.6 to 26.0 h; blocks 15: 27.0 to 31.4 h
+L 20% leaves at the end of an observation window
+    D by epoch 3..9: 1.000 1.000 0.803 0.800 0.800 0.800 0.800   fastest lottery 1.250 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 27.0 % of the time, longest 10.14 d, mean when late  18.8 h, max  18.8 h, extra wait averaged over all time  12.5 min
+    depth 2,160: blocks 6: 21.6 to 26.0 h; blocks 15: 27.0 to 31.4 h
+L 30% leaves at the start of an epoch
+    D by epoch 3..9: 1.000 0.704 0.700 0.700 0.700 0.700 0.700   fastest lottery 1.429 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 19.1 % of the time, longest  7.15 d, mean when late  20.6 h, max  20.7 h, extra wait averaged over all time  29.6 min
+    depth 2,160: blocks 6: 21.6 to 29.2 h; blocks 15: 27.0 to 34.6 h
+L 30% leaves in the middle of an observation window
+    D by epoch 3..9: 1.000 0.852 0.702 0.700 0.700 0.700 0.700   fastest lottery 1.429 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 33.4 % of the time, longest 12.52 d, mean when late  19.3 h, max  20.7 h, extra wait averaged over all time  26.6 min
+    depth 2,160: blocks 6: 21.6 to 29.2 h; blocks 15: 27.0 to 34.6 h
+L 30% leaves at the end of an observation window
+    D by epoch 3..9: 1.000 1.000 0.704 0.700 0.700 0.700 0.700   fastest lottery 1.429 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 28.1 % of the time, longest 10.54 d, mean when late  20.6 h, max  20.7 h, extra wait averaged over all time  43.3 min
+    depth 2,160: blocks 6: 21.6 to 29.2 h; blocks 15: 27.0 to 34.6 h
+L 50% leaves at the start of an epoch
+    D by epoch 3..9: 1.000 0.504 0.500 0.500 0.500 0.500 0.500   fastest lottery 2.000 x f when all stake builds
+    floor wins: late 18.4 % of the time, longest  6.89 d, mean when late  21.3 h, max  21.4 h, extra wait averaged over all time  36.2 min
+    floor blocks 6: late 18.8 % of the time, longest  7.03 d, mean when late  23.3 h, max  23.5 h, extra wait averaged over all time  59.6 min
+    floor blocks 15: late 19.5 % of the time, longest  7.31 d, mean when late  26.2 h, max  26.7 h, extra wait averaged over all time  95.5 min
+    depth 2,160: blocks 6: 21.6 to 39.3 h; blocks 15: 27.0 to 44.7 h
+L 50% leaves in the middle of an observation window
+    D by epoch 3..9: 1.000 0.752 0.503 0.500 0.500 0.500 0.500   fastest lottery 2.000 x f when all stake builds
+    floor wins: late 13.5 % of the time, longest  5.06 d, mean when late  21.1 h, max  21.4 h, extra wait averaged over all time  25.3 min
+    floor blocks 6: late 32.8 % of the time, longest 12.30 d, mean when late  20.3 h, max  23.5 h, extra wait averaged over all time  46.0 min
+    floor blocks 15: late 34.7 % of the time, longest 12.99 d, mean when late  23.3 h, max  26.7 h, extra wait averaged over all time 110.9 min
+    depth 2,160: blocks 6: 21.6 to 39.3 h; blocks 15: 27.0 to 44.7 h
+L 50% leaves at the end of an observation window
+    D by epoch 3..9: 1.000 1.000 0.504 0.500 0.500 0.500 0.500   fastest lottery 2.000 x f when all stake builds
+    floor wins: late 26.8 % of the time, longest 10.03 d, mean when late  21.3 h, max  21.4 h, extra wait averaged over all time  52.7 min
+    floor blocks 6: late 27.5 % of the time, longest 10.31 d, mean when late  23.3 h, max  23.5 h, extra wait averaged over all time  87.3 min
+    floor blocks 15: late 29.0 % of the time, longest 10.86 d, mean when late  26.1 h, max  26.7 h, extra wait averaged over all time 141.2 min
+    depth 2,160: blocks 6: 21.6 to 39.3 h; blocks 15: 27.0 to 44.7 h
+
+===== stake that leaves and returns =====
+R 10% absent from the start of epoch 3, returns at the start of an epoch
+    D by epoch 3..11: 1.000 0.902 0.900 0.900 0.900 0.998 1.000 1.000 1.000   fastest lottery 1.111 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 19.8 to 23.6 h; blocks 15: 25.2 to 29.0 h
+R 10% absent from the start of epoch 3, returns at the end of an observation window
+    D by epoch 3..11: 1.000 0.902 0.900 0.900 0.900 0.998 1.000 1.000 1.000   fastest lottery 1.111 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    depth 2,160: blocks 6: 19.8 to 23.6 h; blocks 15: 25.2 to 29.0 h
+R 20% absent from the start of epoch 3, returns at the start of an epoch
+    D by epoch 3..11: 1.000 0.803 0.800 0.800 0.800 0.996 1.000 1.000 1.000   fastest lottery 1.250 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 13.2 % of the time, longest  6.95 d, mean when late  18.8 h, max  18.8 h, extra wait averaged over all time   6.1 min
+    depth 2,160: blocks 6: 18.1 to 26.0 h; blocks 15: 23.5 to 31.4 h
+R 20% absent from the start of epoch 3, returns at the end of an observation window
+    D by epoch 3..11: 1.000 0.803 0.800 0.800 0.800 0.996 1.000 1.000 1.000   fastest lottery 1.250 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 13.2 % of the time, longest  6.95 d, mean when late  18.8 h, max  18.8 h, extra wait averaged over all time   6.1 min
+    depth 2,160: blocks 6: 18.1 to 26.0 h; blocks 15: 23.5 to 31.4 h
+R 30% absent from the start of epoch 3, returns at the start of an epoch
+    D by epoch 3..11: 1.000 0.704 0.700 0.700 0.700 0.993 1.000 1.000 1.000   fastest lottery 1.429 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 13.6 % of the time, longest  7.15 d, mean when late  20.6 h, max  20.7 h, extra wait averaged over all time  21.1 min
+    depth 2,160: blocks 6: 16.3 to 29.2 h; blocks 15: 21.7 to 34.6 h
+R 30% absent from the start of epoch 3, returns at the end of an observation window
+    D by epoch 3..11: 1.000 0.704 0.700 0.700 0.700 0.993 1.000 1.000 1.000   fastest lottery 1.429 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 15: late 13.6 % of the time, longest  7.15 d, mean when late  20.6 h, max  20.7 h, extra wait averaged over all time  21.1 min
+    depth 2,160: blocks 6: 16.3 to 29.2 h; blocks 15: 21.7 to 34.6 h
+R 33% absent from the start of epoch 3, returns at the start of an epoch
+    D by epoch 3..11: 1.000 0.670 0.667 0.667 0.667 0.992 1.000 1.000 1.000   fastest lottery 1.500 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late 12.9 % of the time, longest  6.77 d, mean when late  18.2 h, max  18.2 h, extra wait averaged over all time   1.5 min
+    floor blocks 15: late 13.7 % of the time, longest  7.19 d, mean when late  21.3 h, max  21.4 h, extra wait averaged over all time  27.1 min
+    depth 2,160: blocks 6: 15.7 to 30.4 h; blocks 15: 21.1 to 35.9 h
+R 33% absent from the start of epoch 3, returns at the end of an observation window
+    D by epoch 3..11: 1.000 0.670 0.667 0.667 0.667 0.992 1.000 1.000 1.000   fastest lottery 1.500 x f when all stake builds
+    floor wins: late  0.0 % of the time, longest  0.00 d, mean when late  18.0 h, max  18.0 h, extra wait averaged over all time   0.0 min
+    floor blocks 6: late 12.9 % of the time, longest  6.77 d, mean when late  18.2 h, max  18.2 h, extra wait averaged over all time   1.5 min
+    floor blocks 15: late 13.7 % of the time, longest  7.19 d, mean when late  21.3 h, max  21.4 h, extra wait averaged over all time  27.1 min
+    depth 2,160: blocks 6: 15.7 to 30.4 h; blocks 15: 21.1 to 35.9 h
+R 48% absent from the start of epoch 3, returns at the start of an epoch
+    D by epoch 3..11: 1.000 0.524 0.520 0.520 0.520 0.985 1.000 1.000 1.000   fastest lottery 1.923 x f when all stake builds
+    floor wins: late 13.1 % of the time, longest  6.87 d, mean when late  20.5 h, max  20.5 h, extra wait averaged over all time  19.6 min
+    floor blocks 6: late 13.4 % of the time, longest  7.01 d, mean when late  22.5 h, max  22.7 h, extra wait averaged over all time  36.3 min
+    floor blocks 15: late 13.9 % of the time, longest  7.30 d, mean when late  25.4 h, max  25.9 h, extra wait averaged over all time  62.1 min
+    depth 2,160: blocks 6: 13.1 to 38.0 h; blocks 15: 18.5 to 43.4 h
+R 48% absent from the start of epoch 3, returns at the end of an observation window
+    D by epoch 3..11: 1.000 0.524 0.520 0.520 0.520 0.985 1.000 1.000 1.000   fastest lottery 1.923 x f when all stake builds
+    floor wins: late 13.1 % of the time, longest  6.87 d, mean when late  20.5 h, max  20.5 h, extra wait averaged over all time  19.6 min
+    floor blocks 6: late 13.4 % of the time, longest  7.01 d, mean when late  22.5 h, max  22.7 h, extra wait averaged over all time  36.3 min
+    floor blocks 15: late 13.9 % of the time, longest  7.30 d, mean when late  25.4 h, max  25.9 h, extra wait averaged over all time  62.1 min
+    depth 2,160: blocks 6: 13.1 to 38.0 h; blocks 15: 18.5 to 43.4 h
+R 50% absent from the start of epoch 3, returns at the start of an epoch
+    D by epoch 3..11: 1.000 0.504 0.500 0.500 0.500 0.983 1.000 1.000 1.000   fastest lottery 2.000 x f when all stake builds
+    floor wins: late 13.1 % of the time, longest  6.89 d, mean when late  21.3 h, max  21.4 h, extra wait averaged over all time  25.9 min
+    floor blocks 6: late 13.4 % of the time, longest  7.03 d, mean when late  23.3 h, max  23.5 h, extra wait averaged over all time  42.6 min
+    floor blocks 15: late 13.9 % of the time, longest  7.31 d, mean when late  26.2 h, max  26.7 h, extra wait averaged over all time  68.2 min
+    depth 2,160: blocks 6: 12.8 to 39.3 h; blocks 15: 18.2 to 44.7 h
+R 50% absent from the start of epoch 3, returns at the end of an observation window
+    D by epoch 3..11: 1.000 0.504 0.500 0.500 0.500 0.983 1.000 1.000 1.000   fastest lottery 2.000 x f when all stake builds
+    floor wins: late 13.1 % of the time, longest  6.89 d, mean when late  21.3 h, max  21.4 h, extra wait averaged over all time  25.9 min
+    floor blocks 6: late 13.4 % of the time, longest  7.03 d, mean when late  23.3 h, max  23.5 h, extra wait averaged over all time  42.6 min
+    floor blocks 15: late 13.9 % of the time, longest  7.31 d, mean when late  26.2 h, max  26.7 h, extra wait averaged over all time  68.2 min
+    depth 2,160: blocks 6: 12.8 to 39.3 h; blocks 15: 18.2 to 44.7 h

@@ -1,0 +1,59 @@
+BLEND fit D = 5.5068 slots (mine)
+
+== DEPTH quantiles (earliest 1e-9, median, latest 1-1e-9), hours ==
+normal: share 1, Blend fit                       n=2160 exact  19.11  21.30  23.68 | CF  19.12  21.30  23.68 | MC med  21.30 q1e-3  20.17/ 22.45 (exact  20.15/ 22.50)
+a third withholds, 10 s                          n=2160 exact  29.56  32.84  36.42 | CF  29.57  32.84  36.42 | MC med  32.84 q1e-3  31.13/ 34.63 (exact  31.12/ 34.65)
+a third withholds, Blend fit                     n=2160 exact  26.87  30.15  33.72 | CF  26.87  30.15  33.72 | MC med  30.14 q1e-3  28.42/ 31.99 (exact  28.42/ 31.95)
+30 % withholds, Blend                            n=2160 exact  25.76  28.88  32.29 | CF  25.76  28.88  32.29 | MC med  28.88 q1e-3  27.19/ 30.57 (exact  27.24/ 30.60)
+a third withholds, 15 s                          n=2160 exact  32.56  35.84  39.42 | CF  32.57  35.84  39.42 | MC med  35.84 q1e-3  34.14/ 37.61 (exact  34.12/ 37.65)
+half, Blend                                      n=2160 exact  34.62  39.00  43.76 | CF  34.62  39.00  43.76 | MC med  39.00 q1e-3  36.70/ 41.48 (exact  36.69/ 41.40)
+whole stake, no delay                            n=2160 exact  15.81  18.00  20.38 | CF  15.81  18.00  20.38 | MC med  18.00 q1e-3  16.85/ 19.22 (exact  16.85/ 19.20)
+lottery 1.5, no delay                            n=2160 exact  10.64  12.10  13.69 | CF  10.64  12.10  13.69 | MC med  12.10 q1e-3  11.34/ 12.90 (exact  11.33/ 12.90)
+lottery 1.925, no delay                          n=2160 exact   8.36   9.50  10.73 | CF   8.36   9.50  10.73 | MC med   9.50 q1e-3   8.91/ 10.12 (exact   8.90/ 10.12)
+lottery 1/0.7, no delay                          n=2160 exact  11.16  12.69  14.36 | CF  11.16  12.69  14.36 | MC med  12.69 q1e-3  11.88/ 13.54 (exact  11.88/ 13.53)
+lottery 1.25, no delay                           n=2160 exact  12.71  14.46  16.36 | CF  12.71  14.46  16.36 | MC med  14.45 q1e-3  13.54/ 15.45 (exact  13.54/ 15.42)
+lottery 1.5, Blend                               n=2160 exact  13.95  15.40  16.99 | CF  13.95  15.40  16.99 | MC med  15.40 q1e-3  14.62/ 16.24 (exact  14.64/ 16.21)
+lottery 1.925, Blend                             n=2160 exact  11.66  12.80  14.04 | CF  11.66  12.80  14.04 | MC med  12.80 q1e-3  12.21/ 13.45 (exact  12.20/ 13.42)
+
+== floor phi ==
+a third withholds, 15 s, phi                     n=1019 exact  14.70  16.91  19.41 | CF  14.70  16.91  19.41 | MC med  16.91 q1e-3  15.79/ 18.15 (exact  15.73/ 18.16)
+half, Blend, phi                                 n=1019 exact  15.45  18.39  21.73 | CF  15.45  18.39  21.73 | MC med  18.39 q1e-3  16.87/ 20.13 (exact  16.83/ 20.06)
+a third withholds, 10 s, phi                     n=1019 exact  13.29  15.49  17.99 | CF  13.29  15.49  17.99 | MC med  15.50 q1e-3  14.31/ 16.80 (exact  14.32/ 16.74)
+
+== A_occ (age>=K and k occupied; occupied = every winning slot, no delay), share 1 ==
+   T_k(no delay) h: [15.81, 18.0, 20.38]  -> max(K,.) : [18.0, 18.0, 20.38]
+   Bernoulli-slot MC: median T_k 17.99 h, mean 17.990 h, P(T_k<=K) 0.515, median max(K,T) 18.00
+
+== P(floor missed at K) for a third at 10 s: P(T_phi > K) ==
+   D=10: 9.284e-10
+   D=15: 3.388e-03
+   D=20: 7.969e-01
+
+== Epoch-phase participation (share s.t. P(T_n <= phase) >= q) ==
+   phase 54 h, k  , no delay : median  33.0 %  at 1-1e-9  37.4 %
+   phase 54 h, k  , Blend fit: median  35.1 %  at 1-1e-9  39.8 %
+   phase 54 h, k  , 10 s     : median  37.1 %  at 1-1e-9  42.1 %
+   phase 54 h, phi, no delay : median  15.5 %  at 1-1e-9  18.6 %
+   phase 54 h, phi, Blend fit: median  16.0 %  at 1-1e-9  19.1 %
+   phase 54 h, phi, 10 s     : median  16.4 %  at 1-1e-9  19.6 %
+   phase 72 h, k  , no delay : median  24.7 %  at 1-1e-9  28.0 %
+   phase 72 h, k  , Blend fit: median  25.9 %  at 1-1e-9  29.4 %
+   phase 72 h, k  , 10 s     : median  26.9 %  at 1-1e-9  30.6 %
+   phase 72 h, phi, no delay : median  11.6 %  at 1-1e-9  13.9 %
+   phase 72 h, phi, Blend fit: median  11.9 %  at 1-1e-9  14.2 %
+   phase 72 h, phi, 10 s     : median  12.1 %  at 1-1e-9  14.5 %
+
+== Eclipse (mean rates). te = start of eclipse after fork point; honest gap = 1/ph + Dh ==
+   a=0.300 honest no delay : DEPTH  33.7 h (te  25.6)  SLOT  15.9 h (te  12.1)  A  33.7 h (te  25.6)  B  15.9 h (te  12.1)
+   a=0.300 honest Blend fit: DEPTH  30.4 h (te  28.9)  SLOT  14.4 h (te  13.6)  A  30.4 h (te  28.9)  B  14.4 h (te  13.6)
+   a=0.300 honest 10 s     : DEPTH  27.7 h (te  31.6)  SLOT  13.1 h (te  14.9)  A  27.7 h (te  31.6)  B  13.1 h (te  14.9)
+   a=0.333 honest no delay : DEPTH  26.6 h (te  26.8)  SLOT  12.5 h (te  12.7)  A  26.6 h (te  26.8)  B  12.5 h (te  12.7)
+   a=0.333 honest Blend fit: DEPTH  23.3 h (te  30.1)  SLOT  11.0 h (te  14.2)  A  23.3 h (te  30.1)  B  11.0 h (te  14.2)
+   a=0.333 honest 10 s     : DEPTH  20.6 h (te  32.8)  SLOT   9.7 h (te  15.5)  A  20.6 h (te  32.8)  B   9.7 h (te  15.5)
+
+== dial rows spot check: age>=K and n blocks, a third withholds 10 s ==
+   n=1019:  18.00  18.00  18.00  eclipse formula  12.5 h; own fork 1.05 d
+   n=1250:  18.00  19.01  21.76  eclipse formula  15.4 h; own fork 1.29 d
+   n=1510:  20.24  22.96  25.97  eclipse formula  18.6 h; own fork 1.56 d
+   n=1825:  24.75  27.75  31.05  eclipse formula  22.5 h; own fork 1.88 d
+   n=2160:  29.56  32.84  36.42  eclipse formula  26.6 h; own fork 2.23 d

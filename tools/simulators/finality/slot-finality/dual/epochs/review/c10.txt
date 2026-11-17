@@ -1,0 +1,202 @@
+thresholds [0.57, 0.6448, 0.8027]
+===== tenth
+S1
+   D[3..9] 1.0000 1.0000 0.9015 0.9000 0.9000 0.9000 0.9000  minD 0.9000 true max rate/f 1.109
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   depth b6: 21.60 to 23.57 h
+   depth b15: 27.00 to 28.97 h
+S1b
+   D[3..9] 1.0000 0.9015 0.9000 0.9000 0.9000 0.9000 0.9000  minD 0.9000 true max rate/f 1.109
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   depth b6: 21.60 to 23.57 h
+   depth b15: 27.00 to 28.97 h
+S2
+   D[3..12] 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000  minD 1.0000 true max rate/f 1.000
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   depth b6: 21.60 to 23.57 h
+   depth b15: 27.00 to 28.97 h
+S3
+   D[3..12] 0.9982 0.9015 0.9982 0.9015 0.9982 0.9015 0.9982 0.9015 0.9982 0.9015  minD 0.9015 true max rate/f 1.107
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   depth b6: 19.86 to 23.53 h
+   depth b15: 25.26 to 28.93 h
+S5
+   D[3..12] 0.9000 0.9000 0.9000 0.9000 0.9000 0.9000 0.9000 0.9000 0.9000 0.9000  minD 0.9000 true max rate/f 1.109
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   depth b6: 19.83 to 21.60 h
+   depth b15: 25.23 to 27.00 h
+===== fifth
+S1
+   D[3..9] 1.0000 1.0000 0.8027 0.8000 0.8000 0.8000 0.8000  minD 0.8000 true max rate/f 1.245
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  26.9%  longest  10.10 d  mean-late 10.02 h  max 10.02 h  extra    0.4 min
+   depth b6: 21.60 to 26.02 h
+   depth b15: 27.00 to 31.42 h
+S1b
+   D[3..9] 1.0000 0.8027 0.8000 0.8000 0.8000 0.8000 0.8000  minD 0.8000 true max rate/f 1.245
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  18.9%  longest   7.09 d  mean-late 10.02 h  max 10.02 h  extra    0.3 min
+   depth b6: 21.60 to 26.02 h
+   depth b15: 27.00 to 31.42 h
+S2
+   D[3..12] 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000  minD 1.0000 true max rate/f 1.000
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  34.6%  longest   2.60 d  mean-late 10.02 h  max 10.02 h  extra    0.5 min
+   depth b6: 21.60 to 26.02 h
+   depth b15: 27.00 to 31.42 h
+S3
+   D[3..12] 0.9959 0.8027 0.9959 0.8027 0.9959 0.8027 0.9959 0.8027 0.9959 0.8027  minD 0.8027 true max rate/f 1.241
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   depth b6: 18.11 to 25.93 h
+   depth b15: 23.51 to 31.33 h
+S5
+   D[3..12] 0.8000 0.8000 0.8000 0.8000 0.8000 0.8000 0.8000 0.8000 0.8000 0.8000  minD 0.8000 true max rate/f 1.245
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   depth b6: 18.06 to 21.60 h
+   depth b15: 23.46 to 27.00 h
+===== 30%
+S1
+   D[3..9] 1.0000 1.0000 0.7036 0.7001 0.7000 0.7000 0.7000  minD 0.7000 true max rate/f 1.418
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  27.7%  longest  10.39 d  mean-late 11.01 h  max 11.03 h  extra   16.9 min
+   depth b6: 21.60 to 29.18 h
+   depth b15: 27.00 to 34.58 h
+S1b
+   D[3..9] 1.0000 0.7036 0.7001 0.7000 0.7000 0.7000 0.7000  minD 0.7000 true max rate/f 1.418
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  19.3%  longest   7.24 d  mean-late 11.02 h  max 11.03 h  extra   11.8 min
+   depth b6: 21.60 to 29.18 h
+   depth b15: 27.00 to 34.58 h
+S2
+   D[3..12] 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000  minD 1.0000 true max rate/f 1.000
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  38.5%  longest   2.89 d  mean-late 10.97 h  max 11.03 h  extra   22.4 min
+   depth b6: 21.60 to 29.18 h
+   depth b15: 27.00 to 34.58 h
+S3
+   D[3..12] 0.9929 0.7035 0.9929 0.7035 0.9929 0.7035 0.9929 0.7035 0.9929 0.7035  minD 0.7035 true max rate/f 1.411
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  48.2%  longest   7.22 d  mean-late 10.96 h  max 10.97 h  extra   27.8 min
+   depth b6: 16.35 to 29.01 h
+   depth b15: 21.75 to 34.41 h
+S5
+   D[3..12] 0.7000 0.7000 0.7000 0.7000 0.7000 0.7000 0.7000 0.7000 0.7000 0.7000  minD 0.7000 true max rate/f 1.418
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   depth b6: 16.29 to 21.60 h
+   depth b15: 21.69 to 27.00 h
+===== third
+S1
+   D[3..9] 1.0000 1.0000 0.6704 0.6667 0.6667 0.6667 0.6667  minD 0.6667 true max rate/f 1.487
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  27.9%  longest  10.45 d  mean-late 11.41 h  max 11.44 h  extra   23.5 min
+   depth b6: 21.60 to 30.45 h
+   depth b15: 27.00 to 35.85 h
+S1b
+   D[3..9] 1.0000 0.6704 0.6667 0.6667 0.6667 0.6667 0.6667  minD 0.6667 true max rate/f 1.487
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  19.4%  longest   7.27 d  mean-late 11.41 h  max 11.44 h  extra   16.4 min
+   depth b6: 21.60 to 30.45 h
+   depth b15: 27.00 to 35.85 h
+S2
+   D[3..12] 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000 1.0000  minD 1.0000 true max rate/f 1.000
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  39.3%  longest   2.95 d  mean-late 11.33 h  max 11.44 h  extra   31.4 min
+   depth b6: 21.60 to 30.45 h
+   depth b15: 27.00 to 35.85 h
+S3
+   D[3..12] 0.9918 0.6704 0.9918 0.6704 0.9918 0.6704 0.9918 0.6704 0.9918 0.6704  minD 0.6704 true max rate/f 1.479
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  48.3%  longest   7.25 d  mean-late 11.34 h  max 11.37 h  extra   39.0 min
+   depth b6: 15.77 to 30.23 h
+   depth b15: 21.17 to 35.63 h
+S5
+   D[3..12] 0.6667 0.6667 0.6667 0.6667 0.6667 0.6667 0.6667 0.6667 0.6667 0.6667  minD 0.6667 true max rate/f 1.487
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   depth b6: 15.70 to 21.60 h
+   depth b15: 21.10 to 27.00 h
+===== leaving
+L 0.3 start
+   D[3..9] 1.0000 0.7036 0.7001 0.7000 0.7000 0.7000 0.7000  minD 0.7000 true max rate/f 1.418
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  19.3%  longest   7.24 d  mean-late 11.02 h  max 11.03 h  extra   11.8 min
+   depth b6: 21.60 to 29.18 h
+   depth b15: 27.00 to 34.58 h
+L 0.3 mid
+   D[3..9] 1.0000 0.8518 0.7021 0.7000 0.7000 0.7000 0.7000  minD 0.7000 true max rate/f 1.418
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  14.2%  longest   5.34 d  mean-late 10.98 h  max 11.03 h  extra    8.4 min
+   depth b6: 21.60 to 29.18 h
+   depth b15: 27.00 to 34.58 h
+L 0.3 end
+   D[3..9] 1.0000 1.0000 0.7036 0.7001 0.7000 0.7000 0.7000  minD 0.7000 true max rate/f 1.418
+   wins  late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b6    late   0.0%  longest   0.00 d  mean-late 10.00 h  max 10.00 h  extra    0.0 min
+   b15   late  27.7%  longest  10.39 d  mean-late 11.01 h  max 11.03 h  extra   16.9 min
+   depth b6: 21.60 to 29.18 h
+   depth b15: 27.00 to 34.58 h
+L 0.5 start
+   D[3..9] 1.0000 0.5042 0.5001 0.5000 0.5000 0.5000 0.5000  minD 0.5000 true max rate/f 1.967
+   wins  late  19.0%  longest   7.14 d  mean-late 11.38 h  max 11.39 h  extra   15.7 min
+   b6    late  19.2%  longest   7.21 d  mean-late 12.49 h  max 12.54 h  extra   28.8 min
+   b15   late  19.6%  longest   7.36 d  mean-late 14.13 h  max 14.26 h  extra   48.6 min
+   depth b6: 21.60 to 39.30 h
+   depth b15: 27.00 to 44.70 h
+L 0.5 mid
+   D[3..9] 1.0000 0.7521 0.5028 0.5000 0.5000 0.5000 0.5000  minD 0.5000 true max rate/f 1.967
+   wins  late  13.5%  longest   5.07 d  mean-late 11.35 h  max 11.39 h  extra   10.9 min
+   b6    late  14.2%  longest   5.33 d  mean-late 12.39 h  max 12.54 h  extra   20.4 min
+   b15   late  34.1%  longest  12.79 d  mean-late 12.54 h  max 14.26 h  extra   52.0 min
+   depth b6: 21.60 to 39.30 h
+   depth b15: 27.00 to 44.70 h
+L 0.5 end
+   D[3..9] 1.0000 1.0000 0.5042 0.5001 0.5000 0.5000 0.5000  minD 0.5000 true max rate/f 1.967
+   wins  late  27.2%  longest  10.20 d  mean-late 11.37 h  max 11.39 h  extra   22.4 min
+   b6    late  27.6%  longest  10.34 d  mean-late 12.49 h  max 12.54 h  extra   41.2 min
+   b15   late  28.3%  longest  10.63 d  mean-late 14.11 h  max 14.26 h  extra   69.9 min
+   depth b6: 21.60 to 39.30 h
+   depth b15: 27.00 to 44.70 h
+R 0.48 start
+   D[3..11] 1.0000 0.5242 0.5201 0.5200 0.5200 0.9846 0.9997 1.0000 1.0000  minD 0.5200 true max rate/f 1.893
+   wins  late  13.6%  longest   7.13 d  mean-late 10.95 h  max 10.95 h  extra    7.7 min
+   b6    late  13.7%  longest   7.20 d  mean-late 12.07 h  max 12.10 h  extra   17.0 min
+   b15   late  14.0%  longest   7.35 d  mean-late 13.71 h  max 13.82 h  extra   31.2 min
+   depth b6: 13.11 to 37.94 h
+   depth b15: 18.51 to 43.34 h
+R 0.48 endwin
+   D[3..11] 1.0000 0.5242 0.5201 0.5200 0.5200 0.9846 0.9997 1.0000 1.0000  minD 0.5200 true max rate/f 1.893
+   wins  late  13.6%  longest   7.13 d  mean-late 10.95 h  max 10.95 h  extra    7.7 min
+   b6    late  13.7%  longest   7.20 d  mean-late 12.07 h  max 12.10 h  extra   17.0 min
+   b15   late  14.0%  longest   7.35 d  mean-late 13.71 h  max 13.82 h  extra   31.2 min
+   depth b6: 13.11 to 37.94 h
+   depth b15: 18.51 to 43.34 h

@@ -1,0 +1,64 @@
+third  delay  6 s  scale  1.00  wait    7.01 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+third  delay  6 s  scale  1.02  wait    6.96 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+third  delay  6 s  scale  1.05  wait    6.88 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+third  delay  6 s  scale  1.10  wait    6.78 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+third  delay  6 s  scale  1.20  wait    6.62 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+third  delay  6 s  scale  1.30  wait    6.52 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+third  delay  6 s  scale  1.40  wait    6.47 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+third  delay  6 s  scale  1.50  wait    6.46 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+third  delay  6 s  scale  1.75  wait    6.61 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+third  delay  6 s  scale  2.00  wait    6.99 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+third  delay 10 s  scale  1.00  wait   10.11 h   chance at 18 h 0.0e+00   at 10 h 1.2e-09
+third  delay 10 s  scale  1.02  wait   10.13 h   chance at 18 h 0.0e+00   at 10 h 1.3e-09
+third  delay 10 s  scale  1.05  wait   10.17 h   chance at 18 h 0.0e+00   at 10 h 1.4e-09
+third  delay 10 s  scale  1.10  wait   10.27 h   chance at 18 h 0.0e+00   at 10 h 1.7e-09
+third  delay 10 s  scale  1.20  wait   10.58 h   chance at 18 h 0.0e+00   at 10 h 3.1e-09
+third  delay 10 s  scale  1.30  wait   11.02 h   chance at 18 h 0.0e+00   at 10 h 6.7e-09
+third  delay 10 s  scale  1.40  wait   11.61 h   chance at 18 h 0.0e+00   at 10 h 1.7e-08
+third  delay 10 s  scale  1.50  wait   12.36 h   chance at 18 h 0.0e+00   at 10 h 5.1e-08
+third  delay 10 s  scale  1.75  wait   15.10 h   chance at 18 h 0.0e+00   at 10 h 1.1e-06
+third  delay 10 s  scale  2.00  wait   19.58 h   chance at 18 h 5.3e-09   at 10 h 2.5e-05
+third  delay 12 s  scale  1.00  wait   12.40 h   chance at 18 h 0.0e+00   at 10 h 5.2e-08
+third  delay 12 s  scale  1.02  wait   12.50 h   chance at 18 h 0.0e+00   at 10 h 6.0e-08
+third  delay 12 s  scale  1.05  wait   12.67 h   chance at 18 h 0.0e+00   at 10 h 7.5e-08
+third  delay 12 s  scale  1.10  wait   13.00 h   chance at 18 h 0.0e+00   at 10 h 1.1e-07
+third  delay 12 s  scale  1.20  wait   13.84 h   chance at 18 h 0.0e+00   at 10 h 3.0e-07
+third  delay 12 s  scale  1.30  wait   14.94 h   chance at 18 h 0.0e+00   at 10 h 9.1e-07
+third  delay 12 s  scale  1.40  wait   16.37 h   chance at 18 h 1.3e-10   at 10 h 3.0e-06
+third  delay 12 s  scale  1.50  wait   18.17 h   chance at 18 h 1.2e-09   at 10 h 1.1e-05
+third  delay 12 s  scale  1.75  wait   25.04 h   chance at 18 h 3.4e-07   at 10 h 2.6e-04
+third  delay 12 s  scale  2.00  wait   37.75 h   chance at 18 h 5.3e-05   at 10 h 4.3e-03
+third  delay 15 s  scale  1.00  wait   17.37 h   chance at 18 h 4.7e-10   at 10 h 6.1e-06
+third  delay 15 s  scale  1.02  wait   17.69 h   chance at 18 h 7.0e-10   at 10 h 7.7e-06
+third  delay 15 s  scale  1.05  wait   18.23 h   chance at 18 h 1.3e-09   at 10 h 1.1e-05
+third  delay 15 s  scale  1.10  wait   19.23 h   chance at 18 h 3.7e-09   at 10 h 2.0e-05
+third  delay 15 s  scale  1.20  wait   21.74 h   chance at 18 h 3.5e-08   at 10 h 7.0e-05
+third  delay 15 s  scale  1.30  wait   25.09 h   chance at 18 h 3.5e-07   at 10 h 2.5e-04
+third  delay 15 s  scale  1.40  wait   29.56 h   chance at 18 h 3.3e-06   at 10 h 9.0e-04
+third  delay 15 s  scale  1.50  wait   35.57 h   chance at 18 h 2.8e-05   at 10 h 3.0e-03
+third  delay 15 s  scale  1.75  wait   62.77 h   chance at 18 h 2.8e-03   at 10 h 4.0e-02
+third  delay 15 s  scale  2.00  wait  132.42 h   chance at 18 h 6.9e-02   at 10 h 2.4e-01
+30 %   delay  6 s  scale  1.00  wait    4.34 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay  6 s  scale  1.05  wait    4.24 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay  6 s  scale  1.10  wait    4.16 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay  6 s  scale  1.20  wait    4.02 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay  6 s  scale  1.30  wait    3.92 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay  6 s  scale  1.43  wait    3.84 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay  6 s  scale  1.75  wait    3.80 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay  6 s  scale  2.00  wait    3.91 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay 10 s  scale  1.00  wait    5.93 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay 10 s  scale  1.05  wait    5.92 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay 10 s  scale  1.10  wait    5.93 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay 10 s  scale  1.20  wait    6.00 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay 10 s  scale  1.30  wait    6.13 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay 10 s  scale  1.43  wait    6.41 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay 10 s  scale  1.75  wait    7.60 h   chance at 18 h 0.0e+00   at 10 h 0.0e+00
+30 %   delay 10 s  scale  2.00  wait    9.18 h   chance at 18 h 0.0e+00   at 10 h 1.6e-10
+30 %   delay 15 s  scale  1.00  wait    9.37 h   chance at 18 h 0.0e+00   at 10 h 2.5e-10
+30 %   delay 15 s  scale  1.05  wait    9.68 h   chance at 18 h 0.0e+00   at 10 h 5.1e-10
+30 %   delay 15 s  scale  1.10  wait   10.05 h   chance at 18 h 0.0e+00   at 10 h 1.1e-09
+30 %   delay 15 s  scale  1.20  wait   10.96 h   chance at 18 h 0.0e+00   at 10 h 6.1e-09
+30 %   delay 15 s  scale  1.30  wait   12.15 h   chance at 18 h 0.0e+00   at 10 h 3.9e-08
+30 %   delay 15 s  scale  1.43  wait   14.23 h   chance at 18 h 0.0e+00   at 10 h 4.7e-07
+30 %   delay 15 s  scale  1.75  wait   23.41 h   chance at 18 h 1.2e-07   at 10 h 1.5e-04
+30 %   delay 15 s  scale  2.00  wait   38.65 h   chance at 18 h 7.1e-05   at 10 h 5.3e-03

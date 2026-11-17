@@ -1,0 +1,6 @@
+30 %, 10 s, deflated (scale 1.4286): w(K) = 0; B's bound 1 = 4.7e-46 at t0 = 9.28 h -> holds
+30 %, 12 s, deflated (scale 1.4286): w(K) = 0; B's bound 1 = 4.8e-12 at t0 = 10.87 h -> holds
+30 %, 15 s, deflated (scale 1.4286): w(K) = 3.9e-12; B's bound 1 = 8.2e-08 at t0 = 11.22 h -> not shown
+a third, 10 s, deflated (scale 1.5000): w(K) = 0; B's bound 1 = 1.9e-08 at t0 = 10.64 h -> not shown
+a third, 12 s, deflated (scale 1.5000): w(K) = 1.2e-09; B's bound 1 = 4.3e-06 at t0 = 10.86 h -> not shown
+a third, 15 s, deflated (scale 1.5000): w(K) = 2.8e-05; B's bound 1 = 0.0016 at t0 = 11.14 h -> not shown

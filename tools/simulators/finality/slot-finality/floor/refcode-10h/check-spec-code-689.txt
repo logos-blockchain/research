@@ -1,0 +1,5 @@
+finality_floor() as printed: 689  blocks_short at it: 9.82e-10  one past it: 1.37e-09
+the same code at a delay of 10: 768; at K = 64,800 and a delay of 15: 1291
+bootstrap_fork_choice and online_fork_choice as printed: 49 of 49 tests pass
+last_round and download_blocks as printed: both parse; each repetition asks the peer's tip, and a download names the recorded block with the last delivered block, or with three blocks behind the local tip
+stated values agree: K = 36,000 slots = 10 h, phi = 689, alpha_max = 3/10 in the K row, epoch = 10 floor(k/f), PERIOD = 6 floor(k/f)

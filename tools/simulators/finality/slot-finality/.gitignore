@@ -1,0 +1,6 @@
+# Caches the scripts write beside themselves.
+.cache/
+__pycache__/
+# Arrays the scripts save for each other. The README names the script that writes each.
+*.npy
+*.npz

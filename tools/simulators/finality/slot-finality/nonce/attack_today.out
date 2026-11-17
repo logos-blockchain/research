@@ -1,0 +1,30 @@
+the least wait (hours, steps of 0.25) whose chance is at most 1e-9, one concrete attack (from below)
+share | delay | n nonces evaluated | n fixed at 2^b (hypothetical: n nonces in hand) | n = 1 + the largest set of choices complete at the cut-off, capped (an attack that can be run) | n = all choices counted with hindsight of the lead after the cut-off, capped (not always reachable)
+30 %     | 10 s | 2^0  |   3.25 |   3.25 |   3.25
+30 %     | 10 s | 2^8  |   4.00 |   3.50 |   3.75
+30 %     | 10 s | 2^16 |   5.00 |   4.00 |   4.25
+30 %     | 10 s | 2^24 |   5.75 |   4.50 |   4.75
+30 %     | 10 s | 2^32 |   6.75 |   4.75 |   5.00
+30 %     | 10 s | 2^40 |   7.50 |   4.75 |   5.00
+30 %     | 10 s | 2^64 |   9.75 |   4.75 |   5.00
+30 %     | 15 s | 2^0  |   4.25 |   4.25 |   4.25
+30 %     | 15 s | 2^8  |   5.50 |   4.75 |   5.00
+30 %     | 15 s | 2^16 |   6.50 |   5.50 |   5.75
+30 %     | 15 s | 2^24 |   7.75 |   6.25 |   6.50
+30 %     | 15 s | 2^32 |   8.75 |   7.00 |   7.25
+30 %     | 15 s | 2^40 |  10.00 |   7.00 |   7.50
+30 %     | 15 s | 2^64 |  13.25 |   7.00 |   7.50
+a third  | 10 s | 2^0  |   5.25 |   5.25 |   5.25
+a third  | 10 s | 2^8  |   6.75 |   6.00 |   6.00
+a third  | 10 s | 2^16 |   8.00 |   7.00 |   7.25
+a third  | 10 s | 2^24 |   9.50 |   8.00 |   8.25
+a third  | 10 s | 2^32 |  11.00 |   8.75 |   9.25
+a third  | 10 s | 2^40 |  12.25 |   9.75 |  10.00
+a third  | 10 s | 2^64 |  16.25 |   9.75 |  10.50
+a third  | 15 s | 2^0  |   7.50 |   7.50 |   7.50
+a third  | 15 s | 2^8  |   9.50 |   8.75 |   8.75
+a third  | 15 s | 2^16 |  11.75 |  10.50 |  10.75
+a third  | 15 s | 2^24 |  13.75 |  12.00 |  12.25
+a third  | 15 s | 2^32 |  16.00 |  13.50 |  14.00
+a third  | 15 s | 2^40 |  18.00 |  15.00 |  15.25
+a third  | 15 s | 2^64 |  23.75 |  16.75 |  18.25

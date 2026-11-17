@@ -1,0 +1,48 @@
+Blend fit: 5.5068 slots per block
+eclipse, K = 64800, floor 1291, fork of 0.333: no delay: 15.88 h, lucky 1 in 1,000: 13.22 h; Blend fit: 13.92 h, lucky 1 in 1,000: 11.26 h; 10 s: 12.31 h, lucky 1 in 1,000: 9.65 h; 15 s: 10.51 h, lucky 1 in 1,000: 7.85 h
+eclipse, K = 64800, floor 1019, fork of 0.333: no delay: 12.54 h, lucky 1 in 1,000: 10.18 h; Blend fit: 10.98 h, lucky 1 in 1,000: 8.62 h; 10 s: 9.70 h, lucky 1 in 1,000: 7.35 h; 15 s: 8.29 h, lucky 1 in 1,000: 5.93 h
+eclipse, K = 36000, floor 689, fork of 0.300: no delay: 10.77 h, lucky 1 in 1,000: 8.63 h; Blend fit: 9.71 h, lucky 1 in 1,000: 7.57 h; 10 s: 8.87 h, lucky 1 in 1,000: 6.73 h; 15 s: 7.91 h, lucky 1 in 1,000: 5.77 h
+eclipse, K = 36000, floor 560, fork of 0.300: no delay: 8.76 h, lucky 1 in 1,000: 6.83 h; Blend fit: 7.90 h, lucky 1 in 1,000: 5.98 h; 10 s: 7.20 h, lucky 1 in 1,000: 5.28 h; 15 s: 6.42 h, lucky 1 in 1,000: 4.50 h
+depth rule, 2,161 blocks against 2,160, fork of 0.333: no delay 26.57 h, Blend fit 23.27 h, 10 s 20.57 h, growth factor 0.845 21.65 h
+depth rule, 2,161 blocks against 2,160, fork of 0.300: no delay 33.74 h, Blend fit 30.43 h, 10 s 27.74 h, growth factor 0.845 29.04 h
+depth rule while a third withholds, 0 s: 2,160 blocks take median 26.84 h, latest 30.42 h
+depth rule while a third withholds, 10 s: 2,160 blocks take median 32.84 h, latest 36.42 h
+depth rule while a third withholds, 15 s: 2,160 blocks take median 35.84 h, latest 39.42 h
+depth rule while 0.3 withholds, 0 s: 2,160 blocks take median 25.58 h, latest 28.98 h
+depth rule while 0.3 withholds, 10 s: 2,160 blocks take median 31.58 h, latest 34.98 h
+depth rule while 0.3 withholds, 15 s: 2,160 blocks take median 34.58 h, latest 37.98 h
+depth rule, all stake: 2,160 blocks take median 18.00 h at 0 s, 24.00 h at 10 s, 27.00 h at 15 s
+floor 1291: a side of 0.100 makes 1292 blocks after 4.418 days on average, 3.722 at the earliest
+floor 1291: a side of 0.120 makes 1292 blocks after 3.683 days on average, 3.103 at the earliest
+floor 1291: a side of 0.150 makes 1292 blocks after 2.948 days on average, 2.484 at the earliest
+floor 1291: a side of 0.200 makes 1292 blocks after 2.213 days on average, 1.865 at the earliest
+floor 1291: a side of 0.250 makes 1292 blocks after 1.772 days on average, 1.493 at the earliest
+floor 1291: a side of 0.300 makes 1292 blocks after 1.478 days on average, 1.246 at the earliest
+floor 1291: a side of 0.333 makes 1292 blocks after 1.331 days on average, 1.122 at the earliest
+floor 1291: a side of 0.400 makes 1292 blocks after 1.110 days on average, 0.936 at the earliest
+floor 1291: a side of 0.450 makes 1292 blocks after 0.988 days on average, 0.833 at the earliest
+floor 1291: a side of 0.500 makes 1292 blocks after 0.890 days on average, 0.750 at the earliest
+floor 1291: a side of 0.600 makes 1292 blocks after 0.743 days on average, 0.627 at the earliest
+floor 689: a side of 0.100 makes 690 blocks after 2.360 days on average, 1.861 at the earliest
+floor 689: a side of 0.120 makes 690 blocks after 1.967 days on average, 1.551 at the earliest
+floor 689: a side of 0.150 makes 690 blocks after 1.574 days on average, 1.242 at the earliest
+floor 689: a side of 0.200 makes 690 blocks after 1.182 days on average, 0.932 at the earliest
+floor 689: a side of 0.250 makes 690 blocks after 0.946 days on average, 0.747 at the earliest
+floor 689: a side of 0.300 makes 690 blocks after 0.789 days on average, 0.623 at the earliest
+floor 689: a side of 0.333 makes 690 blocks after 0.711 days on average, 0.561 at the earliest
+floor 689: a side of 0.400 makes 690 blocks after 0.593 days on average, 0.468 at the earliest
+floor 689: a side of 0.450 makes 690 blocks after 0.527 days on average, 0.417 at the earliest
+floor 689: a side of 0.500 makes 690 blocks after 0.475 days on average, 0.375 at the earliest
+floor 689: a side of 0.600 makes 690 blocks after 0.397 days on average, 0.313 at the earliest
+depth rule: 2,161 blocks take a third 2.23 days, a tenth 7.39, 0.3 2.47; a half 35.70 h
+1 % of stake: first win after 49.2 minutes on average
+floor 1291: the part of a shifted range that reaches the floor is the last 38700 slots at mean rates; 1 % of stake wins 13.1 times in it; the floor is 10.76 h of slots at f, 1091 blocks on the specification's Blend
+floor 689: the part of a shifted range that reaches the floor is the last 20640 slots at mean rates; 1 % of stake wins 7.0 times in it; the floor is 5.74 h of slots at f, 582 blocks on the specification's Blend
+floor 1019: the part of a shifted range that reaches the floor is the last 30540 slots at mean rates; 1 % of stake wins 10.4 times in it; the floor is 8.49 h of slots at f, 861 blocks on the specification's Blend
+floor 560: the part of a shifted range that reaches the floor is the last 16770 slots at mean rates; 1 % of stake wins 5.7 times in it; the floor is 4.67 h of slots at f, 473 blocks on the specification's Blend
+K = 64800, floor 1291: the 54 h phase at mean rates needs 19.65 % of the inferred stake building (2,160 blocks: 32.96 %)
+K = 64800, floor 1291: the 72 h phase at mean rates needs 14.73 % of the inferred stake building (2,160 blocks: 24.68 %)
+K = 36000, floor 689: the 54 h phase at mean rates needs 10.47 % of the inferred stake building (2,160 blocks: 32.96 %)
+K = 36000, floor 689: the 72 h phase at mean rates needs 7.85 % of the inferred stake building (2,160 blocks: 24.68 %)
+K = 64800: with all of the stake building, K slots hold 1825 blocks on the Blend fit, 1440 at 15 s, 1620 at 10 s; a half makes 1291 blocks after 21.34 h (no delay), 23.31 h (Blend fit); medians 21.33, 23.31 h; correction read (mean days of a tenth - 3)/4.5 = 0.315
+K = 36000: with all of the stake building, K slots hold 1014 blocks on the Blend fit, 800 at 15 s, 900 at 10 s; a half makes 689 blocks after 11.39 h (no delay), 12.44 h (Blend fit); medians 11.38, 12.44 h; correction read (mean days of a tenth - 3)/4.5 = -0.142

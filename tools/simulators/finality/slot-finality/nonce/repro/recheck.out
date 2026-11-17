@@ -1,0 +1,35 @@
+factors done in 12 s
+waits done in 314 s
+30 %     10 s  2^8 : one nonce      14.4-     81.7  pair       275-  3.7e+03  wait   7.56-  8.32 h
+30 %     10 s  2^16: one nonce       389-  2.2e+03  pair  1.99e+05- 2.68e+06  wait   9.48- 10.23 h
+30 %     10 s  2^24: one nonce  1.24e+04- 7.04e+04  pair  1.44e+08- 2.31e+09  wait  11.39- 12.20 h
+30 %     10 s  2^40: one nonce  1.07e+07- 6.06e+07  pair  2.25e+13- 2.03e+15  wait  14.87- 16.18 h
+30 %     10 s  2^64: one nonce  2.95e+11- 1.67e+12  pair  1.21e+15- 1.67e+19  wait  16.03- 18.80 h
+30 %     10 s  reading A, a race across the cut-off, 2^40 evaluated: wait  18.70- 19.20 h
+30 %     10 s  reading A, a race across the cut-off, 2^64 evaluated: wait  26.51- 27.02 h
+30 %     15 s  2^8 : one nonce      24.3-      116  pair       550-  7.4e+03  wait  12.25- 13.43 h
+30 %     15 s  2^16: one nonce       925-  4.4e+03  pair  7.96e+05- 1.07e+07  wait  15.56- 16.75 h
+30 %     15 s  2^24: one nonce  3.52e+04- 1.99e+05  pair  1.37e+09- 1.84e+10  wait  18.96- 20.15 h
+30 %     15 s  2^40: one nonce  6.06e+07- 3.43e+08  pair  3.42e+15- 5.47e+16  wait  25.68- 26.94 h
+30 %     15 s  2^64: one nonce  3.97e+12- 2.25e+13  pair  1.18e+19- 7.72e+23  wait  29.39- 34.45 h
+30 %     15 s  reading A, a race across the cut-off, 2^40 evaluated: wait  30.18- 30.97 h
+30 %     15 s  reading A, a race across the cut-off, 2^64 evaluated: wait  42.82- 43.61 h
+a third  10 s  2^8 : one nonce      34.4-      163  pair  1.31e+03- 1.48e+04  wait  13.66- 14.86 h
+a third  10 s  2^16: one nonce  1.85e+03-  8.8e+03  pair  3.79e+06- 4.28e+07  wait  17.61- 18.81 h
+a third  10 s  2^24: one nonce  9.95e+04- 5.63e+05  pair   1.1e+10- 1.48e+11  wait  21.55- 22.84 h
+a third  10 s  2^40: one nonce  3.43e+08- 1.94e+09  pair   1.3e+17- 1.75e+18  wait  29.62- 30.91 h
+a third  10 s  2^64: one nonce  6.35e+13- 3.59e+14  pair  4.37e+24- 1.06e+28  wait  38.20- 42.06 h
+a third  10 s  reading A, a race across the cut-off, 2^40 evaluated: wait  33.57- 34.42 h
+a third  10 s  reading A, a race across the cut-off, 2^64 evaluated: wait  47.81- 48.67 h
+a third  15 s  2^8 : one nonce      48.6-      231  pair  2.62e+03- 2.96e+04  wait  24.01- 26.06 h
+a third  15 s  2^16: one nonce   3.7e+03- 2.09e+04  pair  1.51e+07- 1.71e+08  wait  31.33- 33.38 h
+a third  15 s  2^24: one nonce  2.81e+05- 1.59e+06  pair  8.77e+10- 9.93e+11  wait  38.65- 40.70 h
+a third  15 s  2^40: one nonce  1.63e+09- 9.22e+09  pair  2.94e+18- 3.96e+19  wait  53.28- 55.48 h
+a third  15 s  2^64: one nonce  7.19e+14- 4.84e+15  pair  6.81e+29- 9.16e+30  wait  75.38- 77.58 h
+a third  15 s  reading A, a race across the cut-off, 2^40 evaluated: wait  58.70- 60.16 h
+a third  15 s  reading A, a race across the cut-off, 2^64 evaluated: wait  83.72- 85.33 h
+largest share held at 1e-9 under a worst case of 15 s, today's nonce, factors at 15 s
+   K = 10 h: one ground nonce 0.255-0.258; two ground nonces 0.247-0.254
+   K = 12 h: one ground nonce 0.264-0.267; two ground nonces 0.256-0.263
+   K = 18 h: one ground nonce 0.286-0.288; two ground nonces 0.274-0.281
+done in 330 s

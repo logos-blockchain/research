@@ -1,0 +1,89 @@
+  ok    test_B_imm_never_moves_back
+  ok    test_K_boundary
+  ok    test_a_hold_does_not_help_without_commit
+  ok    test_bootstrap_boundary
+  ok    test_bootstrap_fixed_order
+  ok    test_bootstrap_ignores_a_fork_below_B_imm_when_not_pruned
+  ok    test_bootstrap_rejects_and_freezes
+  ok    test_bootstrap_same_blocks_any_delivery_order
+  ok    test_bootstrap_same_from_either_branch
+  ok    test_candidate_parent_stays_above_B_imm
+  ok    test_commit_reads_only_its_arguments
+  ok    test_common_prefix_depth_examples
+  ok    test_constants
+  ok    test_density_counts_blocks_not_uncles
+  ok    test_density_over_slots_range
+  ok    test_floor_against_a_second_form
+  ok    test_floor_counts_after_C_up_to_the_tip
+  ok    test_floor_exact_count
+  ok    test_floor_holds_on_a_sparse_chain
+  ok    test_floor_is_the_edge
+  ok    test_floor_values
+  ok    test_invariants
+  ok    test_last_round_asks_a_tip_again
+  ok    test_last_round_before_the_switch
+  ok    test_last_round_follows_a_tip_that_moves
+  ok    test_last_round_gives_up_an_ibd_peer_that_adds_no_block
+  ok    test_last_round_gives_up_an_ibd_peer_that_sends_invalid_blocks
+  ok    test_last_round_is_limited
+  ok    test_last_round_keeps_an_ibd_peer_that_resends_held_blocks
+  ok    test_last_round_names_ancestors_of_the_local_tip
+  ok    test_last_round_names_the_recorded_block
+  ok    test_last_round_names_the_recorded_block_when_the_peer_left_a_branch
+  ok    test_last_round_requests_stay_within_the_limit
+  ok    test_last_round_resumes_from_the_last_delivered_block
+  ok    test_last_round_runs_its_downloads_in_parallel
+  ok    test_last_round_starts_a_failed_download_again
+  ok    test_last_round_takes_a_tip_from_the_peer_that_returned_it
+  ok    test_last_round_waits_for_an_ibd_peer
+  ok    test_last_round_with_no_answer
+  ok    test_online_fixed_order
+  ok    test_online_ignores_a_fork_below_B_imm_when_not_pruned
+  ok    test_online_longest_among_descendants
+  ok    test_prune_removes_every_fork_below
+  ok    test_prune_shared_path
+  ok    test_restart_example
+  ok    test_switch_prunes_what_bootstrap_rejected
+  ok    test_uncle_counts_for_the_floor
+  ok    test_uncle_rules_of_the_count
+  ok    test_without_commit_at_the_switch_the_attacker_wins
+
+49 of 49 tests pass
+the variant of the last round with no rule changed passes its tests
+
+mutations, each must be caught:
+  _m_bootstrap_boundary                  caught by 1: bootstrap_boundary
+  _m_bootstrap_no_descent_check          caught by 1: bootstrap_ignores_a_fork_below_B_imm_when_not_pruned
+  _m_bootstrap_reads_local_tip_only      caught by 10: bootstrap_fixed_order, bootstrap_same_from_either_branch, last_round_asks_a_tip_again
+  _m_bootstrap_skips_when_extending      caught by 12: last_round_asks_a_tip_again, last_round_before_the_switch, last_round_follows_a_tip_that_moves
+  _m_bootstrap_unordered                 caught by 1: bootstrap_fixed_order
+  _m_commit_under_bootstrap              caught by 9: a_hold_does_not_help_without_commit, bootstrap_rejects_and_freezes, bootstrap_same_blocks_any_delivery_order
+  _m_density_loose_uncles                caught by 1: uncle_rules_of_the_count
+  _m_floor_counts_C                      caught by 3: floor_exact_count, floor_holds_on_a_sparse_chain, invariants
+  _m_floor_excludes_tip                  caught by 3: floor_exact_count, floor_holds_on_a_sparse_chain, uncle_counts_for_the_floor
+  _m_floor_no_delay                      caught by 3: floor_against_a_second_form, floor_is_the_edge, floor_values
+  _m_floor_wrong_rate                    caught by 3: floor_against_a_second_form, floor_is_the_edge, floor_values
+  _m_last_round_asks_a_tip_once          caught by 1: last_round_asks_a_tip_again
+  _m_last_round_counts_invalid_blocks    caught by 1: last_round_gives_up_an_ibd_peer_that_sends_invalid_blocks
+  _m_last_round_counts_only_blocks_new_to_the_tree caught by 3: last_round_keeps_an_ibd_peer_that_resends_held_blocks, last_round_requests_stay_within_the_limit, last_round_resumes_from_the_last_delivered_block
+  _m_last_round_first_answer_wins        caught by 12: last_round_asks_a_tip_again, last_round_follows_a_tip_that_moves, last_round_keeps_an_ibd_peer_that_resends_held_blocks
+  _m_last_round_keeps_the_first_tip      caught by 2: last_round_follows_a_tip_that_moves, last_round_names_the_recorded_block_when_the_peer_left_a_branch
+  _m_last_round_names_only_the_last_delivered_block caught by 1: last_round_names_the_recorded_block_when_the_peer_left_a_branch
+  _m_last_round_names_only_the_recorded_block caught by 2: last_round_names_ancestors_of_the_local_tip, last_round_requests_stay_within_the_limit
+  _m_last_round_names_too_many_blocks    caught by 1: last_round_requests_stay_within_the_limit
+  _m_last_round_no_limit                 caught by 2: last_round_is_limited, last_round_waits_for_an_ibd_peer
+  _m_last_round_no_retry                 caught by 5: last_round_follows_a_tip_that_moves, last_round_names_the_recorded_block_when_the_peer_left_a_branch, last_round_requests_stay_within_the_limit
+  _m_last_round_one_limit                caught by 4: last_round_keeps_an_ibd_peer_that_resends_held_blocks, last_round_requests_stay_within_the_limit, last_round_resumes_from_the_last_delivered_block
+  _m_last_round_patient_with_an_idle_ibd_peer caught by 2: last_round_gives_up_an_ibd_peer_that_adds_no_block, last_round_gives_up_an_ibd_peer_that_sends_invalid_blocks
+  _m_last_round_sequential               caught by 2: last_round_runs_its_downloads_in_parallel, last_round_takes_a_tip_from_the_peer_that_returned_it
+  _m_last_round_starts_again_from_the_named_blocks caught by 2: last_round_requests_stay_within_the_limit, last_round_resumes_from_the_last_delivered_block
+  _m_last_round_without_the_recorded_block caught by 3: last_round_names_the_recorded_block, last_round_names_the_recorded_block_when_the_peer_left_a_branch, last_round_requests_stay_within_the_limit
+  _m_no_commit_at_switch                 caught by 9: last_round_asks_a_tip_again, last_round_before_the_switch, last_round_follows_a_tip_that_moves
+  _m_no_floor                            caught by 3: floor_exact_count, floor_holds_on_a_sparse_chain, invariants
+  _m_no_window                           caught by 6: B_imm_never_moves_back, K_boundary, candidate_parent_stays_above_B_imm
+  _m_online_no_descent_check             caught by 2: online_fixed_order, online_ignores_a_fork_below_B_imm_when_not_pruned
+  _m_online_unordered                    caught by 1: online_fixed_order
+  _m_prune_restarts                      caught by 3: invariants, prune_removes_every_fork_below, prune_shared_path
+  _m_window_off_by_one                   caught by 3: K_boundary, floor_exact_count, uncle_counts_for_the_floor
+
+33 of 33 mutations caught

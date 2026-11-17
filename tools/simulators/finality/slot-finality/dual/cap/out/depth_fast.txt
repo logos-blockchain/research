@@ -1,0 +1,10 @@
+third d=6 scale=1.0      depth(slot reading) at 2,160: code's count 0, text's count 0; blocks needed: code 1187, text 594; wait needed 7.01 h; after 18 h 0
+third d=8 scale=1.0      depth(slot reading) at 2,160: code's count 1.7e-14, text's count 0; blocks needed: code 1404, text 702; wait needed 8.36 h; after 18 h 0
+third d=10 scale=1.0     depth(slot reading) at 2,160: code's count 2.8e-12, text's count 0; blocks needed: code 1678, text 839; wait needed 10.11 h; after 18 h 0
+third d=12 scale=1.0     depth(slot reading) at 2,160: code's count 2.7e-10, text's count 0; blocks needed: code 2030, text 1015; wait needed 12.40 h; after 18 h 9.6e-14
+third d=15 scale=1.0     depth(slot reading) at 2,160: code's count 9.4e-08, text's count 1.1e-14; blocks needed: code 2776, text 1388; wait needed 17.37 h; after 18 h 4.7e-10
+third d=6 scale=1.5      depth(slot reading) at 2,160: code's count 8.3e-13, text's count 0; blocks needed: code 1603, text 802; wait needed 6.46 h; after 18 h 0
+third d=8 scale=1.5      depth(slot reading) at 2,160: code's count 7.8e-10, text's count 0; blocks needed: code 2134, text 1067; wait needed 8.77 h; after 18 h 0
+third d=10 scale=1.5     depth(slot reading) at 2,160: code's count 2.2e-07, text's count 6.2e-14; blocks needed: code 2935, text 1468; wait needed 12.36 h; after 18 h 8.4e-14
+third d=12 scale=1.5     depth(slot reading) at 2,160: code's count 2.2e-05, text's count 5.4e-10; blocks needed: code 4193, text 2097; wait needed 18.17 h; after 18 h 1.2e-09
+third d=15 scale=1.5     depth(slot reading) at 2,160: code's count 0.0031, text's count 1e-05; blocks needed: code 7829, text 3915; wait needed 35.57 h; after 18 h 2.8e-05

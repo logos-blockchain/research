@@ -1,0 +1,11 @@
+state | coalition's share of the active stake | lottery's factor | wait at 1e-9 (h) | chance after 10 h | chance after 15 h | chance after 18 h | chance after 36 h
+29 % 15 s, 0.90 online | 0.3122 | 1.0000 | 11.51 | 1.49e-08 | 1.98e-12 | below 1e-13 | below 1e-13
+31 % 15 s, 0.90 online | 0.3330 | 1.0000 | 17.23 | 5.60e-06 | 1.44e-08 | 4.01e-10 | below 1e-13
+32 % 15 s, 0.90 online | 0.3433 | 1.0000 | 21.73 | 6.64e-05 | 5.84e-07 | 3.41e-08 | below 1e-13
+31 % 10 s, 0.90 online, deflated | 0.3330 | 1.4992 | 12.26 | 4.44e-08 | 1.01e-11 | below 1e-13 | below 1e-13
+32 % 10 s, 0.90 online, deflated | 0.3433 | 1.5229 | 15.82 | 1.95e-06 | 2.91e-09 | 5.86e-11 | below 1e-13
+26 % 15 s, 0.90 online, deflated | 0.2808 | 1.3904 | 9.60 | 4.22e-10 | below 1e-13 | below 1e-13 | below 1e-13
+27 % 15 s, 0.90 online, deflated | 0.2913 | 1.4110 | 11.78 | 2.29e-08 | 3.47e-12 | below 1e-13 | below 1e-13
+28 % 15 s, 0.90 online, deflated | 0.3017 | 1.4321 | 14.77 | 8.06e-07 | 7.21e-10 | 1.07e-11 | below 1e-13
+29 % 15 s, 0.90 online, deflated | 0.3122 | 1.4538 | 19.01 | 1.85e-05 | 7.91e-08 | 3.00e-09 | below 1e-13
+31 % 15 s, 0.90 online, deflated | 0.3330 | 1.4992 | 35.14 | 2.81e-03 | 1.46e-04 | 2.49e-05 | 6.02e-10

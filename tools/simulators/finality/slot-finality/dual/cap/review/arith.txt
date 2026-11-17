@@ -1,0 +1,52 @@
+ITEM 1
+third 10s normal: occupied 0.670f honest 1183.6 coal 728.2 lead 62.6% h_to_2160 32.85
+third 10s deflated: occupied 1.000f honest 1620.0 coal 1089.2 lead 48.7% h_to_2160 24.00
+third 12s normal: occupied 0.670f honest 1141.9 coal 728.2 lead 56.8% h_to_2160 34.05
+third 12s deflated: occupied 1.000f honest 1542.9 coal 1089.2 lead 41.7% h_to_2160 25.20
+third 15s normal: occupied 0.670f honest 1084.6 coal 728.2 lead 48.9% h_to_2160 35.85
+third 15s deflated: occupied 1.000f honest 1440.0 coal 1089.2 lead 32.2% h_to_2160 27.00
+30% 10s normal: occupied 0.704f honest 1231.0 coal 655.7 lead 87.7% h_to_2160 31.58
+30% 10s deflated: occupied 1.000f honest 1620.0 coal 934.7 lead 73.3% h_to_2160 24.00
+30% 12s normal: occupied 0.704f honest 1185.9 coal 655.7 lead 80.9% h_to_2160 32.78
+30% 12s deflated: occupied 1.000f honest 1542.9 coal 934.7 lead 65.1% h_to_2160 25.20
+30% 15s normal: occupied 0.704f honest 1124.2 coal 655.7 lead 71.4% h_to_2160 34.58
+30% 15s deflated: occupied 1.000f honest 1440.0 coal 934.7 lead 54.1% h_to_2160 27.00
+healthy all build 10s: 1620.0 blocks, 2160 in 24.00 h
+healthy all build 15s: 1440.0 blocks, 2160 in 27.00 h
+healthy all build 5.507s: 1825.0 blocks, 2160 in 21.30 h
+D after 1 withheld windows (no cap) 0.67043 speed 1.4916
+D after 2 withheld windows (no cap) 0.66673 speed 1.4999
+D after 3 withheld windows (no cap) 0.66667 speed 1.5000
+D after 4 withheld windows (no cap) 0.66667 speed 1.5000
+30%: D after 1 0.70355 speed 1.4214
+30%: D after 2 0.70006 speed 1.4284
+30%: D after 3 0.70000 speed 1.4286
+cost of blocks: steady state vs normal earnings: third 0.3999999999999999 30% 0.4285714285714285 ; vs possible 0.6
+
+ITEM 2 epochs until 1/D_n > s
+None ['15s:1 (8 d)', '14s:1 (8 d)', '13s:1 (8 d)', '12s:1 (8 d)']
+0.1 ['15s:1 (8 d)', '14s:2 (15 d)', '13s:3 (22 d)', '12s:4 (30 d)']
+0.05 ['15s:1 (8 d)', '14s:4 (30 d)', '13s:6 (45 d)', '12s:8 (60 d)']
+0.02 ['15s:2 (15 d)', '14s:8 (60 d)', '13s:14 (105 d)', '12s:20 (150 d)']
+0.01 ['15s:3 (22 d)', '14s:16 (120 d)', '13s:28 (210 d)', '12s:40 (300 d)']
+15 cap for 49 epochs: 0.0603%  48 epochs: 0.0616%
+14 cap for 49 epochs: 0.3199%  48 epochs: 0.3266%
+13 cap for 49 epochs: 0.5650%  48 epochs: 0.5767%
+12 cap for 49 epochs: 0.8105%  48 epochs: 0.8273%
+15 s with limit 1.037 (interpolated): 0.0741%
+share below which 1291 chain blocks are missed at 15 s: 0.8502771775209832
+miss 0.8500 cap None: ['x=0.20:1 (7.5 d)', 'x=0.33:1 (7.5 d)', 'x=0.50:1 (7.5 d)']
+miss 0.8500 cap 0.1: ['x=0.20:1 (7.5 d)', 'x=0.33:3 (22.5 d)', 'x=0.50:6 (45.0 d)']
+miss 0.8500 cap 0.02: ['x=0.20:4 (30.0 d)', 'x=0.33:13 (97.5 d)', 'x=0.50:27 (202.5 d)']
+miss 0.8500 cap 0.01: ['x=0.20:7 (52.5 d)', 'x=0.33:25 (187.5 d)', 'x=0.50:53 (397.5 d)']
+miss 0.8503 cap None: ['x=0.20:1 (7.5 d)', 'x=0.33:1 (7.5 d)', 'x=0.50:1 (7.5 d)']
+miss 0.8503 cap 0.1: ['x=0.20:1 (7.5 d)', 'x=0.33:3 (22.5 d)', 'x=0.50:6 (45.0 d)']
+miss 0.8503 cap 0.02: ['x=0.20:4 (30.0 d)', 'x=0.33:13 (97.5 d)', 'x=0.50:27 (202.5 d)']
+miss 0.8503 cap 0.01: ['x=0.20:7 (52.5 d)', 'x=0.33:25 (187.5 d)', 'x=0.50:53 (397.5 d)']
+
+defl-need hours
+10 ['1468:16.31', '2935:32.61', '722:8.02', '1443:16.03']
+12 ['2097:24.46', '4193:48.92', '944:11.01', '1887:22.02']
+15 ['3915:48.94', '7829:97.86', '1483:18.54', '2966:37.08']
+ratios 1.8125 3.624537037037037
+mean hours whole stake to 2160 slots, scale 1.5: 12.101412476720698  1/0.7: 12.691234913166511

@@ -1,0 +1,5 @@
+import 1.4 s
+small wait_curve 4.2 s, size 2000, c[1999]=5.986e-07
+small pair_bounds 4.3 s (1.0, np.float64(1.518500249988025)) (1.0, np.float64(1.80581130141917))
+pair_bounds(F, 0.30, delta=10) 3.7 s (np.float64(295147905179.35284), np.float64(1669608681642.5962)) (np.float64(1208925819614629.2), np.float64(1.6655669461345903e+19))
+wait_curve(64800, 0.30, 10) 18.1 s, size 64800, c[64799]=9.384e-28, wait 21335 slots = 5.93 h

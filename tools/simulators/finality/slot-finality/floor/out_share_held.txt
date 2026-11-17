@@ -1,0 +1,9 @@
+state | share | lottery's factor | wait at 1e-9 (h) | chance after 10 h | chance after 15 h | chance after 18 h | chance after 36 h
+25 % 15 s deflated | 0.2500 | 1.3333 | 5.78 | below 1e-13 | below 1e-13 | below 1e-13 | below 1e-13
+26 % 15 s deflated | 0.2600 | 1.3514 | 6.73 | below 1e-13 | below 1e-13 | below 1e-13 | below 1e-13
+27 % 15 s deflated | 0.2700 | 1.3699 | 7.93 | 4.41e-12 | below 1e-13 | below 1e-13 | below 1e-13
+28 % 15 s deflated | 0.2800 | 1.3889 | 9.46 | 3.08e-10 | below 1e-13 | below 1e-13 | below 1e-13
+29 % 15 s deflated | 0.2900 | 1.4085 | 11.48 | 1.45e-08 | 1.74e-12 | below 1e-13 | below 1e-13
+31 % 15 s deflated | 0.3100 | 1.4493 | 17.99 | 1.00e-05 | 3.14e-08 | 9.90e-10 | below 1e-13
+32 % 15 s deflated | 0.3200 | 1.4706 | 23.48 | 1.48e-04 | 1.79e-06 | 1.26e-07 | below 1e-13
+34 % 15 s deflated | 0.3400 | 1.5152 | 45.27 | 1.06e-02 | 1.07e-03 | 2.70e-04 | 7.02e-08

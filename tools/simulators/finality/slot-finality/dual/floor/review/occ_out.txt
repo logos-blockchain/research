@@ -1,0 +1,3 @@
+1019 missing stake 1e-9/1e-3/half: 43.9% 48.6% 53.3% third withholds median/latest h [18.0, 18.0] mean occupied in K, third withholds: 1448
+1440 missing stake 1e-9/1e-3/half: 22.7% 28.2% 33.7% third withholds median/latest h [18.0, 20.84] mean occupied in K, third withholds: 1448
+1500 missing stake 1e-9/1e-3/half: 19.7% 25.3% 30.9% third withholds median/latest h [18.64, 21.64] mean occupied in K, third withholds: 1448

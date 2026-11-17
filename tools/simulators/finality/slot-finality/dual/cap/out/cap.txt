@@ -1,0 +1,44 @@
+Lottery speed up to which the window holds a third (chance 1e-9, nonce unbiased; grid 0.01, up to 1.60)
+  10 s: 18 h up to 1.6, 36 h up to 1.6
+  11 s: 18 h up to 1.6, 36 h up to 1.6
+  12 s: 18 h up to 1.49, 36 h up to 1.6
+  13 s: 18 h up to 1.32, 36 h up to 1.6
+  14 s: 18 h up to 1.17, 36 h up to 1.6
+  15 s: 18 h up to 1.037, 36 h up to 1.5
+  A third reaches 1.49 after one withheld window (D = 0.670) and 1.50 after two (0.667). At 12 s the first already fails 18 h by a hair (1.0016e-9, reviewer).
+
+Epochs of withholding (days) until the lottery passes the speed that 18 h holds, by cap and delay
+  cap/epoch | 12 s | 13 s | 14 s | 15 s | full deflation (1.5)
+  1%        | 40 (300 d) | 28 (210 d) | 16 (120 d) | 4 (30 d) | 41 (308 d)
+  2%        | 20 (150 d) | 14 (105 d) | 8 (60 d) | 2 (15 d) | 21 (158 d)
+  3%        | 14 (105 d) | 10 (75 d) | 6 (45 d) | 2 (15 d) | 14 (105 d)
+  5%        | 8 (60 d) | 6 (45 d) | 4 (30 d) | 1 (8 d) | 8 (60 d)
+  10%       | 4 (30 d) | 3 (22 d) | 2 (15 d) | 1 (8 d) | 4 (30 d)
+  20%       | 2 (15 d) | 2 (15 d) | 1 (8 d) | 1 (8 d) | 2 (15 d)
+  none      | 1 (8 d) | 1 (8 d) | 1 (8 d) | 1 (8 d) | 1 (8 d)
+
+Largest cap that keeps the lottery within the 18 h limit for N epochs of withholding: c = 1 - s^(-1/N)
+  13 s (limit 1.32): N=1: 24.24%, N=4: 6.71%, N=12: 2.29%, N=49: 0.56%
+  14 s (limit 1.17): N=1: 14.53%, N=4: 3.85%, N=12: 1.30%, N=49: 0.32%
+  15 s (limit 1.037): N=1: 3.57%, N=4: 0.90%, N=12: 0.30%, N=49: 0.07%
+
+What the cap costs when stake leaves for good (share x of the stake stops building)
+  epochs until D reaches the building stake | epochs the floor of 1,291 is late (15 s, mean rates) | block rate in the first epoch
+  1%    x=0.10: 11 ep to track, floor late 0 ep (0 d); x=0.20: 23 ep to track, floor late 7 ep (52 d); x=0.33: 41 ep to track, floor late 25 ep (188 d); x=0.50: 69 ep to track, floor late 53 ep (398 d)
+  2%    x=0.10: 6 ep to track, floor late 0 ep (0 d); x=0.20: 12 ep to track, floor late 4 ep (30 d); x=0.33: 21 ep to track, floor late 13 ep (98 d); x=0.50: 35 ep to track, floor late 27 ep (202 d)
+  3%    x=0.10: 4 ep to track, floor late 0 ep (0 d); x=0.20: 8 ep to track, floor late 2 ep (15 d); x=0.33: 14 ep to track, floor late 8 ep (60 d); x=0.50: 23 ep to track, floor late 18 ep (135 d)
+  5%    x=0.10: 3 ep to track, floor late 0 ep (0 d); x=0.20: 5 ep to track, floor late 2 ep (15 d); x=0.33: 8 ep to track, floor late 5 ep (38 d); x=0.50: 14 ep to track, floor late 11 ep (82 d)
+  10%   x=0.10: 1 ep to track, floor late 0 ep (0 d); x=0.20: 3 ep to track, floor late 1 ep (8 d); x=0.33: 4 ep to track, floor late 3 ep (22 d); x=0.50: 7 ep to track, floor late 6 ep (45 d)
+  20%   x=0.10: 1 ep to track, floor late 0 ep (0 d); x=0.20: 1 ep to track, floor late 1 ep (8 d); x=0.33: 2 ep to track, floor late 2 ep (15 d); x=0.50: 4 ep to track, floor late 3 ep (22 d)
+  none  x=0.10: 1 ep to track, floor late 0 ep (0 d); x=0.20: 1 ep to track, floor late 1 ep (8 d); x=0.33: 1 ep to track, floor late 1 ep (8 d); x=0.50: 1 ep to track, floor late 1 ep (8 d)
+
+Rule A in the deflated state (lottery 1.49 times fast, all stake builds): mean time to 2,160 chain blocks
+  every block 0 s late: 12.2 h
+  every block 5.507 s late: 15.5 h
+  every block 10 s late: 18.2 h
+  every block 15 s late: 21.2 h
+  normal lottery:
+  every block 0 s late: 18.0 h
+  every block 5.507 s late: 21.3 h
+  every block 10 s late: 24.0 h
+  every block 15 s late: 27.0 h

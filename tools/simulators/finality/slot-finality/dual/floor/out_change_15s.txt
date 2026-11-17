@@ -1,0 +1,62 @@
+
+K = 64800: floor with no stake withholding = 1291; P(N < 1291) = 9.93e-10, P(N < 1292) = 1.27e-09; with ALPHA_MAX it was 939
+  sizing table (share that withholds, mean blocks in K at DELTA, floor, P(N < floor)):
+    0.000  mean  1440.0  floor 1291  P 9.9e-10
+    0.100  mean  1342.2  floor 1193  P 8.6e-10
+    0.250  mean  1181.8  floor 1034  P 7.9e-10
+    0.300  mean  1124.2  floor 978  P 9.0e-10
+    0.333  mean  1084.6  floor 939  P 8.4e-10
+  chance that the floor 1291 is missed at K, and mean extra wait, by delay and withholding share:
+    0.000 withholds -> 10 s: P 1.5e-29, median final 18.0 h | 12 s: P 1.9e-20, median final 18.0 h | 15 s: P 9.9e-10, median final 18.0 h | 20 s: P 4.0e-01, median final 18.0 h
+    0.100 withholds -> 10 s: P 5.5e-13, median final 18.0 h | 12 s: P 1.3e-07, median final 18.0 h | 15 s: P 1.9e-02, median final 18.0 h | 20 s: P 1.0e+00, median final 19.1 h
+    0.200 withholds -> 10 s: P 3.6e-03, median final 18.0 h | 12 s: P 2.1e-01, median final 18.0 h | 15 s: P 9.8e-01, median final 18.8 h | 20 s: P 1.0e+00, median final 20.6 h
+    0.300 withholds -> 10 s: P 9.8e-01, median final 18.9 h | 12 s: P 1.0e+00, median final 19.6 h | 15 s: P 1.0e+00, median final 20.7 h | 20 s: P 1.0e+00, median final 22.5 h
+    0.333 withholds -> 10 s: P 1.0e+00, median final 19.6 h | 12 s: P 1.0e+00, median final 20.3 h | 15 s: P 1.0e+00, median final 21.4 h | 20 s: P 1.0e+00, median final 23.2 h
+  a side cut off needs 1292 blocks: days mean / earliest at 1e-9
+    0.100: 4.42 / 3.72
+    0.200: 2.21 / 1.86
+    0.250: 1.77 / 1.49
+    0.300: 1.48 / 1.25
+    0.333: 1.33 / 1.12
+  held back past K with chance 1 - 1e-9: a side of at most 0.500; honest part when a third signs on both: 0.167
+    a side of 0.6 makes 1292 blocks after 0.74 days on average
+    a side of 0.65 makes 1292 blocks after 0.69 days on average
+    a side of 0.7 makes 1292 blocks after 0.64 days on average
+  eclipse a prepared fork of 0.300 needs (mean rates): no delay 20.2 h, Blend 18.2 h, 10 s 16.6 h
+  eclipse a prepared fork of 0.333 needs (mean rates): no delay 15.9 h, Blend 13.9 h, 10 s 12.3 h
+  54 h phase at mean rates needs 19.7 % of the inferred stake building (was: phi blocks)
+  72 h phase at mean rates needs 14.7 % of the inferred stake building (was: phi blocks)
+  split in halves: 1291 blocks take a half 21.3 h (no delay), 23.3 h (Blend)
+  a block made as the active stake halves is fixed after 0.97 days on average (Blend)
+  blocks above B_imm on the specification's Blend stay at about 1825 (K slots hold fewer than the floor only when stake is missing)
+
+K = 36000: floor with no stake withholding = 689; P(N < 689) = 9.82e-10, P(N < 690) = 1.37e-09; with ALPHA_MAX it was 516
+  sizing table (share that withholds, mean blocks in K at DELTA, floor, P(N < floor)):
+    0.000  mean   800.0  floor 689  P 9.8e-10
+    0.100  mean   745.7  floor 635  P 9.8e-10
+    0.250  mean   656.6  floor 547  P 8.7e-10
+    0.300  mean   624.6  floor 516  P 9.1e-10
+    0.333  mean   602.5  floor 494  P 7.2e-10
+  chance that the floor 689 is missed at K, and mean extra wait, by delay and withholding share:
+    0.000 withholds -> 10 s: P 1.7e-22, median final 10.0 h | 12 s: P 7.9e-17, median final 10.0 h | 15 s: P 9.8e-10, median final 10.0 h | 20 s: P 2.5e-02, median final 10.0 h
+    0.100 withholds -> 10 s: P 1.7e-11, median final 10.0 h | 12 s: P 7.8e-08, median final 10.0 h | 15 s: P 1.1e-03, median final 10.0 h | 20 s: P 7.9e-01, median final 10.2 h
+    0.200 withholds -> 10 s: P 4.2e-04, median final 10.0 h | 12 s: P 2.2e-02, median final 10.0 h | 15 s: P 5.3e-01, median final 10.0 h | 20 s: P 1.0e+00, median final 11.0 h
+    0.300 withholds -> 10 s: P 5.9e-01, median final 10.1 h | 12 s: P 9.3e-01, median final 10.5 h | 15 s: P 1.0e+00, median final 11.0 h | 20 s: P 1.0e+00, median final 12.0 h
+    0.333 withholds -> 10 s: P 9.3e-01, median final 10.5 h | 12 s: P 1.0e+00, median final 10.9 h | 15 s: P 1.0e+00, median final 11.4 h | 20 s: P 1.0e+00, median final 12.4 h
+  a side cut off needs 690 blocks: days mean / earliest at 1e-9
+    0.100: 2.36 / 1.86
+    0.200: 1.18 / 0.93
+    0.250: 0.95 / 0.75
+    0.300: 0.79 / 0.62
+    0.333: 0.71 / 0.56
+  held back past K with chance 1 - 1e-9: a side of at most 0.450; honest part when a third signs on both: 0.117
+    a side of 0.6 makes 690 blocks after 0.40 days on average
+    a side of 0.65 makes 690 blocks after 0.37 days on average
+    a side of 0.7 makes 690 blocks after 0.34 days on average
+  eclipse a prepared fork of 0.300 needs (mean rates): no delay 10.8 h, Blend 9.7 h, 10 s 8.9 h
+  eclipse a prepared fork of 0.333 needs (mean rates): no delay 8.5 h, Blend 7.4 h, 10 s 6.6 h
+  54 h phase at mean rates needs 10.5 % of the inferred stake building (was: phi blocks)
+  72 h phase at mean rates needs 7.9 % of the inferred stake building (was: phi blocks)
+  split in halves: 689 blocks take a half 11.4 h (no delay), 12.4 h (Blend)
+  a block made as the active stake halves is fixed after 0.52 days on average (Blend)
+  blocks above B_imm on the specification's Blend stay at about 1014 (K slots hold fewer than the floor only when stake is missing)

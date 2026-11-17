@@ -1,0 +1,20 @@
+
+floor 1291 (K = 64800); depth 2,160 for comparison
+  within  54 h -> floor: median 19.6 to 21.8 %, sure 23.1 to 25.7 % | depth: median 33.0 to 39.6 %, sure 37.4 to 44.9 %
+  within  72 h -> floor: median 14.7 to 15.9 %, sure 17.3 to 18.7 % | depth: median 24.7 to 28.2 %, sure 28.0 to 32.0 %
+  within 180 h -> floor: median  5.9 to  6.1 %, sure  6.9 to  7.1 % | depth: median  9.8 to 10.4 %, sure 11.2 to 11.8 %
+
+floor 689 (K = 36000); depth 2,160 for comparison
+  within  54 h -> floor: median 10.5 to 11.1 %, sure 13.0 to 13.8 % | depth: median 33.0 to 39.6 %, sure 37.4 to 44.9 %
+  within  72 h -> floor: median  7.8 to  8.2 %, sure  9.8 to 10.2 % | depth: median 24.7 to 28.2 %, sure 28.0 to 32.0 %
+  within 180 h -> floor: median  3.1 to  3.2 %, sure  3.9 to  4.0 % | depth: median  9.8 to 10.4 %, sure 11.2 to 11.8 %
+
+floor 1019 (K = 64800); depth 2,160 for comparison
+  within  54 h -> floor: median 15.5 to 16.8 %, sure 18.6 to 20.2 % | depth: median 33.0 to 39.6 %, sure 37.4 to 44.9 %
+  within  72 h -> floor: median 11.6 to 12.3 %, sure 13.9 to 14.8 % | depth: median 24.7 to 28.2 %, sure 28.0 to 32.0 %
+  within 180 h -> floor: median  4.6 to  4.8 %, sure  5.6 to  5.7 % | depth: median  9.8 to 10.4 %, sure 11.2 to 11.8 %
+
+floor 560 (K = 36000); depth 2,160 for comparison
+  within  54 h -> floor: median  8.5 to  8.9 %, sure 10.8 to 11.3 % | depth: median 33.0 to 39.6 %, sure 37.4 to 44.9 %
+  within  72 h -> floor: median  6.4 to  6.6 %, sure  8.1 to  8.4 % | depth: median 24.7 to 28.2 %, sure 28.0 to 32.0 %
+  within 180 h -> floor: median  2.5 to  2.6 %, sure  3.3 to  3.3 % | depth: median  9.8 to 10.4 %, sure 11.2 to 11.8 %

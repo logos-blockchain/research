@@ -1,0 +1,30 @@
+state | share | share of active stake | pair factor lo-hi | wait unground (h) | wait today's nonce lo-hi (h) | chance at 18 h, 10 h (unground)
+10 s (no disturbance)  | 0.27 | 0.2700 | 2.74e+09-2.36e+12 |   3.99 |   8.25-  9.57 | 8.75e-41, 4.72e-23
+10 s (no disturbance)  | 0.30 | 0.3000 | 1.21e+15-1.67e+19 |   5.93 |  16.03- 18.80 | 9.38e-28, 8.27e-16
+15 s                   | 0.27 | 0.2700 | 7.02e+11-2.42e+15 |   6.03 |  14.03- 16.42 | 1.89e-27, 1.31e-15
+15 s                   | 0.30 | 0.3000 | 1.18e+19-7.72e+23 |   9.37 |  29.39- 34.45 | 6.01e-18, 2.50e-10
+off, 10 s              | 0.27 | 0.2913 | 1.59e+13-9.2e+16 |   5.25 |  13.07- 15.30 | 3.09e-31, 9.57e-18
+off, 10 s              | 0.30 | 0.3226 | 1.51e+21-2.47e+25 |   8.39 |  28.46- 32.45 | 7.23e-20, 2.01e-11
+defl, 10 s             | 0.27 | 0.2700 | 1.48e+11-3.02e+14 |   4.07 |   9.17- 10.68 | 3.14e-40, 1.03e-22
+defl, 10 s             | 0.30 | 0.3000 | 2.48e+18-1.36e+23 |   6.41 |  19.61- 23.02 | 7.16e-26, 9.88e-15
+15 s + off             | 0.27 | 0.2913 | 4.6e+16-1.27e+21 |   8.17 |  23.42- 27.48 | 1.80e-20, 9.91e-12
+15 s + off             | 0.30 | 0.3226 | 4.7e+26-4.05e+29 |  13.96 |  55.68- 60.27 | 2.62e-12, 3.42e-07
+15 s + defl            | 0.27 | 0.2700 | 1.71e+15-2.8e+19 |   7.93 |  21.34- 25.06 | 3.66e-21, 4.41e-12
+15 s + defl            | 0.30 | 0.3000 | 4.94e+25-7.15e+28 |  14.20 |  54.73- 59.72 | 3.92e-12, 4.61e-07
+off + defl, 10 s       | 0.27 | 0.2913 | 8.13e+15-1.88e+20 |   5.55 |  15.47- 18.18 | 1.05e-29, 7.29e-17
+off + defl, 10 s       | 0.30 | 0.3226 | 1.98e+26-2.41e+29 |   9.77 |  38.52- 41.90 | 2.96e-17, 6.11e-10
+largest share proven (today's nonce: hi end - lo end of the factor; unground)
+10 s (no disturbance)  | K = 18 h | today 0.298-0.305 | unground > 0.33
+10 s (no disturbance)  | K = 10 h | today 0.272-0.279 | unground > 0.33
+15 s                   | K = 18 h | today 0.274-0.281 | unground > 0.33
+15 s                   | K = 10 h | today 0.247-0.255 | unground 0.304
+off, 10 s              | K = 18 h | today 0.277-0.283 | unground > 0.33
+off, 10 s              | K = 10 h | today 0.252-0.258 | unground 0.310
+defl, 10 s             | K = 18 h | today 0.291-0.297 | unground > 0.33
+defl, 10 s             | K = 10 h | today 0.267-0.274 | unground 0.324
+15 s + off             | K = 18 h | today 0.254-0.260 | unground 0.312
+15 s + off             | K = 10 h | today 0.228-0.235 | unground 0.282
+15 s + defl            | K = 18 h | today 0.258-0.264 | unground 0.310
+15 s + defl            | K = 10 h | today 0.234-0.241 | unground 0.283
+off + defl, 10 s       | K = 18 h | today 0.270-0.275 | unground 0.325
+off + defl, 10 s       | K = 10 h | today 0.247-0.253 | unground 0.301

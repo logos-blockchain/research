@@ -1,0 +1,164 @@
+K = 64800 slots (18 h). Blend fit delay = 5.507 slots.
+
+1. The floor the specification's derivation gives, by its targets (share that withholds, delay, chance)
+ withholds | D=Blend eps=1e-09 | D=Blend eps=0.001 | D=10    eps=1e-09 | D=10    eps=0.001 | D=15    eps=1e-09 | D=15    eps=0.001
+     0.000 |               1614 |               1716 |               1443 |               1528 |               1291 |               1363
+     0.050 |               1541 |               1641 |               1383 |               1468 |               1243 |               1315
+     0.100 |               1466 |               1565 |               1323 |               1407 |               1193 |               1265
+     0.150 |               1390 |               1487 |               1260 |               1344 |               1142 |               1214
+     0.200 |               1314 |               1408 |               1197 |               1279 |               1089 |               1161
+     0.250 |               1236 |               1329 |               1131 |               1213 |               1034 |               1106
+     0.300 |               1156 |               1247 |               1064 |               1145 |                978 |               1048
+     0.333 |               1103 |               1192 |               1019 |               1098 |                939 |               1009
+   mean blocks in K: 0.00@Blend: 1825, 0.00@10s: 1620, 0.10@Blend: 1671, 0.10@10s: 1497, 0.33@Blend: 1289, 0.33@10s: 1184
+
+2. Cost: who can delay finality past K, and by how much
+
+ floor n = 1019
+   Blend: stake that can be missing before finality is late with chance 1e-9:  38.6 %, 1e-3:  43.7 %, half the time:  48.8 %
+   10 s : stake that can be missing before finality is late with chance 1e-9:  33.4 %, 1e-3:  38.9 %, half the time:  44.5 %
+   15 s : stake that can be missing before finality is late with chance 1e-9:  26.4 %, 1e-3:  32.6 %, half the time:  38.7 %
+   0.100 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 18.00 h
+   0.200 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 18.00 h
+   0.250 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 18.00 h
+   0.300 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 18.00 h
+   0.333 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 18.00 h
+   54 h phase needs (chance 1 - 1e-9): no delay 18.6 %, Blend 19.1 %
+   72 h phase needs (chance 1 - 1e-9): no delay 13.9 %, Blend 14.2 %
+   a block made as the building stake halves is final after 0.77 days on average (Blend)
+
+ floor n = 1131
+   Blend: stake that can be missing before finality is late with chance 1e-9:  31.6 %, 1e-3:  37.1 %, half the time:  42.5 %
+   10 s : stake that can be missing before finality is late with chance 1e-9:  25.1 %, 1e-3:  31.0 %, half the time:  37.0 %
+   15 s : stake that can be missing before finality is late with chance 1e-9:  16.1 %, 1e-3:  22.8 %, half the time:  29.4 %
+   0.100 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 18.00 h
+   0.200 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 18.00 h
+   0.250 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 18.00 h
+   0.300 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 19.04 h
+   0.333 withholds or is offline -> Blend: median 18.00 h, latest 18.41 h | 10 s: median 18.00 h, latest 19.82 h
+   54 h phase needs (chance 1 - 1e-9): no delay 20.5 %, Blend 21.1 %
+   72 h phase needs (chance 1 - 1e-9): no delay 15.3 %, Blend 15.7 %
+   a block made as the building stake halves is final after 0.85 days on average (Blend)
+
+ floor n = 1250
+   Blend: stake that can be missing before finality is late with chance 1e-9:  24.1 %, 1e-3:  29.9 %, half the time:  35.7 %
+   10 s : stake that can be missing before finality is late with chance 1e-9:  15.9 %, 1e-3:  22.2 %, half the time:  28.7 %
+   15 s : stake that can be missing before finality is late with chance 1e-9:   4.3 %, 1e-3:  11.5 %, half the time:  18.8 %
+   0.100 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 18.00 h
+   0.200 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 18.74 h
+   0.250 withholds or is offline -> Blend: median 18.00 h, latest 18.19 h | 10 s: median 18.00 h, latest 19.75 h
+   0.300 withholds or is offline -> Blend: median 18.00 h, latest 19.34 h | 10 s: median 18.27 h, latest 20.90 h
+   0.333 withholds or is offline -> Blend: median 18.00 h, latest 20.20 h | 10 s: median 19.01 h, latest 21.76 h
+   54 h phase needs (chance 1 - 1e-9): no delay 22.4 %, Blend 23.3 %
+   72 h phase needs (chance 1 - 1e-9): no delay 16.8 %, Blend 17.3 %
+   a block made as the building stake halves is final after 0.94 days on average (Blend)
+
+ floor n = 1400
+   Blend: stake that can be missing before finality is late with chance 1e-9:  14.4 %, 1e-3:  20.6 %, half the time:  26.8 %
+   10 s : stake that can be missing before finality is late with chance 1e-9:   3.7 %, 1e-3:  10.6 %, half the time:  17.6 %
+   15 s : stake that can be missing before finality is late with chance 1e-9: none, 1e-3: none, half the time:   4.2 %
+   0.100 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 18.98 h
+   0.200 withholds or is offline -> Blend: median 18.00 h, latest 19.09 h | 10 s: median 18.42 h, latest 20.84 h
+   0.250 withholds or is offline -> Blend: median 18.00 h, latest 20.21 h | 10 s: median 19.38 h, latest 21.96 h
+   0.300 withholds or is offline -> Blend: median 18.72 h, latest 21.49 h | 10 s: median 20.47 h, latest 23.24 h
+   0.333 withholds or is offline -> Blend: median 19.54 h, latest 22.45 h | 10 s: median 21.29 h, latest 24.19 h
+   54 h phase needs (chance 1 - 1e-9): no delay 24.9 %, Blend 25.9 %
+   72 h phase needs (chance 1 - 1e-9): no delay 18.7 %, Blend 19.2 %
+   a block made as the building stake halves is final after 1.05 days on average (Blend)
+
+ floor n = 1440
+   Blend: stake that can be missing before finality is late with chance 1e-9:  11.8 %, 1e-3:  18.0 %, half the time:  24.4 %
+   10 s : stake that can be missing before finality is late with chance 1e-9:   0.3 %, 1e-3:   7.4 %, half the time:  14.5 %
+   15 s : stake that can be missing before finality is late with chance 1e-9: none, 1e-3: none, half the time:   0.0 %
+   0.100 withholds or is offline -> Blend: median 18.00 h, latest 18.00 h | 10 s: median 18.00 h, latest 19.49 h
+   0.200 withholds or is offline -> Blend: median 18.00 h, latest 19.60 h | 10 s: median 18.95 h, latest 21.40 h
+   0.250 withholds or is offline -> Blend: median 18.13 h, latest 20.75 h | 10 s: median 19.93 h, latest 22.55 h
+   0.300 withholds or is offline -> Blend: median 19.26 h, latest 22.06 h | 10 s: median 21.05 h, latest 23.86 h
+   0.333 withholds or is offline -> Blend: median 20.10 h, latest 23.04 h | 10 s: median 21.89 h, latest 24.84 h
+   54 h phase needs (chance 1 - 1e-9): no delay 25.6 %, Blend 26.7 %
+   72 h phase needs (chance 1 - 1e-9): no delay 19.2 %, Blend 19.8 %
+   a block made as the building stake halves is final after 1.08 days on average (Blend)
+
+ floor n = 1500
+   Blend: stake that can be missing before finality is late with chance 1e-9:   7.8 %, 1e-3:  14.2 %, half the time:  20.7 %
+   10 s : stake that can be missing before finality is late with chance 1e-9: none, 1e-3:   2.4 %, half the time:   9.8 %
+   15 s : stake that can be missing before finality is late with chance 1e-9: none, 1e-3: none, half the time: none
+   0.100 withholds or is offline -> Blend: median 18.00 h, latest 18.38 h | 10 s: median 18.03 h, latest 20.25 h
+   0.200 withholds or is offline -> Blend: median 18.00 h, latest 20.37 h | 10 s: median 19.74 h, latest 22.24 h
+   0.250 withholds or is offline -> Blend: median 18.89 h, latest 21.56 h | 10 s: median 20.76 h, latest 23.43 h
+   0.300 withholds or is offline -> Blend: median 20.06 h, latest 22.92 h | 10 s: median 21.93 h, latest 24.79 h
+   0.333 withholds or is offline -> Blend: median 20.94 h, latest 23.94 h | 10 s: median 22.81 h, latest 25.81 h
+   54 h phase needs (chance 1 - 1e-9): no delay 26.6 %, Blend 27.7 %
+   72 h phase needs (chance 1 - 1e-9): no delay 19.9 %, Blend 20.6 %
+   a block made as the building stake halves is final after 1.13 days on average (Blend)
+
+ floor n = 1600
+   Blend: stake that can be missing before finality is late with chance 1e-9:   1.0 %, 1e-3:   7.7 %, half the time:  14.5 %
+   10 s : stake that can be missing before finality is late with chance 1e-9: none, 1e-3: none, half the time:   1.7 %
+   15 s : stake that can be missing before finality is late with chance 1e-9: none, 1e-3: none, half the time: none
+   0.100 withholds or is offline -> Blend: median 18.00 h, latest 19.53 h | 10 s: median 19.23 h, latest 21.53 h
+   0.200 withholds or is offline -> Blend: median 19.05 h, latest 21.64 h | 10 s: median 21.05 h, latest 23.63 h
+   0.250 withholds or is offline -> Blend: median 20.15 h, latest 22.90 h | 10 s: median 22.14 h, latest 24.90 h
+   0.300 withholds or is offline -> Blend: median 21.39 h, latest 24.34 h | 10 s: median 23.39 h, latest 26.34 h
+   0.333 withholds or is offline -> Blend: median 22.33 h, latest 25.43 h | 10 s: median 24.33 h, latest 27.43 h
+   54 h phase needs (chance 1 - 1e-9): no delay 28.2 %, Blend 29.6 %
+   72 h phase needs (chance 1 - 1e-9): no delay 21.1 %, Blend 21.9 %
+   a block made as the building stake halves is final after 1.20 days on average (Blend)
+
+3. Benefit: a side cut off from the rest, an eclipse, a split
+
+ floor n = 1019  (a side needs n + 1 = 1020 blocks of its own, no delay inside the side)
+   held back past K with chance 1 - 1e-9: a side of at most 0.385; a side of 0.468 passes at K half the time
+   with a third signing on both sides: a side with at most 0.052 of honest stake is held back
+   days for a side alone, mean / earliest at 1e-9: 0.10: 3.49 / 2.87, 0.20: 1.75 / 1.44, 0.25: 1.40 / 1.15, 0.30: 1.17 / 0.96, 0.33: 1.05 / 0.87, 0.40: 0.88 / 0.72, 0.50: 0.70 / 0.58
+   split in halves (Blend): each half fixes its chain after 18.0 / 18.4 / 21.7 h
+   eclipse a prepared fork of 0.300 needs -> no delay:  15.9 h (lucky 1e-3:  13.3 h) | Blend:  14.4 h (lucky 1e-3:  11.8 h) | 10 s:  13.1 h (lucky 1e-3:  10.5 h)
+   eclipse a prepared fork of 0.333 needs -> no delay:  12.5 h (lucky 1e-3:  10.2 h) | Blend:  11.0 h (lucky 1e-3:   8.6 h) | 10 s:   9.7 h (lucky 1e-3:   7.4 h)
+
+ floor n = 1131  (a side needs n + 1 = 1132 blocks of its own, no delay inside the side)
+   held back past K with chance 1 - 1e-9: a side of at most 0.432; a side of 0.520 passes at K half the time
+   with a third signing on both sides: a side with at most 0.099 of honest stake is held back
+   days for a side alone, mean / earliest at 1e-9: 0.10: 3.87 / 3.22, 0.20: 1.94 / 1.61, 0.25: 1.55 / 1.29, 0.30: 1.29 / 1.08, 0.33: 1.17 / 0.97, 0.40: 0.97 / 0.81, 0.50: 0.78 / 0.65
+   split in halves (Blend): each half fixes its chain after 18.0 / 20.4 / 23.9 h
+   eclipse a prepared fork of 0.300 needs -> no delay:  17.7 h (lucky 1e-3:  14.9 h) | Blend:  15.9 h (lucky 1e-3:  13.2 h) | 10 s:  14.5 h (lucky 1e-3:  11.8 h)
+   eclipse a prepared fork of 0.333 needs -> no delay:  13.9 h (lucky 1e-3:  11.4 h) | Blend:  12.2 h (lucky 1e-3:   9.7 h) | 10 s:  10.8 h (lucky 1e-3:   8.3 h)
+
+ floor n = 1250  (a side needs n + 1 = 1251 blocks of its own, no delay inside the side)
+   held back past K with chance 1 - 1e-9: a side of at most 0.483; a side of 0.575 passes at K half the time
+   with a third signing on both sides: a side with at most 0.149 of honest stake is held back
+   days for a side alone, mean / earliest at 1e-9: 0.10: 4.28 / 3.59, 0.20: 2.14 / 1.80, 0.25: 1.72 / 1.44, 0.30: 1.43 / 1.20, 0.33: 1.29 / 1.08, 0.40: 1.07 / 0.90, 0.50: 0.86 / 0.72
+   split in halves (Blend): each half fixes its chain after 19.3 / 22.6 / 26.2 h
+   eclipse a prepared fork of 0.300 needs -> no delay:  19.5 h (lucky 1e-3:  16.6 h) | Blend:  17.6 h (lucky 1e-3:  14.7 h) | 10 s:  16.1 h (lucky 1e-3:  13.2 h)
+   eclipse a prepared fork of 0.333 needs -> no delay:  15.4 h (lucky 1e-3:  12.8 h) | Blend:  13.5 h (lucky 1e-3:  10.9 h) | 10 s:  11.9 h (lucky 1e-3:   9.3 h)
+
+ floor n = 1400  (a side needs n + 1 = 1401 blocks of its own, no delay inside the side)
+   held back past K with chance 1 - 1e-9: a side of at most 0.547; a side of 0.645 passes at K half the time
+   with a third signing on both sides: a side with at most 0.213 of honest stake is held back
+   days for a side alone, mean / earliest at 1e-9: 0.10: 4.79 / 4.06, 0.20: 2.40 / 2.04, 0.25: 1.92 / 1.63, 0.30: 1.60 / 1.36, 0.33: 1.44 / 1.22, 0.40: 1.20 / 1.02, 0.50: 0.96 / 0.82
+   split in halves (Blend): each half fixes its chain after 21.8 / 25.3 / 29.1 h
+   eclipse a prepared fork of 0.300 needs -> no delay:  21.9 h (lucky 1e-3:  18.8 h) | Blend:  19.7 h (lucky 1e-3:  16.7 h) | 10 s:  18.0 h (lucky 1e-3:  14.9 h)
+   eclipse a prepared fork of 0.333 needs -> no delay:  17.2 h (lucky 1e-3:  14.5 h) | Blend:  15.1 h (lucky 1e-3:  12.3 h) | 10 s:  13.3 h (lucky 1e-3:  10.6 h)
+
+ floor n = 1440  (a side needs n + 1 = 1441 blocks of its own, no delay inside the side)
+   held back past K with chance 1 - 1e-9: a side of at most 0.564; a side of 0.663 passes at K half the time
+   with a third signing on both sides: a side with at most 0.231 of honest stake is held back
+   days for a side alone, mean / earliest at 1e-9: 0.10: 4.93 / 4.19, 0.20: 2.47 / 2.10, 0.25: 1.98 / 1.68, 0.30: 1.65 / 1.40, 0.33: 1.48 / 1.26, 0.40: 1.24 / 1.05, 0.50: 0.99 / 0.84
+   split in halves (Blend): each half fixes its chain after 22.5 / 26.0 / 29.9 h
+   eclipse a prepared fork of 0.300 needs -> no delay:  22.5 h (lucky 1e-3:  19.4 h) | Blend:  20.3 h (lucky 1e-3:  17.2 h) | 10 s:  18.5 h (lucky 1e-3:  15.4 h)
+   eclipse a prepared fork of 0.333 needs -> no delay:  17.7 h (lucky 1e-3:  14.9 h) | Blend:  15.5 h (lucky 1e-3:  12.7 h) | 10 s:  13.7 h (lucky 1e-3:  10.9 h)
+
+ floor n = 1500  (a side needs n + 1 = 1501 blocks of its own, no delay inside the side)
+   held back past K with chance 1 - 1e-9: a side of at most 0.590; a side of 0.691 passes at K half the time
+   with a third signing on both sides: a side with at most 0.256 of honest stake is held back
+   days for a side alone, mean / earliest at 1e-9: 0.10: 5.13 / 4.38, 0.20: 2.57 / 2.19, 0.25: 2.06 / 1.76, 0.30: 1.72 / 1.47, 0.33: 1.55 / 1.32, 0.40: 1.29 / 1.10, 0.50: 1.03 / 0.88
+   split in halves (Blend): each half fixes its chain after 23.5 / 27.1 / 31.1 h
+   eclipse a prepared fork of 0.300 needs -> no delay:  23.4 h (lucky 1e-3:  20.2 h) | Blend:  21.1 h (lucky 1e-3:  18.0 h) | 10 s:  19.3 h (lucky 1e-3:  16.1 h)
+   eclipse a prepared fork of 0.333 needs -> no delay:  18.5 h (lucky 1e-3:  15.6 h) | Blend:  16.2 h (lucky 1e-3:  13.3 h) | 10 s:  14.3 h (lucky 1e-3:  11.4 h)
+
+ floor n = 1600  (a side needs n + 1 = 1601 blocks of its own, no delay inside the side)
+   held back past K with chance 1 - 1e-9: a side of at most 0.633; a side of 0.738 passes at K half the time
+   with a third signing on both sides: a side with at most 0.299 of honest stake is held back
+   days for a side alone, mean / earliest at 1e-9: 0.10: 5.48 / 4.70, 0.20: 2.74 / 2.35, 0.25: 2.20 / 1.88, 0.30: 1.83 / 1.57, 0.33: 1.65 / 1.42, 0.40: 1.38 / 1.18, 0.50: 1.10 / 0.95
+   split in halves (Blend): each half fixes its chain after 25.1 / 28.9 / 33.0 h
+   eclipse a prepared fork of 0.300 needs -> no delay:  25.0 h (lucky 1e-3:  21.7 h) | Blend:  22.6 h (lucky 1e-3:  19.3 h) | 10 s:  20.6 h (lucky 1e-3:  17.3 h)
+   eclipse a prepared fork of 0.333 needs -> no delay:  19.7 h (lucky 1e-3:  16.7 h) | Blend:  17.2 h (lucky 1e-3:  14.3 h) | 10 s:  15.2 h (lucky 1e-3:  12.3 h)

@@ -1,0 +1,57 @@
+1. the lottery of each state against occupancy(f, share), occupancy(f, 1 - share)
+   largest difference over 7 states and 14 shares: 0.00e+00
+
+2. Table A in slots, s = 0.30
+   0 none, 10 s                 curve to 132243  waits [21335, 57699, 67679]  hours [5.9264, 16.0275, 18.7997]  factor 2^50.10 - 2^63.85
+   1 15 s                       curve to 207590  waits [33728, 105809, 124013]  hours [9.3689, 29.3914, 34.4481]  factor 2^63.35 - 2^79.35
+   2 offline, 10 s              curve to 187105  waits [30214, 102446, 116820]  hours [8.3928, 28.4572, 32.45]  factor 2^70.35 - 2^84.35
+   3 deflated, 10 s             curve to 141985  waits [23060, 70614, 82872]  hours [6.4056, 19.615, 23.02]  factor 2^61.10 - 2^76.85
+   4 15 s + offline             curve to 300000  waits [50266, 200446, 216972]  hours [13.9628, 55.6794, 60.27]  factor 2^88.60 - 2^98.35
+   5 15 s + deflated            curve to 300000  waits [51130, 197045, 214996]  hours [14.2028, 54.7347, 59.7211]  factor 2^85.35 - 2^95.85
+   6 offline + deflated, 10 s   curve to 216256  waits [35158, 138682, 150830]  hours [9.7661, 38.5228, 41.8972]  factor 2^87.35 - 2^97.60
+
+   Table B with five decimals (lower end, upper end; 18 h then 10 h)
+   0 none, 10 s                 0.30477  0.29818  0.27913  0.27209
+   1 15 s                       0.28060  0.27395  0.25451  0.24743
+   2 offline, 10 s              0.28286  0.27664  0.25839  0.25167
+   3 deflated, 10 s             0.29688  0.29095  0.27371  0.26717
+   4 15 s + offline             0.25988  0.25356  0.23500  0.22833
+   5 15 s + deflated            0.26379  0.25790  0.24063  0.23421
+   6 offline + deflated, 10 s   0.27538  0.26963  0.25321  0.24701
+
+3. Table A with the undisturbed state's factor (F, s, 10 s) on every state's curve
+   0 none, 10 s                  16.03  18.80
+   1 15 s                        25.20  29.55
+   2 offline, 10 s               22.68  26.60
+   3 deflated, 10 s              17.24  20.21
+   4 15 s + offline              37.55  44.03
+   5 15 s + deflated             38.00  44.52
+   6 offline + deflated, 10 s    26.26  30.79
+   Table B likewise (18 h lo, hi; 10 h lo, hi)
+   0 none, 10 s                 0.305  0.298  0.279  0.272
+   1 15 s                       0.286  0.280  0.260  0.253
+   2 offline, 10 s              0.291  0.285  0.267  0.260
+   3 deflated, 10 s             0.302  0.296  0.278  0.271
+   4 15 s + offline             0.273  0.267  0.248  0.242
+   5 15 s + deflated            0.274  0.268  0.250  0.244
+   6 offline + deflated, 10 s   0.287  0.282  0.265  0.259
+
+4. Table A with 2^63 evaluations a nonce
+   0 none, 10 s                 factor 1.209e+15 - 1.401e+19  waits  16.03  18.75
+   1 15 s                       factor 9.904e+18 - 5.458e+23  waits  29.31  34.29
+   2 offline, 10 s              factor 1.268e+21 - 1.469e+25  waits  28.39  32.24
+   3 deflated, 10 s             factor 2.082e+18 - 1.147e+23  waits  19.56  22.97
+   4 15 s + offline             factor 3.323e+26 - 1.431e+29  waits  55.44  59.56
+   5 15 s + deflated            factor 3.493e+25 - 4.254e+28  waits  54.50  59.36
+   6 offline + deflated, 10 s   factor 1.397e+26 - 1.012e+29  waits  38.36  41.49
+
+5. monotone?
+   0 none, 10 s                 yes
+   1 15 s                       yes
+   2 offline, 10 s              yes
+   3 deflated, 10 s             yes
+   4 15 s + offline             yes
+   5 15 s + deflated            yes
+   6 offline + deflated, 10 s   yes
+
+   (curves stop at the first wait whose bound is at most 1e-55; t_max 300000 at s = 0.3)

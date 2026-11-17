@@ -1,0 +1,161 @@
+module: src/finality_sim/__init__.py
+warm-up: 0.5 s
+alpha(o = 0.90) = 0.3225806451612903; exact 10/31 = 0.3225806451612903
+scale deflated at alpha = 0.30: 1.4285714285714286; exact 10/7 = 1.4285714285714286
+scale deflated at alpha(o = 0.90): 1.476190476190476; exact 31/21 = 1.4761904761904763
+
+item 1: no stake offline, not deflated; alpha = 0.3, scale = 1.0
+  holds up to 20 s; one boundary in the scan: True
+    delay 10 s  holds True   chance after 18 h below floor  curve length  30979  (7 s)
+    delay 11 s  holds True   chance after 18 h below floor  curve length  33719  (9 s)
+    delay 12 s  holds True   chance after 18 h below floor  curve length  36813  (11 s)
+    delay 13 s  holds True   chance after 18 h below floor  curve length  40320  (14 s)
+    delay 14 s  holds True   chance after 18 h below floor  curve length  44305  (18 s)
+    delay 15 s  holds True   chance after 18 h below floor  curve length  48846  (21 s)
+    delay 16 s  holds True   chance after 18 h below floor  curve length  54038  (25 s)
+    delay 17 s  holds True   chance after 18 h below floor  curve length  59993  (31 s)
+    delay 18 s  holds True   chance after 18 h   2.490e-13  curve length  64800  (39 s)
+    delay 19 s  holds True   chance after 18 h   5.334e-12  curve length  64800  (46 s)
+    delay 20 s  holds True   chance after 18 h   9.062e-11  curve length  64800  (44 s)
+    delay 21 s  holds False  chance after 18 h   1.229e-09  curve length  64800  (49 s)
+    delay 22 s  holds False  chance after 18 h   1.342e-08  curve length  64800  (51 s)
+    delay 23 s  holds False  chance after 18 h   1.190e-07  curve length  64800  (56 s)
+    delay 24 s  holds False  chance after 18 h   8.651e-07  curve length  64800  (72 s)
+    delay 25 s  holds False  chance after 18 h   5.211e-06  curve length  64800  (74 s)
+
+item 2: no stake offline, deflated; alpha = 0.3, scale = 1.4285714285714286
+  holds up to 16 s; one boundary in the scan: True
+    delay 10 s  holds True   chance after 18 h below floor  curve length  33402  (17 s)
+    delay 11 s  holds True   chance after 18 h below floor  curve length  38566  (22 s)
+    delay 12 s  holds True   chance after 18 h below floor  curve length  44850  (26 s)
+    delay 13 s  holds True   chance after 18 h below floor  curve length  52548  (39 s)
+    delay 14 s  holds True   chance after 18 h below floor  curve length  62045  (46 s)
+    delay 15 s  holds True   chance after 18 h   3.916e-12  curve length  64800  (55 s)
+    delay 16 s  holds True   chance after 18 h   3.160e-10  curve length  64800  (56 s)
+    delay 17 s  holds False  chance after 18 h   1.449e-08  curve length  64800  (72 s)
+    delay 18 s  holds False  chance after 18 h   3.941e-07  curve length  64800  (88 s)
+    delay 19 s  holds False  chance after 18 h   6.657e-06  curve length  64800  (99 s)
+    delay 20 s  holds False  chance after 18 h   7.313e-05  curve length  64800  (134 s)
+    delay 21 s  holds False  chance after 18 h   5.472e-04  curve length  64800  (145 s)
+    delay 22 s  holds False  chance after 18 h   2.917e-03  curve length  64800  (163 s)
+    delay 23 s  holds False  chance after 18 h   1.156e-02  curve length  64800  (194 s)
+    delay 24 s  holds False  chance after 18 h   3.547e-02  curve length  64800  (273 s)
+    delay 25 s  holds False  chance after 18 h   8.742e-02  curve length  64800  (319 s)
+
+item 3: o = 0.90, not deflated; alpha = 0.3225806451612903, scale = 1.0
+  holds up to 17 s; one boundary in the scan: True
+    delay 10 s  holds True   chance after 18 h below floor  curve length  43856  (13 s)
+    delay 11 s  holds True   chance after 18 h below floor  curve length  48181  (17 s)
+    delay 12 s  holds True   chance after 18 h below floor  curve length  53117  (20 s)
+    delay 13 s  holds True   chance after 18 h below floor  curve length  58773  (22 s)
+    delay 14 s  holds True   chance after 18 h   1.243e-13  curve length  64800  (26 s)
+    delay 15 s  holds True   chance after 18 h   2.622e-12  curve length  64800  (31 s)
+    delay 16 s  holds True   chance after 18 h   4.474e-11  curve length  64800  (33 s)
+    delay 17 s  holds True   chance after 18 h   6.197e-10  curve length  64800  (35 s)
+    delay 18 s  holds False  chance after 18 h   7.004e-09  curve length  64800  (38 s)
+    delay 19 s  holds False  chance after 18 h   6.498e-08  curve length  64800  (40 s)
+    delay 20 s  holds False  chance after 18 h   4.983e-07  curve length  64800  (41 s)
+    delay 21 s  holds False  chance after 18 h   3.182e-06  curve length  64800  (44 s)
+    delay 22 s  holds False  chance after 18 h   1.707e-05  curve length  64800  (45 s)
+    delay 23 s  holds False  chance after 18 h   7.756e-05  curve length  64800  (49 s)
+    delay 24 s  holds False  chance after 18 h   3.015e-04  curve length  64800  (51 s)
+    delay 25 s  holds False  chance after 18 h   1.015e-03  curve length  64800  (78 s)
+
+item 4: o = 0.90, deflated; alpha = 0.3225806451612903, scale = 1.476190476190476
+  holds up to 13 s; one boundary in the scan: True
+    delay 10 s  holds True   chance after 18 h below floor  curve length  50906  (22 s)
+    delay 11 s  holds True   chance after 18 h below floor  curve length  60309  (32 s)
+    delay 12 s  holds True   chance after 18 h   2.079e-12  curve length  64800  (35 s)
+    delay 13 s  holds True   chance after 18 h   2.132e-10  curve length  64800  (52 s)
+    delay 14 s  holds False  chance after 18 h   1.211e-08  curve length  64800  (59 s)
+    delay 15 s  holds False  chance after 18 h   3.960e-07  curve length  64800  (70 s)
+    delay 16 s  holds False  chance after 18 h   7.781e-06  curve length  64800  (73 s)
+    delay 17 s  holds False  chance after 18 h   9.676e-05  curve length  64800  (87 s)
+    delay 18 s  holds False  chance after 18 h   7.896e-04  curve length  64800  (99 s)
+    delay 19 s  holds False  chance after 18 h   4.456e-03  curve length  64800  (111 s)
+    delay 20 s  holds False  chance after 18 h   1.815e-02  curve length  64800  (157 s)
+    delay 21 s  holds False  chance after 18 h   5.572e-02  curve length  64800  (169 s)
+    delay 22 s  holds False  chance after 18 h   1.347e-01  curve length  64800  (192 s)
+    delay 23 s  holds False  chance after 18 h   2.662e-01  curve length  64800  (226 s)
+    delay 24 s  holds False  chance after 18 h   4.447e-01  curve length  64800  (290 s)
+    delay 25 s  holds False  chance after 18 h   6.478e-01  curve length  64800  (326 s)
+
+item 5: delay 10 s, not deflated, a fraction o of the honest stake online
+  holds from 76 % up; one boundary in the scan: True
+    o = 100 %  alpha = 0.3                   holds True   chance after 18 h below floor  curve length  30979  (7 s)
+    o =  99 %  alpha = 0.3021148036253777    holds True   chance after 18 h below floor  curve length  31938  (12 s)
+    o =  98 %  alpha = 0.3042596348884381    holds True   chance after 18 h below floor  curve length  32954  (12 s)
+    o =  97 %  alpha = 0.30643513789581206   holds True   chance after 18 h below floor  curve length  34032  (13 s)
+    o =  96 %  alpha = 0.30864197530864196   holds True   chance after 18 h below floor  curve length  35177  (13 s)
+    o =  95 %  alpha = 0.3108808290155441    holds True   chance after 18 h below floor  curve length  36396  (13 s)
+    o =  94 %  alpha = 0.31315240083507306   holds True   chance after 18 h below floor  curve length  37695  (14 s)
+    o =  93 %  alpha = 0.31545741324921134   holds True   chance after 18 h below floor  curve length  39081  (14 s)
+    o =  92 %  alpha = 0.3177966101694915    holds True   chance after 18 h below floor  curve length  40564  (14 s)
+    o =  91 %  alpha = 0.32017075773745995   holds True   chance after 18 h below floor  curve length  42152  (14 s)
+    o =  90 %  alpha = 0.3225806451612903    holds True   chance after 18 h below floor  curve length  43856  (13 s)
+    o =  89 %  alpha = 0.32502708559046584   holds True   chance after 18 h below floor  curve length  45689  (15 s)
+    o =  88 %  alpha = 0.3275109170305677    holds True   chance after 18 h below floor  curve length  47664  (15 s)
+    o =  87 %  alpha = 0.33003300330033003   holds True   chance after 18 h below floor  curve length  49797  (17 s)
+    o =  86 %  alpha = 0.33259423503325947   holds True   chance after 18 h below floor  curve length  52105  (18 s)
+    o =  85 %  alpha = 0.33519553072625696   holds True   chance after 18 h below floor  curve length  54610  (18 s)
+    o =  84 %  alpha = 0.3378378378378379    holds True   chance after 18 h below floor  curve length  57335  (23 s)
+    o =  83 %  alpha = 0.340522133938706     holds True   chance after 18 h below floor  curve length  60307  (24 s)
+    o =  82 %  alpha = 0.34324942791762014   holds True   chance after 18 h below floor  curve length  63558  (25 s)
+    o =  81 %  alpha = 0.3460207612456747    holds True   chance after 18 h   2.792e-13  curve length  64800  (25 s)
+    o =  80 %  alpha = 0.34883720930232565   holds True   chance after 18 h   1.358e-12  curve length  64800  (25 s)
+    o =  79 %  alpha = 0.3516998827667057    holds True   chance after 18 h   6.440e-12  curve length  64800  (24 s)
+    o =  78 %  alpha = 0.35460992907801425   holds True   chance after 18 h   2.972e-11  curve length  64800  (24 s)
+    o =  77 %  alpha = 0.3575685339690107    holds True   chance after 18 h   1.333e-10  curve length  64800  (24 s)
+    o =  76 %  alpha = 0.36057692307692313   holds True   chance after 18 h   5.799e-10  curve length  64800  (24 s)
+    o =  75 %  alpha = 0.36363636363636365   holds False  chance after 18 h   2.443e-09  curve length  64800  (23 s)
+    o =  74 %  alpha = 0.3667481662591687    holds False  chance after 18 h   9.946e-09  curve length  64800  (24 s)
+    o =  73 %  alpha = 0.36991368680641185   holds False  chance after 18 h   3.906e-08  curve length  64800  (24 s)
+    o =  72 %  alpha = 0.3731343283582089    holds False  chance after 18 h   1.476e-07  curve length  64800  (24 s)
+    o =  71 %  alpha = 0.3764115432873275    holds False  chance after 18 h   5.358e-07  curve length  64800  (24 s)
+    o =  70 %  alpha = 0.379746835443038     holds False  chance after 18 h   1.862e-06  curve length  64800  (24 s)
+    o =  69 %  alpha = 0.3831417624521073    holds False  chance after 18 h   6.186e-06  curve length  64800  (24 s)
+
+RESULT (window 18 h = 64800 s, target 1e-9, f = 1/30, floor 1e-13, t_max 400000)
+item 1: no stake offline, not deflated   context  delta_s = 19  alpha = 0.3  scale = 1.0  wait  14.36 h (51704 s)  chance after 18 h 5.334e-12  holds True  rises after crossing 0  recross False  equals scan True
+item 1: no stake offline, not deflated   limit d  delta_s = 20  alpha = 0.3  scale = 1.0  wait  16.13 h (58061 s)  chance after 18 h 9.062e-11  holds True  rises after crossing 0  recross False  equals scan True
+item 1: no stake offline, not deflated   d + 1    delta_s = 21  alpha = 0.3  scale = 1.0  wait  18.18 h (65453 s)  chance after 18 h 1.229e-09  holds False  rises after crossing 0  recross False  equals scan True
+item 1: no stake offline, not deflated   context  delta_s = 22  alpha = 0.3  scale = 1.0  wait  20.58 h (74078 s)  chance after 18 h 1.342e-08  holds False  rises after crossing 0  recross False  equals scan True
+
+item 2: no stake offline, deflated       context  delta_s = 15  alpha = 0.3  scale = 1.4285714285714286  wait  14.20 h (51130 s)  chance after 18 h 3.916e-12  holds True  rises after crossing 0  recross False  equals scan True
+item 2: no stake offline, deflated       limit d  delta_s = 16  alpha = 0.3  scale = 1.4285714285714286  wait  17.05 h (61394 s)  chance after 18 h 3.160e-10  holds True  rises after crossing 0  recross False  equals scan True
+item 2: no stake offline, deflated       d + 1    delta_s = 17  alpha = 0.3  scale = 1.4285714285714286  wait  20.66 h (74363 s)  chance after 18 h 1.449e-08  holds False  rises after crossing 0  recross False  equals scan True
+item 2: no stake offline, deflated       context  delta_s = 18  alpha = 0.3  scale = 1.4285714285714286  wait  25.25 h (90897 s)  chance after 18 h 3.941e-07  holds False  rises after crossing 0  recross False  equals scan True
+
+item 3: o = 0.90, not deflated           context  delta_s = 16  alpha = 0.3225806451612903  scale = 1.0  wait  15.64 h (56302 s)  chance after 18 h 4.474e-11  holds True  rises after crossing 0  recross False  equals scan True
+item 3: o = 0.90, not deflated           limit d  delta_s = 17  alpha = 0.3225806451612903  scale = 1.0  wait  17.59 h (63330 s)  chance after 18 h 6.197e-10  holds True  rises after crossing 0  recross False  equals scan True
+item 3: o = 0.90, not deflated           d + 1    delta_s = 18  alpha = 0.3225806451612903  scale = 1.0  wait  19.87 h (71549 s)  chance after 18 h 7.004e-09  holds False  rises after crossing 0  recross False  equals scan True
+item 3: o = 0.90, not deflated           context  delta_s = 19  alpha = 0.3225806451612903  scale = 1.0  wait  22.56 h (81204 s)  chance after 18 h 6.498e-08  holds False  rises after crossing 0  recross False  equals scan True
+
+item 4: o = 0.90, deflated               context  delta_s = 12  alpha = 0.3225806451612903  scale = 1.476190476190476  wait  13.86 h (49878 s)  chance after 18 h 2.079e-12  holds True  rises after crossing 0  recross False  equals scan True
+item 4: o = 0.90, deflated               limit d  delta_s = 13  alpha = 0.3225806451612903  scale = 1.476190476190476  wait  16.75 h (60294 s)  chance after 18 h 2.132e-10  holds True  rises after crossing 0  recross False  equals scan True
+item 4: o = 0.90, deflated               d + 1    delta_s = 14  alpha = 0.3225806451612903  scale = 1.476190476190476  wait  20.46 h (73671 s)  chance after 18 h 1.211e-08  holds False  rises after crossing 0  recross False  equals scan True
+item 4: o = 0.90, deflated               context  delta_s = 15  alpha = 0.3225806451612903  scale = 1.476190476190476  wait  25.29 h (91055 s)  chance after 18 h 3.960e-07  holds False  rises after crossing 0  recross False  equals scan True
+
+item 5: delay 10 s, o =  77 %              context  delta_s = 10  alpha = 0.3575685339690107  scale = 1.0  wait  16.39 h (58987 s)  chance after 18 h 1.333e-10  holds True  rises after crossing 0  recross False  equals scan True
+item 5: delay 10 s, o =  76 %              limit o  delta_s = 10  alpha = 0.36057692307692313  scale = 1.0  wait  17.53 h (63119 s)  chance after 18 h 5.799e-10  holds True  rises after crossing 0  recross False  equals scan True
+item 5: delay 10 s, o =  75 %              o - 1 %  delta_s = 10  alpha = 0.36363636363636365  scale = 1.0  wait  18.82 h (67759 s)  chance after 18 h 2.443e-09  holds False  rises after crossing 0  recross False  equals scan True
+item 5: delay 10 s, o =  74 %              context  delta_s = 10  alpha = 0.3667481662591687  scale = 1.0  wait  20.28 h (72994 s)  chance after 18 h 9.946e-09  holds False  rises after crossing 0  recross False  equals scan True
+
+total 1108 s
+
+PROVENANCE AND CHECKS (added by hand after the run; the lines above are the script's own)
+source: src/finality_sim
+  waitbound.py sha256 31a5e5a1fd250ff69cbce1ef05bfb2a3e620ab62209a0812c2ee4170b8271572
+  lcbounds.py  sha256 a6767dc57953fedde1d7b999938d9f4f25bb7c855c37f1009f93173e0e237c5a
+python 3.13.7, numpy 2.5.4, numba 0.68.0, scipy 1.18.1, joblib 1.6.0
+- The scan (t_max 64800) and the full curves (t_max 400000) give the same chance after 18 h at all 20 points.
+- No full curve rises after its first crossing of 1e-9. All 20 end at the floor before t_max.
+- Each scan has one boundary: delays 10 to 25 s for items 1 to 4, o from 100 % down to 69 % for item 5.
+- The floor only truncates. At alpha 0.3 and 10 s, scale 1 and 1/0.7, the curve with floor 1e-13 equals the head of the
+  curve with floor 0. Curves shorter than 64800 were counted as holding the window.
+- With floor 0 at alpha 0.3 and 10 s: wait 21335 s (5.93 h), chance after 64800 s 9.38e-28; deflated 23060 s (6.41 h),
+  7.16e-26. SLOTS.md K.7 prints 5.9 h, 9.4e-28, 6.4 h and 7.2e-26, and 16.1 h at 20 s (16.13 h here).
+- Gates repeated by hand from tests/test_waitbound.py: wait_needed reads index + 1; scale is the lottery at
+  1 - (1 - f)^scale; slots=True is the continuous chain at delta_s + 1 and -ln(1 - f).
+- The module's played chain at a third and 10 s (slots=False) fails at 0.22925, 0.069922 and 0.0060531 after waits of
+  1800, 3600 and 7200 slots. curve[t - 1] there is 0.25128, 0.078908 and 0.0083653.

@@ -1,0 +1,9 @@
+state | coalition's share of the active stake | lottery's factor | wait at 1e-9 (h) | chance after 10 h | chance after 15 h | chance after 18 h | chance after 36 h
+0.3000 15 s, factor 1.090 | 0.3000 | 1.0900 | 9.97 | 9.36e-10 | below 1e-13 | below 1e-13 | below 1e-13
+0.3000 15 s, factor 1.091 | 0.3000 | 1.0910 | 9.98 | 9.51e-10 | below 1e-13 | below 1e-13 | below 1e-13
+0.3000 15 s, factor 1.092 | 0.3000 | 1.0920 | 9.98 | 9.67e-10 | below 1e-13 | below 1e-13 | below 1e-13
+0.3000 15 s, factor 1.093 | 0.3000 | 1.0930 | 9.99 | 9.82e-10 | below 1e-13 | below 1e-13 | below 1e-13
+0.3000 15 s, factor 1.094 | 0.3000 | 1.0940 | 10.00 | 9.98e-10 | below 1e-13 | below 1e-13 | below 1e-13
+0.3000 15 s, factor 1.095 | 0.3000 | 1.0950 | 10.01 | 1.01e-09 | below 1e-13 | below 1e-13 | below 1e-13
+0.3000 15 s, factor 1.096 | 0.3000 | 1.0960 | 10.01 | 1.03e-09 | below 1e-13 | below 1e-13 | below 1e-13
+0.3000 15 s, factor 1.097 | 0.3000 | 1.0970 | 10.02 | 1.05e-09 | below 1e-13 | below 1e-13 | below 1e-13

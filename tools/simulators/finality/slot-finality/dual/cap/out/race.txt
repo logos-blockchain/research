@@ -1,0 +1,18 @@
+a third  10 s normal   : honest slots/slot 0.02235 (0.670 f), public chain blocks in 18 h    1184, coalition wins in 18 h    728, honest lead  62.6%, hours to 2,160 public blocks  32.8
+a third  10 s deflated : honest slots/slot 0.03333 (1.000 f), public chain blocks in 18 h    1620, coalition wins in 18 h   1089, honest lead  48.7%, hours to 2,160 public blocks  24.0
+a third  12 s normal   : honest slots/slot 0.02235 (0.670 f), public chain blocks in 18 h    1142, coalition wins in 18 h    728, honest lead  56.8%, hours to 2,160 public blocks  34.0
+a third  12 s deflated : honest slots/slot 0.03333 (1.000 f), public chain blocks in 18 h    1543, coalition wins in 18 h   1089, honest lead  41.7%, hours to 2,160 public blocks  25.2
+a third  15 s normal   : honest slots/slot 0.02235 (0.670 f), public chain blocks in 18 h    1085, coalition wins in 18 h    728, honest lead  48.9%, hours to 2,160 public blocks  35.8
+a third  15 s deflated : honest slots/slot 0.03333 (1.000 f), public chain blocks in 18 h    1440, coalition wins in 18 h   1089, honest lead  32.2%, hours to 2,160 public blocks  27.0
+30 %     10 s normal   : honest slots/slot 0.02345 (0.704 f), public chain blocks in 18 h    1231, coalition wins in 18 h    656, honest lead  87.7%, hours to 2,160 public blocks  31.6
+30 %     10 s deflated : honest slots/slot 0.03333 (1.000 f), public chain blocks in 18 h    1620, coalition wins in 18 h    935, honest lead  73.3%, hours to 2,160 public blocks  24.0
+30 %     12 s normal   : honest slots/slot 0.02345 (0.704 f), public chain blocks in 18 h    1186, coalition wins in 18 h    656, honest lead  80.9%, hours to 2,160 public blocks  32.8
+30 %     12 s deflated : honest slots/slot 0.03333 (1.000 f), public chain blocks in 18 h    1543, coalition wins in 18 h    935, honest lead  65.1%, hours to 2,160 public blocks  25.2
+30 %     15 s normal   : honest slots/slot 0.02345 (0.704 f), public chain blocks in 18 h    1124, coalition wins in 18 h    656, honest lead  71.4%, hours to 2,160 public blocks  34.6
+30 %     15 s deflated : honest slots/slot 0.03333 (1.000 f), public chain blocks in 18 h    1440, coalition wins in 18 h    935, honest lead  54.1%, hours to 2,160 public blocks  27.0
+
+hours for the honest chain (deflated: slots at f) to make n blocks, gap = d + 30 s
+  10 s: 2935: 32.6 h, 1468: 16.3 h
+  12 s: 4193: 48.9 h, 2097: 24.5 h
+  15 s: 7829: 97.9 h, 3915: 48.9 h
+healthy chain, Blend fit 5.507 s: 2,160 blocks in 21.3 h

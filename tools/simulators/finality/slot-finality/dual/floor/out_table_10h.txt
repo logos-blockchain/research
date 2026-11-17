@@ -1,0 +1,36 @@
+K = 36000
+
+floor 535  (withholding share it is sized for: a third)
+  cost [blocks, 10 s] stake missing before finality is late (1e-9 / 1e-3 / half): 33.4 % / 40.8 % / 48.1 %; wait median / latest h while withheld -> 0.20: 10.0 / 10.0; 0.30: 10.0 / 10.0; 0.33: 10.0 / 10.0; 54 h / 72 h phase need 10.7 % / 8.0 %
+  cost [wins        ] stake missing before finality is late (1e-9 / 1e-3 / half): 43.4 % / 49.7 % / 55.9 %; wait median / latest h while withheld -> 0.20: 10.0 / 10.0; 0.30: 10.0 / 10.0; 0.33: 10.0 / 10.0; 54 h / 72 h phase need 10.4 % / 7.8 %
+  gain: side held back past K (1 - 1e-9) up to 0.337; with a third on both sides honest up to 0.004; split in halves median 10.3 h (10 s) / 10.0 h (no delay); a third alone 0.55 days mean, 0.42 earliest; a tenth alone 1.83 days; eclipse h, mean, per attempt (10 s / no delay) -> 0.30: 6.9 / 8.4; 0.33: 5.1 / 6.6
+
+floor 560  (withholding share it is sized for: 0.3)
+  cost [blocks, 10 s] stake missing before finality is late (1e-9 / 1e-3 / half): 30.1 % / 37.7 % / 45.2 %; wait median / latest h while withheld -> 0.20: 10.0 / 10.0; 0.30: 10.0 / 10.0; 0.33: 10.0 / 10.4; 54 h / 72 h phase need 11.2 % / 8.3 %
+  cost [wins        ] stake missing before finality is late (1e-9 / 1e-3 / half): 41.1 % / 47.5 % / 53.8 %; wait median / latest h while withheld -> 0.20: 10.0 / 10.0; 0.30: 10.0 / 10.0; 0.33: 10.0 / 10.0; 54 h / 72 h phase need 10.8 % / 8.1 %
+  gain: side held back past K (1 - 1e-9) up to 0.355; with a third on both sides honest up to 0.022; split in halves median 10.8 h (10 s) / 10.0 h (no delay); a third alone 0.58 days mean, 0.44 earliest; a tenth alone 1.92 days; eclipse h, mean, per attempt (10 s / no delay) -> 0.30: 7.2 / 8.8; 0.33: 5.4 / 6.9
+
+floor 597  (withholding share it is sized for: a quarter)
+  cost [blocks, 10 s] stake missing before finality is late (1e-9 / 1e-3 / half): 25.1 % / 33.0 % / 40.8 %; wait median / latest h while withheld -> 0.20: 10.0 / 10.0; 0.30: 10.0 / 10.6; 0.33: 10.0 / 11.0; 54 h / 72 h phase need 11.8 % / 8.8 %
+  cost [wins        ] stake missing before finality is late (1e-9 / 1e-3 / half): 37.6 % / 44.2 % / 50.7 %; wait median / latest h while withheld -> 0.20: 10.0 / 10.0; 0.30: 10.0 / 10.0; 0.33: 10.0 / 10.0; 54 h / 72 h phase need 11.5 % / 8.6 %
+  gain: side held back past K (1 - 1e-9) up to 0.382; with a third on both sides honest up to 0.049; split in halves median 11.5 h (10 s) / 10.0 h (no delay); a third alone 0.62 days mean, 0.48 earliest; a tenth alone 2.05 days; eclipse h, mean, per attempt (10 s / no delay) -> 0.30: 7.7 / 9.3; 0.33: 5.7 / 7.4
+
+floor 633  (withholding share it is sized for: a fifth)
+  cost [blocks, 10 s] stake missing before finality is late (1e-9 / 1e-3 / half): 20.0 % / 28.3 % / 36.4 %; wait median / latest h while withheld -> 0.20: 10.0 / 10.0; 0.30: 10.0 / 11.2; 0.33: 10.0 / 11.6; 54 h / 72 h phase need 12.5 % / 9.3 %
+  cost [wins        ] stake missing before finality is late (1e-9 / 1e-3 / half): 34.2 % / 41.0 % / 47.7 %; wait median / latest h while withheld -> 0.20: 10.0 / 10.0; 0.30: 10.0 / 10.0; 0.33: 10.0 / 10.0; 54 h / 72 h phase need 12.1 % / 9.1 %
+  gain: side held back past K (1 - 1e-9) up to 0.409; with a third on both sides honest up to 0.075; split in halves median 12.2 h (10 s) / 10.5 h (no delay); a third alone 0.65 days mean, 0.51 earliest; a tenth alone 2.17 days; eclipse h, mean, per attempt (10 s / no delay) -> 0.30: 8.1 / 9.9; 0.33: 6.0 / 7.8
+
+floor 702  (withholding share it is sized for: a tenth)
+  cost [blocks, 10 s] stake missing before finality is late (1e-9 / 1e-3 / half): 10.1 % / 18.9 % / 27.7 %; wait median / latest h while withheld -> 0.20: 10.0 / 11.0; 0.30: 10.3 / 12.3; 0.33: 10.7 / 12.8; 54 h / 72 h phase need 13.8 % / 10.2 %
+  cost [wins        ] stake missing before finality is late (1e-9 / 1e-3 / half): 27.8 % / 34.9 % / 41.9 %; wait median / latest h while withheld -> 0.20: 10.0 / 10.0; 0.30: 10.0 / 10.3; 0.33: 10.0 / 10.8; 54 h / 72 h phase need 13.3 % / 9.9 %
+  gain: side held back past K (1 - 1e-9) up to 0.460; with a third on both sides honest up to 0.126; split in halves median 13.6 h (10 s) / 11.6 h (no delay); a third alone 0.72 days mean, 0.57 earliest; a tenth alone 2.40 days; eclipse h, mean, per attempt (10 s / no delay) -> 0.30: 9.0 / 11.0; 0.33: 6.7 / 8.7
+
+floor 768  (withholding share it is sized for: none)
+  cost [blocks, 10 s] stake missing before finality is late (1e-9 / 1e-3 / half): 0.1 % / 9.6 % / 18.9 %; wait median / latest h while withheld -> 0.20: 10.1 / 11.9; 0.30: 11.2 / 13.3; 0.33: 11.7 / 13.9; 54 h / 72 h phase need 15.0 % / 11.1 %
+  cost [wins        ] stake missing before finality is late (1e-9 / 1e-3 / half): 21.6 % / 29.1 % / 36.4 %; wait median / latest h while withheld -> 0.20: 10.0 / 10.0; 0.30: 10.0 / 11.2; 0.33: 10.0 / 11.7; 54 h / 72 h phase need 14.4 % / 10.8 %
+  gain: side held back past K (1 - 1e-9) up to 0.509; with a third on both sides honest up to 0.175; split in halves median 14.8 h (10 s) / 12.7 h (no delay); a third alone 0.79 days mean, 0.63 earliest; a tenth alone 2.63 days; eclipse h, mean, per attempt (10 s / no delay) -> 0.30: 9.9 / 12.0; 0.33: 7.3 / 9.5
+
+floor 833  (withholding share it is sized for: (1,500))
+  cost [blocks, 10 s] stake missing before finality is late (1e-9 / 1e-3 / half): none / none / 9.9 %; wait median / latest h while withheld -> 0.20: 11.0 / 12.9; 0.30: 12.2 / 14.3; 0.33: 12.7 / 14.9; 54 h / 72 h phase need 16.2 % / 12.0 %
+  cost [wins        ] stake missing before finality is late (1e-9 / 1e-3 / half): 15.6 % / 23.3 % / 31.0 %; wait median / latest h while withheld -> 0.20: 10.0 / 10.5; 0.30: 10.0 / 12.0; 0.33: 10.3 / 12.6; 54 h / 72 h phase need 15.5 % / 11.6 %
+  gain: side held back past K (1 - 1e-9) up to 0.557; with a third on both sides honest up to 0.224; split in halves median 16.1 h (10 s) / 13.8 h (no delay); a third alone 0.86 days mean, 0.69 earliest; a tenth alone 2.85 days; eclipse h, mean, per attempt (10 s / no delay) -> 0.30: 10.7 / 13.0; 0.33: 7.9 / 10.3

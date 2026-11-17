@@ -1,0 +1,16 @@
+(1) 30 %, 10 s, offline, deflated    share 0.3226 scale 1.4762: wait 9.77 h, after 10 h 6.11e-10, after 18 h 0
+(1) 30 %, 15 s, offline              share 0.3226 scale 1.0000: wait 13.96 h, after 10 h 3.42e-07, after 18 h 0
+(1) 30 %, 15 s, offline, deflated    share 0.3226 scale 1.4762: wait 25.29 h, after 10 h 0.00028, after 18 h 3.96e-07
+(2) third, 10 s, offline, deflated   share 0.3571 scale 1.5556: wait 23.48 h, after 10 h 0.000138, after 18 h 1.23e-07
+(2) third, 15 s, offline, deflated   share 0.3571 scale 1.5556: wait 95.72 h, after 10 h 0.12, after 18 h 0.0212
+(3) 15 s + offline, 18 h: largest share 31% (wait 17.23 h); at 32% the wait is 21.73 h
+(3) 15 s + offline, 10 h: largest share 28% (wait 9.64 h); at 29% the wait is 11.51 h
+(3) 15 s + deflated, 18 h: largest share 31% (wait 17.99 h); at 32% the wait is 23.48 h
+(3) 15 s + deflated, 10 h: largest share 28% (wait 9.46 h); at 29% the wait is 11.48 h
+(3) offline + deflated (10 s), 18 h: largest share 32% (wait 15.82 h); at 33% the wait is 21.13 h
+(3) offline + deflated (10 s), 10 h: largest share 30% (wait 9.77 h); at 31% the wait is 12.26 h
+(3) all three, 18 h: largest share 28% (wait 14.77 h); at 29% the wait is 19.01 h
+(3) all three, 10 h: largest share 26% (wait 9.60 h); at 27% the wait is 11.78 h
+(4) third, 15 s, 18 h: largest factor 1.037 (chance 9.88e-10; at +0.001: 1.01e-09)
+(4) 30 %, 15 s, 18 h: largest factor 1.593 (chance 9.82e-10; at +0.001: 1.01e-09)
+(4) 30 %, 15 s, 10 h: largest factor 1.094 (chance 9.98e-10; at +0.001: 1.01e-09)

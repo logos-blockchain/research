@@ -1,0 +1,30 @@
+1. largest share held at 1e-9 (>= 1/3 means a third holds)
+    K delay | no grinding | delayed nonce (1.21) | today, one nonce lo-hi | today, two nonces lo-hi
+   10  10 s | 0.333 | 0.332 | 0.280-0.283 | 0.272-0.279
+   10  15 s | 0.304 | 0.303 | 0.260-0.264 | 0.253-0.260
+   12  10 s | >= 1/3 | >= 1/3 | 0.291-0.293 | 0.281-0.287
+   12  15 s | 0.314 | 0.314 | 0.269-0.272 | 0.262-0.269
+   18  10 s | >= 1/3 | >= 1/3 | 0.313-0.315 | 0.298-0.305
+   18  15 s | >= 1/3 | >= 1/3 | 0.289-0.291 | 0.280-0.286
+
+2. wait (h) at 1e-9 when a race meets n nonces of factor 1.10 each
+   30 %     10 s  n= 2  factor   1.21  wait   5.98 h
+   30 %     10 s  n= 3  factor   1.33  wait   6.01 h
+   30 %     10 s  n= 4  factor   1.46  wait   6.04 h
+   30 %     10 s  n= 7  factor   1.95  wait   6.12 h
+   30 %     10 s  n=19  factor   6.12  wait   6.45 h
+   30 %     15 s  n= 2  factor   1.21  wait   9.46 h
+   30 %     15 s  n= 3  factor   1.33  wait   9.50 h
+   30 %     15 s  n= 4  factor   1.46  wait   9.54 h
+   30 %     15 s  n= 7  factor   1.95  wait   9.67 h
+   30 %     15 s  n=19  factor   6.12  wait  10.19 h
+   a third  10 s  n= 2  factor   1.21  wait  10.20 h
+   a third  10 s  n= 3  factor   1.33  wait  10.25 h
+   a third  10 s  n= 4  factor   1.46  wait  10.29 h
+   a third  10 s  n= 7  factor   1.95  wait  10.44 h
+   a third  10 s  n=19  factor   6.12  wait  11.00 h
+   a third  15 s  n= 2  factor   1.21  wait  17.53 h
+   a third  15 s  n= 3  factor   1.33  wait  17.61 h
+   a third  15 s  n= 4  factor   1.46  wait  17.69 h
+   a third  15 s  n= 7  factor   1.95  wait  17.93 h
+   a third  15 s  n=19  factor   6.12  wait  18.90 h

@@ -1,0 +1,13 @@
+7 floor at K = 129600: 2669   P(N < floor) = 9.66e-10   P(N < floor + 1) = 1.15e-09
+7 floor at K = 54000: 1064   P(N < floor) = 9.9e-10   P(N < floor + 1) = 1.3e-09
+7 floor at K = 64800: 1291   P(N < floor) = 9.93e-10   P(N < floor + 1) = 1.27e-09
+7 floor at K = 36000: 689   P(N < floor) = 9.82e-10   P(N < floor + 1) = 1.37e-09
+1 third, tenth offline, 15 s   share 0.3571 delay 15 scale 1.0000  wait  30.84 h   after 18 h 5.28e-06   after 36 h 3.19e-11
+2 third, 16 s, deflated 1.5    share 0.3333 delay 16 scale 1.5000  wait  45.84 h   after 18 h 0.000303   after 36 h 8.65e-08
+2 third, 15 s, deflated 1.5    share 0.3333 delay 15 scale 1.5000  wait  35.57 h   after 18 h 2.83e-05   after 36 h 7.8e-10
+3 third, 20 s                  share 0.3333 delay 20 scale 1.0000  wait  33.47 h   after 18 h 1.42e-05   after 36 h 2.09e-10
+3 third, 21 s                  share 0.3333 delay 21 scale 1.0000  wait  38.80 h   after 18 h 6.63e-05   after 36 h 4.45e-09
+4 third, 80 % online, 10 s     share 0.3846 delay 10 scale 1.0000  wait  32.72 h   after 18 h 1.02e-05   after 36 h 1.28e-10
+5 31 %, 15 s, deflated         share 0.3100 delay 15 scale 1.4493  wait  17.99 h   after 18 h 9.9e-10   after 36 h 0
+5 32 %, 15 s, deflated         share 0.3200 delay 15 scale 1.4706  wait  23.48 h   after 18 h 1.26e-07   after 36 h 0
+6 31 %, tenth offline, 15 s    share 0.3330 delay 15 scale 1.0000  wait  17.23 h   after 18 h 4.01e-10   after 36 h 0

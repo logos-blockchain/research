@@ -1,0 +1,5 @@
+PART A: scaled depth, a third, 10 s. Monte Carlo of the attack against the formula.
+depth  40 | n =  1 | MC oracle best-of-n 2.037e-02 +- 6.4e-05 | MC nonce 0 alone 2.037e-02 +- 6.4e-05 | MC pick by wins in a fixed window of 2190 slots 2.037e-02 +- 6.4e-05 | formula as in the script 3.574e-02 | formula, target a block 2.043e-02
+depth  40 | n = 16 | MC oracle best-of-n 1.715e-01 +- 3.4e-04 | MC nonce 0 alone 2.052e-02 +- 1.3e-04 | MC pick by wins in a fixed window of 2190 slots 1.562e-01 +- 3.3e-04 | formula as in the script 2.643e-01 | formula, target a block 1.712e-01
+depth  80 | n =  1 | MC oracle best-of-n 1.031e-03 +- 1.5e-05 | MC nonce 0 alone 1.031e-03 +- 1.5e-05 | MC pick by wins in a fixed window of 4380 slots 1.031e-03 +- 1.5e-05 | formula as in the script 1.815e-03 | formula, target a block 1.022e-03
+depth  80 | n = 16 | MC oracle best-of-n 1.347e-02 +- 1.1e-04 | MC nonce 0 alone 9.858e-04 +- 2.9e-05 | MC pick by wins in a fixed window of 4380 slots 1.226e-02 +- 1.0e-04 | formula as in the script 2.314e-02 | formula, target a block 1.356e-02
