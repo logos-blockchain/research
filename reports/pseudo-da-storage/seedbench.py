@@ -6,7 +6,7 @@ Nodes: A = origin of the transactions (also bootstrap), B = node under test, F =
   s2  B uploads one block file (t1..tn concatenated), F downloads it
   s3a B fetches n files t1..tn from A (secondary seed), A drops them, F downloads the n files from B
   s3b B already holds the bytes and uploads them as n files, F downloads the n files from B
-Usage: seedbench.py s1|s23 <out.csv> [reps] [concurrency]
+Usage: seedbench.py s1|s23 <out.csv> [reps] [concurrency]   (TX_BYTES="307200" overrides the transaction sizes)
 """
 import csv, hashlib, os, shutil, subprocess, sys, time, urllib.request, urllib.error
 from concurrent.futures import ThreadPoolExecutor
@@ -100,7 +100,8 @@ def s1(out, reps):
 def s23(out, reps, c):
     out_f = open(out, "w"); w = csv.writer(out_f)
     w.writerow("scenario,n,tx_bytes,rep,conc,seed_s,feed_s,ok,origin_blocks_in_feed".split(","))
-    for n, s in ((10, 1024), (100, 1024), (10, 204800),(100, 204800), (10, 3145728), (100, 3145728)):
+    sizes = [int(x) for x in os.environ.get("TX_BYTES", "1024 204800 3145728").split()]
+    for n, s in [(n, s) for s in sizes for n in (10, 100)]:
         for rep in range(reps):
             txs = [os.urandom(s) for _ in range(n)]; dg = [hashlib.sha256(t).digest() for t in txs]
             # s2: one block file
