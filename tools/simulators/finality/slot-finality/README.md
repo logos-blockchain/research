@@ -9,8 +9,10 @@ figures.
 | `floor/` | The finality floor, and what a finality window holds. |
 | `nonce/` | The epoch nonce: what grinding gives a coalition, and designs that delay the nonce. |
 | `dual/` | A depth rule kept beside the slot rule. Also the floor, the delivery delay, the deflated inference and several epochs, each on its own. |
+| `rules/` | The rules as the specifications print them, run in a model: the switch to the Online rule, comparing forks and the uncle window. Also the restart path as a private race, and the density test over one window. |
 
-The stored runs used the study's code at commit `741dc0b`.
+The stored runs used the study's code at commit `741dc0b`. The runs of `rules/model/` read the
+specification, logos-lips, at commit `ded1d4c6` of pull request #532.
 
 ## How to run
 
@@ -28,6 +30,7 @@ Install the study's environment once: `make install` in `tools/simulators/finali
   folder.
 - `dual/`: run each script in the folder that holds it. It prints its result or writes it to
   `out/` below that folder.
+- `rules/`: run from any folder. A script prints its result. The table gives each command.
 - Caches go to `.cache` beside the script.
 - Arrays (`*.npy`, `*.npz`) are not stored here. The tables name the script that writes each.
 - Times are rough. Each is that of one run on a machine with 14 cores.
@@ -132,6 +135,25 @@ sampling. Scripts marked "study" import the study's `src`.
 | `floor/floor_n.py K n [n ...]` | The same rows for given floors. | `floor/out_floor_1291.txt`, `floor/out_floor_689.txt` | 1 s |
 | `floor/change_floor.py [delay]` | Figures for a floor sized with no stake withholding. The stored run is at 15 s. | `floor/out_change_15s.txt` | 3 s |
 | `floor/change_1443.py` | The same at 10 s. | `floor/out_change_1443.txt` | 3 s |
+
+## rules/
+
+`model/model.py` is the model. It runs the two fork choice rules and `commit` as a checkout of
+the specification prints them. `<spec>` is that checkout. It must hold the rules of pull request
+#532. The cases at full scale use a window of 64,800 slots, a density window of 16,200 slots and
+a floor of 1,019.
+
+`python` is the study's interpreter, `.venv/bin/python` below `tools/simulators/finality`. Each
+command is given as run in the folder of its script.
+
+| Script | Command | What it computes | Stored output | Time |
+| --- | --- | --- | --- | --- |
+| `model/switch.py` | `SPEC_ROOT=<spec> python switch.py` | The switch to the Online rule with `commit` and without it. A fork that is sparse in the density window but longer overall loses under the Bootstrap rule. Without `commit`, its next block wins. | `model/switch.out` | 20 s |
+| `model/comparing_forks.py` | `SPEC_ROOT=<spec> python comparing_forks.py` | The same blocks in two delivery orders. The lag at the switch. The two changes that were rejected: pruning the fork at the switch, and the Bootstrap test under the Online rule. In random trees at a window of 40 slots: the cases that depend on the order of visits and the pairs of chains that disagree, beside the depth test. It reads the depth test from commit `f28cf3e5` of `<spec>` with `git`. | `model/comparing_forks.out` | 2 min |
+| `model/random_trees.py` | `SPEC_ROOT=<spec> python random_trees.py` | 9,000 random trees with random delivery orders and switch times, checked against the invariants of the rules. One of them: a candidate uncle whose parent is within the uncle window is still in the block tree. | `model/random_trees.out` | 1 min |
+| `restart/private_race.py` | `python private_race.py` | The restart path as a private race at 10 s: the wait that 18 and 10 hours behave like when the fork runs for the whole window and the node's chain stopped 20 minutes earlier, by share. | `restart/private_race.out` | 3 s |
+| `restart/ks_tables.py` (study) | `python ks_tables.py`, after `python ks_curves.py` in `nonce/data` | The largest share each window holds under each worst case. The waits at 25 %, 30 % and a third. The share held on the restart path, with the same race in another form. It imports the study's `src` and reads `nonce/data/ks_curves.npy` and `nonce/data/ks_factors.csv`. | `restart/ks_tables.out` | 1 min |
+| `density-window/single_window.py` | `python single_window.py` | The chance that a private fork is at least as dense as the honest chain over one density window, against 30 % and a third, with no delay and at 10 s. | `density-window/single_window.out` | 7 s |
 
 ## Rechecks
 

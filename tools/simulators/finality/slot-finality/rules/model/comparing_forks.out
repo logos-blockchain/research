@@ -1,0 +1,32 @@
+HEAD ded1d4c6 | worktree dirty: False
+
+--- D: same blocks, two delivery orders, Bootstrap rule
+ X (F then A) on F | Y (A then F) on F | same T: True
+ after the switch: X B_imm past D False A in T True F in T True | Y B_imm past D False A in T True F in T True
+
+--- E: incomplete pruning, restart under the Bootstrap rule
+ B_imm <main2505 sl=105180 h=3506> left in T True left descends False
+ fork block: ok c_loc on main B_imm ancestor of c_loc: True
+ switch ok, B_imm <main2505 sl=105180 h=3506>
+
+--- B7, both delivery orders, as printed
+ fork first: Bootstrap picked honest; F survives switch True; next F block ok: on fork, B_imm past D True, H in T False
+ honest first: Bootstrap picked honest; F survives switch True; next F block ok: on fork, B_imm past D True, H in T False
+
+--- RFC claim: pruning the fork at the switch does not hold (fork delivered again)
+ pruned, F in T: False D in T: True B_imm at or below D: True
+ delivered again: all ok True on fork B_imm past D True H in T False
+
+--- Candidate rule change: the Online rule also uses the pair test
+ B2 child younger than K: Node: Bootstrap honest, then on fork, past D True | PairOnline: Bootstrap honest, then on honest, past D False
+ B3 floor: Node: Bootstrap honest, then on fork, past D True | PairOnline: Bootstrap honest, then on honest, past D False
+ B5 lag, rate 1/60: Node: Bootstrap honest, then on fork, past D True | PairOnline: Bootstrap honest, then on honest, past D False
+ B7 lag, a third: Node: Bootstrap honest, then on fork, past D True | PairOnline: Bootstrap honest, then on honest, past D False
+ G3 eclipse 12.5 h: Node: on fork, past D True | PairOnline: on honest, past D False
+ dense fork that dies, live chain 3,333 blocks: Node: on live, last block ok, B_imm past D True | PairOnline: on dead, last block ok, B_imm past D False
+
+--- Order of comparison figures (RFC 'Comparing forks')
+ pairs 236941: not-a-tie disagreement branch=0 base=6848; cases 3497: order-dependent without the fixed order=953 base=781 as printed=0
+
+--- With a strict pairwise winner, is the result fixed under every delivery order? (small trees, K=40)
+  {'trees': 1500, 'with-winner': 1143, 'printed-misses': 0, 'shortcut-misses': 2, 'no-winner': 357, 'no-winner-split': 74}

@@ -1,0 +1,6 @@
+genesis runs 3000 stats {'ok': 142996, 'moved': 2820, 'step7': 3526, 'step8': 2391}
+   violations none
+checkpoint runs 3000 stats {'ok': 142996, 'moved': 2820, 'step7': 3526, 'step8': 2391}
+   violations none
+restart runs 3000 stats {'ok': 137533, 'moved': 2823, 'step8': 5060, 'step7': 6320}
+   violations none

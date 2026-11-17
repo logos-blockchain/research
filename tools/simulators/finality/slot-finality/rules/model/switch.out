@@ -1,0 +1,8 @@
+
+=== B1. Switch: rejected fork, divergence child older than K (the RFC's case)
+ run_commit=True: bootstrap picked H  len H=2333 len F=2696 density H=540 F=10
+   after switch B_imm <H172 sl=105180 h=3506>  past D: True  F tip in T: False
+   next F block: step7  c_loc on H  B_imm <H172 sl=105180 h=3506>  H still in T: True
+ run_commit=False: bootstrap picked H  len H=2333 len F=2696 density H=540 F=10
+   after switch B_imm <G sl=0 h=0>  past D: False  F tip in T: True
+   next F block: ok  c_loc on F  B_imm <F9 sl=100990 h=3343>  H still in T: False
