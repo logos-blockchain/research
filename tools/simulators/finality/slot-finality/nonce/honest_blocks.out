@@ -1,0 +1,5 @@
+share | delay | slots a block | blocks in 600 slots | blocks in 3,600 slots
+30 %    | 10 s | 52.64 | 11.40 | 68.39
+30 %    | 15 s | 57.64 | 10.41 | 62.46
+a third | 10 s | 54.75 | 10.96 | 65.76
+a third | 15 s | 59.75 | 10.04 | 60.25

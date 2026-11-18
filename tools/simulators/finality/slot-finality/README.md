@@ -46,11 +46,13 @@ Install the study's environment once: `make install` in `tools/simulators/finali
 | `share_held_pairs.py <jobs>` | The share a window holds through two and through three disturbances at once. | `out_share_held_pairs.txt` | |
 | `third_keeps.py` | The chance that a third displaces a block after 10 and after 18 hours, with an unbiased nonce. | `out_third_keeps.txt` | 1 min |
 | `caps_check.py` | The waits when a coalition holds 2^8, 2^16 or 2^24 nonces at both cut-offs. | `out_caps_check.txt` | 2.5 min |
+| `chances_and_waits.py` | The study's wait bound up to 18 hours against 30 % and a third at 10 s, 10 s deflated, 12 s and 15 s, and against 0.29 and 0.295 at 10 s: the chance after 10 and 18 hours, and the wait at 1e-9 and at 1e-9 divided by 1.21, 0.82 and 0.26. 1.21 is the candidate nonce's factor for two nonces. The paper's attack succeeds 0.26 to 0.82 times as often as the bound allows (the study's `SLOTS.md`, K.7). | `out_chances_and_waits.txt`; writes `curve_*.npy` | 45 s, 6 workers |
+| `least_waits.py <set> <jobs>` | The least wait at 1e-9 under the study's bound. `<set>` is `table` or `edges`. `table`: 30 % and a third by delay, after a deflation, with honest stake offline, at twice the inferred stake, and with a block every 15, 20 or 40 s, some also at 1e-9 divided by 1.21. `edges`: the limit on joining stake, as the ratio of the true active stake to the inferred, in steps of 0.001, at which the wait reaches 18 hours (30 % and a third), 10 hours (30 %) and 12.5 hours (a third). | `out_least_waits_table.txt`, `out_least_waits_edges.txt` | `table` 2 min, `edges` 1.5 min, 8 workers |
 | `commit_sim.py` | The clock rule beside the tip rule: the lag, a clock step of K, and K slots with no block. | `out_commit_sim.txt` | 1 s |
 | `floor_figures.py` | The eclipse a prepared fork needs, the depth rule's medians, the days a smaller side needs, the wins of a 1 % attacker, the floor in blocks on Blend. | `out_floor_figures.txt` | 1 s |
 | `multi_epoch.py` | How long a race lasts under the floor when stake does not build, the building stake the floor needs within 72 hours, and a union bound over an epoch and a year. | none | 1 s |
 | `inference_offset.py` | The floor against the rate the stake inference steers to. | none | 2 s |
-| `miss_by_delay.py` | The chance that the whole stake misses the floor at K, by the delay of every block. | none | 1 s |
+| `miss_by_delay.py` | The chance that the whole stake misses the floor at K, by the delay of every block. | `out_miss_by_delay.txt` | 1 s |
 | `alt_floor_10s.py` | A floor sized at 10 s: how often the whole stake misses it at 15 s. | none | 1 s |
 | `run_printed_floor.py <spec> <K> <floor>` | Runs the floor's code as `cryptarchia-v1-protocol.md` prints it. `<spec>` is a checkout of the specification repository. | none | 1 s |
 | `refcode/test_reference.py` | Tests of the reference code of the rules (`refcode/reference.py`) at K = 64,800 and a floor of 1,291: 49 tests, and 33 mutations that the tests must catch. | `refcode/run-floor-1291.txt` | 12 to 40 min |
@@ -87,6 +89,7 @@ sampling. Scripts marked "study" import the study's `src`.
 | `practice.py` | The expected gain in a coalition's own wins when it keeps the best of n nonces. | `practice.out` | | 1 s |
 | `mean_gain.py` | The mean gain in blocks over all epochs. | `mean_gain.out` | | 5 min |
 | `compound.py` | Grinding over several epochs: whether a ground nonce gives more nonces at the next cut-off. | `compound.out` | | |
+| `honest_blocks.py` | The honest blocks that a fork published at a cut-off replaces: the honest chain's blocks in the last 600 and 3,600 slots before the cut-off, at mean rates, against 30 % and a third at 10 s and 15 s. | `honest_blocks.out` | | 1 s |
 | `stake_growth.py` | How grinding moves a coalition's share of the stake over time. | `stake_growth.out` | | 1 s |
 | `choices_plot_data.py` | The share of epochs in which a coalition holds at least 2^x nonces, by coalition size and delay. | `choices_plot_data.out` | writes `choices_plot_data.npy` | 13 min |
 | `data/ks_curves.py` (study) | The study's wait bound on a grid of shares at 10 s, 10 s deflated, 12 s and 15 s, for waits up to 64,800 slots. Also the grinding factors per share at 10 s. | `data/ks_factors.csv` | writes `data/ks_curves.npy` | 6 min |
@@ -172,6 +175,6 @@ command is given as run in the folder of its script.
 | `nonce/review6/recheck.py` | `stake_growth.py`. | none |
 | `dual/review/` | `bounds.py` (`spot.py`), `b_bound.py` (`bbound_check.py`), `timing.py` and `dial.py` (`timing_check.py`), and the count of the depth bound (`count_check.py`, `count_check2.py`, `small_k.py`, `stored_check.py`). `renv.py` sets the path to the study. `bbound_check.py` reads `out/wait_*.npy`. `stored_check.py` reads the study's `runs/b2/curves.csv`, which `make b2` writes. | `spot.txt`, `bbound_check.txt`, `timing_check.txt`, `count_check.txt`, `count_check2.txt` |
 | `dual/cap/review/` | The scripts of `dual/cap/`. `waits.py <jobs>` writes `curve_*.npy`, which `bcheck.py` reads. | `arith.txt`, `waits.txt`, `depth.txt` |
-| `dual/epochs/review/` | `dual/epochs/epochs.py`. `rv.py` is a second model. `check.py [K floor]` and `search.py [K floor]` use it. | `c18.txt`, `c10.txt`, `s18.txt`, `s10.txt` |
+| `dual/epochs/review/` | `dual/epochs/epochs.py`. `rv.py` is a second model. `check.py [K floor]`, `search.py [K floor]` and `extra.py` use it. `extra.py` adds the longest stretch of late finality when a coalition tunes how much it withholds, a coalition that withholds in the same part of every epoch, and the chance that the floor is missed at K when the lottery runs below `f`. | `c18.txt`, `c10.txt`, `s18.txt`, `s10.txt`, `extra.txt` (9 s) |
 | `dual/floor/review/` | `dual/floor/floor.py`. | `check_out.txt`, `occ_out.txt` |
 | `dual/floor/review-1291/rc.py` | The floors 1,291 and 689, and the figures of `dual/floor/change_floor.py` and `dual/floor/floor_n.py`. | `out.txt` |

@@ -1,0 +1,37 @@
+K=64800 ramp third b15: window levels,(next D) [(0.849, np.float64(0.852)), (np.float64(0.723), np.float64(0.725)), (0.667, np.float64(0.668))] longest 18.07 d  max 21.43 h mean-late 19.25
+      withhold for good from 2.1 U into a window: longest 13.12 d
+K=64800 ramp 30% b15: window levels,(next D) [(0.849, np.float64(0.852)), (np.float64(0.723), np.float64(0.725)), (0.7, np.float64(0.7))] longest 17.80 d  max 20.67 h mean-late 18.93
+      withhold for good from 2.5 U into a window: longest 12.79 d
+K=64800 ramp fifth b15: window levels,(next D) [(0.849, np.float64(0.852)), (0.8, np.float64(0.801)), (0.8, np.float64(0.8))] longest 10.23 d  max 18.78 h mean-late 18.42
+      withhold for good from 4.3 U into a window: longest 11.24 d
+K=36000 ramp third b15: window levels,(next D) [(0.802, np.float64(0.805)), (0.667, np.float64(0.669)), (0.667, np.float64(0.667))] longest 10.62 d  max 11.44 h mean-late 10.79
+      withhold for good from 3.0 U into a window: longest 12.53 d
+K=36000 ramp 30% b15: window levels,(next D) [(0.802, np.float64(0.805)), (0.7, np.float64(0.702)), (0.7, np.float64(0.7))] longest 10.49 d  max 11.03 h mean-late 10.57
+      withhold for good from 3.5 U into a window: longest 12.12 d
+K=36000 ramp fifth b15: window levels,(next D) [(0.802, np.float64(0.805)), (0.8, np.float64(0.8)), (0.8, np.float64(0.8))] longest 10.10 d  max 10.02 h mean-late 10.02
+      withhold for good from 5.9 U into a window: longest 10.16 d
+K=64800 a=0.333 blocks 15 withhold [2.25,10.0) every epoch: D=0.7911 ratio withholding 0.843 (thr 0.850); late 67.9% of epoch 8, max wait 18.11 h; lottery when building 1.258 f for 22.5% of the epoch; epoch-mean win rate 0.938 f
+K=64800 a=0.333 blocks 15 withhold [3,10) every epoch: D=0.8328 ratio withholding 0.801 (thr 0.850); late 62.8% of epoch 8, max wait 18.77 h; lottery when building 1.197 f for 30.0% of the epoch; epoch-mean win rate 0.921 f
+K=64800 a=0.333 blocks 15 withhold [0,3) every epoch: D=0.8328 ratio withholding 0.801 (thr 0.850); late 22.8% of epoch 8, max wait 18.77 h; lottery when building 1.197 f for 70.0% of the epoch; epoch-mean win rate 1.079 f
+K=64800 a=0.200 blocks 15 withhold [4.5,10.0) every epoch: D=0.9499 ratio withholding 0.842 (thr 0.850); late 45.8% of epoch 8, max wait 18.12 h; lottery when building 1.052 f for 45.0% of the epoch; epoch-mean win rate 0.938 f
+K=64800 a=0.333 blocks 6 withhold [5.5,10.0) every epoch: D=0.9721 ratio withholding 0.686 (thr 0.675); late 0.0% of epoch 8, max wait 18.00 h; lottery when building 1.028 f for 55.0% of the epoch; epoch-mean win rate 0.876 f
+K=64800 a=0.333 blocks 6 withhold [5.9,10.0) every epoch: D=0.9944 ratio withholding 0.670 (thr 0.675); late 31.3% of epoch 8, max wait 18.11 h; lottery when building 1.006 f for 59.0% of the epoch; epoch-mean win rate 0.870 f
+K=36000 a=0.333 blocks 15 withhold [2.25,10.0) every epoch: D=0.7911 ratio withholding 0.843 (thr 0.803); late 0.0% of epoch 8, max wait 10.00 h; lottery when building 1.258 f for 22.5% of the epoch; epoch-mean win rate 0.938 f
+K=36000 a=0.333 blocks 15 withhold [3,10) every epoch: D=0.8328 ratio withholding 0.801 (thr 0.803); late 64.5% of epoch 8, max wait 10.02 h; lottery when building 1.197 f for 30.0% of the epoch; epoch-mean win rate 0.921 f
+K=36000 a=0.333 blocks 15 withhold [0,3) every epoch: D=0.8328 ratio withholding 0.801 (thr 0.803); late 24.5% of epoch 8, max wait 10.02 h; lottery when building 1.197 f for 70.0% of the epoch; epoch-mean win rate 1.079 f
+K=36000 a=0.200 blocks 15 withhold [4.5,10.0) every epoch: D=0.9499 ratio withholding 0.842 (thr 0.803); late 0.0% of epoch 8, max wait 10.00 h; lottery when building 1.052 f for 45.0% of the epoch; epoch-mean win rate 0.938 f
+K=36000 a=0.333 blocks 6 withhold [5.5,10.0) every epoch: D=0.9721 ratio withholding 0.686 (thr 0.645); late 0.0% of epoch 8, max wait 10.00 h; lottery when building 1.028 f for 55.0% of the epoch; epoch-mean win rate 0.876 f
+K=36000 a=0.333 blocks 6 withhold [5.9,10.0) every epoch: D=0.9944 ratio withholding 0.670 (thr 0.645); late 0.0% of epoch 8, max wait 10.00 h; lottery when building 1.006 f for 59.0% of the epoch; epoch-mean win rate 0.870 f
+K=64800 n=1291 0.033: 1.002e-08
+K=64800 n=1291 1% high: 9.443e-09
+K=64800 n=1291 2% high: 7.609e-08
+K=64800 n=1291 exact f: 9.933e-10
+K=36000 n=689 0.033: 5.574e-09
+K=36000 n=689 1% high: 5.329e-09
+K=36000 n=689 2% high: 2.623e-08
+K=36000 n=689 exact f: 9.815e-10
+P(floor missed at K) by the same binomial formula, building/D = x:
+ K=64800 d=6: x=1.000: 6.67e-52  x=0.950: 4.58e-39  x=0.900: 9.04e-28  x=0.850: 3.47e-18  x=0.800: 1.64e-10  x=0.750: 5.76e-05  x=0.700: 9.38e-02  x=0.667: 6.71e-01
+ K=64800 d=15: x=1.000: 9.93e-10  x=0.950: 2.36e-05  x=0.900: 1.92e-02  x=0.850: 5.01e-01  x=0.800: 9.85e-01  x=0.750: 1.00e+00  x=0.700: 1.00e+00  x=0.667: 1.00e+00
+ K=36000 d=6: x=1.000: 7.97e-36  x=0.950: 6.64e-28  x=0.900: 8.39e-21  x=0.850: 1.31e-14  x=0.800: 1.98e-09  x=0.750: 2.22e-05  x=0.700: 1.39e-02  x=0.667: 1.86e-01
+ K=36000 d=15: x=1.000: 9.82e-10  x=0.950: 2.52e-06  x=0.900: 1.05e-03  x=0.850: 6.30e-02  x=0.800: 5.30e-01  x=0.750: 9.60e-01  x=0.700: 1.00e+00  x=0.667: 1.00e+00
