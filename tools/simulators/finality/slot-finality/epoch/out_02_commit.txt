@@ -1,0 +1,4 @@
+300000 random chains: every assertion held
+  B_imm moved in 145169 of them; an uncle raised a count above the blocks in 283051
+example: B_imm at slot 5 was fixed by a tip at slot 16; a longer fork through it ends at slot 12;
+  age test of B_imm against the new tip: False; commit keeps B_imm at index 1

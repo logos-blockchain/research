@@ -1,0 +1,55 @@
+specification: k = 2160, f = 1/30, R = 648000 slots, s = s_gen = 16200 slots, beta = 1
+
+coalition of 30 % of the total active stake, alpha = 0.7000
+ Delta | eps_max | k must exceed 192 Delta/eps_max | s must be at least 48 Delta/(eps_max f) | R must be at least 144 Delta/(eps_max f) | all hold
+     0 | 0.3533 |       0.0 |       0.0 |       0.0 | yes
+     1 | 0.3082 |     622.9 |    4672.0 |   14015.9 | yes
+     2 | 0.2646 |    1451.2 |   10883.7 |   32651.2 | yes
+     3 | 0.2225 |    2589.2 |   19419.1 |   58257.4 | no
+     4 | 0.1817 |    4226.5 |   31698.5 |   95095.4 | no
+     5 | 0.1423 |    6745.3 |   50589.6 |  151768.7 | no
+     6 | 0.1042 |   11050.9 |   82882.1 |  248646.3 | no
+     7 | 0.0674 |   19929.9 |  149474.3 |  448423.0 | no
+     8 | 0.0319 |   48218.3 |  361637.3 | 1084911.9 | no
+     9 | -0.0025 | the first condition has no eps | - | - | no
+    10 | -0.0358 | the first condition has no eps | - | - | no
+    11 | -0.0679 | the first condition has no eps | - | - | no
+    12 | -0.0990 | the first condition has no eps | - | - | no
+    13 | -0.1290 | the first condition has no eps | - | - | no
+    14 | -0.1581 | the first condition has no eps | - | - | no
+    15 | -0.1861 | the first condition has no eps | - | - | no
+    16 | -0.2133 | the first condition has no eps | - | - | no
+ the hypotheses hold up to Delta = 2 slots
+
+coalition of a third of the total active stake, alpha = 0.6667
+ Delta | eps_max | k must exceed 192 Delta/eps_max | s must be at least 48 Delta/(eps_max f) | R must be at least 144 Delta/(eps_max f) | all hold
+     0 | 0.2889 |       0.0 |       0.0 |       0.0 | yes
+     1 | 0.2459 |     780.7 |    5855.4 |   17566.3 | yes
+     2 | 0.2044 |    1878.7 |   14090.4 |   42271.1 | yes
+     3 | 0.1642 |    3506.9 |   26301.6 |   78904.8 | no
+     4 | 0.1254 |    6122.4 |   45918.3 |  137754.8 | no
+     5 | 0.0879 |   10918.3 |   81887.4 |  245662.2 | no
+     6 | 0.0517 |   22299.0 |  167242.8 |  501728.4 | no
+     7 | 0.0166 |   80934.4 |  607008.4 | 1821025.1 | no
+     8 | -0.0173 | the first condition has no eps | - | - | no
+     9 | -0.0500 | the first condition has no eps | - | - | no
+    10 | -0.0817 | the first condition has no eps | - | - | no
+    11 | -0.1123 | the first condition has no eps | - | - | no
+    12 | -0.1419 | the first condition has no eps | - | - | no
+    13 | -0.1705 | the first condition has no eps | - | - | no
+    14 | -0.1982 | the first condition has no eps | - | - | no
+    15 | -0.2249 | the first condition has no eps | - | - | no
+    16 | -0.2507 | the first condition has no eps | - | - | no
+ the hypotheses hold up to Delta = 2 slots
+
+enumeration, 434 pairs (E, G) with G < E <= 30: both chains read the same blocks for every slot of the two windows,
+  for every divergence slot, exactly when 2 s <= G + 1
+
+what the proof of Theorem 2 reads of the schedule, in the specification's symbols
+  two windows: 2 s_gen = 32400 slots = 9 h
+  the paper's R/6 >= s is 2 s <= R/3; R/3 is the span from the end of the nonce's inputs to the next epoch
+  the specification's span from the cut-off to the next epoch: 259200 slots = 72 h = 16 s_gen
+  10 h (#533): K = 36000; 2 s_gen <= K: True; K - 2 s_gen = 3600 slots = 1 h
+  18 h (base): K = 64800; 2 s_gen <= K: True; K - 2 s_gen = 32400 slots = 9 h
+  the theorem's R >= 6 s read on the whole epoch: 97200 slots = 27 h; the specification's epoch: 180 h
+  floor(k/f) = 64800 = 4 s_gen

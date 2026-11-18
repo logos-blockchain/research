@@ -1,0 +1,26 @@
+constants (slots of 1 second)
+  f = 1/30, k = 2160, floor(k/f) = 64800 slots = 18 h
+  phases: 194400, 194400, 259200 slots = 54 h, 54 h, 72 h
+  epoch: 648000 slots = 180 h
+  cut-off: slot 388800 of the epoch = 108 h; gap to the next epoch: 259200 slots = 72 h
+  PERIOD = 388800 slots = 108 h
+  s_gen = floor(k/(4f)) = 16200 slots = 4.5 h; 2 s_gen = 32400 slots = 9 h
+  T_M = 15 slots
+
+10 h (#533): K = 36000 slots = 10 h, phi = 689
+  K / epoch = 0.055556; phase 1 / K = 5.400; phase 3 / K = 7.200; K - 2 s_gen = 3600 slots
+  the specification's code, as printed: finality_floor() = 689  (equal to the Constants row)
+  exact: blocks_short(689) = 9.815329e-10  <= 1e-9
+  exact: blocks_short(690) = 1.367104e-09  > 1e-9
+  exact: the derivation with every block 15 slots late gives 689
+  exact: the derivation with every block 10 slots late gives 768
+  exact: the derivation with every block 0 slots late gives 1001
+
+18 h (base): K = 64800 slots = 18 h, phi = 1291
+  K / epoch = 0.100000; phase 1 / K = 3.000; phase 3 / K = 4.000; K - 2 s_gen = 32400 slots
+  the specification's code, as printed: finality_floor() = 1291  (equal to the Constants row)
+  exact: blocks_short(1291) = 9.933048e-10  <= 1e-9
+  exact: blocks_short(1292) = 1.271437e-09  > 1e-9
+  exact: the derivation with every block 15 slots late gives 1291
+  exact: the derivation with every block 10 slots late gives 1443
+  exact: the derivation with every block 0 slots late gives 1891

@@ -10,6 +10,7 @@ figures.
 | `nonce/` | The epoch nonce: what grinding gives a coalition, and designs that delay the nonce. |
 | `dual/` | A depth rule kept beside the slot rule. Also the floor, the delivery delay, the deflated inference and several epochs, each on its own. |
 | `rules/` | The rules as the specifications print them, run in a model: the switch to the Online rule, comparing forks and the uncle window. Also the restart path as a private race, and the density test over one window. |
+| `epoch/` | The length of the epoch under a finality window of 10 hours: what bounds each phase from below, the epochs that suffice, and what each shorter schedule costs. `epoch/REVIEW.md` holds the proofs. |
 
 The stored runs used the study's code at commit `741dc0b`. The runs of `rules/model/` read the
 specification, logos-lips, at commit `ded1d4c6` of pull request #532.
@@ -31,6 +32,8 @@ Install the study's environment once: `make install` in `tools/simulators/finali
 - `dual/`: run each script in the folder that holds it. It prints its result or writes it to
   `out/` below that folder.
 - `rules/`: run from any folder. A script prints its result. The table gives each command.
+- `epoch/`: run in `slot-finality/epoch` and redirect the output, for example
+  `../../.venv/bin/python s03_gap_bound.py > out_03_gap_bound.txt`.
 - Caches go to `.cache` beside the script.
 - Arrays (`*.npy`, `*.npz`) are not stored here. The tables name the script that writes each.
 - Times are rough. Each is that of one run on a machine with 14 cores.
@@ -157,6 +160,28 @@ command is given as run in the folder of its script.
 | `restart/private_race.py` | `python private_race.py` | The restart path as a private race at 10 s: the wait that 18 and 10 hours behave like when the fork runs for the whole window and the node's chain stopped 20 minutes earlier, by share. | `restart/private_race.out` | 3 s |
 | `restart/ks_tables.py` (study) | `python ks_tables.py`, after `python ks_curves.py` in `nonce/data` | The largest share each window holds under each worst case. The waits at 25 %, 30 % and a third. The share held on the restart path, with the same race in another form. It imports the study's `src` and reads `nonce/data/ks_curves.npy` and `nonce/data/ks_factors.csv`. | `restart/ks_tables.out` | 1 min |
 | `density-window/single_window.py` | `python single_window.py` | The chance that a private fork is at least as dense as the honest chain over one density window, against 30 % and a third, with no delay and at 10 s. | `density-window/single_window.out` | 7 s |
+
+## epoch/
+
+`REVIEW.md` states each result with its proof, and names the script and the lines of its output
+that compute it. It reads the specification, logos-lips, at commit `7f3cf149` of pull request
+#533 for a finality window of 10 hours, and at `ded1d4c6` for 18 hours. `common.py` holds the
+constants and the bounds of the review's statements 5.3 to 5.5, which the other scripts import.
+Scripts 10, 12 and 13 are not used.
+
+| Script | What it computes | Stored output | Time |
+| --- | --- | --- | --- |
+| `s01_setting.py` | The constants of the windows of 10 and 18 hours, and the finality floor, with the code the specification prints and in exact integers. | `out_01_setting.txt` | 10 s |
+| `s02_commit.py` | The loop of `commit` on 300,000 random chains with uncles, against the condition the review proves it computes. | `out_02_commit.txt` | 17 s |
+| `s03_gap_bound.py` | The least share of the inferred stake that must build for a value read at a cut-off to be final when first used, by the gap to its first use, and the least gap by share. | `out_03_gap_bound.txt` | 1 s |
+| `s04_gap_sim.py` | A simulation of the model at reduced sizes, against those bounds. | `out_04_gap_sim.txt` | 1 min |
+| `s05_targets.py` | The share of targets whose race meets two epoch nonces, by the length of the epoch. | `out_05_targets.txt` | 1 s |
+| `s06_inference.py` | The stake inference: its integer rule against a closed form, its noise by window, the floor under that noise, the chance per epoch that the noise passes the limits 1.094 and 1.593, and the wins a deflation costs. | `out_06_inference.txt` | 3 s |
+| `s07_genesis.py` | The hypotheses of Theorems 1 and 2 of Ouroboros Genesis at the specification's parameters, and the fact about the schedule that the proof of Theorem 2 uses, by enumeration. | `out_07_genesis.txt` | 1 s |
+| `s08_buffer.py` (study) | The buffer that keeps an honest block with chance `1 − 1e-9`, by state, with the study's `branch_survival`. | `out_08_buffer.txt` | 2.5 min |
+| `s09_epoch.py` | The least phase in each state of the `K` row, the epochs that suffice, and what each schedule costs. It reads `out_08_buffer.txt`. | `out_09_epoch.txt` | 1 s |
+| `s11_gain.py` | What a coalition of 30 % gains in blocks by choosing among nonces, by the length of the epoch. It imports `nonce/model.py` and `nonce/today_choices.py`. | `out_11_gain.txt` | 1.5 min |
+| `s14_bracket.py` | The phases and the buffer below which a rule fails in each state, the bounds on the least epoch, the wait with a later snapshot, and a second computation of the necessary values in log space. It reads `out_08_buffer.txt`. | `out_14_bracket.txt` | 1 s |
 
 ## Rechecks
 
