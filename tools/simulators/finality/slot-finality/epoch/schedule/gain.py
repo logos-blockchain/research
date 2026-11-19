@@ -13,7 +13,7 @@ sys.dont_write_bytecode = True
 import numpy as np                       # noqa: E402
 import s11_gain as g                     # noqa: E402
 
-EPOCHS_H = (180.0, 100.0, 40.0, 35.0, 30.0)
+EPOCHS_H = (180.0, 100.0, 60.0, 40.0, 35.0, 30.0)
 
 if __name__ == "__main__":
     table = g.log2_tail_table()

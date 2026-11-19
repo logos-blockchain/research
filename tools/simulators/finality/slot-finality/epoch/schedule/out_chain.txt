@@ -4,6 +4,7 @@
    window  20.0 h: 8.029e-07
    window  30.0 h: 2.143e-09
    window  60.0 h: 5.159e-17
+   exact rule (f_hat = 1/30): first window with a tail <= 1e-9: 137121 slots (38.09 h); holds for every window from 137780 slots (38.27 h), scanned from 120,000 to 160,000
 
 2. stationary law: P(S/D > 1.094) per epoch and the sd of D/S
    window 15 h, specification (f_hat = 0.033), beta 1.0000: 1.679e-05 | sd 2.330 %
@@ -26,15 +27,29 @@
    window 20 h, exact (f_hat = 1/30), beta 0.6667: 2.500e-10 | sd 1.425 %
    window 20 h, exact (f_hat = 1/30), beta 0.6000: 8.342e-12 | sd 1.320 %
    window 20 h, exact (f_hat = 1/30), beta 0.5000: 9.520e-15 | sd 1.165 %
+   window 30 h, specification (f_hat = 0.033), beta 1.0000: 2.200e-09 | sd 1.647 %
+   window 30 h, specification (f_hat = 0.033), beta 0.7500: 8.726e-15 | sd 1.280 %
+   window 30 h, specification (f_hat = 0.033), beta 0.6667: 1.730e-17 | sd 1.170 %
+   window 30 h, specification (f_hat = 0.033), beta 0.6000: 3.470e-20 | sd 1.084 %
+   window 30 h, specification (f_hat = 0.033), beta 0.5000: 1.436e-25 | sd 0.956 %
+   window 30 h, exact (f_hat = 1/30), beta 1.0000: 5.329e-08 | sd 1.639 %
+   window 30 h, exact (f_hat = 1/30), beta 0.7500: 2.050e-12 | sd 1.274 %
+   window 30 h, exact (f_hat = 1/30), beta 0.6667: 1.277e-14 | sd 1.164 %
+   window 30 h, exact (f_hat = 1/30), beta 0.6000: 8.065e-17 | sd 1.078 %
+   window 30 h, exact (f_hat = 1/30), beta 0.5000: 3.303e-21 | sd 0.951 %
 
 3. floor premise: mean chance of fewer than 689 blocks within K, and the largest floor at 1e-9
    specification (f_hat = 0.033), at the fixed point, no noise: 5.574e-09; floor 683
+   specification (f_hat = 0.033), window 30 h, beta 0.7500: 3.704e-08; floor 676
    specification (f_hat = 0.033), window 20 h, beta 0.6667: 5.580e-08; floor 675
    specification (f_hat = 0.033), window 15 h, beta 0.5000: 4.520e-08; floor 676
+   specification (f_hat = 0.033), window 30 h, beta 1.0000: 9.916e-08; floor 672
    specification (f_hat = 0.033), window 15 h, beta 1.0000: 7.083e-07; floor 663
    specification (f_hat = 0.033), window 20 h, beta 1.0000: 2.876e-07; floor 668
    exact (f_hat = 1/30), at the fixed point, no noise: 9.815e-10; floor 689
+   exact (f_hat = 1/30), window 30 h, beta 0.7500: 7.841e-09; floor 682
    exact (f_hat = 1/30), window 20 h, beta 0.6667: 1.230e-08; floor 680
    exact (f_hat = 1/30), window 15 h, beta 0.5000: 9.762e-09; floor 681
+   exact (f_hat = 1/30), window 30 h, beta 1.0000: 2.306e-08; floor 678
    exact (f_hat = 1/30), window 15 h, beta 1.0000: 1.988e-07; floor 668
    exact (f_hat = 1/30), window 20 h, beta 1.0000: 7.404e-08; floor 673

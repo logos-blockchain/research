@@ -1,0 +1,103 @@
+K = 36000, s = 16200, 1e-9 target; states of GENESIS g07_states.py (REVIEW 5.9)
+
+no disturbance: p_h = 0.023452, p_a = 0.010119, Delta = 10; floor of P1 (mass at infinity) 7.226e-39
+  P1(s) = 2.05518e-13  U(s-1) = 1.34927e-07  U(K-2) = 8.28472e-16  U_11(K-1) = 1.34823e-14  P1(K-s) = 3.94930e-16  log10 E_g = -370.8
+  G = 35999: P1(G+1-s) = P1(19800): closed form 3.94930e-16 (2 digits 3.9e-16, 3 digits 3.95e-16); forward pass 3.94930e-16
+  G = 46910: P1(G+1-s) = P1(30711): closed form 2.49377e-24 (2 digits 2.5e-24, 3 digits 2.49e-24); forward pass 2.49377e-24
+  G = 52199: P1(G+1-s) = P1(36000): closed form 2.70974e-28 (2 digits 2.7e-28, 3 digits 2.71e-28); forward pass 2.70974e-28
+  G = 54000: P1(G+1-s) = P1(37801): closed form 1.21399e-29 (2 digits 1.2e-29, 3 digits 1.21e-29); forward pass 1.21399e-29
+  G = 72000: P1(G+1-s) = P1(55801): closed form 7.18383e-39 (2 digits 7.2e-39, 3 digits 7.18e-39); forward pass 7.18383e-39
+  G = 259200: P1(G+1-s) = P1(243001): closed form 7.18341e-39 (2 digits 7.2e-39, 3 digits 7.18e-39); forward pass beyond curve
+  G = 35999: no honest block P1(s) + U(K-2) = 2.0635e-13; every fork per divergence slot min(A, B) = 1.3493e-07
+  G = 46910: no honest block P1(s) + U(K-2) = 2.0635e-13; every fork per divergence slot min(A, B) = 1.3493e-07
+  G = 52199: no honest block P1(s) + U(K-2) = 2.0635e-13; every fork per divergence slot min(A, B) = 1.3493e-07
+  G = 54000: no honest block P1(s) + U(K-2) = 2.0635e-13; every fork per divergence slot min(A, B) = 1.3493e-07
+  G = 72000: no honest block P1(s) + U(K-2) = 2.0635e-13; every fork per divergence slot min(A, B) = 1.3493e-07
+  G = 259200: no honest block P1(s) + U(K-2) = 2.0635e-13; every fork per divergence slot min(A, B) = 1.3493e-07
+  G = 35999: least s with every-fork total <= 1e-9: under B (s <= K-1) 21339; under A (s <= 0) None
+  G = 46910: least s with every-fork total <= 1e-9: under B (s <= K-1) 21336; under A (s <= 10911) None
+  G = 52199: least s with every-fork total <= 1e-9: under B (s <= K-1) 21336; under A (s <= 16200) None
+  G = 54000: least s with every-fork total <= 1e-9: under B (s <= K-1) 21336; under A (s <= 18001) None
+  G = 72000: least s with every-fork total <= 1e-9: under B (s <= K-1) 21336; under A (s <= 35999) 21336
+  A 4.3, one divergence slot: s = 21336: s + K - 1 = 57335; bound at G = 57335: 9.9978e-10 (s - 1 = 21335: 1.0007e-09); least G with the bound <= 1e-9 under B (G >= K - 1): 37486
+  A 4.3, 1 year: s = 33181: s + K - 1 = 69180; bound at G = 69180: 9.9948e-10 (s - 1 = 33180: 1.0004e-09); least G with the bound <= 1e-9 under B (G >= K - 1): 55834
+
+every block T_M late: p_h = 0.023452, p_a = 0.010119, Delta = 15; floor of P1 (mass at infinity) 2.161e-35
+  P1(s) = 2.56380e-10  U(s-1) = 4.34107e-05  U(K-2) = 2.50745e-10  U_16(K-1) = 2.08240e-09  P1(K-s) = 2.29799e-12  log10 E_g = -370.7
+  G = 35999: P1(G+1-s) = P1(19800): closed form 2.29799e-12 (2 digits 2.3e-12, 3 digits 2.30e-12); forward pass 2.29799e-12
+  G = 46910: P1(G+1-s) = P1(30711): closed form 1.53969e-18 (2 digits 1.5e-18, 3 digits 1.54e-18); forward pass 1.53969e-18
+  G = 52199: P1(G+1-s) = P1(36000): closed form 1.60377e-21 (2 digits 1.6e-21, 3 digits 1.60e-21); forward pass 1.60377e-21
+  G = 54000: P1(G+1-s) = P1(37801): closed form 1.55120e-22 (2 digits 1.6e-22, 3 digits 1.55e-22); forward pass 1.55120e-22
+  G = 72000: P1(G+1-s) = P1(55801): closed form 1.18073e-32 (2 digits 1.2e-32, 3 digits 1.18e-32); forward pass 1.18073e-32
+  G = 259200: P1(G+1-s) = P1(243001): closed form 2.13859e-35 (2 digits 2.1e-35, 3 digits 2.14e-35); forward pass beyond curve
+  G = 35999: no honest block P1(s) + U(K-2) = 5.0712e-10; every fork per divergence slot min(A, B) = 4.3411e-05
+  G = 46910: no honest block P1(s) + U(K-2) = 5.0712e-10; every fork per divergence slot min(A, B) = 4.3411e-05
+  G = 52199: no honest block P1(s) + U(K-2) = 5.0712e-10; every fork per divergence slot min(A, B) = 4.3411e-05
+  G = 54000: no honest block P1(s) + U(K-2) = 5.0712e-10; every fork per divergence slot min(A, B) = 4.3411e-05
+  G = 72000: no honest block P1(s) + U(K-2) = 5.0712e-10; every fork per divergence slot min(A, B) = 4.3411e-05
+  G = 259200: no honest block P1(s) + U(K-2) = 5.0712e-10; every fork per divergence slot min(A, B) = 4.3411e-05
+  G = 35999: least s with every-fork total <= 1e-9: under B (s <= K-1) None; under A (s <= 0) None
+  G = 46910: least s with every-fork total <= 1e-9: under B (s <= K-1) None; under A (s <= 10911) None
+  G = 52199: least s with every-fork total <= 1e-9: under B (s <= K-1) None; under A (s <= 16200) None
+  G = 54000: least s with every-fork total <= 1e-9: under B (s <= K-1) None; under A (s <= 18001) None
+  G = 72000: least s with every-fork total <= 1e-9: under B (s <= K-1) None; under A (s <= 35999) None
+
+a tenth offline, inference corrected: p_h = 0.022704, p_a = 0.010876, Delta = 10; floor of P1 (mass at infinity) 6.309e-33
+  P1(s) = 5.20451e-10  U(s-1) = 1.28480e-05  U(K-2) = 2.01309e-11  U_11(K-1) = 1.79715e-10  P1(K-s) = 5.54790e-12  log10 E_g = -358.8
+  G = 35999: P1(G+1-s) = P1(19800): closed form 5.54790e-12 (2 digits 5.5e-12, 3 digits 5.55e-12); forward pass 5.54790e-12
+  G = 46910: P1(G+1-s) = P1(30711): closed form 6.28747e-18 (2 digits 6.3e-18, 3 digits 6.29e-18); forward pass 6.28747e-18
+  G = 52199: P1(G+1-s) = P1(36000): closed form 8.44992e-21 (2 digits 8.4e-21, 3 digits 8.45e-21); forward pass 8.44992e-21
+  G = 54000: P1(G+1-s) = P1(37801): closed form 8.91382e-22 (2 digits 8.9e-22, 3 digits 8.91e-22); forward pass 8.91382e-22
+  G = 72000: P1(G+1-s) = P1(55801): closed form 1.67504e-31 (2 digits 1.7e-31, 3 digits 1.68e-31); forward pass 1.67504e-31
+  G = 259200: P1(G+1-s) = P1(243001): closed form 6.27856e-33 (2 digits 6.3e-33, 3 digits 6.28e-33); forward pass beyond curve
+  G = 35999: no honest block P1(s) + U(K-2) = 5.4058e-10; every fork per divergence slot min(A, B) = 1.2848e-05
+  G = 46910: no honest block P1(s) + U(K-2) = 5.4058e-10; every fork per divergence slot min(A, B) = 1.2848e-05
+  G = 52199: no honest block P1(s) + U(K-2) = 5.4058e-10; every fork per divergence slot min(A, B) = 1.2848e-05
+  G = 54000: no honest block P1(s) + U(K-2) = 5.4058e-10; every fork per divergence slot min(A, B) = 1.2848e-05
+  G = 72000: no honest block P1(s) + U(K-2) = 5.4058e-10; every fork per divergence slot min(A, B) = 1.2848e-05
+  G = 259200: no honest block P1(s) + U(K-2) = 5.4058e-10; every fork per divergence slot min(A, B) = 1.2848e-05
+  G = 35999: least s with every-fork total <= 1e-9: under B (s <= K-1) None; under A (s <= 0) None
+  G = 46910: least s with every-fork total <= 1e-9: under B (s <= K-1) None; under A (s <= 10911) None
+  G = 52199: least s with every-fork total <= 1e-9: under B (s <= K-1) 30509; under A (s <= 16200) None
+  G = 54000: least s with every-fork total <= 1e-9: under B (s <= K-1) 30508; under A (s <= 18001) None
+  G = 72000: least s with every-fork total <= 1e-9: under B (s <= K-1) 30508; under A (s <= 35999) 30508
+
+a tenth offline, before the correction: p_h = 0.021132, p_a = 0.010119, Delta = 10; floor of P1 (mass at infinity) 2.108e-33
+  P1(s) = 8.99503e-10  U(s-1) = 1.28508e-05  U(K-2) = 2.08006e-11  U_11(K-1) = 1.50872e-10  P1(K-s) = 1.08262e-11  log10 E_g = -333.7
+  G = 35999: P1(G+1-s) = P1(19800): closed form 1.08262e-11 (2 digits 1.1e-11, 3 digits 1.08e-11); forward pass 1.08262e-11
+  G = 46910: P1(G+1-s) = P1(30711): closed form 1.77234e-17 (2 digits 1.8e-17, 3 digits 1.77e-17); forward pass 1.77234e-17
+  G = 52199: P1(G+1-s) = P1(36000): closed form 2.84659e-20 (2 digits 2.8e-20, 3 digits 2.85e-20); forward pass 2.84659e-20
+  G = 54000: P1(G+1-s) = P1(37801): closed form 3.19073e-21 (2 digits 3.2e-21, 3 digits 3.19e-21); forward pass 3.19073e-21
+  G = 72000: P1(G+1-s) = P1(55801): closed form 1.06046e-30 (2 digits 1.1e-30, 3 digits 1.06e-30); forward pass 1.06046e-30
+  G = 259200: P1(G+1-s) = P1(243001): closed form 2.09839e-33 (2 digits 2.1e-33, 3 digits 2.10e-33); forward pass beyond curve
+  G = 35999: no honest block P1(s) + U(K-2) = 9.2030e-10; every fork per divergence slot min(A, B) = 1.2851e-05
+  G = 46910: no honest block P1(s) + U(K-2) = 9.2030e-10; every fork per divergence slot min(A, B) = 1.2851e-05
+  G = 52199: no honest block P1(s) + U(K-2) = 9.2030e-10; every fork per divergence slot min(A, B) = 1.2851e-05
+  G = 54000: no honest block P1(s) + U(K-2) = 9.2030e-10; every fork per divergence slot min(A, B) = 1.2851e-05
+  G = 72000: no honest block P1(s) + U(K-2) = 9.2030e-10; every fork per divergence slot min(A, B) = 1.2851e-05
+  G = 259200: no honest block P1(s) + U(K-2) = 9.2030e-10; every fork per divergence slot min(A, B) = 1.2851e-05
+  G = 35999: least s with every-fork total <= 1e-9: under B (s <= K-1) None; under A (s <= 0) None
+  G = 46910: least s with every-fork total <= 1e-9: under B (s <= K-1) None; under A (s <= 10911) None
+  G = 52199: least s with every-fork total <= 1e-9: under B (s <= K-1) 30494; under A (s <= 16200) None
+  G = 54000: least s with every-fork total <= 1e-9: under B (s <= K-1) 30492; under A (s <= 18001) None
+  G = 72000: least s with every-fork total <= 1e-9: under B (s <= K-1) 30492; under A (s <= 35999) 30492
+
+D equals the honest stake online: p_h = 0.033333, p_a = 0.014424, Delta = 10; floor of P1 (mass at infinity) 5.149e-36
+  P1(s) = 8.52325e-15  U(s-1) = 4.50605e-07  U(K-2) = 9.89812e-15  U_11(K-1) = 7.26131e-13  P1(K-s) = 8.03995e-18  log10 E_g = -529.7
+  G = 35999: P1(G+1-s) = P1(19800): closed form 8.03995e-18 (2 digits 8.0e-18, 3 digits 8.04e-18); forward pass 8.03995e-18
+  G = 46910: P1(G+1-s) = P1(30711): closed form 5.87751e-27 (2 digits 5.9e-27, 3 digits 5.88e-27); forward pass 5.87751e-27
+  G = 52199: P1(G+1-s) = P1(36000): closed form 2.24604e-31 (2 digits 2.2e-31, 3 digits 2.25e-31); forward pass 2.24604e-31
+  G = 54000: P1(G+1-s) = P1(37801): closed form 7.05448e-33 (2 digits 7.1e-33, 3 digits 7.05e-33); forward pass 7.05448e-33
+  G = 72000: P1(G+1-s) = P1(55801): closed form 5.09811e-36 (2 digits 5.1e-36, 3 digits 5.10e-36); forward pass 5.09811e-36
+  G = 259200: P1(G+1-s) = P1(243001): closed form 5.09811e-36 (2 digits 5.1e-36, 3 digits 5.10e-36); forward pass beyond curve
+  G = 35999: no honest block P1(s) + U(K-2) = 1.8421e-14; every fork per divergence slot min(A, B) = 4.5061e-07
+  G = 46910: no honest block P1(s) + U(K-2) = 1.8421e-14; every fork per divergence slot min(A, B) = 4.5061e-07
+  G = 52199: no honest block P1(s) + U(K-2) = 1.8421e-14; every fork per divergence slot min(A, B) = 4.5061e-07
+  G = 54000: no honest block P1(s) + U(K-2) = 1.8421e-14; every fork per divergence slot min(A, B) = 4.5061e-07
+  G = 72000: no honest block P1(s) + U(K-2) = 1.8421e-14; every fork per divergence slot min(A, B) = 4.5061e-07
+  G = 259200: no honest block P1(s) + U(K-2) = 1.8421e-14; every fork per divergence slot min(A, B) = 4.5061e-07
+  G = 35999: least s with every-fork total <= 1e-9: under B (s <= K-1) 23068; under A (s <= 0) None
+  G = 46910: least s with every-fork total <= 1e-9: under B (s <= K-1) 23062; under A (s <= 10911) None
+  G = 52199: least s with every-fork total <= 1e-9: under B (s <= K-1) 23062; under A (s <= 16200) None
+  G = 54000: least s with every-fork total <= 1e-9: under B (s <= K-1) 23062; under A (s <= 18001) None
+  G = 72000: least s with every-fork total <= 1e-9: under B (s <= K-1) 23062; under A (s <= 35999) 23062

@@ -1,0 +1,1820 @@
+c4_sim.py: 12000 runs per (K, G); worker time 3967 s
+
+K = 10, G = 7  [NEGATIVE CONTROL (G < K - 1); A's condition s + K <= G + 1 holds only for s <= -2]
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 43
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 5811
+    ... crossing: (Y, H) not an E_r' witness VIOLATION: 40
+    ... crossing: GENESIS's witness X not under H's states: 560
+    ... with E_d: 26945
+    ... with E_d*: 26923
+    ... with E_g: 2501
+    ... with E_r as GENESIS writes it: 18078
+    ... with E_r': 17673
+    ... with E_r*: 13537
+  3.1 VIOLATIONS: 17
+  3.1 honest blocks: 261944
+  6.3 case 1 extension, E_d with D after D_Y: 500
+  6.3 case 1 extension, E_d*: 26176
+  B 5.3 VIOLATIONS (witness not under H's states or tip > now - 1): 683
+  B 5.3: E_r* witnesses: 64090
+  B 7.1 VIOLATIONS (Y or X's window not under H's states): 11870
+  B 7.1: E_d* witnesses: 4205154
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1919487
+  H choices with S: 9674
+  H choices without S: 4354
+  Step 0 checks: 24243
+  Step 1: H-tip adopted, outside G (E_g): 85
+  Step 1: kept by density -> E_d*(sl_D): 17889
+  Step 1: kept by density, D at/after H's tip (E_g): 438
+  Step 1: kept by length, outside G (E_g): 222
+  Step 2: crossing (D after D_Y, X bad): 2585
+  Step 2: density -> E_d*(sl_D): 5720
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 91
+  blocks: 1912588
+  passes: 38696
+  passes ending outside G: 26945
+  runs: 12000
+  runs, focused mode: 5404
+  example, crossing: seed 10070030212 [K=10 s=5 Delta=1 L1=20 G=7 E=27 f=0.4 alpha=0.65 nh=1 now=83 pub=0.05 quiet=0.0 focused=True sigma0=72]: H = block 17 (slot 81); Y = block 42 (slot 77, len 17), D_Y slot 68 (cut-off 74); D slot 75; X = block 49 (slot 83, len 23); X's blocks before the cut-off after D_Y at slots [71, 72]; X's block in slot 82 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 10, G = 8  [NEGATIVE CONTROL (G < K - 1); A's condition s + K <= G + 1 holds only for s <= -1]
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 74
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 1459
+    ... crossing: GENESIS's witness X not under H's states: 342
+    ... with E_d: 26766
+    ... with E_d*: 26740
+    ... with E_g: 2791
+    ... with E_r as GENESIS writes it: 17784
+    ... with E_r': 17390
+    ... with E_r*: 13221
+  3.1 VIOLATIONS: 5
+  3.1 honest blocks: 266534
+  6.3 case 1 extension, E_d with D after D_Y: 401
+  6.3 case 1 extension, E_d*: 28070
+  B 5.3: E_r* witnesses: 65098
+  B 7.1: E_d* witnesses: 4478340
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 2009844
+  H choices with S: 9535
+  H choices without S: 4360
+  Step 0 checks: 24288
+  Step 1: H-tip adopted, outside G (E_g): 100
+  Step 1: kept by density -> E_d*(sl_D): 17880
+  Step 1: kept by density, D at/after H's tip (E_g): 526
+  Step 1: kept by length, outside G (E_g): 255
+  Step 2: crossing (D after D_Y, X bad): 2632
+  Step 2: density -> E_d*(sl_D): 5385
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 60
+  blocks: 2008719
+  passes: 38140
+  passes ending outside G: 26766
+  runs: 12000
+  runs, focused mode: 5357
+  example, crossing: seed 10080030295 [K=10 s=9 Delta=1 L1=10 G=8 E=18 f=0.4 alpha=0.45 nh=1 now=72 pub=0.05 quiet=0.5 focused=True sigma0=61]: H = block 24 (slot 67); Y = block 37 (slot 69, len 24), D_Y slot 61 (cut-off 64); D slot 65; X = block 41 (slot 72, len 26); X's blocks before the cut-off after D_Y at slots []; X's block in slot 72 (epoch 4) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 10, G = 9  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 0]
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 67
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 703
+    ... crossing: GENESIS's witness X not under H's states: 209
+    ... with E_d: 26939
+    ... with E_d*: 26917
+    ... with E_g: 2591
+    ... with E_r as GENESIS writes it: 17965
+    ... with E_r': 17548
+    ... with E_r*: 13166
+  3.1 honest blocks: 279234
+  6.3 case 1 extension, E_d with D after D_Y: 466
+  6.3 case 1 extension, E_d*: 34696
+  B 5.3: E_r* witnesses: 60292
+  B 7.1: E_d* witnesses: 4472487
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1822741
+  H choices with S: 9442
+  H choices without S: 4492
+  Step 0 checks: 23335
+  Step 1: H-tip adopted, outside G (E_g): 93
+  Step 1: kept by density -> E_d*(sl_D): 18159
+  Step 1: kept by density, D at/after H's tip (E_g): 449
+  Step 1: kept by length, outside G (E_g): 163
+  Step 2: crossing (D after D_Y, X bad): 2715
+  Step 2: density -> E_d*(sl_D): 5343
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 90
+  blocks: 2110643
+  passes: 37768
+  passes ending outside G: 26939
+  runs: 12000
+  runs, focused mode: 5359
+  example, crossing: seed 10090030341 [K=10 s=5 Delta=1 L1=20 G=9 E=29 f=0.4 alpha=0.65 nh=1 now=88 pub=0.0 quiet=0.5 focused=True sigma0=76]: H = block 24 (slot 80); Y = block 28 (slot 84, len 25), D_Y slot 75 (cut-off 78); D slot 80; X = block 31 (slot 88, len 27); X's blocks before the cut-off after D_Y at slots [76]; X's block in slot 87 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 10, G = 10  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 1]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 68
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 94
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 74
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 474
+    ... crossing: GENESIS's witness X not under H's states: 74
+    ... with E_d: 26628
+    ... with E_d*: 26604
+    ... with E_g: 2558
+    ... with E_r as GENESIS writes it: 17936
+    ... with E_r': 17483
+    ... with E_r*: 12682
+  3.1 honest blocks: 283939
+  6.3 case 1 extension, E_d with D after D_Y: 501
+  6.3 case 1 extension, E_d*: 38509
+  7.2 second-bound extension, E_d with D after D_Y: 2856
+  7.2 second-bound extension, E_d*: 184
+  B 5.3: E_r* witnesses: 58225
+  B 7.1: E_d* witnesses: 4480320
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1822994
+  H choices with S: 9279
+  H choices without S: 4697
+  Step 0 checks: 22368
+  Step 1: H-tip adopted, outside G (E_g): 98
+  Step 1: kept by density -> E_d*(sl_D): 18183
+  Step 1: kept by density, D at/after H's tip (E_g): 419
+  Step 1: kept by length, outside G (E_g): 246
+  Step 2: crossing (D after D_Y, X bad): 2572
+  Step 2: density -> E_d*(sl_D): 5080
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 102
+  blocks: 2157862
+  passes: 37116
+  passes ending outside G: 26628
+  runs: 12000
+  runs, focused mode: 5418
+  example, 7.2 second bound, E_d with D after D_Y: seed 10100030307 [K=10 s=9 Delta=2 L1=10 G=10 E=20 f=0.4 alpha=0.65 nh=1 now=101 pub=0.05 quiet=0.0 focused=True sigma0=88]: H = block 34 (slot 94); Y = block 89 (slot 93, D_Y slot 88); X = block 88 (slot 97); D slot 91; Y has no honest block after 100; now = 101 <= sigma + G = 101; added slot 101 (epoch 5, > sl(D_Y) + G + 1 = 99) derives (snapshot, nonce, D) = 26, 231394..., 430 on the extension and 26, 439690..., 376 on H; E_r* True, E_g False
+  example, crossing: seed 10100030311 [K=10 s=5 Delta=1 L1=20 G=10 E=30 f=0.4 alpha=0.65 nh=1 now=92 pub=0.05 quiet=0.0 focused=True sigma0=76]: H = block 25 (slot 88); Y = block 43 (slot 84, len 25), D_Y slot 75 (cut-off 80); D slot 82; X = block 48 (slot 90, len 29); X's blocks before the cut-off after D_Y at slots [76, 78]; X's block in slot 90 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 10, G = 11  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 2]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 68
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 111
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 36
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 194
+    ... crossing: GENESIS's witness X not under H's states: 49
+    ... with E_d: 26222
+    ... with E_d*: 26214
+    ... with E_g: 2614
+    ... with E_r as GENESIS writes it: 17518
+    ... with E_r': 17001
+    ... with E_r*: 12539
+  3.1 honest blocks: 291600
+  6.3 case 1 extension, E_d with D after D_Y: 491
+  6.3 case 1 extension, E_d*: 40784
+  7.2 second-bound extension, E_d with D after D_Y: 6121
+  7.2 second-bound extension, E_d*: 421
+  B 5.3: E_r* witnesses: 54385
+  B 7.1: E_d* witnesses: 4446447
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1663294
+  H choices with S: 9163
+  H choices without S: 4750
+  Step 0 checks: 21262
+  Step 1: H-tip adopted, outside G (E_g): 91
+  Step 1: kept by density -> E_d*(sl_D): 17957
+  Step 1: kept by density, D at/after H's tip (E_g): 351
+  Step 1: kept by length, outside G (E_g): 164
+  Step 2: crossing (D after D_Y, X bad): 2412
+  Step 2: density -> E_d*(sl_D): 5227
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 80
+  blocks: 2254829
+  passes: 36652
+  passes ending outside G: 26222
+  runs: 12000
+  runs, focused mode: 5396
+  example, 7.2 second bound, E_d with D after D_Y: seed 10110030370 [K=10 s=5 Delta=2 L1=10 G=11 E=21 f=0.25 alpha=0.55 nh=1 now=64 pub=0.05 quiet=1.0 focused=True sigma0=49]: H = block 5 (slot 51); Y = block 9 (slot 53, D_Y slot 46); X = block 9 (slot 53); D slot 53; Y has no honest block after 58; now = 64 <= sigma + G = 64; added slot 64 (epoch 3, > sl(D_Y) + G + 1 = 58) derives (snapshot, nonce, D) = 3, 859099..., 312 on the extension and 3, 960410..., 450 on H; E_r* True, E_g True
+  example, crossing: seed 10110030360 [K=10 s=3 Delta=2 L1=20 G=11 E=31 f=0.4 alpha=0.55 nh=1 now=155 pub=0.0 quiet=0.5 focused=True sigma0=142]: H = block 45 (slot 152); Y = block 51 (slot 151, len 45), D_Y slot 142 (cut-off 144); D slot 147; X = block 54 (slot 155, len 47); X's blocks before the cut-off after D_Y at slots []; X's block in slot 155 (epoch 5) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 10, G = 12  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 3]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 82
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 114
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 37
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 88
+    ... crossing: GENESIS's witness X not under H's states: 29
+    ... with E_d: 26232
+    ... with E_d*: 26224
+    ... with E_g: 2509
+    ... with E_r as GENESIS writes it: 17406
+    ... with E_r': 16975
+    ... with E_r*: 12200
+  3.1 honest blocks: 296744
+  6.3 case 1 extension, E_d with D after D_Y: 582
+  6.3 case 1 extension, E_d*: 42865
+  7.2 second-bound extension, E_d with D after D_Y: 8895
+  7.2 second-bound extension, E_d*: 678
+  B 5.3: E_r* witnesses: 52103
+  B 7.1: E_d* witnesses: 4643945
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1601511
+  H choices with S: 9086
+  H choices without S: 4870
+  Step 0 checks: 20984
+  Step 1: H-tip adopted, outside G (E_g): 95
+  Step 1: kept by density -> E_d*(sl_D): 18114
+  Step 1: kept by density, D at/after H's tip (E_g): 385
+  Step 1: kept by length, outside G (E_g): 169
+  Step 2: crossing (D after D_Y, X bad): 2252
+  Step 2: density -> E_d*(sl_D): 5169
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 82
+  blocks: 2314730
+  passes: 36344
+  passes ending outside G: 26232
+  runs: 12000
+  runs, focused mode: 5421
+  example, 7.2 second bound, E_d with D after D_Y: seed 10120030779 [K=10 s=3 Delta=2 L1=10 G=12 E=22 f=0.25 alpha=0.65 nh=1 now=89 pub=0.0 quiet=0.5 focused=True sigma0=70]: H = block 18 (slot 84); Y = block 44 (slot 78, D_Y slot 70); X = block 44 (slot 78); D slot 78; Y has no honest block after 81; now = 89 <= sigma + G = 90; added slot 88 (epoch 4, > sl(D_Y) + G + 1 = 83) derives (snapshot, nonce, D) = 12, 348412..., 465 on the extension and 12, 369914..., 316 on H; E_r* True, E_g False
+  example, crossing: seed 10120032086 [K=10 s=3 Delta=2 L1=20 G=12 E=32 f=0.4 alpha=0.55 nh=3 now=129 pub=0.0 quiet=0.0 focused=False sigma0=0]: H = block 477 (slot 126); Y = block 529 (slot 122, len 39), D_Y slot 113 (cut-off 116); D slot 120; X = block 533 (slot 129, len 42); X's blocks before the cut-off after D_Y at slots []; X's block in slot 129 (epoch 4) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 10, G = 13  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 4]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 56
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 105
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 61
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 185
+    ... crossing: GENESIS's witness X not under H's states: 12
+    ... with E_d: 25284
+    ... with E_d*: 25272
+    ... with E_g: 2506
+    ... with E_r as GENESIS writes it: 16400
+    ... with E_r': 15993
+    ... with E_r*: 11167
+  3.1 honest blocks: 303317
+  6.3 case 1 extension, E_d with D after D_Y: 556
+  6.3 case 1 extension, E_d*: 43915
+  7.2 second-bound extension, E_d with D after D_Y: 11079
+  7.2 second-bound extension, E_d*: 696
+  B 5.3: E_r* witnesses: 46915
+  B 7.1: E_d* witnesses: 4682291
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1463750
+  H choices with S: 8936
+  H choices without S: 4974
+  Step 0 checks: 21200
+  Step 1: H-tip adopted, outside G (E_g): 83
+  Step 1: kept by density -> E_d*(sl_D): 17606
+  Step 1: kept by density, D at/after H's tip (E_g): 372
+  Step 1: kept by length, outside G (E_g): 208
+  Step 2: crossing (D after D_Y, X bad): 2015
+  Step 2: density -> E_d*(sl_D): 4983
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 71
+  blocks: 2380972
+  passes: 35744
+  passes ending outside G: 25284
+  runs: 12000
+  runs, focused mode: 5420
+  example, 7.2 second bound, E_d with D after D_Y: seed 10130030562 [K=10 s=9 Delta=1 L1=20 G=13 E=33 f=0.4 alpha=0.55 nh=2 now=166 pub=0.05 quiet=0.5 focused=True sigma0=150]: H = block 49 (slot 163); Y = block 70 (slot 153, D_Y slot 146); X = block 70 (slot 153); D slot 153; Y has no honest block after 162; now = 166 <= sigma + G = 166; added slot 166 (epoch 5, > sl(D_Y) + G + 1 = 160) derives (snapshot, nonce, D) = 35, 901691..., 487 on the extension and 35, 651708..., 383 on H; E_r* True, E_g False
+  example, crossing: seed 10130031880 [K=10 s=5 Delta=2 L1=10 G=13 E=23 f=0.4 alpha=0.45 nh=2 now=116 pub=0.0 quiet=0.0 focused=True sigma0=100]: H = block 52 (slot 111); Y = block 115 (slot 109, len 41), D_Y slot 100 (cut-off 102); D slot 107; X = block 119 (slot 115, len 43); X's blocks before the cut-off after D_Y at slots [101]; X's block in slot 115 (epoch 5) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 10, G = 14  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 5]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 71
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 108
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 34
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 65
+    ... crossing: GENESIS's witness X not under H's states: 3
+    ... with E_d: 24810
+    ... with E_d*: 24802
+    ... with E_g: 2599
+    ... with E_r as GENESIS writes it: 16198
+    ... with E_r': 15841
+    ... with E_r*: 11000
+  3.1 honest blocks: 304815
+  6.3 case 1 extension, E_d with D after D_Y: 421
+  6.3 case 1 extension, E_d*: 43994
+  7.2 second-bound extension, E_d with D after D_Y: 12650
+  7.2 second-bound extension, E_d*: 816
+  B 5.3: E_r* witnesses: 44962
+  B 7.1: E_d* witnesses: 4316014
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1386214
+  H choices with S: 8675
+  H choices without S: 5303
+  Step 0 checks: 20481
+  Step 1: H-tip adopted, outside G (E_g): 106
+  Step 1: kept by density -> E_d*(sl_D): 17407
+  Step 1: kept by density, D at/after H's tip (E_g): 355
+  Step 1: kept by length, outside G (E_g): 203
+  Step 2: crossing (D after D_Y, X bad): 1921
+  Step 2: density -> E_d*(sl_D): 4829
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 53
+  blocks: 2516033
+  passes: 34700
+  passes ending outside G: 24810
+  runs: 12000
+  runs, focused mode: 5339
+  example, 7.2 second bound, E_d with D after D_Y: seed 10140030577 [K=10 s=9 Delta=2 L1=20 G=14 E=34 f=0.4 alpha=0.65 nh=3 now=102 pub=0.05 quiet=0.0 focused=True sigma0=86]: H = block 35 (slot 94); Y = block 62 (slot 94, D_Y slot 86); X = block 66 (slot 94); D slot 88; Y has no honest block after 97; now = 102 <= sigma + G = 102; added slot 102 (epoch 3, > sl(D_Y) + G + 1 = 101) derives (snapshot, nonce, D) = 17, 409965..., 323 on the extension and 17, 816873..., 323 on H; E_r* True, E_g True
+  example, crossing: seed 10141032843 [K=10 s=5 Delta=2 L1=20 G=14 E=34 f=0.4 alpha=0.55 nh=1 now=103 pub=0.0 quiet=0.0 focused=True sigma0=86]: H = block 29 (slot 100); Y = block 76 (slot 94, len 30), D_Y slot 85 (cut-off 88); D slot 93; X = block 81 (slot 102, len 34); X's blocks before the cut-off after D_Y at slots [86, 87]; X's block in slot 102 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 10, G = 15  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 6]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 45
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 65
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 29
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 33
+    ... with E_d: 24687
+    ... with E_d*: 24683
+    ... with E_g: 2465
+    ... with E_r as GENESIS writes it: 15974
+    ... with E_r': 15520
+    ... with E_r*: 10429
+  3.1 honest blocks: 310269
+  6.3 case 1 extension, E_d with D after D_Y: 451
+  6.3 case 1 extension, E_d*: 44729
+  7.2 second-bound extension, E_d with D after D_Y: 13421
+  7.2 second-bound extension, E_d*: 708
+  B 5.3: E_r* witnesses: 42017
+  B 7.1: E_d* witnesses: 3825032
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1279024
+  H choices with S: 8640
+  H choices without S: 5238
+  Step 0 checks: 20292
+  Step 1: H-tip adopted, outside G (E_g): 76
+  Step 1: kept by density -> E_d*(sl_D): 17300
+  Step 1: kept by density, D at/after H's tip (E_g): 367
+  Step 1: kept by length, outside G (E_g): 175
+  Step 2: crossing (D after D_Y, X bad): 1790
+  Step 2: density -> E_d*(sl_D): 4970
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 67
+  blocks: 2541736
+  passes: 34560
+  passes ending outside G: 24687
+  runs: 12000
+  runs, focused mode: 5400
+  example, 7.2 second bound, E_d with D after D_Y: seed 10150031214 [K=10 s=5 Delta=2 L1=10 G=15 E=25 f=0.25 alpha=0.45 nh=3 now=75 pub=0.05 quiet=0.0 focused=False sigma0=0]: H = block 61 (slot 71); Y = block 88 (slot 66, D_Y slot 57); X = block 86 (slot 66); D slot 63; Y has no honest block after 68; now = 75 <= sigma + G = 78; added slot 75 (epoch 3, > sl(D_Y) + G + 1 = 73) derives (snapshot, nonce, D) = 20, 67145..., 527 on the extension and 20, 851327..., 427 on H; E_r* True, E_g False
+
+K = 10, G = 16  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 7]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 52
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 75
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 26
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 2
+    ... with E_d: 23934
+    ... with E_d*: 23927
+    ... with E_g: 2504
+    ... with E_r as GENESIS writes it: 15257
+    ... with E_r': 14870
+    ... with E_r*: 10091
+  3.1 honest blocks: 309623
+  6.3 case 1 extension, E_d with D after D_Y: 409
+  6.3 case 1 extension, E_d*: 44408
+  7.2 second-bound extension, E_d with D after D_Y: 13910
+  7.2 second-bound extension, E_d*: 719
+  B 5.3: E_r* witnesses: 43041
+  B 7.1: E_d* witnesses: 4029144
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1371252
+  H choices with S: 8434
+  H choices without S: 5517
+  Step 0 checks: 19258
+  Step 1: H-tip adopted, outside G (E_g): 112
+  Step 1: kept by density -> E_d*(sl_D): 16953
+  Step 1: kept by density, D at/after H's tip (E_g): 319
+  Step 1: kept by length, outside G (E_g): 178
+  Step 2: crossing (D after D_Y, X bad): 1783
+  Step 2: density -> E_d*(sl_D): 4590
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 53
+  blocks: 2631644
+  passes: 33736
+  passes ending outside G: 23934
+  runs: 12000
+  runs, focused mode: 5467
+  example, 7.2 second bound, E_d with D after D_Y: seed 10160030624 [K=10 s=9 Delta=2 L1=20 G=16 E=36 f=0.4 alpha=0.55 nh=2 now=146 pub=0.0 quiet=0.5 focused=True sigma0=126]: H = block 47 (slot 143); Y = block 53 (slot 133, D_Y slot 124); X = block 53 (slot 133); D slot 133; Y has no honest block after 142; now = 146 <= sigma + G = 149; added slot 144 (epoch 4, > sl(D_Y) + G + 1 = 141) derives (snapshot, nonce, D) = 31, 459734..., 509 on the extension and 31, 277777..., 473 on H; E_r* True, E_g False
+
+K = 10, G = 17  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 8]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 35
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 47
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 37
+    ... with E_d: 23893
+    ... with E_d*: 23885
+    ... with E_g: 2295
+    ... with E_r as GENESIS writes it: 15206
+    ... with E_r': 14776
+    ... with E_r*: 9943
+  3.1 honest blocks: 319515
+  6.3 case 1 extension, E_d with D after D_Y: 482
+  6.3 case 1 extension, E_d*: 44807
+  7.2 second-bound extension, E_d with D after D_Y: 14752
+  7.2 second-bound extension, E_d*: 705
+  B 5.3: E_r* witnesses: 47205
+  B 7.1: E_d* witnesses: 4327028
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1663066
+  H choices with S: 8364
+  H choices without S: 5552
+  Step 0 checks: 19519
+  Step 1: H-tip adopted, outside G (E_g): 105
+  Step 1: kept by density -> E_d*(sl_D): 16473
+  Step 1: kept by density, D at/after H's tip (E_g): 355
+  Step 1: kept by length, outside G (E_g): 168
+  Step 2: crossing (D after D_Y, X bad): 2210
+  Step 2: density -> E_d*(sl_D): 4604
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 46
+  blocks: 2777216
+  passes: 33456
+  passes ending outside G: 23893
+  runs: 12000
+  runs, focused mode: 5316
+  example, 7.2 second bound, E_d with D after D_Y: seed 10170030885 [K=10 s=5 Delta=1 L1=10 G=17 E=27 f=0.25 alpha=0.55 nh=2 now=84 pub=0.05 quiet=0.5 focused=False sigma0=0]: H = block 172 (slot 80); Y = block 211 (slot 69, D_Y slot 61); X = block 211 (slot 69); D slot 69; Y has no honest block after 74; now = 84 <= sigma + G = 86; added slot 81 (epoch 3, > sl(D_Y) + G + 1 = 79) derives (snapshot, nonce, D) = 31, 376576..., 527 on the extension and 31, 625089..., 427 on H; E_r* True, E_g False
+
+K = 10, G = 18  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 9]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 39
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 59
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 37
+    ... with E_d: 23426
+    ... with E_d*: 23414
+    ... with E_g: 2478
+    ... with E_r as GENESIS writes it: 14797
+    ... with E_r': 14432
+    ... with E_r*: 9704
+  3.1 honest blocks: 318429
+  6.3 case 1 extension, E_d with D after D_Y: 482
+  6.3 case 1 extension, E_d*: 44086
+  7.2 second-bound extension, E_d with D after D_Y: 14847
+  7.2 second-bound extension, E_d*: 761
+  B 5.3: E_r* witnesses: 47219
+  B 7.1: E_d* witnesses: 4712922
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1610304
+  H choices with S: 8190
+  H choices without S: 5818
+  Step 0 checks: 19252
+  Step 1: H-tip adopted, outside G (E_g): 124
+  Step 1: kept by density -> E_d*(sl_D): 16169
+  Step 1: kept by density, D at/after H's tip (E_g): 304
+  Step 1: kept by length, outside G (E_g): 164
+  Step 2: crossing (D after D_Y, X bad): 2188
+  Step 2: density -> E_d*(sl_D): 4467
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 53
+  blocks: 2804596
+  passes: 32760
+  passes ending outside G: 23426
+  runs: 12000
+  runs, focused mode: 5453
+  example, 7.2 second bound, E_d with D after D_Y: seed 10180031336 [K=10 s=3 Delta=1 L1=20 G=18 E=38 f=0.4 alpha=0.65 nh=1 now=152 pub=0.0 quiet=0.5 focused=True sigma0=132]: H = block 41 (slot 147); Y = block 64 (slot 140, D_Y slot 131); X = block 65 (slot 141); D slot 140; Y has no honest block after 143; now = 152 <= sigma + G = 158; added slot 152 (epoch 4, > sl(D_Y) + G + 1 = 150) derives (snapshot, nonce, D) = 24, 158882..., 337 on the extension and 24, 491152..., 315 on H; E_r* True, E_g False
+
+K = 12, G = 9  [NEGATIVE CONTROL (G < K - 1); A's condition s + K <= G + 1 holds only for s <= -2]
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 86
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 5972
+    ... crossing: (Y, H) not an E_r' witness VIOLATION: 52
+    ... crossing: GENESIS's witness X not under H's states: 630
+    ... with E_d: 30221
+    ... with E_d*: 30217
+    ... with E_g: 1570
+    ... with E_r as GENESIS writes it: 19289
+    ... with E_r': 18905
+    ... with E_r*: 14756
+  3.1 VIOLATIONS: 6
+  3.1 honest blocks: 355769
+  6.3 case 1 extension, E_d with D after D_Y: 284
+  6.3 case 1 extension, E_d*: 33797
+  B 5.3 VIOLATIONS (witness not under H's states or tip > now - 1): 576
+  B 5.3: E_r* witnesses: 78039
+  B 7.1 VIOLATIONS (Y or X's window not under H's states): 11560
+  B 7.1: E_d* witnesses: 6448757
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 2612359
+  H choices with S: 10594
+  H choices without S: 3271
+  Step 0 checks: 23847
+  Step 1: H-tip adopted, outside G (E_g): 50
+  Step 1: kept by density -> E_d*(sl_D): 20247
+  Step 1: kept by density, D at/after H's tip (E_g): 287
+  Step 1: kept by length, outside G (E_g): 100
+  Step 2: crossing (D after D_Y, X bad): 3079
+  Step 2: density -> E_d*(sl_D): 6496
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 103
+  blocks: 2465145
+  passes: 42376
+  passes ending outside G: 30221
+  runs: 12000
+  runs, focused mode: 5448
+  example, crossing: seed 12090036271 [K=12 s=5 Delta=2 L1=24 G=9 E=33 f=0.25 alpha=0.65 nh=2 now=101 pub=0.0 quiet=0.0 focused=True sigma0=88]: H = block 20 (slot 98); Y = block 52 (slot 92, len 18), D_Y slot 86 (cut-off 90); D slot 90; X = block 55 (slot 101, len 20); X's blocks before the cut-off after D_Y at slots [88]; X's block in slot 101 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 12, G = 10  [NEGATIVE CONTROL (G < K - 1); A's condition s + K <= G + 1 holds only for s <= -1]
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 62
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 904
+    ... crossing: GENESIS's witness X not under H's states: 416
+    ... with E_d: 29508
+    ... with E_d*: 29488
+    ... with E_g: 1668
+    ... with E_r as GENESIS writes it: 18789
+    ... with E_r': 18358
+    ... with E_r*: 13953
+  3.1 VIOLATIONS: 1
+  3.1 honest blocks: 356451
+  6.3 case 1 extension, E_d with D after D_Y: 339
+  6.3 case 1 extension, E_d*: 34931
+  B 5.3: E_r* witnesses: 77759
+  B 7.1: E_d* witnesses: 6337136
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 2697905
+  H choices with S: 10321
+  H choices without S: 3612
+  Step 0 checks: 23352
+  Step 1: H-tip adopted, outside G (E_g): 84
+  Step 1: kept by density -> E_d*(sl_D): 19909
+  Step 1: kept by density, D at/after H's tip (E_g): 344
+  Step 1: kept by length, outside G (E_g): 127
+  Step 2: crossing (D after D_Y, X bad): 2993
+  Step 2: density -> E_d*(sl_D): 6088
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 82
+  blocks: 2572099
+  passes: 41284
+  passes ending outside G: 29508
+  runs: 12000
+  runs, focused mode: 5471
+  example, crossing: seed 12100036306 [K=12 s=5 Delta=1 L1=24 G=10 E=34 f=0.4 alpha=0.65 nh=3 now=138 pub=0.05 quiet=0.5 focused=True sigma0=123]: H = block 47 (slot 136); Y = block 69 (slot 134, len 42), D_Y slot 123 (cut-off 126); D slot 127; X = block 76 (slot 138, len 44); X's blocks before the cut-off after D_Y at slots [124, 125]; X's block in slot 136 (epoch 4) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 12, G = 11  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 0]
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 69
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 851
+    ... crossing: GENESIS's witness X not under H's states: 268
+    ... with E_d: 30149
+    ... with E_d*: 30117
+    ... with E_g: 1558
+    ... with E_r as GENESIS writes it: 19289
+    ... with E_r': 18884
+    ... with E_r*: 14416
+  3.1 honest blocks: 371672
+  6.3 case 1 extension, E_d with D after D_Y: 330
+  6.3 case 1 extension, E_d*: 40687
+  B 5.3: E_r* witnesses: 77591
+  B 7.1: E_d* witnesses: 6897036
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 2725484
+  H choices with S: 10368
+  H choices without S: 3481
+  Step 0 checks: 23024
+  Step 1: H-tip adopted, outside G (E_g): 60
+  Step 1: kept by density -> E_d*(sl_D): 20158
+  Step 1: kept by density, D at/after H's tip (E_g): 281
+  Step 1: kept by length, outside G (E_g): 91
+  Step 2: crossing (D after D_Y, X bad): 3127
+  Step 2: density -> E_d*(sl_D): 6431
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 89
+  blocks: 2637587
+  passes: 41472
+  passes ending outside G: 30149
+  runs: 12000
+  runs, focused mode: 5450
+  example, crossing: seed 12110036472 [K=12 s=5 Delta=2 L1=12 G=11 E=23 f=0.4 alpha=0.45 nh=3 now=70 pub=0.0 quiet=0.5 focused=True sigma0=55]: H = block 29 (slot 66); Y = block 36 (slot 61, len 22), D_Y slot 50 (cut-off 58); D slot 59; X = block 38 (slot 70, len 23); X's blocks before the cut-off after D_Y at slots [51, 53, 56]; X's block in slot 70 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 12, G = 12  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 1]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 41
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 54
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 85
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 1240
+    ... crossing: GENESIS's witness X not under H's states: 159
+    ... with E_d: 30317
+    ... with E_d*: 30317
+    ... with E_g: 1527
+    ... with E_r as GENESIS writes it: 19351
+    ... with E_r': 18879
+    ... with E_r*: 14278
+  3.1 honest blocks: 377590
+  6.3 case 1 extension, E_d with D after D_Y: 309
+  6.3 case 1 extension, E_d*: 44745
+  7.2 second-bound extension, E_d with D after D_Y: 2535
+  7.2 second-bound extension, E_d*: 200
+  B 5.3: E_r* witnesses: 74268
+  B 7.1: E_d* witnesses: 6329994
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 2641916
+  H choices with S: 10206
+  H choices without S: 3757
+  Step 0 checks: 22453
+  Step 1: H-tip adopted, outside G (E_g): 43
+  Step 1: kept by density -> E_d*(sl_D): 20335
+  Step 1: kept by density, D at/after H's tip (E_g): 274
+  Step 1: kept by length, outside G (E_g): 92
+  Step 2: crossing (D after D_Y, X bad): 3225
+  Step 2: density -> E_d*(sl_D): 6346
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 86
+  blocks: 2743265
+  passes: 40824
+  passes ending outside G: 30317
+  runs: 12000
+  runs, focused mode: 5369
+  example, 7.2 second bound, E_d with D after D_Y: seed 12120036500 [K=12 s=3 Delta=2 L1=24 G=12 E=36 f=0.4 alpha=0.65 nh=1 now=180 pub=0.05 quiet=0.0 focused=True sigma0=166]: H = block 51 (slot 176); Y = block 69 (slot 175, D_Y slot 165); X = block 62 (slot 170); D slot 168; Y has no honest block after 171; now = 180 <= sigma + G = 180; added slot 180 (epoch 5, > sl(D_Y) + G + 1 = 178) derives (snapshot, nonce, D) = 33, 848311..., 385 on the extension and 33, 378287..., 385 on H; E_r* True, E_g False
+  example, crossing: seed 12120036905 [K=12 s=3 Delta=1 L1=24 G=12 E=36 f=0.4 alpha=0.55 nh=3 now=112 pub=0.05 quiet=0.5 focused=False sigma0=0]: H = block 380 (slot 110); Y = block 453 (slot 100, len 30), D_Y slot 89 (cut-off 96); D slot 98; X = block 459 (slot 109, len 35); X's blocks before the cut-off after D_Y at slots []; X's block in slot 109 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 12, G = 13  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 2]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 56
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 93
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 68
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 324
+    ... crossing: GENESIS's witness X not under H's states: 110
+    ... with E_d: 29837
+    ... with E_d*: 29817
+    ... with E_g: 1542
+    ... with E_r as GENESIS writes it: 19081
+    ... with E_r': 18633
+    ... with E_r*: 13682
+  3.1 honest blocks: 386077
+  6.3 case 1 extension, E_d with D after D_Y: 440
+  6.3 case 1 extension, E_d*: 46640
+  7.2 second-bound extension, E_d with D after D_Y: 6116
+  7.2 second-bound extension, E_d*: 519
+  B 5.3: E_r* witnesses: 68578
+  B 7.1: E_d* witnesses: 6716824
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 2414698
+  H choices with S: 10088
+  H choices without S: 3808
+  Step 0 checks: 22261
+  Step 1: H-tip adopted, outside G (E_g): 55
+  Step 1: kept by density -> E_d*(sl_D): 20034
+  Step 1: kept by density, D at/after H's tip (E_g): 246
+  Step 1: kept by length, outside G (E_g): 125
+  Step 2: crossing (D after D_Y, X bad): 3012
+  Step 2: density -> E_d*(sl_D): 6357
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 102
+  blocks: 2822715
+  passes: 40352
+  passes ending outside G: 29837
+  runs: 12000
+  runs, focused mode: 5358
+  example, 7.2 second bound, E_d with D after D_Y: seed 12130036663 [K=12 s=3 Delta=1 L1=24 G=13 E=37 f=0.25 alpha=0.65 nh=1 now=149 pub=0.05 quiet=0.5 focused=True sigma0=130]: H = block 22 (slot 143); Y = block 64 (slot 137, D_Y slot 129); X = block 70 (slot 144); D slot 137; Y has no honest block after 140; now = 149 <= sigma + G = 150; added slot 148 (epoch 4, > sl(D_Y) + G + 1 = 143) derives (snapshot, nonce, D) = 17, 685738..., 345 on the extension and 17, 284059..., 296 on H; E_r* True, E_g False
+  example, crossing: seed 12130036552 [K=12 s=11 Delta=1 L1=12 G=13 E=25 f=0.4 alpha=0.45 nh=2 now=102 pub=0.0 quiet=0.0 focused=True sigma0=85]: H = block 39 (slot 99); Y = block 86 (slot 96, len 32), D_Y slot 85 (cut-off 87); D slot 93; X = block 89 (slot 102, len 34); X's blocks before the cut-off after D_Y at slots [86]; X's block in slot 102 (epoch 4) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 12, G = 14  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 3]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 117
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 168
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 62
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 325
+    ... crossing: GENESIS's witness X not under H's states: 38
+    ... with E_d: 30082
+    ... with E_d*: 30058
+    ... with E_g: 1699
+    ... with E_r as GENESIS writes it: 19006
+    ... with E_r': 18508
+    ... with E_r*: 13407
+  3.1 honest blocks: 399154
+  6.3 case 1 extension, E_d with D after D_Y: 466
+  6.3 case 1 extension, E_d*: 49365
+  7.2 second-bound extension, E_d with D after D_Y: 9172
+  7.2 second-bound extension, E_d*: 745
+  B 5.3: E_r* witnesses: 67492
+  B 7.1: E_d* witnesses: 6528810
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 2400214
+  H choices with S: 10206
+  H choices without S: 3755
+  Step 0 checks: 22313
+  Step 1: H-tip adopted, outside G (E_g): 56
+  Step 1: kept by density -> E_d*(sl_D): 20564
+  Step 1: kept by density, D at/after H's tip (E_g): 272
+  Step 1: kept by length, outside G (E_g): 111
+  Step 2: crossing (D after D_Y, X bad): 3018
+  Step 2: density -> E_d*(sl_D): 6028
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 103
+  blocks: 2844765
+  passes: 40824
+  passes ending outside G: 30082
+  runs: 12000
+  runs, focused mode: 5456
+  example, 7.2 second bound, E_d with D after D_Y: seed 12140036505 [K=12 s=11 Delta=2 L1=12 G=14 E=26 f=0.4 alpha=0.65 nh=1 now=104 pub=0.0 quiet=0.5 focused=True sigma0=88]: H = block 30 (slot 101); Y = block 57 (slot 94, D_Y slot 87); X = block 53 (slot 94); D slot 92; Y has no honest block after 103; now = 104 <= sigma + G = 106; added slot 104 (epoch 4, > sl(D_Y) + G + 1 = 102) derives (snapshot, nonce, D) = 20, 471275..., 340 on the extension and 20, 785915..., 294 on H; E_r* True, E_g False
+  example, crossing: seed 12140037206 [K=12 s=11 Delta=1 L1=12 G=14 E=26 f=0.25 alpha=0.65 nh=1 now=104 pub=0.0 quiet=0.5 focused=True sigma0=88]: H = block 17 (slot 98); Y = block 43 (slot 97, len 20), D_Y slot 86 (cut-off 90); D slot 94; X = block 49 (slot 104, len 25); X's blocks before the cut-off after D_Y at slots [88, 89]; X's block in slot 104 (epoch 4) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 12, G = 15  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 4]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 91
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 124
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 84
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 95
+    ... crossing: GENESIS's witness X not under H's states: 39
+    ... with E_d: 29287
+    ... with E_d*: 29275
+    ... with E_g: 1675
+    ... with E_r as GENESIS writes it: 18369
+    ... with E_r': 17964
+    ... with E_r*: 13104
+  3.1 honest blocks: 401328
+  6.3 case 1 extension, E_d with D after D_Y: 424
+  6.3 case 1 extension, E_d*: 49682
+  7.2 second-bound extension, E_d with D after D_Y: 11472
+  7.2 second-bound extension, E_d*: 808
+  B 5.3: E_r* witnesses: 63938
+  B 7.1: E_d* witnesses: 6810409
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 2235128
+  H choices with S: 9948
+  H choices without S: 3985
+  Step 0 checks: 21577
+  Step 1: H-tip adopted, outside G (E_g): 51
+  Step 1: kept by density -> E_d*(sl_D): 20058
+  Step 1: kept by density, D at/after H's tip (E_g): 261
+  Step 1: kept by length, outside G (E_g): 92
+  Step 2: crossing (D after D_Y, X bad): 2737
+  Step 2: density -> E_d*(sl_D): 6083
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 61
+  blocks: 2920914
+  passes: 39792
+  passes ending outside G: 29287
+  runs: 12000
+  runs, focused mode: 5480
+  example, 7.2 second bound, E_d with D after D_Y: seed 12150036602 [K=12 s=5 Delta=2 L1=12 G=15 E=27 f=0.25 alpha=0.65 nh=2 now=135 pub=0.05 quiet=0.5 focused=True sigma0=114]: H = block 26 (slot 129); Y = block 43 (slot 122, D_Y slot 112); X = block 48 (slot 130); D slot 122; Y has no honest block after 127; now = 135 <= sigma + G = 137; added slot 135 (epoch 5, > sl(D_Y) + G + 1 = 128) derives (snapshot, nonce, D) = 16, 352483..., 626 on the extension and 16, 820001..., 376 on H; E_r* True, E_g False
+  example, crossing: seed 12150036534 [K=12 s=11 Delta=1 L1=12 G=15 E=27 f=0.25 alpha=0.65 nh=2 now=81 pub=0.0 quiet=0.0 focused=True sigma0=64]: H = block 17 (slot 77); Y = block 23 (slot 72, len 19), D_Y slot 63 (cut-off 66); D slot 70; X = block 25 (slot 81, len 20); X's blocks before the cut-off after D_Y at slots [64, 65]; X's block in slot 81 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 12, G = 16  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 5]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 78
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 131
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 68
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 132
+    ... crossing: GENESIS's witness X not under H's states: 24
+    ... with E_d: 29086
+    ... with E_d*: 29070
+    ... with E_g: 1665
+    ... with E_r as GENESIS writes it: 17908
+    ... with E_r': 17484
+    ... with E_r*: 12510
+  3.1 honest blocks: 408664
+  6.3 case 1 extension, E_d with D after D_Y: 408
+  6.3 case 1 extension, E_d*: 50093
+  7.2 second-bound extension, E_d with D after D_Y: 13191
+  7.2 second-bound extension, E_d*: 877
+  B 5.3: E_r* witnesses: 58750
+  B 7.1: E_d* witnesses: 6139031
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 2094674
+  H choices with S: 9810
+  H choices without S: 4133
+  Step 0 checks: 21550
+  Step 1: H-tip adopted, outside G (E_g): 77
+  Step 1: kept by density -> E_d*(sl_D): 19911
+  Step 1: kept by density, D at/after H's tip (E_g): 287
+  Step 1: kept by length, outside G (E_g): 102
+  Step 2: crossing (D after D_Y, X bad): 2561
+  Step 2: density -> E_d*(sl_D): 6104
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 99
+  blocks: 3040072
+  passes: 39240
+  passes ending outside G: 29086
+  runs: 12000
+  runs, focused mode: 5369
+  example, 7.2 second bound, E_d with D after D_Y: seed 12160036601 [K=12 s=11 Delta=2 L1=12 G=16 E=28 f=0.25 alpha=0.55 nh=3 now=87 pub=0.0 quiet=0.5 focused=False sigma0=0]: H = block 97 (slot 80); Y = block 149 (slot 71, D_Y slot 61); X = block 150 (slot 77); D slot 71; Y has no honest block after 82; now = 87 <= sigma + G = 87; added slot 84 (epoch 3, > sl(D_Y) + G + 1 = 78) derives (snapshot, nonce, D) = 22, 211709..., 431 on the extension and 22, 293916..., 239 on H; E_r* True, E_g False
+  example, crossing: seed 12160036554 [K=12 s=5 Delta=1 L1=24 G=16 E=40 f=0.4 alpha=0.65 nh=1 now=121 pub=0.0 quiet=0.5 focused=True sigma0=102]: H = block 20 (slot 108); Y = block 27 (slot 112, len 23), D_Y slot 101 (cut-off 104); D slot 109; X = block 31 (slot 120, len 26); X's blocks before the cut-off after D_Y at slots [102]; X's block in slot 120 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 12, G = 17  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 6]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 64
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 92
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 72
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 120
+    ... crossing: GENESIS's witness X not under H's states: 12
+    ... with E_d: 29543
+    ... with E_d*: 29523
+    ... with E_g: 1550
+    ... with E_r as GENESIS writes it: 18344
+    ... with E_r': 17912
+    ... with E_r*: 12432
+  3.1 honest blocks: 421170
+  6.3 case 1 extension, E_d with D after D_Y: 468
+  6.3 case 1 extension, E_d*: 51395
+  7.2 second-bound extension, E_d with D after D_Y: 14447
+  7.2 second-bound extension, E_d*: 912
+  B 5.3: E_r* witnesses: 56238
+  B 7.1: E_d* witnesses: 6328963
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1912996
+  H choices with S: 9858
+  H choices without S: 4146
+  Step 0 checks: 20923
+  Step 1: H-tip adopted, outside G (E_g): 72
+  Step 1: kept by density -> E_d*(sl_D): 20486
+  Step 1: kept by density, D at/after H's tip (E_g): 244
+  Step 1: kept by length, outside G (E_g): 112
+  Step 2: crossing (D after D_Y, X bad): 2410
+  Step 2: density -> E_d*(sl_D): 6192
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 86
+  blocks: 3127705
+  passes: 39432
+  passes ending outside G: 29543
+  runs: 12000
+  runs, focused mode: 5423
+  example, 7.2 second bound, E_d with D after D_Y: seed 12170036535 [K=12 s=3 Delta=1 L1=24 G=17 E=41 f=0.4 alpha=0.65 nh=2 now=123 pub=0.05 quiet=0.5 focused=True sigma0=104]: H = block 30 (slot 118); Y = block 68 (slot 108, D_Y slot 101); X = block 75 (slot 120); D slot 108; Y has no honest block after 111; now = 123 <= sigma + G = 125; added slot 123 (epoch 3, > sl(D_Y) + G + 1 = 119) derives (snapshot, nonce, D) = 17, 844804..., 352 on the extension and 17, 515570..., 276 on H; E_r* True, E_g False
+  example, crossing: seed 12170037883 [K=12 s=11 Delta=1 L1=24 G=17 E=41 f=0.25 alpha=0.65 nh=1 now=164 pub=0.0 quiet=0.0 focused=True sigma0=145]: H = block 36 (slot 159); Y = block 41 (slot 155, len 36), D_Y slot 144 (cut-off 147); D slot 153; X = block 47 (slot 164, len 40); X's blocks before the cut-off after D_Y at slots [146]; X's block in slot 164 (epoch 4) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 12, G = 18  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 7]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 75
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 107
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 51
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 11
+    ... crossing: GENESIS's witness X not under H's states: 3
+    ... with E_d: 28682
+    ... with E_d*: 28682
+    ... with E_g: 1483
+    ... with E_r as GENESIS writes it: 17726
+    ... with E_r': 17318
+    ... with E_r*: 11916
+  3.1 honest blocks: 422039
+  6.3 case 1 extension, E_d with D after D_Y: 392
+  6.3 case 1 extension, E_d*: 51412
+  7.2 second-bound extension, E_d with D after D_Y: 15464
+  7.2 second-bound extension, E_d*: 968
+  B 5.3: E_r* witnesses: 54686
+  B 7.1: E_d* witnesses: 6189665
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1873149
+  H choices with S: 9692
+  H choices without S: 4204
+  Step 0 checks: 21000
+  Step 1: H-tip adopted, outside G (E_g): 59
+  Step 1: kept by density -> E_d*(sl_D): 20100
+  Step 1: kept by density, D at/after H's tip (E_g): 249
+  Step 1: kept by length, outside G (E_g): 78
+  Step 2: crossing (D after D_Y, X bad): 2317
+  Step 2: density -> E_d*(sl_D): 5864
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 77
+  blocks: 3179620
+  passes: 38768
+  passes ending outside G: 28682
+  runs: 12000
+  runs, focused mode: 5482
+  example, 7.2 second bound, E_d with D after D_Y: seed 12180036681 [K=12 s=3 Delta=1 L1=24 G=18 E=42 f=0.4 alpha=0.55 nh=3 now=128 pub=0.0 quiet=0.0 focused=False sigma0=0]: H = block 351 (slot 124); Y = block 503 (slot 116, D_Y slot 106); X = block 504 (slot 118); D slot 116; Y has no honest block after 119; now = 128 <= sigma + G = 134; added slot 127 (epoch 3, > sl(D_Y) + G + 1 = 125) derives (snapshot, nonce, D) = 179, 340493..., 293 on the extension and 179, 143152..., 293 on H; E_r* True, E_g False
+  example, crossing: seed 12181037444 [K=12 s=5 Delta=2 L1=24 G=18 E=42 f=0.4 alpha=0.55 nh=3 now=127 pub=0.0 quiet=0.0 focused=True sigma0=106]: H = block 44 (slot 124); Y = block 71 (slot 116, len 36), D_Y slot 105 (cut-off 108); D slot 115; X = block 75 (slot 126, len 39); X's blocks before the cut-off after D_Y at slots []; X's block in slot 126 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 12, G = 19  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 8]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 71
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 83
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 31
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 4
+    ... with E_d: 28435
+    ... with E_d*: 28426
+    ... with E_g: 1503
+    ... with E_r as GENESIS writes it: 17330
+    ... with E_r': 16933
+    ... with E_r*: 11252
+  3.1 honest blocks: 434535
+  6.3 case 1 extension, E_d with D after D_Y: 487
+  6.3 case 1 extension, E_d*: 51882
+  7.2 second-bound extension, E_d with D after D_Y: 15439
+  7.2 second-bound extension, E_d*: 814
+  B 5.3: E_r* witnesses: 51495
+  B 7.1: E_d* witnesses: 5619446
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1784865
+  H choices with S: 9663
+  H choices without S: 4292
+  Step 0 checks: 20494
+  Step 1: H-tip adopted, outside G (E_g): 61
+  Step 1: kept by density -> E_d*(sl_D): 20018
+  Step 1: kept by density, D at/after H's tip (E_g): 204
+  Step 1: kept by length, outside G (E_g): 92
+  Step 2: crossing (D after D_Y, X bad): 2056
+  Step 2: density -> E_d*(sl_D): 6008
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 62
+  blocks: 3296167
+  passes: 38652
+  passes ending outside G: 28435
+  runs: 12000
+  runs, focused mode: 5424
+  example, 7.2 second bound, E_d with D after D_Y: seed 12190036802 [K=12 s=5 Delta=2 L1=12 G=19 E=31 f=0.4 alpha=0.65 nh=2 now=156 pub=0.0 quiet=0.5 focused=True sigma0=134]: H = block 50 (slot 151); Y = block 69 (slot 141, D_Y slot 132); X = block 71 (slot 147); D slot 141; Y has no honest block after 146; now = 156 <= sigma + G = 160; added slot 155 (epoch 5, > sl(D_Y) + G + 1 = 152) derives (snapshot, nonce, D) = 34, 760682..., 354 on the extension and 34, 760855..., 312 on H; E_r* True, E_g False
+
+K = 12, G = 20  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 9]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 48
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 69
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 48
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 15
+    ... with E_d: 27792
+    ... with E_d*: 27781
+    ... with E_g: 1626
+    ... with E_r as GENESIS writes it: 15964
+    ... with E_r': 15632
+    ... with E_r*: 10570
+  3.1 honest blocks: 438165
+  6.3 case 1 extension, E_d with D after D_Y: 321
+  6.3 case 1 extension, E_d*: 50967
+  7.2 second-bound extension, E_d with D after D_Y: 15361
+  7.2 second-bound extension, E_d*: 800
+  B 5.3: E_r* witnesses: 51238
+  B 7.1: E_d* witnesses: 6246861
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 1888423
+  H choices with S: 9486
+  H choices without S: 4473
+  Step 0 checks: 20724
+  Step 1: H-tip adopted, outside G (E_g): 62
+  Step 1: kept by density -> E_d*(sl_D): 19508
+  Step 1: kept by density, D at/after H's tip (E_g): 287
+  Step 1: kept by length, outside G (E_g): 90
+  Step 2: crossing (D after D_Y, X bad): 1957
+  Step 2: density -> E_d*(sl_D): 5893
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 64
+  blocks: 3417988
+  passes: 37944
+  passes ending outside G: 27792
+  runs: 12000
+  runs, focused mode: 5362
+  example, 7.2 second bound, E_d with D after D_Y: seed 12200036783 [K=12 s=11 Delta=1 L1=24 G=20 E=44 f=0.4 alpha=0.55 nh=2 now=220 pub=0.0 quiet=0.5 focused=False sigma0=0]: H = block 794 (slot 218); Y = block 816 (slot 208, D_Y slot 197); X = block 821 (slot 218); D slot 208; Y has no honest block after 219; now = 220 <= sigma + G = 228; added slot 220 (epoch 5, > sl(D_Y) + G + 1 = 218) derives (snapshot, nonce, D) = 557, 527557..., 475 on the extension and 557, 273850..., 411 on H; E_r* True, E_g False
+
+K = 12, G = 21  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 10]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 46
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 60
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 54
+    ... with E_d: 27529
+    ... with E_d*: 27525
+    ... with E_g: 1404
+    ... with E_r as GENESIS writes it: 16262
+    ... with E_r': 15860
+    ... with E_r*: 10663
+  3.1 honest blocks: 446370
+  6.3 case 1 extension, E_d with D after D_Y: 378
+  6.3 case 1 extension, E_d*: 51330
+  7.2 second-bound extension, E_d with D after D_Y: 16397
+  7.2 second-bound extension, E_d*: 935
+  B 5.3: E_r* witnesses: 59654
+  B 7.1: E_d* witnesses: 6533288
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 2363808
+  H choices with S: 9436
+  H choices without S: 4519
+  Step 0 checks: 20147
+  Step 1: H-tip adopted, outside G (E_g): 35
+  Step 1: kept by density -> E_d*(sl_D): 19002
+  Step 1: kept by density, D at/after H's tip (E_g): 193
+  Step 1: kept by length, outside G (E_g): 70
+  Step 2: crossing (D after D_Y, X bad): 2493
+  Step 2: density -> E_d*(sl_D): 5753
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 59
+  blocks: 3523717
+  passes: 37744
+  passes ending outside G: 27529
+  runs: 12000
+  runs, focused mode: 5407
+  example, 7.2 second bound, E_d with D after D_Y: seed 12210037718 [K=12 s=3 Delta=2 L1=12 G=21 E=33 f=0.25 alpha=0.65 nh=1 now=167 pub=0.0 quiet=0.5 focused=True sigma0=142]: H = block 34 (slot 158); Y = block 43 (slot 151, D_Y slot 142); X = block 44 (slot 156); D slot 151; Y has no honest block after 154; now = 167 <= sigma + G = 172; added slot 165 (epoch 5, > sl(D_Y) + G + 1 = 164) derives (snapshot, nonce, D) = 27, 923869..., 335 on the extension and 27, 132145..., 335 on H; E_r* True, E_g False
+
+K = 12, G = 22  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 11]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 25
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 38
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 80
+    ... with E_d: 27565
+    ... with E_d*: 27553
+    ... with E_g: 1524
+    ... with E_r as GENESIS writes it: 16522
+    ... with E_r': 16104
+    ... with E_r*: 10568
+  3.1 honest blocks: 447461
+  6.3 case 1 extension, E_d with D after D_Y: 398
+  6.3 case 1 extension, E_d*: 51118
+  7.2 second-bound extension, E_d with D after D_Y: 16429
+  7.2 second-bound extension, E_d*: 864
+  B 5.3: E_r* witnesses: 60932
+  B 7.1: E_d* witnesses: 6424373
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 2474890
+  H choices with S: 9349
+  H choices without S: 4573
+  Step 0 checks: 19940
+  Step 1: H-tip adopted, outside G (E_g): 55
+  Step 1: kept by density -> E_d*(sl_D): 18993
+  Step 1: kept by density, D at/after H's tip (E_g): 192
+  Step 1: kept by length, outside G (E_g): 107
+  Step 2: crossing (D after D_Y, X bad): 2610
+  Step 2: density -> E_d*(sl_D): 5611
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 51
+  blocks: 3524908
+  passes: 37396
+  passes ending outside G: 27565
+  runs: 12000
+  runs, focused mode: 5489
+  example, 7.2 second bound, E_d with D after D_Y: seed 12220037243 [K=12 s=5 Delta=1 L1=12 G=22 E=34 f=0.25 alpha=0.45 nh=2 now=139 pub=0.05 quiet=0.0 focused=False sigma0=0]: H = block 292 (slot 137); Y = block 318 (slot 119, D_Y slot 111); X = block 320 (slot 129); D slot 119; Y has no honest block after 124; now = 139 <= sigma + G = 141; added slot 137 (epoch 4, > sl(D_Y) + G + 1 = 134) derives (snapshot, nonce, D) = 118, 734237..., 828 on the extension and 118, 747849..., 644 on H; E_r* True, E_g False
+
+K = 16, G = 13  [NEGATIVE CONTROL (G < K - 1); A's condition s + K <= G + 1 holds only for s <= -2]
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 120
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 14168
+    ... crossing: (Y, H) not an E_r' witness VIOLATION: 62
+    ... crossing: GENESIS's witness X not under H's states: 846
+    ... with E_d: 35025
+    ... with E_d*: 35005
+    ... with E_g: 553
+    ... with E_r as GENESIS writes it: 20519
+    ... with E_r': 20082
+    ... with E_r*: 15638
+  3.1 VIOLATIONS: 2
+  3.1 honest blocks: 553443
+  6.3 case 1 extension, E_d with D after D_Y: 216
+  6.3 case 1 extension, E_d*: 43712
+  B 5.3 VIOLATIONS (witness not under H's states or tip > now - 1): 659
+  B 5.3: E_r* witnesses: 105184
+  B 7.1 VIOLATIONS (Y or X's window not under H's states): 17041
+  B 7.1: E_d* witnesses: 10992053
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 4644588
+  H choices with S: 11891
+  H choices without S: 2134
+  Step 0 checks: 23525
+  Step 1: H-tip adopted, outside G (E_g): 35
+  Step 1: kept by density -> E_d*(sl_D): 23381
+  Step 1: kept by density, D at/after H's tip (E_g): 88
+  Step 1: kept by length, outside G (E_g): 30
+  Step 2: crossing (D after D_Y, X bad): 3681
+  Step 2: density -> E_d*(sl_D): 7884
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 115
+  blocks: 3675227
+  passes: 47564
+  passes ending outside G: 35025
+  runs: 12000
+  runs, focused mode: 5337
+  example, crossing: seed 16130048504 [K=16 s=5 Delta=1 L1=32 G=13 E=45 f=0.4 alpha=0.65 nh=2 now=226 pub=0.0 quiet=0.0 focused=True sigma0=210]: H = block 73 (slot 222); Y = block 176 (slot 223, len 74), D_Y slot 208 (cut-off 212); D slot 216; X = block 184 (slot 225, len 76); X's blocks before the cut-off after D_Y at slots [211]; X's block in slot 225 (epoch 5) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 14  [NEGATIVE CONTROL (G < K - 1); A's condition s + K <= G + 1 holds only for s <= -1]
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 90
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 1688
+    ... crossing: GENESIS's witness X not under H's states: 591
+    ... with E_d: 34542
+    ... with E_d*: 34529
+    ... with E_g: 607
+    ... with E_r as GENESIS writes it: 20097
+    ... with E_r': 19730
+    ... with E_r*: 15212
+  3.1 honest blocks: 553854
+  6.3 case 1 extension, E_d with D after D_Y: 177
+  6.3 case 1 extension, E_d*: 43871
+  B 5.3: E_r* witnesses: 108635
+  B 7.1: E_d* witnesses: 10695810
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 4999049
+  H choices with S: 11740
+  H choices without S: 2152
+  Step 0 checks: 24170
+  Step 1: H-tip adopted, outside G (E_g): 24
+  Step 1: kept by density -> E_d*(sl_D): 23013
+  Step 1: kept by density, D at/after H's tip (E_g): 132
+  Step 1: kept by length, outside G (E_g): 32
+  Step 2: crossing (D after D_Y, X bad): 3726
+  Step 2: density -> E_d*(sl_D): 7700
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 111
+  blocks: 3676984
+  passes: 46960
+  passes ending outside G: 34542
+  runs: 12000
+  runs, focused mode: 5487
+  example, crossing: seed 16140048422 [K=16 s=15 Delta=1 L1=16 G=14 E=30 f=0.4 alpha=0.55 nh=3 now=120 pub=0.0 quiet=0.5 focused=True sigma0=102]: H = block 36 (slot 118); Y = block 61 (slot 117, len 35), D_Y slot 102 (cut-off 106); D slot 110; X = block 65 (slot 120, len 36); X's blocks before the cut-off after D_Y at slots [103, 105]; X's block in slot 120 (epoch 4) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 15  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 0]
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 106
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 1103
+    ... crossing: GENESIS's witness X not under H's states: 412
+    ... with E_d: 34498
+    ... with E_d*: 34489
+    ... with E_g: 574
+    ... with E_r as GENESIS writes it: 20101
+    ... with E_r': 19672
+    ... with E_r*: 14860
+  3.1 honest blocks: 566092
+  6.3 case 1 extension, E_d with D after D_Y: 224
+  6.3 case 1 extension, E_d*: 48633
+  B 5.3: E_r* witnesses: 101122
+  B 7.1: E_d* witnesses: 11070248
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 4608157
+  H choices with S: 11655
+  H choices without S: 2254
+  Step 0 checks: 23122
+  Step 1: H-tip adopted, outside G (E_g): 21
+  Step 1: kept by density -> E_d*(sl_D): 23024
+  Step 1: kept by density, D at/after H's tip (E_g): 84
+  Step 1: kept by length, outside G (E_g): 41
+  Step 2: crossing (D after D_Y, X bad): 3820
+  Step 2: density -> E_d*(sl_D): 7532
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 125
+  blocks: 3787870
+  passes: 46620
+  passes ending outside G: 34498
+  runs: 12000
+  runs, focused mode: 5433
+  example, crossing: seed 16150048513 [K=16 s=5 Delta=2 L1=16 G=15 E=31 f=0.25 alpha=0.55 nh=3 now=125 pub=0.0 quiet=0.5 focused=True sigma0=107]: H = block 35 (slot 122); Y = block 74 (slot 122, len 31), D_Y slot 107 (cut-off 109); D slot 112; X = block 80 (slot 125, len 32); X's blocks before the cut-off after D_Y at slots [108]; X's block in slot 125 (epoch 4) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 16  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 1]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 48
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 86
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 95
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 1367
+    ... crossing: GENESIS's witness X not under H's states: 200
+    ... with E_d: 35149
+    ... with E_d*: 35138
+    ... with E_g: 578
+    ... with E_r as GENESIS writes it: 20579
+    ... with E_r': 20078
+    ... with E_r*: 15176
+  3.1 honest blocks: 585967
+  6.3 case 1 extension, E_d with D after D_Y: 182
+  6.3 case 1 extension, E_d*: 53216
+  7.2 second-bound extension, E_d with D after D_Y: 2536
+  7.2 second-bound extension, E_d*: 305
+  B 5.3: E_r* witnesses: 100727
+  B 7.1: E_d* witnesses: 11636768
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 4489970
+  H choices with S: 11752
+  H choices without S: 2172
+  Step 0 checks: 23150
+  Step 1: H-tip adopted, outside G (E_g): 27
+  Step 1: kept by density -> E_d*(sl_D): 23697
+  Step 1: kept by density, D at/after H's tip (E_g): 104
+  Step 1: kept by length, outside G (E_g): 32
+  Step 2: crossing (D after D_Y, X bad): 3691
+  Step 2: density -> E_d*(sl_D): 7590
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 136
+  blocks: 3914422
+  passes: 47008
+  passes ending outside G: 35149
+  runs: 12000
+  runs, focused mode: 5407
+  example, 7.2 second bound, E_d with D after D_Y: seed 16160048582 [K=16 s=3 Delta=2 L1=32 G=16 E=48 f=0.4 alpha=0.55 nh=2 now=192 pub=0.05 quiet=0.5 focused=False sigma0=0]: H = block 827 (slot 188); Y = block 930 (slot 187, D_Y slot 173); X = block 922 (slot 180); D slot 176; Y has no honest block after 179; now = 192 <= sigma + G = 192; added slot 192 (epoch 4, > sl(D_Y) + G + 1 = 190) derives (snapshot, nonce, D) = 508, 1269..., 380 on the extension and 508, 699841..., 404 on H; E_r* True, E_g False
+  example, crossing: seed 16160048607 [K=16 s=15 Delta=1 L1=16 G=16 E=32 f=0.4 alpha=0.55 nh=3 now=160 pub=0.0 quiet=0.0 focused=True sigma0=142]: H = block 60 (slot 157); Y = block 113 (slot 155, len 52), D_Y slot 140 (cut-off 144); D slot 149; X = block 118 (slot 160, len 56); X's blocks before the cut-off after D_Y at slots [142, 143]; X's block in slot 160 (epoch 5) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 17  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 2]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 60
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 84
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 97
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 989
+    ... crossing: GENESIS's witness X not under H's states: 119
+    ... with E_d: 34852
+    ... with E_d*: 34828
+    ... with E_g: 553
+    ... with E_r as GENESIS writes it: 20510
+    ... with E_r': 20054
+    ... with E_r*: 14924
+  3.1 honest blocks: 586631
+  6.3 case 1 extension, E_d with D after D_Y: 216
+  6.3 case 1 extension, E_d*: 54721
+  7.2 second-bound extension, E_d with D after D_Y: 5784
+  7.2 second-bound extension, E_d*: 580
+  B 5.3: E_r* witnesses: 95831
+  B 7.1: E_d* witnesses: 11495795
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 4281517
+  H choices with S: 11553
+  H choices without S: 2318
+  Step 0 checks: 22249
+  Step 1: H-tip adopted, outside G (E_g): 26
+  Step 1: kept by density -> E_d*(sl_D): 23274
+  Step 1: kept by density, D at/after H's tip (E_g): 104
+  Step 1: kept by length, outside G (E_g): 36
+  Step 2: crossing (D after D_Y, X bad): 3573
+  Step 2: density -> E_d*(sl_D): 7851
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 109
+  blocks: 4004696
+  passes: 46212
+  passes ending outside G: 34852
+  runs: 12000
+  runs, focused mode: 5330
+  example, 7.2 second bound, E_d with D after D_Y: seed 16170048663 [K=16 s=3 Delta=1 L1=16 G=17 E=33 f=0.4 alpha=0.55 nh=2 now=103 pub=0.05 quiet=0.5 focused=False sigma0=0]: H = block 243 (slot 96); Y = block 364 (slot 94, D_Y slot 80); X = block 372 (slot 95); D slot 87; Y has no honest block after 90; now = 103 <= sigma + G = 104; added slot 100 (epoch 3, > sl(D_Y) + G + 1 = 98) derives (snapshot, nonce, D) = 81, 335626..., 514 on the extension and 81, 444811..., 514 on H; E_r* True, E_g False
+  example, crossing: seed 16170048714 [K=16 s=3 Delta=2 L1=16 G=17 E=33 f=0.4 alpha=0.65 nh=2 now=133 pub=0.05 quiet=0.5 focused=True sigma0=113]: H = block 47 (slot 130); Y = block 161 (slot 124, len 42), D_Y slot 110 (cut-off 115); D slot 117; X = block 173 (slot 132, len 47); X's blocks before the cut-off after D_Y at slots [111, 112, 113, 114]; X's block in slot 132 (epoch 4) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 18  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 3]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 64
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 108
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 94
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 657
+    ... crossing: GENESIS's witness X not under H's states: 84
+    ... with E_d: 35223
+    ... with E_d*: 35211
+    ... with E_g: 574
+    ... with E_r as GENESIS writes it: 20855
+    ... with E_r': 20348
+    ... with E_r*: 14987
+  3.1 honest blocks: 609967
+  6.3 case 1 extension, E_d with D after D_Y: 327
+  6.3 case 1 extension, E_d*: 57367
+  7.2 second-bound extension, E_d with D after D_Y: 9184
+  7.2 second-bound extension, E_d*: 832
+  B 5.3: E_r* witnesses: 96801
+  B 7.1: E_d* witnesses: 12281234
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 4424269
+  H choices with S: 11653
+  H choices without S: 2345
+  Step 0 checks: 23259
+  Step 1: H-tip adopted, outside G (E_g): 17
+  Step 1: kept by density -> E_d*(sl_D): 23595
+  Step 1: kept by density, D at/after H's tip (E_g): 92
+  Step 1: kept by length, outside G (E_g): 38
+  Step 2: crossing (D after D_Y, X bad): 3667
+  Step 2: density -> E_d*(sl_D): 7842
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 117
+  blocks: 4118450
+  passes: 46612
+  passes ending outside G: 35223
+  runs: 12000
+  runs, focused mode: 5329
+  example, 7.2 second bound, E_d with D after D_Y: seed 16180048840 [K=16 s=5 Delta=1 L1=16 G=18 E=34 f=0.25 alpha=0.55 nh=3 now=105 pub=0.0 quiet=0.5 focused=False sigma0=0]: H = block 227 (slot 102); Y = block 297 (slot 88, D_Y slot 75); X = block 301 (slot 97); D slot 88; Y has no honest block after 93; now = 105 <= sigma + G = 106; added slot 102 (epoch 3, > sl(D_Y) + G + 1 = 94) derives (snapshot, nonce, D) = 71, 388823..., 555 on the extension and 71, 600990..., 333 on H; E_r* True, E_g False
+  example, crossing: seed 16180048612 [K=16 s=15 Delta=2 L1=32 G=18 E=50 f=0.4 alpha=0.45 nh=3 now=252 pub=0.0 quiet=0.0 focused=True sigma0=230]: H = block 105 (slot 249); Y = block 140 (slot 243, len 80), D_Y slot 229 (cut-off 232); D slot 236; X = block 147 (slot 251, len 83); X's blocks before the cut-off after D_Y at slots [230]; X's block in slot 251 (epoch 5) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 19  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 4]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 92
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 127
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 72
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 175
+    ... crossing: GENESIS's witness X not under H's states: 88
+    ... with E_d: 34728
+    ... with E_d*: 34720
+    ... with E_g: 600
+    ... with E_r as GENESIS writes it: 20559
+    ... with E_r': 20184
+    ... with E_r*: 14929
+  3.1 honest blocks: 612131
+  6.3 case 1 extension, E_d with D after D_Y: 238
+  6.3 case 1 extension, E_d*: 57944
+  7.2 second-bound extension, E_d with D after D_Y: 12190
+  7.2 second-bound extension, E_d*: 1042
+  B 5.3: E_r* witnesses: 96383
+  B 7.1: E_d* witnesses: 11878535
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 4384464
+  H choices with S: 11497
+  H choices without S: 2365
+  Step 0 checks: 22220
+  Step 1: H-tip adopted, outside G (E_g): 21
+  Step 1: kept by density -> E_d*(sl_D): 23383
+  Step 1: kept by density, D at/after H's tip (E_g): 81
+  Step 1: kept by length, outside G (E_g): 17
+  Step 2: crossing (D after D_Y, X bad): 3684
+  Step 2: density -> E_d*(sl_D): 7533
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 130
+  blocks: 4108209
+  passes: 45988
+  passes ending outside G: 34728
+  runs: 12000
+  runs, focused mode: 5485
+  example, 7.2 second bound, E_d with D after D_Y: seed 16190048575 [K=16 s=3 Delta=2 L1=32 G=19 E=51 f=0.4 alpha=0.45 nh=2 now=159 pub=0.05 quiet=0.0 focused=False sigma0=0]: H = block 518 (slot 155); Y = block 643 (slot 142, D_Y slot 130); X = block 646 (slot 148); D slot 142; Y has no honest block after 145; now = 159 <= sigma + G = 161; added slot 157 (epoch 3, > sl(D_Y) + G + 1 = 150) derives (snapshot, nonce, D) = 202, 640482..., 570 on the extension and 202, 33765..., 542 on H; E_r* True, E_g False
+  example, crossing: seed 16190048757 [K=16 s=15 Delta=1 L1=16 G=19 E=35 f=0.25 alpha=0.65 nh=2 now=107 pub=0.0 quiet=0.5 focused=True sigma0=84]: H = block 17 (slot 103); Y = block 27 (slot 95, len 19), D_Y slot 81 (cut-off 86); D slot 93; X = block 35 (slot 107, len 25); X's blocks before the cut-off after D_Y at slots [84, 85]; X's block in slot 107 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 20  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 5]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 89
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 140
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 83
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 228
+    ... crossing: GENESIS's witness X not under H's states: 64
+    ... with E_d: 34711
+    ... with E_d*: 34705
+    ... with E_g: 720
+    ... with E_r as GENESIS writes it: 19961
+    ... with E_r': 19534
+    ... with E_r*: 13952
+  3.1 honest blocks: 623065
+  6.3 case 1 extension, E_d with D after D_Y: 122
+  6.3 case 1 extension, E_d*: 58416
+  7.2 second-bound extension, E_d with D after D_Y: 13515
+  7.2 second-bound extension, E_d*: 1250
+  B 5.3: E_r* witnesses: 87415
+  B 7.1: E_d* witnesses: 12038605
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 3907565
+  H choices with S: 11493
+  H choices without S: 2360
+  Step 0 checks: 23058
+  Step 1: H-tip adopted, outside G (E_g): 19
+  Step 1: kept by density -> E_d*(sl_D): 23527
+  Step 1: kept by density, D at/after H's tip (E_g): 127
+  Step 1: kept by length, outside G (E_g): 32
+  Step 2: crossing (D after D_Y, X bad): 3441
+  Step 2: density -> E_d*(sl_D): 7578
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 100
+  blocks: 4261494
+  passes: 45972
+  passes ending outside G: 34711
+  runs: 12000
+  runs, focused mode: 5315
+  example, 7.2 second bound, E_d with D after D_Y: seed 16200049124 [K=16 s=15 Delta=2 L1=32 G=20 E=52 f=0.25 alpha=0.45 nh=1 now=262 pub=0.05 quiet=0.5 focused=True sigma0=238]: H = block 46 (slot 256); Y = block 55 (slot 243, D_Y slot 228); X = block 55 (slot 243); D slot 243; Y has no honest block after 258; now = 262 <= sigma + G = 263; added slot 261 (epoch 5, > sl(D_Y) + G + 1 = 249) derives (snapshot, nonce, D) = 36, 58240..., 647 on the extension and 36, 165722..., 508 on H; E_r* True, E_g False
+  example, crossing: seed 16200048976 [K=16 s=5 Delta=2 L1=32 G=20 E=52 f=0.25 alpha=0.45 nh=2 now=166 pub=0.0 quiet=0.0 focused=False sigma0=0]: H = block 294 (slot 161); Y = block 374 (slot 148, len 34), D_Y slot 133 (cut-off 136); D slot 142; X = block 378 (slot 157, len 36); X's blocks before the cut-off after D_Y at slots [134]; X's block in slot 157 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 21  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 6]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 86
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 112
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 54
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 327
+    ... crossing: GENESIS's witness X not under H's states: 29
+    ... with E_d: 34782
+    ... with E_d*: 34782
+    ... with E_g: 538
+    ... with E_r as GENESIS writes it: 20260
+    ... with E_r': 19808
+    ... with E_r*: 14306
+  3.1 honest blocks: 634179
+  6.3 case 1 extension, E_d with D after D_Y: 240
+  6.3 case 1 extension, E_d*: 59591
+  7.2 second-bound extension, E_d with D after D_Y: 15477
+  7.2 second-bound extension, E_d*: 1112
+  B 5.3: E_r* witnesses: 85936
+  B 7.1: E_d* witnesses: 11373895
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 3835824
+  H choices with S: 11460
+  H choices without S: 2481
+  Step 0 checks: 22385
+  Step 1: H-tip adopted, outside G (E_g): 28
+  Step 1: kept by density -> E_d*(sl_D): 23648
+  Step 1: kept by density, D at/after H's tip (E_g): 89
+  Step 1: kept by length, outside G (E_g): 28
+  Step 2: crossing (D after D_Y, X bad): 3350
+  Step 2: density -> E_d*(sl_D): 7625
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 122
+  blocks: 4328158
+  passes: 45840
+  passes ending outside G: 34782
+  runs: 12000
+  runs, focused mode: 5441
+  example, 7.2 second bound, E_d with D after D_Y: seed 16210048905 [K=16 s=3 Delta=2 L1=32 G=21 E=53 f=0.4 alpha=0.45 nh=2 now=161 pub=0.05 quiet=0.5 focused=True sigma0=136]: H = block 57 (slot 154); Y = block 78 (slot 144, D_Y slot 135); X = block 80 (slot 144); D slot 143; Y has no honest block after 146; now = 161 <= sigma + G = 164; added slot 161 (epoch 3, > sl(D_Y) + G + 1 = 157) derives (snapshot, nonce, D) = 40, 986863..., 615 on the extension and 40, 351439..., 579 on H; E_r* True, E_g False
+  example, crossing: seed 16210048995 [K=16 s=5 Delta=1 L1=32 G=21 E=53 f=0.4 alpha=0.45 nh=2 now=160 pub=0.0 quiet=0.5 focused=True sigma0=136]: H = block 54 (slot 157); Y = block 120 (slot 150, len 47), D_Y slot 136 (cut-off 138); D slot 145; X = block 129 (slot 160, len 53); X's blocks before the cut-off after D_Y at slots [137]; X's block in slot 160 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 22  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 7]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 65
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 89
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 62
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 140
+    ... crossing: GENESIS's witness X not under H's states: 20
+    ... with E_d: 34511
+    ... with E_d*: 34507
+    ... with E_g: 632
+    ... with E_r as GENESIS writes it: 19883
+    ... with E_r': 19464
+    ... with E_r*: 13534
+  3.1 honest blocks: 648639
+  6.3 case 1 extension, E_d with D after D_Y: 184
+  6.3 case 1 extension, E_d*: 59701
+  7.2 second-bound extension, E_d with D after D_Y: 16385
+  7.2 second-bound extension, E_d*: 1140
+  B 5.3: E_r* witnesses: 83470
+  B 7.1: E_d* witnesses: 10980491
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 3777579
+  H choices with S: 11441
+  H choices without S: 2435
+  Step 0 checks: 22315
+  Step 1: H-tip adopted, outside G (E_g): 25
+  Step 1: kept by density -> E_d*(sl_D): 23641
+  Step 1: kept by density, D at/after H's tip (E_g): 98
+  Step 1: kept by length, outside G (E_g): 17
+  Step 2: crossing (D after D_Y, X bad): 3254
+  Step 2: density -> E_d*(sl_D): 7449
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 107
+  blocks: 4331350
+  passes: 45764
+  passes ending outside G: 34511
+  runs: 12000
+  runs, focused mode: 5545
+  example, 7.2 second bound, E_d with D after D_Y: seed 16220048698 [K=16 s=15 Delta=1 L1=16 G=22 E=38 f=0.4 alpha=0.55 nh=3 now=160 pub=0.0 quiet=0.0 focused=False sigma0=0]: H = block 618 (slot 158); Y = block 709 (slot 140, D_Y slot 127); X = block 712 (slot 153); D slot 140; Y has no honest block after 155; now = 160 <= sigma + G = 162; added slot 156 (epoch 4, > sl(D_Y) + G + 1 = 150) derives (snapshot, nonce, D) = 330, 115291..., 620 on the extension and 330, 76562..., 545 on H; E_r* True, E_g False
+  example, crossing: seed 16220049226 [K=16 s=5 Delta=2 L1=32 G=22 E=54 f=0.4 alpha=0.65 nh=1 now=218 pub=0.05 quiet=0.5 focused=True sigma0=192]: H = block 65 (slot 214); Y = block 104 (slot 207, len 66), D_Y slot 192 (cut-off 194); D slot 206; X = block 111 (slot 217, len 72); X's blocks before the cut-off after D_Y at slots [193]; X's block in slot 217 (epoch 4) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 23  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 8]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 61
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 100
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 80
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 185
+    ... crossing: GENESIS's witness X not under H's states: 29
+    ... with E_d: 34722
+    ... with E_d*: 34718
+    ... with E_g: 592
+    ... with E_r as GENESIS writes it: 19994
+    ... with E_r': 19609
+    ... with E_r*: 13431
+  3.1 honest blocks: 661842
+  6.3 case 1 extension, E_d with D after D_Y: 129
+  6.3 case 1 extension, E_d*: 60635
+  7.2 second-bound extension, E_d with D after D_Y: 17370
+  7.2 second-bound extension, E_d*: 1227
+  B 5.3: E_r* witnesses: 80427
+  B 7.1: E_d* witnesses: 11986736
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 3553633
+  H choices with S: 11434
+  H choices without S: 2457
+  Step 0 checks: 22161
+  Step 1: H-tip adopted, outside G (E_g): 8
+  Step 1: kept by density -> E_d*(sl_D): 23777
+  Step 1: kept by density, D at/after H's tip (E_g): 95
+  Step 1: kept by length, outside G (E_g): 31
+  Step 2: crossing (D after D_Y, X bad): 3118
+  Step 2: density -> E_d*(sl_D): 7703
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 96
+  blocks: 4468722
+  passes: 45736
+  passes ending outside G: 34722
+  runs: 12000
+  runs, focused mode: 5454
+  example, 7.2 second bound, E_d with D after D_Y: seed 16230048725 [K=16 s=3 Delta=1 L1=16 G=23 E=39 f=0.4 alpha=0.65 nh=2 now=158 pub=0.0 quiet=0.5 focused=True sigma0=129]: H = block 62 (slot 156); Y = block 151 (slot 138, D_Y slot 129); X = block 161 (slot 151); D slot 138; Y has no honest block after 141; now = 158 <= sigma + G = 161; added slot 156 (epoch 4, > sl(D_Y) + G + 1 = 153) derives (snapshot, nonce, D) = 41, 962725..., 418 on the extension and 41, 455386..., 349 on H; E_r* True, E_g False
+  example, crossing: seed 16230049980 [K=16 s=15 Delta=1 L1=32 G=23 E=55 f=0.4 alpha=0.65 nh=3 now=167 pub=0.05 quiet=0.5 focused=True sigma0=140]: H = block 47 (slot 161); Y = block 113 (slot 154, len 40), D_Y slot 140 (cut-off 142); D slot 152; X = block 123 (slot 167, len 48); X's blocks before the cut-off after D_Y at slots [141]; X's block in slot 166 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 24  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 9]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 82
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 115
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 83
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 51
+    ... crossing: GENESIS's witness X not under H's states: 7
+    ... with E_d: 33756
+    ... with E_d*: 33752
+    ... with E_g: 576
+    ... with E_r as GENESIS writes it: 19233
+    ... with E_r': 18755
+    ... with E_r*: 12628
+  3.1 honest blocks: 661814
+  6.3 case 1 extension, E_d with D after D_Y: 217
+  6.3 case 1 extension, E_d*: 59921
+  7.2 second-bound extension, E_d with D after D_Y: 17458
+  7.2 second-bound extension, E_d*: 1165
+  B 5.3: E_r* witnesses: 73451
+  B 7.1: E_d* witnesses: 10920106
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 3218484
+  H choices with S: 11249
+  H choices without S: 2625
+  Step 0 checks: 22146
+  Step 1: H-tip adopted, outside G (E_g): 35
+  Step 1: kept by density -> E_d*(sl_D): 23453
+  Step 1: kept by density, D at/after H's tip (E_g): 86
+  Step 1: kept by length, outside G (E_g): 35
+  Step 2: crossing (D after D_Y, X bad): 2837
+  Step 2: density -> E_d*(sl_D): 7338
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 87
+  blocks: 4546204
+  passes: 44996
+  passes ending outside G: 33756
+  runs: 12000
+  runs, focused mode: 5467
+  example, 7.2 second bound, E_d with D after D_Y: seed 16240048921 [K=16 s=15 Delta=2 L1=32 G=24 E=56 f=0.4 alpha=0.65 nh=3 now=169 pub=0.0 quiet=0.0 focused=True sigma0=142]: H = block 46 (slot 164); Y = block 76 (slot 151, D_Y slot 138); X = block 76 (slot 151); D slot 151; Y has no honest block after 166; now = 169 <= sigma + G = 175; added slot 168 (epoch 3, > sl(D_Y) + G + 1 = 163) derives (snapshot, nonce, D) = 30, 273497..., 424 on the extension and 30, 243877..., 332 on H; E_r* True, E_g False
+  example, crossing: seed 16241049669 [K=16 s=15 Delta=1 L1=16 G=24 E=40 f=0.4 alpha=0.55 nh=1 now=122 pub=0.0 quiet=0.5 focused=True sigma0=94]: H = block 38 (slot 119); Y = block 110 (slot 109, len 40), D_Y slot 94 (cut-off 96); D slot 106; X = block 119 (slot 121, len 47); X's blocks before the cut-off after D_Y at slots [95]; X's block in slot 121 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 25  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 10]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 64
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 103
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 76
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 11
+    ... crossing: GENESIS's witness X not under H's states: 8
+    ... with E_d: 34068
+    ... with E_d*: 34056
+    ... with E_g: 585
+    ... with E_r as GENESIS writes it: 19578
+    ... with E_r': 19157
+    ... with E_r*: 13011
+  3.1 honest blocks: 677869
+  6.3 case 1 extension, E_d with D after D_Y: 264
+  6.3 case 1 extension, E_d*: 60083
+  7.2 second-bound extension, E_d with D after D_Y: 18252
+  7.2 second-bound extension, E_d*: 1226
+  B 5.3: E_r* witnesses: 72820
+  B 7.1: E_d* witnesses: 10521681
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 3207960
+  H choices with S: 11230
+  H choices without S: 2624
+  Step 0 checks: 22155
+  Step 1: H-tip adopted, outside G (E_g): 25
+  Step 1: kept by density -> E_d*(sl_D): 23631
+  Step 1: kept by density, D at/after H's tip (E_g): 97
+  Step 1: kept by length, outside G (E_g): 40
+  Step 2: crossing (D after D_Y, X bad): 2764
+  Step 2: density -> E_d*(sl_D): 7519
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 95
+  blocks: 4690106
+  passes: 44920
+  passes ending outside G: 34068
+  runs: 12000
+  runs, focused mode: 5414
+  example, 7.2 second bound, E_d with D after D_Y: seed 16250049328 [K=16 s=15 Delta=1 L1=16 G=25 E=41 f=0.4 alpha=0.45 nh=2 now=124 pub=0.0 quiet=0.0 focused=False sigma0=0]: H = block 279 (slot 113); Y = block 397 (slot 107, D_Y slot 95); X = block 399 (slot 122); D slot 107; Y has no honest block after 122; now = 124 <= sigma + G = 132; added slot 123 (epoch 3, > sl(D_Y) + G + 1 = 121) derives (snapshot, nonce, D) = 123, 488717..., 849 on the extension and 123, 466430..., 729 on H; E_r* True, E_g False
+  example, crossing: seed 16251049218 [K=16 s=5 Delta=2 L1=32 G=25 E=57 f=0.4 alpha=0.65 nh=1 now=171 pub=0.0 quiet=0.5 focused=True sigma0=144]: H = block 40 (slot 158); Y = block 73 (slot 158, len 48), D_Y slot 143 (cut-off 146); D slot 157; X = block 82 (slot 171, len 56); X's blocks before the cut-off after D_Y at slots [144, 145]; X's block in slot 171 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 26  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 11]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 72
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 95
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 74
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 33
+    ... crossing: GENESIS's witness X not under H's states: 2
+    ... with E_d: 33950
+    ... with E_d*: 33946
+    ... with E_g: 606
+    ... with E_r as GENESIS writes it: 18925
+    ... with E_r': 18501
+    ... with E_r*: 12377
+  3.1 honest blocks: 686379
+  6.3 case 1 extension, E_d with D after D_Y: 230
+  6.3 case 1 extension, E_d*: 59990
+  7.2 second-bound extension, E_d with D after D_Y: 18083
+  7.2 second-bound extension, E_d*: 1241
+  B 5.3: E_r* witnesses: 70770
+  B 7.1: E_d* witnesses: 11671994
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 3164394
+  H choices with S: 11177
+  H choices without S: 2751
+  Step 0 checks: 21471
+  Step 1: H-tip adopted, outside G (E_g): 22
+  Step 1: kept by density -> E_d*(sl_D): 23804
+  Step 1: kept by density, D at/after H's tip (E_g): 80
+  Step 1: kept by length, outside G (E_g): 26
+  Step 2: crossing (D after D_Y, X bad): 2582
+  Step 2: density -> E_d*(sl_D): 7432
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 92
+  blocks: 4793229
+  passes: 44708
+  passes ending outside G: 33950
+  runs: 12000
+  runs, focused mode: 5322
+  example, 7.2 second bound, E_d with D after D_Y: seed 16260049456 [K=16 s=3 Delta=2 L1=16 G=26 E=42 f=0.4 alpha=0.55 nh=3 now=168 pub=0.0 quiet=0.0 focused=False sigma0=0]: H = block 744 (slot 165); Y = block 964 (slot 152, D_Y slot 138); X = block 965 (slot 153); D slot 152; Y has no honest block after 155; now = 168 <= sigma + G = 178; added slot 168 (epoch 4, > sl(D_Y) + G + 1 = 165) derives (snapshot, nonce, D) = 424, 492599..., 367 on the extension and 424, 699609..., 367 on H; E_r* True, E_g False
+  example, crossing: seed 16261049072 [K=16 s=15 Delta=1 L1=32 G=26 E=58 f=0.4 alpha=0.45 nh=3 now=175 pub=0.0 quiet=0.0 focused=False sigma0=0]: H = block 533 (slot 168); Y = block 669 (slot 161, len 50), D_Y slot 146 (cut-off 148); D slot 160; X = block 685 (slot 174, len 57); X's blocks before the cut-off after D_Y at slots [147]; X's block in slot 174 (epoch 3) is a coalition win on X but not under H's states; Y witnesses E_r*: True, (Y, H) witnesses E_r': True
+
+K = 16, G = 27  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 12]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 79
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 109
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 49
+    ... with E_d: 34149
+    ... with E_d*: 34137
+    ... with E_g: 575
+    ... with E_r as GENESIS writes it: 18941
+    ... with E_r': 18541
+    ... with E_r*: 12247
+  3.1 honest blocks: 697530
+  6.3 case 1 extension, E_d with D after D_Y: 224
+  6.3 case 1 extension, E_d*: 60631
+  7.2 second-bound extension, E_d with D after D_Y: 18255
+  7.2 second-bound extension, E_d*: 1113
+  B 5.3: E_r* witnesses: 69143
+  B 7.1: E_d* witnesses: 10715109
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 3142301
+  H choices with S: 11198
+  H choices without S: 2745
+  Step 0 checks: 21690
+  Step 1: H-tip adopted, outside G (E_g): 34
+  Step 1: kept by density -> E_d*(sl_D): 23990
+  Step 1: kept by density, D at/after H's tip (E_g): 82
+  Step 1: kept by length, outside G (E_g): 30
+  Step 2: crossing (D after D_Y, X bad): 2332
+  Step 2: density -> E_d*(sl_D): 7688
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 86
+  blocks: 4874074
+  passes: 44792
+  passes ending outside G: 34149
+  runs: 12000
+  runs, focused mode: 5366
+  example, 7.2 second bound, E_d with D after D_Y: seed 16270049087 [K=16 s=5 Delta=2 L1=32 G=27 E=59 f=0.25 alpha=0.65 nh=1 now=297 pub=0.05 quiet=0.5 focused=True sigma0=266]: H = block 59 (slot 293); Y = block 118 (slot 275, D_Y slot 264); X = block 118 (slot 275); D slot 275; Y has no honest block after 280; now = 297 <= sigma + G = 302; added slot 296 (epoch 5, > sl(D_Y) + G + 1 = 292) derives (snapshot, nonce, D) = 40, 851042..., 453 on the extension and 40, 433506..., 400 on H; E_r* True, E_g False
+
+K = 16, G = 28  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 13]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 29
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 60
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 53
+    ... with E_d: 33667
+    ... with E_d*: 33623
+    ... with E_g: 624
+    ... with E_r as GENESIS writes it: 18556
+    ... with E_r': 18141
+    ... with E_r*: 11755
+  3.1 honest blocks: 710714
+  6.3 case 1 extension, E_d with D after D_Y: 173
+  6.3 case 1 extension, E_d*: 60413
+  7.2 second-bound extension, E_d with D after D_Y: 18256
+  7.2 second-bound extension, E_d*: 1112
+  B 5.3: E_r* witnesses: 74224
+  B 7.1: E_d* witnesses: 11587219
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 3615808
+  H choices with S: 11149
+  H choices without S: 2799
+  Step 0 checks: 21940
+  Step 1: H-tip adopted, outside G (E_g): 34
+  Step 1: kept by density -> E_d*(sl_D): 23545
+  Step 1: kept by density, D at/after H's tip (E_g): 102
+  Step 1: kept by length, outside G (E_g): 30
+  Step 2: crossing (D after D_Y, X bad): 2476
+  Step 2: density -> E_d*(sl_D): 7477
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 97
+  blocks: 4935135
+  passes: 44596
+  passes ending outside G: 33667
+  runs: 12000
+  runs, focused mode: 5461
+  example, 7.2 second bound, E_d with D after D_Y: seed 16280049871 [K=16 s=5 Delta=1 L1=16 G=28 E=44 f=0.25 alpha=0.55 nh=2 now=178 pub=0.0 quiet=0.5 focused=False sigma0=0]: H = block 262 (slot 172); Y = block 311 (slot 158, D_Y slot 143); X = block 311 (slot 158); D slot 158; Y has no honest block after 163; now = 178 <= sigma + G = 186; added slot 176 (epoch 4, > sl(D_Y) + G + 1 = 172) derives (snapshot, nonce, D) = 58, 81581..., 970 on the extension and 58, 543887..., 754 on H; E_r* True, E_g False
+
+K = 16, G = 29  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 14]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 37
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 53
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 58
+    ... with E_d: 33658
+    ... with E_d*: 33658
+    ... with E_g: 495
+    ... with E_r as GENESIS writes it: 18570
+    ... with E_r': 18065
+    ... with E_r*: 11745
+  3.1 honest blocks: 720629
+  6.3 case 1 extension, E_d with D after D_Y: 237
+  6.3 case 1 extension, E_d*: 60655
+  7.2 second-bound extension, E_d with D after D_Y: 18340
+  7.2 second-bound extension, E_d*: 1039
+  B 5.3: E_r* witnesses: 82793
+  B 7.1: E_d* witnesses: 12819650
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 4255077
+  H choices with S: 11134
+  H choices without S: 2782
+  Step 0 checks: 21103
+  Step 1: H-tip adopted, outside G (E_g): 23
+  Step 1: kept by density -> E_d*(sl_D): 23252
+  Step 1: kept by density, D at/after H's tip (E_g): 64
+  Step 1: kept by length, outside G (E_g): 31
+  Step 2: crossing (D after D_Y, X bad): 3093
+  Step 2: density -> E_d*(sl_D): 7237
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 69
+  blocks: 4975961
+  passes: 44536
+  passes ending outside G: 33658
+  runs: 12000
+  runs, focused mode: 5472
+  example, 7.2 second bound, E_d with D after D_Y: seed 16290049263 [K=16 s=15 Delta=2 L1=32 G=29 E=61 f=0.25 alpha=0.45 nh=3 now=187 pub=0.0 quiet=0.5 focused=False sigma0=0]: H = block 415 (slot 181); Y = block 508 (slot 166, D_Y slot 151); X = block 509 (slot 170); D slot 166; Y has no honest block after 181; now = 187 <= sigma + G = 195; added slot 187 (epoch 3, > sl(D_Y) + G + 1 = 181) derives (snapshot, nonce, D) = 153, 276246..., 452 on the extension and 153, 460311..., 420 on H; E_r* True, E_g False
+
+K = 16, G = 30  [in B's range (G >= K - 1); A's condition s + K <= G + 1 holds only for s <= 15]
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 25
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 33
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 82
+    ... with E_d: 33511
+    ... with E_d*: 33503
+    ... with E_g: 554
+    ... with E_r as GENESIS writes it: 18322
+    ... with E_r': 17996
+    ... with E_r*: 11271
+  3.1 honest blocks: 731547
+  6.3 case 1 extension, E_d with D after D_Y: 178
+  6.3 case 1 extension, E_d*: 60604
+  7.2 second-bound extension, E_d with D after D_Y: 18372
+  7.2 second-bound extension, E_d*: 1079
+  B 5.3: E_r* witnesses: 80159
+  B 7.1: E_d* witnesses: 11820701
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 4206723
+  H choices with S: 11080
+  H choices without S: 2831
+  Step 0 checks: 21947
+  Step 1: H-tip adopted, outside G (E_g): 35
+  Step 1: kept by density -> E_d*(sl_D): 23283
+  Step 1: kept by density, D at/after H's tip (E_g): 87
+  Step 1: kept by length, outside G (E_g): 39
+  Step 2: crossing (D after D_Y, X bad): 2981
+  Step 2: density -> E_d*(sl_D): 7088
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 80
+  blocks: 5157459
+  passes: 44320
+  passes ending outside G: 33511
+  runs: 12000
+  runs, focused mode: 5456
+  example, 7.2 second bound, E_d with D after D_Y: seed 16300049390 [K=16 s=15 Delta=1 L1=32 G=30 E=62 f=0.4 alpha=0.55 nh=3 now=310 pub=0.0 quiet=0.5 focused=True sigma0=278]: H = block 115 (slot 306); Y = block 173 (slot 291, D_Y slot 277); X = block 177 (slot 295); D slot 291; Y has no honest block after 306; now = 310 <= sigma + G = 321; added slot 310 (epoch 5, > sl(D_Y) + G + 1 = 308) derives (snapshot, nonce, D) = 90, 173355..., 496 on the extension and 90, 653519..., 447 on H; E_r* True, E_g False
+
+TOTAL, all gaps K - 1 <= G <= 2K - 2:
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 2181
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 3211
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 2428
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 10127
+    ... crossing: GENESIS's witness X not under H's states: 2091
+    ... with E_d: 1150294
+    ... with E_d*: 1149859
+    ... with E_g: 53251
+    ... with E_r as GENESIS writes it: 694636
+    ... with E_r': 678457
+    ... with E_r*: 476852
+  3.1 honest blocks: 18386705
+  6.3 case 1 extension, E_d with D after D_Y: 13047
+  6.3 case 1 extension, E_d*: 1944630
+  7.2 second-bound extension, E_d with D after D_Y: 454011
+  7.2 second-bound extension, E_d*: 29593
+  B 5.3: E_r* witnesses: 2592696
+  B 7.1: E_d* witnesses: 305499097
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 104568120
+  H choices with S: 388474
+  H choices without S: 140681
+  Step 0 checks: 820728
+  Step 1: H-tip adopted, outside G (E_g): 2069
+  Step 1: kept by density -> E_d*(sl_D): 790012
+  Step 1: kept by density, D at/after H's tip (E_g): 8138
+  Step 1: kept by length, outside G (E_g): 3503
+  Step 2: crossing (D after D_Y, X bad): 104044
+  Step 2: density -> E_d*(sl_D): 242414
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 3284
+  blocks: 132865223
+  passes: 1553896
+  passes ending outside G: 1150294
+  runs: 456000
+  runs, focused mode: 205755
+
+TOTAL, negative controls G = K - 3, K - 2:
+    ... A covered only by E_r': 0
+    ... A covered only by E_r', sharp form: 0
+    ... B covered only by E_r*: 0
+    ... B covered only by E_r*, sharp form: 475
+    ... X's window not under H's states (6.1 needs s + K <= G + 2): 30002
+    ... crossing: (Y, H) not an E_r' witness VIOLATION: 154
+    ... crossing: GENESIS's witness X not under H's states: 3385
+    ... with E_d: 183007
+    ... with E_d*: 182902
+    ... with E_g: 9690
+    ... with E_r as GENESIS writes it: 114556
+    ... with E_r': 112138
+    ... with E_r*: 86317
+  3.1 VIOLATIONS: 31
+  3.1 honest blocks: 2347995
+  6.3 case 1 extension, E_d with D after D_Y: 1917
+  6.3 case 1 extension, E_d*: 210557
+  B 5.3 VIOLATIONS (witness not under H's states or tip > now - 1): 1918
+  B 5.3: E_r* witnesses: 498805
+  B 7.1 VIOLATIONS (Y or X's window not under H's states): 40471
+  B 7.1: E_d* witnesses: 43157250
+  GENESIS 6.1 on E_d witnesses with D at/after D_Y: 18883232
+  H choices with S: 63755
+  H choices without S: 19883
+  Step 0 checks: 143425
+  Step 1: H-tip adopted, outside G (E_g): 378
+  Step 1: kept by density -> E_d*(sl_D): 122319
+  Step 1: kept by density, D at/after H's tip (E_g): 1815
+  Step 1: kept by length, outside G (E_g): 766
+  Step 2: crossing (D after D_Y, X bad): 18696
+  Step 2: density -> E_d*(sl_D): 39273
+  Step 2: density, D at/after D_Y -> E_r* by Y (B 5.2): 562
+  blocks: 16310762
+  passes: 255020
+  passes ending outside G: 183007
+  runs: 72000
+  runs, focused mode: 32504

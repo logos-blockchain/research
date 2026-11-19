@@ -1,0 +1,18 @@
+(a) the inference as printed against D((1 - beta) + beta N / (PERIOD f_hat)), 200,000 random inputs with D in [1e3, 1e12]: largest distance beta = 1/2: 1.0000, beta = 2/3: 1.0000
+
+(b) K = 36000; the coalition's chance per slot under H's states p_a = 0.010119
+  (i) least G with s + K <= G + 1, G = 52199, PERIOD = 54000: free part at most 19798 slots, shared part at least 34202 (63.3 % of the window); the coalition's expected wins in the free part 200 (the fork's nonce can take up to 2^200 values)
+    beta = 1/2, at the means: D_X / D_H >= 0.8167; the coalition's share of D_X <= 0.3673, its chance per slot <= 0.012376 (1.223 times p_a)
+    beta = 1/2, at the 1e-9 quantiles: D_X / D_H >= 0.7706; the coalition's share of D_X <= 0.3893, its chance per slot <= 0.013111 (1.296 times p_a)
+    beta = 2/3, at the means: D_X / D_H >= 0.7556; the coalition's share of D_X <= 0.3970, its chance per slot <= 0.013370 (1.321 times p_a)
+    beta = 2/3, at the 1e-9 quantiles: D_X / D_H >= 0.6931; the coalition's share of D_X <= 0.4328, its chance per slot <= 0.014567 (1.440 times p_a)
+  (i) least G with s + K <= G + 1, G = 52199, PERIOD = 72000: free part at most 19798 slots, shared part at least 52202 (72.5 % of the window); the coalition's expected wins in the free part 200 (the fork's nonce can take up to 2^200 values)
+    beta = 1/2, at the means: D_X / D_H >= 0.8625; the coalition's share of D_X <= 0.3478, its chance per slot <= 0.011722 (1.158 times p_a)
+    beta = 1/2, at the 1e-9 quantiles: D_X / D_H >= 0.8267; the coalition's share of D_X <= 0.3629, its chance per slot <= 0.012227 (1.208 times p_a)
+    beta = 2/3, at the means: D_X / D_H >= 0.8167; the coalition's share of D_X <= 0.3673, its chance per slot <= 0.012376 (1.223 times p_a)
+    beta = 2/3, at the 1e-9 quantiles: D_X / D_H >= 0.7675; the coalition's share of D_X <= 0.3909, its chance per slot <= 0.013164 (1.301 times p_a)
+  (ii) two phases of 1.5 K, G = 54000, PERIOD = 54000: free part at most 17997 slots, shared part at least 36003 (66.7 % of the window); the coalition's expected wins in the free part 182 (the fork's nonce can take up to 2^182 values)
+    beta = 1/2, at the means: D_X / D_H >= 0.8334; the coalition's share of D_X <= 0.3600, its chance per slot <= 0.012130 (1.199 times p_a)
+    beta = 1/2, at the 1e-9 quantiles: D_X / D_H >= 0.7886; the coalition's share of D_X <= 0.3804, its chance per slot <= 0.012814 (1.266 times p_a)
+    beta = 2/3, at the means: D_X / D_H >= 0.7778; the coalition's share of D_X <= 0.3857, its chance per slot <= 0.012991 (1.284 times p_a)
+    beta = 2/3, at the 1e-9 quantiles: D_X / D_H >= 0.7168; the coalition's share of D_X <= 0.4185, its chance per slot <= 0.014088 (1.392 times p_a)

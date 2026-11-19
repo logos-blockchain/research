@@ -1,0 +1,36 @@
+
+K = 12, G = 23 (2K <= G + 1: True)
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 11
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 14
+  7.2 second-bound extension, E_d with D after D_Y: 10581
+  7.2 second-bound extension, E_d*: 512
+  H choices with S: 6131
+  Step 2: crossing (D after D_Y, X bad): 1526
+  passes ending outside G: 18086
+  runs: 8000
+  runs, focused mode: 3525
+  example, 7.2 second bound, E_d with D after D_Y: seed 990232970785 [K=12 s=3 Delta=1 L1=12 G=23 E=35 f=0.25 alpha=0.55 nh=1 now=177 pub=0.0 quiet=0.0 focused=True sigma0=150]: H = block 36 (slot 172); Y = block 39 (slot 156, D_Y slot 147); X = block 39 (slot 156); D slot 156; Y has no honest block after 159; now = 177 <= sigma + G = 179; added slot 175 (epoch 5, > sl(D_Y) + G + 1 = 171) derives (snapshot, nonce, D) = 30, 620740..., 644 on the extension and 30, 993296..., 527 on H; E_r* True, E_g False
+
+K = 12, G = 24 (2K <= G + 1: True)
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 24
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 34
+  7.2 second-bound extension, E_d with D after D_Y: 10390
+  7.2 second-bound extension, E_d*: 479
+  H choices with S: 6175
+  Step 2: crossing (D after D_Y, X bad): 1559
+  passes ending outside G: 17996
+  runs: 8000
+  runs, focused mode: 3562
+  example, 7.2 second bound, E_d with D after D_Y: seed 990242971412 [K=12 s=5 Delta=2 L1=12 G=24 E=36 f=0.25 alpha=0.65 nh=3 now=109 pub=0.05 quiet=0.0 focused=True sigma0=82]: H = block 19 (slot 97); Y = block 29 (slot 89, D_Y slot 79); X = block 32 (slot 94); D slot 89; Y has no honest block after 94; now = 109 <= sigma + G = 113; added slot 108 (epoch 3, > sl(D_Y) + G + 1 = 104) derives (snapshot, nonce, D) = 14, 362092..., 555 on the extension and 14, 107625..., 678 on H; E_r* True, E_g True
+
+K = 12, G = 36 (2K <= G + 1: True)
+    ... 7.2 second bound, E_d with D after D_Y: an added block invalid on its own chain: 7
+    ... 7.2 second bound, E_d with D after D_Y: an added slot not under H's states: 7
+  7.2 second-bound extension, E_d with D after D_Y: 9531
+  7.2 second-bound extension, E_d*: 405
+  H choices with S: 5511
+  Step 2: crossing (D after D_Y, X bad): 1327
+  passes ending outside G: 16146
+  runs: 8000
+  runs, focused mode: 3660
+  example, 7.2 second bound, E_d with D after D_Y: seed 990362972380 [K=12 s=11 Delta=1 L1=24 G=36 E=60 f=0.4 alpha=0.65 nh=1 now=300 pub=0.05 quiet=0.5 focused=True sigma0=262]: H = block 72 (slot 292); Y = block 79 (slot 269, D_Y slot 260); X = block 84 (slot 274); D slot 267; Y has no honest block after 278; now = 300 <= sigma + G = 303; added slot 300 (epoch 5, > sl(D_Y) + G + 1 = 297) derives (snapshot, nonce, D) = 59, 860691..., 369 on the extension and 59, 709411..., 289 on H; E_r* True, E_g False

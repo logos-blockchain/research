@@ -70,10 +70,14 @@ def main():
           f"{bad[-1] + 1} slots ({(bad[-1] + 1) / 3600:.2f} h), scanned to 135,000")
     for P in (54000, 72000, 108000, 216000):
         print(f"   window {P / 3600:5.1f} h: {one_step_tail(P):.3e}")
+    ok = [P for P in range(120_000, 160_001) if one_step_tail(P, F) <= 1e-9]
+    bad = [P for P in range(120_000, 160_001) if one_step_tail(P, F) > 1e-9]
+    print(f"   exact rule (f_hat = 1/30): first window with a tail <= 1e-9: {ok[0]} slots ({ok[0] / 3600:.2f} h); holds for "
+          f"every window from {bad[-1] + 1} slots ({(bad[-1] + 1) / 3600:.2f} h), scanned from 120,000 to 160,000")
     print()
     print("2. stationary law: P(S/D > 1.094) per epoch and the sd of D/S")
     laws = {}
-    for P in (54000, 72000):
+    for P in (54000, 72000, 108000):
         for name, fh in RULES:
             for beta in (1.0, 0.75, 2 / 3, 0.6, 0.5):
                 xs, pi = stationary(P, beta, fh)
@@ -90,7 +94,7 @@ def main():
         while binom.cdf(n - 1, K - n * T_M, p_fix) > 1e-9:
             n -= 1
         print(f"   {name}, at the fixed point, no noise: {binom.cdf(PHI - 1, K - PHI * T_M, p_fix):.3e}; floor {n}")
-        for P, beta in ((72000, 2 / 3), (54000, 0.5), (54000, 1.0), (72000, 1.0)):
+        for P, beta in ((108000, 0.75), (72000, 2 / 3), (54000, 0.5), (108000, 1.0), (54000, 1.0), (72000, 1.0)):
             xs, pi = laws[(P, fh, beta)]
             n = PHI
             while mean_miss(n, xs, pi) > 1e-9:

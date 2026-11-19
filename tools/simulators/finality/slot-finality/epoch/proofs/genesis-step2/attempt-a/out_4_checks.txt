@@ -1,0 +1,31 @@
+random executions, G + 1 < 2K (the weaker condition s + K <= G + 1 holds); Bootstrap passes in random orders
+
+T = 260, 4 honest nodes, p_h = 0.22, p_a = 0.2, Delta = 2, K = 30, s = 10, P = 30, G = 39 (s + K = 40 <= G + 1 = 40 < 2K = 60); 150 executions, 900 passes
+  (1) transitions of c_max out of G: 190: by density with sl_D <= now - K: 188; by length with X containing H and E_g: 0; by length with D after D_Y and X bad, (Y, H) witnessing E_r': 2, of which X has a block not under H's states: 0; violations: 0
+  (2) passes ending outside G: 655; with E_d: 655, with E_r': 20, with E_g: 0; with none of the three: 0
+
+T = 260, 4 honest nodes, p_h = 0.22, p_a = 0.24, Delta = 2, K = 30, s = 10, P = 36, G = 45 (s + K = 40 <= G + 1 = 46 < 2K = 60); 150 executions, 900 passes
+  (1) transitions of c_max out of G: 183: by density with sl_D <= now - K: 183; by length with X containing H and E_g: 0; by length with D after D_Y and X bad, (Y, H) witnessing E_r': 0, of which X has a block not under H's states: 0; violations: 0
+  (2) passes ending outside G: 610; with E_d: 610, with E_r': 5, with E_g: 0; with none of the three: 0
+
+T = 300, 4 honest nodes, p_h = 0.25, p_a = 0.25, Delta = 3, K = 36, s = 12, P = 40, G = 47 (s + K = 48 <= G + 1 = 48 < 2K = 72); 150 executions, 900 passes
+  (1) transitions of c_max out of G: 218: by density with sl_D <= now - K: 218; by length with X containing H and E_g: 0; by length with D after D_Y and X bad, (Y, H) witnessing E_r': 0, of which X has a block not under H's states: 0; violations: 0
+  (2) passes ending outside G: 565; with E_d: 565, with E_r': 0, with E_g: 0; with none of the three: 0
+
+T = 300, 3 honest nodes, p_h = 0.2, p_a = 0.28, Delta = 2, K = 40, s = 12, P = 44, G = 51 (s + K = 52 <= G + 1 = 52 < 2K = 80); 150 executions, 900 passes
+  (1) transitions of c_max out of G: 178: by density with sl_D <= now - K: 178; by length with X containing H and E_g: 0; by length with D after D_Y and X bad, (Y, H) witnessing E_r': 0, of which X has a block not under H's states: 0; violations: 0
+  (2) passes ending outside G: 545; with E_d: 545, with E_r': 0, with E_g: 0; with none of the three: 0
+
+targeted executions of the structure of Step 2 (D_Y within 2K - 2 - G slots before a cut-off), the pass started at Y in half of the passes, 3 honest nodes, p_h = 0.1, p_a = 0.5, Delta = 2, K = 30, s = 10, P = 30, G = 39 (s + K = 40 <= G + 1 = 40 < 2K = 60); 400 executions, 2400 passes
+  (1) transitions of c_max out of G: 1177: by density with sl_D <= now - K: 301; by length with X containing H and E_g: 24; by length with D after D_Y and X bad, (Y, H) witnessing E_r': 852, of which X has a block not under H's states: 130; violations: 0
+  (2) passes ending outside G: 1975; with E_d: 1945, with E_r': 1927, with E_g: 159; with none of the three: 0
+
+targeted executions of the structure of Step 2 (D_Y within 2K - 2 - G slots before a cut-off), the pass started at Y in half of the passes, 3 honest nodes, p_h = 0.12, p_a = 0.55, Delta = 2, K = 40, s = 12, P = 44, G = 51 (s + K = 52 <= G + 1 = 52 < 2K = 80); 400 executions, 2400 passes
+  (1) transitions of c_max out of G: 1320: by density with sl_D <= now - K: 320; by length with X containing H and E_g: 0; by length with D after D_Y and X bad, (Y, H) witnessing E_r': 1000, of which X has a block not under H's states: 356; violations: 0
+  (2) passes ending outside G: 2131; with E_d: 2131, with E_r': 2128, with E_g: 16; with none of the three: 0
+
+targeted executions of the structure of Step 2 (D_Y within 2K - 2 - G slots before a cut-off), the pass started at Y in half of the passes, 4 honest nodes, p_h = 0.1, p_a = 0.6, Delta = 3, K = 36, s = 12, P = 40, G = 47 (s + K = 48 <= G + 1 = 48 < 2K = 72); 400 executions, 2400 passes
+  (1) transitions of c_max out of G: 1273: by density with sl_D <= now - K: 276; by length with X containing H and E_g: 0; by length with D after D_Y and X bad, (Y, H) witnessing E_r': 997, of which X has a block not under H's states: 370; violations: 0
+  (2) passes ending outside G: 2133; with E_d: 2115, with E_r': 2088, with E_g: 67; with none of the three: 0
+
+all runs: 10800 passes; transitions out of G 4539 = density 1664 + length with E_g 24 + length with (Y, H) witnessing E_r' 2851 (X with a block not under H's states: 856); violations 0; passes ending outside G 8614, with none of E_d, E_r', E_g: 0

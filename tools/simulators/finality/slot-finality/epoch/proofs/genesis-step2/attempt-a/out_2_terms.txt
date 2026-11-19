@@ -1,0 +1,56 @@
+K = 36000, s = 16200; coalition 30 % of the total active stake; the states of REVIEW.md 5.9 (GENESIS g07_states.py)
+
+no disturbance: p_h = 0.023452, p_a = 0.010119, Delta = 10
+  P1(s) = 2.055e-13; U(s - 1) = 1.349e-07; P1(K - s) = 3.95e-16; U(K - 2) = 8.28e-16; U_11(K - 1) = 1.35e-14; E_g = (1 - p_h)^(K - 2 Delta - 1) = 10^-371
+  forward pass against the closed form at s, K - s, 36,000 and 37,801: largest relative difference 3.7e-12
+  (i) G = 52,199: P1(G + 1 - s) = P1(36000) = 2.71e-28; extra term 0; per divergence slot: long-range part 2.063e-13 (meets 1e-9), every fork 1.349e-07 (misses 1e-9)
+    histories: 1 day: no honest block 8.39e-11, every fork 3.024e-05; 30 days: no honest block 2.52e-09, every fork 9.071e-04; 1 year: no honest block 3.06e-08, every fork 1.104e-02
+  (ii) G = 54,000: P1(G + 1 - s) = P1(37801) = 1.21e-29; extra term 0; per divergence slot: long-range part 2.063e-13 (meets 1e-9), every fork 1.349e-07 (misses 1e-9)
+    histories: 1 day: no honest block 8.39e-11, every fork 3.024e-05; 30 days: no honest block 2.52e-09, every fork 9.071e-04; 1 year: no honest block 3.06e-08, every fork 1.104e-02
+  GENESIS G = 259,200: P1(G + 1 - s) = P1(243001) = 7.18e-39; extra term 0; per divergence slot: long-range part 2.063e-13 (meets 1e-9), every fork 1.349e-07 (misses 1e-9)
+  every fork, one divergence slot: the cells' U-part alone meets 1e-9 first at s = 21336 (5.93 h), which s + K <= G + 1 admits from G = 57335 on, and s <= K - 1 admits: True
+  every fork, 1 year: the cells' U-part alone meets 1e-9 first at s = 33181 (9.22 h), which s + K <= G + 1 admits from G = 69180 on, and s <= K - 1 admits: True
+
+every block T_M late: p_h = 0.023452, p_a = 0.010119, Delta = 15
+  P1(s) = 2.564e-10; U(s - 1) = 4.341e-05; P1(K - s) = 2.30e-12; U(K - 2) = 2.51e-10; U_16(K - 1) = 2.08e-09; E_g = (1 - p_h)^(K - 2 Delta - 1) = 10^-371
+  forward pass against the closed form at s, K - s, 36,000 and 37,801: largest relative difference 9.7e-12
+  (i) G = 52,199: P1(G + 1 - s) = P1(36000) = 1.60e-21; extra term 0; per divergence slot: long-range part 5.071e-10 (meets 1e-9), every fork 4.341e-05 (misses 1e-9)
+    histories: 1 day: no honest block 7.90e-08, every fork 6.209e-03; 30 days: no honest block 2.37e-06, every fork 1.862e-01; 1 year: no honest block 2.88e-05, every fork 1.000e+00
+  (ii) G = 54,000: P1(G + 1 - s) = P1(37801) = 1.55e-22; extra term 0; per divergence slot: long-range part 5.071e-10 (meets 1e-9), every fork 4.341e-05 (misses 1e-9)
+    histories: 1 day: no honest block 7.90e-08, every fork 6.209e-03; 30 days: no honest block 2.37e-06, every fork 1.862e-01; 1 year: no honest block 2.88e-05, every fork 1.000e+00
+  GENESIS G = 259,200: P1(G + 1 - s) = P1(243001) = 2.14e-35; extra term 0; per divergence slot: long-range part 5.071e-10 (meets 1e-9), every fork 4.341e-05 (misses 1e-9)
+  every fork, one divergence slot: the cells' U-part alone meets 1e-9 first at s = 33729 (9.37 h), which s + K <= G + 1 admits from G = 69728 on, and s <= K - 1 admits: True
+  every fork, 1 year: the cells' U-part alone meets 1e-9 first at s = 51560 (14.32 h), which s + K <= G + 1 admits from G = 87559 on, and s <= K - 1 admits: False
+
+a tenth offline, inference corrected: p_h = 0.022704, p_a = 0.010876, Delta = 10
+  P1(s) = 5.205e-10; U(s - 1) = 1.285e-05; P1(K - s) = 5.55e-12; U(K - 2) = 2.01e-11; U_11(K - 1) = 1.80e-10; E_g = (1 - p_h)^(K - 2 Delta - 1) = 10^-359
+  forward pass against the closed form at s, K - s, 36,000 and 37,801: largest relative difference 1.1e-11
+  (i) G = 52,199: P1(G + 1 - s) = P1(36000) = 8.45e-21; extra term 0; per divergence slot: long-range part 5.406e-10 (meets 1e-9), every fork 1.285e-05 (misses 1e-9)
+    histories: 1 day: no honest block 1.54e-07, every fork 2.036e-03; 30 days: no honest block 4.63e-06, every fork 6.107e-02; 1 year: no honest block 5.64e-05, every fork 7.431e-01
+  (ii) G = 54,000: P1(G + 1 - s) = P1(37801) = 8.91e-22; extra term 0; per divergence slot: long-range part 5.406e-10 (meets 1e-9), every fork 1.285e-05 (misses 1e-9)
+    histories: 1 day: no honest block 1.54e-07, every fork 2.036e-03; 30 days: no honest block 4.63e-06, every fork 6.107e-02; 1 year: no honest block 5.64e-05, every fork 7.431e-01
+  GENESIS G = 259,200: P1(G + 1 - s) = P1(243001) = 6.28e-33; extra term 0; per divergence slot: long-range part 5.406e-10 (meets 1e-9), every fork 1.285e-05 (misses 1e-9)
+  every fork, one divergence slot: the cells' U-part alone meets 1e-9 first at s = 30215 (8.39 h), which s + K <= G + 1 admits from G = 66214 on, and s <= K - 1 admits: True
+  every fork, 1 year: the cells' U-part alone meets 1e-9 first at s = 46457 (12.90 h), which s + K <= G + 1 admits from G = 82456 on, and s <= K - 1 admits: False
+
+a tenth offline, before the correction: p_h = 0.021132, p_a = 0.010119, Delta = 10
+  P1(s) = 8.995e-10; U(s - 1) = 1.285e-05; P1(K - s) = 1.08e-11; U(K - 2) = 2.08e-11; U_11(K - 1) = 1.51e-10; E_g = (1 - p_h)^(K - 2 Delta - 1) = 10^-334
+  forward pass against the closed form at s, K - s, 36,000 and 37,801: largest relative difference 9.1e-12
+  (i) G = 52,199: P1(G + 1 - s) = P1(36000) = 2.85e-20; extra term 0; per divergence slot: long-range part 9.203e-10 (meets 1e-9), every fork 1.285e-05 (misses 1e-9)
+    histories: 1 day: no honest block 2.60e-07, every fork 2.032e-03; 30 days: no honest block 7.79e-06, every fork 6.094e-02; 1 year: no honest block 9.48e-05, every fork 7.414e-01
+  (ii) G = 54,000: P1(G + 1 - s) = P1(37801) = 3.19e-21; extra term 0; per divergence slot: long-range part 9.203e-10 (meets 1e-9), every fork 1.285e-05 (misses 1e-9)
+    histories: 1 day: no honest block 2.60e-07, every fork 2.032e-03; 30 days: no honest block 7.79e-06, every fork 6.094e-02; 1 year: no honest block 9.48e-05, every fork 7.414e-01
+  GENESIS G = 259,200: P1(G + 1 - s) = P1(243001) = 2.10e-33; extra term 0; per divergence slot: long-range part 9.203e-10 (meets 1e-9), every fork 1.285e-05 (misses 1e-9)
+  every fork, one divergence slot: the cells' U-part alone meets 1e-9 first at s = 30249 (8.40 h), which s + K <= G + 1 admits from G = 66248 on, and s <= K - 1 admits: True
+  every fork, 1 year: the cells' U-part alone meets 1e-9 first at s = 46527 (12.92 h), which s + K <= G + 1 admits from G = 82526 on, and s <= K - 1 admits: False
+
+D equals the honest stake online: p_h = 0.033333, p_a = 0.014424, Delta = 10
+  P1(s) = 8.523e-15; U(s - 1) = 4.506e-07; P1(K - s) = 8.04e-18; U(K - 2) = 9.90e-15; U_11(K - 1) = 7.26e-13; E_g = (1 - p_h)^(K - 2 Delta - 1) = 10^-530
+  forward pass against the closed form at s, K - s, 36,000 and 37,801: largest relative difference 2.7e-11
+  (i) G = 52,199: P1(G + 1 - s) = P1(36000) = 2.25e-31; extra term 0; per divergence slot: long-range part 1.842e-14 (meets 1e-9), every fork 4.506e-07 (misses 1e-9)
+    histories: 1 day: no honest block 3.87e-12, every fork 9.419e-05; 30 days: no honest block 1.16e-10, every fork 2.825e-03; 1 year: no honest block 1.41e-09, every fork 3.437e-02
+  (ii) G = 54,000: P1(G + 1 - s) = P1(37801) = 7.05e-33; extra term 0; per divergence slot: long-range part 1.842e-14 (meets 1e-9), every fork 4.506e-07 (misses 1e-9)
+    histories: 1 day: no honest block 3.87e-12, every fork 9.419e-05; 30 days: no honest block 1.16e-10, every fork 2.825e-03; 1 year: no honest block 1.41e-09, every fork 3.437e-02
+  GENESIS G = 259,200: P1(G + 1 - s) = P1(243001) = 5.10e-36; extra term 0; per divergence slot: long-range part 1.842e-14 (meets 1e-9), every fork 4.506e-07 (misses 1e-9)
+  every fork, one divergence slot: the cells' U-part alone meets 1e-9 first at s = 23061 (6.41 h), which s + K <= G + 1 admits from G = 59060 on, and s <= K - 1 admits: True
+  every fork, 1 year: the cells' U-part alone meets 1e-9 first at s = 35684 (9.91 h), which s + K <= G + 1 admits from G = 71683 on, and s <= K - 1 admits: True

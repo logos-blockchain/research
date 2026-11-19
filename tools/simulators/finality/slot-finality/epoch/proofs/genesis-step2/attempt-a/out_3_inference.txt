@@ -1,0 +1,76 @@
+(a) the inference in integers against the closed form D((1 - beta) + beta N/(P f_hat)), evaluated in exact rationals
+  beta = 1/2: largest |D' - closed form| over 200,000 inputs = 0.999990; inputs with a negative numerator before the last division: 0
+  beta = 2/3: largest |D' - closed form| over 200,000 inputs = 0.999995; inputs with a negative numerator before the last division: 0
+  beta = 1/1: largest |D' - closed form| over 200,000 inputs = 0.999964; inputs with a negative numerator before the last division: 0
+
+(b) the floor at N = 0: D' / D
+  beta = 1/2, D = 1000000: D' = 500000, D'/D = 0.500000 (1 - beta = 0.500000)
+  beta = 1/2, D = 1000000000000: D' = 500000000000, D'/D = 0.500000 (1 - beta = 0.500000)
+  beta = 2/3, D = 1000000: D' = 333333, D'/D = 0.333333 (1 - beta = 0.333333)
+  beta = 2/3, D = 1000000000000: D' = 333333333333, D'/D = 0.333333 (1 - beta = 0.333333)
+
+(c) the ratio R = D_X/D_H of the epoch after D_Y's, X with no block and no new uncle slot after sigma_0 = c_e - u (q = f_hat = 0.033; the no-disturbance coalition: 0.3 of D_H, p_a = 0.010119)
+  (i) G = 52,199, P = 54000, beta = 1/2:
+    u = 2 (own-state stretch 19798): E ~ 0.9967, 1e-9 quantile 0.9897, coalition 0.303 of D_X, p_a 0.01022
+    u = 2000 (own-state stretch 17800): E ~ 0.9782, 1e-9 quantile 0.9625, coalition 0.312 of D_X, p_a 0.01051
+    u = 6000 (own-state stretch 13800): E ~ 0.9411, 1e-9 quantile 0.9172, coalition 0.327 of D_X, p_a 0.01103
+    u = 10000 (own-state stretch 9800): E ~ 0.9041, 1e-9 quantile 0.8750, coalition 0.343 of D_X, p_a 0.01156
+    u = 14000 (own-state stretch 5800): E ~ 0.8671, 1e-9 quantile 0.8343, coalition 0.360 of D_X, p_a 0.01212
+    u = 19799 (own-state stretch 1): E ~ 0.8134, 1e-9 quantile 0.7770, coalition 0.386 of D_X, p_a 0.01300
+  (i) G = 52,199, P = 54000, beta = 2/3:
+    u = 2 (own-state stretch 19798): E ~ 0.9956, 1e-9 quantile 0.9862, coalition 0.304 of D_X, p_a 0.01026
+    u = 2000 (own-state stretch 17800): E ~ 0.9709, 1e-9 quantile 0.9501, coalition 0.316 of D_X, p_a 0.01065
+    u = 6000 (own-state stretch 13800): E ~ 0.9215, 1e-9 quantile 0.8899, coalition 0.337 of D_X, p_a 0.01136
+    u = 10000 (own-state stretch 9800): E ~ 0.8721, 1e-9 quantile 0.8340, coalition 0.360 of D_X, p_a 0.01212
+    u = 14000 (own-state stretch 5800): E ~ 0.8227, 1e-9 quantile 0.7801, coalition 0.385 of D_X, p_a 0.01295
+    u = 19799 (own-state stretch 1): E ~ 0.7511, 1e-9 quantile 0.7045, coalition 0.426 of D_X, p_a 0.01433
+  (i) G = 52,199, P = 72000, beta = 1/2:
+    u = 2 (own-state stretch 19798): E ~ 0.9975, 1e-9 quantile 0.9922, coalition 0.302 of D_X, p_a 0.01020
+    u = 2000 (own-state stretch 17800): E ~ 0.9836, 1e-9 quantile 0.9718, coalition 0.309 of D_X, p_a 0.01041
+    u = 6000 (own-state stretch 13800): E ~ 0.9558, 1e-9 quantile 0.9376, coalition 0.320 of D_X, p_a 0.01079
+    u = 10000 (own-state stretch 9800): E ~ 0.9281, 1e-9 quantile 0.9057, coalition 0.331 of D_X, p_a 0.01117
+    u = 14000 (own-state stretch 5800): E ~ 0.9003, 1e-9 quantile 0.8748, coalition 0.343 of D_X, p_a 0.01156
+    u = 19799 (own-state stretch 1): E ~ 0.8600, 1e-9 quantile 0.8312, coalition 0.361 of D_X, p_a 0.01216
+  (i) G = 52,199, P = 72000, beta = 2/3:
+    u = 2 (own-state stretch 19798): E ~ 0.9967, 1e-9 quantile 0.9897, coalition 0.303 of D_X, p_a 0.01022
+    u = 2000 (own-state stretch 17800): E ~ 0.9782, 1e-9 quantile 0.9625, coalition 0.312 of D_X, p_a 0.01051
+    u = 6000 (own-state stretch 13800): E ~ 0.9411, 1e-9 quantile 0.9170, coalition 0.327 of D_X, p_a 0.01103
+    u = 10000 (own-state stretch 9800): E ~ 0.9041, 1e-9 quantile 0.8746, coalition 0.343 of D_X, p_a 0.01156
+    u = 14000 (own-state stretch 5800): E ~ 0.8671, 1e-9 quantile 0.8337, coalition 0.360 of D_X, p_a 0.01213
+    u = 19799 (own-state stretch 1): E ~ 0.8134, 1e-9 quantile 0.7760, coalition 0.387 of D_X, p_a 0.01302
+  (ii) G = 54,000, P = 54000, beta = 1/2:
+    u = 2 (own-state stretch 17997): E ~ 0.9967, 1e-9 quantile 0.9897, coalition 0.303 of D_X, p_a 0.01022
+    u = 2000 (own-state stretch 15999): E ~ 0.9782, 1e-9 quantile 0.9625, coalition 0.312 of D_X, p_a 0.01051
+    u = 6000 (own-state stretch 11999): E ~ 0.9411, 1e-9 quantile 0.9172, coalition 0.327 of D_X, p_a 0.01103
+    u = 10000 (own-state stretch 7999): E ~ 0.9041, 1e-9 quantile 0.8750, coalition 0.343 of D_X, p_a 0.01156
+    u = 14000 (own-state stretch 3999): E ~ 0.8671, 1e-9 quantile 0.8343, coalition 0.360 of D_X, p_a 0.01212
+    u = 17998 (own-state stretch 1): E ~ 0.8300, 1e-9 quantile 0.7946, coalition 0.378 of D_X, p_a 0.01272
+  (ii) G = 54,000, P = 54000, beta = 2/3:
+    u = 2 (own-state stretch 17997): E ~ 0.9956, 1e-9 quantile 0.9862, coalition 0.304 of D_X, p_a 0.01026
+    u = 2000 (own-state stretch 15999): E ~ 0.9709, 1e-9 quantile 0.9501, coalition 0.316 of D_X, p_a 0.01065
+    u = 6000 (own-state stretch 11999): E ~ 0.9215, 1e-9 quantile 0.8899, coalition 0.337 of D_X, p_a 0.01136
+    u = 10000 (own-state stretch 7999): E ~ 0.8721, 1e-9 quantile 0.8340, coalition 0.360 of D_X, p_a 0.01212
+    u = 14000 (own-state stretch 3999): E ~ 0.8227, 1e-9 quantile 0.7801, coalition 0.385 of D_X, p_a 0.01295
+    u = 17998 (own-state stretch 1): E ~ 0.7734, 1e-9 quantile 0.7278, coalition 0.412 of D_X, p_a 0.01388
+  (ii) G = 54,000, P = 72000, beta = 1/2:
+    u = 2 (own-state stretch 17997): E ~ 0.9975, 1e-9 quantile 0.9922, coalition 0.302 of D_X, p_a 0.01020
+    u = 2000 (own-state stretch 15999): E ~ 0.9836, 1e-9 quantile 0.9718, coalition 0.309 of D_X, p_a 0.01041
+    u = 6000 (own-state stretch 11999): E ~ 0.9558, 1e-9 quantile 0.9376, coalition 0.320 of D_X, p_a 0.01079
+    u = 10000 (own-state stretch 7999): E ~ 0.9281, 1e-9 quantile 0.9057, coalition 0.331 of D_X, p_a 0.01117
+    u = 14000 (own-state stretch 3999): E ~ 0.9003, 1e-9 quantile 0.8748, coalition 0.343 of D_X, p_a 0.01156
+    u = 17998 (own-state stretch 1): E ~ 0.8725, 1e-9 quantile 0.8446, coalition 0.355 of D_X, p_a 0.01197
+  (ii) G = 54,000, P = 72000, beta = 2/3:
+    u = 2 (own-state stretch 17997): E ~ 0.9967, 1e-9 quantile 0.9897, coalition 0.303 of D_X, p_a 0.01022
+    u = 2000 (own-state stretch 15999): E ~ 0.9782, 1e-9 quantile 0.9625, coalition 0.312 of D_X, p_a 0.01051
+    u = 6000 (own-state stretch 11999): E ~ 0.9411, 1e-9 quantile 0.9170, coalition 0.327 of D_X, p_a 0.01103
+    u = 10000 (own-state stretch 7999): E ~ 0.9041, 1e-9 quantile 0.8746, coalition 0.343 of D_X, p_a 0.01156
+    u = 14000 (own-state stretch 3999): E ~ 0.8671, 1e-9 quantile 0.8337, coalition 0.360 of D_X, p_a 0.01213
+    u = 17998 (own-state stretch 1): E ~ 0.8300, 1e-9 quantile 0.7937, coalition 0.378 of D_X, p_a 0.01273
+
+(d) the coalition's choice of the fork's nonce: A = its wins in (sigma_0, c_e) under H's states, M >= 2^A candidates
+  no disturbance (0.3 of D), (i): u = 2000: E[A] = 20.2, P(A >= 16) = 0.856, P(A >= 40) = 0.000, P(A >= 64) = 0.000; u = 6000: E[A] = 60.7, P(A >= 16) = 1.000, P(A >= 40) = 0.998, P(A >= 64) = 0.352; u = 10000: E[A] = 101.2, P(A >= 16) = 1.000, P(A >= 40) = 1.000, P(A >= 64) = 1.000; u = 19799: E[A] = 200.3, P(A >= 16) = 1.000, P(A >= 40) = 1.000, P(A >= 64) = 1.000
+  no disturbance (0.3 of D), (ii): u = 2000: E[A] = 20.2, P(A >= 16) = 0.856, P(A >= 40) = 0.000, P(A >= 64) = 0.000; u = 6000: E[A] = 60.7, P(A >= 16) = 1.000, P(A >= 40) = 0.998, P(A >= 64) = 0.352; u = 10000: E[A] = 101.2, P(A >= 16) = 1.000, P(A >= 40) = 1.000, P(A >= 64) = 1.000; u = 17998: E[A] = 182.1, P(A >= 16) = 1.000, P(A >= 40) = 1.000, P(A >= 64) = 1.000
+  no disturbance (0.3 of D): E[A] reaches 16, 40, 64 at u = 1583, 3954, 6326
+  D equals the honest stake online (0.3/0.7 of D), (i): u = 2000: E[A] = 28.8, P(A >= 16) = 0.997, P(A >= 40) = 0.027, P(A >= 64) = 0.000; u = 6000: E[A] = 86.5, P(A >= 16) = 1.000, P(A >= 40) = 1.000, P(A >= 64) = 0.995; u = 10000: E[A] = 144.2, P(A >= 16) = 1.000, P(A >= 40) = 1.000, P(A >= 64) = 1.000; u = 19799: E[A] = 285.6, P(A >= 16) = 1.000, P(A >= 40) = 1.000, P(A >= 64) = 1.000
+  D equals the honest stake online (0.3/0.7 of D), (ii): u = 2000: E[A] = 28.8, P(A >= 16) = 0.997, P(A >= 40) = 0.027, P(A >= 64) = 0.000; u = 6000: E[A] = 86.5, P(A >= 16) = 1.000, P(A >= 40) = 1.000, P(A >= 64) = 0.995; u = 10000: E[A] = 144.2, P(A >= 16) = 1.000, P(A >= 40) = 1.000, P(A >= 64) = 1.000; u = 17998: E[A] = 259.6, P(A >= 16) = 1.000, P(A >= 40) = 1.000, P(A >= 64) = 1.000
+  D equals the honest stake online (0.3/0.7 of D): E[A] reaches 16, 40, 64 at u = 1111, 2775, 4438

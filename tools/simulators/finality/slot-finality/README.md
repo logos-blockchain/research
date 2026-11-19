@@ -176,7 +176,12 @@ reads the specification from a clone of logos-lips named by `LIPS_REPO`. The rev
 read the proofs' outputs: run SURVIVAL's `s1` to `s3`, then `s08`, `s09` and `s11`; GENESIS's
 `g01` to `g07`, then `s14`; and SURVIVAL's `s4` after `s14`.
 
-`schedule/SCHEDULE.md` states the schedule of 40 hours that the specification branch
+`proofs/genesis-step2/STEP2.md` proves that GENESIS's theorem holds with a last phase of `K − 1`
+slots in place of `2K − 1`, through two independent attempts and a check of both. It is not
+reviewed, and nothing else in this folder uses it. Its section 5 says how to run its scripts,
+after GENESIS's.
+
+`schedule/SCHEDULE.md` states the schedule of 60 hours that the specification branch
 `Bedrock-RFC-Shorter-Epoch` adopts: why the Buffer phase can go, the condition on phase 3, the
 stake inference's learning rate with its simulations, and what each schedule costs. Its section
 7 lists its scripts.
