@@ -1,0 +1,27 @@
+B. [branch] P(S/D > 1.094) at a window of 15 h by importance sampling: 4 batches of 1000000 runs
+   beta 1.0: 1.685e-05 (batches 1.69e-05, 1.69e-05, 1.68e-05, 1.69e-05; relative sd of the mean 0.1%)
+   beta 0.5: 1.073e-13 (batches 1.08e-13, 1.07e-13, 1.08e-13, 1.07e-13; relative sd of the mean 0.2%)
+   (13 s)
+C. [branch] response to a step change of the stake that builds; the change falls just after a cut-off. Mean of |D/S - fixed point| / fixed point (99th percentile) by hours after the change
+   stake that builds times 0.5:
+     35 h, beta 0.5: 0 h 1.000, 55 h 0.5042 (0.5547), 90 h 0.2549 (0.2974), 125 h 0.1292 (0.1666), 160 h 0.0655 (0.1006), 195 h 0.0333 (0.0668)
+     35 h, beta 1: 0 h 1.000, 55 h 0.0274 (0.0889), 90 h 0.0187 (0.0604), 125 h 0.0186 (0.0601), 160 h 0.0186 (0.0602), 195 h 0.0185 (0.0600)
+     today, 180 h, beta 1: 0 h 1.000, 252 h 0.0121 (0.0376), 432 h 0.0069 (0.0225), 612 h 0.0069 (0.0223), 792 h 0.0069 (0.0225), 972 h 0.0069 (0.0223)
+   stake that builds times 0.9:
+     35 h, beta 0.5: 0 h 0.111, 55 h 0.0563 (0.0903), 90 h 0.0288 (0.0617), 125 h 0.0166 (0.0469), 160 h 0.0124 (0.0397), 195 h 0.0112 (0.0365)
+     35 h, beta 1: 0 h 0.111, 55 h 0.0197 (0.0635), 90 h 0.0186 (0.0603), 125 h 0.0186 (0.0599), 160 h 0.0186 (0.0598), 195 h 0.0186 (0.0602)
+     today, 180 h, beta 1: 0 h 0.111, 252 h 0.0074 (0.0241), 432 h 0.0069 (0.0224), 612 h 0.0069 (0.0223), 792 h 0.0069 (0.0223), 972 h 0.0069 (0.0224)
+   stake that builds times 1.1:
+     35 h, beta 0.5: 0 h 0.091, 55 h 0.0463 (0.0756), 90 h 0.0240 (0.0537), 125 h 0.0147 (0.0424), 160 h 0.0118 (0.0373), 195 h 0.0110 (0.0354)
+     35 h, beta 1: 0 h 0.091, 55 h 0.0177 (0.0572), 90 h 0.0185 (0.0600), 125 h 0.0186 (0.0602), 160 h 0.0185 (0.0597), 195 h 0.0186 (0.0600)
+     today, 180 h, beta 1: 0 h 0.091, 252 h 0.0067 (0.0217), 432 h 0.0069 (0.0224), 612 h 0.0069 (0.0223), 792 h 0.0069 (0.0223), 972 h 0.0069 (0.0224)
+   stake that builds times 2.0:
+     35 h, beta 0.5: 0 h 0.500, 55 h 0.2583 (0.2787), 90 h 0.1320 (0.1572), 125 h 0.0673 (0.0953), 160 h 0.0343 (0.0638), 195 h 0.0186 (0.0476)
+     35 h, beta 1: 0 h 0.500, 55 h 0.0191 (0.0537), 90 h 0.0184 (0.0592), 125 h 0.0186 (0.0600), 160 h 0.0186 (0.0603), 195 h 0.0186 (0.0603)
+     today, 180 h, beta 1: 0 h 0.500, 252 h 0.0165 (0.0304), 432 h 0.0069 (0.0221), 612 h 0.0069 (0.0223), 792 h 0.0069 (0.0223), 972 h 0.0069 (0.0225)
+   (2 s)
+D. [branch] deflation: 30 % of the total active stake withholds every block; D over the honest stake after each window
+   35 h, beta 0.5: start 1.443, 1: 1.229, 2: 1.121, 3: 1.067, 4: 1.039, 5: 1.025, 6: 1.018   (wins given up per window 546; the fixed point is 1.0103)
+   35 h, beta 1: start 1.443, 1: 1.015, 2: 1.010, 3: 1.010, 4: 1.010, 5: 1.010, 6: 1.010   (wins given up per window 546; the fixed point is 1.0103)
+   today, 180 h, beta 1: start 1.443, 1: 1.015, 2: 1.010, 3: 1.010, 4: 1.010, 5: 1.010, 6: 1.010   (wins given up per window 3934; the fixed point is 1.0103)
+   (1 s)

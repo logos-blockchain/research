@@ -1,0 +1,41 @@
+U(w): the study's bound on a wait of w slots (waitbound.wait_curve, slots), t_max = 160000
+
+30 %, Delta = 10
+  U(w): w = 8000: 3.397e-04; w = 12000: 7.442e-06; w = 16200: 1.348e-07; w = 20000: 3.578e-09; w = 30000: 2.547e-13; w = 35999: 8.277e-16; w = 50000: 1.291e-21; w = 64799: 9.393e-28
+  U(s_gen - 1) = U(16199) = 1.349e-07; U(s_gen) = 1.348e-07
+  10 h (#533, 7f3cf149): U(K - 2) = U(35998) = 8.285e-16; U_(Delta + 1)(K - 1) = U_11(35999) = 1.348e-14
+  18 h (base, ded1d4c6): U(K - 2) = U(64798) = 9.402e-28; U_(Delta + 1)(K - 1) = U_11(64799) = 1.385e-25
+  least s with U(s - 1) <= 1e-9: 21336 slots = 5.93 h; the study's stored wait at 1e-9 (runs/k7/worst.csv, wait_1e-09): 21335 slots, the least w with U(w) <= 1e-9: 21335
+  attack of GRR 4.7 at 1e-06 (runs/k1/worst.csv): lower-bound depth 174.9 blocks, extended: True; at 52.64 s a block: 2.56 h (runs/k7/worst.csv attack_h_1e-06 = 2.56 h)
+  attack of GRR 4.7 at 1e-09 (runs/k1/worst.csv): lower-bound depth 266.9 blocks, extended: True; at 52.64 s a block: 3.90 h (runs/k7/worst.csv attack_h_1e-09 = 3.90 h)
+  the line through the two points at s_gen = 4.5 h (outside them): about 10^-10.33 = 4.7e-11; U(s_gen - 1) / estimate = 2879
+
+30 %, Delta = 15
+  U(w): w = 8000: 6.418e-03; w = 12000: 5.605e-04; w = 16200: 4.338e-05; w = 20000: 4.285e-06; w = 30000: 9.686e-09; w = 35999: 2.506e-10; w = 50000: 4.950e-14; w = 64799: 6.014e-18
+  U(s_gen - 1) = U(16199) = 4.341e-05; U(s_gen) = 4.338e-05
+  10 h (#533, 7f3cf149): U(K - 2) = U(35998) = 2.507e-10; U_(Delta + 1)(K - 1) = U_16(35999) = 2.082e-09
+  18 h (base, ded1d4c6): U(K - 2) = U(64798) = 6.017e-18; U_(Delta + 1)(K - 1) = U_16(64799) = 2.653e-16
+  least s with U(s - 1) <= 1e-9: 33729 slots = 9.37 h; the study's stored wait at 1e-9 (runs/k7/worst.csv, wait_1e-09): 33728 slots, the least w with U(w) <= 1e-9: 33728
+  attack of GRR 4.7 at 1e-06 (runs/k1/worst.csv): lower-bound depth 221.7 blocks, extended: True; at 57.64 s a block: 3.55 h (runs/k7/worst.csv attack_h_1e-06 = 3.55 h)
+  attack of GRR 4.7 at 1e-09 (runs/k1/worst.csv): lower-bound depth 338.4 blocks, extended: True; at 57.64 s a block: 5.42 h (runs/k7/worst.csv attack_h_1e-09 = 5.42 h)
+  the line through the two points at s_gen = 4.5 h (inside them): about 10^-7.53 = 3.0e-08; U(s_gen - 1) / estimate = 1457
+
+a third, Delta = 10
+  U(w): w = 8000: 8.248e-03; w = 12000: 8.716e-04; w = 16200: 8.259e-05; w = 20000: 9.797e-06; w = 30000: 3.587e-08; w = 35999: 1.239e-09; w = 50000: 4.809e-13; w = 64799: 1.193e-16
+  U(s_gen - 1) = U(16199) = 8.263e-05; U(s_gen) = 8.259e-05
+  10 h (#533, 7f3cf149): U(K - 2) = U(35998) = 1.240e-09; U_(Delta + 1)(K - 1) = U_11(35999) = 8.543e-09
+  18 h (base, ded1d4c6): U(K - 2) = U(64798) = 1.193e-16; U_(Delta + 1)(K - 1) = U_11(64799) = 3.754e-15
+  least s with U(s - 1) <= 1e-9: 36383 slots = 10.11 h; the study's stored wait at 1e-9 (runs/k7/worst.csv, wait_1e-09): 36382 slots, the least w with U(w) <= 1e-9: 36382
+  attack of GRR 4.7 at 1e-06 (runs/k1/worst.csv): lower-bound depth 292.6 blocks, extended: True; at 54.75 s a block: 4.45 h (runs/k7/worst.csv attack_h_1e-06 = 4.45 h)
+  attack of GRR 4.7 at 1e-09 (runs/k1/worst.csv): lower-bound depth 445.7 blocks, extended: True; at 54.75 s a block: 6.78 h (runs/k7/worst.csv attack_h_1e-09 = 6.78 h)
+  the line through the two points at s_gen = 4.5 h (inside them): about 10^-6.06 = 8.6e-07; U(s_gen - 1) / estimate = 96
+
+a third, Delta = 15
+  U(w): w = 8000: 6.164e-02; w = 12000: 1.646e-02; w = 16200: 4.132e-03; w = 20000: 1.184e-03; w = 30000: 4.414e-05; w = 35999: 6.137e-06; w = 50000: 6.138e-08; w = 64799: 4.722e-10
+  U(s_gen - 1) = U(16199) = 4.133e-03; U(s_gen) = 4.132e-03
+  10 h (#533, 7f3cf149): U(K - 2) = U(35998) = 6.139e-06; U_(Delta + 1)(K - 1) = U_16(35999) = 2.403e-05
+  18 h (base, ded1d4c6): U(K - 2) = U(64798) = 4.724e-10; U_(Delta + 1)(K - 1) = U_16(64799) = 5.389e-09
+  least s with U(s - 1) <= 1e-9: 62519 slots = 17.37 h; the study's stored wait at 1e-9 (runs/k7/worst.csv, wait_1e-09): 62518 slots, the least w with U(w) <= 1e-9: 62518
+  attack of GRR 4.7 at 1e-06 (runs/k1/worst.csv): lower-bound depth 402.3 blocks, extended: True; at 59.75 s a block: 6.68 h (runs/k7/worst.csv attack_h_1e-06 = 6.68 h)
+  attack of GRR 4.7 at 1e-09 (runs/k1/worst.csv): lower-bound depth 612.1 blocks, extended: True; at 59.75 s a block: 10.16 h (runs/k7/worst.csv attack_h_1e-09 = 10.16 h)
+  the line through the two points at s_gen = 4.5 h (outside them): about 10^-4.12 = 7.5e-05; U(s_gen - 1) / estimate = 55

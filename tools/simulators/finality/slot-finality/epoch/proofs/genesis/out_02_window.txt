@@ -1,0 +1,45 @@
+s = s_gen = 16200 slots
+
+30 %, Delta = 10: theta* = 0.7391; strip solution / Lundberg bound, largest ratio = 0.7560
+  P(M_pre >= m), m = 1..6: 0.5279, 0.2544, 0.1215, 0.05804, 0.02772, 0.01324
+  P(M_post >= m), m = 1..6: 0.5779, 0.2858, 0.1371, 0.06551, 0.03129, 0.01494
+  mass left at m > 120 (counted as failure): 7.23e-39
+  one window, P(Z_s >= 0) = 6.016e-14; strictly denser (recovery's figure) = 4.096e-14
+  P1(s) = 2.0552e-13; P1(s) / P(Z_s >= 0) = 3.42; with M_post in place of M+_post 2.0196e-13 (P1 is 1.76 % higher)
+  P1(x): x = 8000 (2.22222 h): 3.52e-07; x = 10000 (2.77778 h): 1.04e-08; x = 12000 (3.33333 h): 3.12e-10; x = 14000 (3.88889 h): 9.49e-12; x = 16200 (4.5 h): 2.06e-13; x = 18000 (5 h): 8.99e-15; x = 21600 (6 h): 1.74e-17; x = 32400 (9 h): 1.35e-25
+  least window with P1 <= 1e-9: 11335 slots = 3.15 h
+  terms of 6.3: K = 36000: P1(K - s) = P1(19800) = 3.95e-16; K = 64800: P1(K - s) = P1(48600) = 1.08e-37; P1(G + 1 - s) = P1(243001) <= 7.2e-39
+  the circuit's shortfall for one note holding all honest stake: delta = 9.44e-05; P1(s) at p_h (1 - delta) = 2.0726e-13 (+0.85 %)
+
+30 %, Delta = 15: theta* = 0.6728; strip solution / Lundberg bound, largest ratio = 0.7989
+  P(M_pre >= m), m = 1..6: 0.579, 0.3002, 0.1534, 0.07827, 0.03994, 0.02038
+  P(M_post >= m), m = 1..6: 0.6422, 0.3468, 0.1788, 0.09134, 0.04662, 0.02379
+  mass left at m > 120 (counted as failure): 2.16e-35
+  one window, P(Z_s >= 0) = 6.951e-11; strictly denser (recovery's figure) = 4.881e-11
+  P1(s) = 2.5638e-10; P1(s) / P(Z_s >= 0) = 3.69; with M_post in place of M+_post 2.5169e-10 (P1 is 1.86 % higher)
+  P1(x): x = 8000 (2.22222 h): 1.31e-05; x = 10000 (2.77778 h): 9.11e-07; x = 12000 (3.33333 h): 6.45e-08; x = 14000 (3.88889 h): 4.62e-09; x = 16200 (4.5 h): 2.56e-10; x = 18000 (5 h): 2.42e-11; x = 21600 (6 h): 2.19e-13; x = 32400 (9 h): 1.72e-19
+  least window with P1 <= 1e-9: 15164 slots = 4.21 h
+  terms of 6.3: K = 36000: P1(K - s) = P1(19800) = 2.30e-12; K = 64800: P1(K - s) = P1(48600) = 1.31e-28; P1(G + 1 - s) = P1(243001) <= 2.1e-35
+  the circuit's shortfall for one note holding all honest stake: delta = 9.44e-05; P1(s) at p_h (1 - delta) = 2.5810e-10 (+0.67 %)
+
+a third, Delta = 10: theta* = 0.5719; strip solution / Lundberg bound, largest ratio = 0.8324
+  P(M_pre >= m), m = 1..6: 0.6108, 0.3471, 0.196, 0.1106, 0.06245, 0.03525
+  P(M_post >= m), m = 1..6: 0.6563, 0.3804, 0.2154, 0.1216, 0.06867, 0.03876
+  mass left at m > 120 (counted as failure): 3.60e-30
+  one window, P(Z_s >= 0) = 3.863e-09; strictly denser (recovery's figure) = 2.864e-09
+  P1(s) = 1.3452e-08; P1(s) / P(Z_s >= 0) = 3.48; with M_post in place of M+_post 1.3309e-08 (P1 is 1.08 % higher)
+  P1(x): x = 8000 (2.22222 h): 9.18e-05; x = 10000 (2.77778 h): 1.05e-05; x = 12000 (3.33333 h): 1.21e-06; x = 14000 (3.88889 h): 1.41e-07; x = 16200 (4.5 h): 1.35e-08; x = 18000 (5 h): 1.97e-09; x = 21600 (6 h): 4.31e-11; x = 32400 (9 h): 4.74e-16
+  least window with P1 <= 1e-9: 18640 slots = 5.18 h
+  terms of 6.3: K = 36000: P1(K - s) = P1(19800) = 2.91e-10; K = 64800: P1(K - s) = P1(48600) = 1.90e-23; P1(G + 1 - s) = P1(243001) <= 3.6e-30
+  the circuit's shortfall for one note holding all honest stake: delta = 8.56e-05; P1(s) at p_h (1 - delta) = 1.3531e-08 (+0.59 %)
+
+a third, Delta = 15: theta* = 0.4995; strip solution / Lundberg bound, largest ratio = 0.8727
+  P(M_pre >= m), m = 1..6: 0.6676, 0.4098, 0.2489, 0.1511, 0.09167, 0.05563
+  P(M_post >= m), m = 1..6: 0.7226, 0.457, 0.2793, 0.1696, 0.103, 0.06248
+  mass left at m > 120 (counted as failure): 2.21e-26
+  one window, P(Z_s >= 0) = 8.650e-07; strictly denser (recovery's figure) = 6.636e-07
+  P1(s) = 3.1795e-06; P1(s) / P(Z_s >= 0) = 3.68; with M_post in place of M+_post 3.1464e-06 (P1 is 1.05 % higher)
+  P1(x): x = 8000 (2.22222 h): 1.50e-03; x = 10000 (2.77778 h): 3.28e-04; x = 12000 (3.33333 h): 7.28e-05; x = 14000 (3.88889 h): 1.63e-05; x = 16200 (4.5 h): 3.18e-06; x = 18000 (5 h): 8.38e-07; x = 21600 (6 h): 5.88e-08; x = 32400 (9 h): 2.15e-11
+  least window with P1 <= 1e-9: 27151 slots = 7.54 h
+  terms of 6.3: K = 36000: P1(K - s) = P1(19800) = 2.22e-07; K = 64800: P1(K - s) = P1(48600) = 1.65e-16; P1(G + 1 - s) = P1(243001) <= 2.2e-26
+  the circuit's shortfall for one note holding all honest stake: delta = 8.56e-05; P1(s) at p_h (1 - delta) = 3.1937e-06 (+0.45 %)

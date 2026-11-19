@@ -1,0 +1,40 @@
+1. beta = 1, one step from the fixed point (specification's rule): P(S/D' > 1.094) by window
+   first window with a tail <= 1e-9: 112433 slots (31.23 h); holds for every window from 113038 slots (31.40 h), scanned to 135,000
+   window  15.0 h: 1.702e-05
+   window  20.0 h: 8.029e-07
+   window  30.0 h: 2.143e-09
+   window  60.0 h: 5.159e-17
+
+2. stationary law: P(S/D > 1.094) per epoch and the sd of D/S
+   window 15 h, specification (f_hat = 0.033), beta 1.0000: 1.679e-05 | sd 2.330 %
+   window 15 h, specification (f_hat = 0.033), beta 0.7500: 2.991e-08 | sd 1.811 %
+   window 15 h, specification (f_hat = 0.033), beta 0.6667: 1.279e-09 | sd 1.654 %
+   window 15 h, specification (f_hat = 0.033), beta 0.6000: 5.522e-11 | sd 1.532 %
+   window 15 h, specification (f_hat = 0.033), beta 0.5000: 1.060e-13 | sd 1.353 %
+   window 15 h, exact (f_hat = 1/30), beta 1.0000: 8.614e-05 | sd 2.318 %
+   window 15 h, exact (f_hat = 1/30), beta 0.7500: 4.793e-07 | sd 1.801 %
+   window 15 h, exact (f_hat = 1/30), beta 0.6667: 3.631e-08 | sd 1.646 %
+   window 15 h, exact (f_hat = 1/30), beta 0.6000: 2.785e-09 | sd 1.525 %
+   window 15 h, exact (f_hat = 1/30), beta 0.5000: 1.681e-11 | sd 1.346 %
+   window 20 h, specification (f_hat = 0.033), beta 1.0000: 8.315e-07 | sd 2.018 %
+   window 20 h, specification (f_hat = 0.033), beta 0.7500: 1.932e-10 | sd 1.568 %
+   window 20 h, specification (f_hat = 0.033), beta 0.6667: 2.969e-12 | sd 1.433 %
+   window 20 h, specification (f_hat = 0.033), beta 0.6000: 4.611e-14 | sd 1.327 %
+   window 20 h, specification (f_hat = 0.033), beta 0.5000: 1.141e-17 | sd 1.171 %
+   window 20 h, exact (f_hat = 1/30), beta 1.0000: 7.165e-06 | sd 2.007 %
+   window 20 h, exact (f_hat = 1/30), beta 0.7500: 7.572e-09 | sd 1.560 %
+   window 20 h, exact (f_hat = 1/30), beta 0.6667: 2.500e-10 | sd 1.425 %
+   window 20 h, exact (f_hat = 1/30), beta 0.6000: 8.342e-12 | sd 1.320 %
+   window 20 h, exact (f_hat = 1/30), beta 0.5000: 9.520e-15 | sd 1.165 %
+
+3. floor premise: mean chance of fewer than 689 blocks within K, and the largest floor at 1e-9
+   specification (f_hat = 0.033), at the fixed point, no noise: 5.574e-09; floor 683
+   specification (f_hat = 0.033), window 20 h, beta 0.6667: 5.580e-08; floor 675
+   specification (f_hat = 0.033), window 15 h, beta 0.5000: 4.520e-08; floor 676
+   specification (f_hat = 0.033), window 15 h, beta 1.0000: 7.083e-07; floor 663
+   specification (f_hat = 0.033), window 20 h, beta 1.0000: 2.876e-07; floor 668
+   exact (f_hat = 1/30), at the fixed point, no noise: 9.815e-10; floor 689
+   exact (f_hat = 1/30), window 20 h, beta 0.6667: 1.230e-08; floor 680
+   exact (f_hat = 1/30), window 15 h, beta 0.5000: 9.762e-09; floor 681
+   exact (f_hat = 1/30), window 15 h, beta 1.0000: 1.988e-07; floor 668
+   exact (f_hat = 1/30), window 20 h, beta 1.0000: 7.404e-08; floor 673

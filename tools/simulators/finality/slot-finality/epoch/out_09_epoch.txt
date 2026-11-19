@@ -1,62 +1,60 @@
 === 10 h (#533): K = 36000, phi = 689; today's epoch 180 h; window P = 108 h ===
-A. by the share of the inferred stake that builds, every block 15 slots late; buffer w_B = 16579 slots = 4.61 h
-   share that builds | G* (h) | epoch that suffices, window shortened to G* + w_B (h) | epoch that suffices, window kept at 108 h (h)
-   100.0 % (all of the inferred stake builds) |  10.20 |   25.01 |  118.20
-    90.0 % (a tenth does not build) |  10.80 |   26.20 |  118.80
-    70.0 % (30 % does not build) |  13.03 |   30.67 |  121.03
-    50.0 % (a half builds) |  17.05 |   38.71 |  125.05
-    25.0 % (a quarter builds) |  31.14 |   66.88 |  139.14
+A. by the share of the inferred stake that builds, every block 15 slots late; buffer w_B = 16644 slots = 4.62 h; phase 3 at least 2 K - 1 = 71999 slots = 20.00 h
+   share that builds | G* (h) | phase 3 = max(G*, 2 K - 1) (h) | epoch that suffices, window shortened to G* + w_B (h) | epoch that suffices, window kept at 108 h (h)
+   100.0 % (all of the inferred stake builds) |  10.20 |  20.00 |   34.83 |  128.00
+    90.0 % (a tenth does not build) |  10.80 |  20.00 |   35.42 |  128.00
+    70.0 % (30 % does not build) |  13.03 |  20.00 |   37.65 |  128.00
+    50.0 % (a half builds) |  17.05 |  20.00 |   41.68 |  128.00
+    25.0 % (a quarter builds) |  31.14 |  31.14 |   66.90 |  139.14
 B. by the state of the K row; the coalition of 30 % of the total active stake does not build
    state | share of the inferred stake that builds | G* (slots, h) | w_B (slots, h)
-   no disturbance, 10 s |  70.00 % |  43460  12.07 |  12242  3.40
-   every block T_M = 15 s late |  70.00 % |  46910  13.03 |  16579  4.61
-   a tenth of the honest stake offline, 10 s |  67.74 % |  44667  12.41 |  17215  4.78
-   deflated inference, 10 s | 100.00 % |  36726  10.20 |  11126  3.09
+   no disturbance, 10 s |  70.00 % |  43460  12.07 |  12295  3.42
+   every block T_M = 15 s late |  70.00 % |  46910  13.03 |  16644  4.62
+   a tenth of the honest stake offline, 10 s |  67.74 % |  44667  12.41 |  17268  4.80
+   deflated inference, 10 s | 100.00 % |  36726  10.20 |  11171  3.10
    (a tenth of the honest stake offline before the inference corrects, 10 s: 63.00 % builds, G* = 47483 slots = 13.19 h)
    (no disturbance and the coalition builds, 10 s: 100 % builds, G* = 36726 slots = 10.20 h)
-   largest G* = 46910 slots = 13.03 h; largest w_B = 17215 slots = 4.78 h
-   epoch that suffices in every state: window shortened 111035 slots = 30.84 h; window kept 435710 slots = 121.03 h
-   Theorem 2 of Ouroboros Genesis as written asks R >= 6 s_gen = 27 h; its proof's use asks a gap of 2 s_gen = 9 h
+   largest G* = 46910 slots = 13.03 h; largest w_B = 17268 slots = 4.80 h; phase 3 = max(G*, 2 K - 1) = 71999 slots = 20.00 h
+   epoch that suffices in every state: window shortened 136177 slots = 37.83 h; window kept 460799 slots = 128.00 h
+   Theorem 2 of Ouroboros Genesis as written asks R >= 6 s_gen = 27 h; its proof's use asks a gap of 2 s_gen = 9 h; the argument of GENESIS 7.1 asks s_gen <= K - 1 (16200 <= 35999: True) and a gap of 2 K - 1 = 71999 slots = 20.00 h
 C. what each schedule costs
-   epoch = phase 1 + phase 2 + phase 3 (h) | window P (h) | least share for phase 1, phase 3 (15 s) | targets that meet two nonces | cut-offs a year | new stake waits (h) | longest time with no correction of the inference (h) | sd of the inferred stake | P(miss the floor at K) | floor at 1e-9 | P(true/inferred > 1.094) an epoch | wins 30 % gives up to deflate | blocks an epoch
-   180.00 =  54.00 + 54.00 +  72.00 | 108.00 |  13.80 %,  10.20 % |  5.56 % |   48.7 |  180.0 to  360.0 |  252.0 | 0.868 % | 1.41e-08 | 680 (-9) | 3.84e-29 |   3934 |   21600   [today]
-   121.03 =  54.00 + 54.00 +  13.03 | 108.00 |  13.80 %,  70.00 % |  8.26 % |   72.4 |  121.0 to  242.1 |  134.1 | 0.868 % | 1.41e-08 | 680 (-9) | 3.84e-29 |   3934 |   14524   [phase 3 at the largest G* of the K row, window kept]
-   118.20 =  54.00 + 54.00 +  10.20 | 108.00 |  13.80 %,  99.98 % |  8.46 % |   74.2 |  118.2 to  236.4 |  128.4 | 0.868 % | 1.41e-08 | 680 (-9) | 3.84e-29 |   3934 |   14185   [phase 3 at G* with all of the stake building, window kept]
-   100.00 =  30.00 + 30.00 +  40.00 |  60.00 |  26.05 %,  19.02 % | 10.00 % |   87.7 |  100.0 to  200.0 |  140.0 | 1.165 % | 2.74e-08 | 678 (-11) | 5.16e-17 |   2186 |   12000   [phases of 3 K, 3 K and 4 K, window 6 K]
-    90.00 =  27.00 + 27.00 +  36.00 |  54.00 |  29.30 %,  21.32 % | 11.11 % |   97.4 |   90.0 to  180.0 |  126.0 | 1.228 % | 3.21e-08 | 677 (-12) | 1.70e-15 |   1967 |   10800   [every phase and the window halved]
-    60.00 =  18.00 + 18.00 +  24.00 |  36.00 |  46.85 %,  33.48 % | 16.67 % |  146.1 |   60.0 to  120.0 |   84.0 | 1.504 % | 6.64e-08 | 674 (-15) | 6.29e-11 |   1311 |    7200   [every phase and the window at a third]
-    30.84 =  13.03 +  4.78 +  13.03 |  17.81 |  70.00 %,  70.00 % | 32.42 % |  284.2 |   30.8 to   61.7 |   43.9 | 2.138 % | 4.06e-07 | 666 (-23) | 3.02e-06 |    649 |    3701   [every phase at G* or w_B for the K row]
-    25.01 =  10.20 +  4.61 +  10.20 |  14.81 |  99.98 %,  99.98 % | 39.98 % |  350.4 |   25.0 to   50.0 |   35.2 | 2.344 % | 7.35e-07 | 663 (-26) | 1.80e-05 |    539 |    3002   [every phase at G* or w_B with all of the stake building]
+   epoch = phase 1 + phase 2 + phase 3 (h) | window P (h) | least share for phase 1, phase 3 (15 s) | targets that meet two nonces | cut-offs a year | new stake waits (h) | longest time with no correction of the inference (h) | sd of the inferred stake | P(miss the floor at K) | floor at 1e-9 | P(true/inferred > 1.094) an epoch | wins 30 % gives up to deflate | blocks an epoch | phase 3 >= 2 K - 1
+   180.00 =  54.00 + 54.00 +  72.00 | 108.00 |  13.80 %,  10.20 % |  5.56 % |   48.7 |  180.0 to  360.0 |  252.0 | 0.868 % | 1.41e-08 | 680 (-9) | 3.84e-29 |   3934 |   21600 | yes   [today]
+   128.00 =  54.00 + 54.00 +  20.00 | 108.00 |  13.80 %,  41.35 % |  7.81 % |   68.5 |  128.0 to  256.0 |  148.0 | 0.868 % | 1.41e-08 | 680 (-9) | 3.84e-29 |   3934 |   15360 | yes   [phase 3 at the value that suffices, max(G*, 2 K - 1), window kept]
+   100.00 =  30.00 + 30.00 +  40.00 |  60.00 |  26.05 %,  19.02 % | 10.00 % |   87.7 |  100.0 to  200.0 |  140.0 | 1.165 % | 2.74e-08 | 678 (-11) | 5.16e-17 |   2186 |   12000 | yes   [phases of 3 K, 3 K and 4 K, window 6 K]
+    90.00 =  27.00 + 27.00 +  36.00 |  54.00 |  29.30 %,  21.32 % | 11.11 % |   97.4 |   90.0 to  180.0 |  126.0 | 1.228 % | 3.21e-08 | 677 (-12) | 1.70e-15 |   1967 |   10800 | yes   [every phase and the window halved]
+    60.00 =  18.00 + 18.00 +  24.00 |  36.00 |  46.85 %,  33.48 % | 16.67 % |  146.1 |   60.0 to  120.0 |   84.0 | 1.504 % | 6.64e-08 | 674 (-15) | 6.29e-11 |   1311 |    7200 | yes   [every phase and the window at a third]
+    37.83 =  13.03 +  4.80 +  20.00 |  17.83 |  70.00 %,  41.35 % | 26.44 % |  231.7 |   37.8 to   75.7 |   57.8 | 2.137 % | 4.05e-07 | 666 (-23) | 3.13e-06 |    649 |    4539 | yes   [every phase at the value that suffices for the K row]
+    34.83 =  10.20 +  4.62 +  20.00 |  14.83 |  99.98 %,  41.35 % | 28.71 % |  251.7 |   34.8 to   69.7 |   54.8 | 2.343 % | 7.32e-07 | 663 (-26) | 1.79e-05 |    540 |    4179 | yes   [every phase at the value that suffices with all of the stake building]
 
 === 18 h (base): K = 64800, phi = 1291; today's epoch 180 h; window P = 108 h ===
-A. by the share of the inferred stake that builds, every block 15 slots late; buffer w_B = 16579 slots = 4.61 h
-   share that builds | G* (h) | epoch that suffices, window shortened to G* + w_B (h) | epoch that suffices, window kept at 108 h (h)
-   100.0 % (all of the inferred stake builds) |  18.20 |   41.01 |  126.20
-    90.0 % (a tenth does not build) |  19.40 |   43.40 |  127.40
-    70.0 % (30 % does not build) |  23.35 |   51.30 |  131.35
-    50.0 % (a half builds) |  30.46 |   65.53 |  138.46
-    25.0 % (a quarter builds) |  55.36 |  115.33 |  163.36
+A. by the share of the inferred stake that builds, every block 15 slots late; buffer w_B = 16644 slots = 4.62 h; phase 3 at least 2 K - 1 = 129599 slots = 36.00 h
+   share that builds | G* (h) | phase 3 = max(G*, 2 K - 1) (h) | epoch that suffices, window shortened to G* + w_B (h) | epoch that suffices, window kept at 108 h (h)
+   100.0 % (all of the inferred stake builds) |  18.20 |  36.00 |   58.83 |  144.00
+    90.0 % (a tenth does not build) |  19.40 |  36.00 |   60.02 |  144.00
+    70.0 % (30 % does not build) |  23.35 |  36.00 |   63.97 |  144.00
+    50.0 % (a half builds) |  30.46 |  36.00 |   71.08 |  144.00
+    25.0 % (a quarter builds) |  55.36 |  55.36 |  115.34 |  163.36
 B. by the state of the K row; the coalition of 30 % of the total active stake does not build
    state | share of the inferred stake that builds | G* (slots, h) | w_B (slots, h)
-   no disturbance, 10 s |  70.00 % |  77593  21.55 |  12242  3.40
-   every block T_M = 15 s late |  70.00 % |  84053  23.35 |  16579  4.61
-   a tenth of the honest stake offline, 10 s |  67.74 % |  79727  22.15 |  17215  4.78
-   deflated inference, 10 s | 100.00 % |  65526  18.20 |  11126  3.09
-   15 s and a tenth of the honest stake offline |  67.74 % |  86187  23.94 |  24645  6.85
-   15 s and a deflated inference | 100.00 % |  65537  18.20 |  18081  5.02
-   a tenth offline and a deflated inference, 10 s | 100.00 % |  65526  18.20 |  16452  4.57
+   no disturbance, 10 s |  70.00 % |  77593  21.55 |  12295  3.42
+   every block T_M = 15 s late |  70.00 % |  84053  23.35 |  16644  4.62
+   a tenth of the honest stake offline, 10 s |  67.74 % |  79727  22.15 |  17268  4.80
+   deflated inference, 10 s | 100.00 % |  65526  18.20 |  11171  3.10
+   15 s and a tenth of the honest stake offline |  67.74 % |  86187  23.94 |  24713  6.86
+   15 s and a deflated inference | 100.00 % |  65537  18.20 |  18142  5.04
+   a tenth offline and a deflated inference, 10 s | 100.00 % |  65526  18.20 |  16497  4.58
    (a tenth of the honest stake offline before the inference corrects, 10 s: 63.00 % builds, G* = 84707 slots = 23.53 h)
    (no disturbance and the coalition builds, 10 s: 100 % builds, G* = 65526 slots = 18.20 h)
-   largest G* = 86187 slots = 23.94 h; largest w_B = 24645 slots = 6.85 h
-   epoch that suffices in every state: window shortened 197019 slots = 54.73 h; window kept 474987 slots = 131.94 h
-   Theorem 2 of Ouroboros Genesis as written asks R >= 6 s_gen = 27 h; its proof's use asks a gap of 2 s_gen = 9 h
+   largest G* = 86187 slots = 23.94 h; largest w_B = 24713 slots = 6.86 h; phase 3 = max(G*, 2 K - 1) = 129599 slots = 36.00 h
+   epoch that suffices in every state: window shortened 240499 slots = 66.81 h; window kept 518399 slots = 144.00 h
+   Theorem 2 of Ouroboros Genesis as written asks R >= 6 s_gen = 27 h; its proof's use asks a gap of 2 s_gen = 9 h; the argument of GENESIS 7.1 asks s_gen <= K - 1 (16200 <= 64799: True) and a gap of 2 K - 1 = 129599 slots = 36.00 h
 C. what each schedule costs
-   epoch = phase 1 + phase 2 + phase 3 (h) | window P (h) | least share for phase 1, phase 3 (15 s) | targets that meet two nonces | cut-offs a year | new stake waits (h) | longest time with no correction of the inference (h) | sd of the inferred stake | P(miss the floor at K) | floor at 1e-9 | P(true/inferred > 1.593) an epoch | wins 30 % gives up to deflate | blocks an epoch
-   180.00 =  54.00 + 54.00 +  72.00 | 108.00 |  25.70 %,  18.74 % | 10.00 % |   48.7 |  180.0 to  360.0 |  252.0 | 0.868 % | 4.72e-08 | 1273 (-18) | 0.00e+00 |   3934 |   21600   [today]
-   131.94 =  54.00 + 54.00 +  23.94 | 108.00 |  25.70 %,  67.74 % | 13.64 % |   66.4 |  131.9 to  263.9 |  155.9 | 0.868 % | 4.72e-08 | 1273 (-18) | 0.00e+00 |   3934 |   15833   [phase 3 at the largest G* of the K row, window kept]
-   126.20 =  54.00 + 54.00 +  18.20 | 108.00 |  25.70 %,  99.93 % | 14.26 % |   69.5 |  126.2 to  252.4 |  144.4 | 0.868 % | 4.72e-08 | 1273 (-18) | 0.00e+00 |   3934 |   15145   [phase 3 at G* with all of the stake building, window kept]
-    90.00 =  27.00 + 27.00 +  36.00 |  54.00 |  58.07 %,  40.90 % | 20.00 % |   97.4 |   90.0 to  180.0 |  126.0 | 1.228 % | 1.66e-07 | 1266 (-25) | 1.74e-240 |   1967 |   10800   [every phase and the window halved]
-    60.00 =  18.00 + 18.00 +  24.00 |  36.00 | none,  67.52 % | 30.00 % |  146.1 |   60.0 to  120.0 |   84.0 | 1.504 % | 4.72e-07 | 1259 (-32) | 3.83e-161 |   1311 |    7200   [every phase and the window at a third]
-    54.73 =  23.94 +  6.85 +  23.94 |  30.79 |  67.74 %,  67.74 % | 32.89 % |  160.2 |   54.7 to  109.5 |   78.7 | 1.626 % | 7.53e-07 | 1256 (-35) | 3.58e-138 |   1122 |    6567   [every phase at G* or w_B for the K row]
-    41.01 =  18.20 +  4.61 +  18.20 |  22.81 |  99.93 %,  99.93 % | 43.89 % |  213.7 |   41.0 to   82.0 |   59.2 | 1.889 % | 2.02e-06 | 1249 (-42) | 5.36e-103 |    831 |    4922   [every phase at G* or w_B with all of the stake building]
+   epoch = phase 1 + phase 2 + phase 3 (h) | window P (h) | least share for phase 1, phase 3 (15 s) | targets that meet two nonces | cut-offs a year | new stake waits (h) | longest time with no correction of the inference (h) | sd of the inferred stake | P(miss the floor at K) | floor at 1e-9 | P(true/inferred > 1.593) an epoch | wins 30 % gives up to deflate | blocks an epoch | phase 3 >= 2 K - 1
+   180.00 =  54.00 + 54.00 +  72.00 | 108.00 |  25.70 %,  18.74 % | 10.00 % |   48.7 |  180.0 to  360.0 |  252.0 | 0.868 % | 4.72e-08 | 1273 (-18) | 0.00e+00 |   3934 |   21600 | yes   [today]
+   144.00 =  54.00 + 54.00 +  36.00 | 108.00 |  25.70 %,  40.90 % | 12.50 % |   60.9 |  144.0 to  288.0 |  180.0 | 0.868 % | 4.72e-08 | 1273 (-18) | 0.00e+00 |   3934 |   17280 | yes   [phase 3 at the value that suffices, max(G*, 2 K - 1), window kept]
+    90.00 =  27.00 + 27.00 +  36.00 |  54.00 |  58.07 %,  40.90 % | 20.00 % |   97.4 |   90.0 to  180.0 |  126.0 | 1.228 % | 1.66e-07 | 1266 (-25) | 1.74e-240 |   1967 |   10800 | yes   [every phase and the window halved]
+    60.00 =  18.00 + 18.00 +  24.00 |  36.00 | none,  67.52 % | 30.00 % |  146.1 |   60.0 to  120.0 |   84.0 | 1.504 % | 4.72e-07 | 1259 (-32) | 3.83e-161 |   1311 |    7200 | no   [every phase and the window at a third]
+    66.81 =  23.94 +  6.86 +  36.00 |  30.81 |  67.74 %,  40.90 % | 26.94 % |  131.2 |   66.8 to  133.6 |  102.8 | 1.626 % | 7.51e-07 | 1256 (-35) | 2.44e-138 |   1122 |    8017 | yes   [every phase at the value that suffices for the K row]
+    58.83 =  18.20 +  4.62 +  36.00 |  22.83 |  99.93 %,  40.90 % | 30.60 % |  149.0 |   58.8 to  117.7 |   94.8 | 1.888 % | 2.02e-06 | 1249 (-42) | 6.18e-103 |    832 |    7059 | yes   [every phase at the value that suffices with all of the stake building]
 

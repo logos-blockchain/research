@@ -27,10 +27,17 @@ and the honest stake online wins with chance f.
 A coalition of a third is added for comparison with the earlier study. The last two states read a
 tenth of the honest stake offline before the inference corrects: the inferred stake is still the
 total, so the coefficient of the stake online is 1 - (1 - f)^0.93.
-Usage: python s08_buffer.py > out_08_buffer.txt     (the caches go to .cache beside this script)
+The last part gives w_B with the survival law proved in proofs/survival/SURVIVAL.md (Theorem 8.1:
+bound(w) = h * sum_{T >= w} Qhat(T)). For the states of the K row it reads them from
+proofs/survival/out_3_buffer.txt, part 1, and the bound at two hours from its part 2; for a coalition
+of a third it computes them with proofs/survival/sv_common.py, as s3_buffer.py there does. Later
+scripts (s09, s14) read the proved values.
+Usage: python s08_buffer.py > out_08_buffer.txt     (the caches go to .cache beside this script;
+       after proofs/survival/s3_buffer.py)
 """
 import math
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -38,11 +45,57 @@ for var in ("NUMBA_CACHE_DIR", "TMPDIR", "JOBLIB_TEMP_FOLDER"):
     os.environ.setdefault(var, os.path.join(HERE, ".cache"))
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.join(HERE, "..", "..", "src"))
+SURVIVAL_DIR = os.path.join(HERE, "proofs", "survival")
 
 import numpy as np                                   # noqa: E402
 from finality_sim.formation import branch_survival   # noqa: E402
 
 from common import EPS, F, H                         # noqa: E402
+
+# the review's state -> the key of the same state in proofs/survival/sv_common.py
+PROVED_KEY = {
+    "30 %, no disturbance, 10 s": "none",
+    "30 %, every honest block 15 s late": "late",
+    "30 %, a tenth of the honest stake offline, 10 s": "off",
+    "30 %, deflated inference, 10 s": "defl",
+    "30 %, 15 s and a tenth of the honest stake offline": "late_off",
+    "30 %, 15 s and a deflated inference": "late_defl",
+    "30 %, a tenth of the honest stake offline and a deflated inference, 10 s": "off_defl",
+    "30 %, a tenth of the honest stake offline before the inference corrects, 10 s": "off_b",
+    "30 %, 15 s and a tenth of the honest stake offline before the inference corrects": "late_off_b",
+}
+THIRD = {"a third, 10 s": 10, "a third, 15 s": 15}
+
+
+def proved_buffers():
+    """w_B (with its line) per survival state from out_3_buffer.txt part 1, and the two-hour bounds of part 2."""
+    sys.path.append(SURVIVAL_DIR)
+    from sv_common import STATES as SV_STATES      # noqa: E402
+    label_key = {s[1]: s[0] for s in SV_STATES}
+    key_label = {s[0]: s[1] for s in SV_STATES}
+    wb, two, part = {}, {}, 0
+    for n, line in enumerate(open(os.path.join(SURVIVAL_DIR, "out_3_buffer.txt")), start=1):
+        if re.match(r"^\d\.", line):
+            part = int(line[0])
+        body = line.strip()
+        for label, key in label_key.items():
+            if body.startswith(label + ":"):
+                if part == 1:
+                    wb[key] = (int(re.search(r"w_B\(Qhat\) =\s+(\d+) slots", body).group(1)), n)
+                elif part == 2:
+                    two[key] = (body.split(": ")[1].split(";")[0], n)
+    return wb, two, key_label
+
+
+def proved_third(delta):
+    """w_B with the proved law for a coalition of a third of the total active stake, all honest stake online."""
+    sys.path.append(SURVIVAL_DIR)
+    from sv_common import chernoff, least_w, rates, survival_curves   # noqa: E402
+    h, a = rates(2 / 3, 1 / 3)
+    res = survival_curves(h, a, delta, 20 * H)
+    _, _, lam, C = chernoff(h, a, delta)
+    w, _, _ = least_w(h, res["Qhat"], delta, C, lam)
+    return w
 
 STEP = 900                 # grid step, slots
 T_MAX = 14 * H             # grid end
@@ -105,3 +158,16 @@ if __name__ == "__main__":
     for name, a, delta, f in STATES:
         fine = least_w(f, a, delta, 150)
         print(f"  {name}: {fine} slots ({fine - found[name]:+d})")
+
+    wb, two, key_label = proved_buffers()
+    print("\nw_B with the proved survival law (proofs/survival/SURVIVAL.md, Theorem 8.1: h * sum_{T >= w} Qhat(T) <= 1e-9), "
+          "read from proofs/survival/out_3_buffer.txt, part 1; for a third computed with proofs/survival/sv_common.py")
+    for name, a, delta, f in STATES:
+        if name in PROVED_KEY:
+            w, n = wb[PROVED_KEY[name]]
+            src = f"its line {n}"
+        else:
+            w, src = proved_third(THIRD[name]), "computed here"
+        print(f"  {name}: proved w_B = {w} slots = {w / H:.2f} h ({src}); the study's law above: {found[name]} ({w - found[name]:+d})")
+    print("the bound at two hours with the proved law (out_3_buffer.txt, part 2): " + "; ".join(
+        f"{key_label[k]}: {v} (its line {n})" for k, (v, n) in two.items()))

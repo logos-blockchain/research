@@ -1,0 +1,33 @@
+B. [branch] P(S/D > 1.094) at a window of 20 h by importance sampling: 4 batches of 1000000 runs
+   beta 1.0: 8.369e-07 (batches 8.35e-07, 8.37e-07, 8.35e-07, 8.41e-07; relative sd of the mean 0.2%)
+   beta 0.6666666666666666: 2.992e-12 (batches 2.99e-12, 3.00e-12, 2.99e-12, 3.00e-12; relative sd of the mean 0.1%)
+   beta 0.5: 1.158e-17 (batches 1.15e-17, 1.16e-17, 1.16e-17, 1.16e-17; relative sd of the mean 0.1%)
+   (21 s)
+A. [branch] steady state at a window of 72000 slots (20 h): 400000 chains settled 30 epochs, then 40 epochs kept
+   beta 1.0: mean D/S 1.01027 (chain 1.01027), sd 2.017 % (chain 2.018 %) | P(S/D > 1.03) 2.606e-02 (chain 2.597e-02) | P(S/D > 1.04) 8.036e-03 (chain 8.050e-03) | P(S/D > 1.05) 2.084e-03 (chain 2.095e-03) | P(S/D > 1.06) 4.556e-04 (chain 4.598e-04) | P(S/D > 1.094) 1.125e-06 (chain 8.315e-07)
+   beta 0.6666666666666666: mean D/S 1.01027 (chain 1.01027), sd 1.433 % (chain 1.433 %) | P(S/D > 1.03) 2.958e-03 (chain 2.905e-03) | P(S/D > 1.04) 3.186e-04 (chain 3.111e-04) | P(S/D > 1.05) 2.294e-05 (chain 2.261e-05) | P(S/D > 1.06) 1.125e-06 (chain 1.124e-06) | P(S/D > 1.094) 0.000e+00 (chain 2.969e-12)
+   beta 0.5: mean D/S 1.01027 (chain 1.01027), sd 1.172 % (chain 1.171 %) | P(S/D > 1.03) 3.622e-04 (chain 3.569e-04) | P(S/D > 1.04) 1.281e-05 (chain 1.329e-05) | P(S/D > 1.05) 6.250e-08 (chain 2.705e-07) | P(S/D > 1.06) 0.000e+00 (chain 3.042e-09) | P(S/D > 1.094) 0.000e+00 (chain 1.141e-17)
+   (7 s)
+C. [branch] response to a step change of the stake that builds; the change falls just after a cut-off. Mean of |D/S - fixed point| / fixed point (99th percentile) by hours after the change
+   stake that builds times 0.5:
+     40 h, beta 0.6666666666666666: 0 h 1.000, 60 h 0.3388 (0.3896), 100 h 0.1158 (0.1565), 140 h 0.0398 (0.0763), 180 h 0.0164 (0.0483), 220 h 0.0121 (0.0394)
+     40 h, beta 1: 0 h 1.000, 60 h 0.0239 (0.0776), 100 h 0.0162 (0.0521), 140 h 0.0161 (0.0521), 180 h 0.0161 (0.0520), 220 h 0.0161 (0.0519)
+     today, 180 h, beta 1: 0 h 1.000, 252 h 0.0121 (0.0377), 432 h 0.0070 (0.0224), 612 h 0.0069 (0.0224), 792 h 0.0069 (0.0223), 972 h 0.0069 (0.0224)
+   stake that builds times 0.9:
+     40 h, beta 0.6666666666666666: 0 h 0.111, 60 h 0.0382 (0.0738), 100 h 0.0161 (0.0476), 140 h 0.0121 (0.0391), 180 h 0.0115 (0.0373), 220 h 0.0114 (0.0370)
+     40 h, beta 1: 0 h 0.111, 60 h 0.0171 (0.0551), 100 h 0.0161 (0.0521), 140 h 0.0161 (0.0522), 180 h 0.0161 (0.0523), 220 h 0.0161 (0.0518)
+     today, 180 h, beta 1: 0 h 0.111, 252 h 0.0074 (0.0239), 432 h 0.0069 (0.0224), 612 h 0.0069 (0.0223), 792 h 0.0069 (0.0224), 972 h 0.0069 (0.0223)
+   stake that builds times 1.1:
+     40 h, beta 0.6666666666666666: 0 h 0.091, 60 h 0.0315 (0.0627), 100 h 0.0144 (0.0433), 140 h 0.0118 (0.0377), 180 h 0.0114 (0.0367), 220 h 0.0114 (0.0371)
+     40 h, beta 1: 0 h 0.091, 60 h 0.0154 (0.0495), 100 h 0.0161 (0.0521), 140 h 0.0161 (0.0518), 180 h 0.0161 (0.0521), 220 h 0.0161 (0.0519)
+     today, 180 h, beta 1: 0 h 0.091, 252 h 0.0067 (0.0217), 432 h 0.0069 (0.0225), 612 h 0.0069 (0.0225), 792 h 0.0069 (0.0224), 972 h 0.0069 (0.0225)
+   stake that builds times 2.0:
+     40 h, beta 0.6666666666666666: 0 h 0.500, 60 h 0.1777 (0.1998), 100 h 0.0616 (0.0907), 140 h 0.0221 (0.0529), 180 h 0.0128 (0.0403), 220 h 0.0116 (0.0372)
+     40 h, beta 1: 0 h 0.500, 60 h 0.0181 (0.0485), 100 h 0.0160 (0.0514), 140 h 0.0160 (0.0523), 180 h 0.0162 (0.0521), 220 h 0.0161 (0.0519)
+     today, 180 h, beta 1: 0 h 0.500, 252 h 0.0165 (0.0304), 432 h 0.0069 (0.0221), 612 h 0.0069 (0.0222), 792 h 0.0069 (0.0223), 972 h 0.0069 (0.0223)
+   (2 s)
+D. [branch] deflation: 30 % of the total active stake withholds every block; D over the honest stake after each window
+   40 h, beta 0.6666666666666666: start 1.443, 1: 1.158, 2: 1.061, 3: 1.028, 4: 1.016, 5: 1.012, 6: 1.011   (wins given up per window 729; the fixed point is 1.0103)
+   40 h, beta 1: start 1.443, 1: 1.015, 2: 1.010, 3: 1.010, 4: 1.010, 5: 1.010, 6: 1.010   (wins given up per window 729; the fixed point is 1.0103)
+   today, 180 h, beta 1: start 1.443, 1: 1.015, 2: 1.010, 3: 1.010, 4: 1.010, 5: 1.010, 6: 1.010   (wins given up per window 3934; the fixed point is 1.0103)
+   (1 s)

@@ -135,3 +135,17 @@ the same w_B on a grid of 150 slots in place of 900
   a third, 15 s: 30550 slots (-1)
   30 %, a tenth of the honest stake offline before the inference corrects, 10 s: 17654 slots (+0)
   30 %, 15 s and a tenth of the honest stake offline before the inference corrects: 24471 slots (+0)
+
+w_B with the proved survival law (proofs/survival/SURVIVAL.md, Theorem 8.1: h * sum_{T >= w} Qhat(T) <= 1e-9), read from proofs/survival/out_3_buffer.txt, part 1; for a third computed with proofs/survival/sv_common.py
+  30 %, no disturbance, 10 s: proved w_B = 12295 slots = 3.42 h (its line 2); the study's law above: 12242 (+53)
+  30 %, every honest block 15 s late: proved w_B = 16644 slots = 4.62 h (its line 3); the study's law above: 16579 (+65)
+  30 %, a tenth of the honest stake offline, 10 s: proved w_B = 17268 slots = 4.80 h (its line 4); the study's law above: 17215 (+53)
+  30 %, deflated inference, 10 s: proved w_B = 11171 slots = 3.10 h (its line 5); the study's law above: 11126 (+45)
+  30 %, 15 s and a tenth of the honest stake offline: proved w_B = 24713 slots = 6.86 h (its line 6); the study's law above: 24645 (+68)
+  30 %, 15 s and a deflated inference: proved w_B = 18142 slots = 5.04 h (its line 7); the study's law above: 18081 (+61)
+  30 %, a tenth of the honest stake offline and a deflated inference, 10 s: proved w_B = 16497 slots = 4.58 h (its line 8); the study's law above: 16452 (+45)
+  a third, 10 s: proved w_B = 20684 slots = 5.75 h (computed here); the study's law above: 20631 (+53)
+  a third, 15 s: proved w_B = 30618 slots = 8.51 h (computed here); the study's law above: 30551 (+67)
+  30 %, a tenth of the honest stake offline before the inference corrects, 10 s: proved w_B = 17709 slots = 4.92 h (its line 9); the study's law above: 17654 (+55)
+  30 %, 15 s and a tenth of the honest stake offline before the inference corrects: proved w_B = 24540 slots = 6.82 h (its line 10); the study's law above: 24471 (+69)
+the bound at two hours with the proved law (out_3_buffer.txt, part 2): no disturbance, 10 s: 7.773e-06 (its line 13); every honest block 15 s late: 2.677e-04 (its line 14)

@@ -11,9 +11,11 @@ under each nonce are an independent Binomial(N, a) draw, N the slots of the epoc
 At N = 648,000 the script must return the published figures (+0.698 % and +0.821 % at a budget of
 2^16 nonces). The other rows change N only.
 Assumed, not derived here: that the law of n does not depend on the epoch's length.
-Usage: python s11_gain.py > out_11_gain.txt     (the caches go to .cache beside this script)
+The epochs are the schedules of out_09_epoch.txt, part C, 10-hour case, read from that file in hours.
+Usage: python s11_gain.py > out_11_gain.txt     (the caches go to .cache beside this script; after s09)
 """
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -30,7 +32,23 @@ from today_choices import log2_tail_table, sample      # noqa: E402
 
 GRID = np.arange(0, 40.01, 0.25)                       # log2 of the number of nonces
 YEAR = 365.25 * 86400
-EPOCHS_H = (180.0, 121.03, 118.20, 100.0, 90.0, 60.0, 30.84, 25.01)   # the schedules of out_09_epoch.txt, part C, 10-hour case
+
+
+def schedules():
+    """The epochs, in hours, of part C of the 10-hour case in out_09_epoch.txt."""
+    out, case, part = [], None, None
+    for line in open(os.path.join(HERE, "out_09_epoch.txt")):
+        if line.startswith("==="):
+            case = "10 h" if "10 h" in line else "other"
+        elif re.match(r"^[A-C]\. ", line):
+            part = line[0]
+        m = re.match(r"^\s+(\d+\.\d+) = ", line)
+        if m and case == "10 h" and part == "C":
+            out.append(float(m.group(1)))
+    return tuple(out)
+
+
+EPOCHS_H = schedules()
 
 
 def gain_curve(a, n_slots):

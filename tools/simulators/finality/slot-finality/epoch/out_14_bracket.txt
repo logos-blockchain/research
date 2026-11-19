@@ -4,48 +4,48 @@
 
 2. each state of the K row: necessary gap (5.5 (1) every win counted; 5.5 (2) chain blocks only), G* (5.4), necessary span (9.2), w_B (9.4)
    10 h (#533), K = 36000, phi = 689; a tenth offline read the inference corrected
-     no disturbance, 10 s: x =  70.00 %, d = 10 | every win   36873 slots,  10.24 h | chain only   43449 slots,  12.07 h | G*   43460 slots,  12.07 h | span 874 slots | w_B   12242 slots,   3.40 h
-     every block T_M = 15 s late: x =  70.00 %, d = 15 | every win   36873 slots,  10.24 h | chain only   46894 slots,  13.03 h | G*   46910 slots,  13.03 h | span 874 slots | w_B   16579 slots,   4.61 h
-     a tenth of the honest stake offline, 10 s: x =  67.74 %, d = 10 | every win   37718 slots,  10.48 h | chain only   44656 slots,  12.40 h | G*   44667 slots,  12.41 h | span 903 slots | w_B   17215 slots,   4.78 h
-     deflated inference, 10 s: x = 100.00 %, d = 10 | every win   36611 slots,  10.17 h | chain only   36611 slots,  10.17 h | G*   36726 slots,  10.20 h | span 612 slots | w_B   11126 slots,   3.09 h
+     no disturbance, 10 s: x =  70.00 %, d = 10 | every win   36873 slots,  10.24 h | chain only   43449 slots,  12.07 h | G*   43460 slots,  12.07 h | span 874 slots | w_B   12295 slots,   3.42 h
+     every block T_M = 15 s late: x =  70.00 %, d = 15 | every win   36873 slots,  10.24 h | chain only   46894 slots,  13.03 h | G*   46910 slots,  13.03 h | span 874 slots | w_B   16644 slots,   4.62 h
+     a tenth of the honest stake offline, 10 s: x =  67.74 %, d = 10 | every win   37718 slots,  10.48 h | chain only   44656 slots,  12.40 h | G*   44667 slots,  12.41 h | span 903 slots | w_B   17268 slots,   4.80 h
+     deflated inference, 10 s: x = 100.00 %, d = 10 | every win   36611 slots,  10.17 h | chain only   36611 slots,  10.17 h | G*   36726 slots,  10.20 h | span 612 slots | w_B   11171 slots,   3.10 h
    10 h (#533), K = 36000, phi = 689; a tenth offline read before the inference corrects
-     a tenth offline, before the inference corrects, 10 s: x =  63.00 %, d = 10 | every win   40531 slots,  11.26 h | chain only   47472 slots,  13.19 h | G*   47483 slots,  13.19 h | span 971 slots | w_B   17654 slots,   4.90 h
+     a tenth offline, before the inference corrects, 10 s: x =  63.00 %, d = 10 | every win   40531 slots,  11.26 h | chain only   47472 slots,  13.19 h | G*   47483 slots,  13.19 h | span 971 slots | w_B   17709 slots,   4.92 h
    18 h (base), K = 64800, phi = 1291; a tenth offline read the inference corrected
-     no disturbance, 10 s: x =  70.00 %, d = 10 | every win   65673 slots,  18.24 h | chain only   77582 slots,  21.55 h | G*   77593 slots,  21.55 h | span 874 slots | w_B   12242 slots,   3.40 h
-     every block T_M = 15 s late: x =  70.00 %, d = 15 | every win   65673 slots,  18.24 h | chain only   84037 slots,  23.34 h | G*   84053 slots,  23.35 h | span 874 slots | w_B   16579 slots,   4.61 h
-     a tenth of the honest stake offline, 10 s: x =  67.74 %, d = 10 | every win   66759 slots,  18.54 h | chain only   79716 slots,  22.14 h | G*   79727 slots,  22.15 h | span 903 slots | w_B   17215 slots,   4.78 h
-     deflated inference, 10 s: x = 100.00 %, d = 10 | every win   65411 slots,  18.17 h | chain only   65411 slots,  18.17 h | G*   65526 slots,  18.20 h | span 612 slots | w_B   11126 slots,   3.09 h
-     15 s and a tenth of the honest stake offline: x =  67.74 %, d = 15 | every win   66759 slots,  18.54 h | chain only   86171 slots,  23.94 h | G*   86187 slots,  23.94 h | span 903 slots | w_B   24645 slots,   6.85 h
-     15 s and a deflated inference: x = 100.00 %, d = 15 | every win   65411 slots,  18.17 h | chain only   65411 slots,  18.17 h | G*   65537 slots,  18.20 h | span 612 slots | w_B   18081 slots,   5.02 h
-     a tenth offline and a deflated inference, 10 s: x = 100.00 %, d = 10 | every win   65411 slots,  18.17 h | chain only   65411 slots,  18.17 h | G*   65526 slots,  18.20 h | span 612 slots | w_B   16452 slots,   4.57 h
+     no disturbance, 10 s: x =  70.00 %, d = 10 | every win   65673 slots,  18.24 h | chain only   77582 slots,  21.55 h | G*   77593 slots,  21.55 h | span 874 slots | w_B   12295 slots,   3.42 h
+     every block T_M = 15 s late: x =  70.00 %, d = 15 | every win   65673 slots,  18.24 h | chain only   84037 slots,  23.34 h | G*   84053 slots,  23.35 h | span 874 slots | w_B   16644 slots,   4.62 h
+     a tenth of the honest stake offline, 10 s: x =  67.74 %, d = 10 | every win   66759 slots,  18.54 h | chain only   79716 slots,  22.14 h | G*   79727 slots,  22.15 h | span 903 slots | w_B   17268 slots,   4.80 h
+     deflated inference, 10 s: x = 100.00 %, d = 10 | every win   65411 slots,  18.17 h | chain only   65411 slots,  18.17 h | G*   65526 slots,  18.20 h | span 612 slots | w_B   11171 slots,   3.10 h
+     15 s and a tenth of the honest stake offline: x =  67.74 %, d = 15 | every win   66759 slots,  18.54 h | chain only   86171 slots,  23.94 h | G*   86187 slots,  23.94 h | span 903 slots | w_B   24713 slots,   6.86 h
+     15 s and a deflated inference: x = 100.00 %, d = 15 | every win   65411 slots,  18.17 h | chain only   65411 slots,  18.17 h | G*   65537 slots,  18.20 h | span 612 slots | w_B   18142 slots,   5.04 h
+     a tenth offline and a deflated inference, 10 s: x = 100.00 %, d = 10 | every win   65411 slots,  18.17 h | chain only   65411 slots,  18.17 h | G*   65526 slots,  18.20 h | span 612 slots | w_B   16497 slots,   4.58 h
    18 h (base), K = 64800, phi = 1291; a tenth offline read before the inference corrects
-     a tenth offline, before the inference corrects, 10 s: x =  63.00 %, d = 10 | every win   71735 slots,  19.93 h | chain only   84696 slots,  23.53 h | G*   84707 slots,  23.53 h | span 971 slots | w_B   17654 slots,   4.90 h
-     15 s and a tenth offline, before the inference corrects: x =  63.00 %, d = 15 | every win   71735 slots,  19.93 h | chain only   91151 slots,  25.32 h | G*   91167 slots,  25.32 h | span 971 slots | w_B   24471 slots,   6.80 h
+     a tenth offline, before the inference corrects, 10 s: x =  63.00 %, d = 10 | every win   71735 slots,  19.93 h | chain only   84696 slots,  23.53 h | G*   84707 slots,  23.53 h | span 971 slots | w_B   17709 slots,   4.92 h
+     15 s and a tenth offline, before the inference corrects: x =  63.00 %, d = 15 | every win   71735 slots,  19.93 h | chain only   91151 slots,  25.32 h | G*   91167 slots,  25.32 h | span 971 slots | w_B   24540 slots,   6.82 h
 
 3. bounds on the least epoch over the states the K row requires (10.2)
    case | largest: necessary gap (every win; chain only), necessary span, G*, w_B
         | no shorter epoch keeps the rules (every win; chain only) | this epoch suffices
-   10 h (#533), a tenth offline read the inference corrected | gap 37718 (10.48 h); 46894 (13.03 h); span 903; G* 46910 (13.03 h); w_B 17215 (4.78 h)
-      window shortened to phases 1 and 2: no shorter than   76339 slots,  21.21 h;   94691 slots,  26.30 h | suffices  111035 slots,  30.84 h
-      window kept at 108 h: no shorter than  426518 slots, 118.48 h;  435694 slots, 121.03 h | suffices  435710 slots, 121.03 h
-   10 h (#533), a tenth offline read before the inference corrects | gap 40531 (11.26 h); 47472 (13.19 h); span 971; G* 47483 (13.19 h); w_B 17654 (4.90 h)
-      window shortened to phases 1 and 2: no shorter than   82033 slots,  22.79 h;   95915 slots,  26.64 h | suffices  112620 slots,  31.28 h
-      window kept at 108 h: no shorter than  429331 slots, 119.26 h;  436272 slots, 121.19 h | suffices  436283 slots, 121.19 h
-   18 h (base), a tenth offline read the inference corrected | gap 66759 (18.54 h); 86171 (23.94 h); span 903; G* 86187 (23.94 h); w_B 24645 (6.85 h)
-      window shortened to phases 1 and 2: no shorter than  134421 slots,  37.34 h;  173245 slots,  48.12 h | suffices  197019 slots,  54.73 h
-      window kept at 108 h: no shorter than  455559 slots, 126.54 h;  474971 slots, 131.94 h | suffices  474987 slots, 131.94 h
-   18 h (base), a tenth offline read before the inference corrects | gap 71735 (19.93 h); 91151 (25.32 h); span 971; G* 91167 (25.32 h); w_B 24471 (6.80 h)
-      window shortened to phases 1 and 2: no shorter than  144441 slots,  40.12 h;  183273 slots,  50.91 h | suffices  206805 slots,  57.45 h
-      window kept at 108 h: no shorter than  460535 slots, 127.93 h;  479951 slots, 133.32 h | suffices  479967 slots, 133.32 h
+   10 h (#533), a tenth offline read the inference corrected | gap 37718 (10.48 h); 46894 (13.03 h); span 903; G* 46910 (13.03 h); w_B 17268 (4.80 h); phase 3 that suffices 71999 (20.00 h), 25089 (6.97 h) more than G*
+      window shortened to phases 1 and 2: no shorter than   76339 slots,  21.21 h;   94691 slots,  26.30 h | suffices  136177 slots,  37.83 h
+      window kept at 108 h: no shorter than  426518 slots, 118.48 h;  435694 slots, 121.03 h | suffices  460799 slots, 128.00 h
+   10 h (#533), a tenth offline read before the inference corrects | gap 40531 (11.26 h); 47472 (13.19 h); span 971; G* 47483 (13.19 h); w_B 17709 (4.92 h); phase 3 that suffices 71999 (20.00 h), 24516 (6.81 h) more than G*
+      window shortened to phases 1 and 2: no shorter than   82033 slots,  22.79 h;   95915 slots,  26.64 h | suffices  137191 slots,  38.11 h
+      window kept at 108 h: no shorter than  429331 slots, 119.26 h;  436272 slots, 121.19 h | suffices  460799 slots, 128.00 h
+   18 h (base), a tenth offline read the inference corrected | gap 66759 (18.54 h); 86171 (23.94 h); span 903; G* 86187 (23.94 h); w_B 24713 (6.86 h); phase 3 that suffices 129599 (36.00 h), 43412 (12.06 h) more than G*
+      window shortened to phases 1 and 2: no shorter than  134421 slots,  37.34 h;  173245 slots,  48.12 h | suffices  240499 slots,  66.81 h
+      window kept at 108 h: no shorter than  455559 slots, 126.54 h;  474971 slots, 131.94 h | suffices  518399 slots, 144.00 h
+   18 h (base), a tenth offline read before the inference corrects | gap 71735 (19.93 h); 91151 (25.32 h); span 971; G* 91167 (25.32 h); w_B 24540 (6.82 h); phase 3 that suffices 129599 (36.00 h), 38432 (10.68 h) more than G*
+      window shortened to phases 1 and 2: no shorter than  144441 slots,  40.12 h;  183273 slots,  50.91 h | suffices  245306 slots,  68.14 h
+      window kept at 108 h: no shorter than  460535 slots, 127.93 h;  479951 slots, 133.32 h | suffices  518399 slots, 144.00 h
 
-4. a node's own draw of the lottery at the use slot (5.10): each waiting phase G* + d
-   10 h (#533): phase   46925 slots,  13.03 h; epoch, window shortened  111065 slots,  30.85 h, window kept  435725 slots, 121.03 h
-   18 h (base): phase   86202 slots,  23.95 h; epoch, window shortened  197049 slots,  54.74 h, window kept  475002 slots, 131.94 h
+4. a node's own draw of the lottery at the use slot (5.10): each waiting phase G* + d, phase 3 at least 2 K - 1
+   10 h (#533): phase 1   46925 slots,  13.03 h; phase 3   71999 slots,  20.00 h; epoch, window shortened  136192 slots,  37.83 h, window kept  460799 slots, 128.00 h
+   18 h (base): phase 1   86202 slots,  23.95 h; phase 3  129599 slots,  36.00 h; epoch, window shortened  240514 slots,  66.81 h, window kept  518399 slots, 144.00 h
 
 5. new stake's wait with a late snapshot: phase 1 + buffer + gap of 259200 slots (72 h), latest #533
-   all of the inferred stake builds, 15 s: G* 36736 + w_B 16579 + gap =  312515 slots,  86.81 h
-   every state of the K row, a tenth offline read the inference corrected: G* 46910 + w_B 17215 + gap =  323325 slots,  89.81 h; necessary: 37718 + 903 + gap =  297821 slots,  82.73 h (every win), 46894 + 903 + gap =  306997 slots,  85.28 h (chain only)
-   every state of the K row, a tenth offline read before the inference corrects: G* 47483 + w_B 17654 + gap =  324337 slots,  90.09 h; necessary: 40531 + 971 + gap =  300702 slots,  83.53 h (every win), 47472 + 971 + gap =  307643 slots,  85.46 h (chain only)
+   all of the inferred stake builds, 15 s: G* 36736 + w_B 16644 + gap =  312580 slots,  86.83 h
+   every state of the K row, a tenth offline read the inference corrected: G* 46910 + w_B 17268 + gap =  323378 slots,  89.83 h; necessary: 37718 + 903 + gap =  297821 slots,  82.73 h (every win), 46894 + 903 + gap =  306997 slots,  85.28 h (chain only)
+   every state of the K row, a tenth offline read before the inference corrects: G* 47483 + w_B 17709 + gap =  324392 slots,  90.11 h; necessary: 40531 + 971 + gap =  300702 slots,  83.53 h (every win), 47472 + 971 + gap =  307643 slots,  85.46 h (chain only)
 
 6. the necessary gaps and G* again, with binomial tails summed in log space (no scipy.stats.binom)
    10 h (#533), no disturbance, 10 s: every win 36873, chain only 43449, G* 43460 | equal
@@ -63,3 +63,14 @@
    18 h (base), a tenth offline, before the inference corrects, 10 s: every win 71735, chain only 84696, G* 84707 | equal
    18 h (base), 15 s and a tenth offline, before the inference corrects: every win 71735, chain only 91151, G* 91167 | equal
    every value equal
+
+7. GENESIS 6.3 and 8.1 at a phase 3 of 2 K - 1 slots, a coalition of 30 %: the terms that read the gap G, at G = 2 K - 1 and at today's G (GENESIS's code and cached curves, read only)
+   Delta = 10, K = 36000, G = 71999 (today 259200): P1(G + 1 - s) = 7.18e-39 (today 7.18e-39); every fork at s = 16200: one divergence slot 1.349e-07 (today 1.349e-07), 1 year 1.104e-02 (today 1.104e-02)
+      least windows, cells alone: one divergence slot 21336 (today 21336), 1 year 33181 (today 33181); total at K with s <= K - 1: one divergence slot 21336 (today 21336), 1 year 33181 (today 33181) | equal
+   Delta = 10, K = 64800, G = 129599 (today 259200): P1(G + 1 - s) = 7.18e-39 (today 7.18e-39); every fork at s = 16200: one divergence slot 1.349e-07 (today 1.349e-07), 1 year 1.104e-02 (today 1.104e-02)
+      least windows, cells alone: one divergence slot 21336 (today 21336), 1 year 33181 (today 33181); total at K with s <= K - 1: one divergence slot 21336 (today 21336), 1 year 33181 (today 33181) | equal
+   Delta = 15, K = 36000, G = 71999 (today 259200): P1(G + 1 - s) = 1.18e-32 (today 2.14e-35); every fork at s = 16200: one divergence slot 4.341e-05 (today 4.341e-05), 1 year 1.000e+00 (today 1.000e+00)
+      least windows, cells alone: one divergence slot 33729 (today 33729), 1 year none (today 51560); total at K with s <= K - 1: one divergence slot none (today none), 1 year none (today none) | differs
+   Delta = 15, K = 64800, G = 129599 (today 259200): P1(G + 1 - s) = 2.14e-35 (today 2.14e-35); every fork at s = 16200: one divergence slot 4.341e-05 (today 4.341e-05), 1 year 1.000e+00 (today 1.000e+00)
+      least windows, cells alone: one divergence slot 33729 (today 33729), 1 year 51560 (today 51560); total at K with s <= K - 1: one divergence slot 33729 (today 33729), 1 year 51560 (today 51560) | equal
+   at G = 2 K - 1 every bound and window equals today's except: Delta = 15, K = 36000, least window, 1 year, cells alone: none (today 51560)

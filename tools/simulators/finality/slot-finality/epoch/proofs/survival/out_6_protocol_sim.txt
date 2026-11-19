@@ -1,0 +1,25 @@
+1. stress runs: f = 0.25, x_h = 0.7, x_a = 0.3, d = 3, 4 honest nodes with stake and one without, 150 slots a run
+   strategy, delivery | runs | node-slot checks | (a) growth failures | pure c_loc seen | (b) failures | (c) failures | pure c_loc with X = 0
+   random, random | 1500 | 1110000 | 0 | 42660 | 0 | 0 | 18757
+   random, max | 1500 | 1110000 | 0 | 68382 | 0 | 0 | 28136
+   random, mixed | 1500 | 1110000 | 0 | 45838 | 0 | 0 | 19477
+   private, random | 1500 | 1110000 | 0 | 47046 | 0 | 0 | 19785
+   private, max | 1500 | 1110000 | 0 | 68505 | 0 | 0 | 27593
+   private, mixed | 1500 | 1110000 | 0 | 46449 | 0 | 0 | 19020
+   none, random | 1500 | 1110000 | 0 | 32970 | 0 | 0 | 19287
+   none, max | 1500 | 1110000 | 0 | 47676 | 0 | 0 | 25250
+   none, mixed | 1500 | 1110000 | 0 | 31878 | 0 | 0 | 18022
+
+2. the instance of Proposition 9.3 against the recursion
+   f = 0.2, x_h = 0.7000, x_a = 0.3000, d = 3: h = 0.14461, a = 0.06475; 20000 runs, each followed until the lead X falls below -25 after slot 80, or a pure branch is held after slot 80
+     T =  10: frequency 0.8288, Qhat 0.8271, z +0.65
+     T =  20: frequency 0.6466, Qhat 0.6424, z +1.24
+     T =  40: frequency 0.4888, Qhat 0.4813, z +2.13
+     T =  60: frequency 0.3926, Qhat 0.3854, z +2.08
+     T =  80: frequency 0.3211, Qhat 0.3162, z +1.49
+   f = 0.15, x_h = 0.6774, x_a = 0.3226, d = 5: h = 0.10425, a = 0.05107; 20000 runs, each followed until the lead X falls below -25 after slot 80, or a pure branch is held after slot 80
+     T =  10: frequency 1.0000, Qhat 1.0000, z none (both are 1)
+     T =  20: frequency 0.8284, Qhat 0.8321, z -1.40
+     T =  40: frequency 0.6986, Qhat 0.7027, z -1.26
+     T =  60: frequency 0.6266, Qhat 0.6287, z -0.63
+     T =  80: frequency 0.5744, Qhat 0.5727, z +0.48

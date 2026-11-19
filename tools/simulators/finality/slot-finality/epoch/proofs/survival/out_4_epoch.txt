@@ -1,0 +1,26 @@
+1. per case: G* recomputed with the review's code and the review's value; the largest w_B: the study's law, this folder's, the circuit's
+   10 h (#533), a tenth offline read after the inference corrects: G* = 46910 (the review: 46910, out_14 line 28) | w_B: study's law 17215, here 17268 (state: a tenth of the honest stake offline, inference corrected, 10 s), circuit 17297
+   10 h (#533), a tenth offline read before it corrects: G* = 47483 (the review: 47483, out_14 line 31) | w_B: study's law 17654, here 17709 (state: a tenth offline before the inference corrects, 10 s), circuit 17739
+   18 h (base), a tenth offline read after the inference corrects: G* = 86187 (the review: 86187, out_14 line 34) | w_B: study's law 24645, here 24713 (state: 15 s and a tenth offline, corrected (base pair)), circuit 24758
+   18 h (base), a tenth offline read before it corrects: G* = 91167 (the review: 91167, out_14 line 37) | w_B: study's law 24471, here 24540 (state: 15 s and a tenth offline before the inference corrects), circuit 24584
+
+2. the epochs that suffice, E_suf = max(P, G* + w_B) + max(G*, 2 K - 1) with P = 388800, and G* + w_B + max(G*, 2 K - 1) with the window shortened
+   case | window shortened: with the study's law, with this folder's w_B, circuit | window kept: the same
+   10 h (#533), a tenth offline read after the inference corrects:
+      shortened: study's law 136124 slots ( 37.81 h) | here 136177 slots ( 37.83 h) (+53) | circuit 136206 slots ( 37.84 h) (+82)
+      kept:      study's law 460799 slots (128.00 h) | here 460799 slots (128.00 h) (+0) | circuit 460799 slots (128.00 h) (+0)
+   10 h (#533), a tenth offline read before it corrects:
+      shortened: study's law 137136 slots ( 38.09 h) | here 137191 slots ( 38.11 h) (+55) | circuit 137221 slots ( 38.12 h) (+85)
+      kept:      study's law 460799 slots (128.00 h) | here 460799 slots (128.00 h) (+0) | circuit 460799 slots (128.00 h) (+0)
+   18 h (base), a tenth offline read after the inference corrects:
+      shortened: study's law 240431 slots ( 66.79 h) | here 240499 slots ( 66.81 h) (+68) | circuit 240544 slots ( 66.82 h) (+113)
+      kept:      study's law 518399 slots (144.00 h) | here 518399 slots (144.00 h) (+0) | circuit 518399 slots (144.00 h) (+0)
+   18 h (base), a tenth offline read before it corrects:
+      shortened: study's law 245237 slots ( 68.12 h) | here 245306 slots ( 68.14 h) (+69) | circuit 245350 slots ( 68.15 h) (+113)
+      kept:      study's law 518399 slots (144.00 h) | here 518399 slots (144.00 h) (+0) | circuit 518399 slots (144.00 h) (+0)
+
+3. other figures of the review that read w_B, latest #533: with the study's law -> with this folder's w_B
+   all of the inferred stake builds, 15 s (review 10.3, second row): G* = 36736, phase 3 71999; epoch with the window shortened 125314 slots ( 34.81 h) -> 125379 slots ( 34.83 h); window kept 460799 slots (128.00 h) -> 460799 slots (128.00 h)
+   a late snapshot, all of the inferred stake building at 15 s (review 11.3): G* + w_B + gap = 312515 slots ( 86.81 h) -> 312580 slots ( 86.83 h)
+   a late snapshot, every state of the K row, a tenth offline read after the inference corrects: 323325 slots ( 89.81 h) -> 323378 slots ( 89.83 h)
+   a late snapshot, every state of the K row, a tenth offline read before it corrects: 324337 slots ( 90.09 h) -> 324392 slots ( 90.11 h)

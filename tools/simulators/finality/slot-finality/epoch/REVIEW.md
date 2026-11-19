@@ -9,10 +9,16 @@ This review states what bounds the Cryptarchia epoch from below when the finalit
 - The latest #533 sets $`K`$ to 36,000 slots and keeps the epoch at 648,000 slots. (Cited, 1.4.)
 - A phase that waits for a value cannot be shorter than $`K`$. At exactly $`K`$ the value is final in time only if two given slots hold blocks. (Proved, 4.6.)
 - For a chance of $`10^{-9}`$ the least such phase lies between $`K + 611`$ and $`K + 736`$ slots when all of the inferred stake builds. That is 10.17 to 10.20 hours at $`K`$ = 10 hours. In every state that the $`K`$ row names, a phase of 13.03 hours keeps its rule. When only blocks of the chain count, no phase shorter than 13.03 hours does. When every win is counted, no phase shorter than 10.48 hours does. (Proved, 5.4 and 5.5. Computed, 5.8 and 5.9. Assumed, 5.9.)
-- An epoch of 30.84 hours keeps every rule of the latest #533 with today's nonce. One of 121.03 hours does if the observation window of the stake inference keeps its 108 hours. (Proved, 10.2. Computed, 10.3. Assumed, 5.9, 9.4 and A10.) The buffer term of 4.78 hours rests on the finality study's survival law, which is not proved here. (Assumed, 9.4.)
-- No epoch shorter than 21.21 hours keeps these rules, or than 26.30 hours when only blocks of the chain count. With the window kept the bound is 118.48 hours, or 121.03 hours when only blocks of the chain count. These bounds do not rest on the survival law. (Proved, 10.2. Computed, 10.3. Assumed, 5.9 and A10.) So the least epoch lies between 21.21 and 30.84 hours, and between 118.48 and 121.03 hours with the window kept. (Proved, 10.2.)
-- These values take the state with a tenth of the honest stake offline after the inference has corrected to the stake that is online. The text of the $`K`$ row supports that reading. Taken before the inference corrects, the epochs that suffice are 31.28 hours, and 121.19 hours with the window kept. (Computed, 10.3. Assumed, 5.9.)
-- The present 180 hours are therefore not needed for finality: 30.84 hours suffice. (Proved, 10.2. Computed, 10.3. Assumed, 5.9, 9.4 and A10.) The rest buys margins. The values of each phase are final in time while 10.2 % and 13.8 % of the inferred stake builds. The inferred stake has a noise of 0.87 %. 5.6 % of targets meet two nonces. A coalition of 30 % gains 0.70 % in blocks by choosing among nonces. Every shortening spends part of these. (Computed, 10.4 and 10.6. Cited, RFC-532 105. Assumed, 10.6.)
+- The only argument here that the Bootstrap rule keeps a joining node on the honest chain is that of GENESIS. It needs phase 3 to last at least $`2K - 1`$ slots: 20.00 hours at $`K`$ = 10 hours, where 13.03 hours suffice for the value of phase 3. Whether a shorter phase 3 breaks the Bootstrap rule is not shown. (Cited, GENESIS 7.1 and 7.3. Computed, 10.3.)
+- An epoch of 37.83 hours keeps every rule of the epoch schedule of the latest #533 with today's nonce, and gives phase 3 those 20.00 hours. One of 128.00 hours does if the observation window of the stake inference keeps its 108 hours. (Proved, 10.2. Computed, 10.3. Assumed, 5.9, 9.4 and A10. Cited, GENESIS 7.1.)
+- The buffer term of 4.80 hours rests on a survival law that SURVIVAL proves. The law bounds the chance that an honest node holds a branch of the coalition's blocks $`T`$ slots after the branch left the honest blocks, and a recursion over slots computes it. The theorem assumes a random-oracle lottery with an unbiased nonce, delivery within the delay, honest nodes that run the Online rule, and that every honest block reaches an honest node as a descendant of that node's latest immutable block, which is the guarantee that sizes $`K`$. (Proved, 9.4 and SURVIVAL 6.1. Assumed, 9.4.)
+- The finality study's survival law is not an upper bound: the proved law exceeds it by 6 to 10 %. So every buffer is 45 to 69 slots longer than with the study's law. (Computed, 9.4.)
+- No epoch shorter than 21.21 hours keeps these rules, or than 26.30 hours when only blocks of the chain count. With the window kept the bound is 118.48 hours, or 121.03 hours when only blocks of the chain count. These bounds rest neither on the survival law nor on the condition on phase 3. (Proved, 10.2. Computed, 10.3. Assumed, 5.9 and A10.) So the least epoch lies between 21.21 and 37.83 hours, and between 118.48 and 128.00 hours with the window kept. (Proved, 10.2.)
+- These values take the state with a tenth of the honest stake offline after the inference has corrected to the stake that is online. The text of the $`K`$ row supports that reading. Taken before the inference corrects, the epochs that suffice are 38.11 hours, and 128.00 hours with the window kept. (Computed, 10.3. Assumed, 5.9.)
+- The present 180 hours are therefore not needed for these rules: 37.83 hours suffice. (Proved, 10.2. Computed, 10.3. Assumed, 5.9, 9.4 and A10.) The rest buys margins. The values of each phase are final in time while 10.2 % and 13.8 % of the inferred stake builds. The inferred stake has a noise of 0.87 %. 5.6 % of targets meet two nonces. A coalition of 30 % gains 0.70 % in blocks by choosing among nonces. Every shortening spends part of these. (Computed, 10.4 and 10.6. Cited, RFC-532 105. Assumed, 10.6.)
+- The conclusion of Theorem 2 of Ouroboros Genesis does not follow from the paper at the specification's delays. GENESIS argues it directly for the Bootstrap rule. Against a coalition of 30 %, a fork with no honest block in the density window wins the comparison with a chance of at most $`2.1\cdot10^{-13}`$ per divergence slot at 10 s and $`2.6\cdot10^{-10}`$ at 15 s, so these long-range forks meet $`10^{-9}`$. (Proved, 8.6 and GENESIS 6.2. Computed, 8.6. Assumed, 8.6.)
+- Against every fork the bound found is $`1.35\cdot10^{-7}`$ at 10 s and $`4.3\cdot10^{-5}`$ at 15 s, and does not meet $`10^{-9}`$. A window of 21,336 slots at 10 s or 33,729 slots at 15 s would meet it, and one of 33,181 or 51,560 slots over a year of history. At $`K`$ = 36,000 and 15 s no window meets it by these bounds. The bound rests on a reading of the settlement analysis of Gaži, Ren and Russell and on the finality study's settlement bound. An estimate of one real attack lies 1,500 to 2,900 times lower. (Proved, 8.6 and GENESIS 6.3. Computed, 8.6. Assumed, 8.6. Cited, 8.6.)
+- Posterior corruption is not prevented, because leadership keys do not evolve: keys of a further 4.8 % of the stake, bought later, lift the long-range bound above $`10^{-9}`$ at 10 s. (Cited, 8.6. Computed, 8.6.)
 
 ## 1. Setting
 
@@ -33,9 +39,11 @@ All line numbers are those of a file as `git show <branch>:<path>` prints it.
 
 The two branches differ in three files only: protocol, inference and RFC-533. (Cited: the diff of the two branches.)
 
-The paper is "Ouroboros Genesis: Composable Proof-of-Stake Blockchains with Dynamic Availability", full version of February 22, 2019 (IACR ePrint 2018/378).
+The paper is "Ouroboros Genesis: Composable Proof-of-Stake Blockchains with Dynamic Availability", full version of February 22, 2019 (IACR ePrint 2018/378). The settlement analysis of Gaži, Ren and Russell is "Practical Settlement Bounds for Longest-Chain Consensus" (IACR ePrint 2022/1571).
 
 The finality study is the package `finality_sim` and its stored runs under `tools/simulators/finality/` of the research repository. Section 13 gives the paths.
+
+Two proofs in this folder extend the review. SURVIVAL is `proofs/survival/SURVIVAL.md`, a proof of the survival law behind the buffer (section 9). GENESIS is `proofs/genesis/GENESIS.md`, an argument for the conclusion of Theorem 2 of Ouroboros Genesis under the specification's rules and parameters (section 8). They are cited by their own section numbers, for example SURVIVAL 6.1.
 
 ### 1.2 Symbols
 
@@ -95,6 +103,8 @@ Every numbered statement carries one label.
 - **Computed.** A script in this folder evaluates a formula that is proved or cited. The file and its lines are named. Binomial tails are evaluated in double precision. The floor's values are exact integers.
 - **Cited.** A statement of the specification, of an RFC, of the paper, or of a stored run of the finality study, with its place.
 - **Assumed.** Named as an assumption. A model, a design standard, or a reading of a text that is not the text's own statement.
+
+A statement proved in SURVIVAL or GENESIS is labelled Proved with its place there, and the assumptions it rests on are labelled Assumed with their place there. A number that GENESIS gives as an estimate, not a bound, is cited and called an estimate.
 
 In sections 0, 11 and 12 a sentence ends with its label and the statement it rests on.
 
@@ -419,7 +429,7 @@ Readings of the table. (Computed, from the rows above, except where marked.)
 | 15 s and a deflated inference (base only) | 100 % | 15 | | 65,537 (18.20 h) |
 | a tenth offline and a deflated inference (base only) | 100 % | 10 | | 65,526 (18.20 h) |
 
-Source: `out_09_epoch.txt`, lines 11 to 14 and 41 to 47. The largest value is 13.03 hours for the latest #533, which requires one disturbance at a time. It is 23.94 hours for the base, which requires two together.
+Source: `out_09_epoch.txt`, lines 11 to 14 and 40 to 46. The largest value is 13.03 hours for the latest #533, which requires one disturbance at a time. It is 23.94 hours for the base, which requires two together.
 
 The necessary values of 5.5 in the same states follow. A shorter gap fails with a chance above $`10^{-9}`$ (`out_14_bracket.txt`, lines 7 to 10 and 14 to 20).
 
@@ -435,7 +445,7 @@ The necessary values of 5.5 in the same states follow. A shorter gap fails with 
 
 The largest necessary values are 37,718 slots with every win counted and 46,894 with chain blocks only for the latest #533. They are 66,759 and 86,171 for the base.
 
-The second disturbance can be read in two ways: after the inference has corrected to the stake that is online, as above, or before it corrects. Before it corrects, $`D`$ is still the total, and $`x`$ = 0.63. Then $`G^*`$ is 13.19 hours at 10 hours and 23.53 hours at 18 (`out_09_epoch.txt`, lines 15 and 48). The necessary values at 10 hours are 40,531 slots with every win counted and 47,472 with chain blocks only (`out_14_bracket.txt`, line 12). $`w_B`$ is 17,654 slots (4.90 h) at 10 s (9.4). The epochs that suffice in 10.3 become 112,620 slots (31.28 h) and 436,283 slots (121.19 h) for the latest #533, and 57.45 and 133.32 hours for the base (`out_14_bracket.txt`, lines 32–33 and 38–39). (Computed; law Assumed.)
+The second disturbance can be read in two ways: after the inference has corrected to the stake that is online, as above, or before it corrects. Before it corrects, $`D`$ is still the total, and $`x`$ = 0.63. Then $`G^*`$ is 13.19 hours at 10 hours and 23.53 hours at 18 (`out_09_epoch.txt`, lines 15 and 47). The necessary values at 10 hours are 40,531 slots with every win counted and 47,472 with chain blocks only (`out_14_bracket.txt`, line 12). $`w_B`$ is 17,709 slots (4.92 h) at 10 s (9.4). With the window shortened, the epochs that suffice in 10.3 become 137,191 slots (38.11 h) for the latest #533 and 245,306 slots (68.14 h) for the base. With the window kept they stay 460,799 and 518,399 slots (128.00 and 144.00 h), because phase 3 then lasts $`2K - 1`$ slots (10.2) (`out_14_bracket.txt`, lines 32–33 and 38–39). (Computed. Assumed, 9.4.)
 
 The text of the $`K`$ row supports the first reading. (Assumed: a reading of protocol 104.)
 
@@ -465,13 +475,13 @@ nonces. Then:
 
 With $`L = K \le E`$ the share is exactly $`K/E`$: 36,000/648,000 = 5.56 % and 64,800/648,000 = 10 %. This is the RFCs' figure. The last $`K`$ slots of an epoch lie past the cut-off exactly when $`K \le G`$. (Proved.)
 
-**6.3 (Computed). Shorter epochs.** `out_05_targets.txt`, lines 5 to 19, gives $`K/E`$ for shorter epochs. An enumeration of 2,540 pairs $`(E, L)`$ agrees with 6.2 (line 1). The epochs of 121.03, 30.84 and 25.01 hours are schedules of 10.4 (`out_09_epoch.txt`, lines 23, 28, 29).
+**6.3 (Computed). Shorter epochs.** `out_05_targets.txt`, lines 5 to 19, gives $`K/E`$ for shorter epochs. An enumeration of 2,540 pairs $`(E, L)`$ agrees with 6.2 (line 1). The epochs of 128.00, 37.83 and 34.83 hours are schedules of 10.4 (`out_09_epoch.txt`, lines 23, 27, 28).
 
-| Epoch | 180 h | 121.03 h | 100 h | 90 h | 60 h | 45 h | 30.84 h | 25.01 h |
+| Epoch | 180 h | 128.00 h | 100 h | 90 h | 60 h | 45 h | 37.83 h | 34.83 h |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| $`K`$ = 10 h | 5.56 % | 8.26 % | 10.00 % | 11.11 % | 16.67 % | 22.22 % | 32.42 % | 39.98 % |
+| $`K`$ = 10 h | 5.56 % | 7.81 % | 10.00 % | 11.11 % | 16.67 % | 22.22 % | 26.44 % | 28.71 % |
 
-For the base, with $`K`$ = 18 hours, the share is 10 % at 180 hours, 18 % at 100 hours and 30 % at 60 hours (`out_05_targets.txt`, lines 5, 9, 12). It is 13.64 % and 32.89 % at the epochs that suffice for the base in 10.3, 131.94 and 54.73 hours (`out_09_epoch.txt`, lines 56 and 60).
+For the base, with $`K`$ = 18 hours, the share is 10 % at 180 hours, 18 % at 100 hours and 30 % at 60 hours (`out_05_targets.txt`, lines 5, 9, 12). It is 12.50 % and 26.94 % at the epochs that suffice for the base in 10.3, 144.00 and 66.81 hours (`out_09_epoch.txt`, lines 55 and 58).
 
 - An epoch shorter than $`K`$ would make every target meet two nonces or more (6.2). The schedules of section 10 all have $`E \ge 2K`$. (Proved, 10.2.)
 - A race that lasts longer than $`K`$ reaches more targets. A race of 13 hours meets two nonces for 7.22 % of targets at today's epoch (`out_05_targets.txt`, line 25). 13.03 hours is the latest race while 30 % withholds at 15 s (5.8).
@@ -553,7 +563,7 @@ At $`K`$ = 10 hours a window of 36 hours keeps the chance at $`6.3 \cdot 10^{-11
 
 **7.8 (Computed). The price of a deflation.** A coalition deflates the inference by withholding every block for one observation window (Cited: RFC-533 57). It gives up its wins of the window, $`(1 - (1-f)^{0.3})\,P`$: 3,934 at 108 hours, 1,967 at 54 hours, 656 at 18 hours and 364 at 10 hours (`out_06_inference.txt`, lines 72–79). The price is proportional to the window.
 
-## 8. What the proof of Ouroboros Genesis needs of the schedule
+## 8. Ouroboros Genesis: what its proof needs of the schedule, and what holds
 
 **8.1 (Cited). The theorem.** Theorem 2 of the paper (section 4.3) considers the protocol with the chain selection rule `maxvalid-bg`, in the setting with static $`\mathcal{F}_\text{N-MC}`$-registration, where every honest party is online from the start. It assumes the conditions of Theorem 1 and
 
@@ -596,7 +606,16 @@ For the specification: $`2s_{gen}`$ = 32,400 slots. $`K - 2s_{gen}`$ is 3,600 sl
 
 So the theorem does not cover the specification's $`\Delta`$ = 10 slots or $`T_M`$ = 15 slots.
 
-**8.6 (What is not proved).** That the conclusion of Theorem 2 holds for the specification's rules and parameters is not proved here, and it does not follow from the paper. 8.4 proves only that the two facts which the proof reads of the schedule hold.
+**8.6 (Proved, GENESIS 2.4, 6.2 to 8.1 and 9.1; Computed, GENESIS 6.2 to 10.4; Assumed, GENESIS 3). The conclusion of Theorem 2 at the specification's parameters.** The conclusion does not follow from the paper (8.5). GENESIS gives an argument of its own for a node that bootstraps under the Bootstrap rule. Its target is that the node holds, when it switches to the Online rule, a chain at least as long as the honest chain that left it less than $`K`$ slots before its own tip. Then `commit` fixes only blocks of the honest chain (Proved, GENESIS 2.4). A divergence slot is the slot of the last block that a fork shares with the chain it is compared with. The figures are for a coalition of 30 %.
+
+- The reduction. While the Online rule keeps its own guarantee, the node misses the target only if a fork is at least as dense as a dominant chain in the $`s_{gen}`$ slots after a divergence slot of its history, or two dominant chains differ on a slot $`K - 1`$ or more slots before the switch, or honest stake wins no slot for nearly $`K`$ slots. This needs $`s_{gen} \le K - 1`$ and $`2K \le G + 1`$, that is a phase 3 of at least $`2K - 1`$ slots (10.1), and not $`2s_{gen} \le K`$. (Proved, GENESIS 7.1.)
+- Long-range forks, with no honest block in the window, meet $`10^{-9}`$ per divergence slot. The bound is $`2.1\cdot10^{-13}`$ at 10 s and $`2.6\cdot10^{-10}`$ at 15 s. In every state of the $`K`$ row it is at most $`9.0\cdot10^{-10}`$. (Proved, GENESIS 6.2. Computed, GENESIS 6.2 and 10.4. Assumed, 5.9.) Over a year of history at 10 s the bound is $`3.1\cdot10^{-8}`$. (Computed, GENESIS 8.2.)
+- Every fork. The bound per divergence slot is the finality study's settlement bound at a wait of $`s_{gen} - 1`$ slots, plus terms that are negligible at $`s_{gen}`$: $`1.35\cdot10^{-7}`$ at 10 s and $`4.3\cdot10^{-5}`$ at 15 s. It does not meet $`10^{-9}`$. (Proved, GENESIS 6.3. Computed, GENESIS 6.3.)
+- The window it would need is 21,336 slots at 10 s and 33,729 slots at 15 s per divergence slot, and 33,181 and 51,560 slots over a year of history. (Computed, GENESIS 6.3 and 8.2.) At $`K`$ = 64,800 all four fit. At $`K`$ = 36,000 the two at 10 s fit. At 15 s no window meets $`10^{-9}`$ at $`K`$ = 36,000 by these bounds. The settlement bound meets it per divergence slot only from 33,729 slots. From there on, the smaller of the two bounds for the case in which the dominant chain has no honest block after the window is the finality study's settlement bound at a delay of 16 slots and a wait of $`K - 1`$ slots, $`2.1\cdot10^{-9}`$ for all divergence slots together. (Computed, GENESIS 6.3, 7.2 and 8.2.)
+- The bound for every fork rests on GENESIS's A6. Two dominant chains that share no block from some slot on make the margin of Gaži, Ren and Russell for that slot non-negative. This follows from their Definitions 4 and 11, with both chains taken to end one slot before the comparison, which costs one slot. That the finality study's settlement bound covers the margin at every slot is the study's construction, not their statement, and GENESIS does not check it. (Assumed, GENESIS 3, A6. Cited, GENESIS 3, A6.)
+- An attack that splits the honest nodes for the whole window leaves a fork that wins the density comparison, in the model of Gaži, Ren and Russell, where ties are broken for the coalition. (Proved, GENESIS 6.4.) The finality study's figures put its chance at about $`4.7\cdot10^{-11}`$ at 10 s and $`3.0\cdot10^{-8}`$ at 15 s per divergence slot. These are estimates, not bounds. They lie 2,900 and 1,500 times below the bound for every fork. (Cited, GENESIS 6.4.)
+- Posterior corruption is not prevented, because leadership keys do not evolve. Whoever later holds the key of a note can sign the slots that note wins on any fork where it is unspent. On a fork from a divergence slot the tickets are those of the honest chain, so an acquired note wins exactly the slots it won as an honest note. Keys of a further 4.8 % of the window's stake lift the long-range bound above $`10^{-9}`$ at 10 s. With acquired wins independent of the honest ones it would be 3.9 %. (Cited, GENESIS 4.5. Proved, GENESIS 9.1. Computed, GENESIS 9.2.)
+- Every bound holds in GENESIS's model: independent tickets, an unbiased nonce, delivery within the delay, the Online rule's guarantee up to the switch, and keys of at most 30 % of each epoch's stake in the coalition's hands, which the specification does not enforce. (Assumed, GENESIS 3.)
 
 ## 9. The buffer
 
@@ -617,23 +636,30 @@ $$
 
 *Proof.* (1) A block between them with a slot of at most $`a`$ is not honest by the choice of $`H_0`$. One with a slot in $`(a, a+w]`$ is not honest by the hypothesis. One with a later slot is not honest by the choice of $`H_1`$. (2) $`H_1`$ is honest, so its leader built it on its local chain, which is the final chain up to the parent of $`H_1`$. If there is no $`H_1`$, the branch is held from then on. The bound is the union over the slot $`a - t`$ of $`H_0`$: that slot is won by honest stake with chance at most $`h`$, and the branch then lasts at least $`w + t`$ slots. ∎
 
-**9.4 (Computed; the law is Assumed).** This review does not derive $`\mathrm{survival}`$. It takes the finality study's `branch_survival` (module `formation`, lines 390–405): the chance, in the study's worst-case delay model, that a branch from an honest block can still be published $`T`$ slots later. `s08_buffer.py` evaluates it on a grid and sums it as in 9.3. $`w_B`$ is the least $`w`$ at which the bound is at most $`10^{-9}`$ (`out_08_buffer.txt`). In each state the chance $`h`$ of 9.3 is $`1 - (1-f)^x`$, with the building share $`x`$ of 5.9. The header line of each state in the output gives it.
+**9.4 (Proved, SURVIVAL 6.1 and 8.1; Computed; Assumed, SURVIVAL A1 to A5).** The law of 9.3 is proved in SURVIVAL. Fix a slot $`s_0`$ and $`T \ge d`$. The chance that slot $`s_0`$ holds an honest block $`H_0`$ and that some honest node holds, at some slot of at least $`s_0 + T`$, a local chain whose blocks after $`H_0`$ are all the coalition's, is at most $`h\,\hat Q(T)`$ (Proved, SURVIVAL 6.1). $`\hat Q(T)`$ is the chance of an event of the lottery alone. A recursion over slots computes it from above and from below (Proved, SURVIVAL 6.3 to 6.7). So $`\mathrm{survival} = \hat Q`$ in 9.3, and $`w_B`$ is the least $`w`$ with $`h \sum_{t \ge 0} \hat Q(w + t) \le 10^{-9}`$ (Proved, SURVIVAL 8.1). In each state the chance $`h`$ is $`1 - (1-f)^x`$, with the building share $`x`$ of 5.9.
 
-| State, coalition of 30 % | $`w_B`$ | Line |
-| --- | --- | --- |
-| no disturbance, 10 s | 12,242 slots, 3.40 h | 14 |
-| every honest block 15 s late | 16,579 slots, 4.61 h | 25 |
-| a tenth of the honest stake offline, 10 s | 17,215 slots, 4.78 h | 36 |
-| deflated inference, 10 s | 11,126 slots, 3.09 h | 47 |
-| 15 s and a tenth offline | 24,645 slots, 6.85 h | 58 |
-| 15 s and a deflated inference | 18,081 slots, 5.02 h | 69 |
-| a tenth offline and a deflated inference, 10 s | 16,452 slots, 4.57 h | 80 |
-| a tenth offline before the inference corrects, 10 s | 17,654 slots, 4.90 h | 113 |
-| 15 s and a tenth offline before the inference corrects | 24,471 slots, 6.80 h | 124 |
+The theorem holds in a model with five assumptions (Assumed, SURVIVAL 2). A1: the ticket hash acts as a random oracle, and the nonce is fixed and unbiased. A2: the shares of $`D`$ do not change during the period. A3: every honest block reaches every honest node, with its chain, within $`d`$ slots. A4: the honest nodes run the Online rule. A5: every honest block, and every block of its chain, that reaches an honest node descends from that node's $`B_\text{imm}`$ or is $`B_\text{imm}`$. A5 is the guarantee that sizes $`K`$.
 
-For a coalition of a third, $`w_B`$ is 5.73 hours at 10 s and 8.49 hours at 15 s (lines 91, 102). The finality study's stored run `slot-finality/nonce/survival_table.out` gives the same survival values (Cited: for example its lines 7 and 19 against lines 8 and 20 here). On a grid of 150 slots in place of 900, no value of $`w_B`$ changes by more than one slot (lines 126 to 137).
+`s08_buffer.py` reads $`w_B`$ from SURVIVAL's output, and computes it for a third with SURVIVAL's code (`out_08_buffer.txt`, lines 139–150).
 
-So in every state of the latest #533 the buffer needs at least 903 slots (9.2), and 4.78 hours suffice (9.4).
+| State, coalition of 30 % | $`w_B`$ | The finality study's law | Line |
+| --- | --- | --- | --- |
+| no disturbance, 10 s | 12,295 slots, 3.42 h | 12,242 slots | 140 |
+| every honest block 15 s late | 16,644 slots, 4.62 h | 16,579 slots | 141 |
+| a tenth of the honest stake offline, 10 s | 17,268 slots, 4.80 h | 17,215 slots | 142 |
+| deflated inference, 10 s | 11,171 slots, 3.10 h | 11,126 slots | 143 |
+| 15 s and a tenth offline | 24,713 slots, 6.86 h | 24,645 slots | 144 |
+| 15 s and a deflated inference | 18,142 slots, 5.04 h | 18,081 slots | 145 |
+| a tenth offline and a deflated inference, 10 s | 16,497 slots, 4.58 h | 16,452 slots | 146 |
+| a tenth offline before the inference corrects, 10 s | 17,709 slots, 4.92 h | 17,654 slots | 149 |
+| 15 s and a tenth offline before the inference corrects | 24,540 slots, 6.82 h | 24,471 slots | 150 |
+
+- For a coalition of a third, $`w_B`$ is 5.75 hours at 10 s and 8.51 hours at 15 s (lines 147–148).
+- The finality study's law `branch_survival` (module `formation`, lines 390–405) is not an upper bound. $`\hat Q`$ exceeds it by a factor of 1.062 to 1.102 at every whole hour from 1 to 6 in every state, that is by 6 to 10 %. (Computed, SURVIVAL 9.4.) The law counts an honest block when it is made, not when every honest node must hold it, and it does not count a branch that an honest node keeps on a tie. (Proved, SURVIVAL 9.2.)
+- An adversary attains $`\hat Q`$ up to a factor of $`1 - 5.43\cdot10^{-4}`$ and a term below $`4.0\cdot10^{-15}`$, in an instance with many honest nodes. (Proved, SURVIVAL 9.3. Computed, SURVIVAL 9.4.)
+- With the proved law every $`w_B`$ is 45 to 69 slots longer than with the study's law (lines 140–150).
+
+So in every state of the latest #533 the buffer needs at least 903 slots (9.2), and 4.80 hours suffice (9.4).
 
 ## 10. The least epoch
 
@@ -644,6 +670,7 @@ So in every state of the latest #533 the buffer needs at least 903 slots (9.2), 
 - L. Phase 3 waits for $`\eta`$ and $`D`$ to finalize. They are used from the first slot of the next epoch (protocol 155, 157).
 - I. The observation window is the first `PERIOD` slots of the epoch and ends at the cut-off (protocol 237, inference 55).
 - Bounds on $`K`$ that do not read the epoch: $`K > W \cdot f^{-1}`$, $`K > T_\text{offline}`$, $`K \ge 2s_{gen}`$ (protocol 104, 109; bootstrap 110; fork choice 80).
+- J. The Bootstrap rule keeps a joining node on the honest chain (bootstrap 36). The only argument for it here is that of 8.6. That argument needs a phase 3 of at least $`2K - 1`$ slots and $`s_{gen} \le K - 1`$ (Cited: GENESIS 7.1 and 7.3). A schedule meets J when it meets both conditions. Whether the condition on phase 3 is necessary is not shown.
 
 **(Assumed, A10.)** The specification sets no standard for "in time". RFC-532 says that what a node does when a value is not final at the end of its phase is specified under neither rule (Cited: line 308). This review takes the standard by which $`K`$ and $`\phi`$ are sized: a rule is kept when it fails with a chance of at most $`\varepsilon = 10^{-9}`$, at a building share $`x`$ and a delay $`d`$.
 
@@ -652,69 +679,74 @@ So in every state of the latest #533 the buffer needs at least 903 slots (9.2), 
 1. S and L are kept if $`L_1 \ge G^*(x, d)`$ and $`L_3 \ge G^*(x, d)`$, by 5.4. They are not kept if $`L_1`$ or $`L_3`$ is below the necessary value of 5.5.
 2. B is kept if $`L_2 \ge w_B`$, by 9.3 with the law of 9.4. It is not kept if $`L_2 < 611.28/x`$, by 9.2.
 3. I needs $`P \le L_1 + L_2`$.
+4. J is met if $`L_3 \ge 2K - 1`$, because $`s_{gen}`$ = 16,200 is at most $`K - 1`$ at both values of $`K`$. Nothing here shows that the Bootstrap rule fails when $`L_3 < 2K - 1`$.
 
 Over the states that the $`K`$ row requires, let $`G^*`$ and $`w_B`$ be the largest values of 5.9 and 9.4. Let $`G_\text{nec}`$ be the largest necessary value of 5.5, and $`w_\text{nec}`$ the largest necessary span of 9.2. Then an epoch of
 
 $$
-E_\text{suf} = \max\big(P,\ G^* + w_B\big) + G^*
+E_\text{suf} = \max\big(P,\ G^* + w_B\big) + \max\big(G^*,\ 2K - 1\big)
 $$
 
-keeps S, B, L and I in every such state. No epoch shorter than
+keeps S, B, L and I in every such state, and meets J. No epoch shorter than
 
 $$
 E_\text{nec} = \max\big(P,\ G_\text{nec} + w_\text{nec}\big) + G_\text{nec}
 $$
 
-keeps them. The least epoch lies between them. $`G_\text{nec}`$ is the value of 5.5 (1) when every win is counted, and the larger value of 5.5 (2) when only blocks of the chain count. When the window is shortened to phases 1 and 2, $`P`$ drops out of both.
+keeps S, B, L and I. The least epoch that keeps S, B, L and I and meets J lies between them. $`G_\text{nec}`$ is the value of 5.5 (1) when every win is counted, and the larger value of 5.5 (2) when only blocks of the chain count. When the window is shortened to phases 1 and 2, $`P`$ drops out of both.
+
+The condition $`L_3 \ge 2K - 1`$ enters $`E_\text{suf}`$ and not $`E_\text{nec}`$. It is a condition of the only argument for J that this review has. It is not a proven necessity.
 
 $`E_\text{suf}`$ also has $`K \le L_1`$ and $`K \le L_3`$ (4.6), a gap of at least $`2s_{gen}`$ (8.4), and $`E \ge 2K`$, so that a race of $`K`$ slots meets at most two nonces (6.2).
 
-*Proof.* Each line restates the statement it names, with the read slot and the use slot of 4.2 for the phase. The bounds of 5.4, 5.5, 9.2 and 9.3 do not grow when the span grows.
+*Proof.* Lines 1 to 3 restate the statements they name, with the read slot and the use slot of 4.2 for the phase. The bounds of 5.4, 5.5, 9.2 and 9.3 do not grow when the span grows. Line 4 restates J (10.1): the gap $`G`$ of GENESIS is phase 3 (1.2, 4.2), and GENESIS 7.1 and 7.3 hold for every gap with $`2K \le G + 1`$ when $`s_{gen} \le K - 1`$.
 
-Upper side. Phases of $`G^*`$, $`w_B`$ and $`G^*`$ slots meet the sufficient conditions of 1 and 2 in every state. A longer phase 1 or 2 still meets them, so phases 1 and 2 can be lengthened to hold a window of $`P`$ slots, as 3 requires. The sum is $`E_\text{suf}`$.
+Upper side. Phases of $`G^*`$, $`w_B`$ and $`\max(G^*, 2K - 1)`$ slots meet the sufficient conditions of 1, 2 and 4 in every state. A longer phase 1 or 2 still meets them, so phases 1 and 2 can be lengthened to hold a window of $`P`$ slots, as 3 requires. The sum is $`E_\text{suf}`$.
 
-Lower side. A schedule that keeps the rules in every state has $`L_1 \ge G_\text{nec}`$, $`L_3 \ge G_\text{nec}`$ and $`L_2 \ge w_\text{nec}`$ by 1 and 2, and $`L_1 + L_2 \ge P`$ by 3. So $`L_1 + L_2 + L_3 \ge E_\text{nec}`$.
+Lower side. A schedule that keeps S, B, L and I in every state has $`L_1 \ge G_\text{nec}`$, $`L_3 \ge G_\text{nec}`$ and $`L_2 \ge w_\text{nec}`$ by 1 and 2, and $`L_1 + L_2 \ge P`$ by 3. So $`L_1 + L_2 + L_3 \ge E_\text{nec}`$.
 
 Last, the bound of 5.4 is at least the chance it bounds, so $`G^* \ge K - 1 + 611.28/x > K`$ by 5.5 (3). And $`K \ge 2s_{gen}`$ by the rule on $`K`$. ∎
 
-**10.3 (Computed). The values.** The epochs that suffice, $`E_\text{suf}`$: `out_09_epoch.txt`, lines 4–8, 17–18, 34–38 and 50–51.
+**10.3 (Computed). The values.** The epochs that suffice, $`E_\text{suf}`$: `out_09_epoch.txt`, lines 4–8, 17–18, 33–37 and 49–50. Phase 3 is $`\max(G^*, 2K - 1)`$: at least 71,999 slots (20.00 h) at $`K`$ = 36,000 and 129,599 slots (36.00 h) at 64,800 (lines 2 and 31).
 
-| Case | $`G^*`$ | $`w_B`$ | Epoch that suffices, window shortened to $`G^* + w_B`$ | Epoch that suffices, window kept at 108 h |
-| --- | --- | --- | --- | --- |
-| latest #533, every state of the $`K`$ row | 13.03 h | 4.78 h | 111,035 slots, 30.84 h | 435,710 slots, 121.03 h |
-| latest #533, all of the inferred stake builds, 15 s | 10.20 h | 4.61 h | 25.01 h | 118.20 h |
-| latest #533, a half builds, 15 s | 17.05 h | 4.61 h | 38.71 h | 125.05 h |
-| latest #533, a quarter builds, 15 s | 31.14 h | 4.61 h | 66.88 h | 139.14 h |
-| base, every state of its $`K`$ row | 23.94 h | 6.85 h | 197,019 slots, 54.73 h | 474,987 slots, 131.94 h |
-| base, all of the inferred stake builds, 15 s | 18.20 h | 4.61 h | 41.01 h | 126.20 h |
+| Case | $`G^*`$ | $`w_B`$ | Phase 3 | Epoch that suffices, window shortened to $`G^* + w_B`$ | Epoch that suffices, window kept at 108 h |
+| --- | --- | --- | --- | --- | --- |
+| latest #533, every state of the $`K`$ row | 13.03 h | 4.80 h | 20.00 h | 136,177 slots, 37.83 h | 460,799 slots, 128.00 h |
+| latest #533, all of the inferred stake builds, 15 s | 10.20 h | 4.62 h | 20.00 h | 34.83 h | 128.00 h |
+| latest #533, a half builds, 15 s | 17.05 h | 4.62 h | 20.00 h | 41.68 h | 128.00 h |
+| latest #533, a quarter builds, 15 s | 31.14 h | 4.62 h | 31.14 h | 66.90 h | 139.14 h |
+| base, every state of its $`K`$ row | 23.94 h | 6.86 h | 36.00 h | 240,499 slots, 66.81 h | 518,399 slots, 144.00 h |
+| base, all of the inferred stake builds, 15 s | 18.20 h | 4.62 h | 36.00 h | 58.83 h | 144.00 h |
 
 The bounds of 10.2 over every state of the $`K`$ row, $`E_\text{nec}`$ and $`E_\text{suf}`$ (`out_14_bracket.txt`, lines 28 to 39):
 
 | Case | Window shortened: no shorter epoch keeps the rules, every win counted; chain blocks only | Window shortened: suffices | Window kept: no shorter epoch keeps the rules, every win counted; chain blocks only | Window kept: suffices |
 | --- | --- | --- | --- | --- |
-| latest #533 | 76,339 slots, 21.21 h; 94,691 slots, 26.30 h | 111,035 slots, 30.84 h | 426,518 slots, 118.48 h; 435,694 slots, 121.03 h | 435,710 slots, 121.03 h |
-| latest #533, a tenth offline read before the inference corrects | 82,033 slots, 22.79 h; 95,915 slots, 26.64 h | 112,620 slots, 31.28 h | 429,331 slots, 119.26 h; 436,272 slots, 121.19 h | 436,283 slots, 121.19 h |
-| base | 134,421 slots, 37.34 h; 173,245 slots, 48.12 h | 197,019 slots, 54.73 h | 455,559 slots, 126.54 h; 474,971 slots, 131.94 h | 474,987 slots, 131.94 h |
-| base, a tenth offline read before the inference corrects | 144,441 slots, 40.12 h; 183,273 slots, 50.91 h | 206,805 slots, 57.45 h | 460,535 slots, 127.93 h; 479,951 slots, 133.32 h | 479,967 slots, 133.32 h |
+| latest #533 | 76,339 slots, 21.21 h; 94,691 slots, 26.30 h | 136,177 slots, 37.83 h | 426,518 slots, 118.48 h; 435,694 slots, 121.03 h | 460,799 slots, 128.00 h |
+| latest #533, a tenth offline read before the inference corrects | 82,033 slots, 22.79 h; 95,915 slots, 26.64 h | 137,191 slots, 38.11 h | 429,331 slots, 119.26 h; 436,272 slots, 121.19 h | 460,799 slots, 128.00 h |
+| base | 134,421 slots, 37.34 h; 173,245 slots, 48.12 h | 240,499 slots, 66.81 h | 455,559 slots, 126.54 h; 474,971 slots, 131.94 h | 518,399 slots, 144.00 h |
+| base, a tenth offline read before the inference corrects | 144,441 slots, 40.12 h; 183,273 slots, 50.91 h | 245,306 slots, 68.14 h | 460,535 slots, 127.93 h; 479,951 slots, 133.32 h | 518,399 slots, 144.00 h |
 
-- "Every state of the $`K`$ row" takes the largest values over the states that the row requires: one disturbance at a time for the latest #533, two together for the base. The upper side takes $`G^*`$ from 5.9 and $`w_B`$ from 9.4. The lower side takes the necessary values of 5.9 and 9.2. For the latest #533 these are 37,718 slots with every win counted, 46,894 with chain blocks only, and 903 slots for the buffer.
-- The lower side does not rest on the survival law of 9.4. When only blocks of the chain count and the window is kept, both sides are 121.03 hours.
+- "Every state of the $`K`$ row" takes the largest values over the states that the row requires: one disturbance at a time for the latest #533, two together for the base. The upper side takes $`G^*`$ from 5.9, $`w_B`$ from 9.4, and phase 3 at $`\max(G^*, 2K - 1)`$. The lower side takes the necessary values of 5.9 and 9.2. For the latest #533 these are 37,718 slots with every win counted, 46,894 with chain blocks only, and 903 slots for the buffer.
+- The lower side rests neither on the survival law of 9.4 nor on J. When only blocks of the chain count and the window is kept, it is 121.03 hours. The upper side is 128.00 hours, because J sets phase 3.
+- In every row but "a quarter builds", J sets phase 3. Over the $`K`$ row it adds $`2K - 1 - G^*`$ slots to the epoch: 25,089 slots (6.97 h) for the latest #533, and 43,412 slots (12.06 h) for the base (`out_14_bracket.txt`, lines 28 and 34).
 - A second computation, with the binomial tails summed in log space, gives the same necessary values and the same $`G^*`$ in every state (`out_14_bracket.txt`, lines 50–65).
-- The epoch of 25.01 hours is below $`6s_{gen}`$ = 27 hours, the bound $`R \ge 6s`$ of Theorem 2 as written (8.1). It meets the proof's use of that bound (8.4). The epoch of 30.84 hours meets both.
-- With the window kept, phases 1 and 2 stay at 108 hours together, and only phase 3 shrinks.
-- For a node's own draw of the lottery at the use slot, each waiting phase needs $`d`$ more slots (5.10): 46,925 slots, and an epoch of 111,065 slots (30.85 h) (`out_14_bracket.txt`, line 42).
+- Every epoch that suffices is at least 34.83 hours, above $`6s_{gen}`$ = 27 hours, the bound $`R \ge 6s`$ of Theorem 2 as written (8.1) (`out_09_epoch.txt`, lines 4 and 19). A phase 3 of $`2K - 1`$ slots also meets the proof's use of that bound (8.4), because $`K \ge 2s_{gen}`$.
+- With the window kept, phases 1 and 2 stay at 108 hours together, and only phase 3 shrinks, to 20.00 hours.
+- For a node's own draw of the lottery at the use slot, each waiting phase needs $`d`$ more slots (5.10): 46,925 slots for phase 1. Phase 3 stays at $`2K - 1`$ slots, and the epoch is 136,192 slots (37.83 h) (`out_14_bracket.txt`, line 42).
+- The bounds of 8.6 were computed at today's phase 3 of 259,200 slots, which one of their terms reads. At a phase 3 of $`2K - 1`$ slots, against 30 %, every bound and window that 8.6 gives stays the same at both values of $`K`$ but one. At $`K`$ = 36,000 and 15 s no window over a year meets $`10^{-9}`$ even from the cells alone, where today's phase 3 gives 51,560 slots. 8.6 finds no window at that $`K`$ and delay in either case. (`out_14_bracket.txt`, lines 67–76.)
 
-**10.4 (Computed). What each schedule costs.** `out_09_epoch.txt`, lines 22–29, for the latest #533. Each row is a schedule. The columns are defined below the table.
+**10.4 (Computed). What each schedule costs.** `out_09_epoch.txt`, lines 22–28, for the latest #533. Each row is a schedule. The columns are defined below the table. Every schedule of the table gives phase 3 at least $`2K - 1`$ slots and meets J (the last column of the output).
 
 | Schedule (phases, hours) | Epoch | Window | Least share, phase 1 and phase 3 | Two nonces | Noise of $`D`$ | Fewer than 689 blocks in $`K`$ | Noise past 1.094 | No correction for | New stake waits |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | today: 54 + 54 + 72 | 180 h | 108 h | 13.80 %, 10.20 % | 5.56 % | 0.868 % | $`1.4 \cdot 10^{-8}`$ | $`3.8 \cdot 10^{-29}`$ | 252 h | 180 to 360 h |
-| phase 3 at $`G^*`$: 54 + 54 + 13.03 | 121.03 h | 108 h | 13.80 %, 70 % | 8.26 % | 0.868 % | $`1.4 \cdot 10^{-8}`$ | $`3.8 \cdot 10^{-29}`$ | 134 h | 121 to 242 h |
+| phase 3 at the value that suffices: 54 + 54 + 20.00 | 128.00 h | 108 h | 13.80 %, 41.35 % | 7.81 % | 0.868 % | $`1.4 \cdot 10^{-8}`$ | $`3.8 \cdot 10^{-29}`$ | 148 h | 128 to 256 h |
 | $`3K`$, $`3K`$, $`4K`$: 30 + 30 + 40 | 100 h | 60 h | 26.05 %, 19.02 % | 10.00 % | 1.165 % | $`2.7 \cdot 10^{-8}`$ | $`5.2 \cdot 10^{-17}`$ | 140 h | 100 to 200 h |
 | halved: 27 + 27 + 36 | 90 h | 54 h | 29.30 %, 21.32 % | 11.11 % | 1.228 % | $`3.2 \cdot 10^{-8}`$ | $`1.7 \cdot 10^{-15}`$ | 126 h | 90 to 180 h |
 | a third: 18 + 18 + 24 | 60 h | 36 h | 46.85 %, 33.48 % | 16.67 % | 1.504 % | $`6.6 \cdot 10^{-8}`$ | $`6.3 \cdot 10^{-11}`$ | 84 h | 60 to 120 h |
-| every phase at $`G^*`$ or $`w_B`$: 13.03 + 4.78 + 13.03 | 30.84 h | 17.81 h | 70 %, 70 % | 32.42 % | 2.138 % | $`4.1 \cdot 10^{-7}`$ | $`3.0 \cdot 10^{-6}`$ | 44 h | 31 to 62 h |
-| the same with all of the stake building: 10.20 + 4.61 + 10.20 | 25.01 h | 14.81 h | 99.98 %, 99.98 % | 39.98 % | 2.344 % | $`7.4 \cdot 10^{-7}`$ | $`1.8 \cdot 10^{-5}`$ | 35 h | 25 to 50 h |
+| every phase at the value that suffices: 13.03 + 4.80 + 20.00 | 37.83 h | 17.83 h | 70 %, 41.35 % | 26.44 % | 2.137 % | $`4.0 \cdot 10^{-7}`$ | $`3.1 \cdot 10^{-6}`$ | 58 h | 38 to 76 h |
+| the same with all of the stake building: 10.20 + 4.62 + 20.00 | 34.83 h | 14.83 h | 99.98 %, 41.35 % | 28.71 % | 2.343 % | $`7.3 \cdot 10^{-7}`$ | $`1.8 \cdot 10^{-5}`$ | 55 h | 35 to 70 h |
 
 - "Least share": the least building share at which 5.4 certifies the value of phase 1, and of phase 3, final in time but for $`10^{-9}`$, at 15 s.
 - "Two nonces": the share of targets whose race of $`K`$ slots meets two nonces (6.2).
@@ -724,24 +756,24 @@ The bounds of 10.2 over every state of the $`K`$ row, $`E_\text{nec}`$ and $`E_\
 - "No correction for": the longest time for which a change of the active stake leaves $`D`$ untouched, $`E + L_3`$. A change just after a cut-off is first counted in the next epoch's window, and the $`D`$ computed from that window is first used at the start of the epoch after it, $`L_3 + E`$ slots after the change. (Proved from 4.1.)
 - "New stake waits": from a note's creation to the first slot in which it may lead. A note may lead once it was in the note set at the beginning of the previous epoch (Cited: protocol 173), so it waits between $`E`$ and $`2E`$. (Proved from that rule.)
 
-For the base, the same rows are in `out_09_epoch.txt`, lines 55–61.
+For the base, the same rows are in `out_09_epoch.txt`, lines 54–59. There the schedule at a third has a phase 3 of 24 hours, below the 36.00 hours of J (line 57).
 
 **10.5 (Cited). Other readers of the epoch.** These texts read the epoch's length or its boundaries. A schedule that changes the length changes each of them.
 
 - Blend defines its epoch as 648,000 slots and derives 21,600 blocks from it (`blend-protocol.md` 115, 476, 669–672).
 - The service declaration protocol reads the registry at the last block of epoch $`n - 2`$ at the start of epoch $`n`$, and takes that epoch as finalized (`bedrock-service-declaration-protocol.md` 71, 131–132). This needs $`E \ge G^*`$, which every schedule of 10.4 meets. (Proved from that reading.)
 - Proof of work credits its reward pool at each epoch boundary, takes the expected blocks per epoch from the epoch's length, and computes a difficulty at the cut-off of epoch $`N - 1`$ from the blocks of epoch $`N - 2`$ (`proof-of-work.md` 113, 126, 180, 215).
-- Leader rewards add the vouchers of an epoch to the voucher tree in the first block of the next epoch, to guarantee a minimal anonymity set (`bedrock-anonymous-leaders-reward.md` 38). The set is the blocks of an epoch: 21,600 at 180 hours and 3,701 at 30.84 hours (`out_09_epoch.txt`, lines 22 and 28).
+- Leader rewards add the vouchers of an epoch to the voucher tree in the first block of the next epoch, to guarantee a minimal anonymity set (`bedrock-anonymous-leaders-reward.md` 38). The set is the blocks of an epoch: 21,600 at 180 hours and 4,539 at 37.83 hours (`out_09_epoch.txt`, lines 22 and 27).
 - The storage market bounds a price change at 12.5 % between two epochs (`storage-markets.md` 128).
 - The block rewards document takes an epoch of 7.5 days (`block-rewards.md` 141).
 
-**10.6 (Computed). What a shorter epoch gives a coalition that chooses among nonces.** RFC-532 gives the gain of a coalition of 30 % that keeps, at each cut-off, the nonce that gives it the most slots: 0.70 % more blocks at 10 s and 0.82 % at 15 s, with at most $`2^{16}`$ nonces (Cited: line 105). `s11_gain.py` repeats that computation with the study's sampler and changes only the number of slots of the epoch (`out_11_gain.txt`, lines 5–12 and 16–23). It returns the published figures at 648,000 slots.
+**10.6 (Computed). What a shorter epoch gives a coalition that chooses among nonces.** RFC-532 gives the gain of a coalition of 30 % that keeps, at each cut-off, the nonce that gives it the most slots: 0.70 % more blocks at 10 s and 0.82 % at 15 s, with at most $`2^{16}`$ nonces (Cited: line 105). `s11_gain.py` repeats that computation with the study's sampler and changes only the number of slots of the epoch (`out_11_gain.txt`, lines 5–11 and 15–21). It returns the published figures at 648,000 slots.
 
-| Epoch | 180 h | 121.03 h | 100 h | 90 h | 60 h | 30.84 h | 25.01 h |
+| Epoch | 180 h | 128.00 h | 100 h | 90 h | 60 h | 37.83 h | 34.83 h |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| gain at 10 s | 0.70 % | 0.85 % | 0.94 % | 0.99 % | 1.21 % | 1.69 % | 1.88 % |
-| gain at 15 s | 0.82 % | 1.00 % | 1.10 % | 1.16 % | 1.43 % | 1.99 % | 2.21 % |
-| extra blocks a year at 10 s | 2,230 | 2,721 | 2,995 | 3,157 | 3,870 | 5,408 | 6,009 |
+| gain at 10 s | 0.70 % | 0.83 % | 0.94 % | 0.99 % | 1.21 % | 1.53 % | 1.59 % |
+| gain at 15 s | 0.82 % | 0.97 % | 1.10 % | 1.16 % | 1.43 % | 1.80 % | 1.87 % |
+| extra blocks a year at 10 s | 2,230 | 2,646 | 2,995 | 3,157 | 3,870 | 4,880 | 5,087 |
 
 The gain follows $`0.70\,\% \cdot \sqrt{180\,\text{h}/E}`$ at 10 s, and $`0.82\,\% \cdot \sqrt{180\,\text{h}/E}`$ at 15 s, to within 0.02 points (the last column of the output). Two assumptions are not derived here: that the number of nonces a coalition holds at a cut-off does not depend on the epoch's length, and that the bound behind RFC-533's shares with today's nonce does not depend on the gap while the cut-off is final at first use. (Assumed.)
 
@@ -752,10 +784,10 @@ The gain follows $`0.70\,\% \cdot \sqrt{180\,\text{h}/E}`$ at 10 s, and $`0.82\,
 | Span | Rule | Exact bound | For a chance of $`10^{-9}`$, latest #533 | Today |
 | --- | --- | --- | --- | --- |
 | phase 1 | S | at least $`K`$; at $`K`$ only if two given slots hold blocks (Proved, 4.6) | 10.17 to 10.20 h with all of the stake building; over the $`K`$ row at most 13.03 h, and at least 10.48 h, or 13.03 h with chain blocks only (Computed, 5.8, 5.9; Assumed, 5.9) | 54 h |
-| phase 2 | B | an honest win: 874 slots at $`x`$ = 0.7, and 903 over the $`K`$ row (Proved, 9.2) | 3.09 to 4.78 h (Computed, 9.4; law Assumed) | 54 h |
+| phase 2 | B | an honest win: 874 slots at $`x`$ = 0.7, and 903 over the $`K`$ row (Proved, 9.2) | 3.10 to 4.80 h (Proved, SURVIVAL 8.1; Computed, 9.4; Assumed, 9.4) | 54 h |
 | phases 1 and 2 | I | at least the window $`P`$ (Cited, 10.1) | no bound on $`P`$ in the specification (Assumed: no text found); the noise is proportional to $`P^{-1/2}`$ (Proved, 7.4) | 108 h |
-| phase 3 | L | as phase 1; also $`2s_{gen} - 1`$ by the reading of 8.3 (Proved, 8.4) | as phase 1 | 72 h |
-| epoch | sum | $`E \ge 2K`$ follows (Proved, 10.2) | at most 30.84 h, at least 21.21 h; 121.03 h with the window kept, at least 118.48 h (Computed, 10.3; Assumed, 5.9 and 9.4) | 180 h |
+| phase 3 | L, J | as phase 1; also $`2s_{gen} - 1`$ by the reading of 8.3 (Proved, 8.4); $`2K - 1`$ for the argument of 8.6, not shown to be necessary (Cited, GENESIS 7.1) | as phase 1; 20.00 h for the argument of 8.6 (Computed, 10.3) | 72 h |
+| epoch | sum | $`E \ge 2K`$ follows (Proved, 10.2) | at most 37.83 h, at least 21.21 h; at most 128.00 h with the window kept, at least 118.48 h (Computed, 10.3; Assumed, 5.9 and 9.4; Cited, GENESIS 7.1) | 180 h |
 
 No rule of the latest #533 bounds the epoch's length. (Assumed: no such rule found.) The length is the sum of its phases. (Cited, protocol 159.)
 
@@ -765,6 +797,7 @@ No rule of the latest #533 bounds the epoch's length. (Assumed: no such rule fou
 - A standard for "in time": the building share and the delay at which a phase must still make its value final. The specification has none. (Cited, RFC-532 308; Assumed, A10.)
 - Every text of 10.5 that states the epoch's length or a value derived from it. (Cited, 10.5.)
 - If the window shrinks: the floor's premise that the inferred stake is exact weakens. Either the chance of missing the floor is accepted as it then is, or $`\phi`$ is derived again. (Computed, 7.6.)
+- A phase 3 shorter than $`2K - 1`$ slots, 20.00 hours at $`K`$ = 10 hours, needs another argument that the Bootstrap rule keeps a joining node on the honest chain, or a proof that the condition of GENESIS can be weakened (12). (Cited, GENESIS 7.1 and 7.3; Computed, 10.3.)
 
 ### 11.3 The options
 
@@ -775,25 +808,25 @@ The numbers are those of 10.4 and 10.6 for the latest #533. None of the options 
 - For. The values of the phases stay final in time down to a building share of 13.8 % and 10.2 %. (Computed, 5.7.) The noise of $`D`$ stays at 0.87 %. (Computed, 7.5.) No other text changes. (Cited, RFC-533 182; follows from 10.5.)
 - Against. Phases 1 and 3 are 5.4 and 7.2 times $`K`$. (Computed, `out_01_setting.txt` line 11.) New stake waits 180 to 360 hours. A change of the active stake can leave $`D`$ untouched for 252 hours. (Computed, 10.4.)
 
-**Shorten phase 3 only**, to 13.03 hours: an epoch of 121.03 hours.
+**Shorten phase 3 only**, to 20.00 hours: an epoch of 128.00 hours.
 
-- For. The window and its noise do not change. $`\eta`$ and $`D`$ are 13 hours old at first use in place of 72. The longest time with no correction falls from 252 to 134 hours. New stake waits 121 to 242 hours. (Computed, 10.4.)
-- Against. The cut-off is certified final in time (5.4) only down to 70 % of the inferred stake building, against 10.2 %. Targets that meet two nonces rise from 5.56 % to 8.26 %. The gain of a coalition that chooses among nonces rises from 0.70 % to 0.85 %. Every text of 10.5 changes. (Computed, 10.4, 10.6; Cited, 10.5; Assumed, 10.6.)
+- For. The window and its noise do not change. $`\eta`$ and $`D`$ are 20 hours old at first use in place of 72. The longest time with no correction falls from 252 to 148 hours. New stake waits 128 to 256 hours. (Computed, 10.4.)
+- Against. Phase 3 cannot be shorter than 20.00 hours without another argument for the Bootstrap rule (11.2), although 13.03 hours suffice for its value. (Cited, GENESIS 7.1; Computed, 10.3.) The cut-off is certified final in time (5.4) only down to 41.4 % of the inferred stake building, against 10.2 %. Targets that meet two nonces rise from 5.56 % to 7.81 %. The gain of a coalition that chooses among nonces rises from 0.70 % to 0.83 %. Every text of 10.5 changes. (Computed, 10.4, 10.6; Cited, 10.5; Assumed, 10.6.)
 
 **Scale every phase and the window together**: 100 hours ($`3K`$, $`3K`$, $`4K`$), 90 hours (halved) or 60 hours (a third).
 
 - For. One factor, and at 100 hours the base's own rule. At 90 hours the phases stay final in time down to 29.3 % and 21.3 %, the noise is 1.23 %, and the chance that noise passes the limit of 7.7 is $`1.7 \cdot 10^{-15}`$ per epoch. (Computed, 10.4.)
 - Against. Each cost grows as the factor shrinks. At 60 hours phase 1 is certified (5.4) only down to 46.9 % of the stake building, 16.7 % of targets meet two nonces, the gain of 10.6 is 1.21 %, and the chance of fewer than 689 blocks in $`K`$ is $`6.6 \cdot 10^{-8}`$. A deflation costs a coalition of 30 % 1,311 wins in place of 3,934. Every text of 10.5 changes. (Computed, 10.4, 10.6, 7.8; Cited, 10.5; Assumed, 10.6.)
 
-**Take every phase at the value that suffices**: 30.84 hours.
+**Take every phase at the value that suffices**: 37.83 hours.
 
-- For. An epoch that keeps the rules in every state of the $`K`$ row. The least such epoch lies between 21.21 and 30.84 hours (10.2). New stake waits 31 to 62 hours. The longest time with no correction is 44 hours. (Computed, 10.3, 10.4.)
-- Against. No margin is left: each phase's value is certified final in time (5.4) only down to 70 % of the inferred stake building. The noise of $`D`$ is 2.14 %. The chance of fewer than 689 blocks in $`K`$ is $`4.1 \cdot 10^{-7}`$, or the floor falls to 666. Noise alone passes the limit of 7.7 with a chance of $`3.0 \cdot 10^{-6}`$ per epoch. 32.4 % of targets meet two nonces. The gain of 10.6 is 1.69 %. An epoch holds 3,701 blocks in place of 21,600. The buffer of 4.78 hours rests on a law that is not proved here. (Computed, 10.4, 10.6, 10.5; Assumed, 9.4 and 10.6.)
+- For. An epoch that keeps the rules in every state of the $`K`$ row and meets J. The least such epoch lies between 21.21 and 37.83 hours (10.2). New stake waits 38 to 76 hours. The longest time with no correction is 58 hours. (Computed, 10.3, 10.4.)
+- Against. No margin is left in phases 1 and 2: the snapshot's value is certified final in time (5.4) only down to 70 % of the inferred stake building. Phase 3 has no margin for J, and its value is certified final in time down to 41.4 %. The noise of $`D`$ is 2.14 %. The chance of fewer than 689 blocks in $`K`$ is $`4.0 \cdot 10^{-7}`$, or the floor falls to 666. Noise alone passes the limit of 7.7 with a chance of $`3.1 \cdot 10^{-6}`$ per epoch. 26.4 % of targets meet two nonces. The gain of 10.6 is 1.53 %. An epoch holds 4,539 blocks in place of 21,600. The buffer of 4.80 hours holds under the assumptions of the survival theorem. (Computed, 10.4, 10.6, 10.5; Cited, GENESIS 7.1; Assumed, 9.4 and 10.6.)
 
 **Leave the epoch and move the snapshot later.**
 
-- For. New stake's wait falls without a change of the epoch's length. From the snapshot to its first use, $`G^*`$ + $`w_B`$ + gap is 86.8 hours with all of the inferred stake building at 15 s, and 89.8 hours in the worst state of the $`K`$ row, at $`K`$ = 10 hours, against 180. No wait below 82.7 hours keeps the rules in every state of the $`K`$ row. (Computed, 5.8, 5.9, 9.2, 9.4, `out_14_bracket.txt` lines 46–47; law Assumed.) No other protocol's clock moves. (Assumed: the texts of 10.5 read the epoch, not the snapshot.)
-- Against. It changes the rule of protocol 173, which names the beginning of the previous epoch. It is not part of #533. The snapshot must then be final before the buffer that precedes the cut-off, with the margins of 5.8 and 9.4. (Cited, protocol 173; Computed, 5.8, 9.4; law Assumed.)
+- For. New stake's wait falls without a change of the epoch's length. From the snapshot to its first use, $`G^*`$ + $`w_B`$ + gap is 86.8 hours with all of the inferred stake building at 15 s, and 89.8 hours in the worst state of the $`K`$ row, at $`K`$ = 10 hours, against 180. No wait below 82.7 hours keeps the rules in every state of the $`K`$ row. (Computed, 5.8, 5.9, 9.2, 9.4, `out_14_bracket.txt` lines 46–47; Assumed, 9.4.) No other protocol's clock moves. (Assumed: the texts of 10.5 read the epoch, not the snapshot.)
+- Against. It changes the rule of protocol 173, which names the beginning of the previous epoch. It is not part of #533. The snapshot must then be final before the buffer that precedes the cut-off, with the margins of 5.8 and 9.4. (Cited, protocol 173; Computed, 5.8, 9.4.)
 
 **Separate the lottery's cycle from the epoch that other protocols read.**
 
@@ -802,9 +835,13 @@ The numbers are those of 10.4 and 10.6 for the latest #533. None of the options 
 
 ## 12. What is not proved here
 
-- That Theorem 2 of Ouroboros Genesis holds for the specification's rules and parameters. Its hypotheses fail for delays above two slots (8.5). A proof would need a statement of the Bootstrap rule's safety at $`\Delta`$ = 10 and $`T_M`$ = 15 slots with the specification's $`k`$, $`f`$ and private stake.
-- The survival law behind the buffer (9.4). It is the finality study's function. A proof would need a bound on the chance that a branch of the coalition's blocks is held by an honest node $`T`$ slots after it left the honest blocks, under the worst-case delay.
+- That the conclusion of Theorem 2 of Ouroboros Genesis holds against every fork at $`10^{-9}`$. GENESIS bounds the chance per divergence slot by $`1.35\cdot10^{-7}`$ at 10 s and $`4.3\cdot10^{-5}`$ at 15 s against 30 %, and the finality study's estimates of one attack lie 1,500 to 2,900 times lower (8.6). Whether the true chance meets $`10^{-9}`$ at $`s_{gen}`$ is open.
+- GENESIS's A6, on which its bound for every fork rests. Its reading of the margin of Gaži, Ren and Russell for two chains is argued from their Definitions 4 and 11, not proved in full. That the finality study's settlement bound covers the margin at every slot is the study's construction, and is not checked (GENESIS 12, items 1 and 10).
+- The chance of a split of the honest nodes that lasts the density window. It is only estimated, from two extended depths of the study's numerical lower bound (GENESIS 6.4 and 12, item 2). The construction also uses tie-breaking for the coalition, which the specification does not give (GENESIS 12, item 11).
+- The other conditions of GENESIS: the Online rule's guarantee S up to the switch, cited from the $`K`$ row; an unbiased nonce; keys of at most 30 % of each epoch's stake in the coalition's hands, which the specification does not enforce; the circuit's shortfall on the honest side in the settlement bound; and a union over a history that may be loose (GENESIS 12).
+- The assumptions of the survival theorem (9.4): a random-oracle lottery with an unbiased nonce, shares that do not change during the period, delivery within $`d`$, and A5, which is the guarantee that sizes $`K`$, cited and not derived (SURVIVAL 12). That the law is nearly attained also needs many honest nodes, and honest nodes that do not pass on the coalition's blocks (SURVIVAL 12).
 - The existence of a final chain in 9.3. It is assumed.
+- Whether a weaker condition than $`2K \le G + 1`$ suffices for the argument of 8.6, and whether the Bootstrap rule fails with a phase 3 shorter than $`2K - 1`$ slots. GENESIS uses the condition to place the blocks of a fork, up to $`2K`$ slots after it leaves the honest chain, under the honest chain's epoch states (GENESIS 7.1, Step 2). The epochs that suffice in 10.3 rest on the condition. The lower bounds do not.
 - The least epoch itself. 10.2 proves only that it lies between the bounds of 10.3.
 - That the bounds behind RFC-533's shares with today's nonce, and the number of nonces a coalition holds at a cut-off, do not depend on the gap or on the epoch's length (10.6). They were computed by the finality study for today's schedule.
 - The wait bound that sizes $`K`$. It is cited from the RFCs, not derived.
@@ -826,14 +863,18 @@ All files of this review are in this folder, `slot-finality/epoch/`.
 | `s05_targets.py`, `out_05_targets.txt` | targets that meet two nonces | 6.3 |
 | `s06_inference.py`, `out_06_inference.txt` | the inference: rule, noise, the floor, the limit, the price of a deflation | 7.2 to 7.8 |
 | `s07_genesis.py`, `out_07_genesis.txt` | the hypotheses of the paper's theorems; the schedule facts | 8.4, 8.5 |
-| `s08_buffer.py`, `out_08_buffer.txt` | the buffer, with the finality study's survival law, and the same on a finer grid | 9.2, 9.4 |
-| `s09_epoch.py`, `out_09_epoch.txt` | the epochs that suffice and the cost of each schedule | 5.9, 10.3, 10.4 |
+| `s08_buffer.py`, `out_08_buffer.txt` | the buffer with the finality study's survival law, the same on a finer grid, and the buffer with the proved law, read from `proofs/survival/out_3_buffer.txt` or computed for a third | 9.2, 9.4 |
+| `s09_epoch.py`, `out_09_epoch.txt` | the epochs that suffice, with phase 3 at $`\max(G^*, 2K - 1)`$, the cost of each schedule, and whether its phase 3 meets J | 5.9, 6.3, 10.3, 10.4, 10.5 |
 | `s11_gain.py`, `out_11_gain.txt` | the gain of choosing among nonces, by epoch length | 10.6 |
-| `s14_bracket.py`, `out_14_bracket.txt` | the necessary values of 5.5 and 9.2 in each state, the bounds on the least epoch, a node's own draw, the wait with a late snapshot, and a second computation of the necessary values and of $`G^*`$ | 5.9, 9.2, 10.3, 11.3 |
+| `s14_bracket.py`, `out_14_bracket.txt` | the necessary values of 5.5 and 9.2 in each state, the bounds on the least epoch, a node's own draw, the wait with a late snapshot, a second computation of the necessary values and of $`G^*`$, and the bounds of GENESIS at a phase 3 of $`2K - 1`$ slots | 5.9, 9.2, 10.3, 11.3 |
+| `proofs/survival/` | SURVIVAL: `SURVIVAL.md`, its module `sv_common.py`, its scripts `s1_walk.py` to `s6_protocol_sim.py` and their outputs `out_1_walk.txt` to `out_6_protocol_sim.txt` | 9.4, 10.3 |
+| `proofs/genesis/` | GENESIS: `GENESIS.md`, its module `common_g.py`, its scripts `g01_setting.py` to `g07_states.py` and their outputs `out_01_setting.txt` to `out_07_states.txt` | 8.6 |
+
+Each proof's own section on files gives the content of each script and the order in which to run them. GENESIS read the specification at the commits of 1.1, and the paper; neither is copied here.
 
 Read-only sources outside this folder:
 
 - the finality study: `tools/simulators/finality/` of this repository, package `src/finality_sim`, stored runs `slot-finality/`;
 - the specification: the repository `logos-co/logos-lips`, branches and commits as in 1.1.
 
-`s08` imports the finality study's code, and `s11` imports `slot-finality/nonce/model.py` and `today_choices.py`. The other scripts need only `numpy` and `scipy`. `s09` and `s14` read `out_08_buffer.txt`. Each script names its usage in its first lines. Caches go to `.cache` in this folder.
+`s08` and `s11` import the finality study's code. The other scripts need only `numpy` and `scipy`. `s08` reads `proofs/survival/out_3_buffer.txt` and imports `proofs/survival/sv_common.py`, so it runs after SURVIVAL's `s3_buffer.py`. `s09` and `s14` read `out_08_buffer.txt`, and `s11` reads `out_09_epoch.txt`. `s14` also imports `proofs/genesis/common_g.py` and reads the settlement curves that GENESIS's `g03_settle.py` caches in `proofs/genesis/.cache`, so it runs after `g03`. SURVIVAL's `s4_epoch.py` reads `out_14_bracket.txt`, so it runs after `s14`. Each script names its usage in its first lines. Caches go to `.cache` in this folder.

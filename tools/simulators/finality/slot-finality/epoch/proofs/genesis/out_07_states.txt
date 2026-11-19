@@ -1,0 +1,20 @@
+no disturbance: p_h = 0.023452, p_a = 0.010119, Delta = 10
+  P1(s_gen) = 2.055e-13 (forward pass 2.055e-13); U(s_gen - 1) = 1.349e-07; P1(G + 1 - s) <= 7.2e-39; K = 36000: P1(K - s) = 3.95e-16, U(K - 2) = 8.28e-16, U_11(K - 1) = 1.35e-14; K = 64800: P1(K - s) = 1.08e-37, U(K - 2) = 9.40e-28, U_11(K - 1) = 1.39e-25
+  least window for 1e-9 per divergence slot: without honest blocks 11335 slots (3.15 h); every fork, cases other than t = now, 21336 slots (5.93 h); total at K = 36000: 21336 slots (5.93 h); total at K = 64800: 21336 slots (5.93 h)
+  the circuit's shortfall: delta = 9.44e-05; P1(s_gen) at p_h (1 - delta) = 2.073e-13 (+0.85 %)
+every block T_M late: p_h = 0.023452, p_a = 0.010119, Delta = 15
+  P1(s_gen) = 2.564e-10 (forward pass 2.564e-10); U(s_gen - 1) = 4.341e-05; P1(G + 1 - s) <= 2.1e-35; K = 36000: P1(K - s) = 2.30e-12, U(K - 2) = 2.51e-10, U_16(K - 1) = 2.08e-09; K = 64800: P1(K - s) = 1.31e-28, U(K - 2) = 6.02e-18, U_16(K - 1) = 2.65e-16
+  least window for 1e-9 per divergence slot: without honest blocks 15164 slots (4.21 h); every fork, cases other than t = now, 33729 slots (9.37 h); total at K = 36000: none with s <= K - 1; total at K = 64800: 33729 slots (9.37 h)
+  the circuit's shortfall: delta = 9.44e-05; P1(s_gen) at p_h (1 - delta) = 2.581e-10 (+0.67 %)
+a tenth of the honest stake offline, inference corrected: p_h = 0.022704, p_a = 0.010876, Delta = 10
+  P1(s_gen) = 5.205e-10 (forward pass 5.205e-10); U(s_gen - 1) = 1.285e-05; P1(G + 1 - s) <= 6.3e-33; K = 36000: P1(K - s) = 5.55e-12, U(K - 2) = 2.01e-11, U_11(K - 1) = 1.80e-10; K = 64800: P1(K - s) = 1.26e-27, U(K - 2) = 7.24e-20, U_11(K - 1) = 3.63e-18
+  least window for 1e-9 per divergence slot: without honest blocks 15684 slots (4.36 h); every fork, cases other than t = now, 30215 slots (8.39 h); total at K = 36000: 30508 slots (8.47 h); total at K = 64800: 30215 slots (8.39 h)
+  the circuit's shortfall: delta = 8.84e-05; P1(s_gen) at p_h (1 - delta) = 5.239e-10 (+0.66 %)
+a tenth of the honest stake offline, before the correction: p_h = 0.021132, p_a = 0.010119, Delta = 10
+  P1(s_gen) = 8.995e-10 (forward pass 8.995e-10); U(s_gen - 1) = 1.285e-05; P1(G + 1 - s) <= 2.1e-33; K = 36000: P1(K - s) = 1.08e-11, U(K - 2) = 2.08e-11, U_11(K - 1) = 1.51e-10; K = 64800: P1(K - s) = 6.51e-27, U(K - 2) = 7.84e-20, U_11(K - 1) = 2.71e-18
+  least window for 1e-9 per divergence slot: without honest blocks 16114 slots (4.48 h); every fork, cases other than t = now, 30249 slots (8.40 h); total at K = 36000: 30492 slots (8.47 h); total at K = 64800: 30249 slots (8.40 h)
+  the circuit's shortfall: delta = 7.64e-05; P1(s_gen) at p_h (1 - delta) = 9.045e-10 (+0.55 %)
+D equals the honest stake online: p_h = 0.033333, p_a = 0.014424, Delta = 10
+  P1(s_gen) = 8.523e-15 (forward pass 8.523e-15); U(s_gen - 1) = 4.506e-07; P1(G + 1 - s) <= 5.1e-36; K = 36000: P1(K - s) = 8.04e-18, U(K - 2) = 9.90e-15, U_11(K - 1) = 7.26e-13; K = 64800: P1(K - s) = 5.10e-36, U(K - 2) = 7.17e-26, U_11(K - 1) = 1.58e-22
+  least window for 1e-9 per divergence slot: without honest blocks 10197 slots (2.83 h); every fork, cases other than t = now, 23061 slots (6.41 h); total at K = 36000: 23062 slots (6.41 h); total at K = 64800: 23061 slots (6.41 h)
+  the circuit's shortfall: delta = 1.93e-04; P1(s_gen) at p_h (1 - delta) = 8.697e-15 (+2.04 %)

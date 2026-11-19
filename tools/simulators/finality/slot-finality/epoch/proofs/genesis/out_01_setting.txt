@@ -1,0 +1,43 @@
+the text (git show, read-only)
+  7f3cf149 cryptarchia-v1-protocol.md:102 contains '1/30': True
+  7f3cf149 cryptarchia-v1-protocol.md:103 contains '2160 blocks': True
+  7f3cf149 cryptarchia-v1-protocol.md:104 contains '36,000 slots (10 hours)': True
+  7f3cf149 cryptarchia-v1-protocol.md:104 contains 'at most one of three disturbances': True
+  ded1d4c6 cryptarchia-v1-protocol.md:103 contains '64,800 slots (18 hours)': True
+  ded1d4c6 cryptarchia-v1-protocol.md:103 contains 'at most two of three disturbances': True
+  7f3cf149 cryptarchia-v1-protocol.md:109 contains '360 at': True
+  7f3cf149 cryptarchia-v1-protocol.md:155 contains '4\\lfloor \\frac{k}{f}\\rfloor': True
+  7f3cf149 fork-choice.md:80 contains 's_{gen} = \\lfloor\\frac{k}{4f}\\rfloor': True
+  7f3cf149 fork-choice.md:100 contains 'uncle references': True
+  7f3cf149 fork-choice.md:137 contains 'density(c_max, depth_max, s_gen) < density(c_fork': True
+  7f3cf149 cryptarchia-v1-bootstr-sync.md:110 contains '20 minutes': True
+  7f3cf149 cryptarchia-proof-of-leadership.md:68 contains 'no leader note evolution': True
+  7f3cf149 cryptarchia-proof-of-leadership.md:180 contains 'ticket := \\text{hash}': True
+  fork-choice, bootstrap and leadership identical at both refs: True
+
+constants (slots of 1 second)
+  f = 1/30, k = 2160, floor(k/f) = 64800, epoch E = 648000 slots = 180 h
+  gap G from the cut-off to the next epoch = 259200 slots = 72 h; G + 1 = 259201
+  s = s_gen = floor(k/(4f)) = 16200 slots = 4.5 h
+  T_offline = 1200 slots, W f^-1 = 360 slots
+  10 h (#533, 7f3cf149): K = 36000; K - s = 19800; K >= s + 1: True; 2K = 72000 <= G + 1: True; 2 s <= K: True
+  18 h (base, ded1d4c6): K = 64800; K - s = 48600; K >= s + 1: True; 2K = 129600 <= G + 1: True; 2 s <= K: True
+
+per-slot chances and rates (section 3, statement 5.2)
+ share | Delta | p_h = 1-(1-f)^(1-a) | p_a = 1-(1-f)^a | honest Delta-separated rate 1/(Delta+1/p_h) | p_a / rate | theta* | e^-theta*
+    30 % |    10 | 0.023452 | 0.010119 | 0.018997 | 0.5327 | 0.7391 | 0.4776
+    30 % |    15 | 0.023452 | 0.010119 | 0.017349 | 0.5833 | 0.6728 | 0.5103
+ a third |    10 | 0.022348 | 0.011237 | 0.018266 | 0.6152 | 0.5719 | 0.5645
+ a third |    15 | 0.022348 | 0.011237 | 0.016737 | 0.6714 | 0.4995 | 0.6069
+
+the floor at the coalition's mean rate (remark 7.4): slots for phi wins at p_a(30 %)
+  10 h (#533), phi = 689: phi / p_a = 68090 slots = 18.9 h
+  18 h (base), phi = 1291: phi / p_a = 127583 slots = 35.4 h
+
+an honest chain with no honest win in K - 2 Delta - 1 slots (statements 7.1 and 7.2): log10 of (1 - p_h)^(K - 2 Delta - 1)
+  10 h (#533, 7f3cf149): at most 10^-353
+  18 h (base, ded1d4c6): at most 10^-636
+
+the drift condition p_a (1/p_h + Delta) < 1 of statement 6.2 (c) holds up to
+  30 %: Delta < 1/p_a - 1/p_h = 56.2 slots
+  a third: Delta < 1/p_a - 1/p_h = 44.2 slots

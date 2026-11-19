@@ -1,0 +1,32 @@
+(a) N(m): closed form against the dynamic programme
+  m = 50, p = 0.2, Delta = 3: largest absolute difference 1.8e-15, largest relative difference where the mass exceeds 1e-280 7.0e-15
+  m = 400, p = 0.05, Delta = 10: largest absolute difference 5.8e-15, largest relative difference where the mass exceeds 1e-280 3.6e-14
+  m = 1000, p = 0.0235, Delta = 15: largest absolute difference 1.2e-14, largest relative difference where the mass exceeds 1e-280 9.6e-14
+  m = 3000, p = 0.0235, Delta = 10: largest absolute difference 7.3e-15, largest relative difference where the mass exceeds 1e-280 2.2e-13
+
+(b) tails of M_pre and M_post: bound of statement 6.2 (c) against a Monte Carlo of 200,000 paths of 30,000 steps
+  share 0.3000, Delta = 10, M_pre: m = 1: bound 0.5279, sampled 0.5280 +- 0.0011; m = 2: bound 0.2544, sampled 0.2549 +- 0.0010; m = 3: bound 0.1215, sampled 0.1221 +- 0.0007; m = 5: bound 0.0277, sampled 0.0279 +- 0.0004; m = 8: bound 0.0030, sampled 0.0032 +- 0.0001
+  share 0.3000, Delta = 10, M_post: m = 1: bound 0.5779, sampled 0.5782 +- 0.0011; m = 2: bound 0.2858, sampled 0.2857 +- 0.0010; m = 3: bound 0.1371, sampled 0.1378 +- 0.0008; m = 5: bound 0.0313, sampled 0.0316 +- 0.0004; m = 8: bound 0.0034, sampled 0.0036 +- 0.0001
+  share 0.3333, Delta = 15, M_pre: m = 1: bound 0.6676, sampled 0.6684 +- 0.0011; m = 2: bound 0.4098, sampled 0.4114 +- 0.0011; m = 3: bound 0.2489, sampled 0.2499 +- 0.0010; m = 5: bound 0.0917, sampled 0.0918 +- 0.0006; m = 8: bound 0.0205, sampled 0.0203 +- 0.0003
+  share 0.3333, Delta = 15, M_post: m = 1: bound 0.7226, sampled 0.7229 +- 0.0010; m = 2: bound 0.4570, sampled 0.4575 +- 0.0011; m = 3: bound 0.2793, sampled 0.2796 +- 0.0010; m = 5: bound 0.1030, sampled 0.1034 +- 0.0007; m = 8: bound 0.0230, sampled 0.0233 +- 0.0003
+
+(b') the same tails: bound of statement 6.2 (c) against an exact forward computation of P(max of the first 40,000 steps >= m), a lower bound
+  share 0.3000, Delta = 10, M_pre: m = 1: bound 0.527890861232, forward 0.527890861231; m = 3: bound 0.121530169926, forward 0.121530169926; m = 8: bound 0.003018724457, forward 0.003018724457
+  share 0.3000, Delta = 10, M_post: m = 1: bound 0.577860822345, forward 0.577860822345; m = 3: bound 0.137114667645, forward 0.137114667645; m = 8: bound 0.003407349909, forward 0.003407349909
+
+(c) P1(x) against a Monte Carlo from slot bits (400,000 samples, sides of 6,000 slots)
+  share 0.3000, Delta = 10, x = 1500: P1 = 0.0451; sampled with M+_post 0.0448 +- 0.0003 | before the correction 0.0442; sampled with M_post 0.0440 +- 0.0003
+  share 0.3000, Delta = 10, x = 3000: P1 = 0.0027; sampled with M+_post 0.0026 +- 0.0001 | before the correction 0.0027; sampled with M_post 0.0026 +- 0.0001
+  share 0.3333, Delta = 15, x = 3000: P1 = 0.0745; sampled with M+_post 0.0751 +- 0.0004 | before the correction 0.0736; sampled with M_post 0.0741 +- 0.0004
+
+(d) random executions (Delta = 3, p_h = 0.22, p_a = 0.12, 4 honest nodes, 400 slots, randomised coalition)
+  statement 5.1: 52856 checks, 0 violations
+  statement 5.2 (3): 24000 checks, 0 violations
+  statement 5.3: 216000 checks, 0 violations
+  statement 5.4: 864000 checks, 0 violations
+  statement 6.1: 370488 checks, 0 violations
+  pairs in which the chain X was at least as long as Y up to e: 370488
+
+(e) the step of 6.2 (a) path by path (Delta = 3, p_h = 0.22, p_a = 0.12, x = 40, a and b within 150 slots of the window, 100,000 samples)
+  samples with the event of 6.1: 94350; of these, with M_pre + Z_x + M+_post < 0: 0; with M_pre + Z_x + M_post < 0: 452
+  frequency of M_pre + Z_x + M+_post >= 0: 0.9555 +- 0.0007; of the event: 0.9435; P1(x) = 0.9811

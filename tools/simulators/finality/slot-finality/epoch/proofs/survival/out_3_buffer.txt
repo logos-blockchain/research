@@ -1,0 +1,36 @@
+1. w_B = the least w with h * sum_(T >= w) survival(T) <= 1e-09; slot by slot to T = 72000 (20 h), Lemma 6.7 beyond
+   no disturbance, 10 s: h = 0.023452 | w_B(Qhat) =  12295 slots ( 3.42 h) | the review's w_B =  12242 slots ( 3.40 h) (its out_08 line 14) | change +53 slots | w_B(Q) =  12468 slots ( 3.46 h) | w_B(Q1) =  12252 slots ( 3.40 h) | bound at w_B 9.993e-10 | tail beyond 20 h 2.8e-51
+   every honest block 15 s late: h = 0.023452 | w_B(Qhat) =  16644 slots ( 4.62 h) | the review's w_B =  16579 slots ( 4.61 h) (its out_08 line 25) | change +65 slots | w_B(Q) =  16860 slots ( 4.68 h) | w_B(Q1) =  16596 slots ( 4.61 h) | bound at w_B 9.999e-10 | tail beyond 20 h 8.4e-38
+   a tenth of the honest stake offline, inference corrected, 10 s: h = 0.022704 | w_B(Qhat) =  17268 slots ( 4.80 h) | the review's w_B =  17215 slots ( 4.78 h) (its out_08 line 36) | change +53 slots | w_B(Q) =  17477 slots ( 4.85 h) | w_B(Q1) =  17224 slots ( 4.78 h) | bound at w_B 9.989e-10 | tail beyond 20 h 2.6e-36
+   deflated inference, 10 s: h = 0.033333 | w_B(Qhat) =  11171 slots ( 3.10 h) | the review's w_B =  11126 slots ( 3.09 h) (its out_08 line 47) | change +45 slots | w_B(Q) =  11317 slots ( 3.14 h) | w_B(Q1) =  11136 slots ( 3.09 h) | bound at w_B 9.991e-10 | tail beyond 20 h 1.6e-57
+   15 s and a tenth offline, corrected (base pair): h = 0.022704 | w_B(Qhat) =  24713 slots ( 6.86 h) | the review's w_B =  24645 slots ( 6.85 h) (its out_08 line 58) | change +68 slots | w_B(Q) =  24980 slots ( 6.94 h) | w_B(Q1) =  24663 slots ( 6.85 h) | bound at w_B 9.991e-10 | tail beyond 20 h 5.3e-25
+   15 s and a deflated inference (base pair): h = 0.033333 | w_B(Qhat) =  18142 slots ( 5.04 h) | the review's w_B =  18081 slots ( 5.02 h) (its out_08 line 69) | change +61 slots | w_B(Q) =  18345 slots ( 5.10 h) | w_B(Q1) =  18101 slots ( 5.03 h) | bound at w_B 9.990e-10 | tail beyond 20 h 2.9e-35
+   a tenth offline and a deflated inference, 10 s (base pair): h = 0.033333 | w_B(Qhat) =  16497 slots ( 4.58 h) | the review's w_B =  16452 slots ( 4.57 h) (its out_08 line 80) | change +45 slots | w_B(Q) =  16676 slots ( 4.63 h) | w_B(Q1) =  16462 slots ( 4.57 h) | bound at w_B 9.996e-10 | tail beyond 20 h 7.9e-39
+   a tenth offline before the inference corrects, 10 s: h = 0.021132 | w_B(Qhat) =  17709 slots ( 4.92 h) | the review's w_B =  17654 slots ( 4.90 h) (its out_08 line 113) | change +55 slots | w_B(Q) =  17927 slots ( 4.98 h) | w_B(Q1) =  17663 slots ( 4.91 h) | bound at w_B 9.995e-10 | tail beyond 20 h 3.1e-35
+   15 s and a tenth offline before the inference corrects: h = 0.021132 | w_B(Qhat) =  24540 slots ( 6.82 h) | the review's w_B =  24471 slots ( 6.80 h) (its out_08 line 124) | change +69 slots | w_B(Q) =  24812 slots ( 6.89 h) | w_B(Q1) =  24488 slots ( 6.80 h) | bound at w_B 9.993e-10 | tail beyond 20 h 4.3e-25
+
+2. the bound at w = 2 h, h * sum_(T >= 7200) Qhat(T), against the review's figure from the study's law
+   no disturbance, 10 s: 7.773e-06; the review: 7.081e-06 (out_08 line 7)
+   every honest block 15 s late: 2.677e-04; the review: 2.452e-04 (out_08 line 18)
+
+3. w_B under the circuit's threshold: h * sum Qhat, Qhat at the honest chance h (1 - 0.000444) and the coalition's a (Lemmas 2.3 and 6.8)
+   no disturbance, 10 s:  12313 slots ( 3.42 h), +18 slots
+   every honest block 15 s late:  16670 slots ( 4.63 h), +26 slots
+   a tenth of the honest stake offline, inference corrected, 10 s:  17297 slots ( 4.80 h), +29 slots
+   deflated inference, 10 s:  11188 slots ( 3.11 h), +17 slots
+   15 s and a tenth offline, corrected (base pair):  24758 slots ( 6.88 h), +45 slots
+   15 s and a deflated inference (base pair):  18173 slots ( 5.05 h), +31 slots
+   a tenth offline and a deflated inference, 10 s (base pair):  16528 slots ( 4.59 h), +31 slots
+   a tenth offline before the inference corrects, 10 s:  17739 slots ( 4.93 h), +30 slots
+   15 s and a tenth offline before the inference corrects:  24584 slots ( 6.83 h), +44 slots
+
+4. Proposition 9.3: n = 1e+09 honest nodes of equal stake, T_max = 35000: c = (T_max + 1) d n p_n^2 / h^2; the adversary's chance >= (1 - c) (Qhat_low(T) - Qhat_up(T_max))
+   no disturbance, 10 s: c = 3.58e-04, Qhat(T_max) = 6.0e-28 | T = 2 h: adversary >= 5.8658e-07, study 5.3418e-07, ratio 1.0981 | T = 3 h: adversary >= 1.0225e-09, study 9.3215e-10, ratio 1.0969 | T = 4 h: adversary >= 1.8805e-12, study 1.7153e-12, ratio 1.0963
+   every honest block 15 s late: c = 5.38e-04, Qhat(T_max) = 2.3e-21 | T = 2 h: adversary >= 1.5307e-05, study 1.4015e-05, ratio 1.0921 | T = 3 h: adversary >= 1.2456e-07, study 1.1420e-07, ratio 1.0908 | T = 4 h: adversary >= 1.0681e-09, study 9.7981e-10, ratio 1.0901
+   a tenth of the honest stake offline, inference corrected, 10 s: c = 3.58e-04, Qhat(T_max) = 1.2e-20 | T = 2 h: adversary >= 2.1201e-05, study 1.9794e-05, ratio 1.0711 | T = 3 h: adversary >= 2.0537e-07, study 1.9194e-07, ratio 1.0700 | T = 4 h: adversary >= 2.0953e-09, study 1.9593e-09, ratio 1.0694
+   deflated inference, 10 s: c = 3.62e-04, Qhat(T_max) = 5.9e-31 | T = 2 h: adversary >= 1.4085e-07, study 1.2893e-07, ratio 1.0924 | T = 3 h: adversary >= 1.2044e-10, study 1.1035e-10, ratio 1.0914 | T = 4 h: adversary >= 1.0871e-13, study 9.9651e-14, ratio 1.0909
+   15 s and a tenth offline, corrected (base pair): c = 5.37e-04, Qhat(T_max) = 4.0e-15 | T = 2 h: adversary >= 3.3874e-04, study 3.1825e-04, ratio 1.0644 | T = 3 h: adversary >= 1.1916e-05, study 1.1209e-05, ratio 1.0631 | T = 4 h: adversary >= 4.4058e-07, study 4.1469e-07, ratio 1.0624
+   15 s and a deflated inference (base pair): c = 5.43e-04, Qhat(T_max) = 4.1e-20 | T = 2 h: adversary >= 2.9671e-05, study 2.7499e-05, ratio 1.0790 | T = 3 h: adversary >= 3.2321e-07, study 2.9986e-07, ratio 1.0778 | T = 4 h: adversary >= 3.7079e-09, study 3.4420e-09, ratio 1.0773
+   a tenth offline and a deflated inference, 10 s (base pair): c = 3.62e-04, Qhat(T_max) = 7.5e-22 | T = 2 h: adversary >= 1.2172e-05, study 1.1440e-05, ratio 1.0639 | T = 3 h: adversary >= 8.8469e-08, study 8.3225e-08, ratio 1.0630 | T = 4 h: adversary >= 6.7751e-10, study 6.3763e-10, ratio 1.0626
+   a tenth offline before the inference corrects, 10 s: c = 3.58e-04, Qhat(T_max) = 3.9e-20 | T = 2 h: adversary >= 2.7150e-05, study 2.5327e-05, ratio 1.0720 | T = 3 h: adversary >= 2.9700e-07, study 2.7736e-07, ratio 1.0708 | T = 4 h: adversary >= 3.4214e-09, study 3.1970e-09, ratio 1.0702
+   15 s and a tenth offline before the inference corrects: c = 5.36e-04, Qhat(T_max) = 3.5e-15 | T = 2 h: adversary >= 3.2841e-04, study 3.0802e-04, ratio 1.0662 | T = 3 h: adversary >= 1.1435e-05, study 1.0738e-05, ratio 1.0649 | T = 4 h: adversary >= 4.1849e-07, study 3.9324e-07, ratio 1.0642

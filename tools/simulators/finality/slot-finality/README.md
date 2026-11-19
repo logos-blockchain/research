@@ -169,6 +169,18 @@ that compute it. It reads the specification, logos-lips, at commit `7f3cf149` of
 constants and the bounds of the review's statements 5.3 to 5.5, which the other scripts import.
 Scripts 10, 12 and 13 are not used.
 
+`proofs/survival/SURVIVAL.md` proves the survival law behind the buffer, and
+`proofs/genesis/GENESIS.md` argues the Bootstrap rule at the specification's parameters. Each
+gives its scripts and their order in its own section on files. `proofs/genesis/g01_setting.py`
+reads the specification from a clone of logos-lips named by `LIPS_REPO`. The review's scripts
+read the proofs' outputs: run SURVIVAL's `s1` to `s3`, then `s08`, `s09` and `s11`; GENESIS's
+`g01` to `g07`, then `s14`; and SURVIVAL's `s4` after `s14`.
+
+`schedule/SCHEDULE.md` states the schedule of 40 hours that the specification branch
+`Bedrock-RFC-Shorter-Epoch` adopts: why the Buffer phase can go, the condition on phase 3, the
+stake inference's learning rate with its simulations, and what each schedule costs. Its section
+7 lists its scripts.
+
 | Script | What it computes | Stored output | Time |
 | --- | --- | --- | --- |
 | `s01_setting.py` | The constants of the windows of 10 and 18 hours, and the finality floor, with the code the specification prints and in exact integers. | `out_01_setting.txt` | 10 s |
@@ -178,10 +190,10 @@ Scripts 10, 12 and 13 are not used.
 | `s05_targets.py` | The share of targets whose race meets two epoch nonces, by the length of the epoch. | `out_05_targets.txt` | 1 s |
 | `s06_inference.py` | The stake inference: its integer rule against a closed form, its noise by window, the floor under that noise, the chance per epoch that the noise passes the limits 1.094 and 1.593, and the wins a deflation costs. | `out_06_inference.txt` | 3 s |
 | `s07_genesis.py` | The hypotheses of Theorems 1 and 2 of Ouroboros Genesis at the specification's parameters, and the fact about the schedule that the proof of Theorem 2 uses, by enumeration. | `out_07_genesis.txt` | 1 s |
-| `s08_buffer.py` (study) | The buffer that keeps an honest block with chance `1 − 1e-9`, by state, with the study's `branch_survival`. | `out_08_buffer.txt` | 2.5 min |
-| `s09_epoch.py` | The least phase in each state of the `K` row, the epochs that suffice, and what each schedule costs. It reads `out_08_buffer.txt`. | `out_09_epoch.txt` | 1 s |
-| `s11_gain.py` | What a coalition of 30 % gains in blocks by choosing among nonces, by the length of the epoch. It imports `nonce/model.py` and `nonce/today_choices.py`. | `out_11_gain.txt` | 1.5 min |
-| `s14_bracket.py` | The phases and the buffer below which a rule fails in each state, the bounds on the least epoch, the wait with a later snapshot, and a second computation of the necessary values in log space. It reads `out_08_buffer.txt`. | `out_14_bracket.txt` | 1 s |
+| `s08_buffer.py` (study) | The buffer that keeps an honest block with chance `1 − 1e-9`, by state, with the study's `branch_survival` and with the proved law of `proofs/survival`. | `out_08_buffer.txt` | 2.5 min |
+| `s09_epoch.py` | The least phase in each state of the `K` row, the epochs that suffice with phase 3 at `max(G*, 2K − 1)`, and what each schedule costs. It reads `out_08_buffer.txt`. | `out_09_epoch.txt` | 1 s |
+| `s11_gain.py` | What a coalition of 30 % gains in blocks by choosing among nonces, by the length of the epoch. It imports `nonce/model.py` and `nonce/today_choices.py`, and reads the epochs of `out_09_epoch.txt`. | `out_11_gain.txt` | 1.5 min |
+| `s14_bracket.py` | The phases and the buffer below which a rule fails in each state, the bounds on the least epoch, the wait with a later snapshot, a second computation of the necessary values in log space, and the bounds of GENESIS at a phase 3 of `2K − 1` slots. It reads `out_08_buffer.txt` and GENESIS's cached curves. | `out_14_bracket.txt` | 1 s |
 
 ## Rechecks
 

@@ -1,0 +1,33 @@
+B. [529] P(S/D > 1.094) at a window of 20 h by importance sampling: 4 batches of 1000000 runs
+   beta 1: 7.200e-06 (batches 7.21e-06, 7.20e-06, 7.17e-06, 7.22e-06; relative sd of the mean 0.2%)
+   beta 2/3: 2.527e-10 (batches 2.52e-10, 2.52e-10, 2.53e-10, 2.53e-10; relative sd of the mean 0.1%)
+   beta 1/2: 9.665e-15 (batches 9.67e-15, 9.70e-15, 9.66e-15, 9.63e-15; relative sd of the mean 0.1%)
+   (16 s)
+A. [529] steady state at a window of 72000 slots (20 h): 400000 chains settled 30 epochs, then 40 epochs kept
+   beta 1: mean D/S 1.00000 (chain 0.99999), sd 2.007 % (chain 2.007 %) | P(S/D > 1.03) 7.279e-02 (chain 7.266e-02) | P(S/D > 1.04) 2.709e-02 (chain 2.711e-02) | P(S/D > 1.05) 8.466e-03 (chain 8.483e-03) | P(S/D > 1.06) 2.223e-03 (chain 2.230e-03) | P(S/D > 1.094) 7.250e-06 (chain 7.165e-06)
+   beta 2/3: mean D/S 0.99999 (chain 1.00000), sd 1.425 % (chain 1.425 %) | P(S/D > 1.03) 1.974e-02 (chain 1.958e-02) | P(S/D > 1.04) 3.172e-03 (chain 3.154e-03) | P(S/D > 1.05) 3.475e-04 (chain 3.443e-04) | P(S/D > 1.06) 2.538e-05 (chain 2.559e-05) | P(S/D > 1.094) 0.000e+00 (chain 2.500e-10)
+   beta 1/2: mean D/S 0.99999 (chain 1.00000), sd 1.165 % (chain 1.165 %) | P(S/D > 1.03) 5.758e-03 (chain 5.722e-03) | P(S/D > 1.04) 3.989e-04 (chain 4.023e-04) | P(S/D > 1.05) 1.575e-05 (chain 1.545e-05) | P(S/D > 1.06) 2.500e-07 (chain 3.256e-07) | P(S/D > 1.094) 0.000e+00 (chain 9.520e-15)
+   (6 s)
+C. [529] response to a step change of the stake that builds; the change falls just after a cut-off. Mean of |D/S - fixed point| / fixed point (99th percentile) by hours after the change
+   stake that builds times 0.5:
+     40 h, beta 2/3: 0 h 1.000, 60 h 0.3389 (0.3893), 100 h 0.1159 (0.1564), 140 h 0.0398 (0.0761), 180 h 0.0164 (0.0483), 220 h 0.0121 (0.0391)
+     40 h, beta 1: 0 h 1.000, 60 h 0.0239 (0.0774), 100 h 0.0161 (0.0520), 140 h 0.0160 (0.0517), 180 h 0.0160 (0.0517), 220 h 0.0160 (0.0516)
+     today, 180 h, beta 1: 0 h 1.000, 252 h 0.0121 (0.0375), 432 h 0.0069 (0.0223), 612 h 0.0069 (0.0223), 792 h 0.0069 (0.0222), 972 h 0.0069 (0.0222)
+   stake that builds times 0.9:
+     40 h, beta 2/3: 0 h 0.111, 60 h 0.0382 (0.0736), 100 h 0.0160 (0.0474), 140 h 0.0120 (0.0390), 180 h 0.0115 (0.0373), 220 h 0.0114 (0.0368)
+     40 h, beta 1: 0 h 0.111, 60 h 0.0170 (0.0549), 100 h 0.0161 (0.0520), 140 h 0.0160 (0.0518), 180 h 0.0160 (0.0519), 220 h 0.0160 (0.0515)
+     today, 180 h, beta 1: 0 h 0.111, 252 h 0.0074 (0.0239), 432 h 0.0069 (0.0222), 612 h 0.0069 (0.0223), 792 h 0.0069 (0.0223), 972 h 0.0069 (0.0221)
+   stake that builds times 1.1:
+     40 h, beta 2/3: 0 h 0.091, 60 h 0.0315 (0.0626), 100 h 0.0144 (0.0432), 140 h 0.0117 (0.0377), 180 h 0.0114 (0.0366), 220 h 0.0114 (0.0368)
+     40 h, beta 1: 0 h 0.091, 60 h 0.0153 (0.0496), 100 h 0.0160 (0.0515), 140 h 0.0159 (0.0516), 180 h 0.0160 (0.0517), 220 h 0.0160 (0.0519)
+     today, 180 h, beta 1: 0 h 0.091, 252 h 0.0067 (0.0216), 432 h 0.0069 (0.0224), 612 h 0.0069 (0.0223), 792 h 0.0069 (0.0224), 972 h 0.0069 (0.0223)
+   stake that builds times 2.0:
+     40 h, beta 2/3: 0 h 0.500, 60 h 0.1778 (0.2000), 100 h 0.0617 (0.0907), 140 h 0.0221 (0.0528), 180 h 0.0127 (0.0399), 220 h 0.0115 (0.0369)
+     40 h, beta 1: 0 h 0.500, 60 h 0.0182 (0.0484), 100 h 0.0159 (0.0516), 140 h 0.0160 (0.0518), 180 h 0.0161 (0.0517), 220 h 0.0160 (0.0516)
+     today, 180 h, beta 1: 0 h 0.500, 252 h 0.0167 (0.0306), 432 h 0.0068 (0.0220), 612 h 0.0069 (0.0223), 792 h 0.0069 (0.0221), 972 h 0.0069 (0.0223)
+   (2 s)
+D. [529] deflation: 30 % of the total active stake withholds every block; D over the honest stake after each window
+   40 h, beta 2/3: start 1.429, 1: 1.146, 2: 1.050, 3: 1.017, 4: 1.006, 5: 1.002, 6: 1.001   (wins given up per window 729; the fixed point is 1.0000)
+   40 h, beta 1: start 1.429, 1: 1.005, 2: 1.000, 3: 1.000, 4: 1.000, 5: 1.000, 6: 1.000   (wins given up per window 729; the fixed point is 1.0000)
+   today, 180 h, beta 1: start 1.429, 1: 1.005, 2: 1.000, 3: 1.000, 4: 1.000, 5: 1.000, 6: 1.000   (wins given up per window 3934; the fixed point is 1.0000)
+   (0 s)
