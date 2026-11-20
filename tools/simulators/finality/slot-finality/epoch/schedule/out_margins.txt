@@ -1,0 +1,22 @@
+1. each phase over what it needs: phase 1 and phase 3 over G*, phase 2 over w_B
+   the K row's largest G*: 30 %, every honest block 15 s late: share 0.7000, G* = 46910, w_B = 16644
+   the K row's largest w_B: 30 %, a tenth of the honest stake offline, 10 s: share 0.6774, G* = 44667, w_B = 17268
+   outside the row: 30 %, 15 s and a tenth of the honest stake offline: share 0.6774, G* = 48117, w_B = 24713
+   outside the row: a coalition of a third, 15 s: share 0.6667, G* = 48720, w_B = 30618
+   the K row's largest values, G* = 46910, w_B = 17268: 2K + 2K + 2K: phase 1 1.53, phase 2 4.17 | 3K + K + 2K: phase 1 2.30, phase 2 2.08 | phase 3 1.53
+   outside the row: 30 %, 15 s and a tenth of the honest stake offline: 2K + 2K + 2K: phase 1 1.50, phase 2 2.91 | 3K + K + 2K: phase 1 2.24, phase 2 1.46 | phase 3 1.50
+   outside the row: a coalition of a third, 15 s: 2K + 2K + 2K: phase 1 1.48, phase 2 2.35 | 3K + K + 2K: phase 1 2.22, phase 2 1.18 | phase 3 1.48
+
+2. wins a coalition of 30 % gives up in each window it withholds, until the mean D over the honest stake is at most 1.01 (exact rule)
+   3K + 3K, beta   1: 1 window(s): 1093; sum 1093
+   3K + 3K, beta 7/8: 2 window(s): 1093, 1473; sum 2566
+   3K + 3K, beta 5/6: 3 window(s): 1093, 1449, 1536; sum 4078
+   3K + 3K, beta 4/5: 3 window(s): 1093, 1430, 1529; sum 4052
+   3K + 3K, beta 3/4: 3 window(s): 1093, 1403, 1514; sum 4010
+   3K + 3K, beta 2/3: 4 window(s): 1093, 1361, 1484, 1532; sum 5470
+   2K + 2K + 2K, beta   1: 1 window(s): 1457; sum 1457
+   2K + 2K + 2K, beta 7/8: 2 window(s): 1457, 1964; sum 3421
+   2K + 2K + 2K, beta 5/6: 3 window(s): 1457, 1931, 2049; sum 5437
+   2K + 2K + 2K, beta 4/5: 3 window(s): 1457, 1907, 2039; sum 5402
+   2K + 2K + 2K, beta 3/4: 3 window(s): 1457, 1871, 2019; sum 5347
+   2K + 2K + 2K, beta 2/3: 4 window(s): 1457, 1814, 1979, 2043; sum 7293

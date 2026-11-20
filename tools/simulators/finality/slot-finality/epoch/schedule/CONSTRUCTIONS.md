@@ -2,7 +2,7 @@
 
 Date: 2026-11-20.
 
-This note compares three constructions of the epoch at a finality window $`K`$ of 36,000 slots (10 hours). The first is the one the logos-lips branch `Bedrock-RFC-Shorter-Epoch` specifies at `b6dfd7e6`, $`3K + 3K`$. The other two keep a Buffer phase: $`2K + 2K + 2K`$ and $`2.5K + K + 2K`$. The note also derives the learning rate `beta` of the stake inference for each. The rules, the method and the labels are those of SCHEDULE.md, and REVIEW.md, section 2, defines the labels. Section 7 lists the files.
+This note compares three constructions of the epoch at a finality window $`K`$ of 36,000 slots (10 hours). The first is the one the logos-lips branch `Bedrock-RFC-Shorter-Epoch` specifies at `b6dfd7e6`, $`3K + 3K`$. The other two keep a Buffer phase: $`2K + 2K + 2K`$ and $`2.5K + K + 2K`$. Section 2 also writes $`2K + 2K + 2K`$ as $`3K + K + 2K`$, the same protocol with a shorter Buffer phase. The note also derives the learning rate `beta` of the stake inference for each. The rules, the method and the labels are those of SCHEDULE.md, and REVIEW.md, section 2, defines the labels. Section 7 lists the files.
 
 ## 1. What the protocol reads of a schedule
 
@@ -46,11 +46,26 @@ Computed: `out_constructions.txt`, part 1, with $`G^*`$ = 46,910 and $`w_B`$ = 1
 | $`3K + 3K`$ | 26.05 % (cut-off $`3K`$) | 26.05 % | +36,001 slots | phase 1: 108,000 ≥ 46,910 |
 | $`2K + 2K + 2K`$ | 41.35 % (phase 1, $`2K`$); 19.02 % (cut-off $`4K`$) | 41.35 % | +1 slot | phase 2: 72,000 ≥ 17,268 |
 | $`2.5K + K + 2K`$ | 31.96 % (phase 1, $`2.5K`$); 21.98 % (cut-off $`3.5K`$) | 41.35 % | +1 slot | phase 2: 36,000 ≥ 17,268 |
+| $`3K + K + 2K`$, the protocol of $`2K + 2K + 2K`$ | 26.05 % (phase 1, $`3K`$); 19.02 % (cut-off $`4K`$) | 41.35 % | +1 slot | phase 2: 36,000 ≥ 17,268 |
 
-- The worst state of the $`K`$ row has 70 % of $`D`$ building. Every construction keeps S and L in every state.
+- The state of the $`K`$ row with the largest $`G^*`$ has 70 % of $`D`$ building, at 15 s. The least building share of the row is 67.74 %, with a tenth of the honest stake offline, at 10 s (REVIEW.md 5.9). Every construction keeps S and L in every state.
 - A phase 3 of $`2K`$ meets J's $`2K - 1`$ with one slot to spare, for every $`K`$. J is a condition of GENESIS's argument, not a proven necessity (REVIEW.md 10.1). The weaker condition $`K - 1`$ in `../proofs/genesis-step2/STEP2.md` has not been reviewed. Under it the margin would be 36,001 slots.
 - Each epoch is at least $`2K`$ and at least $`6s_{gen}`$ = 97,200 slots (SCHEDULE.md 2).
 - Under B the snapshot's share for $`2K + 2K + 2K`$ is 41.35 %. The same protocol written as $`3K + K + 2K`$ gives 26.05 %. Phase 3 stays at 41.35 % either way, and the 70 % of the $`K`$ row bounds every share (`out_constructions.txt`, part 1).
+
+**2.1 (Proved from 1.2).** $`2K + 2K + 2K`$ and $`3K + K + 2K`$ differ only in their phase tables. No node computes anything from the boundary between phases 1 and 2. The snapshot, the cut-off and the window are the same (protocol 225, 229, 237 at the base). The conditions that the base states on the phases hold for both splits: a phase that waits for a value to finalize lasts at least $`K`$ (157), and the texts of S and B (153, 154). The chain is the same under both splits. In every state of the $`K`$ row, the snapshot is final by $`2K`$ and by $`3K`$, and an honest block lies in the last $`2K`$ and in the last $`K`$ slots before the cut-off (2.2). So B holds through either split, whichever the phase table shows.
+
+**2.2 (Computed).** How much each phase exceeds what it needs, in the state of the $`K`$ row with the largest value and in two states outside the row. $`G^*`$ is `least_gap` of `../common.py` (REVIEW.md 5.4), and $`w_B`$ is the proved value of `../out_08_buffer.txt`, lines 142, 144 and 148. `out_margins.txt`, part 1, prints both. The row allows one disturbance at a time and a coalition of 3/10 (REVIEW.md 5.9).
+
+| State | $`G^*`$ | $`w_B`$ | $`2K + 2K + 2K`$: phase 1 over $`G^*`$, phase 2 over $`w_B`$ | $`3K + K + 2K`$: phase 1 over $`G^*`$, phase 2 over $`w_B`$ | Phase 3 over $`G^*`$, both |
+| --- | --- | --- | --- | --- | --- |
+| The $`K`$ row's largest values | 46,910 | 17,268 | 1.53, 4.17 | 2.30, 2.08 | 1.53 |
+| 15 s and a tenth of the honest stake offline | 48,117 | 24,713 | 1.50, 2.91 | 2.24, 1.46 | 1.50 |
+| A coalition of a third, 15 s | 48,720 | 30,618 | 1.48, 2.35 | 2.22, 1.18 | 1.48 |
+
+- In the $`K`$ row, the smaller margin of phases 1 and 2 is 2.08 for $`3K + K + 2K`$ and 1.53 for $`2K + 2K + 2K`$.
+- In the two states outside the row, it is 1.46 and 1.18 for $`3K + K + 2K`$, set by its Buffer phase, and 1.50 and 1.48 for $`2K + 2K + 2K`$.
+- Phase 3 has the same margin in both texts. Its margin equals the smaller margin of $`2K + 2K + 2K`$'s phases 1 and 2 in all three states.
 
 ## 3. What does not depend on the learning rate
 
@@ -62,7 +77,7 @@ Computed: `out_constructions.txt`, parts 1 and 2. The gain is that of `gain.py` 
 | Gain of a coalition of 30 % that chooses among at most $`2^{16}`$ nonces, 10 s and 15 s | 1.21 %, 1.43 % | 1.21 %, 1.43 % | 1.27 %, 1.49 % |
 | New stake waits | 60 to 120 h | 60 to 120 h | 55 to 110 h |
 | First use of a correction after a change, $`E + L_3`$ | 90 h | 80 h | 75 h |
-| Wins a coalition of 30 % gives up per window it withholds | 1,093 | 1,457 | 1,275 |
+| Wins a coalition of 30 % gives up in the first window it withholds | 1,093 | 1,457 | 1,275 |
 | Expected blocks an epoch | 7,200 | 7,200 | 6,600 |
 | Proof-of-work rate $`\rho`$ = `NUM`/`DEN` that keeps the reward of a claim | 1/600 | 1/600 | 11/7200 |
 | Share of the epoch in which the next epoch's nonce is known (phase 3) | 50 % (30 h) | 33 % (20 h) | 36 % (20 h) |
@@ -136,12 +151,13 @@ Each lag of part 4 is within one hour of a simple formula (Computed). For new st
 
 - $`2K + 2K + 2K`$ keeps every rule of SCHEDULE.md 2 under both arguments for the nonce (1.3). It also keeps the base's structure of three phases.
   - Its window of 40 hours meets the standard with `beta` = 1, the base's value. The chance is $`4.2\cdot10^{-10}`$ under the exact rule, 2.4 times below $`10^{-9}`$. The branch's $`3K + 3K`$ at 3/4 is 480 times below it, at $`2.1\cdot10^{-12}`$.
-  - Against $`3K + 3K`$ at 3/4, $`D`$ is corrected in one step, first used 80 hours after a change in place of 90. After a doubling, $`D`$ is back within 1.094 at 80 hours in place of 150.
+  - Against $`3K + 3K`$ at 3/4, $`D`$ is corrected in one step, first used 80 hours after a change in place of 90. After a doubling, no run is above 1.094 after the first correction, at 80 hours. At 3/4 every run is above it at 90 hours, and the share at 150 hours rounds to 0 at four decimals.
   - The lag behind new stake falls from 81 to 61 hours, and behind stake coming online from 126 to 101.
   - The next epoch's nonce is known for a third of the epoch in place of a half.
   - The cost is in phase 3. Its values are final in time down to 41.35 % of $`D`$ building in place of 26.05 %, and it meets J with one slot to spare.
-  - A deflation costs a coalition of 30 % one window of 1,457 wins in place of three windows of 1,093.
+  - A deflation within 1 % costs a coalition of 30 % one window, 1,457 wins, in place of three windows, about 4,010 wins. The coalition wins more in each later window, because $`D`$ has fallen: 1,093, 1,403 and 1,514 at 3/4, and 1,093 and 1,473 at 7/8, about 2,570 (Computed: `out_margins.txt`, part 2, from the mean $`D`$ of `out_betas.txt`, part 3, exact rule).
   - The floor premise rises from $`7.8\cdot10^{-9}`$ to $`1.2\cdot10^{-8}`$ under the exact rule.
+- $`3K + K + 2K`$ changes nothing that a node does against $`2K + 2K + 2K`$ (2.1). Its phase table states the snapshot's 26.05 % and a Buffer phase of $`K`$. In the $`K`$ row its phases 1 and 2 hold their needs at least 2.08 times, against 1.53. Outside the row its Buffer phase sets the smallest margin of its table, 1.46 and 1.18 in the states of 2.2. There the protocol still holds 1.50 and 1.48, the margins that $`2K + 2K + 2K`$'s table states.
 - $`3K + 3K`$ meets the standard at 7/8 as well as at 3/4. At 7/8 the chance is $`6.9\cdot10^{-10}`$ under the exact rule, 1.45 times below $`10^{-9}`$.
   - 7/8 halves the error after a halving at the first correction, from 25.6 % to 13.2 %.
   - After a doubling, 81 % of runs are back within 1.094 at 90 hours under the exact rule, and 97 % under the rule as printed. At 3/4 none are.
@@ -160,4 +176,5 @@ All files are in `slot-finality/epoch/schedule/`. Run each script in this folder
 | --- | --- | --- |
 | `constructions.py` | the columns of `costs.py` and the rules of SCHEDULE.md 2 for each construction, in both forms of 1.2 and with $`3K + K + 2K`$ and $`2K + K + 2K`$; the proof-of-work rate as `NUM`/`DEN`; the gain of choosing among nonces at 60, 55 and 50 hours | `out_constructions.txt` |
 | `betas.py` | the stationary law by window, learning rate and form of the rule, with the floor premise (part 1, 7 processes); the response to a step change (2) and to a deflation (3) in integers; the lag behind new stake and behind stake coming online (4) | `out_betas.txt` |
+| `margins.py` | each phase of $`2K + 2K + 2K`$ and $`3K + K + 2K`$ over what it needs, in the $`K`$ row and in two states outside it (part 1); the wins a coalition gives up in each window until $`D`$ is deflated within 1 % (part 2) | `out_margins.txt` |
 | `simulate.py <branch\|529> [A B]` | importance sampling (B) and plain Monte Carlo (A) of the rule in integers | `out_simulate_branch_40h.txt`, `out_simulate_529_40h.txt` (WINDOW=144000 EPOCH_H=60 GAP_H=20 BETAS=1,7/8, parts A B); `out_simulate_branch_35h.txt`, `out_simulate_529_35h.txt` (WINDOW=126000 EPOCH_H=55 GAP_H=20 BETAS=1,7/8, part B); `out_simulate_branch_30h_betas.txt`, `out_simulate_529_30h_betas.txt` (WINDOW=108000 EPOCH_H=60 GAP_H=30 BETAS=7/8,5/6, part B) |
