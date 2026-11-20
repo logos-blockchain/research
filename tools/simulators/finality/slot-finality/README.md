@@ -186,6 +186,10 @@ after GENESIS's.
 stake inference's learning rate with its simulations, and what each schedule costs. Its section
 7 lists its scripts.
 
+`schedule/CONSTRUCTIONS.md` compares that schedule, `3K + 3K`, with two constructions that keep a
+Buffer phase, `2K + 2K + 2K` and `2.5K + K + 2K`, and derives the learning rate for each window.
+Its section 7 lists its scripts.
+
 | Script | What it computes | Stored output | Time |
 | --- | --- | --- | --- |
 | `s01_setting.py` | The constants of the windows of 10 and 18 hours, and the finality floor, with the code the specification prints and in exact integers. | `out_01_setting.txt` | 10 s |

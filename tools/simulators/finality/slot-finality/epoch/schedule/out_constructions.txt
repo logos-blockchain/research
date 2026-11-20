@@ -1,0 +1,32 @@
+1. costs (columns of costs.py)
+epoch = L1 + L2 + L3 (h) | window (h) | least share phase 1, phase 3 (15 s) | two nonces | cut-offs a year | new stake waits (h) | no correction for (h) | beta = 1: sd of D | P(miss floor at K) | floor at 1e-9 | P(> 1.094) an epoch | wins 30 % gives up to deflate | blocks an epoch
+   180.00 =  54.00 + 54.00 +  72.00 | 108.00 |  13.80 %,  10.20 % |  5.56 % |   48.7 |  180.0 to  360.0 |  252.0 | 0.868 % | 1.41e-08 | 680 (-9) | 3.84e-29 |   3934 |   21600 | yes   [today: 54 + 54 + 72 h]
+    60.00 =  30.00 +  0.00 +  30.00 |  30.00 |  26.05 %,  26.05 % | 16.67 % |  146.1 |   60.0 to  120.0 |   90.0 | 1.647 % | 9.90e-08 | 672 (-17) | 2.14e-09 |   1093 |    7200 | yes   [no buffer: 3K, 3K (the specification)]
+    60.00 =  20.00 + 20.00 +  20.00 |  40.00 |  41.35 %,  41.35 % | 16.67 % |  146.1 |   60.0 to  120.0 |   80.0 | 1.427 % | 5.38e-08 | 675 (-14) | 6.03e-12 |   1457 |    7200 | yes   [2K, 2K, 2K]
+    60.00 =  30.00 + 10.00 +  20.00 |  40.00 |  26.05 %,  41.35 % | 16.67 % |  146.1 |   60.0 to  120.0 |   80.0 | 1.427 % | 5.38e-08 | 675 (-14) | 6.03e-12 |   1457 |    7200 | yes   [3K, K, 2K (the protocol of 2K, 2K, 2K)]
+    60.00 =  40.00 +  0.00 +  20.00 |  40.00 |  19.02 %,  41.35 % | 16.67 % |  146.1 |   60.0 to  120.0 |   80.0 | 1.427 % | 5.38e-08 | 675 (-14) | 6.03e-12 |   1457 |    7200 | yes   [no buffer: 4K, 2K (the protocol of 2K, 2K, 2K)]
+    55.00 =  25.00 + 10.00 +  20.00 |  35.00 |  31.96 %,  41.35 % | 18.18 % |  159.4 |   55.0 to  110.0 |   75.0 | 1.525 % | 7.04e-08 | 674 (-15) | 1.19e-10 |   1275 |    6600 | yes   [2.5K, K, 2K]
+    55.00 =  35.00 +  0.00 +  20.00 |  35.00 |  21.98 %,  41.35 % | 18.18 % |  159.4 |   55.0 to  110.0 |   75.0 | 1.525 % | 7.04e-08 | 674 (-15) | 1.19e-10 |   1275 |    6600 | yes   [no buffer: 3.5K, 2K (the protocol of 2.5K, K, 2K)]
+    50.00 =  20.00 + 10.00 +  20.00 |  30.00 |  41.35 %,  41.35 % | 20.00 % |  175.3 |   50.0 to  100.0 |   70.0 | 1.647 % | 9.90e-08 | 672 (-17) | 2.14e-09 |   1093 |    6000 | yes   [2K, K, 2K]
+
+epoch (h) | cut-off (slots) | S: phase 1 >= G* | L: phase 3 >= G* | J: phase 3 >= 2K - 1 = 71,999 | honest block | expected blocks an epoch N_b | rho = NUM / DEN | rho / N_b
+ 180.00 | 388800 | yes | yes | yes (+187201) | phase 2 194400 >= w_B 17268: yes |  21600.0 | 1 / 200 | 1/4320000   [today: 54 + 54 + 72 h]
+  60.00 | 108000 | yes | yes | yes (+36001) | phase 1 108000 >= max(G*, w_B) 46910: yes |   7200.0 | 1 / 600 | 1/4320000   [no buffer: 3K, 3K (the specification)]
+  60.00 | 144000 | yes | yes | yes (+1) | phase 2 72000 >= w_B 17268: yes |   7200.0 | 1 / 600 | 1/4320000   [2K, 2K, 2K]
+  60.00 | 144000 | yes | yes | yes (+1) | phase 2 36000 >= w_B 17268: yes |   7200.0 | 1 / 600 | 1/4320000   [3K, K, 2K (the protocol of 2K, 2K, 2K)]
+  60.00 | 144000 | yes | yes | yes (+1) | phase 1 144000 >= max(G*, w_B) 46910: yes |   7200.0 | 1 / 600 | 1/4320000   [no buffer: 4K, 2K (the protocol of 2K, 2K, 2K)]
+  55.00 | 126000 | yes | yes | yes (+1) | phase 2 36000 >= w_B 17268: yes |   6600.0 | 11 / 7200 | 1/4320000   [2.5K, K, 2K]
+  55.00 | 126000 | yes | yes | yes (+1) | phase 1 126000 >= max(G*, w_B) 46910: yes |   6600.0 | 11 / 7200 | 1/4320000   [no buffer: 3.5K, 2K (the protocol of 2.5K, K, 2K)]
+  50.00 | 108000 | yes | yes | yes (+1) | phase 2 36000 >= w_B 17268: yes |   6000.0 | 1 / 720 | 1/4320000   [2K, K, 2K]
+
+2. a coalition of 30 %; gain in its blocks by choosing among nonces, mean over all cut-offs (../s11_gain.py, as gain.py)
+every honest block 10 slots late
+ epoch (h) | slots | blocks by share | gain at 2^8, 2^16, 2^40 nonces: % (blocks an epoch) | at 2^16: blocks a year
+     60.00 | 216000 |    2186 | +1.174 % (+25.7), +1.212 % (+26.5), +1.215 % (+26.6) |    3870
+     55.00 | 198000 |    2004 | +1.227 % (+24.6), +1.266 % (+25.4), +1.269 % (+25.4) |    4043
+     50.00 | 180000 |    1821 | +1.287 % (+23.4), +1.328 % (+24.2), +1.332 % (+24.3) |    4241
+every honest block 15 slots late
+ epoch (h) | slots | blocks by share | gain at 2^8, 2^16, 2^40 nonces: % (blocks an epoch) | at 2^16: blocks a year
+     60.00 | 216000 |    2186 | +1.361 % (+29.7), +1.426 % (+31.2), +1.434 % (+31.3) |    4552
+     55.00 | 198000 |    2004 | +1.421 % (+28.5), +1.489 % (+29.8), +1.498 % (+30.0) |    4756
+     50.00 | 180000 |    1821 | +1.491 % (+27.2), +1.562 % (+28.5), +1.571 % (+28.6) |    4989

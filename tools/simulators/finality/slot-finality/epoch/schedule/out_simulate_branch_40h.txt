@@ -1,0 +1,8 @@
+A. [branch] steady state at a window of 144000 slots (40 h): 400000 chains settled 30 epochs, then 40 epochs kept
+   beta 1.0: mean D/S 1.01027 (chain 1.01027), sd 1.427 % (chain 1.427 %) | P(S/D > 1.03) 2.969e-03 (chain 2.967e-03) | P(S/D > 1.04) 3.217e-04 (chain 3.298e-04) | P(S/D > 1.05) 2.719e-05 (chain 2.540e-05) | P(S/D > 1.06) 1.438e-06 (chain 1.372e-06) | P(S/D > 1.094) 0.000e+00 (chain 6.130e-12)
+   beta 0.875: mean D/S 1.01028 (chain 1.01027), sd 1.260 % (chain 1.261 %) | P(S/D > 1.03) 9.041e-04 (chain 8.936e-04) | P(S/D > 1.04) 5.550e-05 (chain 5.447e-05) | P(S/D > 1.05) 2.125e-06 (chain 2.039e-06) | P(S/D > 1.06) 6.250e-08 (chain 4.750e-08) | P(S/D > 1.094) 0.000e+00 (chain 5.281e-15)
+   (4 s)
+B. [branch] P(S/D > 1.094) at a window of 40 h by importance sampling: 4 batches of 1000000 runs
+   beta 1.0: 6.199e-12 (batches 6.19e-12, 6.21e-12, 6.20e-12, 6.20e-12; relative sd of the mean 0.0%)
+   beta 0.875: 5.352e-15 (batches 5.34e-15, 5.37e-15, 5.35e-15, 5.34e-15; relative sd of the mean 0.1%)
+   (12 s)

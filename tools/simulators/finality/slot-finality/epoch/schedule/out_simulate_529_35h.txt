@@ -1,0 +1,4 @@
+B. [529] P(S/D > 1.094) at a window of 35 h by importance sampling: 4 batches of 1000000 runs
+   beta 1: 4.728e-09 (batches 4.71e-09, 4.73e-09, 4.73e-09, 4.74e-09; relative sd of the mean 0.1%)
+   beta 7/8: 3.001e-11 (batches 3.00e-11, 3.00e-11, 3.00e-11, 3.00e-11; relative sd of the mean 0.0%)
+   (11 s)

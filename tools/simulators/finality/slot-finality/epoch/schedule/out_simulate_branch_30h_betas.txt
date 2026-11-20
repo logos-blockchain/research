@@ -1,0 +1,4 @@
+B. [branch] P(S/D > 1.094) at a window of 30 h by importance sampling: 4 batches of 1000000 runs
+   beta 0.875: 1.085e-11 (batches 1.09e-11, 1.09e-11, 1.08e-11, 1.09e-11; relative sd of the mean 0.0%)
+   beta 0.8333333333333334: 1.287e-12 (batches 1.29e-12, 1.29e-12, 1.28e-12, 1.29e-12; relative sd of the mean 0.1%)
+   (12 s)
