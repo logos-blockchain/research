@@ -1,0 +1,176 @@
+WRN 2026-11-19 11:31:59.187+00:00 Data directory has insecure permissions. Correcting them. tid=7160088 data_dir=./data/writer current_permissions=0755 required_permissions=0700
+INF 2026-11-19 11:31:59.187+00:00 Creating a private key and saving it       tid=7160088
+INF 2026-11-19 11:31:59.187+00:00 Bootstrapping node using a predefined network topics="storage" tid=7160088 network="[logos.test]: Logos testnet"
+INF 2026-11-19 11:31:59.189+00:00 AutoNAT client enabled                     topics="storage" tid=7160088 scheduleInterval=2m numPeersToAsk=3 maxQueueSize=3 minConfidence=0.6
+INF 2026-11-19 11:31:59.190+00:00 Threadpool started                         topics="storage" tid=7160088 numThreads=8
+WRN 2026-11-19 11:31:59.193+00:00 No key for a QueryResponse                 topics="storage repostore" tid=7160088
+NTC 2026-11-19 11:31:59.195+00:00 Started Storage node                       topics="storage node" tid=7160088 id=16U*BhRJCS addrs=[]
+NTC 2026-11-19 11:32:02.211+00:00 REST service started                       tid=7160088 address=127.0.0.1:8180
+WRN 2026-11-19 11:32:34.190+00:00 TCP port mapping failed                    topics="nat" tid=7160088 msg="plum: mapping 0 failed"
+INF 2026-11-19 11:32:34.830+00:00 Signed peer record updated                 topics="storage node" tid=7160088 addrs="[/ip4/128.140.55.128/tcp/8499/p2p/16Uiu2HAmKRRjSxvkNWM7iHbXuSANCrrLmopXWtQshSDuFQ4YqHuG/p2p-circuit]" spr=spr:CiUIAhIhA45m1bYNsif5FMvarK2re6Rb0IZez-ILBdZ9_H5ge9z7EgIDARpnCicAJQgCEiEDjmbVtg2yJ_kUy9qsrat7pFvQhl7P4gsF1n38fmB73PsQ0rz71wYaNgo0BICMN4AGITOlAycAJQgCEiEDZIhgcS4wtFVCgSEE8wlNT61mdZjvx_gForgE4IpqjieiAipHMEUCIQC6ijr7Z_lyvKTIRSYdIVQWcXBbmj3_ZLO-o9d8RTpi8QIgH9aiILIHULWnuhhpLc_68Z1WN2sOjmDDW04hbRqiD6Q
+INF 2026-11-19 11:32:34.835+00:00 Signed peer record updated                 topics="storage node" tid=7160088 addrs="[/ip4/128.140.55.128/tcp/8399/p2p/16Uiu2HAmEVspg4pqvhZUp82QCFJKpgxg9EaUGukdKor6eWcWJC9N/p2p-circuit, /ip4/128.140.55.128/tcp/8399/mix-transport/Axthw_gIbJw6xaiEGmDaL5u3-M0ADrymoazjKNkwYn-J-VpRjMM84W485haSKLGlNMpyfBfsF5jBs39j5yqSrww=/p2p/16Uiu2HAmEVspg4pqvhZUp82QCFJKpgxg9EaUGukdKor6eWcWJC9N/p2p-circuit, /ip4/128.140.55.128/tcp/8499/p2p/16Uiu2HAmKRRjSxvkNWM7iHbXuSANCrrLmopXWtQshSDuFQ4YqHuG/p2p-circuit]" spr=spr:CiUIAhIhA45m1bYNsif5FMvarK2re6Rb0IZez-ILBdZ9_H5ge9z7EgIDARqdAgonACUIAhIhA45m1bYNsif5FMvarK2re6Rb0IZez-ILBdZ9_H5ge9z7ENK8-9cGGjYKNASAjDeABiDPpQMnACUIAhIhAxthw_gIbJw6xaiEGmDaL5u3-M0ADrymoazjKNkwYn-JogIafAp6BICMN4AGIM-BgMABQQMbYcP4CGycOsWohBpg2i-bt_jNAA68pqGs4yjZMGJ_iflaUYzDPOFuPOYWkiixpTTKcnwX7BeYwbN_Y-cqkq8MpQMnACUIAhIhAxthw_gIbJw6xaiEGmDaL5u3-M0ADrymoazjKNkwYn-JogIaNgo0BICMN4AGITOlAycAJQgCEiEDZIhgcS4wtFVCgSEE8wlNT61mdZjvx_gForgE4IpqjieiAipHMEUCIQCqcWKL6aunOxbaXJJFVTl7chO38j4daSBxSCyP3l_vwQIgXn6Hp0u_tC7frNRBKC4jK38MhDDxh4nYhj0Xw-fE2m8
+WRN 2026-11-19 11:32:51.481+00:00 TCP port mapping failed                    topics="nat" tid=7160088 msg="plum: mapping 0 failed"
+INF 2026-11-19 11:37:25.854+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.859+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*CJiSbU treeCid=zDz*GxbmKW blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 11:37:25.864+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.867+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*KcF33K treeCid=zDz*JVTK2Q blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 11:37:25.870+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.872+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*HqVPaT treeCid=zDz*2e6PwZ blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 11:37:25.874+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.876+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*833kQr treeCid=zDz*vi4mro blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 11:37:25.877+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.879+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*JW63dA treeCid=zDz*LuPAvU blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 11:37:25.880+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.881+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*YNeX2e treeCid=zDz*aQER3Z blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 11:37:25.883+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.884+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*NT6bPe treeCid=zDz*7zuNnB blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 11:37:25.885+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.886+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*iCJpDW treeCid=zDz*J11VeS blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 11:37:25.888+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.889+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*oULw67 treeCid=zDz*sGreFX blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 11:37:25.890+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.891+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*AyiQDS treeCid=zDz*PDRki9 blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 11:37:25.892+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.893+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*YXUDxv treeCid=zDz*X9uMDc blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 11:37:25.894+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 11:37:25.895+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*izigQd treeCid=zDz*vVHfhP blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+WRN 2026-11-19 11:40:29.253+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:40:29.253+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afedfbd861194ea11631374
+WRN 2026-11-19 11:40:29.253+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:40:29.253+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afedfbd861194ea11631375
+WRN 2026-11-19 11:42:16.377+00:00 No key for a QueryResponse                 topics="storage repostore" tid=7160088
+WRN 2026-11-19 11:42:30.056+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:42:30.056+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee031861194ea11631380
+WRN 2026-11-19 11:42:30.056+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:42:30.056+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee031861194ea11631381
+WRN 2026-11-19 11:44:33.497+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:44:33.498+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee0ab861194ea116314ac
+WRN 2026-11-19 11:44:33.498+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:44:33.498+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee0ab861194ea116314ad
+WRN 2026-11-19 11:46:37.439+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:46:37.439+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee127861194ea116314d9
+WRN 2026-11-19 11:46:37.440+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:46:37.440+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee127861194ea116314da
+WRN 2026-11-19 11:48:40.575+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:48:40.576+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee1a2861194ea11631523
+WRN 2026-11-19 11:48:40.576+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:48:40.576+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee1a3861194ea11631524
+ERR 2026-11-19 11:50:42.685+00:00 failed to send the buffer                  topics="libp2p yamux" tid=7160088 description="Stream Closed!"
+ERR 2026-11-19 11:50:42.686+00:00 Error sending message                      topics="storage blockexcnetwork" tid=7160088 peer=16U*rZbU4Z msg="Failed to send message: Stream Underlying Connection Closed!"
+WRN 2026-11-19 11:50:42.687+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Reset!"
+WRN 2026-11-19 11:50:42.687+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee21c861194ea1163153f
+WRN 2026-11-19 11:50:42.697+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:50:42.697+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee21c861194ea1163153e
+WRN 2026-11-19 11:52:16.434+00:00 No key for a QueryResponse                 topics="storage repostore" tid=7160088
+WRN 2026-11-19 11:52:44.836+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:52:44.837+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee295861194ea1163154d
+WRN 2026-11-19 11:52:44.837+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:52:44.837+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee295861194ea1163154e
+WRN 2026-11-19 11:53:40.876+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:53:40.877+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee30f861194ea116316e4
+WRN 2026-11-19 11:53:40.877+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:53:40.877+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee30f861194ea116316e6
+WRN 2026-11-19 11:55:42.816+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:55:42.817+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee347861194ea116316f6
+WRN 2026-11-19 11:55:42.817+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:55:42.817+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee347861194ea116316f5
+WRN 2026-11-19 11:57:44.866+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:57:44.867+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee3c2861194ea1163174f
+WRN 2026-11-19 11:57:44.867+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:57:44.867+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee3c2861194ea11631750
+WRN 2026-11-19 11:58:46.715+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:58:46.717+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee43a861194ea11631764
+WRN 2026-11-19 11:58:46.717+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 11:58:46.717+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee43a861194ea11631765
+WRN 2026-11-19 12:00:47.281+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:00:47.283+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee478861194ea11631787
+WRN 2026-11-19 12:00:47.283+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:00:47.283+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee478861194ea11631786
+WRN 2026-11-19 12:00:47.283+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:00:47.283+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee478861194ea11631788
+WRN 2026-11-19 12:02:16.471+00:00 No key for a QueryResponse                 topics="storage repostore" tid=7160088
+WRN 2026-11-19 12:02:48.230+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:02:48.231+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee4f0861194ea116317a9
+WRN 2026-11-19 12:02:48.231+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:02:48.231+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee4f0861194ea116317a8
+INF 2026-11-19 12:03:45.017+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 12:03:45.027+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*uM1Wuz treeCid=zDz*REzGBe blocks=4 datasetSize=236768'NByte filename=none(string) mimetype=some("application/octet-stream")
+WRN 2026-11-19 12:03:48.092+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:03:48.092+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee56c861194ea116318de
+WRN 2026-11-19 12:03:48.092+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:03:48.092+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee56c861194ea116318db
+WRN 2026-11-19 12:03:48.092+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:03:48.092+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee56c861194ea116318e0
+WRN 2026-11-19 12:03:48.093+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:03:48.093+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee56c861194ea116318df
+ERR 2026-11-19 12:05:53.300+00:00 failed to send the buffer                  topics="libp2p yamux" tid=7160088 description="Stream Closed!"
+ERR 2026-11-19 12:05:53.301+00:00 Error sending message                      topics="storage blockexcnetwork" tid=7160088 peer=16U*rZbU4Z msg="Failed to send message: Stream Underlying Connection Closed!"
+WRN 2026-11-19 12:05:53.301+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Reset!"
+WRN 2026-11-19 12:05:53.302+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee5aa861194ea11631a1a
+WRN 2026-11-19 12:05:53.317+00:00 Unable to get send connection for peer message not sent topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z
+WRN 2026-11-19 12:05:53.318+00:00 Unable to get send connection for peer message not sent topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z
+WRN 2026-11-19 12:05:53.318+00:00 Unable to get send connection for peer message not sent topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z
+WRN 2026-11-19 12:05:53.344+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:05:53.344+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee5aa861194ea11631a19
+WRN 2026-11-19 12:07:54.174+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:07:54.175+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee623861194ea11631a5f
+WRN 2026-11-19 12:07:54.175+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:07:54.175+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee623861194ea11631a60
+INF 2026-11-19 12:08:45.961+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 12:08:45.967+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*DxXPBi treeCid=zDz*L26Arm blocks=1 datasetSize=59192'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:08:45.981+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 12:08:45.986+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*NkkQA8 treeCid=zDz*4koeMA blocks=1 datasetSize=59192'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:08:45.988+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 12:08:45.990+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*N4F3i8 treeCid=zDz*F9QsAb blocks=1 datasetSize=59192'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:08:45.991+00:00 Storing data                               topics="storage node" tid=7160088
+INF 2026-11-19 12:08:45.993+00:00 Stored data                                topics="storage node" tid=7160088 manifestCid=zDv*poupik treeCid=zDz*FKeZFv blocks=1 datasetSize=59192'NByte filename=none(string) mimetype=some("application/octet-stream")
+WRN 2026-11-19 12:09:55.324+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:09:55.325+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee69d861194ea11631a7c
+WRN 2026-11-19 12:09:55.325+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:09:55.325+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee69d861194ea11631a7d
+WRN 2026-11-19 12:11:56.667+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:11:56.668+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee715861194ea11631af7
+WRN 2026-11-19 12:11:56.668+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:11:56.668+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee715861194ea11631af9
+WRN 2026-11-19 12:12:16.569+00:00 No key for a QueryResponse                 topics="storage repostore" tid=7160088
+WRN 2026-11-19 12:13:58.144+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:13:58.146+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee78f861194ea11631b14
+WRN 2026-11-19 12:13:58.146+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:13:58.146+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee790861194ea11631b15
+WRN 2026-11-19 12:24:00.005+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:24:00.007+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee809861194ea11631ca7
+WRN 2026-11-19 12:24:00.007+00:00 Exception in blockexc read loop            topics="storage blockexcnetworkpeer" tid=7160088 msg="Stream Closed!"
+WRN 2026-11-19 12:24:00.007+00:00 Detaching read loop                        topics="storage blockexcnetworkpeer" tid=7160088 peer=16U*rZbU4Z connId=6afee809861194ea11631ca8
+INF 2026-11-19 12:24:00.075+00:00 Signed peer record updated                 topics="storage node" tid=7160088 addrs="[/ip4/128.140.55.128/tcp/8499/p2p/16Uiu2HAmKRRjSxvkNWM7iHbXuSANCrrLmopXWtQshSDuFQ4YqHuG/p2p-circuit]" spr=spr:CiUIAhIhA45m1bYNsif5FMvarK2re6Rb0IZez-ILBdZ9_H5ge9z7EgIDARpnCicAJQgCEiEDjmbVtg2yJ_kUy9qsrat7pFvQhl7P4gsF1n38fmB73PsQ4NT71wYaNgo0BICMN4AGITOlAycAJQgCEiEDZIhgcS4wtFVCgSEE8wlNT61mdZjvx_gForgE4IpqjieiAipHMEUCIQDZD4HEMBHzdpjdkaW4jv6llQDQb6LBJERPzneSg64fDAIgdv6z3VZA9QwnXABvjZLtovHSY9OOGwAXSGXVdNKxZpc
+INF 2026-11-19 12:24:00.227+00:00 Signed peer record updated                 topics="storage node" tid=7160088 addrs=[] spr=spr:CiUIAhIhA45m1bYNsif5FMvarK2re6Rb0IZez-ILBdZ9_H5ge9z7EgIDARovCicAJQgCEiEDjmbVtg2yJ_kUy9qsrat7pFvQhl7P4gsF1n38fmB73PsQ4NT71wYqRzBFAiEAlnfqD3sIItU_qX0_b6SjSdv0_xaMUhCCcTSNTf3_3pACIAFmB8sVVUopOr6IWczxQC2DYCJ2vsZA1YPTY88LeOVm
+INF 2026-11-19 12:24:09.437+00:00 Signed peer record updated                 topics="storage node" tid=7160088 addrs="[/ip4/128.140.55.128/tcp/8499/p2p/16Uiu2HAmKRRjSxvkNWM7iHbXuSANCrrLmopXWtQshSDuFQ4YqHuG/p2p-circuit]" spr=spr:CiUIAhIhA45m1bYNsif5FMvarK2re6Rb0IZez-ILBdZ9_H5ge9z7EgIDARpnCicAJQgCEiEDjmbVtg2yJ_kUy9qsrat7pFvQhl7P4gsF1n38fmB73PsQ6dT71wYaNgo0BICMN4AGITOlAycAJQgCEiEDZIhgcS4wtFVCgSEE8wlNT61mdZjvx_gForgE4IpqjieiAipHMEUCIQC3oYGeHOHYveUIhZReCdXDag4yjrJS0YlcM2LPa_9XkwIgJhFQzHIqOOzHiyLQDLXOKXXeyO1YOwnSmE0Vfd3Av4g
+INF 2026-11-19 12:24:30.253+00:00 Signed peer record updated                 topics="storage node" tid=7160088 addrs="[/ip4/178.128.140.206/tcp/8070/p2p/16Uiu2HAm3xPbYz2zsq5XVGDCMqKhhNXZWyYV6WLVv3yzzUiRJWnW/p2p-circuit, /ip4/178.128.140.206/tcp/8070/mix-transport/An67-cPFkDpqyeTEjDPbhtN8NUxt9S-niBc5QRLyc2xrfadHgJmHjhbhrmTY2S86xaAz0wkgJnLzjEsjWAApyTU=/p2p/16Uiu2HAm3xPbYz2zsq5XVGDCMqKhhNXZWyYV6WLVv3yzzUiRJWnW/p2p-circuit, /ip4/128.140.55.128/tcp/8499/p2p/16Uiu2HAmKRRjSxvkNWM7iHbXuSANCrrLmopXWtQshSDuFQ4YqHuG/p2p-circuit]" spr=spr:CiUIAhIhA45m1bYNsif5FMvarK2re6Rb0IZez-ILBdZ9_H5ge9z7EgIDARqdAgonACUIAhIhA45m1bYNsif5FMvarK2re6Rb0IZez-ILBdZ9_H5ge9z7EP7U-9cGGjYKNASygIzOBh-GpQMnACUIAhIhAn67-cPFkDpqyeTEjDPbhtN8NUxt9S-niBc5QRLyc2xrogIafAp6BLKAjM4GH4aBgMABQQJ-u_nDxZA6asnkxIwz24bTfDVMbfUvp4gXOUES8nNsa32nR4CZh44W4a5k2NkvOsWgM9MJICZy84xLI1gAKck1pQMnACUIAhIhAn67-cPFkDpqyeTEjDPbhtN8NUxt9S-niBc5QRLyc2xrogIaNgo0BICMN4AGITOlAycAJQgCEiEDZIhgcS4wtFVCgSEE8wlNT61mdZjvx_gForgE4IpqjieiAipHMEUCIQDyA6OD3cOSPvJo9vJRSw16jCS53nFqj1PyWVlXA7Cs9wIgOxouyoCYJjXaHccYGMofoLWbqJnNkMsqyJa-LMkxyLs
+WRN 2026-11-19 12:31:30.191+00:00 No key for a QueryResponse                 topics="storage repostore" tid=7160088
+NTC 2026-11-19 12:33:01.626+00:00 Shutting down after having received SIGTERM topics="storage" tid=7160088
+NTC 2026-11-19 12:33:01.628+00:00 Stopping Storage node                      topics="storage node" tid=7160088
+NTC 2026-11-19 12:33:01.630+00:00 Stopping Logos Storage                     topics="storage" tid=7160088
+INF 2026-11-19 12:33:01.744+00:00 Timer loop has stopped                     tid=7160088 name=maintenance
+NTC 2026-11-19 12:33:01.744+00:00 REST service stopped                       tid=7160088 address=127.0.0.1:8180
+WRN 2026-11-19 12:33:01.745+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7160088
+INF 2026-11-19 12:33:01.745+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7160088
+WRN 2026-11-19 12:33:01.745+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7160088
+INF 2026-11-19 12:33:01.745+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7160088
+WRN 2026-11-19 12:33:01.745+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7160088
+INF 2026-11-19 12:33:01.745+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7160088
+WRN 2026-11-19 12:33:01.745+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7160088
+INF 2026-11-19 12:33:01.745+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7160088
+WRN 2026-11-19 12:33:01.745+00:00 Cancelled advertise local store loop       topics="storage discoveryengine advertiser" tid=7160088
+INF 2026-11-19 12:33:01.745+00:00 Exiting advertise task loop                topics="storage discoveryengine advertiser" tid=7160088
+WRN 2026-11-19 12:33:01.745+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7160088
+INF 2026-11-19 12:33:01.745+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7160088
+WRN 2026-11-19 12:33:01.745+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7160088
+INF 2026-11-19 12:33:01.745+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7160088
+WRN 2026-11-19 12:33:01.745+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7160088
+INF 2026-11-19 12:33:01.745+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7160088
+WRN 2026-11-19 12:33:01.746+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7160088
+INF 2026-11-19 12:33:01.746+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7160088
+WRN 2026-11-19 12:33:01.746+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7160088
+INF 2026-11-19 12:33:01.746+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7160088
+WRN 2026-11-19 12:33:01.746+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7160088
+INF 2026-11-19 12:33:01.746+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7160088
+WRN 2026-11-19 12:33:06.630+00:00 Switch stop timed out, continuing          topics="storage node" tid=7160088 timeout=5s

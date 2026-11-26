@@ -1,0 +1,67 @@
+WRN 2026-11-19 12:33:40.831+00:00 Data directory has insecure permissions. Correcting them. tid=7202039 data_dir=./data/writer current_permissions=0755 required_permissions=0700
+INF 2026-11-19 12:33:40.832+00:00 Creating a private key and saving it       tid=7202039
+INF 2026-11-19 12:33:40.833+00:00 Bootstrapping node using a predefined network topics="storage" tid=7202039 network="[logos.test]: Logos testnet"
+INF 2026-11-19 12:33:40.841+00:00 AutoNAT client enabled                     topics="storage" tid=7202039 scheduleInterval=2m numPeersToAsk=3 maxQueueSize=3 minConfidence=0.6
+INF 2026-11-19 12:33:40.866+00:00 Threadpool started                         topics="storage" tid=7202039 numThreads=8
+WRN 2026-11-19 12:33:40.927+00:00 No key for a QueryResponse                 topics="storage repostore" tid=7202039
+NTC 2026-11-19 12:33:40.936+00:00 Started Storage node                       topics="storage node" tid=7202039 id=16U*X9YNDX addrs=[]
+WRN 2026-11-19 12:33:40.939+00:00 Cannot connect to bootstrap node           topics="storage node" tid=7202039 error="Unable to establish outgoing link in establishConnection: peer_id=16U*29vrbB addrs=@[/ip4/129.212.221.44/tcp/8070, /ip4/129.212.221.44/tcp/8070/mix-transport/A_aTx0w5sTTjM1GEgYYDd1cbzpzGQZ8eiqL77znxAunKouXQ3WVLH-5B4g_222ZrPRKBRi-10dcrPmrbrQPMHQI=]"
+WRN 2026-11-19 12:33:40.939+00:00 Cannot connect to bootstrap node           topics="storage node" tid=7202039 error="Unable to establish outgoing link in establishConnection: peer_id=16U*pN9NEM addrs=@[/ip4/34.123.182.254/tcp/8070]"
+WRN 2026-11-19 12:33:40.939+00:00 Cannot connect to bootstrap node           topics="storage node" tid=7202039 error="Unable to establish outgoing link in establishConnection: peer_id=16U*i66rfD addrs=@[/ip4/47.76.178.164/tcp/8070]"
+NTC 2026-11-19 12:33:46.342+00:00 REST service started                       tid=7202039 address=127.0.0.1:8180
+INF 2026-11-19 12:38:53.086+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:38:53.090+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*de4oi3 treeCid=zDz*QL1B5U blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:38:53.091+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:38:53.093+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*GPBNQe treeCid=zDz*P93xew blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:38:53.094+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:38:53.095+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*CqeTX5 treeCid=zDz*7fYUeL blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:38:53.096+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:38:53.097+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*k74wPs treeCid=zDz*29icsh blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:38:53.097+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:38:53.098+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*GhoWeE treeCid=zDz*tbPrQP blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:38:53.099+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:38:53.100+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*RUoCAt treeCid=zDz*VGfTR7 blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:38:53.101+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:38:53.102+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*kVVhyV treeCid=zDz*MAvU8y blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:38:53.103+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:38:53.104+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*htAW1A treeCid=zDz*24L7dp blocks=1 datasetSize=1208'NByte filename=none(string) mimetype=some("application/octet-stream")
+WRN 2026-11-19 12:43:40.949+00:00 No key for a QueryResponse                 topics="storage repostore" tid=7202039
+INF 2026-11-19 12:50:42.185+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:50:42.190+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*hPbXi2 treeCid=zDz*PzK4ux blocks=4 datasetSize=236768'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:52:42.375+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:52:42.379+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*o3M7ob treeCid=zDz*ZqvJv7 blocks=1 datasetSize=59192'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:52:42.381+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:52:42.383+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*yDQFr9 treeCid=zDz*7B4gFv blocks=1 datasetSize=59192'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:52:42.384+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:52:42.386+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*v2jUcn treeCid=zDz*Rzb2zX blocks=1 datasetSize=59192'NByte filename=none(string) mimetype=some("application/octet-stream")
+INF 2026-11-19 12:52:42.387+00:00 Storing data                               topics="storage node" tid=7202039
+INF 2026-11-19 12:52:42.388+00:00 Stored data                                topics="storage node" tid=7202039 manifestCid=zDv*qtSGKw treeCid=zDz*y55kSE blocks=1 datasetSize=59192'NByte filename=none(string) mimetype=some("application/octet-stream")
+WRN 2026-11-19 12:53:40.996+00:00 No key for a QueryResponse                 topics="storage repostore" tid=7202039
+INF 2026-11-19 13:00:41.308+00:00 Missed multiple heartbeats                 topics="libp2p autonatv2 service" tid=7202039 heartbeat="Scheduling AutonatV2Service run" delay=24m54s975ms182us hinterval=2m
+NTC 2026-11-19 13:02:10.192+00:00 Shutting down after having received SIGTERM topics="storage" tid=7202039
+NTC 2026-11-19 13:02:10.193+00:00 Stopping Storage node                      topics="storage node" tid=7202039
+NTC 2026-11-19 13:02:10.194+00:00 Stopping Logos Storage                     topics="storage" tid=7202039
+INF 2026-11-19 13:02:11.194+00:00 Timer loop has stopped                     tid=7202039 name=maintenance
+NTC 2026-11-19 13:02:11.195+00:00 REST service stopped                       tid=7202039 address=127.0.0.1:8180
+WRN 2026-11-19 13:02:11.200+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7202039
+INF 2026-11-19 13:02:11.200+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7202039
+WRN 2026-11-19 13:02:11.200+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7202039
+INF 2026-11-19 13:02:11.200+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7202039
+WRN 2026-11-19 13:02:11.200+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7202039
+INF 2026-11-19 13:02:11.201+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7202039
+WRN 2026-11-19 13:02:11.201+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7202039
+INF 2026-11-19 13:02:11.201+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7202039
+WRN 2026-11-19 13:02:11.201+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7202039
+INF 2026-11-19 13:02:11.201+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7202039
+WRN 2026-11-19 13:02:11.201+00:00 Cancelled advertise local store loop       topics="storage discoveryengine advertiser" tid=7202039
+INF 2026-11-19 13:02:11.201+00:00 Exiting advertise task loop                topics="storage discoveryengine advertiser" tid=7202039
+WRN 2026-11-19 13:02:11.201+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7202039
+INF 2026-11-19 13:02:11.201+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7202039
+WRN 2026-11-19 13:02:11.201+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7202039
+INF 2026-11-19 13:02:11.201+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7202039
+WRN 2026-11-19 13:02:11.201+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7202039
+INF 2026-11-19 13:02:11.201+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7202039
+WRN 2026-11-19 13:02:11.201+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7202039
+INF 2026-11-19 13:02:11.201+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7202039
+WRN 2026-11-19 13:02:11.201+00:00 Cancelled advertise task runner            topics="storage discoveryengine advertiser" tid=7202039
+INF 2026-11-19 13:02:11.202+00:00 Exiting advertise task runner              topics="storage discoveryengine advertiser" tid=7202039
