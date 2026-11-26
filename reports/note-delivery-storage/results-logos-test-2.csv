@@ -1,0 +1,14 @@
+network,messages,layout,mode,object_bytes,lookup_s,download_s,ok
+logos.test,8,per-message,sequential,1208,120.17555093765259,,False
+logos.test,8,per-message,sequential,1208,120.17295598983765,,False
+logos.test,8,per-message,sequential,1208,144.26713013648987,,False
+logos.test,8,per-message,sequential,1208,144.26859974861145,,False
+logos.test,8,per-message,parallel,1208,120.17056393623352,,False
+logos.test,8,per-message,parallel,1208,120.1707558631897,,False
+logos.test,8,per-message,parallel,1208,120.17041301727295,,False
+logos.test,8,per-message,parallel,1208,120.17047882080078,,False
+logos.test,8,batch,single,236768,120.17944312095642,,False
+logos.test,8,parts,sequential,59192,120.1891541481018,,False
+logos.test,8,parts,sequential,59192,120.16986012458801,,False
+logos.test,8,parts,sequential,59192,120.16957187652588,,False
+logos.test,8,parts,sequential,59192,147.2591848373413,,False

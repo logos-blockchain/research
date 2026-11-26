@@ -1,0 +1,10 @@
+
+== 8 messages of 1208 bytes, network logos.test
+CID: 52 characters, 38 bytes (zDvZRwzkwdHHvMSrCeumkRWSmotQcm9BsifXMvR3xxBgQYde4oi3)
+upload, one object per message: 0.02 s total, 2.7 ms each, 67194 bytes on disk per message
+fetch sequential (4): 528.88 s total; all failed
+fetch parallel x4 (4): 120.18 s total; all failed
+batch of 236768 bytes: upload 0.01 s, 265949 bytes on disk, lookup 120.18 s, download None s, ok False
+same batch in 4 parts of 49 messages: 0/4 ok, 507.79 s total, per part median nan s
+
+./results-logos.test.csv
