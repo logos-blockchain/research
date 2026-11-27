@@ -2,7 +2,7 @@
 
 Date: 2026-11-27.
 
-This note supports the logos-lips RFC "Cryptarchia: Shorten the epoch to 60 hours", on the branch `Bedrock-RFC-Shorter-Epoch`. The RFC sets two phases of $`4K`$ and $`2K`$ slots, with $`K`$ = 36,000. The stake inference reads a window of $`4K`$ and learns at `beta` = 1/2. Section 1 gives the source of each figure of the RFC's Discussion. Section 2 corrects `../schedule/SCHEDULE.md` and `../REVIEW.md`. Section 3 lists the files of this folder and says how to rerun them.
+This note supports the logos-lips RFC "Cryptarchia: Shorten the epoch to 60 hours", on the branch `Bedrock-RFC-Shorter-Epoch`. The RFC sets two phases of $`4K`$ and $`2K`$ slots, with $`K`$ = 36,000. The stake inference reads a window of $`4K`$, learns at `beta` = 1/2, and keeps at least `gamma` = 3/4 of its estimate in each update. Section 1 gives the source of each figure of the RFC's Discussion. Section 2 corrects `../schedule/SCHEDULE.md` and `../REVIEW.md`. Section 3 lists the files of this folder and says how to rerun them.
 
 Conventions:
 
@@ -63,31 +63,36 @@ The rows give `2K + 4K`, `3K + 3K` and `4K + 2K` in that order.
 | --- | --- |
 | 40 hours in place of 108 | $`4K`$ = 144,000 slots. Today `PERIOD` is 388,800 slots (REVIEW.md 1.2). |
 | $`D' = D \cdot ((1 - \beta) + \beta N/(P f))`$ | REVIEW.md 7.2, with `beta` held as a ratio. |
-| $`(1 - \beta) \cdot D`$ | The rule at $`N = 0`$. |
-| $`1/(1 - \beta y)`$ | The rule at $`N = (1 - y) P f`$. |
+| $`D' \ge \gamma D`$ | The rule as the branch prints it: the next estimate keeps at least `gamma` of the current one. |
+| $`1/\max(1 - \beta y, \gamma)`$ | The rule at $`N = (1 - y) P f`$, with the retained share. |
 | 2.097 at 10 s | `out_displace.txt`, line 27: at $`S/D`$ = 2.097 and 10 s the wait at `1e-9` is 9.994 h. `../../floor/out_least_waits_edges.txt`, line 8, gives the same edge. |
 | 1.094 at 15 s | `out_displace.txt`, line 11: at 1.094 and 15 s the wait is 9.999 h. |
-| at most twice $`D`$ | $`1/(1 - 1/2)`$ = 2 (`out_betacost.txt`, line 79). |
-| 4.6 % of room | 1 − 2/2.097. |
-| `2·10^-12` and `5·10^-9` | `out_printed.txt`, part 8: the stationary chance that $`S/D`$ exceeds 2.097/2 at a window of $`4K`$ and `beta` = 1/2, `2.24e-12` under the rule as printed and `5.17e-09` under the exact rule. |
-| 2.86 times $`D`$ | 2/0.7. A coalition that withholds keeps $`D`$ on the honest stake, 0.7 of the total, and a window without blocks then halves $`D`$. |
+| 4/3 and 16/9, 1.78 | `out_floor.txt`, part 1: one and two windows without blocks, $`1/\gamma`$ and $`1/\gamma^2`$. Without `gamma`, 2 and 4. |
+| 160 hours | Three windows need a halt over window, last phase, window, last phase and window: 40 + 20 + 40 + 20 + 40 h. A shorter halt touches at most two windows. |
+| 15 % | `out_floor.txt`, part 1: the room for $`D`$ below the total active stake that two windows without blocks leave, 1 − 1.78/2.097 = 15.2 %. |
+| 1.90 times $`D`$ | `out_floor.txt`, part 4: (1/0.7) · 4/3. A coalition that withholds keeps $`D`$ on the honest stake, 0.7 of the total, and a window without blocks then keeps 3/4 of $`D`$. |
+| 0.6906 | `out_floor.txt`, part 1: $`1/\sqrt{2.097}`$. |
+| 1.16, 1.27, 1.34 and 1.37 | `out_simulate_branch_4k2k.txt`, line 28: $`D`$ over the honest stake is 1.229, 1.121, 1.067 and 1.039, and $`1/(0.7 \cdot x)`$ gives the four. The retained share does not bind there. |
+| 1.33, and the honest stake after two windows, at `beta` = 1 | `out_floor_half.txt`, "beta 1, floor 3/4": 1.333 and 1.427, with the exact rule. |
+| 2.03 % and 4.01 % | `out_printed.txt`, part 2, the rule as printed. The retained share does not bind under growth. |
 
 What one window of lost blocks does. The rows give today, `3K + 3K` at 3/4, `4K + 2K` at 1 and `4K + 2K` at 1/2 in that order.
 
 | Row | Figures | Source |
 | --- | --- | --- |
-| $`S/D`$ after a window without blocks | unbounded, 4, unbounded, 2 | $`1/(1 - \beta)`$. `out_betacost.txt`, lines 81, 70, 74 and 79. |
-| a halt takes $`S/D`$ past 2.097 from | 56.5 h, 20.9 h, 20.9 h, never | The same lines. |
-| a halt takes $`S/D`$ past 1.094 from | 9.3, 3.4, 3.4, 6.9 h | The same lines. |
-| largest $`S/D`$ after a halt of 24 h | 1.29, 2.50, 2.50, 1.43 | `out_halt.txt`, lines 134, 33, 34 and 39. |
+| $`S/D`$ after a window without blocks | unbounded, 4, unbounded, 1.33 | $`1/(1 - \beta)`$, and $`1/\gamma`$ in the last column (`out_floor.txt`, part 1). `out_betacost.txt`, lines 81, 70 and 74. |
+| the same after two windows | unbounded, 16, unbounded, 1.78 | The square of the row above. |
+| a halt takes $`S/D`$ past 2.097 from | 56.5 h, 20.9 h, 20.9 h, never | `out_betacost.txt`, lines 81, 70 and 74. In the last column $`1/\gamma`$ < 2.097. |
+| a halt takes $`S/D`$ past 1.094 from | 9.3, 3.4, 3.4, 6.9 h | `out_betacost.txt`, lines 81, 70, 74 and 79. The retained share does not bind at 1.094, as $`1 - \beta y`$ is then 0.914. |
+| largest $`S/D`$ after a halt of 24 h | 1.29, 2.50, 2.50, 1.33 | `out_halt.txt`, lines 134, 33 and 34; `out_floor_half.txt`, "beta 1/2, floor 3/4". |
 | $`S/D`$ after a coalition of 30 % withholds one window, under the specification's rule | 1.41, 1.27, 1.41, 1.16 | `out_printed.txt`, part 3, from $`D`$ at rest. The exact rule gives 1.42, 1.29, 1.42 and 1.17 (`out_extra.txt`, lines 12 to 15). |
 
 | Figure | Source |
 | --- | --- |
 | a halt of up to 56 hours | `out_betacost.txt`, line 81: 56.5 h. |
-| its floor of one unit | REVIEW.md 7.2: the rule returns at least 1. |
-| two windows need a halt of at least 100 hours | window, last phase and window: 40 + 20 + 40 h. |
-| 4 times $`D`$ | $`(1/(1 - 1/2))^2`$. |
+| one unit, the least the rule returns | REVIEW.md 7.2: the rule returns at least 1. |
+| 1.45 against 2.00; about 0.001 against about 10 blocks | `out_floor_half.txt`: the worst $`S/D`$ after a halt of 48 h, and the blocks a coalition of 30 % is expected to displace after it at 15 s, with and without the retained share (exact rule). |
+| 2.37 times $`D`$ | $`(4/3)^3`$. |
 | 0.83 % and 0.87 % | `out_split_chain.txt`, lines 7 and 1, the rule as printed. |
 | about $`2 \cdot 10^{-33}`$ | `out_split_chain.txt`, line 7: `1.914e-33`. `out_simulate_branch_4k2k.txt`, line 7, gives `1.980e-33` by importance sampling. |
 | $`2.21 \cdot 10^{-10}`$ under the specification's rule, the same today | `out_printed.txt`, part 1: `2.209e-10` at 60 hours and `2.210e-10` today. |
@@ -106,6 +111,7 @@ What a learning rate of 1/2 costs. The rows give today, then `4K + 2K` at 1/2.
 | a change is first corrected | 252 h, 80 h | The last phase plus one epoch: 72 + 180 h and 20 + 60 h. |
 | after the stake halves, $`D`$ is off by | 0.8 % at 252 h; 50, 25, 13 % at 80, 140, 200 h | `out_printed.txt`, part 7, the mean path: 1.0084; 1.5042, 1.2549, 1.1292. `out_simulate_branch_4k2k.txt`, lines 13 and 11, gives the mean error with the noise: 1.2 % today, and the same 50, 25 and 13 %. |
 | after it falls by a tenth | 0.2 %; 5.6, 2.9, 1.5 % | `out_printed.txt`, part 7: 1.0017; 1.0564, 1.0286, 1.0146. |
+| after it falls to 30 % | 1.2 %; 150, 88, 44 % | `out_floor.txt`, part 3: 1.0118 today; 2.500, 1.875 and 1.441 with the retained share. |
 | after the stake doubles, $`S/D`$ stays above 1.094 until | the correction at 252 h; the third correction, at 200 h | `out_printed.txt`, part 7: $`D`$ over its fixed point is 0.7418, 0.8680 and 0.9327, so $`S/D`$ is 1.334, 1.140 and 1.061 after one, two and three corrections. |
 | a coalition of 30 % withholds every block | one window, withholding 3,894 wins; within 22, 11, 6 and 3 %, withholding 1,442, 1,692, 1,854 and 1,948 wins | `out_printed.txt`, part 5, wins from $`D`$ at rest. `out_simulate_branch_4k2k.txt`, lines 30 and 28: $`D`$ over the honest stake is 1.229, 1.121, 1.067 and 1.039, against the fixed point 1.0103. The simulation's "wins given up per window" is the first window from $`D`$ equal to the stake, not each window. |
 | daily growth that $`K`$ holds at 15 s | 1.32 %, 2.03 % | `out_printed.txt`, part 2, the rule as printed. The exact rule gives 1.18 % and 1.82 % (`out_extra.txt`, lines 7 and 10). |
@@ -115,7 +121,8 @@ What a learning rate of 1/2 costs. The rows give today, then `4K + 2K` at 1/2.
 | Figure | Source |
 | --- | --- |
 | 13.3 hours, then 10.5 hours | `out_betacost.txt`, line 40. Line 35 gives 13.3 h at `beta` = 1. |
-| 0.46, 0.63, 0.76 and 0.86; 0.98 at `beta` = 1 | `out_printed.txt`, part 6, the rule as printed. The exact rule gives 0.46, 0.63, 0.77, 0.87 and 0.99 (`out_betacost.txt`, lines 16 and 11). |
+| 0.40, 0.53, 0.69 and 0.81; 0.46, 0.63, 0.76 and 0.86 without the retained share; 0.98 at `beta` = 1 | `out_floor.txt`, part 2, and `out_printed.txt`, part 6, the rule as printed. |
+| binds only below half of the expected blocks; 117 % and 59 % | $`1 - \beta y \lt \gamma`$ exactly when $`y \gt (1 - \gamma)/\beta`$ = 1/2. `out_floor.txt`, part 3: 2.173 and 1.591 without the retained share. |
 | $`2.5 \cdot 10^{-9}`$ with $`f`$ exact | `out_split_chain.txt`, line 8: `2.513e-09`. |
 
 ### 1.5 The epoch nonce
@@ -158,6 +165,8 @@ What a learning rate of 1/2 costs. The rows give today, then `4K + 2K` at 1/2.
 | `3K + 3K`, 3/4 | 26.05 %; 30 hours | `../schedule/out_costs.txt`, line 6; the last phase. |
 | `3K + 3K`, 3/4 | 20.9 h; 28.7 % against 52.5 % | `out_betacost.txt`, line 70; `out_printed.txt`, part 4. |
 | `4K + 2K`, 1 | 80 h; 4.01 %; 20.9 h | 20 + 60 h; `out_printed.txt`, part 2, the rule as printed; `out_betacost.txt`, line 74. |
+| `4K + 2K`, 1/2, no retained share | 0.86 against 0.81; 59 % against 88 %; 2 and 4; about 10 against about 0.001 | `out_floor.txt`, parts 1 to 3; `out_floor_half.txt`, 48 h. |
+| `4K + 2K`, 1, `gamma` = 3/4 | 4.01 %; 12 % against 25 %; 1.33, the honest stake in two | `out_printed.txt`, part 2; `out_floor_half.txt`, "beta 1, floor 3/4" against "beta 1/2, floor 3/4" (exact rule). |
 | `4K + 2K`, 1, a fall of at most a quarter | 4/3; one step; 12 % at 140 h | `out_rules.txt`, line 9: an empty window gives 1.33; after a doubling 1.017 and then 1.000; after a halving $`D/S`$ is 1.50, 1.12 and 1.00. |
 | `2K + 2K` | 40 to 80 h; 41.35 %; 25 %; 4,800 blocks | `../schedule/out_costs.txt`, line 8. |
 | `2K + 2K` | about 7,000; 1.48 % | 72,000 − 65,000, with 65,000 as in 1.2; `../schedule/out_gain.txt`, line 8. |
@@ -195,13 +204,13 @@ The settlement route of `r2_repair.py` gives shorter phases. It rests on $`U`$, 
 
 **2.4 SCHEDULE.md 3.7.** The window need only end at or before the cut-off. $`D`$ is read at the cut-off, and REVIEW.md 4.2 and 4.3 need only that every slot of the window is before the read slot. The rest of 3.7 stands.
 
-**2.5 SCHEDULE.md 4.1.** The standard of 4.1 does not track the risk, and it no longer sets `beta`.
+**2.5 SCHEDULE.md 4.1.** The standard of 4.1 does not track the risk, and it no longer sets the inference's rates.
 
 - 4.1 bounds the chance per epoch that the noise of $`D`$ takes $`S/D`$ past 1.094.
 - $`K`$ is sized by the chance per block that a coalition of 30 % displaces a block. Averaged over the noise of $`D`$, that chance is `2.566e-10` at `4K + 2K` with `beta` = 1 and `2.525e-10` with `beta` = 1/2 under the exact rule, against `2.504e-10` with $`D`$ exact (`out_extra.txt`, lines 4, 5 and 1). Under the rule as printed it is `2.243e-10` and `2.209e-10` (`out_printed.txt`, part 1).
 - Between the same two rates, the chance of 4.1 falls from `4.2e-10` to `1.2e-27` under the exact rule (`out_split_chain.txt`, lines 6 and 8).
-- The bound on lost blocks sets `beta`. One window without blocks takes $`S/D`$ to $`1/(1 - \beta)`$. $`K`$ holds 30 % at 10 s only up to 2.097 (`out_displace.txt`, line 27). So `beta` must not exceed $`1 - 1/2.097`$ = 0.523.
-- At `beta` = 1/2 a window without blocks takes $`S/D`$ to 2 (`out_betacost.txt`, line 79).
+- The bound on lost blocks now sets the retained share `gamma`. Two windows without blocks take $`S/D`$ to $`1/\gamma^2`$, from $`D`$ right before. $`K`$ holds 30 % at 10 s only up to 2.097 (`out_displace.txt`, line 27). So `gamma` must be at least $`1/\sqrt{2.097}`$ = 0.6906, and 3/4 gives 1.78 (`out_floor.txt`, part 1).
+- `beta` = 1/2 then sets only how fast $`D`$ follows a change. It is chosen for slow deflation by a coalition that withholds, at the cost of the growth that $`K`$ holds (section 1.4).
 
 **2.6 REVIEW.md 5.3.** Delays that vary up to $`d`$ cost one $`d`$. Step 2 of 5.3 rests on M2: the next block of the chain is in the first marked slot after $`s + d`$. When delays vary up to $`d`$, the chain can keep a block made up to $`d`$ slots after that marked slot, so $`s_i \le \tau_i`$ fails. Heights still grow. The bound of 5.4 then holds with $`G - d`$ in place of $`G`$, as in 5.10.
 
@@ -250,6 +259,8 @@ Run each script with the finality study's interpreter, from any folder. It finds
 | `split_chain.py` | the noise of $`D`$ and the floor premise at a window of $`4K`$, with `../schedule/chain.py` | `out_split_chain.txt` | 15 s |
 | `extra.py` | the chance per block over the noise of $`D`$, the growth that $`K`$ holds, and a coalition that withholds one window, beside today and `3K + 3K` | `out_extra.txt` | 5 s |
 | `printed.py` | the figures of the stake inference under the rule as printed: the chance per block over the noise, growth, one withheld window, the income a coalition gives up, the wins of a lasting deflation, the launch, the mean path after a step, and the room below the total active stake | `out_printed.txt` | 1 min |
+| `floor.py` | the retained share under the rule as printed: one and two windows without blocks, the least `gamma`, the launch, a real fall of the stake, and withholding before a halt | `out_floor.txt` | 1 s |
+| `floor_half.py` | `beta` = 1/2 alone, with the retained share, and `beta` = 1 with it: halts at any time of the epoch, the blocks displaced after them, withholding, doubling, halving, launch and growth (exact rule) | `out_floor_half.txt` | 10 s |
 | `../schedule/simulate.py` | the rule in integers at a window of $`4K`$: `WINDOW=144000 EPOCH_H=60 GAP_H=20 BETAS=1,1/2`, `branch A B C D` | `out_simulate_branch_4k2k.txt` | 31 s |
 
 Each output was rerun here on 2026-11-27 and compared with the run that the RFC's figures came from.

@@ -1,0 +1,18 @@
+beta 1/2: empty window S/D 2.00
+   worst S/D after a halt of 6, 12, 24, 36, 48 h: 1.08 1.18 1.43 1.82 2.00
+   blocks displaced after it, 15 s: 4e-06 2e-05 2e-03 7e-01 1e+01 | 10 s: 0e+00 7e-13 3e-11 7e-09 4e-07
+   a 30 % coalition withholds 1 to 4 windows, S/D: 1.174 1.287 1.353 1.389
+   doubling, S/D after each correction: 1.348 1.152 1.072 | halving, D/S: 1.50 1.25 1.13
+   launch at 30 %: 0.30 0.46 0.63 0.77 0.87 0.93 0.96 | daily growth held at 15 s: 1.82 %
+beta 1/2, floor 3/4: empty window S/D 1.33
+   worst S/D after a halt of 6, 12, 24, 36, 48 h: 1.08 1.18 1.33 1.33 1.45
+   blocks displaced after it, 15 s: 4e-06 2e-05 4e-04 5e-04 1e-03 | 10 s: 0e+00 7e-13 1e-11 2e-11 4e-11
+   a 30 % coalition withholds 1 to 4 windows, S/D: 1.174 1.287 1.353 1.389
+   doubling, S/D after each correction: 1.348 1.152 1.072 | halving, D/S: 1.50 1.25 1.13
+   launch at 30 %: 0.30 0.40 0.53 0.69 0.82 0.90 0.95 | daily growth held at 15 s: 1.82 %
+beta 1, floor 3/4: empty window S/D 1.33
+   worst S/D after a halt of 6, 12, 24, 36, 48 h: 1.18 1.33 1.33 1.46 1.78
+   blocks displaced after it, 15 s: 2e-05 4e-04 5e-04 9e-04 1e-01 | 10 s: 8e-13 2e-11 2e-11 3e-11 1e-09
+   a 30 % coalition withholds 1 to 4 windows, S/D: 1.333 1.427 1.429 1.429
+   doubling, S/D after each correction: 1.017 1.000 1.000 | halving, D/S: 1.50 1.12 1.00
+   launch at 30 %: 0.30 0.40 0.53 0.71 0.95 1.00 1.00 | daily growth held at 15 s: 3.59 %

@@ -16,7 +16,7 @@ GEN = os.path.join(H, "..", "proofs", "genesis")
 U = [os.path.join(GEN, ".cache", f"U_a{a:.6f}_d{d}_t160000_s{s:.6f}.npy")          # the five curves of r2_repair.py's CUR
      for a, d, s in ((0.3, 10, 1.0), (0.3, 15, 1.0), (0.3 / 0.93, 10, 1.0), (0.3 / 0.93, 10, 0.93), (0.3, 10, 1 / 0.7))]
 SCRIPTS = ("displace", "exposure", "halt", "betacost", "rules", "genesis_u", "forkloss", "forkloss2", "forkloss3", "gossip",
-           "r3_final", "r2_repair", "split_chain", "extra", "printed")
+           "r3_final", "r2_repair", "split_chain", "extra", "printed", "floor", "floor_half")
 
 
 def run(name, cmd, env=None):
