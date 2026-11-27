@@ -1,0 +1,8 @@
+1. uncle at depth 2: True requests ['X2'] streamed ['X1', 'X2'] | its own uncles not requested: True
+2. block arrives as a missing ancestor: True ['A4', 'X2']
+3. uncle nobody serves: the block is in the tree, the chain is not adopted: True ['X2']
+4. invalid uncle: not adopted: True
+5. uncle off a 30-block fork: blocks streamed 1 adopted: True
+6. fork point outside the window: streamed ['Y1', 'Y2'] added none: True | not adopted: True
+7. stream from B_imm: streamed ['A1', 'X1', 'X2'] adopted: True
+8. entry with a slot below the branch: added none: True
