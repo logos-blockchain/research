@@ -1,0 +1,16 @@
+1. honest network
+    k=12 W=12 (window 60 slots): divergence at the end at most 2 blocks in 6 runs; 115 entries on the chains, 10 deeper than the first fork block
+    k=10 W=12 (window 60 slots): divergence at the end at most 2 blocks in 6 runs; 115 entries on the chains, 10 deeper than the first fork block
+    k= 4 W=12 (window 60 slots): divergence at the end at most 2 blocks in 6 runs; 115 entries on the chains, 10 deeper than the first fork block
+    k=12 W= 0 (window 0 slots): divergence at the end at most 2 blocks in 6 runs; 0 entries on the chains, 0 deeper than the first fork block
+2. cut off for longer than k blocks
+    a node cut off while its peers add 48 blocks (k = 12), never restarted: rejoined in 6 of 6 runs
+3. fresh node
+    a node that starts from genesis after 500 slots: on the same chain in 6 of 6 runs; fork blocks it ended up holding [4, 3, 4, 3, 5, 3]
+4. forged entries
+    a quarter of the wins forge their entries: forged blocks on honest chains 0, honest divergence at most 0 blocks; the node that joined in the middle included
+5. coordinated restart
+    every node restarts at once, the block tree kept: one chain again in 6 of 6 runs
+    every node restarts at once, only the own chain kept: one chain again in 6 of 6 runs
+6. uncles around the latest immutable block
+    1404 (node, block, entry) triples, 563 with the fork point below B_imm: step 8 admits every uncle

@@ -1,0 +1,4 @@
+                                 planted     withheld parent         late parent   referenced parent         withheld tx
+1 (drafted now)                 0 of 100            0 of 100          100 of 100          100 of 100          100 of 100
+2 (whole branch)                0 of 100            0 of 100          100 of 100            0 of 100          100 of 100
+3 (any block held)            100 of 100          100 of 100          100 of 100          100 of 100          100 of 100

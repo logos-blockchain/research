@@ -1,0 +1,20 @@
+rule: chain
+  captured? after H: H+8; after F and the uncles: F, B_imm on F
+  captured? after H: H+81; after F and the uncles: H, B_imm on H
+  captured? after H: H+184; after F and the uncles: H, B_imm on H
+  lost forks, k = 12: chain halted in 7 of 10 runs
+  lost forks, k = 60: chain halted in 10 of 10 runs
+   largest divergence at the end k=12 W=12: 2, k=10 W=12: 2, k=4 W=12: 2, k=12 W=0: 2
+   rejoined in 6 of 6
+   fresh node on the chain in 6 of 6
+   forged blocks on honest chains 0, divergence at most 2
+rule: drafted
+  captured? after H: H+168; after F and the uncles: H, B_imm on H
+  captured? after H: H+170; after F and the uncles: H, B_imm on H
+  captured? after H: H+184; after F and the uncles: H, B_imm on H
+  lost forks, k = 12: chain halted in 0 of 10 runs
+  lost forks, k = 60: chain halted in 0 of 10 runs
+   largest divergence at the end k=12 W=12: 2, k=10 W=12: 2, k=4 W=12: 2, k=12 W=0: 2
+   rejoined in 6 of 6
+   fresh node on the chain in 6 of 6
+   forged blocks on honest chains 0, divergence at most 2

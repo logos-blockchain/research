@@ -1,0 +1,8 @@
+none {} {'orphans': 0.505, 'refs': 0.983, 'withref': 0.565, 'counted': 0.995, 'half': 3.669, 'half_ref': 3.813, 'half_no': 3.537, 'wait': 1.0, 'wait90': 2.25}
+gate {} {'orphans': 0.513, 'refs': 1.016, 'withref': 0.542, 'counted': 0.996, 'half': 4.692, 'half_ref': 5.468, 'half_no': 3.606, 'wait': 1.0, 'wait90': 2.0}
+none {'attempt': 3.0} {'orphans': 0.511, 'refs': 1.011, 'withref': 0.577, 'counted': 0.994, 'half': 3.828, 'half_ref': 4.017, 'half_no': 3.666, 'wait': 3.0, 'wait90': 6.0}
+gate {'attempt': 3.0} {'orphans': 0.533, 'refs': 1.104, 'withref': 0.558, 'counted': 0.997, 'half': 6.497, 'half_ref': 8.81, 'half_no': 3.772, 'wait': 3.0, 'wait90': 6.0}
+none {'attempt': 10.0, 'ask': 1} {'orphans': 0.545, 'refs': 1.158, 'withref': 0.618, 'counted': 0.991, 'half': 3.798, 'half_ref': 3.874, 'half_no': 3.662, 'wait': 12.5, 'wait90': 42.5}
+gate {'attempt': 10.0, 'ask': 1} {'orphans': 0.634, 'refs': 1.701, 'withref': 0.714, 'counted': 0.997, 'half': 17.663, 'half_ref': 31.343, 'half_no': 3.954, 'wait': 20.0, 'wait90': 50.0}
+none {'ask': 16} {'orphans': 0.506, 'refs': 0.985, 'withref': 0.565, 'counted': 0.994, 'half': 3.629, 'half_ref': 3.73, 'half_no': 3.522, 'wait': 1.0, 'wait90': 1.0}
+gate {'ask': 16} {'orphans': 0.509, 'refs': 1.002, 'withref': 0.54, 'counted': 0.997, 'half': 4.306, 'half_ref': 4.8, 'half_no': 3.619, 'wait': 1.0, 'wait90': 1.0}

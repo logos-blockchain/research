@@ -112,3 +112,30 @@ def group_by_slot(
     active_slots, starts = np.unique(winner_slots, return_index=True)
     groups = np.split(winner_nodes, starts[1:])
     return active_slots, groups
+
+
+# A won slot under spent stake (PLAN.md Phase 2c): won by the holder's unspent notes alone (a
+# block), by both parts (a block and an entry), or by its spent notes alone (an entry).
+UNSPENT, BOTH, SPENT = 0, 1, 2
+
+
+def spent_codes(stake: np.ndarray, d_est: np.ndarray, f: float, share: float,
+                groups: list[np.ndarray], rng: np.random.Generator) -> list[np.ndarray]:
+    """Which notes of each winner won its slot, when every holder has spent ``share`` of its stake.
+
+    Each note runs its own lottery, so the unspent part ``(1 - share) * w`` and the spent part
+    ``share * w`` of a holder win independently, with probabilities ``p_u`` and ``p_s``. Their
+    union is the holder's win, ``phi_f(w / D_est)``, so the slots the holders win are the slots
+    they win without spent stake. Given a win, the unspent part alone won it with probability
+    ``p_u (1 - p_s) / p``, both with ``p_u p_s / p``, and the spent part alone with the rest.
+    Returns one code array per slot of ``groups``.
+    """
+    out = []
+    for g in groups:
+        w, d = stake[g], d_est[g]
+        p_u, p_s = phi(f, (1.0 - share) * w / d), phi(f, share * w / d)
+        p = phi(f, w / d)
+        u = rng.random(g.shape[0]) * p
+        out.append(np.where(u < p_u * (1.0 - p_s), UNSPENT,
+                            np.where(u < p_u, BOTH, SPENT)).astype(np.int8))
+    return out

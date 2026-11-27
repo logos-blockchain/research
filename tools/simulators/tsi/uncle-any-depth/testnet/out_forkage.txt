@@ -1,0 +1,16 @@
+last 7 days, orphans: 17034 | slots from the fork point to the orphan's own slot: share within {12: 0.651, 24: 0.703, 48: 0.811, 96: 0.937, 144: 0.977, 288: 0.999, 576: 1.0}
+depth shares {'1': 0.53, '3+': 0.371, '2': 0.099}
+branches 9034 longest (slots from fork point to last block, blocks): [(9511, 22), (9096, 78), (9029, 140), (8840, 61), (8367, 55), (7910, 63), (7554, 2), (7400, 47)]
+  orphans in branches that last longer than 360 slots: 0.42
+  orphans in branches that last longer than 720 slots: 0.394
+  orphans in branches that last longer than 1440 slots: 0.347
+  orphans in branches that last longer than 2880 slots: 0.198
+  orphans in branches that last longer than 4320 slots: 0.099
+  orphans in branches that last longer than 8640 slots: 0.018
+testnet k = 1000 fewest canonical blocks in 4k/f - W/f slots (W, slots, blocks): [(12, 119640, 1900), (96, 117120, 1852), (288, 111360, 1760)] needed 1000
+k = 2160 fewest canonical blocks in 4k/f - W/f slots (W, slots, blocks): [(12, 258840, 4195), (96, 256320, 4160), (288, 250560, 4073)] needed 2160
+deepest fork block in 14 days: 120
+last 7 days uncles referenced by the canonical chain 3619 never obtained as a block by the scanner 559 0.154
+   canonical blocks with a reference 0.186 with a reference to such a block 0.0336
+14 days uncles referenced by the canonical chain 5911 never obtained as a block by the scanner 927 0.157
+   canonical blocks with a reference 0.173 with a reference to such a block 0.0309

@@ -94,8 +94,25 @@ def _adversary_mask(config: SimConfig, stake: np.ndarray) -> np.ndarray | None:
     # including it lands closer than stopping short, which is locally right and still leaves a
     # ~3 % tail of majority coalitions. Fit-then-close cannot overshoot by more than one closing
     # node. Candidate membership and RNG draw are unchanged.
-    st = stake[rand_order]
-    chosen = np.zeros(rand_order.size, dtype=bool)
+    chosen, cum = _fit_then_close(stake[rand_order], target)
+    mask[rand_order[chosen]] = True
+    got = cum / float(stake.sum())
+    if abs(got - config.adversary_frac) > 0.2 * config.adversary_frac:
+        warnings.warn(
+            f"adversary_frac={config.adversary_frac} is not reachable on this stake draw "
+            f"(n_nodes={config.n_nodes}, {config.stake_dist}, replicate={config.replicate}): "
+            f"realised {got:.3f}. The heavy tail leaves no subset near the label; treat this "
+            f"replicate's adversary as {got:.3f}, not {config.adversary_frac}.",
+            RuntimeWarning, stacklevel=2,
+        )
+    return mask
+
+
+def _fit_then_close(st: np.ndarray, target: float) -> tuple[np.ndarray, float]:
+    """Walk the stakes ``st`` in order, taking every one that still fits under ``target``, then
+    close the gap with the smallest remaining one that can (``_adversary_mask``). Returns the taken
+    positions and their sum."""
+    chosen = np.zeros(st.size, dtype=bool)
     cum = 0.0
     for j, s in enumerate(st):
         if cum + s <= target:
@@ -107,22 +124,35 @@ def _adversary_mask(config: SimConfig, stake: np.ndarray) -> np.ndarray | None:
             # Smallest node that closes the gap — but only if closing beats stopping short. When
             # one holder has most of the stake, nothing fits under the target and the only
             # candidate is that whale, so "close the gap" would hand over the whole network to
-            # reach a 40 % label. Undershooting is then the nearer answer, and the warning below
-            # reports the miss rather than letting it pass as an on-label run.
+            # reach a 40 % label. Undershooting is then the nearer answer, and the caller reports
+            # the miss rather than letting it pass as an on-label run.
             j = cand[np.argmin(st[cand])]
             if float(st[j]) - (target - cum) < (target - cum):
                 chosen[j] = True
                 cum += float(st[j])
-    mask[rand_order[chosen]] = True
-    got = cum / float(stake.sum())
-    if abs(got - config.adversary_frac) > 0.2 * config.adversary_frac:
-        warnings.warn(
-            f"adversary_frac={config.adversary_frac} is not reachable on this stake draw "
-            f"(n_nodes={config.n_nodes}, {config.stake_dist}, replicate={config.replicate}): "
-            f"realised {got:.3f}. The heavy tail leaves no subset near the label; treat this "
-            f"replicate's adversary as {got:.3f}, not {config.adversary_frac}.",
-            RuntimeWarning, stacklevel=2,
-        )
+    return chosen, cum
+
+
+def _reroot_mask(config: SimConfig, stake: np.ndarray,
+                 adv_mask: np.ndarray | None = None) -> np.ndarray | None:
+    """Nodes that re-root their blocks (PLAN.md Phase 2b): a random set holding ``reroot_share``
+    of the honest stake, filled as the adversary's coalition is. The coalition ``adv_mask`` never
+    re-roots (Phase 4). ``None`` when the share is 0.
+
+    Seeded standalone, like the coalition, so every arm of a replicate draws the same set and the
+    main spawn hierarchy is untouched.
+    """
+    if config.reroot_share <= 0.0:
+        return None
+    honest = np.ones(config.n_nodes, dtype=bool) if adv_mask is None else ~adv_mask
+    if config.reroot_share >= 1.0:
+        return honest
+    seed = np.random.SeedSequence([config.root_seed, config.replicate, 0x5E2007])
+    order = np.random.default_rng(seed).permutation(config.n_nodes)
+    order = order[honest[order]]
+    chosen, _ = _fit_then_close(stake[order], config.reroot_share * float(stake[honest].sum()))
+    mask = np.zeros(config.n_nodes, dtype=bool)
+    mask[order[chosen]] = True
     return mask
 
 
@@ -225,6 +255,7 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
     d_est = _initial_d_est(config, d_true, np.random.default_rng(children[2]))
     adv_mask = _adversary_mask(config, stake)
     coal_ids = _coalition_ids(config, stake, adv_mask)
+    reroot_mask = _reroot_mask(config, stake, adv_mask)
     # exact stake fraction of the (integer-rounded) coalition, for the active-stake bookkeeping
     coalition_frac = float(stake[adv_mask].sum() / d_true) if adv_mask is not None else 0.0
     withholding = adv_mask is not None and config.adversary_strategy == "withhold"
@@ -255,7 +286,9 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
         # suppressing coalition (or the static default) attacks every epoch.
         attacks = config.adversary_withholds(epoch) if withholding else adv_mask is not None
         behaviour_mask = adv_mask if attacks else None
-        active_stake_frac = 1.0 - coalition_frac if (withholding and attacks) else 1.0
+        # spent notes make no chain block, so their stake is not active either
+        active_stake_frac = (1.0 - coalition_frac if (withholding and attacks)
+                             else 1.0 - config.spent_share)
         # organic honest churn: deactivate a scheduled stake fraction this epoch
         inactive_mask = None
         if churn_rng is not None:
@@ -265,7 +298,7 @@ def run_trajectory(config: SimConfig) -> list[dict[str, Any]]:
         er = simulate_epoch(config, stake, d_est, path_latency, children[epoch + 3],
                             adversary_mask=behaviour_mask, coalition_mask=adv_mask,
                             coalition_ids=coal_ids,
-                            inactive_mask=inactive_mask)
+                            inactive_mask=inactive_mask, reroot_mask=reroot_mask)
         row = divergence_row(config, epoch, d_est, er, d_true)
         row["adversary_withholding"] = bool(withholding and attacks)
         row["active_stake_frac"] = active_stake_frac

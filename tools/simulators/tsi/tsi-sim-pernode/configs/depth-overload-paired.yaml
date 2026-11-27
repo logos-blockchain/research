@@ -1,0 +1,32 @@
+# PAIRED deeper-reference comparison over the overload grid (PLAN.md Phase 2): the spec
+# 1.2.5 rule at depth 1 against cousins (2), children of cousins (3) and the ceiling (0: any
+# depth, no ancestry condition), delta_max 4/8/16/32 (rho ~ 0.36 to 1.76).
+#
+# paired_streams gives every depth the SAME stake draw, peering graph and lottery outcomes. U=0
+# is the identity check: with no uncles the depth is never consulted, so all four arms must be
+# bit-identical. Analysis: scripts/depth_analysis.py.
+#
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet (the multi-slot fork regime)
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # fixed hop count; delay is the swept knob
+blend_delay_max: [4.0, 8.0, 16.0, 32.0]      # max per-relay mixing delay (slots)
+max_uncles: [0, 1, 2, 4]                     # U: 0 identity check, then the recovery levers
+uncle_strategy: [oldest]                     # spec selection: oldest-first fill
+uncle_window_anchor: [parent]                # spec 1.2.5: window measured to the fork point
+window_absorption: [12.0]                    # spec 1.2.5: W = 12 block-intervals (360 slots)
+uncle_order: [parent]                        # spec 1.2.5: oldest fork point first
+init_dest: [common]                          # per-node initial D_est from agreement
+uncle_depth: [1, 2, 3, 0]                    # the arms
+replicates: 20
+base:                                        # per-run settings shared by every cell
+  k: 2160                                   # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true
+  paired_streams: true                       # common random numbers across the depths

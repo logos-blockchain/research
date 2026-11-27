@@ -1,0 +1,8 @@
+X held by only the proposer  retry 1.0  : half the nodes hold X after 2.0 s, 90 % 2.6 s, 99 % 2.9 s; final share 100.0 %
+X held by only the proposer  retry None : half the nodes hold X after nan s, 90 % nan s, 99 % nan s; final share 51.0 %
+X held by 1 % of the nodes   retry 1.0  : half the nodes hold X after 1.5 s, 90 % 2.2 s, 99 % 2.5 s; final share 100.0 %
+X held by 1 % of the nodes   retry None : half the nodes hold X after 1.5 s, 90 % nan s, 99 % nan s; final share 80.4 %
+X held by 10 %               retry 1.0  : half the nodes hold X after 1.2 s, 90 % 1.8 s, 99 % 2.0 s; final share 100.0 %
+X held by 10 %               retry None : half the nodes hold X after 1.2 s, 90 % 1.8 s, 99 % nan s; final share 99.4 %
+X held by 50 %               retry 1.0  : half the nodes hold X after 0.0 s, 90 % 1.7 s, 99 % 2.0 s; final share 100.0 %
+X held by 50 %               retry None : half the nodes hold X after 0.0 s, 90 % 1.7 s, 99 % 2.0 s; final share 100.0 %

@@ -1,0 +1,37 @@
+# PAIRED re-rooting comparison over the overload grid (PLAN.md Phase 2b, with the Phase 2d metric
+# on the depth-2 arm): the spec 1.2.5 rule at depth 1 against cousins (2), the ceiling (0), and
+# re-rooting at depth 1 by nodes holding half or all of the stake, publishing 0, 10 or 60 slots
+# after their view puts one of their blocks at depth >= 2 (SimConfig.reroot_share,
+# reroot_delay). delta_max 4/8/16/32 (rho ~ 0.36 to 1.76).
+#
+# paired_streams gives every arm the SAME stake draw, peering graph and lottery outcomes, so the
+# depth arms reproduce configs/depth-overload-paired.yaml bit for bit. U = 0 is left out: Phase 2
+# ran that identity check, and tests/test_reroot.py checks that copies which never count change
+# nothing. Analysis: scripts/reroot_analysis.py.
+#
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet (the multi-slot fork regime)
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # fixed hop count; delay is the swept knob
+blend_delay_max: [4.0, 8.0, 16.0, 32.0]      # max per-relay mixing delay (slots)
+max_uncles: [1, 2, 4]                        # U: the recovery levers
+uncle_strategy: [oldest]                     # spec selection: oldest-first fill
+uncle_window_anchor: [parent]                # spec 1.2.5: window measured to the fork point
+window_absorption: [12.0]                    # spec 1.2.5: W = 12 block-intervals (360 slots)
+uncle_order: [parent]                        # spec 1.2.5: oldest fork point first
+init_dest: [common]                          # per-node initial D_est from agreement
+uncle_depth: [1, 2, 0]                       # depth arms; re-rooting runs at depth 1 only
+reroot_share: [0.0, 0.5, 1.0]                # stake share of the re-rooting nodes
+reroot_delay: [0.0, 10.0, 60.0]              # slots from detection to publication
+replicates: 20
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true
+  paired_streams: true                       # common random numbers across the arms

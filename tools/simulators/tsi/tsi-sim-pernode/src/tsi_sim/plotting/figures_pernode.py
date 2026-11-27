@@ -19,8 +19,11 @@ from . import style
 CONFIG_COLS = ["n_nodes", "stake_dist", "pareto_shape", "topology", "degree",
                "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
                "latency", "uncle_model", "window_absorption", "max_uncles", "uncle_strategy",
-               "uncle_window", "init_dest", "init_spread", "genesis_d_factor",
-               "f", "beta", "k", "fixed_point", "legacy_block_count"]
+               "uncle_window", "uncle_window_anchor", "uncle_order", "uncle_depth",
+               "reroot_share", "reroot_delay", "spent_share", "ref_scope",
+               "init_dest", "init_spread", "genesis_d_factor",
+               "f", "beta", "k", "fixed_point", "legacy_block_count",
+               "adversary_frac", "adversary_strategy"]
 
 # Graph topologies (as opposed to the full_mesh baseline) and the dominant latency knob each
 # is plotted against: regular varies the per-link latency, blend varies the per-hop mix delay.
@@ -155,8 +158,17 @@ def equilibrium(df: pd.DataFrame, burn_frac: float = 0.5) -> pd.DataFrame:
     agg = {c: (c, "mean") for c in
            ("mean_ratio", "range_ratio", "iqr_ratio", "agreement_window", "agreement_tip",
             "mean_q", "mean_q_eff", "mean_orphan_rate", "max_ratio", "min_ratio",
-            "deep_ref_share", "p_ref", "fork_rate")
+            "deep_ref_share", "p_ref", "fork_rate", "lost_d1_share", "lost_d2_share",
+            "lost_d2_parent_ref_share", "lost_d3_share", "lost_d4plus_share",
+            "rerooted_share", "rerooted_d2_share", "rerooted_d3plus_share", "reroot_made_share",
+            "reroot_lag_mean", "parent_wait_block_share", "parent_wait_node_share",
+            "parent_wait_mean", "active_stake_frac", "block_rate", "spent_win_rate",
+            "spent_counted_share", "lost_honest_d1_share", "lost_honest_d2_share",
+            "lost_honest_d3plus_share", "lost_unpublished_share", "adv_block_share",
+            "p_ref_honest", "adv_blocks", "honest_blocks")
            if c in tail.columns}
+    if "parent_wait_max" in tail.columns:
+        agg["parent_wait_max"] = ("parent_wait_max", "max")
     return tail.groupby([*cfg_cols, "replicate"], as_index=False).agg(**agg)
 
 

@@ -64,6 +64,32 @@ UncleWindowAnchor = Literal["uncle", "parent"]
 # occupied slots to a closed window. "chain" is the pre-2026-08-17 wording, which gated on the
 # uncle's own slot alone and let a block up to w_u slots past the window reach back into it.
 RefScope = Literal["window", "chain"]
+# Order in which the proposer walks its candidates when filling entries:
+#  "uncle" — by the uncle's own slot, (sl_U, id). The order every historical run used, and
+#     oldest-to-expire first under the uncle anchor.
+#  "parent" — by the parent's slot, (sl_parent(U), sl_U, id): the spec rule
+#     (cryptarchia-v1-protocol.md 1.2.5, Uncle Selection). Under the parent anchor a candidate
+#     expires when its PARENT leaves the window, so this is oldest-to-expire first there.
+UncleOrder = Literal["uncle", "parent"]
+# How deep in a fork a countable entry may sit (PLAN.md, the cousin study). The fork point is
+# the chain block an entry's branch leaves from; depth 1 is a block whose parent is the fork
+# point. Under the parent anchor the window is measured to the fork point, which for depth 1
+# is the parent.
+#  1 — the first block of a fork: the spec rule.
+#  2, 3 — also cousins (the parent is an uncle) and children of cousins. Every fork block
+#     between the entry and the fork point must be referenced by the chain or carried by the
+#     same block.
+#  0 — the ceiling arm: any depth, no ancestry condition.
+# Re-rooting (PLAN.md Phase 2b, route E) changes no rule. A re-rooting leader whose own view puts
+# one of its blocks at depth >= 2 publishes a copy at the block's slot whose parent is the fork
+# point. The copy is the first block of a fork, so the depth-1 rule counts it as an uncle. A
+# coalition never re-roots (PLAN.md Phase 4), so under a selfish or withholding adversary the
+# re-rooting share is a share of the honest stake.
+# Spent stake (PLAN.md Phase 2c, route C): every holder has spent a share of its notes, and a
+# coalition holds their keys. A win of a spent note cannot be a chain block, so the coalition
+# publishes it as an entry at its slot, naming the tip the holder would have extended. Route C
+# counts an entry by its lottery win alone: depth 0 with the window measured to the entry's own
+# slot (the uncle anchor).
 
 
 @dataclass(frozen=True)
@@ -156,6 +182,24 @@ class SimConfig:
     # this default is what keeps an --old run's key byte-identical to the pre-redesign key and
     # lets it bit-reproduce every historical run (§9).
     uncle_window_anchor: UncleWindowAnchor = "uncle"
+    # DEFAULT is the historical order, for the anchor's reason: key() appends the order only when
+    # it is not "uncle", so every committed run keeps a byte-identical key. The spec 1.2.5 rule
+    # is the arm uncle_window_anchor="parent", window_absorption=12, uncle_order="parent".
+    uncle_order: UncleOrder = "uncle"
+    # See the note above SimConfig. Appended to key() only when not 1, so every committed run
+    # keeps its key; excluded from _base_key(), so paired_streams pairs the depths.
+    uncle_depth: int = 1
+    # See the note above SimConfig. reroot_share is the stake share of the nodes that re-root
+    # (0 = none, the spec baseline). reroot_delay is the slots from the moment a leader's best tip
+    # leaves the subtree of its block's parent to the copy's publication; the copy then travels
+    # like a block. Appended to key() only when the share is not 0, and excluded from
+    # _base_key(), so paired_streams pairs re-rooting with every depth.
+    reroot_share: float = 0.0
+    reroot_delay: float = 0.0
+    # See the note above SimConfig: the share of every holder's stake that is spent (0 = none).
+    # Appended to key() only when not 0, and excluded from _base_key(), so paired_streams pairs
+    # every share with the honest arm.
+    spent_share: float = 0.0
     # DEFAULT is the spec rule (see RefScope). Deliberately NOT in key(): the reference scope is a
     # MEASUREMENT rule that consumes no RNG, so both arms of a comparison run on a bit-identical
     # block tree and their difference carries no sampling noise at all — the same reasoning that
@@ -335,6 +379,28 @@ class SimConfig:
         if self.uncle_window_anchor not in ("uncle", "parent"):
             raise ValueError(f"uncle_window_anchor must be uncle|parent, got "
                              f"{self.uncle_window_anchor!r}")
+        if self.uncle_order not in ("uncle", "parent"):
+            raise ValueError(f"uncle_order must be uncle|parent, got {self.uncle_order!r}")
+        if self.uncle_depth < 0:
+            raise ValueError(f"uncle_depth must be >= 0, got {self.uncle_depth}")
+        if self.uncle_depth != 1 and (self.uncle_model != "countable"
+                                      or self.uncle_strategy != "oldest"):
+            raise ValueError("uncle_depth != 1 is defined for the countable model with the "
+                             "oldest strategy only")
+        if self.reroot_share > 0.0 and (self.uncle_model != "countable" or self.uncle_depth != 1
+                                        or self.uncle_strategy != "oldest"
+                                        or self.jitter_mean > 0.0
+                                        or (self.adversary_frac > 0.0 and self.adversary_strategy
+                                            not in ("selfish", "withhold"))):
+            # Detection replays arrivals inside the deterministic horizon, so jitter is out.
+            raise ValueError("re-rooting is defined for the countable model at depth 1, with the "
+                             "oldest strategy, no jitter, and no adversary but a selfish or "
+                             "withholding one")
+        if self.spent_share > 0.0 and (self.uncle_depth != 0 or self.uncle_window_anchor != "uncle"
+                                       or self.adversary_frac > 0.0):
+            # Depth 0 already implies the countable model, the oldest strategy and no re-rooting.
+            raise ValueError("spent stake is defined for route C: depth 0 with the uncle anchor, "
+                             "and no adversary")
         if self.ref_scope not in ("window", "chain"):
             raise ValueError(f"ref_scope must be window|chain, got {self.ref_scope!r}")
         if self.adversary_selection not in ("random", "whale"):
@@ -369,6 +435,9 @@ class SimConfig:
             "adversary_period": self.adversary_period >= 0,
             "adversary_withhold_epochs": self.adversary_withhold_epochs >= 0,
             "adversary_coalitions": self.adversary_coalitions >= 1,
+            "reroot_share": 0.0 <= self.reroot_share <= 1.0,
+            "reroot_delay": self.reroot_delay >= 0.0,
+            "spent_share": 0.0 <= self.spent_share < 1.0,
         }
         bad = [name for name, ok in checks.items() if not ok]
         if bad:
@@ -469,7 +538,19 @@ class SimConfig:
         # imply an unchanged number — see report §9 on which selfish runs were re-measured.
         if self.selfish_lead_cap != 0:
             base = base + (self.selfish_lead_cap,)
-        return base if self.uncle_window_anchor == "uncle" else base + (self.uncle_window_anchor,)
+        if self.uncle_window_anchor != "uncle":
+            base = base + (self.uncle_window_anchor,)
+        # Same discipline. Tagged, because a bare "parent" would collide with the anchor's marker:
+        # (anchor uncle, order parent) and (anchor parent, order uncle) must not share a stream.
+        if self.uncle_order != "uncle":
+            base = base + (("uncle_order", self.uncle_order),)
+        if self.uncle_depth != 1:
+            base = base + (("uncle_depth", self.uncle_depth),)
+        if self.reroot_share > 0.0:
+            base = base + (("reroot", self.reroot_share, self.reroot_delay),)
+        if self.spent_share > 0.0:
+            base = base + (("spent", self.spent_share),)
+        return base
 
     def seed_key(self) -> tuple:
         """The identity the RNG root is actually derived from (see ``rng.seedseq_for``).
@@ -482,14 +563,21 @@ class SimConfig:
         return self._base_key() if self.paired_streams else self.key()
 
 
-# Axes that can be swept; every SimConfig field is legal here.
+# Axes that can be swept; every SimConfig field is legal here. An empty axis takes its value from
+# ``base``.
 _SWEEP_AXES = (
     "n_nodes", "stake_dist", "latency", "max_uncles", "uncle_strategy", "uncle_window",
     "uncle_window_anchor",
+    "uncle_order",
+    "uncle_depth",
+    "reroot_share",
+    "reroot_delay",
+    "spent_share",
     "ref_scope",
     "window_absorption",
     "topology", "degree", "link_latency_mean", "link_latency_dist",
     "blend_hops", "blend_delay_max", "init_dest", "f",
+    "adversary_frac",
 )
 
 
@@ -504,6 +592,11 @@ class SweepConfig:
     uncle_strategy: list[UncleStrategy] = field(default_factory=lambda: ["oldest"])
     uncle_window: list[int] = field(default_factory=lambda: [constants.W_DEFAULT])
     uncle_window_anchor: list[UncleWindowAnchor] = field(default_factory=lambda: ["uncle"])
+    uncle_order: list[UncleOrder] = field(default_factory=lambda: ["uncle"])
+    uncle_depth: list[int] = field(default_factory=lambda: [1])
+    reroot_share: list[float] = field(default_factory=lambda: [0.0])
+    reroot_delay: list[float] = field(default_factory=lambda: [0.0])
+    spent_share: list[float] = field(default_factory=lambda: [0.0])
     ref_scope: list[RefScope] = field(default_factory=lambda: ["window"])
     window_absorption: list[float] = field(default_factory=lambda: [constants.W_ABS_DEFAULT])
     topology: list[Topology] = field(default_factory=lambda: ["regular"])
@@ -514,6 +607,8 @@ class SweepConfig:
     blend_delay_max: list[float] = field(default_factory=lambda: [3.0])
     init_dest: list[InitDest] = field(default_factory=lambda: ["common"])
     f: list[float] = field(default_factory=lambda: [constants.F])
+    # Empty: the value in ``base``. A config that sets the adversary in ``base`` keeps it.
+    adversary_frac: list[float] = field(default_factory=list)
     replicates: int = 8
     base: dict[str, Any] = field(default_factory=dict)
 
@@ -521,7 +616,7 @@ class SweepConfig:
         """Materialise every ``SimConfig`` in the grid × replicates."""
         base = SimConfig(**self.base)
         cells: list[SimConfig] = []
-        axis_values = [getattr(self, ax) for ax in _SWEEP_AXES]
+        axis_values = [getattr(self, ax) or [getattr(base, ax)] for ax in _SWEEP_AXES]
         for combo in itertools.product(*axis_values):
             overrides = dict(zip(_SWEEP_AXES, combo, strict=True))
             # U=0 references no uncles, so it is independent of uncle_strategy AND the window
@@ -531,6 +626,16 @@ class SweepConfig:
                 or overrides["uncle_window"] != self.uncle_window[0]
                 or overrides["window_absorption"] != self.window_absorption[0]
             ):
+                continue
+            # re-rooting is defined at depth 1 only, and a zero share reads no delay.
+            if overrides["reroot_share"] > 0.0 and overrides["uncle_depth"] != 1:
+                continue
+            if (overrides["reroot_share"] == 0.0
+                    and overrides["reroot_delay"] != self.reroot_delay[0]):
+                continue
+            # spent stake is defined for route C only (see SimConfig)
+            if overrides["spent_share"] > 0.0 and (overrides["uncle_depth"] != 0
+                                                   or overrides["uncle_window_anchor"] != "uncle"):
                 continue
             # each uncle model reads exactly one window knob — collapse the other axis so a
             # sweep never emits duplicate cells that differ only in an ignored field.

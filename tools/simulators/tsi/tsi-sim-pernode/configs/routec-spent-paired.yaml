@@ -1,0 +1,35 @@
+# PAIRED spent-stake arms under route C (PLAN.md Phase 2c): every holder has spent a share of its
+# notes, and a coalition holds their keys (SimConfig.spent_share). A win of spent notes makes no
+# block; the coalition publishes it as an entry at its slot, and route C counts it by its lottery
+# win alone. delta_max 4 and 16 (rho ~ 0.36 and 0.96).
+#
+# paired_streams gives every share the SAME stake draw, peering graph and won slots, so the shares
+# pair replicate by replicate, and the zero share reproduces the route C arm of
+# configs/routec-overload-paired.yaml bit for bit. Analysis: scripts/route_c_analysis.py spent,
+# with the route C overload run.
+#
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet (the multi-slot fork regime)
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # fixed hop count; delay is the swept knob
+blend_delay_max: [4.0, 16.0]                 # max per-relay mixing delay (slots)
+max_uncles: [1, 2, 4]                        # U: the recovery levers
+uncle_strategy: [oldest]                     # spec selection: oldest-first fill
+uncle_window_anchor: [uncle]                 # route C: window measured to the entry's own slot
+window_absorption: [12.0]                    # spec 1.2.5: W = 12 block-intervals (360 slots)
+uncle_order: [uncle]                         # route C: oldest entry first
+init_dest: [common]                          # per-node initial D_est from agreement
+uncle_depth: [0]                             # route C: any depth, no ancestry condition
+spent_share: [0.0, 0.1, 0.25, 0.5, 0.75]     # share of every holder's stake that is spent
+replicates: 20
+base:                                        # per-run settings shared by every cell
+  k: 2160                                    # true security parameter
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true
+  paired_streams: true                       # common random numbers across the shares

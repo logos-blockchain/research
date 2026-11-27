@@ -1,0 +1,10 @@
+option A
+    honest network: divergence at most 2
+    node that syncs from genesis: on the chain in 0 of 10
+    cut off for 4k blocks, never restarted: rejoined in 1 of 10
+    uncle seen by 8 of 12 nodes, then lost everywhere: network still split after about 96 blocks in 7 of 10
+option B
+    honest network: divergence at most 2
+    node that syncs from genesis: on the chain in 10 of 10
+    cut off for 4k blocks, never restarted: rejoined in 10 of 10
+    uncle seen by 8 of 12 nodes, then lost everywhere: network still split after about 96 blocks in 0 of 10

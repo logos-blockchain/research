@@ -1,0 +1,171 @@
+--- a/src/tsi_sim/blocktree.py
++++ b/src/tsi_sim/blocktree.py
+@@ -355,7 +355,11 @@
+     """The ``parent_wait`` row of block ``b``, read from the arrival columns ``M[:, id - base]``.
+     None when no entry has a parent off ``b``'s chain. A parent below ``base`` was pruned and
+     has reached every node."""
+-    us = _off_chain_parents(b, entries, parent, slot)
++    import os as _os
++    if _os.environ.get("IDONLY_WAIT") == "1":
++        us = sorted({int(e) for e in entries})   # id-only: every entry must be held (its branch with it)
++    else:
++        us = _off_chain_parents(b, entries, parent, slot)
+     if not us:
+         return None
+     live = [u - base for u in us if u >= base]
+@@ -638,7 +642,7 @@
+     w = config.effective_uncle_window
+     watches: list[_Watch] = []
+     copies = _Copies(n, n_blocks) if reroot or spending else None
+-    parent_wait = np.full((n_blocks, 3), np.nan) if config.uncle_depth != 1 else None
++    parent_wait = np.full((n_blocks, 3), np.nan) if (config.uncle_depth != 1 or __import__("os").environ.get("IDONLY_WAIT") == "1") else None
+ 
+     nb = 1
+     for si in range(active_slots.shape[0]):
+@@ -728,11 +732,13 @@
+             if adv:                                          # suppress refs (both adversary modes)
+                 uncles[b] = ()
+             else:
++                import tsi_sim.uncles as _U; _U.CUR = (leader, v, b)
+                 uncles[b] = select_uncles_at_production(
+                     slot, parent, uncles, A[v], b, p_id, t, config, rng,
+                     extra=copies.in_view(v, t) if copies is not None else None,
+                 )
+             col = arrival_column(path_latency, v, t, config, rng)   # (rng drawn either way)
++            import tsi_sim.topology as _T; import tsi_sim.uncles as _U2; _U2.RET[b] = _T.LAST_RETURN
+             if hide:
+                 A[:, b] = float(E) + 1.0                     # withheld: never arrives -> orphan
+                 withheld[b] = True
+@@ -841,7 +847,7 @@
+     buf = np.full((n, buf_width), float(E), np.float64)           # sentinel = E ("never arrives")
+     buf[:, 0] = 0.0                                               # genesis (id 0) known to all
+     base = 0                                                      # absolute id at buf[:, 0]
+-    parent_wait = np.full((n_blocks, 3), np.nan) if config.uncle_depth != 1 else None
++    parent_wait = np.full((n_blocks, 3), np.nan) if (config.uncle_depth != 1 or __import__("os").environ.get("IDONLY_WAIT") == "1") else None
+ 
+     gb_key, gb_id, fp_idx = int(key[0]), 0, 1
+     nb = 1
+@@ -885,9 +891,11 @@
+             if adversary_mask is not None and adversary_mask[v]:
+                 uncles[b] = ()                               # adversary suppresses uncle refs
+             else:
++                import tsi_sim.uncles as _U; _U.CUR = (leader, v, b)
+                 uncles[b] = select_uncles_at_production(
+                     slot, parent, uncles, buf[v], b, p_id, t, config, rng, arr_base=base)
+             col = arrival_column(path_latency, v, t, config, rng)
++            import tsi_sim.topology as _T; import tsi_sim.uncles as _U2; _U2.RET[b] = _T.LAST_RETURN
+             if p_id >= base:                                     # live parent -> clamp; else no-op
+                 np.maximum(col, buf[:, p_id - base], out=col)
+             buf[:, b - base] = col
+--- a/src/tsi_sim/epoch.py
++++ b/src/tsi_sim/epoch.py
+@@ -57,6 +57,7 @@
+     parent_wait_node_share: float
+     parent_wait_mean: float
+     parent_wait_max: float
++    parent_wait_late_share: float
+     # Spent stake (PLAN.md Phase 2c): the window slots that hold a block, per slot; the window
+     # slots only spent notes won, per slot; and the share of those the count covers (NaN when
+     # there are none).
+@@ -205,6 +206,7 @@
+         reroot_lag_mean=float(lag.mean()) if lag.size else float("nan"),
+         parent_wait_block_share=pw.block_share, parent_wait_node_share=pw.node_share,
+         parent_wait_mean=pw.wait_mean, parent_wait_max=pw.wait_max,
++        parent_wait_late_share=pw.late_share,
+         block_rate=lost.occupied / T, spent_win_rate=lone / T,
+         spent_counted_share=lone_counted / lone if lone else float("nan"),
+         lost_honest_d1_share=lost.honest[0] / occ, lost_honest_d2_share=lost.honest[1] / occ,
+--- a/src/tsi_sim/fork.py
++++ b/src/tsi_sim/fork.py
+@@ -232,6 +232,7 @@
+                            # before every such parent
+     wait_mean: float       # mean wait of those nodes, slots
+     wait_max: float        # longest wait, slots
++    late_share: float = float("nan")   # share of blocks with entries where at least one node waits
+ 
+ 
+ def parent_wait(tree: BlockTree, A, T: int, cutoff: int, n_nodes: int) -> ParentWait:
+@@ -254,4 +255,5 @@
+     return ParentWait(block_share=float(has.mean()),
+                       node_share=float((late / n_nodes).mean()),
+                       wait_mean=float(total.sum() / late.sum()) if late.sum() else nan,
+-                      wait_max=float(longest.max()))
++                      wait_max=float(longest.max()),
++                      late_share=float((late > 0).mean()))
+--- a/src/tsi_sim/metrics.py
++++ b/src/tsi_sim/metrics.py
+@@ -84,6 +84,7 @@
+         parent_wait_node_share=er.parent_wait_node_share,
+         parent_wait_mean=er.parent_wait_mean,
+         parent_wait_max=er.parent_wait_max,
++        parent_wait_late_share=er.parent_wait_late_share,
+         block_rate=er.block_rate,
+         spent_win_rate=er.spent_win_rate,
+         spent_counted_share=er.spent_counted_share,
+--- a/src/tsi_sim/topology.py
++++ b/src/tsi_sim/topology.py
+@@ -166,6 +166,9 @@
+     return t + path_latency[last].astype(np.float64)       # final gossip floods from the last relay
+ 
+ 
++LAST_RETURN = None
++
++
+ def arrival_column(
+     path_latency: np.ndarray, producer: int, slot: int, config: SimConfig,
+     rng: np.random.Generator,
+@@ -185,5 +188,7 @@
+             col = col + extra
+         else:
+             col = col + rng.exponential(config.jitter_mean, size=col.shape)
++    global LAST_RETURN
++    LAST_RETURN = float(col[producer])                 # its own broadcast reaches the producer here
+     col[producer] = float(slot)                        # producer sees own block instantly
+     return col
+--- a/src/tsi_sim/uncles.py
++++ b/src/tsi_sim/uncles.py
+@@ -75,6 +75,10 @@
+     return out
+ 
+ 
++CUR = None
++RET = {}
++
++
+ def select_uncles_at_production(
+     slot: np.ndarray,
+     parent: np.ndarray,
+@@ -121,6 +125,33 @@
+         if extra.size:
+             arrived = np.concatenate([arrived, extra])
+             arrived = arrived[np.lexsort((arrived, slot[arrived]))]   # oldest first, then id
++    import os as _os
++    _lag_own = _os.environ.get("IDONLY_LAG_OWN")
++    if _lag_own is not None and arrived.size and CUR is not None:
++        _leader, _v, _b = CUR
++        # a leader references its own block only once a full Blend traversal has passed since its
++        # slot: hops x max per-relay delay + margin (the block has then left the mix network)
++        _lag = config.blend_hops * config.blend_delay_max + float(_lag_own)
++        _own = (_leader[arrived] == _v) & (slot[arrived] > t - _lag)
++        arrived = arrived[~_own]
++    if _os.environ.get("IDONLY_BROADCAST") == "1" and arrived.size and CUR is not None:
++        # drafted rule: every block of the branch was received on the broadcasting channel. Others'
++        # blocks in view were; an own block only once its broadcast came back.
++        _leader, _v, _b = CUR
++        _tm = float(_os.environ.get("IDONLY_TM", "0"))
++        _chain = set(); _a = int(parent_id)
++        while _a > 0 and int(slot[_a]) >= t - w:
++            _chain.add(_a); _a = int(parent[_a])
++        def _cast(x):
++            y = int(x)
++            while y > 0 and y not in _chain and int(slot[y]) >= t - w:
++                _seen = RET.get(y, 0.0) if int(_leader[y]) == _v else float(arrival_v[y - arr_base]) if y >= arr_base else 0.0
++                if _seen + _tm > t:
++                    return False
++                y = int(parent[y])
++            return True
++        if _tm > 0 or any(int(_leader[x]) == _v for x in arrived.tolist()):
++            arrived = np.array([x for x in arrived.tolist() if _cast(x)], dtype=np.int64)
+     if arrived.size == 0:
+         return ()
+ 

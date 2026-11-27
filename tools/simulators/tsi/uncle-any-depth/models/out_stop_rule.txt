@@ -1,0 +1,4 @@
+valid entries downloaded: 604, cut off: 0 (a)
+blocks added: 1532, outside the window or past the entry's slot: 0 (b); of them the named block of an entry with a wrong slot: 604 (one block, inside the window)
+downloads whose fork point lies outside the window: 2724, blocks they added: 0 (c)
+entries skipped by the slot limit: 15668

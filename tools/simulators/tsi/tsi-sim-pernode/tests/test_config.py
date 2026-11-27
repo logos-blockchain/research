@@ -147,8 +147,10 @@ def test_key_covers_every_field():
     # tree, so excluding it from key() is what makes the two arms share a tree and their
     # difference carry no sampling noise. Like selfish_lead_cap it changes results at an
     # unchanged key, which is why report §9 records what was re-measured for it.
+    # reroot_delay is read only when reroot_share > 0, the way uncle_window is read only by the
+    # old model. spent_share is defined at depth 0 only, so it is perturbed there.
     ignored = {"root_seed", "windowed_fork_choice", "prune_arrival", "early_stop",
-               "uncle_window", "paired_streams", "ref_scope"}
+               "uncle_window", "paired_streams", "ref_scope", "reroot_delay", "spent_share"}
     names = {f.name for f in dataclasses.fields(SimConfig)} - ignored
     a = SimConfig()
     for name in names:
@@ -159,6 +161,12 @@ def test_key_covers_every_field():
     # ... and uncle_window IS distinguished under the old model, where it is live.
     old = SimConfig(uncle_model="old")
     assert old.key() != dataclasses.replace(old, uncle_window=old.uncle_window + 1).key()
+    # ... and reroot_delay under a re-rooting share.
+    rr = SimConfig(reroot_share=0.5)
+    assert rr.key() != dataclasses.replace(rr, reroot_delay=1.0).key()
+    # ... and spent_share at depth 0.
+    d0 = SimConfig(uncle_depth=0)
+    assert d0.key() != dataclasses.replace(d0, spent_share=0.25).key()
     # paired_streams leaves key() untouched but DOES change the seed derived from it.
     a_paired = dataclasses.replace(a, paired_streams=True)
     assert a.key() == a_paired.key()
@@ -168,6 +176,19 @@ def test_key_covers_every_field():
     a_chain = dataclasses.replace(a, ref_scope="chain")
     assert a.key() == a_chain.key()
     assert a.seed_key() == a_chain.seed_key()
+
+
+def test_uncle_order_key_is_tagged_and_paired():
+    # The order marker must not collide with the anchor marker: both append after the base key,
+    # so an untagged "parent" would give (anchor uncle, order parent) and (anchor parent,
+    # order uncle) the same stream.
+    a = SimConfig(uncle_window_anchor="parent")
+    b = SimConfig(uncle_order="parent")
+    assert a.key() != b.key()
+    assert SimConfig().key() == dataclasses.replace(SimConfig(), uncle_order="uncle").key()
+    # Under paired_streams the two orders draw the same root, so an order comparison is paired.
+    p = SimConfig(uncle_window_anchor="parent", paired_streams=True)
+    assert p.seed_key() == dataclasses.replace(p, uncle_order="parent").seed_key()
 
 
 def test_old_model_key_is_historical():
@@ -225,3 +246,15 @@ def _perturb(v):
     if isinstance(v, str) and v in flips:
         return flips[v]
     return v
+
+
+def test_every_sweep_axis_is_recorded_and_grouped():
+    # equilibrium() groups trajectories by CONFIG_COLS. A swept axis that is not recorded on the
+    # result rows, or recorded but not grouped, is silently averaged into one cell: the two arms
+    # of an anchor or order comparison would come back as their mean.
+    from tsi_sim.config import _SWEEP_AXES
+    from tsi_sim.metrics import _CONFIG_FIELDS
+    from tsi_sim.plotting.figures_pernode import CONFIG_COLS
+
+    assert [a for a in _SWEEP_AXES if a not in _CONFIG_FIELDS] == []
+    assert [a for a in _SWEEP_AXES if a not in CONFIG_COLS] == []

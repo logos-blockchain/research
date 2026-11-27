@@ -1,0 +1,23 @@
+n_nodes: [1000]
+stake_dist: [pareto]
+topology: [blend]
+degree: [6]
+link_latency_mean: [0.5]
+link_latency_dist: [geo]
+blend_hops: [3]
+blend_delay_max: [2.0, 4.0, 8.0, 16.0, 32.0]
+max_uncles: [4]
+uncle_strategy: [oldest]
+uncle_window_anchor: [parent]
+window_absorption: [12.0]
+uncle_order: [parent]
+init_dest: [common]
+uncle_depth: [1, 0]
+replicates: 20
+base:
+  k: 2160
+  epochs: 20
+  f: 0.03333333333333333
+  genesis_d_factor: 0.5
+  early_stop: true
+  paired_streams: true

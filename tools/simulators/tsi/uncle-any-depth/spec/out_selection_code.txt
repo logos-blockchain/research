@@ -1,0 +1,1 @@
+pseudocode = oracle on 300 trees: 4976 entries selected, 997 of them deeper than the first fork block, 78 blocks at the cap; unbroadcast blocks present in 101869 checks; 59 entries only the new condition admits

@@ -1,0 +1,38 @@
+# PAIRED deeper rules and re-rooting against a private-chain (SM1) coalition (PLAN.md Phase 4):
+# the spec 1.2.5 rule at depth 1 against cousins (2), the ceiling (0), and re-rooting at depth 1
+# by nodes holding half or all of the honest stake, 10 slots after detection. The coalition never
+# re-roots. adversary_frac 0 / 0.2 / 0.3 at delta_max 4 and 8 (rho ~ 0.36 and 0.56 without it).
+# Route C runs in configs/selfish-routec-paired.yaml.
+#
+# paired_streams gives every arm the SAME stake draw, peering graph, coalition and lottery
+# outcomes. adversary_frac is part of the stream key, so the coalition sizes are not paired with
+# each other. Analysis: scripts/adversary_analysis.py.
+#
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet (the multi-slot fork regime)
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # fixed hop count; delay is the swept knob
+blend_delay_max: [4.0, 8.0]                  # max per-relay mixing delay (slots)
+max_uncles: [2, 4]                           # U: the recovery levers
+uncle_strategy: [oldest]                     # spec selection: oldest-first fill
+uncle_window_anchor: [parent]                # spec 1.2.5: window measured to the fork point
+window_absorption: [12.0]                    # spec 1.2.5: W = 12 block-intervals (360 slots)
+uncle_order: [parent]                        # spec 1.2.5: oldest fork point first
+init_dest: [common]                          # per-node initial D_est from agreement
+uncle_depth: [1, 2, 0]                       # depth arms; re-rooting runs at depth 1 only
+reroot_share: [0.0, 0.5, 1.0]                # share of the honest stake that re-roots
+reroot_delay: [10.0]                         # slots from detection to publication
+adversary_frac: [0.0, 0.2, 0.3]              # stake share of the selfish coalition
+replicates: 20
+base:                                        # per-run settings shared by every cell
+  k: 256                                     # the report's selfish geometry (section 6.6, 6.8)
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true
+  paired_streams: true                       # common random numbers across the arms
+  adversary_strategy: selfish                # Eyal-Sirer SM1, released by direct gossip

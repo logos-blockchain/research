@@ -1,0 +1,30 @@
+# PAIRED route C window with the fork-point order (PLAN.md Phase 2c): the route C arm of
+# configs/routec-rho-boundary-paired.yaml, with entries taken by their fork point first
+# (uncle_order parent), as the Phase 2 ceiling takes them. It splits the gain of route C over
+# the ceiling into the window and the order. Analysis: scripts/route_c_analysis.py honest,
+# with the route C run and the Phase 2 run.
+#
+# Latency is in SLOTS (1 slot = 1 s).
+n_nodes: [1000]                              # network size
+stake_dist: [pareto]                         # heavy-tailed (realistic) stake distribution
+topology: [blend]                            # Blend mixnet (the multi-slot fork regime)
+degree: [6]                                  # peering degree of the d-regular graph
+link_latency_mean: [0.5]                     # natural geographic transport (sub-slot)
+link_latency_dist: [geo]                     # real-world geographic band mixture
+blend_hops: [3]                              # fixed hop count; delay is the swept knob
+blend_delay_max: [8.0, 12.0, 15.0, 16.0, 17.0, 18.0, 20.0, 24.0, 28.0, 36.0]
+max_uncles: [1, 2, 3]                        # U: recovery vs ceil(rho)
+uncle_strategy: [oldest]                     # spec selection: oldest-first fill
+uncle_window_anchor: [uncle]                 # route C: window measured to the entry's own slot
+window_absorption: [12.0]                    # spec 1.2.5: W = 12 block-intervals (360 slots)
+uncle_order: [parent]                        # the ceiling's order: oldest fork point first
+init_dest: [common]                          # per-node initial D_est from agreement
+uncle_depth: [0]                             # route C: any depth, no ancestry condition
+replicates: 20
+base:                                        # per-run settings shared by every cell
+  k: 256                                     # rho mechanics are k-invariant (rho-boundary.yaml)
+  epochs: 20                                 # equilibrium within ~2 epochs; burn 50%
+  f: 0.03333333333333333                     # slot activation coefficient (1/30)
+  genesis_d_factor: 0.5                      # start near true stake (cheap epoch 0)
+  early_stop: true
+  paired_streams: true                       # common random numbers with the Phase 2 arms

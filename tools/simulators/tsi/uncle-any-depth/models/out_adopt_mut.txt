@@ -1,0 +1,9 @@
+baseline: rejoined in 6 of 6
+entries of all blocks after B_imm must be valid: rejoined in 1 of 6
+step 8 and pruning at B_imm: 1392 of 20556 valid entries name a block the node can no longer hold
+  divergence after 700 slots, k = 4: [0, 1, 0, 1, 0, 0]
+  divergence after 700 slots, k = 4, drafted step 8: [1, 3, 2, 0, 2, 3]
+no uncle downloads: a fresh node is on the chain in 0 of 6 runs
+with uncle downloads: a fresh node is on the chain in 6 of 6 runs
+block tree kept: divergence 60 slots after a coordinated restart: [2, 2, 2, 2, 1, 2, 3, 2, 1, 1]
+own chain only: divergence 60 slots after a coordinated restart: [1, 2, 0, 2, 2, 1, 2, 5, 2, 0]

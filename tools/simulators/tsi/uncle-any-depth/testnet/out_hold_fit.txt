@@ -1,0 +1,32 @@
+last 7 days: 8744 single-depth orphans, 3619 referenced; fitted Beta(0.55, 5.5): mean holding share 0.091
+share referenced by the n-th following canonical block, model: {1: 0.09, 2: 0.16, 5: 0.31, 10: 0.44, 20: 0.58, 40: 0.69, 80: 0.78, 120: 0.82}
+last 24 h: canonical alone 0.499, with the actual references 0.599 of the occupied slots
+   today's rule, first fork block   W =  12: 0.592
+   today's rule, first fork block   W =  96: 0.688
+   today's rule, first fork block   W = 288: 0.710
+   any depth                        W =  12: 0.616
+   any depth                        W =  24: 0.670
+   any depth                        W =  48: 0.727
+   any depth                        W =  96: 0.837
+   any depth                        W = 144: 0.912
+   any depth                        W = 288: 0.947
+last 7 days: canonical alone 0.502, with the actual references 0.613 of the occupied slots
+   today's rule, first fork block   W =  12: 0.606
+   today's rule, first fork block   W =  96: 0.710
+   today's rule, first fork block   W = 288: 0.736
+   any depth                        W =  12: 0.630
+   any depth                        W =  24: 0.686
+   any depth                        W =  48: 0.739
+   any depth                        W =  96: 0.836
+   any depth                        W = 144: 0.894
+   any depth                        W = 288: 0.957
+7 to 14 days ago: canonical alone 0.570, with the actual references 0.671 of the occupied slots
+   today's rule, first fork block   W =  12: 0.675
+   today's rule, first fork block   W =  96: 0.802
+   today's rule, first fork block   W = 288: 0.835
+   any depth                        W =  12: 0.697
+   any depth                        W =  24: 0.769
+   any depth                        W =  48: 0.820
+   any depth                        W =  96: 0.860
+   any depth                        W = 144: 0.876
+   any depth                        W = 288: 0.911

@@ -1,0 +1,27 @@
+drafted
+    honest network: divergence at most 2
+    node that syncs from genesis: on the chain in 10 of 10
+    cut off for 4k blocks, never restarted: rejoined in 10 of 10
+    uncle seen by 8 of 12 nodes, then lost everywhere: network still split after about 96 blocks in 0 of 10
+wrong=bad
+    honest network: divergence at most 2
+    node that syncs from genesis: on the chain in 10 of 10
+    cut off for 4k blocks, never restarted: rejoined in 10 of 10
+    uncle seen by 8 of 12 nodes, then lost everywhere: network still split after about 96 blocks in 0 of 10
+age
+    honest network: divergence at most 2
+    node that syncs from genesis: on the chain in 10 of 10
+    cut off for 4k blocks, never restarted: rejoined in 10 of 10
+    uncle seen by 8 of 12 nodes, then lost everywhere: network still split after about 96 blocks in 0 of 10
+wrong reference, uncle given to 3 of 9 honest nodes
+    drafted    worst divergence of honest nodes: median 3, max 5 blocks; at the end [0, 0, 0, 0, 0, 1, 1, 1, 2, 2]
+    wrong=bad  worst divergence of honest nodes: median 17, max 48 blocks; at the end [0, 0, 1, 2, 4, 8, 30, 32, 36, 48]
+    age        worst divergence of honest nodes: median 3, max 4 blocks; at the end [0, 0, 0, 0, 0, 1, 1, 1, 2, 2]
+wrong reference, uncle given to 5 of 9 honest nodes
+    drafted    worst divergence of honest nodes: median 3, max 4 blocks; at the end [0, 0, 0, 0, 0, 1, 1, 1, 1, 2]
+    wrong=bad  worst divergence of honest nodes: median 4, max 14 blocks; at the end [0, 0, 0, 0, 1, 1, 1, 2, 2, 11]
+    age        worst divergence of honest nodes: median 3, max 4 blocks; at the end [0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
+wrong reference, uncle given to 6 of 9 honest nodes
+    drafted    worst divergence of honest nodes: median 3, max 5 blocks; at the end [0, 0, 0, 0, 1, 1, 1, 1, 1, 2]
+    wrong=bad  worst divergence of honest nodes: median 4, max 8 blocks; at the end [0, 0, 0, 1, 1, 1, 1, 1, 1, 2]
+    age        worst divergence of honest nodes: median 3, max 4 blocks; at the end [0, 0, 0, 0, 0, 1, 1, 1, 1, 2]

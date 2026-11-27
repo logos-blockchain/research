@@ -14,7 +14,9 @@ _CONFIG_FIELDS = (
     "n_nodes", "stake_dist", "pareto_shape", "latency", "topology", "degree",
     "link_latency_mean", "link_latency_dist", "blend_hops", "blend_delay_max",
     "init_dest", "init_spread", "uncle_model", "window_absorption",
-    "uncle_window", "max_uncles", "uncle_strategy", "uncle_window_anchor",
+    "uncle_window", "max_uncles", "uncle_strategy", "uncle_window_anchor", "uncle_order",
+    "uncle_depth", "reroot_share", "reroot_delay", "spent_share",
+    "ref_scope",
     # Recorded so downstream analysis can TELL whether a countable/--old pair actually shared
     # its RNG streams. The paired test is only valid on paired runs, and without this column
     # the analysis silently falls back to the much weaker unpaired test.
@@ -68,5 +70,26 @@ def divergence_row(
         p_ref_honest=er.p_ref_honest,
         deep_orphan_share=er.deep_orphan_share,
         deep_ref_share=er.deep_ref_share,
+        lost_d1_share=er.lost_d1_share,
+        lost_d2_share=er.lost_d2_share,
+        lost_d2_parent_ref_share=er.lost_d2_parent_ref_share,
+        lost_d3_share=er.lost_d3_share,
+        lost_d4plus_share=er.lost_d4plus_share,
+        rerooted_share=er.rerooted_share,
+        rerooted_d2_share=er.rerooted_d2_share,
+        rerooted_d3plus_share=er.rerooted_d3plus_share,
+        reroot_made_share=er.reroot_made_share,
+        reroot_lag_mean=er.reroot_lag_mean,
+        parent_wait_block_share=er.parent_wait_block_share,
+        parent_wait_node_share=er.parent_wait_node_share,
+        parent_wait_mean=er.parent_wait_mean,
+        parent_wait_max=er.parent_wait_max,
+        block_rate=er.block_rate,
+        spent_win_rate=er.spent_win_rate,
+        spent_counted_share=er.spent_counted_share,
+        lost_honest_d1_share=er.lost_honest_d1_share,
+        lost_honest_d2_share=er.lost_honest_d2_share,
+        lost_honest_d3plus_share=er.lost_honest_d3plus_share,
+        lost_unpublished_share=er.lost_unpublished_share,
     )
     return row

@@ -1,0 +1,7 @@
+F=    0 fake entries, as written     : all 600 honest uncles after    5.6 min,       0 futile downloads (        0 peer requests)
+F=  400 fake entries, as written     : all 600 honest uncles after   31.4 min,    3110 futile downloads (    99526 peer requests)
+F=  400 fake entries, best_tip first : all 600 honest uncles after    5.6 min,       1 futile downloads (       19 peer requests)
+F=  400 fake entries, backoff        : all 600 honest uncles after   27.9 min,    2687 futile downloads (    85971 peer requests)
+F= 2592 fake entries, as written     : all 600 honest uncles after  170.8 min,   19843 futile downloads (   634976 peer requests)
+F= 2592 fake entries, best_tip first : all 600 honest uncles after    5.6 min,       1 futile downloads (       19 peer requests)
+F= 2592 fake entries, backoff        : all 600 honest uncles after  157.8 min,   18280 futile downloads (   584966 peer requests)

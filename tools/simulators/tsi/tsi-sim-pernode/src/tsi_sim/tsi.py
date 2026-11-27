@@ -27,35 +27,56 @@ def referenced_uncle_ids(tree: BlockTree, canonical_ids: list[int]) -> set[int]:
 
 
 def countable_refs(tree: BlockTree, canonical_ids: list[int], w: int,
-                   T: int | None = None) -> set[int]:
+                   T: int | None = None, parent_anchor: bool = False,
+                   max_depth: int = 1) -> set[int]:
     """Deduplicated set of COUNTABLE referenced uncles (spec counting rules).
 
     A reference ``u`` of canonical block ``b`` is countable iff ``u`` is not itself
-    canonical, ``0 < slot_b - slot_u <= w``, and ``u``'s parent lies on the canonical chain
-    (only the first block of a fork counts) — the per-reference re-check of
-    cryptarchia-v1-protocol.md's counting rules. Reference implementation for the
-    measurement kernel (see test_measure / test_tsi_counting).
+    canonical, ``0 < slot_b - slot_u``, its window gap is at most ``w``, and it sits no deeper
+    than ``max_depth`` in its fork — the per-reference re-check of cryptarchia-v1-protocol.md's
+    counting rules. Reference implementation for the measurement kernel (see test_measure /
+    test_tsi_counting / test_countable_counting).
+
+    The fork point is the first canonical ancestor of ``u``; ``u``'s depth is the number of
+    fork blocks from it to the fork point. ``max_depth = 1`` is the spec rule: only the first
+    block of a fork counts. ``max_depth > 1`` also counts deeper blocks whose fork blocks above
+    the fork point are all referenced by the canonical chain. ``max_depth = 0`` counts any depth
+    with no ancestry condition (``SimConfig.uncle_depth``). The window gap is measured to the
+    fork point under ``parent_anchor``, which for depth 1 is the parent, and to ``u``'s own slot
+    otherwise.
 
     ``T`` scopes the reference *source* to the observation window, which is the spec rule:
     only chain blocks with ``0 <= slot_b < T`` contribute the uncles they carry, so a block
     past the window's end cannot add occupied slots to a closed window. ``T=None`` keeps the
-    earlier unscoped reach (``SimConfig.ref_scope="chain"``).
+    earlier unscoped reach (``SimConfig.ref_scope="chain"``). The ancestry condition reads the
+    references of the whole chain, whatever the scope.
+
+    A re-rooted copy is checked as any entry is, with its own slot and parent (the fork point).
     """
+    slot, parent = tree.ref_slot, tree.ref_parent
     canon = set(canonical_ids)
+    chain_refs = referenced_uncle_ids(tree, canonical_ids)
     out: set[int] = set()
     for b in canonical_ids:
-        sb = int(tree.slot[b])
+        sb = int(slot[b])
         if T is not None and not 0 <= sb < T:
             continue                                 # outside the window: contributes nothing
         for u in tree.uncles[b]:
             if u in canon:
                 continue                             # uncle lies on the counting chain
-            du = sb - int(tree.slot[u])
-            if not 0 < du <= w:
+            du = sb - int(slot[u])
+            if du <= 0:
+                continue                             # the uncle must strictly precede
+            a, depth, ancestry = int(parent[u]), 1, True
+            while a != 0 and a not in canon:         # walk up to the fork point
+                ancestry = ancestry and a in chain_refs
+                depth += 1
+                a = int(parent[a])
+            if max_depth != 0 and (depth > max_depth or not ancestry):
+                continue                             # too deep, or its fork is not referenced
+            gap = sb - int(slot[a]) if parent_anchor else du
+            if gap > w:
                 continue                             # outside the reference window
-            p = int(tree.parent[u])
-            if p != 0 and p not in canon:
-                continue                             # not a first fork block (deep): uncounted
             out.add(u)
     return out
 
@@ -66,14 +87,15 @@ def _in_window(slot: int, T: int) -> bool:
 
 def density_m(tree: BlockTree, canonical_ids: list[int], T: int,
               legacy_block_count: bool = False,
-              countable: bool = False, w: int = 0, scope_refs: bool = True) -> int:
+              countable: bool = False, w: int = 0, scope_refs: bool = True,
+              parent_anchor: bool = False, max_depth: int = 1) -> int:
     """Slot count ``m`` for the TSI update: canonical slots + recovered uncle slots.
 
     A slot counts at most once: canonical blocks occupy distinct slots by construction, and
     a referenced uncle contributes only if its slot is not already canonical-occupied (and
     only once per slot, however many same-slot uncles are referenced). ``countable`` applies
-    the spec's per-reference counting rules via :func:`countable_refs` (window ``w``, and with
-    ``scope_refs`` the window-scoped reference source);
+    the spec's per-reference counting rules via :func:`countable_refs` (window ``w`` with its
+    anchor, the depth limit, and with ``scope_refs`` the window-scoped reference source);
     ``countable=False`` is the old model where every baked reference counts.
     ``legacy_block_count`` reproduces the earlier per-block-id counting (double-counts
     multi-winner slots).
@@ -81,13 +103,15 @@ def density_m(tree: BlockTree, canonical_ids: list[int], T: int,
     s = tree.slot[canonical_ids]
     in_win = (s >= 0) & (s < T)
     honest = int(in_win.sum())
-    ref = (countable_refs(tree, canonical_ids, w, T if scope_refs else None) if countable
+    ref = (countable_refs(tree, canonical_ids, w, T if scope_refs else None, parent_anchor,
+                          max_depth) if countable
            else referenced_uncle_ids(tree, canonical_ids))
+    ref_slot = tree.ref_slot
     if legacy_block_count:
-        return honest + sum(1 for u in ref if _in_window(int(tree.slot[u]), T))
+        return honest + sum(1 for u in ref if _in_window(int(ref_slot[u]), T))
     canon_slots = set(int(x) for x in s[in_win])
-    rec_slots = {int(tree.slot[u]) for u in ref
-                 if _in_window(int(tree.slot[u]), T) and int(tree.slot[u]) not in canon_slots}
+    rec_slots = {int(ref_slot[u]) for u in ref
+                 if _in_window(int(ref_slot[u]), T) and int(ref_slot[u]) not in canon_slots}
     return honest + len(rec_slots)
 
 

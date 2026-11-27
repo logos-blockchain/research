@@ -1,0 +1,4 @@
+any block held                      : the proposal names the planted block in 100 of 100 runs; with a withheld parent in 100 of 100
+X by broadcast                      : the proposal names the planted block in 0 of 100 runs; with a withheld parent in 100 of 100
+whole branch by broadcast (draft)   : the proposal names the planted block in 0 of 100 runs; with a withheld parent in 0 of 100
+branch by broadcast or referenced   : the proposal names the planted block in 0 of 100 runs; with a withheld parent in 0 of 100

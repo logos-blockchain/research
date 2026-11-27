@@ -1,0 +1,10 @@
+retention: 12107 (A, X) pairs, 1000 with the fork point below B_imm, none needs a block outside the kept range
+retention bound is tight: a fork point sits at the first kept slot 16 with s_imm - w = 15
+epoch state: q = 2, 4q = 8: the states agree for every w <= 10 (= 4q + 2); w = 11 fails at (sA, sG, sX, epoch) = (41, 30, 40, 2)
+epoch state: q = 3, 4q = 12: the states agree for every w <= 14 (= 4q + 2); w = 15 fails at (sA, sG, sX, epoch) = (61, 46, 60, 2)
+epoch state: q = 5, 4q = 20: the states agree for every w <= 22 (= 4q + 2); w = 23 fails at (sA, sG, sX, epoch) = (101, 78, 100, 2)
+sl_C + w <= sl_I + 0: 27323 checked entries, 0 with the fork point before the checkpoint 
+sl_C + w <= sl_I + 1: 27649 checked entries, 0 with the fork point before the checkpoint 
+sl_C + w <= sl_I + 2: 27962 checked entries, 0 with the fork point before the checkpoint 
+sl_C + w <= sl_I + 3: 28361 checked entries, 17 with the fork point before the checkpoint e.g. (w, k, C, I, A, G) = (3, 1, 99, 99, 101, 98)
+checkpoint exactly k blocks deep: 1201 checked entries, 765 with the fork point before the checkpoint

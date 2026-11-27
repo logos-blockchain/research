@@ -1,0 +1,3 @@
+alpha=0.10: as written up to    240 blocks per entry,    960 per block of 4 entries; stopped at the window   24 /   96
+alpha=0.30: as written up to    720 blocks per entry,   2880 per block of 4 entries; stopped at the window   72 /  288
+alpha=0.45: as written up to   1080 blocks per entry,   4320 per block of 4 entries; stopped at the window  108 /  432

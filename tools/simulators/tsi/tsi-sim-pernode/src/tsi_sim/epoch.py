@@ -35,6 +35,42 @@ class EpochResult:
                               # (uncountable by construction, §2.1)
     deep_ref_share: float     # share of examined references rejected by the parent-on-chain
                               # (first-fork) counting rule; 0 under the old model
+    # Occupied window slots the count misses, as shares of all occupied window slots, by the
+    # smallest fork depth among their blocks (fork.lost_slots). They sum to the shortfall of
+    # the counted slots against the occupied ones.
+    lost_d1_share: float
+    lost_d2_share: float
+    lost_d2_parent_ref_share: float   # ...depth-2 slots whose fork's first block is counted
+    lost_d3_share: float
+    lost_d4plus_share: float
+    # Re-rooting (PLAN.md Phase 2b), as shares of the occupied window slots: the slots only
+    # counted copies cover (all, and by the depth of their blocks), and the copies made for blocks
+    # in the window. reroot_lag_mean is the mean time from a copy's slot to its publication.
+    rerooted_share: float
+    rerooted_d2_share: float
+    rerooted_d3plus_share: float
+    reroot_made_share: float
+    reroot_lag_mean: float
+    # Deeper rules (PLAN.md Phase 2d, fork.parent_wait): validators that receive a block before
+    # the off-chain parents of its entries.
+    parent_wait_block_share: float
+    parent_wait_node_share: float
+    parent_wait_mean: float
+    parent_wait_max: float
+    # Spent stake (PLAN.md Phase 2c): the window slots that hold a block, per slot; the window
+    # slots only spent notes won, per slot; and the share of those the count covers (NaN when
+    # there are none).
+    block_rate: float
+    spent_win_rate: float
+    spent_counted_share: float
+    # Adversaries (PLAN.md Phase 4), as shares of the occupied window slots: the lost slots that
+    # hold an honest block, by the depth of the shallowest one (fork.lost_slots; every block is
+    # honest without a coalition), and the lost slots whose blocks reached no node outside the
+    # coalition.
+    lost_honest_d1_share: float
+    lost_honest_d2_share: float
+    lost_honest_d3plus_share: float
+    lost_unpublished_share: float
 
 
 def _canonical_producer_split(
@@ -86,15 +122,25 @@ def simulate_epoch(
     coalition_mask: np.ndarray | None = None,
     inactive_mask: np.ndarray | None = None,
     coalition_ids: np.ndarray | None = None,
+    reroot_mask: np.ndarray | None = None,
 ) -> EpochResult:
     """``adversary_mask`` drives BEHAVIOUR this epoch (None == honest); ``coalition_mask`` is the
     fixed coalition identity used only for reward attribution (so a rejoin epoch, mask None, still
     credits the coalition's honestly-produced blocks). Defaults to ``adversary_mask`` when unset.
     ``coalition_ids`` splits the adversary into rival selfish groups (``engine._coalition_ids``).
+    ``reroot_mask`` marks the nodes that re-root (``engine._reroot_mask``; None == none).
+    ``config.spent_share`` splits every win between the holder's unspent and spent notes
+    (``lottery.spent_codes``).
     """
     f, T, E = config.f, config.period_T, config.epoch_len
     lottery_ss, aux_ss = epoch_ss.spawn(2)
     aux_rng = np.random.default_rng(aux_ss)
+    # Copies draw from a third child, so the lottery and the tree keep their streams. So do the
+    # spent codes and the entries of slots both parts won; the two never run together.
+    reroot_rng = (np.random.default_rng(epoch_ss.spawn(1)[0]) if reroot_mask is not None
+                  else None)
+    spent_rng = (np.random.default_rng(epoch_ss.spawn(1)[0]) if config.spent_share > 0.0
+                 else None)
 
     # per-node lottery: d_est is a VECTOR -> per-node win prob, sparse sampler unchanged
     p = lottery.win_probs(stake, d_est, f)
@@ -102,10 +148,14 @@ def simulate_epoch(
         p = np.where(inactive_mask, 0.0, p)     # churned-out nodes win no slots this epoch
     winner_slots, winner_nodes = lottery.sample_wins(p, E, np.random.default_rng(lottery_ss))
     active_slots, groups = lottery.group_by_slot(winner_slots, winner_nodes)
+    spent = (lottery.spent_codes(stake, d_est, f, config.spent_share, groups, spent_rng)
+             if spent_rng is not None else None)
 
     tree, A = build_tree_pernode(active_slots, groups, path_latency, config, aux_rng,
                                  adversary_mask=adversary_mask,
-                                 coalition_ids=coalition_ids)
+                                 coalition_ids=coalition_ids,
+                                 reroot_mask=reroot_mask, reroot_rng=reroot_rng,
+                                 spent=spent, spent_rng=spent_rng)
 
     # measurement: each node's own canonical chain, deduped by tip + numba-accelerated
     ms = measure(tree, A, active_slots, T, cutoff=E,
@@ -113,7 +163,8 @@ def simulate_epoch(
                  countable=config.uncle_model != "old",
                  w=config.effective_uncle_window,
                  parent_anchor=config.uncle_window_anchor == "parent",
-                 scope_refs=config.ref_scope == "window")
+                 scope_refs=config.ref_scope == "window",
+                 max_depth=config.uncle_depth)
     n_active_window = int((active_slots < T).sum())
 
     d_next = tsi.update_D_vec(d_est, ms.m, T, f, config.beta, config.fixed_point,
@@ -126,6 +177,15 @@ def simulate_epoch(
         tree, A, T, cutoff=E, coalition_mask=attribution)
     ref_total = int(ms.ref_total.sum())
     deep_ref_share = (int(ms.ref_deep.sum()) / ref_total) if ref_total else 0.0
+    # measure() scopes references to the window under the countable model only.
+    lost = fork.lost_slots(tree, A, T, cutoff=E,
+                           scope_refs=config.ref_scope == "window" and config.uncle_model != "old",
+                           coalition_mask=attribution)
+    occ = lost.occupied or 1
+    made = (tree.copy_of >= 0) & (tree.copy_slot >= 0) & (tree.copy_slot < T)
+    lag = tree.copy_pub[made] - tree.copy_slot[made]
+    lone, lone_counted = lost.spent
+    pw = fork.parent_wait(tree, A, T, cutoff=E, n_nodes=config.n_nodes)
 
     return EpochResult(
         d_next=d_next, m=ms.m, q=ms.q, q_eff=ms.q_eff, n_blocks=tree.n_blocks - 1,
@@ -136,4 +196,18 @@ def simulate_epoch(
         fork_rate=fork_rate, max_reorg_depth=max_reorg_depth, mean_reorg_depth=mean_reorg_depth,
         p_ref=p_ref, p_ref_honest=p_ref_honest, deep_orphan_share=deep_orphan_share,
         deep_ref_share=deep_ref_share,
+        lost_d1_share=lost.by_depth[0] / occ, lost_d2_share=lost.by_depth[1] / occ,
+        lost_d2_parent_ref_share=lost.d2_parent_ref / occ, lost_d3_share=lost.by_depth[2] / occ,
+        lost_d4plus_share=lost.by_depth[3] / occ,
+        rerooted_share=sum(lost.rerooted) / occ, rerooted_d2_share=lost.rerooted[1] / occ,
+        rerooted_d3plus_share=(lost.rerooted[2] + lost.rerooted[3]) / occ,
+        reroot_made_share=int(made.sum()) / occ,
+        reroot_lag_mean=float(lag.mean()) if lag.size else float("nan"),
+        parent_wait_block_share=pw.block_share, parent_wait_node_share=pw.node_share,
+        parent_wait_mean=pw.wait_mean, parent_wait_max=pw.wait_max,
+        block_rate=lost.occupied / T, spent_win_rate=lone / T,
+        spent_counted_share=lone_counted / lone if lone else float("nan"),
+        lost_honest_d1_share=lost.honest[0] / occ, lost_honest_d2_share=lost.honest[1] / occ,
+        lost_honest_d3plus_share=(lost.honest[2] + lost.honest[3]) / occ,
+        lost_unpublished_share=lost.unpublished / occ,
     )
