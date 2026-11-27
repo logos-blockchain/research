@@ -34,6 +34,8 @@ Install the study's environment once: `make install` in `tools/simulators/finali
 - `rules/`: run from any folder. A script prints its result. The table gives each command.
 - `epoch/`: run in `slot-finality/epoch` and redirect the output, for example
   `../../.venv/bin/python s03_gap_bound.py > out_03_gap_bound.txt`.
+- `epoch/split/`: run from any folder. A script prints its result. `run_all.py` reruns all of
+  them and stores each output beside it.
 - Caches go to `.cache` beside the script.
 - Arrays (`*.npy`, `*.npz`) are not stored here. The tables name the script that writes each.
 - Times are rough. Each is that of one run on a machine with 14 cores.
@@ -182,9 +184,10 @@ reviewed, and nothing else in this folder uses it. Its section 5 says how to run
 after GENESIS's.
 
 `schedule/SCHEDULE.md` states the schedule of 60 hours that the specification branch
-`Bedrock-RFC-Shorter-Epoch` adopts: why the Buffer phase can go, the condition on phase 3, the
+`Bedrock-RFC-Shorter-Epoch` first adopted, `3K + 3K`: why the Buffer phase can go, the condition on phase 3, the
 stake inference's learning rate with its simulations, and what each schedule costs. Its section
-7 lists its scripts.
+7 lists its scripts. The branch now adopts `4K + 2K` with a learning rate of 1/2, and
+`epoch/split/SPLIT.md` corrects sections 3 and 4.
 
 `schedule/CONSTRUCTIONS.md` compares that schedule, `3K + 3K`, with two constructions that keep a
 Buffer phase, `2K + 2K + 2K` and `2.5K + K + 2K`, and derives the learning rate for each window.
@@ -203,6 +206,32 @@ Its section 7 lists its scripts.
 | `s09_epoch.py` | The least phase in each state of the `K` row, the epochs that suffice with phase 3 at `max(G*, 2K − 1)`, and what each schedule costs. It reads `out_08_buffer.txt`. | `out_09_epoch.txt` | 1 s |
 | `s11_gain.py` | What a coalition of 30 % gains in blocks by choosing among nonces, by the length of the epoch. It imports `nonce/model.py` and `nonce/today_choices.py`, and reads the epochs of `out_09_epoch.txt`. | `out_11_gain.txt` | 1.5 min |
 | `s14_bracket.py` | The phases and the buffer below which a rule fails in each state, the bounds on the least epoch, the wait with a later snapshot, a second computation of the necessary values in log space, and the bounds of GENESIS at a phase 3 of `2K − 1` slots. It reads `out_08_buffer.txt` and GENESIS's cached curves. | `out_14_bracket.txt` | 1 s |
+
+## epoch/split/
+
+`SPLIT.md` supports the RFC of the specification branch `Bedrock-RFC-Shorter-Epoch` that sets an
+epoch of `4K + 2K`, a window of `4K` and a learning rate of 1/2. It gives the source of each
+figure of the RFC, corrects `schedule/SCHEDULE.md` 3.4 to 3.7 and 4.1 and `REVIEW.md` 5.3, 5.4,
+5.9, 9.4 and 10.2, and lists its scripts. `r2_repair.py` reads the curves that GENESIS's
+`g07_states.py` caches in `proofs/genesis/.cache`. `run_all.py` runs `g07_states.py` first when
+one is missing. Scripts marked "study" import the study's `src`. Paths in the table are relative
+to `epoch/split/`.
+
+| Script | What it computes | Stored output | Time |
+| --- | --- | --- | --- |
+| `displace.py` (study) | The chance that a coalition of 30 % displaces a block after `K`, by the ratio of the stake that builds to the inferred stake, at 10, 12 and 15 s, and the wait at 1e-9. | `out_displace.txt` | 4 min, 4 workers |
+| `exposure.py` | That chance averaged over the noise of the inferred stake, by split and learning rate. A step of the stake, a coalition that withholds one window, and steady growth. It reads `out_displace.txt`. | `out_exposure.txt` | 35 s |
+| `halt.py` | What a halt, or half of the stake offline, does to the inferred stake, by split and learning rate. | `out_halt.txt` | 1 s |
+| `betacost.py` | What a lower learning rate costs at genesis, after a fall of the stake and under growth. The halt in one window that takes the stake past each limit. | `out_betacost.txt` | 1 s |
+| `rules.py` | Learning rates against a bound on the fall of the inferred stake. | `out_rules.txt` | 4 s |
+| `genesis_u.py` (study) | At genesis, the chance that a fork from before the first cut-off is alive at the first use. The income a coalition gives up to hold the inferred stake low, by split. | `out_genesis_u.txt` | 25 s |
+| `forkloss.py`, `forkloss2.py`, `forkloss3.py` | The wins that the inference does not count, by delay: with ties broken the same for all or at random, with an arrival time per block and leader, and with deliveries timed to keep the honest leaders split. | `out_forkloss.txt`, `out_forkloss2.txt`, `out_forkloss3.txt` | 14 s, 11 s, 4 s |
+| `gossip.py` | The last gossip leg that `forkloss2.py` takes. It imports `tools/simulators/tsi/tsi-sim-pernode/src`. | `out_gossip.txt` | 1 s |
+| `r3_final.py` | `REVIEW.md` 5.4 as printed, and a bound against a coalition that holds a private lead. It imports `walk.py`. | `out_r3_final.txt` | 2 s |
+| `r2_repair.py` | The condition for dropping the Buffer phase, by the commit route and the settlement route, and the least first phase by each. | `out_r2_repair.txt` | 10 s |
+| `split_chain.py` | The noise of the inferred stake and the floor premise at a window of `4K`, with `../schedule/chain.py`. | `out_split_chain.txt` | 15 s |
+| `extra.py` | The chance per block over the noise, the growth that `K` holds, and a coalition that withholds one window, beside today and `3K + 3K`. | `out_extra.txt` | 5 s |
+| `../schedule/simulate.py branch A B C D`, with `WINDOW=144000 EPOCH_H=60 GAP_H=20 BETAS=1,1/2` | The rule in integers at a window of `4K`. | `out_simulate_branch_4k2k.txt` | 31 s |
 
 ## Rechecks
 

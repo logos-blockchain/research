@@ -1,0 +1,6 @@
+S/D 0.3, 10 s late: chance after 72,000 slots 1.08e-16; 95,194 slots 9.59e-22; 108,000 slots 1.56e-24
+S/D 0.3, 15 s late: chance after 72,000 slots 3.09e-15; 95,194 slots 7.89e-20; 108,000 slots 2.30e-22
+income a 30 % coalition gives up by withholding in every window and building in every last phase (reward per block):
+   blocks 5.5 s late: 2K+4K 11 %, 3K+3K 33 %, 4K+2K 56 %
+   blocks 10 s late: 2K+4K 14 %, 3K+3K 36 %, 4K+2K 57 %
+   blocks 15 s late: 2K+4K 17 %, 3K+3K 38 %, 4K+2K 59 %

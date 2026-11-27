@@ -33,6 +33,8 @@ The rules are those of REVIEW.md 10.1, with B replaced by section 3. A phase of 
 
 ## 3. The Buffer phase is not needed for the nonce
 
+`../split/SPLIT.md`, section 2, corrects 3.4 to 3.7: the choice between two snapshots, its end time, the length 46,910 and the end of the window.
+
 **3.1 (Cited). The threat.** The lottery ticket of a note is a hash of $`\eta`$, the slot, the note and its secret key (leadership 180). A coalition that knows $`\eta^{ep}`$ while it can still choose the notes of $`\mathbb{C}_\text{LEAD}^{ep}`$ can grind them (protocol 155, 173, 177). The Buffer phase was there so that an honest leader contributes to the nonce after the snapshot is final (protocol 154 at `7f3cf149`).
 
 **3.2 (Cited). Facts used.**
@@ -59,6 +61,8 @@ The coalition keeps only the choice that the $`K`$ row already names: withholdin
 **Not proved.** The assumptions of SURVIVAL (A1 to A5), the existence of a final chain, and A4 of REVIEW.md.
 
 ## 4. The stake inference: window and learning rate
+
+`../split/SPLIT.md`, section 2.5, corrects 4.1: the standard of 4.1 no longer sets the learning rate, and the bound on lost blocks does.
 
 **4.1 (Assumed). The standard.** $`K`$ holds 30 % at 15 s only while the true active stake stays within 1.094 times $`D`$ (Cited: RFC-533 61). The standard taken here: the noise of $`D`$ alone passes that limit with a chance of at most $`10^{-9}`$ per epoch.
 

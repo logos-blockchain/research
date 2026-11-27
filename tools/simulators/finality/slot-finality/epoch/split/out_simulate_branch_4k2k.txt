@@ -1,0 +1,31 @@
+A. [branch] steady state at a window of 144000 slots (40 h): 400000 chains settled 30 epochs, then 40 epochs kept
+   beta 1.0: mean D/S 1.01027 (chain 1.01027), sd 1.427 % (chain 1.427 %) | P(S/D > 1.03) 2.969e-03 (chain 2.967e-03) | P(S/D > 1.04) 3.217e-04 (chain 3.298e-04) | P(S/D > 1.05) 2.719e-05 (chain 2.540e-05) | P(S/D > 1.06) 1.438e-06 (chain 1.372e-06) | P(S/D > 1.094) 0.000e+00 (chain 6.130e-12)
+   beta 0.5: mean D/S 1.01028 (chain 1.01027), sd 0.828 % (chain 0.828 %) | P(S/D > 1.03) 7.500e-07 (chain 8.350e-07) | P(S/D > 1.04) 0.000e+00 (chain 1.384e-09) | P(S/D > 1.05) 0.000e+00 (chain 6.685e-13) | P(S/D > 1.06) 0.000e+00 (chain 9.635e-17) | P(S/D > 1.094) 0.000e+00 (chain 1.914e-33)
+   (7 s)
+B. [branch] P(S/D > 1.094) at a window of 40 h by importance sampling: 4 batches of 1000000 runs
+   beta 1.0: 6.194e-12 (batches 6.19e-12, 6.19e-12, 6.19e-12, 6.19e-12; relative sd of the mean 0.0%)
+   beta 0.5: 1.980e-33 (batches 1.97e-33, 1.99e-33, 1.98e-33, 1.98e-33; relative sd of the mean 0.2%)
+   (20 s)
+C. [branch] response to a step change of the stake that builds; the change falls just after a cut-off. Mean of |D/S - fixed point| / fixed point (99th percentile) by hours after the change
+   stake that builds times 0.5:
+     60 h, beta 0.5: 0 h 1.000, 80 h 0.5042 (0.5351), 140 h 0.2549 (0.2807), 200 h 0.1291 (0.1520), 260 h 0.0655 (0.0868), 320 h 0.0333 (0.0536)
+     60 h, beta 1: 0 h 1.000, 80 h 0.0176 (0.0566), 140 h 0.0114 (0.0369), 200 h 0.0114 (0.0368), 260 h 0.0114 (0.0369), 320 h 0.0114 (0.0368)
+     today, 180 h, beta 1: 0 h 1.000, 252 h 0.0121 (0.0375), 432 h 0.0070 (0.0226), 612 h 0.0069 (0.0223), 792 h 0.0069 (0.0223), 972 h 0.0069 (0.0223)
+   stake that builds times 0.9:
+     60 h, beta 0.5: 0 h 0.111, 80 h 0.0564 (0.0772), 140 h 0.0286 (0.0488), 200 h 0.0148 (0.0343), 260 h 0.0091 (0.0270), 320 h 0.0073 (0.0234)
+     60 h, beta 1: 0 h 0.111, 80 h 0.0121 (0.0390), 140 h 0.0114 (0.0369), 200 h 0.0114 (0.0368), 260 h 0.0114 (0.0369), 320 h 0.0114 (0.0367)
+     today, 180 h, beta 1: 0 h 0.111, 252 h 0.0074 (0.0242), 432 h 0.0069 (0.0224), 612 h 0.0069 (0.0223), 792 h 0.0069 (0.0223), 972 h 0.0069 (0.0223)
+   stake that builds times 1.1:
+     60 h, beta 0.5: 0 h 0.091, 80 h 0.0463 (0.0644), 140 h 0.0235 (0.0422), 200 h 0.0125 (0.0309), 260 h 0.0083 (0.0251), 320 h 0.0070 (0.0225)
+     60 h, beta 1: 0 h 0.091, 80 h 0.0109 (0.0353), 140 h 0.0114 (0.0365), 200 h 0.0114 (0.0367), 260 h 0.0114 (0.0368), 320 h 0.0113 (0.0367)
+     today, 180 h, beta 1: 0 h 0.091, 252 h 0.0067 (0.0217), 432 h 0.0069 (0.0223), 612 h 0.0069 (0.0224), 792 h 0.0070 (0.0224), 972 h 0.0069 (0.0224)
+   stake that builds times 2.0:
+     60 h, beta 0.5: 0 h 0.500, 80 h 0.2582 (0.2707), 140 h 0.1320 (0.1475), 200 h 0.0673 (0.0845), 260 h 0.0342 (0.0524), 320 h 0.0175 (0.0361)
+     60 h, beta 1: 0 h 0.500, 80 h 0.0169 (0.0394), 140 h 0.0113 (0.0365), 200 h 0.0114 (0.0368), 260 h 0.0114 (0.0369), 320 h 0.0114 (0.0367)
+     today, 180 h, beta 1: 0 h 0.500, 252 h 0.0165 (0.0304), 432 h 0.0069 (0.0221), 612 h 0.0069 (0.0224), 792 h 0.0069 (0.0224), 972 h 0.0069 (0.0223)
+   (3 s)
+D. [branch] deflation: 30 % of the total active stake withholds every block; D over the honest stake after each window
+   60 h, beta 0.5: start 1.443, 1: 1.229, 2: 1.121, 3: 1.067, 4: 1.039, 5: 1.025, 6: 1.018   (wins given up per window 1457; the fixed point is 1.0103)
+   60 h, beta 1: start 1.443, 1: 1.015, 2: 1.010, 3: 1.010, 4: 1.010, 5: 1.010, 6: 1.010   (wins given up per window 1457; the fixed point is 1.0103)
+   today, 180 h, beta 1: start 1.443, 1: 1.015, 2: 1.010, 3: 1.010, 4: 1.010, 5: 1.010, 6: 1.010   (wins given up per window 3934; the fixed point is 1.0103)
+   (1 s)

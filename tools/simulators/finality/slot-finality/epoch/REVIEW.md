@@ -293,6 +293,8 @@ $$
 
 Step 4. Fewer than $`n`$ blocks in $`(a, a + L]`$ means $`s_n > a + L`$. That implies $`\tau_n > a + L`$, which is $`nd + W_1 + \dots + W_n > L`$. By Step 3 its chance is $`S(n; L, p, d)`$. With a block in slot $`a`$ the implication is an equivalence. ∎
 
+`split/SPLIT.md`, sections 2.6 to 2.8, corrects 5.3, 5.4, 5.9, 9.4 and 10.2: delays that vary up to $`d`$ cost one $`d`$, $`G^*`$ leaves out a coalition's private lead, and a span that starts at the epoch's first slot needs another bound.
+
 **5.4 (Proved). Upper bound.** In $`M(p, d)`$ take a read slot $`sl_\text{cut}`$ and a use slot $`sl_\text{use} = sl_\text{cut} + G`$, and integers $`K \ge 1`$, $`\phi \ge 0`$, $`d \ge 0`$. Then
 
 $$

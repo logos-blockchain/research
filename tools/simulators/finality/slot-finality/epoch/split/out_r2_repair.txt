@@ -1,0 +1,5 @@
+no disturbance             d=10: commit 72000: 2.8e-19, 108000: 2.6e-41, 144000: 9.0e-62 | settlement 72000: 6.5e-20, 108000: 1.6e-29, 144000: 3.9e-39 | least L1 at 1e-9: commit 55750 (grid 250), settlement 33940
+every block 15 late        d=15: commit 72000: 7.5e-14, 108000: 6.3e-31, 144000: 3.5e-48 | settlement 72000: 1.4e-13, 108000: 4.6e-20, 144000: 1.5e-26 | least L1 at 1e-9: commit 63000 (grid 250), settlement 50637
+tenth offline, corrected   d=10: commit 72000: 1.8e-14, 108000: 6.2e-31, 144000: 1.5e-46 | settlement 72000: 2.2e-14, 108000: 3.1e-21, 144000: 4.4e-28 | least L1 at 1e-9: commit 61500 (grid 250), settlement 47603
+tenth offline, before      d=10: commit 72000: 6.7e-13, 108000: 1.0e-28, 144000: 5.3e-45 | settlement 72000: 3.1e-14, 108000: 5.2e-21, 144000: 8.8e-28 | least L1 at 1e-9: commit 64750 (grid 250), settlement 48105
+D = honest online          d=10: commit 72000: 5.2e-24, 108000: 1.5e-47, 144000: 4.7e-71 | settlement 72000: 1.1e-19, 108000: 3.4e-29, 144000: 1.0e-38 | least L1 at 1e-9: commit 50250 (grid 250), settlement 34444

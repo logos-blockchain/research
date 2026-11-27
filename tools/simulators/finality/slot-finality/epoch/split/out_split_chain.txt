@@ -1,0 +1,8 @@
+window 108.0 h, beta 1.0000, specification (f_hat = 0.033): mean D/S 1.01027 | P(S/D > 1.094) 4.090e-29 | sd 0.868 % | P(miss floor 689) 1.414e-08 | floor at 1e-9 680
+window 108.0 h, beta 1.0000, exact (f_hat = 1/30): mean D/S 1.00000 | P(S/D > 1.094) 3.102e-24 | sd 0.864 % | P(miss floor 689) 2.727e-09 | floor at 1e-9 685
+window  30.0 h, beta 0.7500, specification (f_hat = 0.033): mean D/S 1.01027 | P(S/D > 1.094) 8.726e-15 | sd 1.280 % | P(miss floor 689) 3.704e-08 | floor at 1e-9 676
+window  30.0 h, beta 0.7500, exact (f_hat = 1/30): mean D/S 1.00000 | P(S/D > 1.094) 2.050e-12 | sd 1.274 % | P(miss floor 689) 7.841e-09 | floor at 1e-9 682
+window  40.0 h, beta 1.0000, specification (f_hat = 0.033): mean D/S 1.01027 | P(S/D > 1.094) 6.130e-12 | sd 1.427 % | P(miss floor 689) 5.387e-08 | floor at 1e-9 675
+window  40.0 h, beta 1.0000, exact (f_hat = 1/30): mean D/S 1.00000 | P(S/D > 1.094) 4.176e-10 | sd 1.419 % | P(miss floor 689) 1.182e-08 | floor at 1e-9 680
+window  40.0 h, beta 0.5000, specification (f_hat = 0.033): mean D/S 1.01027 | P(S/D > 1.094) 1.914e-33 | sd 0.828 % | P(miss floor 689) 1.313e-08 | floor at 1e-9 680
+window  40.0 h, beta 0.5000, exact (f_hat = 1/30): mean D/S 1.00000 | P(S/D > 1.094) 1.212e-27 | sd 0.824 % | P(miss floor 689) 2.513e-09 | floor at 1e-9 686

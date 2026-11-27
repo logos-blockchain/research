@@ -39,6 +39,8 @@ Every construction here meets both (section 2). As protocols they differ only in
 
 ## 2. The rules each keeps
 
+`../split/SPLIT.md`, sections 2.3 and 2.7, corrects the lengths this section takes from SCHEDULE.md 3.6 and REVIEW.md 5.9: $`G^*`$ is 47,028 slots, and 47,599 in the second reading, once a coalition's private lead counts, and dropping the Buffer phase needs the condition of SPLIT.md 2.2, proved at 64,750 slots.
+
 Computed: `out_constructions.txt`, part 1, with $`G^*`$ = 46,910 and $`w_B`$ = 17,268, the largest values over the $`K`$ row (REVIEW.md 5.9, 9.4). A share is the least share of $`D`$ that must build for the value to be final in time, with every block 15 slots late.
 
 | Construction | Snapshot: final in time at | Phase 3: final in time at | J: phase 3 less $`2K - 1`$ | Honest block |
@@ -86,6 +88,8 @@ Computed: `out_constructions.txt`, parts 1 and 2. The gain is that of `gain.py` 
 - (Assumed: Blend's randomness of the next epoch, $`R_{e+1}`$, is the next epoch's nonce. Blend 992–994 says only that the consensus provides one value per epoch.) The nonce of epoch $`e + 1`$ is known from the cut-off of epoch $`e`$, so throughout phase 3. Blend 1025 says that a dishonest node that knows the randomness early can hold back messages whose tokens might win a premium reward for the receiving node (Cited).
 
 ## 4. The learning rate: noise
+
+`../split/SPLIT.md`, section 2.5, corrects the standard behind this section: the noise of $`D`$ no longer sets the learning rate, and the bound on lost blocks does.
 
 **4.1 (Computed). The chance per epoch that the noise of $`D`$ passes 1.094.** A cell marked with an asterisk gives importance sampling of the rule in integers (`simulate.py`, part B). Every other cell gives the stationary law of `chain.py`'s chain (`out_betas.txt`, part 1). The chain agrees with every sampled value within 2 %.
 

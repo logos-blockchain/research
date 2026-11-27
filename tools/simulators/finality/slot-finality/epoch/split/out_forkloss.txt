@@ -1,0 +1,24 @@
+ties: first seen, the same for all
+  fixed delay 5 s: loss 0.0058 % (sem 0.0006 %) -> D/S 0.99994 | var of the count over binomial 0.900 (300 windows) | off-chain blocks 15.77 % | lost slots by depth 1..4: [84, 0, 0, 0]
+  fixed delay 10 s: loss 0.0115 % (sem 0.0010 %) -> D/S 0.99988 | var of the count over binomial 0.901 (300 windows) | off-chain blocks 26.28 % | lost slots by depth 1..4: [166, 0, 0, 0]
+  fixed delay 12 s: loss 0.0147 % (sem 0.0011 %) -> D/S 0.99985 | var of the count over binomial 0.900 (300 windows) | off-chain blocks 29.81 % | lost slots by depth 1..4: [212, 0, 0, 0]
+  fixed delay 15 s: loss 0.0211 % (sem 0.0015 %) -> D/S 0.99979 | var of the count over binomial 0.900 (300 windows) | off-chain blocks 34.49 % | lost slots by depth 1..4: [304, 0, 0, 0]
+  fixed delay 17 s: loss 0.0250 % (sem 0.0016 %) -> D/S 0.99975 | var of the count over binomial 0.900 (300 windows) | off-chain blocks 37.27 % | lost slots by depth 1..4: [361, 0, 0, 0]
+  fixed delay 20 s: loss 0.0333 % (sem 0.0019 %) -> D/S 0.99966 | var of the count over binomial 0.900 (300 windows) | off-chain blocks 41.04 % | lost slots by depth 1..4: [480, 0, 0, 0]
+  Blend: 3 hops, uniform to 3 s, gossip 4.84 s, mean 9.3 s: loss 0.0110 % (sem 0.0009 %) -> D/S 0.99989 | var of the count over binomial 0.988 (300 windows) | off-chain blocks 23.97 % | lost slots by depth 1..4: [158, 0, 0, 0]
+  Blend: 3 hops, uniform to 4 s, gossip 4.84 s, mean 10.8 s: loss 0.0134 % (sem 0.0010 %) -> D/S 0.99986 | var of the count over binomial 0.988 (300 windows) | off-chain blocks 26.76 % | lost slots by depth 1..4: [193, 0, 0, 0]
+  Blend: 3 hops, uniform to 8 s, gossip 4.84 s, mean 16.8 s: loss 0.0233 % (sem 0.0015 %) -> D/S 0.99976 | var of the count over binomial 0.988 (300 windows) | off-chain blocks 35.96 % | lost slots by depth 1..4: [336, 0, 0, 0]
+ties: each leader picks at random
+  fixed delay 5 s: loss 1.2162 % (sem 0.0097 %) -> D/S 0.98763 | var of the count over binomial 1.003 (300 windows) | off-chain blocks 15.77 % | lost slots by depth 1..4: [61, 16025, 1321, 120]
+  fixed delay 10 s: loss 3.7841 % (sem 0.0187 %) -> D/S 0.96151 | var of the count over binomial 0.760 (300 windows) | off-chain blocks 26.28 % | lost slots by depth 1..4: [129, 46218, 6995, 1056]
+  fixed delay 12 s: loss 5.0346 % (sem 0.0216 %) -> D/S 0.94879 | var of the count over binomial 0.842 (300 windows) | off-chain blocks 29.82 % | lost slots by depth 1..4: [158, 59663, 10543, 1822]
+  fixed delay 15 s: loss 6.9808 % (sem 0.0243 %) -> D/S 0.92899 | var of the count over binomial 0.913 (300 windows) | off-chain blocks 34.50 % | lost slots by depth 1..4: [215, 79355, 16781, 3411]
+  fixed delay 17 s: loss 8.3024 % (sem 0.0278 %) -> D/S 0.91555 | var of the count over binomial 0.772 (300 windows) | off-chain blocks 37.29 % | lost slots by depth 1..4: [256, 92238, 21156, 4682]
+  fixed delay 20 s: loss 10.2934 % (sem 0.0309 %) -> D/S 0.89530 | var of the count over binomial 0.757 (300 windows) | off-chain blocks 41.02 % | lost slots by depth 1..4: [333, 110313, 28074, 7065]
+  Blend: 3 hops, uniform to 3 s, gossip 4.84 s, mean 9.3 s: loss 3.0709 % (sem 0.0160 %) -> D/S 0.96876 | var of the count over binomial 0.862 (300 windows) | off-chain blocks 23.97 % | lost slots by depth 1..4: [123, 38175, 5158, 711]
+  Blend: 3 hops, uniform to 4 s, gossip 4.84 s, mean 10.8 s: loss 3.9201 % (sem 0.0188 %) -> D/S 0.96013 | var of the count over binomial 0.839 (300 windows) | off-chain blocks 26.75 % | lost slots by depth 1..4: [150, 47662, 7383, 1095]
+  Blend: 3 hops, uniform to 8 s, gossip 4.84 s, mean 16.8 s: loss 7.5478 % (sem 0.0270 %) -> D/S 0.92323 | var of the count over binomial 0.853 (300 windows) | off-chain blocks 35.97 % | lost slots by depth 1..4: [263, 84907, 18468, 3926]
+at S/D = 1.094, fixed 15 s:
+  first seen: loss 0.0161 % (sem 0.0011 %) -> D/S 0.99984 | var of the count over binomial 0.974 (300 windows) | off-chain blocks 36.55 % | lost slots by depth 1..4: [254, 0, 0, 0]
+  split: loss 7.9036 % (sem 0.0258 %) -> D/S 0.91961 | var of the count over binomial 0.861 (300 windows) | off-chain blocks 36.57 % | lost slots by depth 1..4: [184, 96489, 21669, 4756]
+(12 s)

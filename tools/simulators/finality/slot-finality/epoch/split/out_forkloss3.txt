@@ -1,0 +1,8 @@
+delay bound 5 s, class 1 holds 0.0: loss 0.004 % (sem 0.001 %) -> D/S 1.0000 | off-chain 15.75 %
+delay bound 5 s, class 1 holds 0.5: loss 1.207 % (sem 0.013 %) -> D/S 0.9877 | off-chain 15.75 %
+delay bound 10 s, class 1 holds 0.0: loss 0.009 % (sem 0.001 %) -> D/S 0.9999 | off-chain 26.30 %
+delay bound 10 s, class 1 holds 0.5: loss 3.737 % (sem 0.023 %) -> D/S 0.9620 | off-chain 26.30 %
+delay bound 12 s, class 1 holds 0.0: loss 0.013 % (sem 0.001 %) -> D/S 0.9999 | off-chain 29.81 %
+delay bound 12 s, class 1 holds 0.5: loss 4.906 % (sem 0.026 %) -> D/S 0.9501 | off-chain 29.81 %
+delay bound 15 s, class 1 holds 0.0: loss 0.018 % (sem 0.002 %) -> D/S 0.9998 | off-chain 34.46 %
+delay bound 15 s, class 1 holds 0.5: loss 6.753 % (sem 0.031 %) -> D/S 0.9313 | off-chain 34.46 %

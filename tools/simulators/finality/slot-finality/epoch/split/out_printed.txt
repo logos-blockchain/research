@@ -1,0 +1,36 @@
+fixed point of the printed rule: D/S = 1.01027
+1. E[c15(S/D)] over the noise of D, printed rule | exact rule
+   today: 2.210e-10 | 2.527e-10
+   3K + 3K, 3/4: 2.233e-10 | 2.553e-10
+   4K + 2K, 1: 2.243e-10 | 2.566e-10
+   4K + 2K, 1/2: 2.209e-10 | 2.525e-10
+2. daily growth at which the steady S/D reaches 1.094 (lag of D in hours), printed rule | exact rule
+   today: 1.32 % (183 h) | 1.18 % (183 h)
+   3K + 3K, 3/4: 3.03 % (81 h) | 2.71 % (81 h)
+   4K + 2K, 1: 4.01 % (61 h) | 3.59 % (61 h)
+   4K + 2K, 1/2: 2.03 % (121 h) | 1.82 % (121 h)
+3. a 30 % coalition withholds one window, D at rest before: S/D after it, printed rule | exact rule
+   today: 1.407 | 1.421
+   3K + 3K, 3/4: 1.273 | 1.286
+   4K + 2K, 1: 1.407 | 1.421
+   4K + 2K, 1/2: 1.162 | 1.174
+4. income a 30 % coalition gives up to keep D on the honest stake (win rate, D exactly the honest stake)
+   win rate in the last phase over the normal rate: 1.4255
+   2K + 4K: 5.0 %
+   3K + 3K: 28.7 %
+   4K + 2K: 52.5 %
+5. wins withheld in each window of a lasting deflation at 4K + 2K, beta 1/2, printed rule, from D at rest
+   1442, 1692, 1854, 1948, 2000, 2027; today's window (388,800) from rest: 3894
+6. launch, 30 % of D building, printed rule: S/D after each window
+   beta 0.5: 0.300 0.459 0.626 0.765 0.861 0.920
+   beta 1.0: 0.300 0.978 0.990 0.990 0.990 0.990
+7. mean path after a step just after a cut-off, printed rule: D over its fixed point at each correction
+   stake x0.5, today: 1.0084 1.0001 1.0000 1.0000
+   stake x0.5, 4K + 2K, 1/2: 1.5042 1.2549 1.1292 1.0655
+   stake x0.9, today: 1.0017 1.0000 1.0000 1.0000
+   stake x0.9, 4K + 2K, 1/2: 1.0564 1.0286 1.0146 1.0074
+   stake x2.0, today: 0.9835 0.9997 1.0000 1.0000
+   stake x2.0, 4K + 2K, 1/2: 0.7418 0.8680 0.9327 0.9658
+8. stationary chance that S/D exceeds 2.097/2 = 1.0485 at a window of 4K, beta 1/2
+   specification (f_hat = 0.033): 2.24e-12
+   exact (f_hat = 1/30): 5.17e-09

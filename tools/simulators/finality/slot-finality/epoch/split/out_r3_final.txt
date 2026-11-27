@@ -1,0 +1,15 @@
+5.4 as printed at G = 72,000 (log10 of the two terms), and with G - d (5.10):
+  no disturbance               S  -129.68  R    -367.9 | G-d: S  -129.63 R    -367.8
+  every block 15 late          S  -110.49  R    -367.8 | G-d: S  -110.41 R    -367.6
+  tenth offline, corrected     S  -117.96  R    -355.9 | G-d: S  -117.90 R    -355.8
+  tenth offline, before        S   -94.43  R    -330.9 | G-d: S   -94.39 R    -330.8
+  D = honest online            S  -309.07  R    -526.7 | G-d: S  -308.97 R    -526.5
+  (not required) tenth offline corrected AND 15 late: S   -99.91
+  (not required) tenth offline before AND 15 late: S   -78.79
+
+Active coalition: floor part, age part at G = 72,000, and at G* as printed
+  no disturbance               floor 1.11e-123  age 3.00e-84 (18000, 18001)  | E[M_pre]=1.01 P(M_pre>=1)=0.528  G* printed 43460, active bound at that G 1.51e-09; least G active 43547 (+87)
+  every block 15 late          floor 2.00e-101  age 1.00e-73 (18000, 18001)  | E[M_pre]=1.19 P(M_pre>=1)=0.579  G* printed 46910, active bound at that G 1.75e-09; least G active 47028 (+118)
+  tenth offline, corrected     floor 1.92e-107  age 9.61e-72 (18000, 18001)  | E[M_pre]=1.26 P(M_pre>=1)=0.583  G* printed 44667, active bound at that G 1.67e-09; least G active 44779 (+112)
+  tenth offline, before        floor 1.06e-89  age 5.11e-68 (18000, 18001)  | E[M_pre]=1.23 P(M_pre>=1)=0.576  G* printed 47483, active bound at that G 1.64e-09; least G active 47599 (+116)
+  D = honest online            floor 5.16e-236  age 4.17e-108 (18000, 18001)  | E[M_pre]=1.16 P(M_pre>=1)=0.571  G* printed 36726, active bound at that G 5.15e-02; least G active 39375 (+2649)
