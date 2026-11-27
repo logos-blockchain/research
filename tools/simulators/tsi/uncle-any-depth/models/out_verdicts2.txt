@@ -1,0 +1,60 @@
+reference wrong | uncle held by 1 of 9 honest nodes
+    drafted    worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 15, max 29 blocks; more than k apart at the end in 1 of 12
+    age        worst divergence: median 2, max 3 blocks; more than k apart at the end in 0 of 12
+reference wrong | uncle held by 3 of 9 honest nodes
+    drafted    worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 32, max 56 blocks; more than k apart at the end in 9 of 12
+    age        worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+reference wrong | uncle held by 4 of 9 honest nodes
+    drafted    worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 24, max 53 blocks; more than k apart at the end in 7 of 12
+    age        worst divergence: median 3, max 4 blocks; more than k apart at the end in 0 of 12
+reference wrong | uncle held by 5 of 9 honest nodes
+    drafted    worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 13, max 40 blocks; more than k apart at the end in 5 of 12
+    age        worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+reference wrong | uncle held by 6 of 9 honest nodes
+    drafted    worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 8, max 42 blocks; more than k apart at the end in 3 of 12
+    age        worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+reference wrong | uncle held by 8 of 9 honest nodes
+    drafted    worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 3, max 4 blocks; more than k apart at the end in 0 of 12
+    age        worst divergence: median 3, max 4 blocks; more than k apart at the end in 0 of 12
+reference right | uncle held by 1 of 9 honest nodes
+    drafted    worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 12, max 13 blocks; more than k apart at the end in 0 of 12
+    age        worst divergence: median 2, max 3 blocks; more than k apart at the end in 0 of 12
+reference right | uncle held by 3 of 9 honest nodes
+    drafted    worst divergence: median 3, max 4 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 9, max 13 blocks; more than k apart at the end in 0 of 12
+    age        worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+reference right | uncle held by 4 of 9 honest nodes
+    drafted    worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 9, max 13 blocks; more than k apart at the end in 0 of 12
+    age        worst divergence: median 3, max 4 blocks; more than k apart at the end in 0 of 12
+reference right | uncle held by 5 of 9 honest nodes
+    drafted    worst divergence: median 3, max 4 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 3, max 13 blocks; more than k apart at the end in 0 of 12
+    age        worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+reference right | uncle held by 6 of 9 honest nodes
+    drafted    worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 3, max 9 blocks; more than k apart at the end in 0 of 12
+    age        worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+reference right | uncle held by 8 of 9 honest nodes
+    drafted    worst divergence: median 3, max 3 blocks; more than k apart at the end in 0 of 12
+    wrong=bad  worst divergence: median 3, max 4 blocks; more than k apart at the end in 0 of 12
+    age        worst divergence: median 3, max 4 blocks; more than k apart at the end in 0 of 12
+drafted    growth x1.0: node that syncs is on the chain 240 slots later in 10 of 10, behind by 0 to 1 blocks (k = 12)
+age        growth x1.0: node that syncs is on the chain 240 slots later in 10 of 10, behind by 0 to 0 blocks (k = 12)
+drafted    growth x1.25: node that syncs is on the chain 240 slots later in 10 of 10, behind by 0 to 1 blocks (k = 12)
+age        growth x1.25: node that syncs is on the chain 240 slots later in 10 of 10, behind by 0 to 1 blocks (k = 12)
+drafted    growth x1.5: node that syncs is on the chain 240 slots later in 10 of 10, behind by 0 to 1 blocks (k = 12)
+age        growth x1.5: node that syncs is on the chain 240 slots later in 10 of 10, behind by 0 to 1 blocks (k = 12)
+drafted    growth x2.0: node that syncs is on the chain 240 slots later in 10 of 10, behind by 0 to 1 blocks (k = 12)
+age        growth x2.0: node that syncs is on the chain 240 slots later in 10 of 10, behind by 0 to 1 blocks (k = 12)
+2 wins: blocks to fetch for the last block, drafted 4, with references of uncles checked as well 4
+4 wins: blocks to fetch for the last block, drafted 4, with references of uncles checked as well 84
+6 wins: blocks to fetch for the last block, drafted 4, with references of uncles checked as well 1364
+8 wins: blocks to fetch for the last block, drafted 4, with references of uncles checked as well 21844

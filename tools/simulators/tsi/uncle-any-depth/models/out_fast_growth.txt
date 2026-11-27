@@ -1,0 +1,6 @@
+drafted  growth x1.0: 150 slots after it starts, the syncing node is on the chain in 4 of 4, behind by [0, 0, 0, 0] blocks (k = 60, k/f = 600 slots, window 60 slots)
+age      growth x1.0: 150 slots after it starts, the syncing node is on the chain in 4 of 4, behind by [0, 0, 0, 0] blocks (k = 60, k/f = 600 slots, window 60 slots)
+drafted  growth x1.5: 150 slots after it starts, the syncing node is on the chain in 4 of 4, behind by [0, 0, 0, 0] blocks (k = 60, k/f = 600 slots, window 60 slots)
+age      growth x1.5: 150 slots after it starts, the syncing node is on the chain in 4 of 4, behind by [0, 0, 0, 0] blocks (k = 60, k/f = 600 slots, window 60 slots)
+drafted  growth x2.0: 150 slots after it starts, the syncing node is on the chain in 4 of 4, behind by [0, 0, 0, 0] blocks (k = 60, k/f = 600 slots, window 60 slots)
+age      growth x2.0: 150 slots after it starts, the syncing node is on the chain in 0 of 4, behind by [76, 88, 88, 88] blocks (k = 60, k/f = 600 slots, window 60 slots)

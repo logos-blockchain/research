@@ -1,0 +1,3 @@
+const    :  173.2 downloads,   5543 peer requests per node per forfeited win
+doubling :   20.9 downloads,    669 peer requests per node per forfeited win
+capped   :   21.7 downloads,    694 peer requests per node per forfeited win

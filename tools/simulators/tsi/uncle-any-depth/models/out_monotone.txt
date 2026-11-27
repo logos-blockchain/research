@@ -1,0 +1,2 @@
+monotone in N over 120000 evaluations (beta 0.5..2)
+genuine N = 21,600: 1683501683 | with 1 block's 4 forged entries: 1683813443 | relative: 0.0001851854400551911

@@ -1,0 +1,6 @@
+epoch boundaries 20; node views 160, of which with competing chains 140 (chains compared 1120)
+  all chains of a view give one count: 160 of 160; all nodes (blind one included) give one count: 20 of 20
+  blind node: 203 of 203 counted references name a block it never held; its chain is a prefix of the longest one in 20 of 20, behind by 3 to 15 blocks
+  blind node, count equal to the others': 20 of 20
+  if only held uncles counted: off by -22.2 % to -10.7 %; if held or k deep: equal in 20 of 20
+while the window is open: competing chains of one view differ by up to 1 slots, and differ in 92 of 1457 comparisons

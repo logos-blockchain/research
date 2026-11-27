@@ -1,0 +1,2 @@
+every T_round: mean wait for an honest block 43 s,  173.2 downloads per node per forfeited win,    5543 peer requests; 1,000 nodes: 5.54 M requests
+doubling wait: mean wait for an honest block 43 s,   20.9 downloads per node per forfeited win,     669 peer requests; 1,000 nodes: 0.67 M requests

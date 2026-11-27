@@ -1,0 +1,2 @@
+received the proposal     : nodes that may name Y: ['N3'], Z: ['N3']
+accepted from the channel : nodes that may name Y: none, Z: none

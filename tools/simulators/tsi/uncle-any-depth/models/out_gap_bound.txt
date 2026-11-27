@@ -1,0 +1,13 @@
+k/f = 64800 slots (18 h); gap 4k/f = 259200 slots (72 h); minus the window 252000 slots
+chain growth 1.00 of the target:    8400 blocks expected, P(fewer than k) = 10^-1472.9
+chain growth 0.90 of the target:    7560 blocks expected, P(fewer than k) = 10^-1198.2
+chain growth 0.75 of the target:    6300 blocks expected, P(fewer than k) = 10^-811.2
+chain growth 0.50 of the target:    4200 blocks expected, P(fewer than k) = 10^-267.8
+chain growth 0.35 of the target:    2940 blocks expected, P(fewer than k) = 10^-51.7
+chain growth 0.30 of the target:    2520 blocks expected, P(fewer than k) = 10^-13.2
+chain growth 0.28 of the target:    2352 blocks expected, P(fewer than k) = 10^-4.6
+chain growth 0.26 of the target:    2184 blocks expected, P(fewer than k) = 10^-0.5
+chain growth 0.25 of the target:    2100 blocks expected, P(fewer than k) = 10^-0.0
+chain growth 0.24 of the target:    2016 blocks expected, P(fewer than k) = 10^-0.0
+k blocks take 18 h at the full rate, 36 h at half of it, 72 h at a quarter
+expected count 12960; one reference is 0.0077 % of it

@@ -1,0 +1,4 @@
+M=   1 equivocations: as written       4 downloads,       128 peer requests per node; capped 4 downloads, 128 requests
+M=  10 equivocations: as written     220 downloads,      7040 peer requests per node; capped 4 downloads, 128 requests
+M=  50 equivocations: as written    5100 downloads,    163200 peer requests per node; capped 4 downloads, 128 requests
+M= 200 equivocations: as written   80400 downloads,   2572800 peer requests per node; capped 4 downloads, 128 requests

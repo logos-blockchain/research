@@ -1,0 +1,6 @@
+N =  200, the target serves the block: share of the nodes that hold X after 1 / 2 / 3 / 4 tries: 0.159 / 0.999 / 1.000 / 1.000
+N =  200, the target does not serve the block: share of the nodes that hold X after 1 / 2 / 3 / 4 tries: 0.005 / 0.005 / 0.005 / 0.005
+N = 1000, the target serves the block: share of the nodes that hold X after 1 / 2 / 3 / 4 tries: 0.033 / 0.724 / 1.000 / 1.000
+N = 1000, the target does not serve the block: share of the nodes that hold X after 1 / 2 / 3 / 4 tries: 0.001 / 0.001 / 0.001 / 0.001
+N = 5000, the target serves the block: share of the nodes that hold X after 1 / 2 / 3 / 4 tries: 0.006 / 0.210 / 0.999 / 1.000
+N = 5000, the target does not serve the block: share of the nodes that hold X after 1 / 2 / 3 / 4 tries: 0.000 / 0.000 / 0.000 / 0.000
