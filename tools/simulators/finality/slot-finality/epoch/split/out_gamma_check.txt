@@ -1,0 +1,13 @@
+1. longest halt with the worst start within 2.097 (beta 1/2, gamma 3/4)
+   exact rule, D right: 119.35 h (worst at 125 h: 2.256; at 160 h: 2.370)
+   printed rule, from rest: 120.17 h (worst at 125 h: 2.233; at 160 h: 2.346)
+2. after a 48-hour halt: blocks displaced at 15 s over all later epochs, worst start and mean over starts (exact rule)
+   beta 1/2 alone: worst start 75.7, mean over starts 14
+   beta 1/2, gamma 3/4: worst start 0.0072, mean over starts 0.00128
+3. withholding by 30 %, printed rule from rest: S/D after each of four windows
+   beta 1/2, gamma 3/4: 1.1621 1.2740 1.3393 1.3751
+   beta 1, gamma 3/4: 1.3198 1.4125 1.4140 1.4140
+   withholding at rest, then two windows without blocks: 2.514 printed, 2.540 exact
+4. finality at mean rates after the stake halves just after a cut-off (printed rule from rest, blocks 10 s late, floor 689)
+   before the first correction: S/D 0.4949, 13.4 h
+   after it, beta 1/2 and gamma 3/4: S/D 0.6580, 10.6 h
