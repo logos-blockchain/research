@@ -1,0 +1,68 @@
+W = 144 arm of the W = 240 sweep equals the first sweep's: True
+dropped replicates (delay, share, replicate): []
+
+rho 0.36 without a coalition, coalition 0.0 of the total active stake
+  today (first block of a fork, W=12)    D^/D 0.9980  gap to W=12 -0.10 ± 0.12 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.08, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=12                        D^/D 0.9990  gap to W=12 +0.00 ± 0.00 pp  uncounted honest slots, % of occupied: depth 1 0.04, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=24                        D^/D 0.9972  gap to W=12 -0.18 ± 0.07 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=48                        D^/D 0.9972  gap to W=12 -0.18 ± 0.07 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=96                        D^/D 0.9972  gap to W=12 -0.18 ± 0.07 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=144                       D^/D 0.9972  gap to W=12 -0.18 ± 0.07 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=240                       D^/D 0.9972  gap to W=12 -0.18 ± 0.07 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  own slot W=12                          D^/D 0.9972  gap to W=12 -0.18 ± 0.07 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  own slot W=24                          D^/D 0.9972  gap to W=12 -0.18 ± 0.07 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+
+rho 0.36 without a coalition, coalition 0.2 of the total active stake
+  today (first block of a fork, W=12)    D^/D 0.9194  gap to W=12 -5.36 ± 0.15 pp  uncounted honest slots, % of occupied: depth 1 0.53, 2 4.29, >=3 2.16; coalition share of the chain 0.165; n=20
+  fork point W=12                        D^/D 0.9730  gap to W=12 +0.00 ± 0.00 pp  uncounted honest slots, % of occupied: depth 1 0.66, 2 0.47, >=3 1.11; coalition share of the chain 0.162; n=20
+  fork point W=24                        D^/D 0.9929  gap to W=12 +1.99 ± 0.13 pp  uncounted honest slots, % of occupied: depth 1 0.07, 2 0.04, >=3 0.25; coalition share of the chain 0.162; n=20
+  fork point W=48                        D^/D 0.9986  gap to W=12 +2.56 ± 0.17 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.01, >=3 0.01; coalition share of the chain 0.162; n=20
+  fork point W=96                        D^/D 0.9984  gap to W=12 +2.54 ± 0.16 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.01, >=3 0.01; coalition share of the chain 0.162; n=20
+  fork point W=144                       D^/D 0.9984  gap to W=12 +2.54 ± 0.16 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.01, >=3 0.01; coalition share of the chain 0.162; n=20
+  fork point W=240                       D^/D 0.9984  gap to W=12 +2.54 ± 0.16 pp  uncounted honest slots, % of occupied: depth 1 0.03, 2 0.01, >=3 0.01; coalition share of the chain 0.162; n=20
+  own slot W=12                          D^/D 0.9888  gap to W=12 +1.59 ± 0.19 pp  uncounted honest slots, % of occupied: depth 1 0.32, 2 0.11, >=3 0.11; coalition share of the chain 0.163; n=20
+  own slot W=24                          D^/D 0.9961  gap to W=12 +2.32 ± 0.15 pp  uncounted honest slots, % of occupied: depth 1 0.04, 2 0.01, >=3 0.02; coalition share of the chain 0.162; n=20
+
+rho 0.36 without a coalition, coalition 0.3 of the total active stake
+  today (first block of a fork, W=12)    D^/D 0.8158  gap to W=12 -6.50 ± 0.24 pp  uncounted honest slots, % of occupied: depth 1 1.52, 2 5.68, >=3 8.64; coalition share of the chain 0.349; n=20
+  fork point W=12                        D^/D 0.8807  gap to W=12 +0.00 ± 0.00 pp  uncounted honest slots, % of occupied: depth 1 1.90, 2 1.45, >=3 6.68; coalition share of the chain 0.348; n=20
+  fork point W=24                        D^/D 0.9455  gap to W=12 +6.48 ± 0.31 pp  uncounted honest slots, % of occupied: depth 1 0.52, 2 0.38, >=3 3.87; coalition share of the chain 0.346; n=20
+  fork point W=48                        D^/D 0.9829  gap to W=12 +10.22 ± 0.32 pp  uncounted honest slots, % of occupied: depth 1 0.10, 2 0.06, >=3 1.02; coalition share of the chain 0.339; n=20
+  fork point W=96                        D^/D 0.9949  gap to W=12 +11.41 ± 0.31 pp  uncounted honest slots, % of occupied: depth 1 0.05, 2 0.02, >=3 0.14; coalition share of the chain 0.343; n=20
+  fork point W=144                       D^/D 0.9944  gap to W=12 +11.36 ± 0.39 pp  uncounted honest slots, % of occupied: depth 1 0.05, 2 0.02, >=3 0.07; coalition share of the chain 0.341; n=20
+  fork point W=240                       D^/D 0.9944  gap to W=12 +11.37 ± 0.38 pp  uncounted honest slots, % of occupied: depth 1 0.05, 2 0.02, >=3 0.07; coalition share of the chain 0.341; n=20
+  own slot W=12                          D^/D 0.9474  gap to W=12 +6.67 ± 0.28 pp  uncounted honest slots, % of occupied: depth 1 1.25, 2 0.69, >=3 2.02; coalition share of the chain 0.345; n=20
+  own slot W=24                          D^/D 0.9810  gap to W=12 +10.03 ± 0.30 pp  uncounted honest slots, % of occupied: depth 1 0.35, 2 0.19, >=3 0.68; coalition share of the chain 0.340; n=20
+
+rho 0.56 without a coalition, coalition 0.0 of the total active stake
+  today (first block of a fork, W=12)    D^/D 0.9955  gap to W=12 -0.05 ± 0.15 pp  uncounted honest slots, % of occupied: depth 1 0.04, 2 0.30, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=12                        D^/D 0.9960  gap to W=12 +0.00 ± 0.00 pp  uncounted honest slots, % of occupied: depth 1 0.07, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=24                        D^/D 0.9978  gap to W=12 +0.18 ± 0.09 pp  uncounted honest slots, % of occupied: depth 1 0.04, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=48                        D^/D 0.9978  gap to W=12 +0.18 ± 0.09 pp  uncounted honest slots, % of occupied: depth 1 0.04, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=96                        D^/D 0.9978  gap to W=12 +0.18 ± 0.09 pp  uncounted honest slots, % of occupied: depth 1 0.04, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=144                       D^/D 0.9978  gap to W=12 +0.18 ± 0.09 pp  uncounted honest slots, % of occupied: depth 1 0.04, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  fork point W=240                       D^/D 0.9978  gap to W=12 +0.18 ± 0.09 pp  uncounted honest slots, % of occupied: depth 1 0.04, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  own slot W=12                          D^/D 0.9981  gap to W=12 +0.21 ± 0.09 pp  uncounted honest slots, % of occupied: depth 1 0.04, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+  own slot W=24                          D^/D 0.9978  gap to W=12 +0.18 ± 0.09 pp  uncounted honest slots, % of occupied: depth 1 0.04, 2 0.00, >=3 0.00; coalition share of the chain 0.000; n=20
+
+rho 0.56 without a coalition, coalition 0.2 of the total active stake
+  today (first block of a fork, W=12)    D^/D 0.9041  gap to W=12 -5.70 ± 0.21 pp  uncounted honest slots, % of occupied: depth 1 0.80, 2 4.89, >=3 2.52; coalition share of the chain 0.181; n=20
+  fork point W=12                        D^/D 0.9611  gap to W=12 +0.00 ± 0.00 pp  uncounted honest slots, % of occupied: depth 1 0.99, 2 0.65, >=3 1.56; coalition share of the chain 0.177; n=20
+  fork point W=24                        D^/D 0.9906  gap to W=12 +2.95 ± 0.20 pp  uncounted honest slots, % of occupied: depth 1 0.12, 2 0.07, >=3 0.45; coalition share of the chain 0.177; n=20
+  fork point W=48                        D^/D 0.9977  gap to W=12 +3.66 ± 0.22 pp  uncounted honest slots, % of occupied: depth 1 0.06, 2 0.02, >=3 0.05; coalition share of the chain 0.176; n=20
+  fork point W=96                        D^/D 0.9981  gap to W=12 +3.70 ± 0.23 pp  uncounted honest slots, % of occupied: depth 1 0.05, 2 0.01, >=3 0.01; coalition share of the chain 0.176; n=20
+  fork point W=144                       D^/D 0.9981  gap to W=12 +3.70 ± 0.23 pp  uncounted honest slots, % of occupied: depth 1 0.05, 2 0.01, >=3 0.01; coalition share of the chain 0.176; n=20
+  fork point W=240                       D^/D 0.9981  gap to W=12 +3.70 ± 0.23 pp  uncounted honest slots, % of occupied: depth 1 0.05, 2 0.01, >=3 0.01; coalition share of the chain 0.176; n=20
+  own slot W=12                          D^/D 0.9881  gap to W=12 +2.70 ± 0.21 pp  uncounted honest slots, % of occupied: depth 1 0.49, 2 0.15, >=3 0.17; coalition share of the chain 0.175; n=20
+  own slot W=24                          D^/D 0.9954  gap to W=12 +3.43 ± 0.19 pp  uncounted honest slots, % of occupied: depth 1 0.07, 2 0.02, >=3 0.03; coalition share of the chain 0.173; n=20
+
+rho 0.56 without a coalition, coalition 0.3 of the total active stake
+  today (first block of a fork, W=12)    D^/D 0.7789  gap to W=12 -7.18 ± 0.30 pp  uncounted honest slots, % of occupied: depth 1 2.00, 2 6.07, >=3 10.76; coalition share of the chain 0.383; n=20
+  fork point W=12                        D^/D 0.8507  gap to W=12 +0.00 ± 0.00 pp  uncounted honest slots, % of occupied: depth 1 2.38, 2 1.67, >=3 8.55; coalition share of the chain 0.373; n=20
+  fork point W=24                        D^/D 0.9222  gap to W=12 +7.14 ± 0.29 pp  uncounted honest slots, % of occupied: depth 1 0.75, 2 0.52, >=3 5.30; coalition share of the chain 0.373; n=20
+  fork point W=48                        D^/D 0.9698  gap to W=12 +11.90 ± 0.30 pp  uncounted honest slots, % of occupied: depth 1 0.18, 2 0.11, >=3 2.19; coalition share of the chain 0.366; n=20
+  fork point W=96                        D^/D 0.9910  gap to W=12 +14.02 ± 0.39 pp  uncounted honest slots, % of occupied: depth 1 0.08, 2 0.04, >=3 0.40; coalition share of the chain 0.365; n=20
+  fork point W=144                       D^/D 0.9948  gap to W=12 +14.40 ± 0.43 pp  uncounted honest slots, % of occupied: depth 1 0.06, 2 0.03, >=3 0.16; coalition share of the chain 0.362; n=20
+  fork point W=240                       D^/D 0.9949  gap to W=12 +14.42 ± 0.43 pp  uncounted honest slots, % of occupied: depth 1 0.06, 2 0.03, >=3 0.11; coalition share of the chain 0.362; n=20
+  own slot W=12                          D^/D 0.9280  gap to W=12 +7.72 ± 0.27 pp  uncounted honest slots, % of occupied: depth 1 1.67, 2 0.88, >=3 3.04; coalition share of the chain 0.366; n=20
+  own slot W=24                          D^/D 0.9670  gap to W=12 +11.62 ± 0.32 pp  uncounted honest slots, % of occupied: depth 1 0.60, 2 0.32, >=3 1.44; coalition share of the chain 0.367; n=20
