@@ -1,0 +1,10 @@
+last 7 days
+  W =  12: no condition 0.624 | p = 0.9: whole branch 0.622, branch or referenced 0.622, X only 0.623 | p = 0.7: whole branch 0.617, branch or referenced 0.617, X only 0.620 | p = 0.5: whole branch 0.612, branch or referenced 0.613, X only 0.616
+  W =  96: no condition 0.827 | p = 0.9: whole branch 0.818, branch or referenced 0.824, X only 0.826 | p = 0.7: whole branch 0.792, branch or referenced 0.814, X only 0.824 | p = 0.5: whole branch 0.764, branch or referenced 0.800, X only 0.820
+  W = 144: no condition 0.884 | p = 0.9: whole branch 0.873, branch or referenced 0.882, X only 0.883 | p = 0.7: whole branch 0.837, branch or referenced 0.875, X only 0.882 | p = 0.5: whole branch 0.797, branch or referenced 0.861, X only 0.879
+  W = 240: no condition 0.936 | p = 0.9: whole branch 0.925, branch or referenced 0.934, X only 0.936 | p = 0.7: whole branch 0.879, branch or referenced 0.928, X only 0.935 | p = 0.5: whole branch 0.829, branch or referenced 0.916, X only 0.933
+7-14 days ago
+  W =  12: no condition 0.693 | p = 0.9: whole branch 0.691, branch or referenced 0.691, X only 0.692 | p = 0.7: whole branch 0.687, branch or referenced 0.687, X only 0.689 | p = 0.5: whole branch 0.682, branch or referenced 0.683, X only 0.686
+  W =  96: no condition 0.854 | p = 0.9: whole branch 0.852, branch or referenced 0.853, X only 0.854 | p = 0.7: whole branch 0.843, branch or referenced 0.849, X only 0.852 | p = 0.5: whole branch 0.833, branch or referenced 0.842, X only 0.849
+  W = 144: no condition 0.870 | p = 0.9: whole branch 0.868, branch or referenced 0.869, X only 0.869 | p = 0.7: whole branch 0.860, branch or referenced 0.865, X only 0.867 | p = 0.5: whole branch 0.849, branch or referenced 0.860, X only 0.865
+  W = 240: no condition 0.895 | p = 0.9: whole branch 0.888, branch or referenced 0.893, X only 0.894 | p = 0.7: whole branch 0.878, branch or referenced 0.889, X only 0.893 | p = 0.5: whole branch 0.866, branch or referenced 0.882, X only 0.890
